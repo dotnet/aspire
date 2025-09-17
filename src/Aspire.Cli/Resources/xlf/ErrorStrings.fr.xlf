@@ -42,6 +42,11 @@
         <target state="translated">Les certificats de développeur ne sont peut-être pas entièrement approuvés (le code de sortie d’approbation était : {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">Clé de configuration {0} introuvable.</target>

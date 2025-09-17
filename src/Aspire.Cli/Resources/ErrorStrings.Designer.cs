@@ -322,5 +322,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SingleFileAppHostFeatureNotEnabled", resourceCulture);
             }
         }
+        public static string CommandNotSupportedWithSingleFileAppHost
+        {
+            get
+            {
+                return ResourceManager.GetString("CommandNotSupportedWithSingleFileAppHost", resourceCulture);
+            }
+        }
     }
 }

@@ -223,4 +223,7 @@
   <data name="SingleFileAppHostFeatureNotEnabled" xml:space="preserve">
     <value>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</value>
   </data>
+  <data name="CommandNotSupportedWithSingleFileAppHost" xml:space="preserve">
+    <value>This command is not yet supported with single file AppHosts.</value>
+  </data>
 </root>

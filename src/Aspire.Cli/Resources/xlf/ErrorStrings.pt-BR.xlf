@@ -42,6 +42,11 @@
         <target state="translated">Os certificados de desenvolvedor podem não ser totalmente confiáveis (o código de saída de confiança era: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">Chave de configuração {0} não encontrada.</target>

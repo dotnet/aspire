@@ -137,6 +137,12 @@ internal class ExecCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
+            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
+                return ExitCodeConstants.SingleFileAppHostNotSupported;
+            }
+
             var env = new Dictionary<string, string>();
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");

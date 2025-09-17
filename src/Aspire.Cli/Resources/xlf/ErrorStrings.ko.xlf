@@ -42,6 +42,11 @@
         <target state="translated">개발자 인증서를 완전히 신뢰할 수 없습니다(신뢰 종료 코드: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">구성 키 {0}을(를) 찾을 수 없습니다.</target>
