@@ -98,6 +98,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
                 filter: id => id.Equals(packageId, StringComparison.OrdinalIgnoreCase),
                 prerelease: false,
                 nugetConfigFile: tempNuGetConfig?.ConfigFile,
+                useCache: true, // Enable caching for package channel resolution
                 cancellationToken: cancellationToken));
         }
 
@@ -109,6 +110,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
                 filter: id => id.Equals(packageId, StringComparison.OrdinalIgnoreCase),
                 prerelease: true,
                 nugetConfigFile: tempNuGetConfig?.ConfigFile,
+                useCache: true, // Enable caching for package channel resolution
                 cancellationToken: cancellationToken));
         }
 
@@ -129,6 +131,7 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
                 filter: id => id.Equals(packageId, StringComparison.OrdinalIgnoreCase),
                 prerelease: true,
                 nugetConfigFile: tempNuGetConfig?.ConfigFile,
+                useCache: true, // Enable caching for package channel resolution
                 cancellationToken: cancellationToken);
 
             return packages;

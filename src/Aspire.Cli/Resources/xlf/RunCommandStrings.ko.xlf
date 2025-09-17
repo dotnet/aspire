@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
         <source>Connecting to apphost...</source>
-        <target state="new">Connecting to apphost...</target>
+        <target state="translated">apphost에 연결하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Run an Aspire apphost in development mode.</source>
-        <target state="new">Run an Aspire apphost in development mode.</target>
+        <target state="translated">개발 모드에서 Aspire 앱호스트를 실행합니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost 프로젝트 파일의 경로입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="StartingAppHost">
         <source>Starting Aspire apphost...</source>
-        <target state="new">Starting Aspire apphost...</target>
+        <target state="translated">Aspire apphost를 시작하는 중...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">

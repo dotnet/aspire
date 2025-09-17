@@ -22,6 +22,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Caching;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -85,6 +86,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+        services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -97,6 +99,7 @@ internal static class CliTestHelper
         services.AddTransient<DeployCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
+        services.AddTransient<CacheCommand>();
         services.AddTransient<UpdateCommand>();
         services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
@@ -122,7 +125,8 @@ internal sealed class CliServiceCollectionTestOptions
     private CliExecutionContext CreateDefaultCliExecutionContextFactory(IServiceProvider provider)
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory);
+        var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -240,9 +244,10 @@ internal sealed class CliServiceCollectionTestOptions
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
 
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext);
+    return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -305,6 +310,8 @@ internal sealed class CliServiceCollectionTestOptions
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
         return new PackagingService(executionContext, nuGetPackageCache);
     };
+
+    public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();
 }
 
 internal sealed class TestOutputTextWriter : TextWriter
