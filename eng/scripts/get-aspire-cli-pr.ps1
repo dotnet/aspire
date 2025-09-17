@@ -703,6 +703,8 @@ function Get-PRHeadSHA {
 }
 
 # Function to compute version suffix from commit SHA
+# NOTE: This should be kept in sync with the version suffix computation in .github/workflows/ci.yml
+# which uses the same format: pr.{PR_NUMBER}.{first_8_chars_of_SHA}
 function Get-VersionSuffix {
     [CmdletBinding()]
     param(
