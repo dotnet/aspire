@@ -80,15 +80,6 @@ public class StructuredLogsViewModel
         if (logs == null)
         {
             var filters = GetFilters();
-            if (!string.IsNullOrWhiteSpace(FilterText))
-            {
-                filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Message), Condition = FilterCondition.Contains, Value = FilterText });
-            }
-            // If the log level is set and it is not the bottom level, which has no effect, then add a filter.
-            if (_logLevel != null && _logLevel != Microsoft.Extensions.Logging.LogLevel.Trace)
-            {
-                filters.Add(new FieldTelemetryFilter { Field = nameof(OtlpLogEntry.Severity), Condition = FilterCondition.GreaterThanOrEqual, Value = _logLevel.Value.ToString() });
-            }
 
             logs = _telemetryRepository.GetLogs(new GetLogsContext
             {
