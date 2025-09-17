@@ -77,6 +77,25 @@
           ]
         }
       ]
+    },
+    {
+      "source": "./9.6",
+      "target": "./",
+      "condition": "AspireVersionActual == 9.6",
+      "modifiers": [
+        {
+          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
+          "exclude": [
+            "*.sln"
+          ]
+        },
+        {
+          "condition": "(TestFx == None)",
+          "exclude": [
+            "Aspire-StarterApplication.1.Tests/**/*.*"
+          ]
+        }
+      ]
     }
   ],
   "symbols": {
@@ -108,6 +127,11 @@
       "datatype": "choice",
       "choices": [
         {
+          "choice": "9.6",
+          "displayName": "9.6",
+          "description": "Chooses Aspire 9.6"
+        },
+        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
@@ -118,7 +142,7 @@
           "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.5"
+      "defaultValue": "9.6"
     },
     "AspireVersion": {
       "type": "parameter",
@@ -128,6 +152,11 @@
       "isEnabled": "Framework == net8.0",
       "choices": [
         {
+          "choice": "9.6",
+          "displayName": "9.6",
+          "description": "Chooses Aspire 9.6"
+        },
+        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
@@ -138,7 +167,7 @@
           "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.5"
+      "defaultValue": "9.6"
     },
     "AspireVersionNet9": {
       "type": "parameter",
@@ -148,6 +177,11 @@
       "isEnabled": "Framework == net9.0",
       "choices": [
         {
+          "choice": "9.6",
+          "displayName": "9.6",
+          "description": "Chooses Aspire 9.6"
+        },
+        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
@@ -158,7 +192,7 @@
           "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.5"
+      "defaultValue": "9.6"
     },
     "AspireVersionNet10": {
       "type": "parameter",
@@ -168,6 +202,11 @@
       "isEnabled": "Framework == net10.0",
       "choices": [
         {
+          "choice": "9.6",
+          "displayName": "9.6",
+          "description": "Chooses Aspire 9.6"
+        },
+        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
@@ -178,7 +217,7 @@
           "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.5"
+      "defaultValue": "9.6"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -199,8 +238,28 @@
             "value": "9.4"
           },
           {
-            "condition": "",
+            "condition": "AspireVersionNet10 == 9.4",
+            "value": "9.4"
+          },
+          {
+            "condition": "AspireVersionCli == 9.5",
             "value": "9.5"
+          },
+          {
+            "condition": "AspireVersion == 9.5",
+            "value": "9.5"
+          },
+          {
+            "condition": "AspireVersionNet9 == 9.5",
+            "value": "9.5"
+          },
+          {
+            "condition": "AspireVersionNet10 == 9.5",
+            "value": "9.5"
+          },
+          {
+            "condition": "",
+            "value": "9.6"
           }
         ]
       }
