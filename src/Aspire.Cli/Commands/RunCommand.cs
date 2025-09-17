@@ -169,8 +169,6 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
-
             if (isSingleFileAppHost)
             {
                 // TODO: Add logic to read SDK version from *.cs file.
