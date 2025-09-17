@@ -437,6 +437,65 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Single(connection3.GetServers().Single().Keys());
     }
 
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [RequiresDocker]
+    public async Task AutoActivationCanSet(bool useKeyed, bool autoActivate)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        PopulateConfiguration(builder.Configuration);
+
+        void EnableAutoActivation(StackExchangeRedisSettings settings) => settings.DisableAutoActivation = !autoActivate;
+
+        if (useKeyed)
+        {
+            builder.AddKeyedRedisClient("redis", EnableAutoActivation);
+        }
+        else
+        {
+            builder.AddRedisClient("redis", EnableAutoActivation);
+        }
+
+        var connectionActivated = false;
+        builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(useKeyed ? "redis" : null, (sp, key) =>
+        {
+            connectionActivated = true;
+            return ConnectionMultiplexer.Connect(ConnectionString);
+        });
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // When auto activation is enabled, the service should be registered and activated
+        Assert.Equal(autoActivate, connectionActivated);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task AutoActivationDisabledByDefault()
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        PopulateConfiguration(builder.Configuration);
+
+        builder.AddRedisClient("redis");
+
+        var connectionActivated = false;
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            connectionActivated = true;
+            return ConnectionMultiplexer.Connect(ConnectionString);
+        });
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // When auto activation is disabled, the service should not be activated
+        Assert.False(connectionActivated);
+    }
+
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
         configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>(ConformanceTests.CreateConfigKey("Aspire:StackExchange:Redis", key, "ConnectionString"), ConnectionString)
