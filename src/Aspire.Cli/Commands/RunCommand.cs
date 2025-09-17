@@ -124,7 +124,7 @@ internal sealed class RunCommand : BaseCommand
             // Validate that single file AppHost feature is enabled if we detected a .cs file
             if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
             {
-                _interactionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
+                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
                 return ExitCodeConstants.FailedToFindProject;
             }
 
@@ -155,12 +155,12 @@ internal sealed class RunCommand : BaseCommand
                 if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
                     || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
                 {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
                     if (buildExitCode != 0)
                     {
-                        _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                        _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                         return ExitCodeConstants.FailedToBuildArtifacts;
                     }
                 }
