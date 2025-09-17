@@ -98,7 +98,7 @@ jobs:
         with:
           name: build_packages_logs
           path: artifacts/log
-          retention-days: 15
+          retention-days: 5
 
   upload_arch_specific_nugets:
     name: Upload arch-specific NuGets
