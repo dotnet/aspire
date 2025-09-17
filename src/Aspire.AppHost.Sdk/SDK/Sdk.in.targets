@@ -56,6 +56,7 @@
       <PublishAot>false</PublishAot>
       <PublishTrimmed>false</PublishTrimmed>
       <EnableAotAnalyzer>false</EnableAotAnalyzer>
+      <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
     </PropertyGroup>
     <ItemGroup>
       <ProjectCapability Remove="NativeAOT;PublishAot;PublishTrimmed" />
