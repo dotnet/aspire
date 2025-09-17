@@ -54,7 +54,7 @@
   <Target Name="DisablePublishAotForAspireHost" BeforeTargets="_ComputeToolPackInputsToProcessFrameworkReferences;_CollectTargetFrameworkForTelemetry;ProcessFrameworkReferences;Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' and '$(DisableAspirePublishAotDefaults)' != 'true'">
     <PropertyGroup>
       <PublishAot>false</PublishAot>
-      <PublishTimmed>false</PublishTimmed>
+      <PublishTrimmed>false</PublishTrimmed>
       <EnableAotAnalyzer>false</EnableAotAnalyzer>
     </PropertyGroup>
     <ItemGroup>
