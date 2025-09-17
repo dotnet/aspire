@@ -272,15 +272,15 @@ aspire update
 🔍 Scanning for outdated Aspire packages...
 
 Found 3 packages to update:
-  ✨ Aspire.Hosting → 9.5.0 (was 9.4.1)
-  ✨ Aspire.Hosting.Redis → 9.5.0 (was 9.4.1)  
-  ✨ Aspire.Microsoft.Extensions.Configuration → 9.5.0 (was 9.4.1)
+  ✨ Aspire.Hosting → 9.6.0 (was 9.5.1)
+  ✨ Aspire.Hosting.Redis → 9.6.0 (was 9.5.1)  
+  ✨ Aspire.Microsoft.Extensions.Configuration → 9.6.0 (was 9.5.1)
 
 📦 Updating packages...
   ✅ Updated 3 packages successfully
   ⚠️  Review breaking changes in release notes
 
-🎉 Update completed! Your project is now using Aspire 9.5.0
+🎉 Update completed! Your project is now using Aspire 9.6.0
 ```
 
 > [!IMPORTANT]

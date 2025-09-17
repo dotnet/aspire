@@ -89,7 +89,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0", Source = "nuget.org" },
 
                     // Should be ignored because its prerelease but in a higher version family.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" }, 
                 ]);
 
                 return cache;
@@ -141,10 +141,10 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
                     // Should be ignored because its stable in a higher version family.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0", Source = "nuget.org" }, 
 
                     // Should be ignored because its prerelease but in a (even) higher version family.
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.7.0-preview", Source = "nuget.org" }, 
                 ]);
 
                 return cache;
@@ -179,7 +179,7 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
         notifier.NotifyIfUpdateAvailable();
         var suggestedVersion = await suggestedVersionTcs.Task.WaitAsync(CliTestConstants.DefaultTimeout);
 
-        Assert.Equal("9.5.0", suggestedVersion);
+        Assert.Equal("9.6.0", suggestedVersion);
     }
 
     [Fact]
@@ -194,8 +194,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
             {
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.4.0-preview", Source = "nuget.org" }, 
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" }, 
                 ]);
 
                 return cache;
