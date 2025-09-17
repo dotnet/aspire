@@ -5,6 +5,8 @@
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
     <IsAspireHost>true</IsAspireHost>
     <PublishAot>false</PublishAot>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <_ImportMicrosoftNETSdkFromAspireSdk>false</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
 

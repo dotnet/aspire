@@ -51,10 +51,15 @@
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
 
-  <Target Name="DisablePublishAotForAspireHost" BeforeTargets="ProcessFrameworkReferences;Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' and '$(DisableAspirePublishAotDefaults)' != 'true'">
+  <Target Name="DisablePublishAotForAspireHost" BeforeTargets="_ComputeToolPackInputsToProcessFrameworkReferences;_CollectTargetFrameworkForTelemetry;ProcessFrameworkReferences;Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' and '$(DisableAspirePublishAotDefaults)' != 'true'">
     <PropertyGroup>
       <PublishAot>false</PublishAot>
+      <PublishTimmed>false</PublishTimmed>
+      <EnableAotAnalyzer>false</EnableAotAnalyzer>
     </PropertyGroup>
+    <ItemGroup>
+      <ProjectCapability Remove="NativeAOT;PublishAot;PublishTrimmed" />
+    </ItemGroup>
   </Target>
 
   <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' And '$(SkipAddAspireDefaultReferences)' != 'true'">
