@@ -18,6 +18,7 @@
     <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
+    <PublishAot Condition="'$(DisableAspirePublishAotDefaults)' != 'true'">false</PublishAot>
   </PropertyGroup>
 
   <!--
