@@ -57,6 +57,7 @@
       <PublishTrimmed>false</PublishTrimmed>
       <EnableAotAnalyzer>false</EnableAotAnalyzer>
       <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+      <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
     </PropertyGroup>
     <ItemGroup>
       <ProjectCapability Remove="NativeAOT;PublishAot;PublishTrimmed" />
