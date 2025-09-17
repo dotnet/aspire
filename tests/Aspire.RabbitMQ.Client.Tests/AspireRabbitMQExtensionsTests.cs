@@ -193,44 +193,49 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AutoActivationCanBeDisabled(bool useKeyed)
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [RequiresDocker]
+    public async Task AutoActivationCanSet(bool useKeyed, bool autoActivate)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
             new KeyValuePair<string, string?>("ConnectionStrings:messaging", _containerFixture.GetConnectionString())
         ]);
 
-        static void DisableAutoActivation(RabbitMQClientSettings settings) => settings.DisableAutoActivation = true;
+        void EnableAutoActivation(RabbitMQClientSettings settings) => settings.DisableAutoActivation = !autoActivate;
 
         if (useKeyed)
         {
-            builder.AddKeyedRabbitMQClient("messaging", DisableAutoActivation);
+            builder.AddKeyedRabbitMQClient("messaging", EnableAutoActivation);
         }
         else
         {
-            builder.AddRabbitMQClient("messaging", DisableAutoActivation);
+            builder.AddRabbitMQClient("messaging", EnableAutoActivation);
         }
+
+        var connection = builder.Services.BuildServiceProvider()
+            .GetRequiredKeyedService<IConnection>(useKeyed ? "messaging" : null);
+
+        var connectionActivated = false;
+        builder.Services.AddKeyedSingleton<IConnection>(useKeyed ? "messaging" : null, (sp, key) =>
+        {
+            connectionActivated = true;
+            return connection;
+        });
 
         using var host = builder.Build();
+        await host.StartAsync();
 
-        // When auto activation is disabled, the service should be registered but not activated  
-        var services = host.Services;
-        
-        // Check that the service is registered in the service collection
-        if (useKeyed)
-        {
-            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey?.Equals("messaging") == true);
-        }
-        else
-        {
-            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey is null);
-        }
+        // When auto activation is enabled, the service should be registered and activated
+        Assert.Equal(autoActivate, connectionActivated);
     }
 
     [Fact]
-    public void AutoActivationEnabledByDefault()
+    [RequiresDocker]
+    public async Task AutoActivationDisabledByDefault()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         builder.Configuration.AddInMemoryCollection([
@@ -239,13 +244,21 @@ public class AspireRabbitMQExtensionsTests : IClassFixture<RabbitMQContainerFixt
 
         builder.AddRabbitMQClient("messaging");
 
-        using var host = builder.Build();
+        var connection = builder.Services.BuildServiceProvider()
+            .GetRequiredService<IConnection>();
 
-        // When auto activation is enabled (default), the service should be registered and activated
-        var services = host.Services;
-        
-        // Check that the service is registered in the service collection
-        Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnection) && d.ServiceKey is null);
+        var connectionActivated = false;
+        builder.Services.AddSingleton<IConnection>(sp =>
+        {
+            connectionActivated = true;
+            return connection;
+        });
+
+        using var host = builder.Build();
+        await host.StartAsync();
+
+        // When auto activation is disabled, the service should not be activated
+        Assert.False(connectionActivated);
     }
 
     private static void AssertEquals(string expectedUri, AmqpTcpEndpoint endpoint)
