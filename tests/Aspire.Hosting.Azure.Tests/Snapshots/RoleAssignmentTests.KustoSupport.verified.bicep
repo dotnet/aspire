@@ -9,22 +9,32 @@ resource kusto 'Microsoft.Kusto/clusters@2024-04-13' existing = {
   name: kusto_outputs_name
 }
 
-resource kusto_acdd72a7_3385_48ef_bd42_f606fba81ae7 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kusto.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'Reader'))
-  properties: {
-    principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'Reader')
-    principalType: 'ServicePrincipal'
-  }
-  scope: kusto
+resource db1 'Microsoft.Kusto/clusters/databases@2024-04-13' existing = {
+  name: 'db1'
+  parent: kusto
 }
 
-resource kusto_b24988ac_6180_42a0_ab88_20f7382dd24c 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(kusto.id, principalId, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'Contributor'))
+resource db1_user 'Microsoft.Kusto/clusters/databases/principalAssignments@2024-04-13' = {
+  name: guid(db1.id, principalId, 'User')
   properties: {
     principalId: principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'Contributor')
-    principalType: 'ServicePrincipal'
+    principalType: 'App'
+    role: 'User'
   }
-  scope: kusto
+  parent: db1
+}
+
+resource db2 'Microsoft.Kusto/clusters/databases@2024-04-13' existing = {
+  name: 'db2'
+  parent: kusto
+}
+
+resource db2_user 'Microsoft.Kusto/clusters/databases/principalAssignments@2024-04-13' = {
+  name: guid(db2.id, principalId, 'User')
+  properties: {
+    principalId: principalId
+    principalType: 'App'
+    role: 'User'
+  }
+  parent: db2
 }

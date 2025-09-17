@@ -4,6 +4,9 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
+using Azure.Provisioning.Authorization;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Kusto;
 using Azure.Provisioning.Primitives;
 
@@ -91,5 +94,43 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
 
         infra.Add(cluster);
         return cluster;
+    }
+
+    /// <inheritdoc/>
+    public override void AddRoleAssignments(IAddRoleAssignmentsContext roleAssignmentContext)
+    {
+        var infra = roleAssignmentContext.Infrastructure;
+        var kusto = (KustoCluster)AddAsExistingResource(infra);
+
+        var principalId = roleAssignmentContext.PrincipalId;
+        var principalType = roleAssignmentContext.PrincipalType;
+
+        foreach (var db in Databases)
+        {
+            var kustoDb = KustoReadWriteDatabase.FromExisting(Infrastructure.NormalizeBicepIdentifier(db.Name));
+            kustoDb.Parent = kusto;
+            kustoDb.Name = db.DatabaseName;
+            infra.Add(kustoDb);
+
+            infra.Add(new KustoDatabasePrincipalAssignment($"{kustoDb.BicepIdentifier}_user")
+            {
+                Name = BicepFunction.CreateGuid(kustoDb.Id, principalId, "User"),
+                Parent = kustoDb,
+                DatabasePrincipalId = principalId,
+                Role = KustoDatabasePrincipalRole.User,
+                PrincipalType = GetKustoPrincipalType(principalType)
+            });
+        }
+    }
+
+    private static BicepValue<KustoPrincipalAssignmentType> GetKustoPrincipalType(BicepValue<RoleManagementPrincipalType> principalType)
+    {
+        return principalType.Value switch
+        {
+            RoleManagementPrincipalType.User => KustoPrincipalAssignmentType.User,
+            RoleManagementPrincipalType.Group => KustoPrincipalAssignmentType.Group,
+            RoleManagementPrincipalType.ServicePrincipal => KustoPrincipalAssignmentType.App,
+            _ => throw new InvalidOperationException($"Unsupported principal type: {principalType}")
+        };
     }
 }

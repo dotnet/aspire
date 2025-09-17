@@ -13,18 +13,24 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 internal sealed class AzureKustoHealthCheck : IHealthCheck
 {
-    private readonly KustoConnectionStringBuilder _kcsb;
+    private readonly KustoConnectionStringBuilder? _kcsb;
 
-    public AzureKustoHealthCheck(KustoConnectionStringBuilder connectionStringBuilder)
+    public AzureKustoHealthCheck(KustoConnectionStringBuilder? connectionStringBuilder)
     {
-        ArgumentNullException.ThrowIfNull(connectionStringBuilder);
-
         _kcsb = connectionStringBuilder;
     }
 
     /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken)
     {
+        if (_kcsb is null)
+        {
+            // No Kusto connection string builder was provided, so skip the check.
+            // HACK: The delay is to simulate some async work since the resource is Unhealthy to start otherwise.
+            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
+            return HealthCheckResult.Healthy();
+        }
+
         try
         {
             const string query = "print message = \"Hello, World!\"";

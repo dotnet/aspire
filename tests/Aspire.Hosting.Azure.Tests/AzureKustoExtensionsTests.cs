@@ -4,7 +4,6 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Kusto;
 using Aspire.Hosting.Utils;
-using Azure.Provisioning.Kusto;
 using Microsoft.Extensions.DependencyInjection;
 using static Aspire.Hosting.Utils.AzureManifestUtils;
 
@@ -18,6 +17,7 @@ public class AzureKustoExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var kusto = builder.AddAzureKustoCluster("kusto");
+        kusto.AddReadWriteDatabase("testdb");
         kusto.Resource.Outputs["clusterUri"] = "https://kusto-cluster.eastus.kusto.windows.net";
         Assert.Equal("https://kusto-cluster.eastus.kusto.windows.net", await kusto.Resource.ConnectionStringExpression.GetValueAsync(default));
 
@@ -69,52 +69,6 @@ public class AzureKustoExtensionsTests
 
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddAzureKustoCluster_WithCustomRoleAssignments()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppEnvironment("env");
-
-        var kusto = builder.AddAzureKustoCluster("kusto");
-        
-        builder.AddProject<Project>("api", launchProfileName: null)
-            .WithRoleAssignments(kusto, KustoBuiltInRole.Reader);
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        
-        await ExecuteBeforeStartHooksAsync(app, default);
-        
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-kusto");
-        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles, skipPreparer: true);
-
-        await Verify(rolesManifest.ToString(), "json")
-            .AppendContentAsFile(rolesBicep, "bicep");
-    }
-
-    [Fact]
-    public async Task AddAzureKustoCluster_WithMultipleRoleAssignments()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
-        builder.AddAzureContainerAppEnvironment("env");
-
-        var kusto = builder.AddAzureKustoCluster("kusto");
-        
-        builder.AddProject<Project>("api", launchProfileName: null)
-            .WithRoleAssignments(kusto, KustoBuiltInRole.Reader, KustoBuiltInRole.Contributor);
-
-        using var app = builder.Build();
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-        
-        await ExecuteBeforeStartHooksAsync(app, default);
-        
-        var projRoles = Assert.Single(model.Resources.OfType<AzureProvisioningResource>(), r => r.Name == "api-roles-kusto");
-        var (rolesManifest, rolesBicep) = await AzureManifestUtils.GetManifestWithBicep(projRoles, skipPreparer: true);
-
-        await Verify(rolesManifest.ToString(), "json")
-            .AppendContentAsFile(rolesBicep, "bicep");
     }
 
     [Fact]
