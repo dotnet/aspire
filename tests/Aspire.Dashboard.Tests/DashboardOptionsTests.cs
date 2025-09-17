@@ -1,9 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Claims;
+using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
 
 namespace Aspire.Dashboard.Tests;
 
@@ -273,6 +279,32 @@ public sealed class DashboardOptionsTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("OpenID Connect claim type for username not configured. Specify a Dashboard:Frontend:OpenIdConnect:UsernameClaimType value.", result.FailureMessage);
+    }
+
+    [Fact]
+    public void OpenIdConnectOptions_ClaimActions_MapJsonKey()
+    {
+        var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("Dashboard:Frontend:AuthMode", "OpenIdConnect"),
+            new("Dashboard__Frontend__OpenIdConnect__ClaimActions", "MapJsonKey:role:role"),
+            new("Dashboard__Frontend__OpenIdConnect__RequiredClaimType", "role")
+        ]));
+        var openIdConnectAuthOptions = app.Services.GetService<IOptions<OpenIdConnectOptions>>()?.Value;
+        Assert.NotNull(openIdConnectAuthOptions);
+        Assert.NotEmpty(openIdConnectAuthOptions.ClaimActions);
+        var claimAction = openIdConnectAuthOptions.ClaimActions.Last();
+        Assert.Equal("role", claimAction.ClaimType);
+        var jsonElement = JsonDocument.Parse("""
+                           {
+                             "role": ["admin", "test"]
+                           }
+                           """).RootElement.Clone();
+        var claimIdentity = new ClaimsIdentity();
+        claimAction.Run(jsonElement, claimIdentity, "test");
+        Assert.Equal(2, claimIdentity.Claims.Count());
+        Assert.True(claimIdentity.HasClaim("role", "admin"));
+        Assert.True(claimIdentity.HasClaim("role", "test"));
     }
 
     #endregion
