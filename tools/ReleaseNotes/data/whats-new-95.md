@@ -41,16 +41,19 @@ ms.date: 08/21/2025
   - [OpenAI hosting integration](#openai-hosting-integration)
   - [GitHub Models typed catalog](#github-models-typed-catalog)
   - [Dev Tunnels hosting integration](#dev-tunnels-hosting-integration)
+  - [YARP static files support](#yarp-static-files-support)
+  - [Redis and RabbitMQ auto activation](#redis-and-rabbitmq-auto-activation)
+  - [Redis client builder pattern](#redis-client-builder-pattern)
 - [App model enhancements](#app-model-enhancements)
-  - [Telemetry configuration APIs](#telemetry-configuration-apis)
-  - [Resource waiting patterns](#resource-waiting-patterns)
+  - [Resource lifecycle events](#resource-lifecycle-events)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
 - [API changes and enhancements](#api-changes-and-enhancements)
   - [OTLP telemetry protocol selection](#otlp-telemetry-protocol-selection)
+  - [Deployment image tag callbacks](#deployment-image-tag-callbacks)
+  - [HTTP health probes for resources](#http-health-probes-for-resources)
   - [Resource waiting patterns & ExternalService changes](#enhanced-resource-waiting-patterns)
   - [Resource lifetime enhancements](#enhanced-resource-lifetime-support)
   - [InteractionInput API updates](#interactioninput-api-improvements)
-  - [Custom resource icons](#resource-icon-customization)
   - [MySQL password improvements](#mysql-password-improvements)
   - [Resource lifecycle event APIs](#resource-lifecycle-event-apis)
   - [Executable resource configuration APIs](#executable-resource-configuration-apis)
@@ -731,61 +734,305 @@ var mobileTunnel = builder.AddDevTunnel("mobile-tunnel")
 
 The Dev Tunnels integration automatically handles Azure authentication, tunnel lifecycle management, and provides public or private URLs (depending on configuration) to connected resources, making it easy to expose local development services securely to external consumers.
 
+### YARP static files support
+
+Aspire 9.5 adds comprehensive static file serving capabilities to the YARP integration, enabling you to serve static assets directly from YARP alongside reverse proxy functionality. This is perfect for single-page applications, frontend assets, and hybrid scenarios where you need both static content and API proxying.
+
+#### Static files features
+
+- **Direct static file serving**: Serve HTML, CSS, JS, and other static assets from YARP
+- **Flexible source options**: Bind mount local directories or use Docker multi-stage builds
+- **Automatic configuration**: Simple API enables static files with minimal setup
+- **Production ready**: Works in both development and publish scenarios
+
+#### Basic static files usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Enable static file serving (serves from wwwroot folder)
+var yarp = builder.AddYarp("gateway")
+    .WithStaticFiles();
+
+builder.Build().Run();
+```
+
+#### Bind mount local directory
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Serve static files from local directory
+var yarp = builder.AddYarp("static-gateway")
+    .WithStaticFiles("./static-content")
+    .WithConfiguration(gateway =>
+    {
+        // Add API routes alongside static files
+        gateway.AddRoute("/api/{**catch-all}", backendService)
+               .WithTransformPathRemovePrefix("/api");
+    });
+
+builder.Build().Run();
+```
+
+#### Docker multi-stage build scenario
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Use Dockerfile to build and copy static assets
+var frontend = builder.AddYarp("frontend")
+    .WithStaticFiles()
+    .WithDockerFile("../react-app");
+
+builder.Build().Run();
+```
+
+**Example Dockerfile for React app:**
+
+```dockerfile
+# Stage 1: Build React app
+FROM node:20 AS builder
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build
+
+# Stage 2: Copy static files to YARP container
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
+WORKDIR /app
+COPY --from=builder /app/dist ./wwwroot
+```
+
+#### Hybrid static + API gateway
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var backendApi = builder.AddProject<Projects.Api>("api");
+var authService = builder.AddProject<Projects.Auth>("auth");
+
+// YARP serves static files AND proxies API requests
+var gateway = builder.AddYarp("app-gateway")
+    .WithStaticFiles("./frontend/dist")
+    .WithConfiguration(yarp =>
+    {
+        // API routes
+        yarp.AddRoute("/api/{**catch-all}", backendApi)
+            .WithTransformPathRemovePrefix("/api");
+            
+        // Auth routes
+        yarp.AddRoute("/auth/{**catch-all}", authService)
+            .WithTransformPathRemovePrefix("/auth");
+            
+        // Static files are served for all other routes
+    });
+
+builder.Build().Run();
+```
+
+This feature enables modern web application architectures where YARP acts as both a reverse proxy for backend services and a static file server for frontend assets, providing a unified entry point for your distributed application.
+
+### Redis and RabbitMQ auto activation
+
+Redis and RabbitMQ connections now support auto activation to prevent startup deadlocks and improve application reliability.
+
+#### Auto activation features
+
+- **Eliminates blocking threads**: Connections are established proactively at startup rather than on first use
+- **Prevents startup deadlocks**: Avoids synchronous connection establishment in dependency injection scenarios
+- **Improves reliability**: Reduces first-request latency by pre-establishing connections
+- **Configurable behavior**: Can be enabled or disabled per connection as needed
+
+#### Redis auto activation
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Auto activation enabled by default for Redis
+var redis = builder.AddRedis("cache");
+
+// Use in applications - connection is already established
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+#### RabbitMQ auto activation configuration
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var rabbitmq = builder.AddRabbitMQ("messaging", settings =>
+{
+    // Enable auto activation (opt-in for RabbitMQ)
+    settings.DisableAutoActivation = false;
+});
+
+// Connection established at startup, not on first use
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithReference(rabbitmq);
+
+builder.Build().Run();
+```
+
+### Redis client builder pattern
+
+Aspire 9.5 introduces a new Redis client builder pattern that provides a fluent, type-safe approach to configuring Redis clients with integrated support for distributed caching, output caching, and Azure authentication.
+
+#### Redis client builder features
+
+- **Fluent configuration**: Chain multiple Redis features like distributed caching, output caching, and Azure authentication
+- **Type-safe builders**: `AspireRedisClientBuilder` provides compile-time safety and IntelliSense
+- **Integrated Azure authentication**: Seamless Azure AD/Entra ID authentication with `WithAzureAuthentication`
+- **Service composition**: Build complex Redis configurations with multiple features in a single call chain
+
+#### Basic Redis client builder usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var redis = builder.AddRedis("cache");
+
+// Use the new client builder pattern for enhanced configuration
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redis);
+
+// In the API project, use the new builder APIs
+var appBuilder = Host.CreateDefaultBuilder(args);
+
+// Add Redis client with builder pattern
+var redisBuilder = appBuilder.AddRedisClientBuilder("cache")
+    .WithDistributedCache()
+    .WithOutputCache();
+
+appBuilder.Build().Run();
+```
+
+#### Azure authentication integration
+
+```csharp
+// Configure Redis with Azure authentication
+var appBuilder = Host.CreateDefaultBuilder(args);
+
+var redisBuilder = appBuilder.AddRedisClientBuilder("azure-redis")
+    .WithAzureAuthentication()  // Uses default Azure credentials
+    .WithDistributedCache(options => 
+    {
+        options.InstanceName = "MyApp";
+    });
+
+// Or with custom credentials
+var credential = new DefaultAzureCredential();
+var redisBuilder = appBuilder.AddRedisClientBuilder("azure-redis")
+    .WithAzureAuthentication(credential)
+    .WithOutputCache();
+
+appBuilder.Build().Run();
+```
+
+#### Advanced Redis builder patterns
+
+```csharp
+// Multiple Redis instances with different configurations
+var appBuilder = Host.CreateDefaultBuilder(args);
+
+// Cache-focused Redis instance
+appBuilder.AddRedisClientBuilder("cache")
+    .WithDistributedCache(options => 
+    {
+        options.InstanceName = "MainCache";
+        options.DefaultSlidingExpiration = TimeSpan.FromMinutes(30);
+    });
+
+// Output cache Redis instance with Azure authentication
+appBuilder.AddKeyedRedisClientBuilder("output-cache")
+    .WithAzureAuthentication()
+    .WithOutputCache();
+
+// Session Redis instance
+appBuilder.AddKeyedRedisClientBuilder("sessions") 
+    .WithDistributedCache(options =>
+    {
+        options.InstanceName = "Sessions";
+    });
+
+appBuilder.Build().Run();
+```
+
 ## App model enhancements
 
-### Telemetry configuration APIs
+### Resource lifecycle events
 
-Enhanced OTLP telemetry configuration with protocol selection:
+Aspire 9.5 introduces new resource lifecycle event APIs that allow you to register callbacks for when resources stop, providing better control over cleanup and coordination during application shutdown.
+
+#### Resource stopped events
+
+The new `OnResourceStopped` extension method allows you to register callbacks that execute when a resource enters the stopped state:
 
 ```csharp
-// New OtlpProtocol enum with Grpc and HttpProtobuf options
-public enum OtlpProtocol
-{
-    Grpc = 0,
-    HttpProtobuf = 1
-}
+var builder = DistributedApplication.CreateBuilder(args);
 
-// Configure OTLP telemetry with specific protocol
+var database = builder.AddPostgres("postgres", "mypostgres")
+    .OnResourceStopped(async (resource, stoppedEvent, cancellationToken) =>
+    {
+        // Perform cleanup when the database stops
+        Console.WriteLine($"Database {resource.Name} has stopped");
+        
+        // Log final metrics, backup data, etc.
+        await LogFinalMetrics(resource.Name);
+    });
+
 var api = builder.AddProject<Projects.Api>("api")
-  .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
+    .OnResourceStopped(async (resource, stoppedEvent, cancellationToken) =>
+    {
+        // Graceful API shutdown handling
+        Console.WriteLine($"API service {resource.Name} is shutting down");
+        await FlushPendingRequests();
+    })
+    .WithReference(database);
 
-// Or use default protocol
+builder.Build().Run();
+```
+
+#### Resource stopped event details
+
+The `ResourceStoppedEvent` provides information about the stopping event:
+
+```csharp
+// Register detailed stopped event handler
+var redis = builder.AddRedis("cache")
+    .OnResourceStopped(async (resource, stoppedEvent, cancellationToken) =>
+    {
+        // Access event details
+        Console.WriteLine($"Resource: {resource.Name}");
+        Console.WriteLine($"Event timestamp: {stoppedEvent.Timestamp}");
+        Console.WriteLine($"Stopping reason: {stoppedEvent.Reason}");
+        
+        // Perform async cleanup with cancellation support
+        await CleanupCacheConnections(cancellationToken);
+    });
+```
+
+#### Coordination with lifecycle management
+
+Resource stopped events work seamlessly with existing lifecycle features:
+
+```csharp
+var database = builder.AddPostgres("postgres")
+    .OnResourceStopped(async (db, evt, ct) => 
+    {
+        await BackupDatabase(db.Name, ct);
+    });
+
 var worker = builder.AddProject<Projects.Worker>("worker")
-  .WithOtlpExporter();
-```
-
-### Resource waiting patterns
-
-Enhanced waiting with new `WaitForStart` options (issue #7532, implemented in PR #10948). `WaitForStart` waits for a dependency to reach the Running state without blocking on health checks—useful when initialization code (migrations, seeding, registry bootstrap) must run before the service can become "healthy". Compared to `WaitFor`:
-
-- `WaitFor` = Running + passes health checks.
-- `WaitForStart` = Running only (ignores health checks, faster in dev / init flows).
-
-This mirrors Docker Compose's `service_started` vs `service_healthy` conditions and supports both existing `WaitBehavior` modes.
-
-```csharp
-var postgres = builder.AddPostgres("postgres");
-var redis = builder.AddRedis("redis");
-
-var api = builder.AddProject<Projects.Api>("api")
-  .WaitForStart(postgres)  // New: Wait only for startup, not health
-  .WaitFor(redis)  // Existing: Wait for healthy
-  .WithReference(postgres)
-  .WithReference(redis);
-```
-
-### ExternalService WaitFor behavior change
-
-Breaking change: `WaitFor` now properly honors `ExternalService` health checks so dependent resources defer start until the external service reports healthy (issue [#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, dependents would start even if the external target failed its readiness probe. This improves correctness and aligns `ExternalService` with other resource types.
-
-If you relied on the old lenient behavior (e.g., starting a frontend while an external API was still warming up), you can temporarily remove the `WaitFor` call or switch to `WaitForStart` if only startup is required.
-
-```csharp
-var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
-  .WithHttpHealthCheck("/health/ready");
-
-builder.AddProject<Projects.Frontend>("frontend")
-  .WaitFor(externalApi);
+    .WaitFor(database)  // Wait for startup
+    .OnResourceStopped(async (svc, evt, ct) => 
+    {
+        await CompleteInFlightJobs(ct);
+    })
+    .WithReference(database);
 ```
 
 ### Context-based endpoint resolution
@@ -861,6 +1108,225 @@ builder.Build().Run();
 
 - **gRPC (default)**: Best performance, smaller payload size, ideal for production
 - **HTTP Protobuf**: Better firewall compatibility, easier debugging, good for development
+
+### Deployment image tag callbacks
+
+Aspire 9.5 introduces powerful deployment image tag callback APIs that allow dynamic generation of container image tags at deployment time, supporting both synchronous and asynchronous scenarios.
+
+#### Deployment tag callback features
+
+- **Dynamic tag generation**: Calculate image tags based on deployment context, git commits, build numbers, or timestamps
+- **Async callback support**: Perform asynchronous operations like API calls or file system access during tag generation
+- **Deployment context access**: Access to deployment environment, resource information, and configuration
+- **Flexible callback types**: Support for simple lambdas, context-aware callbacks, and async operations
+
+#### Basic deployment tag examples
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Simple static tag callback
+var api = builder.AddProject<Projects.Api>("api")
+    .WithDeploymentImageTag(() => "v1.2.3-stable");
+
+// Dynamic tag with timestamp
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithDeploymentImageTag(() => $"build-{DateTime.UtcNow:yyyyMMdd-HHmm}");
+
+builder.Build().Run();
+```
+
+#### Context-aware deployment tags
+
+```csharp
+// Access deployment context for dynamic tag generation
+var api = builder.AddProject<Projects.Api>("api")
+    .WithDeploymentImageTag(context =>
+    {
+        // Access resource information
+        var resourceName = context.Resource.Name;
+        var environment = context.Environment;
+        
+        return $"{resourceName}-{environment}-{GetBuildNumber()}";
+    });
+
+// Git-based tagging
+var frontend = builder.AddProject<Projects.Frontend>("frontend")
+    .WithDeploymentImageTag(context =>
+    {
+        var gitCommit = GetGitCommitHash();
+        var branch = GetCurrentBranch();
+        return $"{branch}-{gitCommit[..8]}";
+    });
+```
+
+#### Async deployment tag callbacks
+
+```csharp
+// Async callback for complex tag generation
+var database = builder.AddProject<Projects.Database>("database")
+    .WithDeploymentImageTag(async context =>
+    {
+        // Perform async operations during deployment
+        var buildInfo = await GetBuildInfoFromApi();
+        var version = await ReadVersionFromFile();
+        
+        return $"db-{version}-build{buildInfo.Number}";
+    });
+
+// API-based version lookup
+var api = builder.AddProject<Projects.Api>("api")
+    .WithDeploymentImageTag(async context =>
+    {
+        using var client = new HttpClient();
+        var latestTag = await client.GetStringAsync("https://api.company.com/latest-tag");
+        return $"api-{latestTag.Trim()}";
+    });
+```
+
+#### Advanced deployment scenarios
+
+```csharp
+// Environment-specific tagging
+var service = builder.AddProject<Projects.Service>("service")
+    .WithDeploymentImageTag(context =>
+    {
+        return context.Environment switch
+        {
+            "Production" => $"prod-{GetReleaseVersion()}",
+            "Staging" => $"staging-{GetBuildNumber()}",
+            "Development" => $"dev-{DateTime.UtcNow:yyyyMMdd}",
+            _ => "latest"
+        };
+    });
+
+// Multi-resource coordination
+var sharedVersion = await GetSharedVersionAsync();
+
+var frontend = builder.AddProject<Projects.Frontend>("frontend")
+    .WithDeploymentImageTag(() => $"frontend-{sharedVersion}");
+
+var backend = builder.AddProject<Projects.Backend>("backend")
+    .WithDeploymentImageTag(() => $"backend-{sharedVersion}");
+```
+
+### HTTP health probes for resources
+
+Aspire 9.5 introduces comprehensive HTTP health probe support that allows you to configure startup, readiness, and liveness probes for your resources, providing better health monitoring and deployment coordination.
+
+#### HTTP probe features
+
+- **Multiple probe types**: Configure startup, readiness, and liveness probes independently
+- **Flexible endpoint targeting**: Probe any HTTP endpoint with custom paths and configurations
+- **Configurable timing**: Control probe intervals, timeouts, and failure thresholds
+- **Kubernetes alignment**: Probe semantics align with Kubernetes health check concepts
+
+#### Basic HTTP probe usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add readiness probe to ensure service is ready before routing traffic
+var api = builder.AddProject<Projects.Api>("api")
+    .WithHttpProbe(ProbeType.Readiness, "/health/ready");
+
+// Add liveness probe to detect if service needs restart
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithHttpProbe(ProbeType.Liveness, "/health/live");
+
+builder.Build().Run();
+```
+
+#### Advanced probe configuration
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Comprehensive probe setup with custom timing
+var api = builder.AddProject<Projects.Api>("api")
+    .WithHttpProbe(
+        type: ProbeType.Startup,
+        path: "/health/startup",
+        initialDelaySeconds: 30,    // Wait 30s before first probe
+        periodSeconds: 10,          // Probe every 10 seconds
+        timeoutSeconds: 5,          // 5 second timeout per probe
+        failureThreshold: 5,        // Consider failed after 5 failures
+        successThreshold: 1         // Consider healthy after 1 success
+    );
+
+builder.Build().Run();
+```
+
+#### Multiple probe types for comprehensive monitoring
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var database = builder.AddPostgres("postgres");
+
+// Service with complete probe coverage
+var api = builder.AddProject<Projects.Api>("api")
+    // Startup probe: Ensures service starts successfully
+    .WithHttpProbe(ProbeType.Startup, "/health/startup", 
+        initialDelaySeconds: 15, failureThreshold: 10)
+    
+    // Readiness probe: Determines when ready to receive traffic
+    .WithHttpProbe(ProbeType.Readiness, "/health/ready",
+        periodSeconds: 5, timeoutSeconds: 3)
+    
+    // Liveness probe: Detects if service is still functioning
+    .WithHttpProbe(ProbeType.Liveness, "/health/live",
+        periodSeconds: 30, failureThreshold: 3)
+    
+    .WithReference(database);
+
+builder.Build().Run();
+```
+
+#### Custom endpoint targeting
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Probe specific endpoint by name
+var api = builder.AddProject<Projects.Api>("api")
+    .WithHttpEndpoint(8080, name: "management")
+    .WithHttpProbe(ProbeType.Readiness, "/actuator/health", 
+        endpointName: "management");
+
+// Probe with endpoint selector function
+var service = builder.AddProject<Projects.Service>("service")
+    .WithHttpProbe(ProbeType.Liveness, "/status",
+        endpointSelector: () => service.GetEndpoint("https"));
+
+builder.Build().Run();
+```
+
+#### Integration with resource dependencies
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var database = builder.AddPostgres("postgres");
+var cache = builder.AddRedis("redis");
+
+// API with probes that check dependencies
+var api = builder.AddProject<Projects.Api>("api")
+    .WithHttpProbe(ProbeType.Readiness, "/health/ready") // Checks DB & Redis connectivity
+    .WaitFor(database)  // Wait for database startup
+    .WaitFor(cache)     // Wait for cache startup
+    .WithReference(database)
+    .WithReference(cache);
+
+// Frontend waits for API to be ready (not just started)
+var frontend = builder.AddProject<Projects.Frontend>("frontend")
+    .WaitFor(api)  // Waits for API readiness probe to pass
+    .WithReference(api);
+
+builder.Build().Run();
+```
+
+This feature enhances deployment reliability by providing fine-grained health monitoring that integrates seamlessly with Aspire's resource orchestration and dependency management.
 
 ### Enhanced resource waiting patterns
 
@@ -984,42 +1450,6 @@ var input = new InteractionInput
 ```
 
 This enables better form serialization and integration with interactive parameter processing.
-
-### Resource icon customization
-
-Resources can now specify custom icons for better visual identification in the dashboard using the `WithIconName` method (#10760).
-
-#### Basic icon usage
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Simple icon assignment
-var postgres = builder.AddPostgres("database")
-    .WithIconName("database");
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithIconName("cloud");
-
-var redis = builder.AddRedis("cache")
-    .WithIconName("memory");
-
-builder.Build().Run();
-```
-
-#### Icon variants
-
-```csharp
-// Available variants: Regular (outline) or Filled (solid)
-var database = builder.AddPostgres("db")
-    .WithIconName("database", ApplicationModel.IconVariant.Regular);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithIconName("web-app", ApplicationModel.IconVariant.Filled);
-```
-
-> [!NOTE]
-> The default icon variant is `Filled` if not specified.
 
 ### MySQL password improvements
 
@@ -1281,6 +1711,26 @@ var scheduledJob = builder.AddProject<Projects.ScheduledWorker>("scheduled-worke
 
 This feature addresses issue #4366 and provides a unified development and deployment experience for both long-running services (Container Apps) and finite workloads (Container App Jobs) within your Aspire applications.
 
+#### Simplified job configuration overloads
+
+For common scenarios, Aspire 9.5 provides simplified overloads that reduce boilerplate code:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Scheduled job with cron expression
+var scheduledJob = builder.AddProject<Projects.DailyProcessor>("daily-processor")
+    .PublishAsAzureContainerAppJob("0 0 2 * * *"); // Run daily at 2 AM
+
+// Manual job (default trigger type)
+var manualJob = builder.AddContainer("batch-processor", "my-batch-image")
+    .PublishAsAzureContainerAppJob(); // Manual trigger, ready for on-demand execution
+
+builder.Build().Run();
+```
+
+These overloads provide convenient APIs for the most common job types while maintaining access to the full configuration API when advanced customization is needed.
+
 ### Azure App Configuration emulator APIs
 
 Run emulators locally with full configuration support:
@@ -1353,6 +1803,66 @@ var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
 ```
 
 Azure Redis Enterprise provides advanced caching capabilities with clustering, high availability, and enterprise security features while maintaining compatibility with the standard Redis APIs.
+
+### Azure StackExchange Redis component
+
+Aspire 9.5 introduces the new `Aspire.Microsoft.Azure.StackExchangeRedis` component, providing first-class support for Azure Cache for Redis with Azure AD authentication integration.
+
+#### Azure StackExchange Redis features
+
+- **Azure AD authentication**: Seamless integration with Azure Active Directory for secure Redis connections
+- **Managed identity support**: Use system or user-assigned managed identities for authentication
+- **Configuration compatibility**: Built on top of the existing StackExchange.Redis component for consistency
+- **Azure Cache for Redis optimization**: Specifically designed for Azure Cache for Redis scenarios
+
+#### Azure Redis basic usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add Azure Cache for Redis with Azure AD authentication
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication();
+
+// Use in your applications
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+#### Managed identity authentication
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Use system-assigned managed identity
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication()
+    .WithManagedIdentity();
+
+// Or use user-assigned managed identity
+var redis2 = builder.AddAzureRedis("cache2")
+    .WithAzureAuthentication()
+    .WithManagedIdentity("user-assigned-identity-id");
+
+builder.Build().Run();
+```
+
+#### Local development with emulation
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// In development, fall back to container with access key
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication()
+    .RunAsContainer(); // Uses standard Redis container in development
+
+builder.Build().Run();
+```
+
+The Azure StackExchange Redis component provides a secure, managed way to connect to Azure Cache for Redis using modern authentication methods while maintaining compatibility with existing Redis client code.
 
 ### Azure resource reference properties
 
