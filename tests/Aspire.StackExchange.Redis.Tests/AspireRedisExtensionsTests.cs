@@ -383,7 +383,6 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
         Assert.Single(connection3.GetServers().Single().Keys());
     }
 
-
     /// <summary>
     /// Tests that you can use a keyed service for a distributed cache, another for an output cache, while also adding a plain Redis service
     /// using the Builder APIs.
