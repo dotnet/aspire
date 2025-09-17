@@ -61,6 +61,43 @@ public class TrxReader
         using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read);
         return serializer.Deserialize(fileStream) as TestRun;
     }
+
+    public static double GetTestRunDurationInMinutes(TestRun testRun)
+    {
+        if (testRun?.Results?.UnitTestResults is null || testRun.Results.UnitTestResults.Count == 0)
+        {
+            return 0.0;
+        }
+
+        DateTime? earliestStartTime = null;
+        DateTime? latestEndTime = null;
+
+        foreach (var unitTestResult in testRun.Results.UnitTestResults)
+        {
+            if (DateTime.TryParse(unitTestResult.StartTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var startTime))
+            {
+                if (earliestStartTime is null || startTime < earliestStartTime)
+                {
+                    earliestStartTime = startTime;
+                }
+            }
+
+            if (DateTime.TryParse(unitTestResult.EndTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var endTime))
+            {
+                if (latestEndTime is null || endTime > latestEndTime)
+                {
+                    latestEndTime = endTime;
+                }
+            }
+        }
+
+        if (earliestStartTime is null || latestEndTime is null)
+        {
+            return 0.0;
+        }
+
+        return (latestEndTime.Value - earliestStartTime.Value).TotalMinutes;
+    }
 }
 
 [XmlRoot("TestRun", Namespace = "http://microsoft.com/schemas/VisualStudio/TeamTest/2010")]
