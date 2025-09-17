@@ -8,6 +8,7 @@
     <PublishTrimmed>false</PublishTrimmed>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
     <_ImportMicrosoftNETSdkFromAspireSdk>false</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
 
