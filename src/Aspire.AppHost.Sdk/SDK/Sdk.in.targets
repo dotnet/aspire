@@ -51,7 +51,7 @@
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
 
-  <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' And '$(SkipImplicitAspireAppHostPackage)' != 'true'">
+  <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' And '$(SkipAddAspireDefaultReferences)' != 'true'">
     <PropertyGroup>
       <_ImplicitAppHostVersion>@VERSION@</_ImplicitAppHostVersion>
     </PropertyGroup>
