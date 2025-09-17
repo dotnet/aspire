@@ -18,7 +18,6 @@ public class YarpCluster
         ClusterConfig = config;
         Targets = targets;
     }
-
     /// <summary>
     /// Construct a new YarpCluster targeting the endpoint in parameter.
     /// </summary>
@@ -49,14 +48,9 @@ public class YarpCluster
     /// <summary>
     /// Creates a new instance of <see cref="YarpCluster"/> with a specified list of addresses.
     /// </summary>
-    /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="addresses">The external addresses.</param>
-    internal YarpCluster(string clusterName, params string[] addresses)
-        : this(clusterName, (object[]) addresses)
-    {
-    }
-
-    private YarpCluster(string resourceName, params object[] targets)
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targets">The target objects for the cluster (e.g., addresses, URIs, or other endpoint representations).</param>
+    internal YarpCluster(string resourceName, params object[] targets)
     {
         ClusterConfig = new()
         {
