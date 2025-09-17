@@ -723,19 +723,21 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        var cliArgsList = new List<string> { "add" };
+        var cliArgsList = new List<string>();
+
+        cliArgsList.AddRange(["add", "package"]);
         
         // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
         if (projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
         {
-            cliArgsList.AddRange(["package", packageName, "--file", projectFilePath.FullName]);
+            cliArgsList.AddRange(["--file", projectFilePath.FullName]);
         }
         else
         {
-            cliArgsList.AddRange([projectFilePath.FullName, "package", packageName]);
+            cliArgsList.Add(projectFilePath.FullName);
         }
         
-        cliArgsList.AddRange(["--version", packageVersion]);
+        cliArgsList.Add($"{packageName}@{packageVersion}");
 
         if (string.IsNullOrEmpty(nugetSource))
         {

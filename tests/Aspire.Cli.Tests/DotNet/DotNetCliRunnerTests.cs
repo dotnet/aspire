@@ -592,24 +592,22 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 // Verify arguments are correct for single-file AppHost
                 Assert.Contains("add", args);
                 Assert.Contains("package", args);
-                Assert.Contains("Aspire.Hosting.Redis", args);
                 Assert.Contains("--file", args);
                 Assert.Contains(appHostFile.FullName, args);
-                Assert.Contains("--version", args);
-                Assert.Contains("9.2.0", args);
+                Assert.Contains("Aspire.Hosting.Redis@9.2.0", args);
                 Assert.Contains("--no-restore", args);
                 
                 // Verify the order: add package PackageName --file FilePath --version Version --no-restore
                 var addIndex = Array.IndexOf(args, "add");
                 var packageIndex = Array.IndexOf(args, "package");
-                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
                 var fileIndex = Array.IndexOf(args, "--file");
                 var filePathIndex = Array.IndexOf(args, appHostFile.FullName);
+                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis@9.2.0");
                 
                 Assert.True(addIndex < packageIndex);
-                Assert.True(packageIndex < packageNameIndex);
-                Assert.True(packageNameIndex < fileIndex);
+                Assert.True(packageIndex < fileIndex);
                 Assert.True(fileIndex < filePathIndex);
+                Assert.True(filePathIndex < packageNameIndex);
             },
             0
             );
@@ -654,23 +652,21 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
             {
                 // Verify arguments are correct for .csproj file (existing behavior)
                 Assert.Contains("add", args);
-                Assert.Contains(projectFile.FullName, args);
                 Assert.Contains("package", args);
-                Assert.Contains("Aspire.Hosting.Redis", args);
-                Assert.Contains("--version", args);
-                Assert.Contains("9.2.0", args);
+                Assert.Contains(projectFile.FullName, args);
+                Assert.Contains("Aspire.Hosting.Redis@9.2.0", args);
                 Assert.Contains("--source", args);
                 Assert.Contains("https://api.nuget.org/v3/index.json", args);
                 
                 // Verify the order: add ProjectFile package PackageName --version Version --source Source
                 var addIndex = Array.IndexOf(args, "add");
-                var projectIndex = Array.IndexOf(args, projectFile.FullName);
                 var packageIndex = Array.IndexOf(args, "package");
-                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
+                var projectIndex = Array.IndexOf(args, projectFile.FullName);
+                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis@9.2.0");
                 
-                Assert.True(addIndex < projectIndex);
-                Assert.True(projectIndex < packageIndex);
-                Assert.True(packageIndex < packageNameIndex);
+                Assert.True(addIndex < packageIndex);
+                Assert.True(packageIndex < projectIndex);
+                Assert.True(projectIndex < packageNameIndex);
                 
                 // Should NOT contain --file
                 Assert.DoesNotContain("--file", args);
