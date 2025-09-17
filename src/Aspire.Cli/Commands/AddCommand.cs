@@ -284,7 +284,10 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             IEnumerable<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> items,
             CancellationToken ct)
         {
-            var choices = items
+            // Order versions within the channel by semantic version descending
+            var orderedItems = items.OrderByDescending(i => SemVersion.Parse(i.Package.Version), SemVersion.PrecedenceComparer);
+            
+            var choices = orderedItems
                 .Select(i => (
                     Label: FormatVersionLabel(i),
                     Result: i
@@ -292,12 +295,35 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
                 .ToArray();
 
             var selection = await interactionService.PromptForSelectionAsync(
-                string.Format(CultureInfo.CurrentCulture, AddCommandStrings.SelectAVersionOfPackage, firstPackage.Package.Id),
+                string.Format(CultureInfo.CurrentCulture, "Select a version ({0})", channel.Name),
                 choices,
                 c => c.Label,
                 ct);
 
             return selection.Result;
+        }
+
+        async Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)> PromptForChannelSelectionAsync(
+            IGrouping<PackageChannel, (string FriendlyName, NuGetPackage Package, PackageChannel Channel)>[] explicitChannelGroups,
+            CancellationToken ct)
+        {
+            // Order channels alphabetically by name
+            var channelChoices = explicitChannelGroups
+                .OrderBy(g => g.Key.Name)
+                .Select(g => (
+                    Label: g.Key.Name,
+                    Channel: g.Key,
+                    Items: g.ToArray()
+                ))
+                .ToArray();
+
+            var channelSelection = await interactionService.PromptForSelectionAsync(
+                "Select a channel",
+                channelChoices,
+                c => c.Label,
+                ct);
+
+            return await PromptForChannelPackagesAsync(channelSelection.Channel, channelSelection.Items, ct);
         }
 
         // Group the incoming package versions by channel
@@ -310,12 +336,15 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             .Where(g => g.Key.Type is Packaging.PackageChannelType.Explicit)
             .ToArray();
 
-        // Build the root menu: implicit channel packages directly, explicit channels as submenus
+        // Build the root menu: implicit channel packages directly, explicit channels grouped under "Channels"
         var rootChoices = new List<(string Label, Func<CancellationToken, Task<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>> Action)>();
 
         if (implicitGroup is not null)
         {
-            foreach (var item in implicitGroup)
+            // Order implicit group versions by semantic version descending
+            var orderedImplicitItems = implicitGroup.OrderByDescending(i => SemVersion.Parse(i.Package.Version), SemVersion.PrecedenceComparer);
+            
+            foreach (var item in orderedImplicitItems)
             {
                 var captured = item;
                 rootChoices.Add((
@@ -325,21 +354,19 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
             }
         }
 
-        foreach (var channelGroup in explicitGroups)
+        // Add single "Channels" entry if there are explicit channels
+        if (explicitGroups.Length > 0)
         {
-            var channel = channelGroup.Key;
-            var items = channelGroup.ToArray();
-
             rootChoices.Add((
-                Label: channel.Name,
-                Action: ct => PromptForChannelPackagesAsync(channel, items, ct)
+                Label: "Channels",
+                Action: ct => PromptForChannelSelectionAsync(explicitGroups, ct)
             ));
         }
 
-        // Fallback if no choices for some reason
+        // Fallback if no choices for some reason (should throw EmptyChoicesException if this happens)
         if (rootChoices.Count == 0)
         {
-            return firstPackage;
+            throw new EmptyChoicesException(AddCommandStrings.NoIntegrationPackagesFound);
         }
 
         var topSelection = await interactionService.PromptForSelectionAsync(
