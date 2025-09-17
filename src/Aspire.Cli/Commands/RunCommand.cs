@@ -143,26 +143,29 @@ internal sealed class RunCommand : BaseCommand
 
             var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 
-            if (!watch && !isSingleFileAppHost)
+            if (!watch)
             {
-                var buildOptions = new DotNetCliRunnerInvocationOptions
+                if (!isSingleFileAppHost)
                 {
-                    StandardOutputCallback = buildOutputCollector.AppendOutput,
-                    StandardErrorCallback = buildOutputCollector.AppendError,
-                };
-
-                // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
-                    || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
-                {
-                    var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-                    if (buildExitCode != 0)
+                    var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
-                        InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                        InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                        return ExitCodeConstants.FailedToBuildArtifacts;
-                    }
+                        StandardOutputCallback = buildOutputCollector.AppendOutput,
+                        StandardErrorCallback = buildOutputCollector.AppendError,
+                    };
+
+                    // The extension host will build the app host project itself, so we don't need to do it here if host exists.
+                    if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
+                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
+                    {
+                        var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+
+                        if (buildExitCode != 0)
+                        {
+                            InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                            InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                            return ExitCodeConstants.FailedToBuildArtifacts;
+                        }
+                    }                    
                 }
             }
 
@@ -196,14 +199,20 @@ internal sealed class RunCommand : BaseCommand
 
             if (isSingleFileAppHost)
             {
-                // TODO: Determine where we persist these values, we may want to 
-                //       store URLs in the .aspire/settings.json file or we may want
-                //       to deterministically compute them.
-                env["ASPNETCORE_ENVIRONMENT"] = "Development";
-                env["DOTNET_ENVIRONMENT"] = "Development";
-                env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
-                env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
-                env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
+                // TODO:  This is just fallback behavior for now. We need to decide on whether we
+                //        want to treat the lack of a apphost.run.json as an error or whether we
+                //        want to somehow manage this information in .aspire/settings.json and how
+                //        this might work in polyglot scenarios. For the preview of this feature
+                //        I'm not over investing too much time in this :)
+                var runJsonFilePath = effectiveAppHostFile.FullName[..^2] + "run.json";
+                if (!File.Exists(runJsonFilePath))
+                {
+                    env["ASPNETCORE_ENVIRONMENT"] = "Development";
+                    env["DOTNET_ENVIRONMENT"] = "Development";
+                    env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                    env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
+                    env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
+                }
             }
 
             var pendingRun = _runner.RunAsync(
