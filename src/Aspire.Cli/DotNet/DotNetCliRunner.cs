@@ -232,12 +232,17 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             throw ex;
         }
 
+        var isSingleFile = projectFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
 
-        string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
-
+        string[] cliArgs = isSingleFile switch
+        {
+            false => [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            true => ["run", projectFile.FullName]
+        };
+        
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
