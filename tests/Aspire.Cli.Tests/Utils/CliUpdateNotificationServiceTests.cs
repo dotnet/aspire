@@ -194,8 +194,8 @@ public class CliUpdateNotificationServiceTests(ITestOutputHelper outputHelper)
             {
                 var cache = new TestNuGetPackageCache();
                 cache.SetMockCliPackages([
-                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.5.0-preview", Source = "nuget.org" }, 
                     new NuGetPackage { Id = "Aspire.Cli", Version = "9.6.0-preview", Source = "nuget.org" }, 
+                    new NuGetPackage { Id = "Aspire.Cli", Version = "9.7.0-preview", Source = "nuget.org" }, 
                 ]);
 
                 return cache;
