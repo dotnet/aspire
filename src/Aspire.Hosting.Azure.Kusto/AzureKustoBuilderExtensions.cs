@@ -46,9 +46,7 @@ public static class AzureKustoBuilderExtensions
     /// <para>
     /// By default references to the Azure Data Explorer cluster resource will be assigned the following roles:
     /// 
-    /// - <see cref="KustoBuiltInRole.Contributor"/>
-    ///
-    /// These can be replaced by calling <see cref="WithRoleAssignments{T}(IResourceBuilder{T}, IResourceBuilder{AzureKustoClusterResource}, KustoBuiltInRole[])"/>.
+    /// - <see cref="KustoDatabasePrincipalRole.User"/>
     /// </para>
     /// </remarks>
     public static IResourceBuilder<AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, [ResourceName] string name)
@@ -80,7 +78,7 @@ public static class AzureKustoBuilderExtensions
                 });
 
             // Add cluster URI output for connection strings
-            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.Name });
+            infrastructure.Add(new ProvisioningOutput("clusterUri", typeof(string)) { Value = cluster.ClusterUri });
 
             // We need to output name to externalize role assignments.
             infrastructure.Add(new ProvisioningOutput("name", typeof(string)) { Value = cluster.Name });
@@ -101,19 +99,7 @@ public static class AzureKustoBuilderExtensions
         AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
 
         return resourceBuilder
-            .WithDefaultRoleAssignments(GetBuiltInRoleNameHack, KustoBuiltInRoleHack.Contributor);
-    }
-
-    // HACK: Until this is resolved: https://github.com/Azure/azure-sdk-for-net/issues/52499
-    private static string GetBuiltInRoleNameHack(KustoBuiltInRoleHack value)
-    {
-        return value._value switch
-        {
-            KustoBuiltInRoleHack.OwnerValue => nameof(KustoBuiltInRoleHack.Owner),
-            KustoBuiltInRoleHack.ContributorValue => nameof(KustoBuiltInRoleHack.Contributor),
-            KustoBuiltInRoleHack.ReaderValue => nameof(KustoBuiltInRoleHack.Reader),
-            _ => value.ToString()
-        };
+            .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
     }
 
     /// <summary>
@@ -149,10 +135,14 @@ public static class AzureKustoBuilderExtensions
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
+            // Only make a real health check when running as an emulator.
+            // When running in Azure we assume the service is healthy once the provisioning is complete.
+            .AddAzureKustoHealthCheck(healthCheckKey, _ => builder.Resource.IsEmulator ? kcsb! : null);
 
-        return resourceBuilder
+        resourceBuilder
             .WithHealthCheck(healthCheckKey);
+
+        return resourceBuilder;
     }
 
     /// <summary>
@@ -223,37 +213,6 @@ public static class AzureKustoBuilderExtensions
     }
 
     /// <summary>
-    /// Assigns the specified roles to the given resource, granting it the necessary permissions
-    /// on the target Azure Data Explorer (Kusto) cluster resource. This replaces the default role assignments for the resource.
-    /// </summary>
-    /// <param name="builder">The resource to which the specified roles will be assigned.</param>
-    /// <param name="target">The target Azure Data Explorer cluster resource.</param>
-    /// <param name="roles">The built-in Kusto roles to be assigned.</param>
-    /// <returns>The updated <see cref="IResourceBuilder{T}"/> with the applied role assignments.</returns>
-    /// <remarks>
-    /// <example>
-    /// Assigns the Reader role to the 'Projects.Api' project.
-    /// <code lang="csharp">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    ///
-    /// var kusto = builder.AddAzureKustoCluster("kusto");
-    /// 
-    /// var api = builder.AddProject&lt;Projects.Api&gt;("api")
-    ///   .WithRoleAssignments(kusto, KustoBuiltInRole.Reader)
-    ///   .WithReference(kusto);
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> WithRoleAssignments<T>(
-        this IResourceBuilder<T> builder,
-        IResourceBuilder<AzureKustoClusterResource> target,
-        params KustoBuiltInRole[] roles)
-        where T : IResource
-    {
-        return builder.WithRoleAssignments(target, KustoBuiltInRoleExtensions.GetBuiltInRoleName, roles);
-    }
-
-    /// <summary>
     /// Configures the host port that the Kusto emulator listens on for HTTP query requests.
     /// </summary>
     /// <param name="builder">Kusto emulator resource builder.</param>
@@ -290,7 +249,9 @@ public static class AzureKustoBuilderExtensions
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            .AddAzureKustoHealthCheck(healthCheckKey, _ => kcsb!);
+            // Only make a real health check when running as an emulator.
+            // When running in Azure we assume the service is healthy once the provisioning is complete.
+            .AddAzureKustoHealthCheck(healthCheckKey, _ => resource.IsEmulator ? kcsb! : null);
 
         // Execute any setup now that Kusto is ready
         resourceBuilder.OnResourceReady(async (server, evt, ct) =>
@@ -298,6 +259,13 @@ public static class AzureKustoBuilderExtensions
             if (kcsb is null)
             {
                 throw new DistributedApplicationException($"Connection string for Kusto resource '{server.Name}' is not set.");
+            }
+
+            if (!server.IsEmulator)
+            {
+                // We only support automatic database creation when running as an emulator.
+                // When running in Azure, the databases will be created as part of the provisioning process.
+                return;
             }
 
             using var adminProvider = KustoClientFactory.CreateCslAdminProvider(kcsb);

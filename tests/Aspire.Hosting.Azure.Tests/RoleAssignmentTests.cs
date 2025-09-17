@@ -11,7 +11,6 @@ using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.CognitiveServices;
 using Azure.Provisioning.EventHubs;
 using Azure.Provisioning.KeyVault;
-using Azure.Provisioning.Kusto;
 using Azure.Provisioning.Search;
 using Azure.Provisioning.ServiceBus;
 using Azure.Provisioning.SignalR;
@@ -46,19 +45,6 @@ public class RoleAssignmentTests()
 
                 builder.AddProject<Project>("api", launchProfileName: null)
                     .WithRoleAssignments(config, AppConfigurationBuiltInRole.AppConfigurationDataReader);
-            });
-    }
-
-    [Fact]
-    public Task KustoSupport()
-    {
-        return RoleAssignmentTest("kusto",
-            builder =>
-            {
-                var kusto = builder.AddAzureKustoCluster("kusto");
-
-                builder.AddProject<Project>("api", launchProfileName: null)
-                    .WithRoleAssignments(kusto, KustoBuiltInRole.Reader, KustoBuiltInRole.Contributor);
             });
     }
 
@@ -219,6 +205,21 @@ public class RoleAssignmentTests()
             },
             // scrub new lines since the test needs to run on Windows and Linux, and the new lines are different.
             s => s.Replace("\\r\\n", "\\n"));
+    }
+
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+                kusto.AddReadWriteDatabase("db1");
+                kusto.AddReadWriteDatabase("db2");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(kusto);
+            });
     }
 
     private static async Task RoleAssignmentTest(

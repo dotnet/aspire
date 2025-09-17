@@ -16,7 +16,7 @@ internal static class AzureKustoHealthCheckBuilderExtensions
     /// <param name="name">The name of the health check.</param>
     /// <param name="connectionStringFactory">The Kusto connection string builder.</param>
     /// <returns>The updated health check builder.</returns>
-    public static IHealthChecksBuilder AddAzureKustoHealthCheck(this IHealthChecksBuilder builder, string name, Func<IServiceProvider, KustoConnectionStringBuilder> connectionStringFactory)
+    public static IHealthChecksBuilder AddAzureKustoHealthCheck(this IHealthChecksBuilder builder, string name, Func<IServiceProvider, KustoConnectionStringBuilder?> connectionStringFactory)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(connectionStringFactory);

@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 resource kusto 'Microsoft.Kusto/clusters@2024-04-13' = {
