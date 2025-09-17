@@ -104,7 +104,12 @@ internal sealed class AzureDeployingContext(
                                 }
                                 catch (Exception ex)
                                 {
-                                    await resourceTask.CompleteAsync($"Failed to provision {bicepResource.Name}: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+                                    var errorMessage = ex switch
+                                    {
+                                        RequestFailedException requestEx => $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                                        _ => $"Deployment failed: {ex.Message}"
+                                    };
+                                    await resourceTask.CompleteAsync($"Failed to provision {bicepResource.Name}: {errorMessage}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
                                     bicepResource.ProvisioningTaskCompletionSource?.TrySetException(ex);
                                     throw;
                                 }
@@ -117,15 +122,9 @@ internal sealed class AzureDeployingContext(
 
                 await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                var errorMessage = ex switch
-                {
-                    RequestFailedException requestEx => $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                    _ => $"Deployment failed: {ex.Message}"
-                };
-
-                await deployingStep.FailAsync(errorMessage, cancellationToken).ConfigureAwait(false);
+                await deployingStep.FailAsync("Failed to deploy Azure resources", cancellationToken: cancellationToken).ConfigureAwait(false);
                 return false;
             }
         }
@@ -242,7 +241,12 @@ internal sealed class AzureDeployingContext(
                             }
                             catch (Exception ex)
                             {
-                                await resourceTask.CompleteAsync($"Failed to deploy {computeResource.Name}: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+                                var errorMessage = ex switch
+                                {
+                                    RequestFailedException requestEx => $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                                    _ => $"Deployment failed: {ex.Message}"
+                                };
+                                await resourceTask.CompleteAsync($"Failed to deploy {computeResource.Name}: {errorMessage}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
                                 throw;
                             }
                         }
@@ -254,9 +258,9 @@ internal sealed class AzureDeployingContext(
                 await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
                 await computeStep.CompleteAsync($"Successfully deployed {computeResources.Count} compute resources", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                await computeStep.CompleteAsync($"Compute resource deployment failed: {ex.Message}", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
+                await computeStep.CompleteAsync($"Compute resource deployment failed", CompletionState.CompletedWithError, cancellationToken).ConfigureAwait(false);
                 throw;
             }
         }
