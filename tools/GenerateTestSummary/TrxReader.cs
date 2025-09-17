@@ -64,6 +64,19 @@ public class TrxReader
 
     public static double GetTestRunDurationInMinutes(TestRun testRun)
     {
+        // First try to use the Times element if available
+        if (testRun?.Times is not null 
+            && !string.IsNullOrEmpty(testRun.Times.Start) 
+            && !string.IsNullOrEmpty(testRun.Times.Finish))
+        {
+            if (DateTime.TryParse(testRun.Times.Start, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var start)
+                && DateTime.TryParse(testRun.Times.Finish, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var finish))
+            {
+                return (finish - start).TotalMinutes;
+            }
+        }
+
+        // Fall back to computing from individual test results if Times element is not available
         if (testRun?.Results?.UnitTestResults is null || testRun.Results.UnitTestResults.Count == 0)
         {
             return 0.0;
@@ -106,12 +119,29 @@ public class TestRun
     public Results? Results { get; set; }
 
     public ResultSummary? ResultSummary { get; set; }
+
+    public Times? Times { get; set; }
 }
 
 public class Results
 {
     [XmlElement("UnitTestResult")]
     public List<UnitTestResult>? UnitTestResults { get; set; }
+}
+
+public class Times
+{
+    [XmlAttribute("start")]
+    public string? Start { get; set; }
+
+    [XmlAttribute("finish")]
+    public string? Finish { get; set; }
+
+    [XmlAttribute("creation")]
+    public string? Creation { get; set; }
+
+    [XmlAttribute("queuing")]
+    public string? Queuing { get; set; }
 }
 
 public class UnitTestResult
