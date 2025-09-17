@@ -18,7 +18,6 @@
     <!-- Aspire hosting projects aren't publishable right now until https://github.com/dotnet/aspire/issues/147 is good -->
     <IsPublishable Condition="'$(IsPublishable)' == ''">false</IsPublishable>
     <IsPackable Condition="'$(IsPackable)' == ''">false</IsPackable>
-    <PublishAot Condition="'$(DisableAspirePublishAotDefaults)' != 'true'">false</PublishAot>
   </PropertyGroup>
 
   <!--
@@ -51,6 +50,12 @@
     <AspireRidToolDirectory>$([MSBuild]::NormalizePath('$(AspireRidToolRoot)\'))</AspireRidToolDirectory>
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
+
+  <Target Name="DisablePublishAotForAspireHost" BeforeTargets="ProcessFrameworkReferences;Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' and '$(DisableAspirePublishAotDefaults)' != 'true'">
+    <PropertyGroup>
+      <PublishAot>false</PublishAot>
+    </PropertyGroup>
+  </Target>
 
   <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' And '$(SkipAddAspireDefaultReferences)' != 'true'">
     <PropertyGroup>
