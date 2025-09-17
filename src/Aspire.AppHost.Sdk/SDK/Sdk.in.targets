@@ -59,7 +59,7 @@
     <ItemGroup>
       <!-- Add the reference to the Aspire.Hosting.AppHost package if not already referenced -->
       <PackageReference Include="Aspire.Hosting.AppHost" Version="$(_ImplicitAppHostVersion)"  IsImplicitlyDefined="true"
-                      Condition="'@(PackageReference->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == '' And '@(PackageVersion->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == ''" />
+                        Condition="'@(PackageReference->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == '' And '@(PackageVersion->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == ''" />
     </ItemGroup>
   </Target>
 
