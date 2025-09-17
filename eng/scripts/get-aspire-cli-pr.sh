@@ -597,6 +597,15 @@ get_pr_head_sha() {
     printf "%s" "$head_sha"
 }
 
+# Function to compute version suffix from commit SHA
+get_version_suffix() {
+    local pr_number="$1"
+    local head_sha="$2"
+    
+    local short_sha="${head_sha:0:8}"
+    printf "pr.%s.%s" "$pr_number" "$short_sha"
+}
+
 # Function to find workflow run for SHA
 find_workflow_run() {
     local head_sha="$1"
@@ -877,6 +886,10 @@ download_and_install_from_pr() {
     if [[ -n "$WORKFLOW_RUN_ID" ]]; then
         say_info "Starting download and installation for PR #$PR_NUMBER with workflow run ID: $WORKFLOW_RUN_ID"
         workflow_run_id="$WORKFLOW_RUN_ID"
+        # For workflow run ID mode, we still need the head SHA to compute the version suffix
+        if ! head_sha=$(get_pr_head_sha "$PR_NUMBER"); then
+            return 1
+        fi
     else
         # When only PR number is provided, find the workflow run
         say_info "Starting download and installation for PR #$PR_NUMBER"
@@ -890,6 +903,11 @@ download_and_install_from_pr() {
             return 1
         fi
     fi
+
+    # Calculate and print the version suffix
+    local version_suffix
+    version_suffix=$(get_version_suffix "$PR_NUMBER" "$head_sha")
+    say_info "Package version suffix: $version_suffix"
 
     say_info "Using workflow run https://github.com/${REPO}/actions/runs/$workflow_run_id"
 

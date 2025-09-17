@@ -702,6 +702,21 @@ function Get-PRHeadSHA {
     return $headSha.Trim()
 }
 
+# Function to compute version suffix from commit SHA
+function Get-VersionSuffix {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$PRNumber,
+        
+        [Parameter(Mandatory = $true)]
+        [string]$HeadSHA
+    )
+    
+    $shortSha = $HeadSHA.Substring(0, 8)
+    return "pr.$PRNumber.$shortSha"
+}
+
 # Function to find workflow run for SHA
 function Find-WorkflowRun {
     [CmdletBinding()]
@@ -983,6 +998,8 @@ function Start-DownloadAndInstall {
         # When workflow ID is provided, use it directly
         Write-Message "Starting download and installation for PR #$PRNumber with workflow run ID: $WorkflowRunId" -Level Info
         $runId = $WorkflowRunId.ToString()
+        # For workflow run ID mode, we still need the head SHA to compute the version suffix
+        $headSha = Get-PRHeadSHA -PRNumber $PRNumber
     }
     else {
         # When only PR number is provided, find the workflow run
@@ -994,6 +1011,10 @@ function Start-DownloadAndInstall {
         # Find the workflow run
         $runId = Find-WorkflowRun -HeadSHA $headSha
     }
+
+    # Calculate and print the version suffix
+    $versionSuffix = Get-VersionSuffix -PRNumber $PRNumber -HeadSHA $headSha
+    Write-Message "Package version suffix: $versionSuffix" -Level Info
 
     Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
 
