@@ -82,6 +82,20 @@ internal sealed class RunCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
+        var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+
+        // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
+        // VS Code to start a debug session using the current directory
+        if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _)
+            && string.IsNullOrEmpty(_configuration[KnownConfigNames.ExtensionDebugSessionId]))
+        {
+            extensionInteractionService.DisplayConsolePlainText(RunCommandStrings.StartingDebugSessionInExtension);
+            await extensionInteractionService.StartDebugSessionAsync(ExecutionContext.WorkingDirectory.FullName, passedAppHostProjectFile?.FullName, startDebugSession);
+            return ExitCodeConstants.Success;
+        }
+
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
@@ -95,8 +109,6 @@ internal sealed class RunCommand : BaseCommand
         try
         {
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
-
-            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
             var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
@@ -116,9 +128,6 @@ internal sealed class RunCommand : BaseCommand
             }
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
-
-            var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
-            var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
 
             var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
 
@@ -276,7 +285,7 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            if (ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
+            if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
                 _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);

@@ -73,8 +73,8 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
-        <source>Whether to start a debug session during the run.</source>
-        <target state="translated">Se deve iniciar uma sessão de depuração durante a execução.</target>
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="needs-review-translation">Se deve iniciar uma sessão de depuração durante a execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -85,6 +85,11 @@
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
         <target state="translated">Iniciando o painel...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
