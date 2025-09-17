@@ -5,6 +5,5 @@
     the Aspire.AppHost.Sdk -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
     <IsAspireHost>true</IsAspireHost>
-    <PublishAot>false</PublishAot>
   </PropertyGroup>
 </Project>
