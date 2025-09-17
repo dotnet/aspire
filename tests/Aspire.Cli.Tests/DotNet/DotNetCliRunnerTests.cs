@@ -562,6 +562,133 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         await launchAppHostCalledTcs.Task;
         Assert.Equal(ExitCodeConstants.Success, exitCode);
     }
+
+    [Fact]
+    public async Task AddPackageAsyncUseFilesSwitchForSingleFileAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // Verify arguments are correct for single-file AppHost
+                Assert.Contains("add", args);
+                Assert.Contains("package", args);
+                Assert.Contains("Aspire.Hosting.Redis", args);
+                Assert.Contains("--file", args);
+                Assert.Contains(appHostFile.FullName, args);
+                Assert.Contains("--version", args);
+                Assert.Contains("9.2.0", args);
+                Assert.Contains("--no-restore", args);
+                
+                // Verify the order: add package PackageName --file FilePath --version Version --no-restore
+                var addIndex = Array.IndexOf(args, "add");
+                var packageIndex = Array.IndexOf(args, "package");
+                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
+                var fileIndex = Array.IndexOf(args, "--file");
+                var filePathIndex = Array.IndexOf(args, appHostFile.FullName);
+                
+                Assert.True(addIndex < packageIndex);
+                Assert.True(packageIndex < packageNameIndex);
+                Assert.True(packageNameIndex < fileIndex);
+                Assert.True(fileIndex < filePathIndex);
+            },
+            0
+            );
+
+        var exitCode = await runner.AddPackageAsync(
+            appHostFile,
+            "Aspire.Hosting.Redis",
+            "9.2.0",
+            null, // no source, should use --no-restore
+            options,
+            CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task AddPackageAsyncUsesPositionalArgumentForCsprojFile()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // Verify arguments are correct for .csproj file (existing behavior)
+                Assert.Contains("add", args);
+                Assert.Contains(projectFile.FullName, args);
+                Assert.Contains("package", args);
+                Assert.Contains("Aspire.Hosting.Redis", args);
+                Assert.Contains("--version", args);
+                Assert.Contains("9.2.0", args);
+                Assert.Contains("--source", args);
+                Assert.Contains("https://api.nuget.org/v3/index.json", args);
+                
+                // Verify the order: add ProjectFile package PackageName --version Version --source Source
+                var addIndex = Array.IndexOf(args, "add");
+                var projectIndex = Array.IndexOf(args, projectFile.FullName);
+                var packageIndex = Array.IndexOf(args, "package");
+                var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis");
+                
+                Assert.True(addIndex < projectIndex);
+                Assert.True(projectIndex < packageIndex);
+                Assert.True(packageIndex < packageNameIndex);
+                
+                // Should NOT contain --file
+                Assert.DoesNotContain("--file", args);
+            },
+            0
+            );
+
+        var exitCode = await runner.AddPackageAsync(
+            projectFile,
+            "Aspire.Hosting.Redis",
+            "9.2.0",
+            "https://api.nuget.org/v3/index.json", // provide source, should use --source
+            options,
+            CancellationToken.None
+            );
+
+        Assert.Equal(0, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
