@@ -438,55 +438,62 @@ public class AspireRedisExtensionsTests : IClassFixture<RedisContainerFixture>
     }
 
     [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AutoActivationCanBeDisabled(bool useKeyed)
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    [RequiresDocker]
+    public async Task AutoActivationCanSet(bool useKeyed, bool autoActivate)
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         PopulateConfiguration(builder.Configuration);
 
-        static void DisableAutoActivation(StackExchangeRedisSettings settings) => settings.DisableAutoActivation = true;
+        void EnableAutoActivation(StackExchangeRedisSettings settings) => settings.DisableAutoActivation = !autoActivate;
 
         if (useKeyed)
         {
-            builder.AddKeyedRedisClient("redis", DisableAutoActivation);
+            builder.AddKeyedRedisClient("redis", EnableAutoActivation);
         }
         else
         {
-            builder.AddRedisClient("redis", DisableAutoActivation);
+            builder.AddRedisClient("redis", EnableAutoActivation);
         }
+
+        var connectionActivated = false;
+        builder.Services.AddKeyedSingleton<IConnectionMultiplexer>(useKeyed ? "redis" : null, (sp, key) =>
+        {
+            connectionActivated = true;
+            return ConnectionMultiplexer.Connect(ConnectionString);
+        });
 
         using var host = builder.Build();
+        await host.StartAsync();
 
-        // When auto activation is disabled, the service should be registered but not activated
-        var services = host.Services;
-
-        // Check that the service is registered in the service collection
-        if (useKeyed)
-        {
-            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey?.Equals("redis") == true);
-        }
-        else
-        {
-            Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey is null);
-        }
+        // When auto activation is enabled, the service should be registered and activated
+        Assert.Equal(autoActivate, connectionActivated);
     }
 
     [Fact]
-    public void AutoActivationEnabledByDefault()
+    [RequiresDocker]
+    public async Task AutoActivationDisabledByDefault()
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
         PopulateConfiguration(builder.Configuration);
 
         builder.AddRedisClient("redis");
 
+        var connectionActivated = false;
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            connectionActivated = true;
+            return ConnectionMultiplexer.Connect(ConnectionString);
+        });
+
         using var host = builder.Build();
+        await host.StartAsync();
 
-        // When auto activation is enabled (default), the service should be registered and activated
-        var services = host.Services;
-
-        // Check that the service is registered in the service collection
-        Assert.Contains(builder.Services, d => d.ServiceType == typeof(IConnectionMultiplexer) && d.ServiceKey is null);
+        // When auto activation is disabled, the service should not be activated
+        Assert.False(connectionActivated);
     }
 
     private void PopulateConfiguration(ConfigurationManager configuration, string? key = null) =>
