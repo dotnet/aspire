@@ -1,5 +1,6 @@
 #:sdk Microsoft.NET.Sdk
 #:sdk Aspire.AppHost.Sdk@aspireVersion
+
 #:package Aspire.Hosting.AppHost@aspireVersion
 
 var builder = DistributedApplication.CreateBuilder(args);
