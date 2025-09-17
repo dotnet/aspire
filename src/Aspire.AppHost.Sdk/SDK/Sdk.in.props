@@ -5,6 +5,7 @@
     the Aspire.AppHost.Sdk -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
     <IsAspireHost>true</IsAspireHost>
+    <PublishAot Condition=" '$(PublishAot) == '' ">false</PublishAot>
     <_ImportMicrosoftNETSdkFromAspireSdk>false</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
 
