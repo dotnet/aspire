@@ -189,6 +189,15 @@ public partial class SpanDetails : IDisposable
                 },
             };
 
+            if (_viewModel.Span.GetDestination() is { } destination)
+            {
+                _valueComponents[KnownTraceFields.DestinationField] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceNameButtonValue),
+                    Parameters = { ["Resource"] = destination }
+                };
+            }
+
             UpdateSpanActionsMenu();
         }
     }
