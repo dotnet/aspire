@@ -31,7 +31,8 @@ public static class MauiProjectResourceExtensions
         return builder.AddResource(resource)
             .WithAnnotation(new MauiProjectMetadata(projectPath))
             .ExcludeFromManifest()
-            .WithExplicitStart();
+            .WithExplicitStart()
+            .OnResourceReady(MauiProjectLauncher.HandleResourceReady);
     }
 
     /// <summary>
@@ -42,7 +43,7 @@ public static class MauiProjectResourceExtensions
     public static IResourceBuilder<MauiProjectResource> WithWindows(this IResourceBuilder<MauiProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder;
+        return builder.WithAnnotation(new MauiPlatformAnnotation(MauiTargetPlatform.Windows));
     }
 
     /// <summary>
@@ -53,7 +54,7 @@ public static class MauiProjectResourceExtensions
     public static IResourceBuilder<MauiProjectResource> WithAndroid(this IResourceBuilder<MauiProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder;
+        return builder.WithAnnotation(new MauiPlatformAnnotation(MauiTargetPlatform.Android));
     }
 
     /// <summary>
@@ -64,7 +65,7 @@ public static class MauiProjectResourceExtensions
     public static IResourceBuilder<MauiProjectResource> WithiOS(this IResourceBuilder<MauiProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder;
+        return builder.WithAnnotation(new MauiPlatformAnnotation(MauiTargetPlatform.iOS));
     }
 
     /// <summary>
@@ -75,6 +76,6 @@ public static class MauiProjectResourceExtensions
     public static IResourceBuilder<MauiProjectResource> WithMacCatalyst(this IResourceBuilder<MauiProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        return builder;
+        return builder.WithAnnotation(new MauiPlatformAnnotation(MauiTargetPlatform.MacCatalyst));
     }
 }
