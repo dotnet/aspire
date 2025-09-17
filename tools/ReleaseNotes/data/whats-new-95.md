@@ -11,7 +11,6 @@ ms.date: 08/21/2025
 - [Upgrade to Aspire 9.5](#upgrade-to-aspire-95)
 - [CLI improvements](#cli-improvements)
   - [`aspire exec` command enhancements](#aspire-exec-command-enhancements)
-  - [Parameter prompting during deploy](#parameter-prompting-during-deploy)
   - [SSH Remote support for port forwarding](#ssh-remote-support-for-port-forwarding)
   - [Robust orphan detection](#robust-orphan-detection)
   - [Package channel & templating enhancements](#package-channel--templating-enhancements)
@@ -44,6 +43,12 @@ ms.date: 08/21/2025
   - [YARP static files support](#yarp-static-files-support)
   - [Redis and RabbitMQ auto activation](#redis-and-rabbitmq-auto-activation)
   - [Redis client builder pattern](#redis-client-builder-pattern)
+  - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
+  - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
+  - [Azure Storage emulator improvements](#azure-storage-emulator-improvements)
+  - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
+  - [Azure Redis Enterprise support](#azure-redis-enterprise-support)
+  - [Azure resource reference properties](#azure-resource-reference-properties)
 - [App model enhancements](#app-model-enhancements)
   - [Resource lifecycle events](#resource-lifecycle-events)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
@@ -60,26 +65,18 @@ ms.date: 08/21/2025
   - [Interactive parameter processing APIs](#interactive-parameter-processing-apis)
   - [Remote & debugging experience](#remote--debugging-experience)
   - [Extension modernization](#extension-modernization)
-- [Azure](#azure)
-  - [Azure AI Foundry enhancements](#azure-ai-foundry-enhancements)
+- [Publishing and Deployment](#publishing-and-deployment)
+  - [Parameter prompting during deploy](#parameter-prompting-during-deploy)
   - [Azure Container App Jobs support](#azure-container-app-jobs-support)
-  - [Azure App Configuration emulator APIs](#azure-app-configuration-emulator-apis)
-  - [Azure Storage emulator improvements](#azure-storage-emulator-improvements)
-  - [Broader Azure resource capability surfacing](#broader-azure-resource-capability-surfacing)
-  - [Azure Redis Enterprise support](#azure-redis-enterprise-support)
-  - [Azure resource reference properties](#azure-resource-reference-properties)
   - [Azure provisioning & deployer](#azure-provisioning--deployer)
   - [Azure deployer interactive command handling](#azure-deployer-interactive-command-handling)
   - [Azure resource idempotency & existing resources](#azure-resource-idempotency--existing-resources)
   - [Compute image deployment](#compute-image-deployment)
   - [Module-scoped Bicep deployment](#module-scoped-bicep-deployment)
-- [Docker & container tooling](#docker--container-tooling)
-  - [Docker Compose Aspire Dashboard forwarding headers](#docker-compose-aspire-dashboard-forwarding-headers)
-  - [Container build customization](#container-build-customization)
-- [Publishing & interactions](#publishing--interactions)
   - [Publishing progress & activity reporting](#publishing-progress--activity-reporting)
   - [Parameter & interaction API updates](#parameter--interaction-api-updates)
-- [Localization & UX consistency](#localization--ux-consistency)
+  - [Docker Compose Aspire Dashboard forwarding headers](#docker-compose-aspire-dashboard-forwarding-headers)
+  - [Container build customization](#container-build-customization)
 - [Reliability & diagnostics](#reliability--diagnostics)
 - [Minor enhancements](#minor-enhancements)
 
@@ -87,7 +84,7 @@ ms.date: 08/21/2025
 
 - .NET 8.0 Long Term Support (LTS)
 - .NET 9.0 Standard Term Support (STS)
-- .NET 10.0 Preview 6
+- .NET 10.0 RC (release candidate) 1
 
 If you have feedback, questions, or want to contribute to Aspire, collaborate with us on [:::image type="icon" source="../media/github-mark.svg" border="false"::: GitHub](https://github.com/dotnet/aspire) or join us on our new [:::image type="icon" source="../media/discord-icon.svg" border="false"::: Discord](https://aka.ms/aspire-discord) to chat with the team and other community members.
 
@@ -161,42 +158,6 @@ aspire exec --start-resource my-worker -- npm run build
 > ```bash
 > aspire config set features.execCommandEnabled true
 > ```
-
-### Parameter prompting during deploy
-
-Aspire 9.5 enhances the deployment experience by automatically prompting for unresolved parameters during `aspire deploy` operations, eliminating the need to manually specify all parameter values upfront.
-
-#### Interactive parameter resolution
-
-When deploying your Aspire application, any parameters without values are now automatically detected and prompted for interactively:
-
-```bash
-# Deploy command detects missing parameters and prompts automatically
-aspire deploy
-
-🔧 Resolving deployment parameters...
-
-Enter value for 'database-password' (secret): ********
-Enter value for 'api-key' (secret): **********************
-Enter value for 'environment-name': production
-
-✅ All parameters resolved, proceeding with deployment...
-```
-
-#### Benefits of interactive parameter prompting
-
-- **Secure credential entry**: Sensitive parameters are masked during input
-- **Deployment-time flexibility**: No need to pre-configure all parameter values
-- **Error prevention**: Missing parameters are caught before deployment begins
-- **Better developer experience**: Clear prompts with parameter descriptions
-
-#### Parameter types supported
-
-- **Secret parameters**: Automatically masked input for sensitive values
-- **Standard parameters**: Regular text input with validation
-- **Optional parameters**: Skipped if no value is provided
-
-This feature builds on the existing parameter infrastructure and makes deployment workflows more intuitive, especially when working with multiple environments or sharing deployment scripts across team members.
 
 ### SSH Remote support for port forwarding
 
@@ -961,6 +922,143 @@ appBuilder.AddKeyedRedisClientBuilder("sessions")
 appBuilder.Build().Run();
 ```
 
+### Azure AI Foundry enhancements
+
+9.5 adds a generated, strongly-typed model catalog (`AIFoundryModel`) for IntelliSense + ref safety when creating deployments (PR #10986) and a daily automation that refreshes the catalog as new models appear in Azure AI Foundry (PR #11040). Sample apps and end-to-end tests now use these constants (PR #11039) instead of raw strings. The original Foundry hosting integration and local runtime support were introduced earlier (issue #9568); this release focuses on developer ergonomics and keeping model metadata current.
+
+Strongly-typed model catalog with IntelliSense support:
+
+```csharp
+var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+
+// Strongly-typed model references
+var gpt4 = aiFoundry.AddDeployment("gpt-4", AIFoundryModel.OpenAI.Gpt4);
+var mistral = aiFoundry.AddDeployment("mistral", AIFoundryModel.MistralAi.MistralLarge2411);
+
+// Local on-device mode
+var localFoundry = builder.AddAzureAIFoundry("local-ai")
+  .RunAsFoundryLocal();
+```
+
+### Azure App Configuration emulator APIs
+
+Run emulators locally with full configuration support:
+
+```csharp
+var appConfig = builder.AddAzureAppConfiguration("config")
+  .RunAsEmulator(emulator => emulator
+    .WithDataVolume("config-data")
+    .WithHostPort(8080));
+```
+
+### Azure Storage emulator improvements
+
+Updated Azurite to version 3.35.0, resolving health check issues that previously returned HTTP 400 responses (#10972). This improves the reliability of Azure Storage emulator health checks during development.
+
+### Broader Azure resource capability surfacing
+
+Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
+
+- `AzureAIFoundryResource`
+- `AzureAppConfigurationResource`
+- `AzureKeyVaultResource`
+- `AzurePostgresFlexibleServerResource`
+- `AzureRedisCacheResource`
+
+### Azure Redis Enterprise support
+
+Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
+
+#### Azure Redis Enterprise integration
+
+The new `AddAzureRedisEnterprise` extension method enables Redis Enterprise resource modeling:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add Azure Redis Enterprise resource
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise");
+
+// Use in your applications
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redisEnterprise);
+
+builder.Build().Run();
+```
+
+#### Local development with container emulation
+
+For local development, Redis Enterprise can run as a container with the same APIs:
+
+```csharp
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .RunAsContainer(container => container
+        .WithHostPort(6379));
+```
+
+#### Authentication options
+
+Redis Enterprise supports both access key and managed identity authentication:
+
+```csharp
+// With access key authentication (default)
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .WithAccessKeyAuthentication();
+
+// With Key Vault integration for access keys
+var keyVault = builder.AddAzureKeyVault("keyvault");
+var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
+    .WithAccessKeyAuthentication(keyVault);
+```
+
+Azure Redis Enterprise provides advanced caching capabilities with clustering, high availability, and enterprise security features while maintaining compatibility with the standard Redis APIs.
+
+### Azure resource reference properties
+
+New reference properties have been added to Azure PostgreSQL and Redis resources for custom connection string composition and individual component access (#11051, #11070).
+
+#### AzurePostgresFlexibleServerResource enhancements
+
+Three new reference properties enable custom connection string composition:
+
+- **`HostName`** (`ReferenceExpression`): Returns PostgreSQL server hostname with port
+- **`UserName`** (`ReferenceExpression?`): Returns username for password authentication (null for Entra ID)  
+- **`Password`** (`ReferenceExpression?`): Returns password for password authentication (null for Entra ID)
+
+```csharp
+var postgres = builder.AddAzurePostgresFlexibleServer("database")
+    .WithPasswordAuthentication()
+    .RunAsContainer();
+
+var db = postgres.AddDatabase("appdb");
+
+// Custom JDBC connection string
+var jdbc = ReferenceExpression.Create($"jdbc:postgresql://{postgres.Resource.HostName}/{db.Resource.DatabaseName}");
+
+// Custom PostgreSQL connection string  
+var connectionString = ReferenceExpression.Create(
+    $"Host={postgres.Resource.HostName};Username={postgres.Resource.UserName};Password={postgres.Resource.Password};Database={db.Resource.DatabaseName}");
+```
+
+#### AzureRedisCacheResource enhancements
+
+Two new reference properties enable custom Redis connection scenarios:
+
+- **`HostName`** (`ReferenceExpression`): Returns Redis server hostname with port
+- **`Password`** (`ReferenceExpression?`): Returns password when running as container (null in Azure mode)
+
+```csharp
+var redis = builder.AddAzureRedis("cache")
+    .RunAsContainer();
+
+// Custom Redis connection string
+var customConnectionString = ReferenceExpression.Create($"{redis.Resource.HostName},password={redis.Resource.Password}");
+
+// Access individual components
+var hostName = redis.Resource.HostName; // e.g., "localhost:6379"
+var password = redis.Resource.Password; // Available in container mode
+```
+
 ## App model enhancements
 
 ### Resource lifecycle events
@@ -1632,25 +1730,43 @@ The extension offers Run vs Debug for the AppHost. If the C# extension is presen
 
 Package upgrades and localization support plus groundwork for richer debugging scenarios.
 
-## Azure
+## Publishing and Deployment
 
-### Azure AI Foundry enhancements
+### Parameter prompting during deploy
 
-9.5 adds a generated, strongly-typed model catalog (`AIFoundryModel`) for IntelliSense + ref safety when creating deployments (PR #10986) and a daily automation that refreshes the catalog as new models appear in Azure AI Foundry (PR #11040). Sample apps and end-to-end tests now use these constants (PR #11039) instead of raw strings. The original Foundry hosting integration and local runtime support were introduced earlier (issue #9568); this release focuses on developer ergonomics and keeping model metadata current.
+Aspire 9.5 enhances the deployment experience by automatically prompting for unresolved parameters during `aspire deploy` operations, eliminating the need to manually specify all parameter values upfront.
 
-Strongly-typed model catalog with IntelliSense support:
+#### Interactive parameter resolution
 
-```csharp
-var aiFoundry = builder.AddAzureAIFoundry("ai-foundry");
+When deploying your Aspire application, any parameters without values are now automatically detected and prompted for interactively:
 
-// Strongly-typed model references
-var gpt4 = aiFoundry.AddDeployment("gpt-4", AIFoundryModel.OpenAI.Gpt4);
-var mistral = aiFoundry.AddDeployment("mistral", AIFoundryModel.MistralAi.MistralLarge2411);
+```bash
+# Deploy command detects missing parameters and prompts automatically
+aspire deploy
 
-// Local on-device mode
-var localFoundry = builder.AddAzureAIFoundry("local-ai")
-  .RunAsFoundryLocal();
+🔧 Resolving deployment parameters...
+
+Enter value for 'database-password' (secret): ********
+Enter value for 'api-key' (secret): **********************
+Enter value for 'environment-name': production
+
+✅ All parameters resolved, proceeding with deployment...
 ```
+
+#### Benefits of interactive parameter prompting
+
+- **Secure credential entry**: Sensitive parameters are masked during input
+- **Deployment-time flexibility**: No need to pre-configure all parameter values
+- **Error prevention**: Missing parameters are caught before deployment begins
+- **Better developer experience**: Clear prompts with parameter descriptions
+
+#### Parameter types supported
+
+- **Secret parameters**: Automatically masked input for sensitive values
+- **Standard parameters**: Regular text input with validation
+- **Optional parameters**: Skipped if no value is provided
+
+This feature builds on the existing parameter infrastructure and makes deployment workflows more intuitive, especially when working with multiple environments or sharing deployment scripts across team members.
 
 ### Azure Container App Jobs support
 
@@ -1731,185 +1847,6 @@ builder.Build().Run();
 
 These overloads provide convenient APIs for the most common job types while maintaining access to the full configuration API when advanced customization is needed.
 
-### Azure App Configuration emulator APIs
-
-Run emulators locally with full configuration support:
-
-```csharp
-var appConfig = builder.AddAzureAppConfiguration("config")
-  .RunAsEmulator(emulator => emulator
-    .WithDataVolume("config-data")
-    .WithHostPort(8080));
-```
-
-### Azure Storage emulator improvements
-
-Updated Azurite to version 3.35.0, resolving health check issues that previously returned HTTP 400 responses (#10972). This improves the reliability of Azure Storage emulator health checks during development.
-
-### Broader Azure resource capability surfacing
-
-Several Azure hosting resource types now implement `IResourceWithEndpoints` enabling uniform endpoint discovery and waiting semantics:
-
-- `AzureAIFoundryResource`
-- `AzureAppConfigurationResource`
-- `AzureKeyVaultResource`
-- `AzurePostgresFlexibleServerResource`
-- `AzureRedisCacheResource`
-
-### Azure Redis Enterprise support
-
-Aspire 9.5 introduces first-class support for Azure Redis Enterprise, providing a high-performance, fully managed Redis service with enterprise-grade features.
-
-#### Azure Redis Enterprise integration
-
-The new `AddAzureRedisEnterprise` extension method enables Redis Enterprise resource modeling:
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add Azure Redis Enterprise resource
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise");
-
-// Use in your applications
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(redisEnterprise);
-
-builder.Build().Run();
-```
-
-#### Local development with container emulation
-
-For local development, Redis Enterprise can run as a container with the same APIs:
-
-```csharp
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
-    .RunAsContainer(container => container
-        .WithHostPort(6379));
-```
-
-#### Authentication options
-
-Redis Enterprise supports both access key and managed identity authentication:
-
-```csharp
-// With access key authentication (default)
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
-    .WithAccessKeyAuthentication();
-
-// With Key Vault integration for access keys
-var keyVault = builder.AddAzureKeyVault("keyvault");
-var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
-    .WithAccessKeyAuthentication(keyVault);
-```
-
-Azure Redis Enterprise provides advanced caching capabilities with clustering, high availability, and enterprise security features while maintaining compatibility with the standard Redis APIs.
-
-### Azure StackExchange Redis component
-
-Aspire 9.5 introduces the new `Aspire.Microsoft.Azure.StackExchangeRedis` component, providing first-class support for Azure Cache for Redis with Azure AD authentication integration.
-
-#### Azure StackExchange Redis features
-
-- **Azure AD authentication**: Seamless integration with Azure Active Directory for secure Redis connections
-- **Managed identity support**: Use system or user-assigned managed identities for authentication
-- **Configuration compatibility**: Built on top of the existing StackExchange.Redis component for consistency
-- **Azure Cache for Redis optimization**: Specifically designed for Azure Cache for Redis scenarios
-
-#### Azure Redis basic usage
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Add Azure Cache for Redis with Azure AD authentication
-var redis = builder.AddAzureRedis("cache")
-    .WithAzureAuthentication();
-
-// Use in your applications
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(redis);
-
-builder.Build().Run();
-```
-
-#### Managed identity authentication
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Use system-assigned managed identity
-var redis = builder.AddAzureRedis("cache")
-    .WithAzureAuthentication()
-    .WithManagedIdentity();
-
-// Or use user-assigned managed identity
-var redis2 = builder.AddAzureRedis("cache2")
-    .WithAzureAuthentication()
-    .WithManagedIdentity("user-assigned-identity-id");
-
-builder.Build().Run();
-```
-
-#### Local development with emulation
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// In development, fall back to container with access key
-var redis = builder.AddAzureRedis("cache")
-    .WithAzureAuthentication()
-    .RunAsContainer(); // Uses standard Redis container in development
-
-builder.Build().Run();
-```
-
-The Azure StackExchange Redis component provides a secure, managed way to connect to Azure Cache for Redis using modern authentication methods while maintaining compatibility with existing Redis client code.
-
-### Azure resource reference properties
-
-New reference properties have been added to Azure PostgreSQL and Redis resources for custom connection string composition and individual component access (#11051, #11070).
-
-#### AzurePostgresFlexibleServerResource enhancements
-
-Three new reference properties enable custom connection string composition:
-
-- **`HostName`** (`ReferenceExpression`): Returns PostgreSQL server hostname with port
-- **`UserName`** (`ReferenceExpression?`): Returns username for password authentication (null for Entra ID)  
-- **`Password`** (`ReferenceExpression?`): Returns password for password authentication (null for Entra ID)
-
-```csharp
-var postgres = builder.AddAzurePostgresFlexibleServer("database")
-    .WithPasswordAuthentication()
-    .RunAsContainer();
-
-var db = postgres.AddDatabase("appdb");
-
-// Custom JDBC connection string
-var jdbc = ReferenceExpression.Create($"jdbc:postgresql://{postgres.Resource.HostName}/{db.Resource.DatabaseName}");
-
-// Custom PostgreSQL connection string  
-var connectionString = ReferenceExpression.Create(
-    $"Host={postgres.Resource.HostName};Username={postgres.Resource.UserName};Password={postgres.Resource.Password};Database={db.Resource.DatabaseName}");
-```
-
-#### AzureRedisCacheResource enhancements
-
-Two new reference properties enable custom Redis connection scenarios:
-
-- **`HostName`** (`ReferenceExpression`): Returns Redis server hostname with port
-- **`Password`** (`ReferenceExpression?`): Returns password when running as container (null in Azure mode)
-
-```csharp
-var redis = builder.AddAzureRedis("cache")
-    .RunAsContainer();
-
-// Custom Redis connection string
-var customConnectionString = ReferenceExpression.Create($"{redis.Resource.HostName},password={redis.Resource.Password}");
-
-// Access individual components
-var hostName = redis.Resource.HostName; // e.g., "localhost:6379"
-var password = redis.Resource.Password; // Available in container mode
-```
-
 ### Azure provisioning & deployer
 
 9.5 delivers the first iteration of the Azure provisioning & deployment pipeline that unifies interactive prompting, Bicep compilation, and mode-specific behavior (run vs publish) across Azure resources:
@@ -1943,24 +1880,6 @@ You can now reference and deploy custom compute images as part of Azure environm
 
 Instead of generating a single aggregated template, 9.5 deploys individual Bicep modules ([#11098](https://github.com/dotnet/aspire/pull/11098)). Failures surface with more precise context and partial successes require less rework.
 
-## Docker & container tooling
-
-### Docker Compose Aspire Dashboard forwarding headers
-
-`AddDockerComposeEnvironment(...).WithDashboard()` gained `WithForwardedHeaders()` to enable forwarded `Host` and `Proto` handling for dashboard scenarios behind reverse proxies or compose networks ([#11080](https://github.com/dotnet/aspire/pull/11080)). This mirrors the standalone dashboard forwarded header support and fixes auth redirect edge cases.
-
-```csharp
-builder.AddDockerComposeEnvironment("env")
-  .WithComposeFile("docker-compose.yml")
-  .WithDashboard(d => d.WithForwardedHeaders());
-```
-
-### Container build customization
-
-`ContainerBuildOptions` support (commit [#10074](https://github.com/dotnet/aspire/pull/10074)) enables customizing the underlying `dotnet publish` invocation when Aspire builds project-sourced container images (for example to change configuration, trimming, or pass additional MSBuild properties). Use the new options hook on the project container image configuration to set MSBuild properties instead of maintaining a custom Dockerfile. (Exact API surface is intentionally summarized here to avoid drift; see API docs for `ContainerBuildOptions` in the hosting namespace for usage.)
-
-## Publishing & interactions
-
 ### Publishing progress & activity reporting
 
 `IPublishingActivityProgressReporter` was renamed to `IPublishingActivityReporter` and output formatting was reworked to provide clearer, structured progress (multiple commits culminating in improved messages). Expect more concise status lines and actionable error sections when using `aspire publish`.
@@ -1982,9 +1901,19 @@ var value = myParam.Value;
 var value = await myParam.GetValueAsync();
 ```
 
-## Localization & UX consistency
+### Docker Compose Aspire Dashboard forwarding headers
 
-Extensive localization landed across the AppHost, Azure provisioning, interactions, launch profiles, and dashboard-facing messages (multiple OneLocBuild commits). Resource strings replace hardcoded literals, enabling translated tooling experiences out-of-the-box.
+`AddDockerComposeEnvironment(...).WithDashboard()` gained `WithForwardedHeaders()` to enable forwarded `Host` and `Proto` handling for dashboard scenarios behind reverse proxies or compose networks ([#11080](https://github.com/dotnet/aspire/pull/11080)). This mirrors the standalone dashboard forwarded header support and fixes auth redirect edge cases.
+
+```csharp
+builder.AddDockerComposeEnvironment("env")
+  .WithComposeFile("docker-compose.yml")
+  .WithDashboard(d => d.WithForwardedHeaders());
+```
+
+### Container build customization
+
+`ContainerBuildOptions` support (commit [#10074](https://github.com/dotnet/aspire/pull/10074)) enables customizing the underlying `dotnet publish` invocation when Aspire builds project-sourced container images (for example to change configuration, trimming, or pass additional MSBuild properties). Use the new options hook on the project container image configuration to set MSBuild properties instead of maintaining a custom Dockerfile. (Exact API surface is intentionally summarized here to avoid drift; see API docs for `ContainerBuildOptions` in the hosting namespace for usage.)
 
 ## Reliability & diagnostics
 
