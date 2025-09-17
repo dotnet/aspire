@@ -620,10 +620,13 @@ extract_version_suffix_from_packages() {
     filename=$(basename "$nupkg_file")
     say_verbose "Extracting version from package: $filename"
     
-    # Extract version from package name (format: PackageName.Version.nupkg)
-    # We expect version to contain the PR suffix like: 1.0.0-pr.1234.a1b2c3d4
+    # Extract version from package name using a more robust two-step approach
+    # First remove the .nupkg extension, then extract the version part
+    local base_name="${filename%.nupkg}"
     local version
-    version=$(echo "$filename" | sed -n 's/.*\.\([0-9]\+\.[0-9]\+\.[0-9]\+.*\)\.nupkg$/\1/p')
+    
+    # Look for semantic version pattern with PR suffix (more specific and robust)
+    version=$(echo "$base_name" | sed -n 's/.*\.\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*-pr\.[0-9][0-9]*\.[a-f0-9][a-f0-9]*\)$/\1/p')
     
     if [[ -z "$version" ]]; then
         say_verbose "Could not extract version from package name: $filename"
@@ -632,16 +635,14 @@ extract_version_suffix_from_packages() {
     
     say_verbose "Extracted full version: $version"
     
-    # Extract just the PR suffix part (pr.1234.a1b2c3d4) from the version
-    local version_suffix
-    version_suffix=$(echo "$version" | sed -n 's/.*-\(pr\.[0-9]\+\.[a-f0-9]\+\).*/\1/p')
-    
-    if [[ -z "$version_suffix" ]]; then
+    # Extract just the PR suffix part using bash regex for better compatibility
+    if [[ "$version" =~ (pr\.[0-9]+\.[a-f0-9]+) ]]; then
+        local version_suffix="${BASH_REMATCH[1]}"
+        printf "%s" "$version_suffix"
+    else
         say_verbose "Package version does not contain PR suffix: $version"
         return 1
     fi
-    
-    printf "%s" "$version_suffix"
 }
 
 # Function to find workflow run for SHA

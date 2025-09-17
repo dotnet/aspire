@@ -726,14 +726,17 @@ function Get-VersionSuffixFromPackages {
     $filename = $nupkgFiles.Name
     Write-Message "Extracting version from package: $filename" -Level Verbose
     
-    # Extract version from package name (format: PackageName.Version.nupkg)
-    # We expect version to contain the PR suffix like: 1.0.0-pr.1234.a1b2c3d4
-    if ($filename -match '.*\.(\d+\.\d+\.\d+.*)\.nupkg$') {
+    # Extract version from package name using a more robust approach
+    # Remove .nupkg extension first, then look for the specific version pattern
+    $baseName = $filename -replace '\.nupkg$', ''
+    
+    # Look for semantic version pattern with PR suffix (more specific and robust)
+    if ($baseName -match '.*\.(\d+\.\d+\.\d+-pr\.\d+\.[a-f0-9]+)$') {
         $version = $Matches[1]
         Write-Message "Extracted version: $version" -Level Verbose
         
-        # Extract just the PR suffix part (pr.1234.a1b2c3d4) from the version
-        if ($version -match '.*-(pr\.\d+\.[a-f0-9]+).*') {
+        # Extract just the PR suffix part using more specific regex
+        if ($version -match '(pr\.\d+\.[a-f0-9]+)') {
             $versionSuffix = $Matches[1]
             Write-Message "Extracted version suffix: $versionSuffix" -Level Verbose
             return $versionSuffix
