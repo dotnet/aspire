@@ -702,21 +702,49 @@ function Get-PRHeadSHA {
     return $headSha.Trim()
 }
 
-# Function to compute version suffix from commit SHA
-# NOTE: This should be kept in sync with the version suffix computation in .github/workflows/ci.yml
-# which uses the same format: pr.{PR_NUMBER}.{first_8_chars_of_SHA}
-function Get-VersionSuffix {
+# Function to extract version suffix from downloaded NuGet packages
+function Get-VersionSuffixFromPackages {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [int]$PRNumber,
-        
-        [Parameter(Mandatory = $true)]
-        [string]$HeadSHA
+        [string]$DownloadDir
     )
     
-    $shortSha = $HeadSHA.Substring(0, 8)
-    return "pr.$PRNumber.$shortSha"
+    if ($PSCmdlet.ShouldProcess("packages", "Extract version suffix from packages") -and $WhatIfPreference) {
+        # Return a mock version for WhatIf
+        return "pr.1234.a1b2c3d4"
+    }
+    
+    # Look for any .nupkg file and extract version from its name
+    $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse | Select-Object -First 1
+    
+    if (-not $nupkgFiles) {
+        Write-Message "No .nupkg files found to extract version from" -Level Verbose
+        throw "No NuGet packages found to extract version information from"
+    }
+    
+    $filename = $nupkgFiles.Name
+    Write-Message "Extracting version from package: $filename" -Level Verbose
+    
+    # Extract version from package name (format: PackageName.Version.nupkg)
+    # We expect version to contain the PR suffix like: 1.0.0-pr.1234.a1b2c3d4
+    if ($filename -match '.*\.(\d+\.\d+\.\d+.*)\.nupkg$') {
+        $version = $Matches[1]
+        Write-Message "Extracted version: $version" -Level Verbose
+        
+        # Extract just the PR suffix part (pr.1234.a1b2c3d4) from the version
+        if ($version -match '.*-(pr\.\d+\.[a-f0-9]+).*') {
+            $versionSuffix = $Matches[1]
+            Write-Message "Extracted version suffix: $versionSuffix" -Level Verbose
+            return $versionSuffix
+        } else {
+            Write-Message "Package version does not contain PR suffix: $version" -Level Verbose
+            throw "Package version does not contain expected PR suffix format"
+        }
+    } else {
+        Write-Message "Could not extract version from package name: $filename" -Level Verbose
+        throw "Could not extract version from package name: $filename"
+    }
 }
 
 # Function to find workflow run for SHA
@@ -1000,8 +1028,6 @@ function Start-DownloadAndInstall {
         # When workflow ID is provided, use it directly
         Write-Message "Starting download and installation for PR #$PRNumber with workflow run ID: $WorkflowRunId" -Level Info
         $runId = $WorkflowRunId.ToString()
-        # For workflow run ID mode, we still need the head SHA to compute the version suffix
-        $headSha = Get-PRHeadSHA -PRNumber $PRNumber
     }
     else {
         # When only PR number is provided, find the workflow run
@@ -1013,10 +1039,6 @@ function Start-DownloadAndInstall {
         # Find the workflow run
         $runId = Find-WorkflowRun -HeadSHA $headSha
     }
-
-    # Calculate and print the version suffix
-    $versionSuffix = Get-VersionSuffix -PRNumber $PRNumber -HeadSHA $headSha
-    Write-Message "Package version suffix: $versionSuffix" -Level Info
 
     Write-Message "Using workflow run https://github.com/$Script:Repository/actions/runs/$runId" -Level Info
 
@@ -1033,6 +1055,15 @@ function Start-DownloadAndInstall {
         $cliDownloadDir = Get-AspireCliFromArtifact -RunId $runId -RID $rid -TempDir $TempDir
     }
     $nugetDownloadDir = Get-BuiltNugets -RunId $runId -RID $rid -TempDir $TempDir
+
+    # Extract and print the version suffix from downloaded packages
+    try {
+        $versionSuffix = Get-VersionSuffixFromPackages -DownloadDir $nugetDownloadDir
+        Write-Message "Package version suffix: $versionSuffix" -Level Info
+    }
+    catch {
+        Write-Message "Could not extract version suffix from downloaded packages: $($_.Exception.Message)" -Level Warning
+    }
 
     # Download VS Code extension if not skipped
     $extensionDownloadDir = $null

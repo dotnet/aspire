@@ -597,15 +597,51 @@ get_pr_head_sha() {
     printf "%s" "$head_sha"
 }
 
-# Function to compute version suffix from commit SHA
-# NOTE: This should be kept in sync with the version suffix computation in .github/workflows/ci.yml
-# which uses the same format: pr.{PR_NUMBER}.{first_8_chars_of_SHA}
-get_version_suffix() {
-    local pr_number="$1"
-    local head_sha="$2"
+# Function to extract version suffix from downloaded NuGet packages
+extract_version_suffix_from_packages() {
+    local download_dir="$1"
     
-    local short_sha="${head_sha:0:8}"
-    printf "pr.%s.%s" "$pr_number" "$short_sha"
+    if [[ "$DRY_RUN" == true ]]; then
+        # Return a mock version for dry run
+        printf "pr.1234.a1b2c3d4"
+        return 0
+    fi
+    
+    # Look for any .nupkg file and extract version from its name
+    local nupkg_file
+    nupkg_file=$(find "$download_dir" -name "*.nupkg" | head -1)
+    
+    if [[ -z "$nupkg_file" ]]; then
+        say_verbose "No .nupkg files found to extract version from"
+        return 1
+    fi
+    
+    local filename
+    filename=$(basename "$nupkg_file")
+    say_verbose "Extracting version from package: $filename"
+    
+    # Extract version from package name (format: PackageName.Version.nupkg)
+    # We expect version to contain the PR suffix like: 1.0.0-pr.1234.a1b2c3d4
+    local version
+    version=$(echo "$filename" | sed -n 's/.*\.\([0-9]\+\.[0-9]\+\.[0-9]\+.*\)\.nupkg$/\1/p')
+    
+    if [[ -z "$version" ]]; then
+        say_verbose "Could not extract version from package name: $filename"
+        return 1
+    fi
+    
+    say_verbose "Extracted full version: $version"
+    
+    # Extract just the PR suffix part (pr.1234.a1b2c3d4) from the version
+    local version_suffix
+    version_suffix=$(echo "$version" | sed -n 's/.*-\(pr\.[0-9]\+\.[a-f0-9]\+\).*/\1/p')
+    
+    if [[ -z "$version_suffix" ]]; then
+        say_verbose "Package version does not contain PR suffix: $version"
+        return 1
+    fi
+    
+    printf "%s" "$version_suffix"
 }
 
 # Function to find workflow run for SHA
@@ -888,10 +924,6 @@ download_and_install_from_pr() {
     if [[ -n "$WORKFLOW_RUN_ID" ]]; then
         say_info "Starting download and installation for PR #$PR_NUMBER with workflow run ID: $WORKFLOW_RUN_ID"
         workflow_run_id="$WORKFLOW_RUN_ID"
-        # For workflow run ID mode, we still need the head SHA to compute the version suffix
-        if ! head_sha=$(get_pr_head_sha "$PR_NUMBER"); then
-            return 1
-        fi
     else
         # When only PR number is provided, find the workflow run
         say_info "Starting download and installation for PR #$PR_NUMBER"
@@ -905,11 +937,6 @@ download_and_install_from_pr() {
             return 1
         fi
     fi
-
-    # Calculate and print the version suffix
-    local version_suffix
-    version_suffix=$(get_version_suffix "$PR_NUMBER" "$head_sha")
-    say_info "Package version suffix: $version_suffix"
 
     say_info "Using workflow run https://github.com/${REPO}/actions/runs/$workflow_run_id"
 
@@ -935,6 +962,14 @@ download_and_install_from_pr() {
     if ! nuget_download_dir=$(download_built_nugets "$workflow_run_id" "$rid" "$temp_dir"); then
         say_error "Failed to download nuget packages"
         return 1
+    fi
+
+    # Extract and print the version suffix from downloaded packages
+    local version_suffix
+    if version_suffix=$(extract_version_suffix_from_packages "$nuget_download_dir"); then
+        say_info "Package version suffix: $version_suffix"
+    else
+        say_warn "Could not extract version suffix from downloaded packages"
     fi
 
     # Download VS Code extension if not skipped
