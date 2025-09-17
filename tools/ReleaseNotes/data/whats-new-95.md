@@ -41,6 +41,8 @@ ms.date: 08/21/2025
   - [OpenAI hosting integration](#openai-hosting-integration)
   - [GitHub Models typed catalog](#github-models-typed-catalog)
   - [Dev Tunnels hosting integration](#dev-tunnels-hosting-integration)
+  - [YARP static files support](#yarp-static-files-support)
+  - [Redis and RabbitMQ auto activation](#redis-and-rabbitmq-auto-activation)
 - [App model enhancements](#app-model-enhancements)
   - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource waiting patterns](#resource-waiting-patterns)
@@ -731,6 +733,149 @@ var mobileTunnel = builder.AddDevTunnel("mobile-tunnel")
 
 The Dev Tunnels integration automatically handles Azure authentication, tunnel lifecycle management, and provides public or private URLs (depending on configuration) to connected resources, making it easy to expose local development services securely to external consumers.
 
+### YARP static files support
+
+Aspire 9.5 adds comprehensive static file serving capabilities to the YARP integration, enabling you to serve static assets directly from YARP alongside reverse proxy functionality. This is perfect for single-page applications, frontend assets, and hybrid scenarios where you need both static content and API proxying.
+
+#### Static files features
+
+- **Direct static file serving**: Serve HTML, CSS, JS, and other static assets from YARP
+- **Flexible source options**: Bind mount local directories or use Docker multi-stage builds
+- **Automatic configuration**: Simple API enables static files with minimal setup
+- **Production ready**: Works in both development and publish scenarios
+
+#### Basic static files usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Enable static file serving (serves from wwwroot folder)
+var yarp = builder.AddYarp("gateway")
+    .WithStaticFiles();
+
+builder.Build().Run();
+```
+
+#### Bind mount local directory
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Serve static files from local directory
+var yarp = builder.AddYarp("static-gateway")
+    .WithStaticFiles("./static-content")
+    .WithConfiguration(gateway =>
+    {
+        // Add API routes alongside static files
+        gateway.AddRoute("/api/{**catch-all}", backendService)
+               .WithTransformPathRemovePrefix("/api");
+    });
+
+builder.Build().Run();
+```
+
+#### Docker multi-stage build scenario
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Use Dockerfile to build and copy static assets
+var frontend = builder.AddYarp("frontend")
+    .WithStaticFiles()
+    .WithDockerFile("../react-app");
+
+builder.Build().Run();
+```
+
+**Example Dockerfile for React app:**
+
+```dockerfile
+# Stage 1: Build React app
+FROM node:20 AS builder
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build
+
+# Stage 2: Copy static files to YARP container
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
+WORKDIR /app
+COPY --from=builder /app/dist ./wwwroot
+```
+
+#### Hybrid static + API gateway
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var backendApi = builder.AddProject<Projects.Api>("api");
+var authService = builder.AddProject<Projects.Auth>("auth");
+
+// YARP serves static files AND proxies API requests
+var gateway = builder.AddYarp("app-gateway")
+    .WithStaticFiles("./frontend/dist")
+    .WithConfiguration(yarp =>
+    {
+        // API routes
+        yarp.AddRoute("/api/{**catch-all}", backendApi)
+            .WithTransformPathRemovePrefix("/api");
+            
+        // Auth routes
+        yarp.AddRoute("/auth/{**catch-all}", authService)
+            .WithTransformPathRemovePrefix("/auth");
+            
+        // Static files are served for all other routes
+    });
+
+builder.Build().Run();
+```
+
+This feature enables modern web application architectures where YARP acts as both a reverse proxy for backend services and a static file server for frontend assets, providing a unified entry point for your distributed application.
+
+### Redis and RabbitMQ auto activation
+
+Redis and RabbitMQ connections now support auto activation to prevent startup deadlocks and improve application reliability.
+
+#### Auto activation features
+
+- **Eliminates blocking threads**: Connections are established proactively at startup rather than on first use
+- **Prevents startup deadlocks**: Avoids synchronous connection establishment in dependency injection scenarios
+- **Improves reliability**: Reduces first-request latency by pre-establishing connections
+- **Configurable behavior**: Can be enabled or disabled per connection as needed
+
+#### Redis auto activation
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Auto activation enabled by default for Redis
+var redis = builder.AddRedis("cache");
+
+// Use in applications - connection is already established
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+#### RabbitMQ auto activation configuration
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+var rabbitmq = builder.AddRabbitMQ("messaging", settings =>
+{
+    // Enable auto activation (opt-in for RabbitMQ)
+    settings.DisableAutoActivation = false;
+});
+
+// Connection established at startup, not on first use
+var worker = builder.AddProject<Projects.Worker>("worker")
+    .WithReference(rabbitmq);
+
+builder.Build().Run();
+```
+
 ## App model enhancements
 
 ### Telemetry configuration APIs
@@ -1281,6 +1426,26 @@ var scheduledJob = builder.AddProject<Projects.ScheduledWorker>("scheduled-worke
 
 This feature addresses issue #4366 and provides a unified development and deployment experience for both long-running services (Container Apps) and finite workloads (Container App Jobs) within your Aspire applications.
 
+#### Simplified job configuration overloads
+
+For common scenarios, Aspire 9.5 provides simplified overloads that reduce boilerplate code:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Scheduled job with cron expression
+var scheduledJob = builder.AddProject<Projects.DailyProcessor>("daily-processor")
+    .PublishAsAzureContainerAppJob("0 0 2 * * *"); // Run daily at 2 AM
+
+// Manual job (default trigger type)
+var manualJob = builder.AddContainer("batch-processor", "my-batch-image")
+    .PublishAsAzureContainerAppJob(); // Manual trigger, ready for on-demand execution
+
+builder.Build().Run();
+```
+
+These overloads provide convenient APIs for the most common job types while maintaining access to the full configuration API when advanced customization is needed.
+
 ### Azure App Configuration emulator APIs
 
 Run emulators locally with full configuration support:
@@ -1353,6 +1518,66 @@ var redisEnterprise = builder.AddAzureRedisEnterprise("redis-enterprise")
 ```
 
 Azure Redis Enterprise provides advanced caching capabilities with clustering, high availability, and enterprise security features while maintaining compatibility with the standard Redis APIs.
+
+### Azure StackExchange Redis component
+
+Aspire 9.5 introduces the new `Aspire.Microsoft.Azure.StackExchangeRedis` component, providing first-class support for Azure Cache for Redis with Azure AD authentication integration.
+
+#### Azure StackExchange Redis features
+
+- **Azure AD authentication**: Seamless integration with Azure Active Directory for secure Redis connections
+- **Managed identity support**: Use system or user-assigned managed identities for authentication
+- **Configuration compatibility**: Built on top of the existing StackExchange.Redis component for consistency
+- **Azure Cache for Redis optimization**: Specifically designed for Azure Cache for Redis scenarios
+
+#### Azure Redis basic usage
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Add Azure Cache for Redis with Azure AD authentication
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication();
+
+// Use in your applications
+var api = builder.AddProject<Projects.Api>("api")
+    .WithReference(redis);
+
+builder.Build().Run();
+```
+
+#### Managed identity authentication
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Use system-assigned managed identity
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication()
+    .WithManagedIdentity();
+
+// Or use user-assigned managed identity
+var redis2 = builder.AddAzureRedis("cache2")
+    .WithAzureAuthentication()
+    .WithManagedIdentity("user-assigned-identity-id");
+
+builder.Build().Run();
+```
+
+#### Local development with emulation
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// In development, fall back to container with access key
+var redis = builder.AddAzureRedis("cache")
+    .WithAzureAuthentication()
+    .RunAsContainer(); // Uses standard Redis container in development
+
+builder.Build().Run();
+```
+
+The Azure StackExchange Redis component provides a secure, managed way to connect to Azure Cache for Redis using modern authentication methods while maintaining compatibility with existing Redis client code.
 
 ### Azure resource reference properties
 
