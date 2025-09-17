@@ -45,9 +45,7 @@ ms.date: 08/21/2025
   - [Redis and RabbitMQ auto activation](#redis-and-rabbitmq-auto-activation)
   - [Redis client builder pattern](#redis-client-builder-pattern)
 - [App model enhancements](#app-model-enhancements)
-  - [Telemetry configuration APIs](#telemetry-configuration-apis)
   - [Resource lifecycle events](#resource-lifecycle-events)
-  - [Resource waiting patterns](#resource-waiting-patterns)
   - [Context-based endpoint resolution](#context-based-endpoint-resolution)
 - [API changes and enhancements](#api-changes-and-enhancements)
   - [OTLP telemetry protocol selection](#otlp-telemetry-protocol-selection)
@@ -56,7 +54,6 @@ ms.date: 08/21/2025
   - [Resource waiting patterns & ExternalService changes](#enhanced-resource-waiting-patterns)
   - [Resource lifetime enhancements](#enhanced-resource-lifetime-support)
   - [InteractionInput API updates](#interactioninput-api-improvements)
-  - [Custom resource icons](#resource-icon-customization)
   - [MySQL password improvements](#mysql-password-improvements)
   - [Resource lifecycle event APIs](#resource-lifecycle-event-apis)
   - [Executable resource configuration APIs](#executable-resource-configuration-apis)
@@ -966,27 +963,6 @@ appBuilder.Build().Run();
 
 ## App model enhancements
 
-### Telemetry configuration APIs
-
-Enhanced OTLP telemetry configuration with protocol selection:
-
-```csharp
-// New OtlpProtocol enum with Grpc and HttpProtobuf options
-public enum OtlpProtocol
-{
-    Grpc = 0,
-    HttpProtobuf = 1
-}
-
-// Configure OTLP telemetry with specific protocol
-var api = builder.AddProject<Projects.Api>("api")
-  .WithOtlpExporter(OtlpProtocol.HttpProtobuf);
-
-// Or use default protocol
-var worker = builder.AddProject<Projects.Worker>("worker")
-  .WithOtlpExporter();
-```
-
 ### Resource lifecycle events
 
 Aspire 9.5 introduces new resource lifecycle event APIs that allow you to register callbacks for when resources stop, providing better control over cleanup and coordination during application shutdown.
@@ -1057,40 +1033,6 @@ var worker = builder.AddProject<Projects.Worker>("worker")
         await CompleteInFlightJobs(ct);
     })
     .WithReference(database);
-```
-
-### Resource waiting patterns
-
-Enhanced waiting with new `WaitForStart` options (issue #7532, implemented in PR #10948). `WaitForStart` waits for a dependency to reach the Running state without blocking on health checks—useful when initialization code (migrations, seeding, registry bootstrap) must run before the service can become "healthy". Compared to `WaitFor`:
-
-- `WaitFor` = Running + passes health checks.
-- `WaitForStart` = Running only (ignores health checks, faster in dev / init flows).
-
-This mirrors Docker Compose's `service_started` vs `service_healthy` conditions and supports both existing `WaitBehavior` modes.
-
-```csharp
-var postgres = builder.AddPostgres("postgres");
-var redis = builder.AddRedis("redis");
-
-var api = builder.AddProject<Projects.Api>("api")
-  .WaitForStart(postgres)  // New: Wait only for startup, not health
-  .WaitFor(redis)  // Existing: Wait for healthy
-  .WithReference(postgres)
-  .WithReference(redis);
-```
-
-### ExternalService WaitFor behavior change
-
-Breaking change: `WaitFor` now properly honors `ExternalService` health checks so dependent resources defer start until the external service reports healthy (issue [#10827](https://github.com/dotnet/aspire/issues/10827)). Previously, dependents would start even if the external target failed its readiness probe. This improves correctness and aligns `ExternalService` with other resource types.
-
-If you relied on the old lenient behavior (e.g., starting a frontend while an external API was still warming up), you can temporarily remove the `WaitFor` call or switch to `WaitForStart` if only startup is required.
-
-```csharp
-var externalApi = builder.AddExternalService("backend-api", "http://localhost:5082")
-  .WithHttpHealthCheck("/health/ready");
-
-builder.AddProject<Projects.Frontend>("frontend")
-  .WaitFor(externalApi);
 ```
 
 ### Context-based endpoint resolution
@@ -1508,42 +1450,6 @@ var input = new InteractionInput
 ```
 
 This enables better form serialization and integration with interactive parameter processing.
-
-### Resource icon customization
-
-Resources can now specify custom icons for better visual identification in the dashboard using the `WithIconName` method (#10760).
-
-#### Basic icon usage
-
-```csharp
-var builder = DistributedApplication.CreateBuilder(args);
-
-// Simple icon assignment
-var postgres = builder.AddPostgres("database")
-    .WithIconName("database");
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithIconName("cloud");
-
-var redis = builder.AddRedis("cache")
-    .WithIconName("memory");
-
-builder.Build().Run();
-```
-
-#### Icon variants
-
-```csharp
-// Available variants: Regular (outline) or Filled (solid)
-var database = builder.AddPostgres("db")
-    .WithIconName("database", ApplicationModel.IconVariant.Regular);
-
-var api = builder.AddProject<Projects.Api>("api")
-    .WithIconName("web-app", ApplicationModel.IconVariant.Filled);
-```
-
-> [!NOTE]
-> The default icon variant is `Filled` if not specified.
 
 ### MySQL password improvements
 
