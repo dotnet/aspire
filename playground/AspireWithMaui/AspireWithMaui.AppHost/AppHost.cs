@@ -4,12 +4,8 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddProject("AspireWithMaui-WeatherApi", @"..\AspireWithMaui.WeatherApi\AspireWithMaui.WeatherApi.csproj")
     .WithExternalHttpEndpoints();
 
-// TODO: Add MAUI client - currently not supported
-// We would like to do something like:
-// builder.AddMauiProject<Projects.AspireWithMaui_MauiClient>("mauiclient")
-//    .WithReference(weatherApi);
-//
-// But this functionality doesn't exist yet. The MAUI app needs to be run manually
-// and configured to use service discovery to connect to the weather API.
+builder.AddMauiProject("mauiclient", @"..\AspireWithMaui.MauiClient\AspireWithMaui.MauiClient.csproj")
+    .WithWindows()
+    .WithAndroid();
 
 builder.Build().Run();
