@@ -1867,6 +1867,6 @@ With every release, we strive to make .NET Aspire better. However, some changes 
 
 ## 🎯 Upgrade today
 
-Follow the directions outlined in the [Upgrade to .NET Aspire 9.4](#️-upgrade-to-net-aspire-94) section to make the switch to 9.4 and take advantage of all these new features today! As always, we're listening for your feedback on [GitHub](https://github.com/dotnet/aspire/issues)—and looking out for what you want to see in 9.6 ☺️.
+Follow the directions outlined in the [Upgrade to .NET Aspire 9.4](#️-upgrade-to-net-aspire-94) section to make the switch to 9.4 and take advantage of all these new features today! As always, we're listening for your feedback on [GitHub](https://github.com/dotnet/aspire/issues)—and looking out for what you want to see in 9.5 ☺️.
 
 For a complete list of issues addressed in this release, see [.NET Aspire GitHub repository—9.4 milestone](https://github.com/dotnet/aspire/issues?q=is%3Aissue%20state%3Aclosed%20milestone%3A9.4%20).
