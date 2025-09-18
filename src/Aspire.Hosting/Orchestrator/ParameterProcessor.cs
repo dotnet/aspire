@@ -21,7 +21,8 @@ public sealed class ParameterProcessor(
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
-    DistributedApplicationOptions options)
+    DistributedApplicationOptions options,
+    DistributedApplicationExecutionContext executionContext)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -73,7 +74,7 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
-            if (parameterResource.Default is GenerateParameterDefault generateDefault)
+            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
                 throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
             }

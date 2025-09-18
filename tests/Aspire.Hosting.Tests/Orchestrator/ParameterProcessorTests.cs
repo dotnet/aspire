@@ -480,14 +480,16 @@ public class ParameterProcessorTests
         ResourceLoggerService? loggerService = null,
         IInteractionService? interactionService = null,
         ILogger<ParameterProcessor>? logger = null,
-        bool disableDashboard = true)
+        bool disableDashboard = true,
+        DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
-            new DistributedApplicationOptions { DisableDashboard = disableDashboard }
+            new DistributedApplicationOptions { DisableDashboard = disableDashboard },
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         );
     }
 
