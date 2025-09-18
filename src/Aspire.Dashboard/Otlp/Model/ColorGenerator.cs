@@ -17,9 +17,9 @@ public sealed class AccentColor
     public string ReferencedVariableName { get; }
 }
 
-<summary>
-Provides a stable color for a named element. When <see cref="GetColorVariableByKey(string)" /> is invoked a new color is returned if the key was not used previously. An instance of this class is thread-safe and multiple threads can query colors concurrently without collisions.
-</summary>
+/// <summary>
+/// Provides a stable color for a named element. When <see cref="GetColorVariableByKey(string)" /> is invoked a new color is returned if the key was not used previously. An instance of this class is thread-safe and multiple threads can query colors concurrently without collisions.
+/// </summary>
 public class ColorGenerator
 {
     private static readonly string[] s_variableNames =
