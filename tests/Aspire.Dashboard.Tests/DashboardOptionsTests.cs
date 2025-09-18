@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Aspire.Dashboard.Configuration;
 using Aspire.Hosting;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -286,11 +287,15 @@ public sealed class DashboardOptionsTests
     {
         var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
         [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new("Authentication:Schemes:OpenIdConnect:Authority", "https://id.aspire.dev/"),
+            new("Authentication:Schemes:OpenIdConnect:ClientId", "aspire-dashboard"),
             new("Dashboard:Frontend:AuthMode", "OpenIdConnect"),
-            new("Dashboard__Frontend__OpenIdConnect__ClaimActions", "MapJsonKey:role:role"),
-            new("Dashboard__Frontend__OpenIdConnect__RequiredClaimType", "role")
+            new("Dashboard:Frontend:OpenIdConnect:ClaimActions", "MapJsonKey:role:role"),
+            new("Dashboard:Frontend:OpenIdConnect:RequiredClaimType", "role")
         ]));
-        var openIdConnectAuthOptions = app.Services.GetService<IOptions<OpenIdConnectOptions>>()?.Value;
+        var openIdConnectAuthOptions = app.Services.GetService<IOptionsMonitor<OpenIdConnectOptions>>()?.Get(OpenIdConnectDefaults.AuthenticationScheme);
         Assert.NotNull(openIdConnectAuthOptions);
         Assert.NotEmpty(openIdConnectAuthOptions.ClaimActions);
         var claimAction = openIdConnectAuthOptions.ClaimActions.FirstOrDefault(x => x.ClaimType == "role");
