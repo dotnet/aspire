@@ -448,6 +448,9 @@ public class ApplicationOrchestratorTests
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
         resourceLoggerService ??= new ResourceLoggerService();
 
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider });
+
         return new ApplicationOrchestrator(
             distributedAppModel,
             new TestDcpExecutor(),
@@ -457,14 +460,14 @@ public class ApplicationOrchestratorTests
             resourceLoggerService,
             applicationEventing ?? new DistributedApplicationEventing(),
             serviceProvider,
-            new DistributedApplicationExecutionContext(
-                new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run) { ServiceProvider = serviceProvider }),
+            executionContext,
             new ParameterProcessor(
                 notificationService,
                 resourceLoggerService,
                 CreateInteractionService(),
                 NullLogger<ParameterProcessor>.Instance,
-                new DistributedApplicationOptions())
+                new DistributedApplicationOptions(),
+                executionContext)
             );
     }
 
