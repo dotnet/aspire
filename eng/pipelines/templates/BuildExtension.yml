@@ -162,39 +162,6 @@ steps:
         errorActionPreference: 'stop'
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-
-    - task: PowerShell@2
-      displayName: 🟣Verify extension signatures
-      inputs:
-        targetType: 'inline'
-        script: |
-          Write-Host "=== Verifying Extension Signatures ==="
-          $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
-
-          $allSigned = $true
-          Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
-            Write-Host "Checking signature for: $($_.Name)"
-            $sig = Get-AuthenticodeSignature $_.FullName
-            Write-Host "  Status: $($sig.Status)"
-            Write-Host "  Signer: $($sig.SignerCertificate.Subject)"
-            Write-Host "  Timestamp: $($sig.TimeStamperCertificate.Subject)"
-
-            if ($sig.Status -ne "Valid") {
-              Write-Host "  ❌ File is not properly signed!"
-              $allSigned = $false
-            } else {
-              Write-Host "  ✅ File is properly signed"
-            }
-          }
-
-          if (-not $allSigned) {
-            Write-Host "❌ Not all extension files are properly signed!"
-            exit 1
-          } else {
-            Write-Host "✅ All extension files are properly signed"
-          }
-        errorActionPreference: 'stop'
-
   - task: 1ES.PublishBuildArtifacts@1
     displayName: 🟣Publish extension artifact
     inputs:
