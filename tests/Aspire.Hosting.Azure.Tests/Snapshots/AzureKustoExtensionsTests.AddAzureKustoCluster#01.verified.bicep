@@ -20,7 +20,7 @@ resource testdb_user 'Microsoft.Kusto/clusters/databases/principalAssignments@20
   name: guid(testdb.id, principalId, 'User')
   properties: {
     principalId: principalId
-    principalType: 'User'
+    principalType: (principalType == 'User') ? 'User' : (principalType == 'Group') ? 'Group' : 'App'
     role: 'User'
   }
   parent: testdb
