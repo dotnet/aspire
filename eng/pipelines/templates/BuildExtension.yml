@@ -11,12 +11,12 @@ parameters:
 
 steps:
   - task: NodeTool@0
-    displayName: 🟣Install Node.js
+    displayName: 🟣Install node
     inputs:
       versionSpec: '20.x'
 
   - task: PowerShell@2
-    displayName: 🟣Install Yarn
+    displayName: 🟣Install yarn
     inputs:
       targetType: 'inline'
       script: |
@@ -25,7 +25,16 @@ steps:
       workingDirectory: '$(Build.SourcesDirectory)'
 
   - task: PowerShell@2
-    displayName: 🟣Install Dependencies and Run Localization
+    displayName: 🟣Install VSCE
+    inputs:
+      targetType: 'inline'
+      script: |
+        npm install -g @vscode/vsce
+        vsce --version
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+  - task: PowerShell@2
+    displayName: 🟣Install dependencies and compile
     inputs:
       targetType: 'inline'
       script: |
@@ -43,7 +52,7 @@ steps:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
 
   - task: PowerShell@2
-    displayName: 🟣Package Extension as VSIX
+    displayName: 🟣Package as VSIX
     inputs:
       targetType: 'inline'
       script: |
@@ -71,7 +80,7 @@ steps:
       errorActionPreference: 'stop'
 
   - task: PowerShell@2
-    displayName: 🟣List Extension Artifacts
+    displayName: 🟣List extension artifacts
     inputs:
       targetType: 'inline'
       script: |
