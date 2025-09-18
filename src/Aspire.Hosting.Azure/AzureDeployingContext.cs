@@ -33,8 +33,6 @@ internal sealed class AzureDeployingContext(
     IConfiguration configuration,
     ITokenCredentialProvider tokenCredentialProvider)
 {
-    private readonly Dictionary<string, ParameterResource> _referencedParameters = [];
-    private readonly HashSet<object?> _currentDependencySet = [];
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
@@ -47,18 +45,8 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Step 1: Collect dependent parameter resources from environment variables and command line arguments
-        await CollectDependentParameterResourcesAsync(model, cancellationToken).ConfigureAwait(false);
-
-        // Combine explicit parameters with dependent parameters
-        var explicitParameters = model.Resources.OfType<ParameterResource>();
-        var dependentParameters = _referencedParameters.Values.Where(p => !explicitParameters.Contains(p));
-        var allParameters = explicitParameters.Concat(dependentParameters);
-
-        if (allParameters.Any())
-        {
-            await parameterProcessor.InitializeParametersAsync(allParameters, waitForResolution: true).ConfigureAwait(false);
-        }
+        // Step 1: Initialize parameters by collecting dependencies and resolving values
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
         // Step 2: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
@@ -588,67 +576,4 @@ internal sealed class AzureDeployingContext(
 
         return string.Empty;
     }
-
-    private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, CancellationToken cancellationToken)
-    {
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-
-        foreach (var resource in model.Resources)
-        {
-            await ProcessResourceDependenciesAsync(resource, executionContext, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Clear any leftover tracking state
-        _currentDependencySet.Clear();
-    }
-
-    private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-    {
-        // Process environment variables
-        await resource.ProcessEnvironmentVariableValuesAsync(
-            executionContext,
-            (key, unprocessed, processed, ex) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed);
-                }
-            },
-            Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-
-        // Process command line arguments
-        await resource.ProcessArgumentValuesAsync(
-            executionContext,
-            (unprocessed, expression, ex, _) =>
-            {
-                if (unprocessed is not null)
-                {
-                    TryAddDependentParameters(unprocessed);
-                }
-            },
-            Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
-            cancellationToken: cancellationToken).ConfigureAwait(false);
-    }
-
-    private void TryAddDependentParameters(object? value)
-    {
-        if (value is ParameterResource parameter)
-        {
-            _referencedParameters.TryAdd(parameter.Name, parameter);
-        }
-        else if (value is IValueWithReferences objectWithReferences)
-        {
-            _currentDependencySet.Add(value);
-            foreach (var dependency in objectWithReferences.References)
-            {
-                if (!_currentDependencySet.Contains(dependency))
-                {
-                    TryAddDependentParameters(dependency);
-                }
-            }
-            _currentDependencySet.Remove(value);
-        }
-    }
-
 }
