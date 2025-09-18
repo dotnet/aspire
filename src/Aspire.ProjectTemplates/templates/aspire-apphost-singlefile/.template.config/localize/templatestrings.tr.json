@@ -1,4 +1,4 @@
-{
+﻿{
   "author": "Microsoft",
   "name": "Aspire Single-File App Host",
   "description": "A minimal Aspire AppHost for single-file scenarios (Aspire 9.5+, .NET 10+).",
