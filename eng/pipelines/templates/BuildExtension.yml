@@ -95,20 +95,91 @@ steps:
 
   # Sign the extension if this is not a test build
   - ${{ if ne(variables['_SignType'], 'test') }}:
-    - script: |
-        echo "=== Extension Signing Debug Info ==="
-        echo "Sign type: $(_SignType)"
-        echo "Team name: $(_TeamName)"
-        echo "Artifacts directory: ${{ parameters.repoArtifactsPath }}packages/"
-        echo "Listing files before signing:"
-        ls -la "${{ parameters.repoArtifactsPath }}packages/" || dir "${{ parameters.repoArtifactsPath }}packages/"
-        echo "=== Starting signing process ==="
-        $(Build.SourcesDirectory)/eng/common/build.cmd -ci -restore -sign /p:ArtifactsPackagesDir="${{ parameters.repoArtifactsPath }}packages/" /p:SkipBuild=true /p:SkipTest=true /p:SkipPack=true /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName) /v:normal
-        echo "=== Signing completed, listing files after ==="
-        ls -la "${{ parameters.repoArtifactsPath }}packages/" || dir "${{ parameters.repoArtifactsPath }}packages/"
+    - task: PowerShell@2
       displayName: 🟣Sign extension
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "=== Extension Signing Debug Info ==="
+          Write-Host "Sign type: $(_SignType)"
+          Write-Host "Team name: $(_TeamName)"
+          $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
+          Write-Host "Artifacts directory: $artifactsDir"
+
+          Write-Host "Listing files before signing:"
+          if (Test-Path $artifactsDir) {
+            Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
+              Write-Host "  $($_.Name) - Size: $($_.Length) bytes - Modified: $($_.LastWriteTime)"
+
+              # Check signature before
+              $sig = Get-AuthenticodeSignature $_.FullName
+              Write-Host "  Signature before: $($sig.Status) - $($sig.SignerCertificate.Subject)"
+            }
+          } else {
+            Write-Host "  Directory not found!"
+            exit 1
+          }
+
+          Write-Host "=== Starting signing process ==="
+          $buildArgs = "-ci", "-restore", "-sign", "/p:DotNetSignType=$(_SignType)", "/p:TeamName=$(_TeamName)", "/v:normal"
+          Write-Host "Build args: $($buildArgs -join ' ')"
+
+          try {
+            & "$(Build.SourcesDirectory)\build.cmd" @buildArgs
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "Build.cmd failed with exit code: $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
+            Write-Host "Build.cmd completed successfully"
+          }
+          catch {
+            Write-Host "Error calling build.cmd: $_"
+            exit 1
+          }
+
+          Write-Host "=== Signing completed, listing files after ==="
+          Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
+            Write-Host "  $($_.Name) - Size: $($_.Length) bytes - Modified: $($_.LastWriteTime)"
+
+            # Check signature after
+            $sig = Get-AuthenticodeSignature $_.FullName
+            Write-Host "  Signature after: $($sig.Status) - $($sig.SignerCertificate.Subject)"
+          }
+        errorActionPreference: 'stop'
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+
+    - task: PowerShell@2
+      displayName: 🟣Verify extension signatures
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "=== Verifying Extension Signatures ==="
+          $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
+
+          $allSigned = $true
+          Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
+            Write-Host "Checking signature for: $($_.Name)"
+            $sig = Get-AuthenticodeSignature $_.FullName
+            Write-Host "  Status: $($sig.Status)"
+            Write-Host "  Signer: $($sig.SignerCertificate.Subject)"
+            Write-Host "  Timestamp: $($sig.TimeStamperCertificate.Subject)"
+
+            if ($sig.Status -ne "Valid") {
+              Write-Host "  ❌ File is not properly signed!"
+              $allSigned = $false
+            } else {
+              Write-Host "  ✅ File is properly signed"
+            }
+          }
+
+          if (-not $allSigned) {
+            Write-Host "❌ Not all extension files are properly signed!"
+            exit 1
+          } else {
+            Write-Host "✅ All extension files are properly signed"
+          }
+        errorActionPreference: 'stop'
 
   - task: 1ES.PublishBuildArtifacts@1
     displayName: 🟣Publish extension artifact
