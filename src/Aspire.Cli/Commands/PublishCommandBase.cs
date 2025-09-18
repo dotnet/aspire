@@ -26,6 +26,8 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
 
+    private readonly IFeatures _features;
+
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
 
@@ -45,11 +47,13 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -91,17 +95,20 @@ internal abstract class PublishCommandBase : BaseCommand
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
-            if (effectiveAppHostProjectFile is null)
+            if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+
+            // Validate that single file AppHost feature is enabled if we detected a .cs file
+            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
             {
-                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
-                return ExitCodeConstants.SingleFileAppHostNotSupported;
+                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
+                return ExitCodeConstants.FailedToFindProject;
             }
 
             var env = new Dictionary<string, string>();
@@ -112,7 +119,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            if (isSingleFileAppHost)
+            {
+                // TODO: Add logic to read SDK version from *.cs file.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -125,13 +140,16 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-            if (buildExitCode != 0)
+            if (!isSingleFileAppHost)
             {
-                InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+
+                if (buildExitCode != 0)
+                {
+                    InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                    InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
 
             var outputPath = parseResult.GetValue<string?>("--output-path");
@@ -150,7 +168,7 @@ internal abstract class PublishCommandBase : BaseCommand
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
             var pendingRun = _runner.RunAsync(
-                effectiveAppHostProjectFile,
+                effectiveAppHostFile,
                 false,
                 true,
                 GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens),
