@@ -90,7 +90,19 @@ internal static class LaunchProfileExtensions
         // It isn't mandatory that the launchSettings.json file exists!
         if (!File.Exists(launchSettingsFilePath))
         {
-            return null;
+            if (!projectMetadata.IsFileBasedApp)
+            {
+                return null;
+            }
+            else
+            {
+                // For file-based apps, also check for a .run.json file next to the .cs file          
+                var runSettingsFilePath = Path.ChangeExtension(projectMetadata.ProjectPath, ".run.json");
+                if (File.Exists(runSettingsFilePath))
+                {
+                    launchSettingsFilePath = runSettingsFilePath;
+                }
+            }
         }
 
         using var stream = File.OpenRead(launchSettingsFilePath);

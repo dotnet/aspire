@@ -1,0 +1,9 @@
+<Project>
+
+  <ItemGroup Condition="'$(IsAspireHost)' == 'true'">
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+  </ItemGroup>
+
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+
+</Project>

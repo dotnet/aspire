@@ -247,13 +247,13 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="projectPath">The path to the project file or directory.</param>
     /// <param name="configure">A callback to configure the project resource options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file or directory. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <example>
@@ -284,6 +284,57 @@ public static class ProjectResourceBuilderExtensions
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
                       .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
+                      .WithProjectDefaults(options);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(path);
+
+        return builder.AddCSharpApp(name, path, _ => { });
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="builder"></param>
+    /// <param name="name"></param>
+    /// <param name="path"></param>
+    /// <param name="configure"></param>
+    /// <returns></returns>
+    public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new ProjectResourceOptions();
+        configure(options);
+
+        var project = new ProjectResource(name);
+
+        path = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, path));
+        IProjectMetadata projectMetadata = new ProjectMetadata(path);
+
+        if (projectMetadata.IsFileBasedApp && (RuntimeUtils.TryGetVersion(out var version) && version.Major < 10))
+        {
+            // File-based apps are only supported on .NET 10 and later
+            throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 and later. The current version is {version?.ToString() ?? "unknown"}.");
+        }
+
+        return builder.AddResource(project)
+                      .WithAnnotation(projectMetadata)
+                      .WithVSCodeDebugSupport(path, "coreclr", "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -726,13 +777,19 @@ public static class ProjectResourceBuilderExtensions
         }
 
         var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
         var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
         var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
+        // .NET 10 introduced support for application-specific settings files: https://github.com/dotnet/runtime/pull/116987
+        var appFileName = Path.GetFileName(projectDirectoryPath);
+        var appNameSettingsPath = Path.Combine(projectDirectoryPath, $"{appFileName}.settings.json");
+        var appNameSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"{appFileName}.settings.{env}.json");
 
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
+        configBuilder.AddJsonFile(appNameSettingsPath, optional: true);
+        configBuilder.AddJsonFile(appNameSettingsEnvironmentPath, optional: true);
         return configBuilder.Build();
     }
 

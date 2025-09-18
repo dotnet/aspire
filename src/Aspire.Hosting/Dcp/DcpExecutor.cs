@@ -1044,12 +1044,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true)
+                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
                         projectArgs.AddRange([
                             "run",
                             "--no-build",
-                            "--project",
+                            projectMetadata.IsFileBasedApp ? "--file" : "--project",
                             projectMetadata.ProjectPath,
                         ]);
                     }
