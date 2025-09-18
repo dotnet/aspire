@@ -694,22 +694,23 @@ var api = builder.AddProject<Projects.Api>("api")
 builder.Build().Run();
 ```
 
-**RabbitMQ auto activation configuration:**
+#### RabbitMQ auto activation configuration
 
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
+// Application (not AppHost) code
+var builder = Host.CreateApplicationBuilder(args);
 
-var rabbitmq = builder.AddRabbitMQ("messaging", settings =>
-{
-    // Enable auto activation (opt-in for RabbitMQ)
-    settings.DisableAutoActivation = false;
-});
+// Default: auto activation ENABLED (no extra configuration required)
+builder.AddRabbitMQClient("messaging");
 
-// Connection established at startup, not on first use
-var worker = builder.AddProject<Projects.Worker>("worker")
-    .WithReference(rabbitmq);
+// --- OR --- Opt out of auto activation (connection will be created lazily)
+// builder.AddRabbitMQClient("messaging", settings =>
+// {
+//     settings.DisableAutoActivation = true; // disable auto activation
+// });
 
-builder.Build().Run();
+var app = builder.Build();
+app.Run();
 ```
 
 ### Redis client builder pattern
@@ -717,38 +718,34 @@ builder.Build().Run();
 Aspire 9.5 introduces a new Redis client builder pattern that provides a fluent, type-safe approach to configuring Redis clients with integrated support for distributed caching, output caching, and Azure authentication.
 
 **Features:**
+
 - **Fluent configuration**: Chain multiple Redis features like distributed caching, output caching, and Azure authentication
 - **Type-safe builders**: `AspireRedisClientBuilder` provides compile-time safety and IntelliSense
 - **Integrated Azure authentication**: Seamless Azure AD/Entra ID authentication with `WithAzureAuthentication`
 - **Service composition**: Build complex Redis configurations with multiple features in a single call chain
 
+#### Basic Redis client builder usage
+
 ```csharp
-var builder = DistributedApplication.CreateBuilder(args);
+var builder = Host.CreateApplicationBuilder(args);
 
-var redis = builder.AddRedis("cache");
-
-// Use the new client builder pattern for enhanced configuration
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(redis);
-
-// In the API project, use the new builder APIs
-var appBuilder = Host.CreateDefaultBuilder(args);
-
-// Add Redis client with builder pattern
-var redisBuilder = appBuilder.AddRedisClientBuilder("cache")
+builder.AddRedisClientBuilder("cache")
     .WithDistributedCache()
     .WithOutputCache();
 
-appBuilder.Build().Run();
+var app = builder.Build();
+app.Run();
 ```
 
 **Azure authentication integration:**
 
-```csharp
-// Configure Redis with Azure authentication
-var appBuilder = Host.CreateDefaultBuilder(args);
+#### Azure authentication integration
 
-var redisBuilder = appBuilder.AddRedisClientBuilder("azure-redis")
+```csharp
+// Azure authentication integration (application code)
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.AddRedisClientBuilder("azure-redis")
     .WithAzureAuthentication()  // Uses default Azure credentials
     .WithDistributedCache(options => 
     {
@@ -757,21 +754,24 @@ var redisBuilder = appBuilder.AddRedisClientBuilder("azure-redis")
 
 // Or with custom credentials
 var credential = new DefaultAzureCredential();
-var redisBuilder = appBuilder.AddRedisClientBuilder("azure-redis")
+builder.AddRedisClientBuilder("azure-redis")
     .WithAzureAuthentication(credential)
     .WithOutputCache();
 
-appBuilder.Build().Run();
+var app = builder.Build();
+app.Run();
 ```
 
 **Advanced Redis builder patterns:**
 
+#### Advanced Redis builder patterns
+
 ```csharp
-// Multiple Redis instances with different configurations
-var appBuilder = Host.CreateDefaultBuilder(args);
+// Multiple Redis instances with different configurations (application code)
+var builder = Host.CreateApplicationBuilder(args);
 
 // Cache-focused Redis instance
-appBuilder.AddRedisClientBuilder("cache")
+builder.AddRedisClientBuilder("cache")
     .WithDistributedCache(options => 
     {
         options.InstanceName = "MainCache";
@@ -779,18 +779,19 @@ appBuilder.AddRedisClientBuilder("cache")
     });
 
 // Output cache Redis instance with Azure authentication
-appBuilder.AddKeyedRedisClientBuilder("output-cache")
+builder.AddKeyedRedisClientBuilder("output-cache")
     .WithAzureAuthentication()
     .WithOutputCache();
 
 // Session Redis instance
-appBuilder.AddKeyedRedisClientBuilder("sessions") 
+builder.AddKeyedRedisClientBuilder("sessions") 
     .WithDistributedCache(options =>
     {
         options.InstanceName = "Sessions";
     });
 
-appBuilder.Build().Run();
+var app = builder.Build();
+app.Run();
 ```
 
 ### Azure AI Foundry enhancements
@@ -956,6 +957,7 @@ builder.Build().Run();
 ```
 
 **When to use each protocol:**
+
 - **gRPC (default)**: Best performance, smaller payload size, ideal for production
 - **HTTP Protobuf**: Better firewall compatibility, easier debugging, good for development
 
@@ -1093,6 +1095,7 @@ var rabbitmq = builder.AddContainer("myapp", "mycontainerapp")
 ```
 
 **What you need to review:**
+
 - **Container deployments**: Your apps will now receive correct container hostnames
 - **Local development**: Localhost behavior preserved for non-containerized scenarios  
 - **Connection strings**: Automatic connection strings continue to work as expected
@@ -1103,6 +1106,7 @@ var rabbitmq = builder.AddContainer("myapp", "mycontainerapp")
 Aspire 9.5 introduces comprehensive HTTP health probe support that allows you to configure startup, readiness, and liveness probes for your resources, providing better health monitoring and deployment coordination.
 
 **Features:**
+
 - **Multiple probe types**: Configure startup, readiness, and liveness probes independently
 - **Flexible endpoint targeting**: Probe any HTTP endpoint with custom paths and configurations
 - **Configurable timing**: Control probe intervals, timeouts, and failure thresholds
@@ -1218,6 +1222,7 @@ This feature enhances deployment reliability by providing fine-grained health mo
 New `WaitForStart` method provides granular control over startup ordering, complementing existing `WaitFor` semantics (#10948). It also pairs with improved `ExternalService` health honoring (#10827) which ensures dependents truly wait for external resources to be healthy.
 
 **Understanding wait behaviors:**
+
 - **`WaitFor`**: Waits for dependency to be Running AND pass all health checks.
 - **`WaitForStart`**: Waits only for dependency to reach Running (ignores health checks).
 
