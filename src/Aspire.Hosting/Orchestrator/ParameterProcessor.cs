@@ -73,6 +73,11 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
+            if (parameterResource.Default is GenerateParameterDefault generateDefault)
+            {
+                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+            }
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
