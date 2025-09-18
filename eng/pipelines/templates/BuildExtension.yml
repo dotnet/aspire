@@ -95,20 +95,58 @@ steps:
 
   # Sign the extension if this is not a test build
   - ${{ if ne(variables['_SignType'], 'test') }}:
-    - script: |
-        echo "=== Extension Signing Debug Info ==="
-        echo "Sign type: $(_SignType)"
-        echo "Team name: $(_TeamName)"
-        echo "Artifacts directory: ${{ parameters.repoArtifactsPath }}packages/"
-        echo "Listing files before signing:"
-        ls -la "${{ parameters.repoArtifactsPath }}packages/" || dir "${{ parameters.repoArtifactsPath }}packages/"
-        echo "=== Starting signing process ==="
-        $(Build.SourcesDirectory)/eng/common/build.cmd -ci -restore -sign /p:ArtifactsPackagesDir="${{ parameters.repoArtifactsPath }}packages/" /p:SkipBuild=true /p:SkipTest=true /p:SkipPack=true /p:DotNetSignType=$(_SignType) /p:TeamName=$(_TeamName) /v:normal
-        echo "=== Signing completed, listing files after ==="
-        ls -la "${{ parameters.repoArtifactsPath }}packages/" || dir "${{ parameters.repoArtifactsPath }}packages/"
-      displayName: 🟣Sign extension
+    - task: PowerShell@2
+      displayName: 🟣Test extension signing setup
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Host "=== Testing Extension Signing ==="
+          Write-Host "Sign type: $env:SIGN_TYPE"
+          Write-Host "Team name: $env:TEAM_NAME"
+          $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
+          Write-Host "Artifacts directory: $artifactsDir"
+
+          # List files before
+          Write-Host "Files in artifacts directory:"
+          if (Test-Path $artifactsDir) {
+            Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
+              Write-Host "  $($_.Name) - Size: $($_.Length) bytes - Modified: $($_.LastWriteTime)"
+            }
+          } else {
+            Write-Host "  Directory not found!"
+          }
+
+          # Test if we can access the signing infrastructure
+          Write-Host "=== Testing Signing Infrastructure ==="
+          try {
+            . $(Build.SourcesDirectory)/eng/common/tools.ps1
+            Write-Host "Tools.ps1 loaded successfully"
+
+            # Test basic MSBuild call with signing props (but don't actually sign yet)
+            Write-Host "Testing basic MSBuild setup..."
+            $ci = $true
+            $restore = $true
+            $configuration = "${{ parameters.buildConfig }}"
+
+            Write-Host "Initializing toolset..."
+            $toolsetBuildProj = InitializeToolset
+            Write-Host "Toolset project: $toolsetBuildProj"
+
+            Write-Host "Initializing build tool..."
+            $buildTool = InitializeBuildTool
+            Write-Host "Build tool: $($buildTool.Path) $($buildTool.Command)"
+
+            Write-Host "=== Setup completed successfully ==="
+          }
+          catch {
+            Write-Host "Error during setup: $_"
+            Write-Host "Stack trace: $($_.ScriptStackTrace)"
+          }
+        errorActionPreference: 'continue'
       env:
         SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+        SIGN_TYPE: $(_SignType)
+        TEAM_NAME: $(_TeamName)
 
   - task: 1ES.PublishBuildArtifacts@1
     displayName: 🟣Publish extension artifact
