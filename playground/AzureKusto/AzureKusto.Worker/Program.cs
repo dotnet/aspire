@@ -9,12 +9,10 @@ builder.AddServiceDefaults();
 var connectionString = builder.Configuration.GetConnectionString("testdb");
 
 var connectionStringBuilder = new KustoConnectionStringBuilder(connectionString);
-
-var clusterAddress = $"https://{connectionStringBuilder.ServiceName}.kusto.windows.net/";
-var scope = $"{clusterAddress}.default";
-var accessToken = await new DefaultAzureCredential().GetTokenAsync(new([scope]), CancellationToken.None);
-var tokenValue = accessToken.Token;
-connectionStringBuilder = connectionStringBuilder.WithAadApplicationTokenAuthentication(tokenValue);
+if (connectionStringBuilder.DataSourceUri.Contains("kusto.windows.net"))
+{
+    connectionStringBuilder = connectionStringBuilder.WithAadAzureTokenCredentialsAuthentication(new DefaultAzureCredential());
+}
 
 builder.Services.AddSingleton(sp =>
 {

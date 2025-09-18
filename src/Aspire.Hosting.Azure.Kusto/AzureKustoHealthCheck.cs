@@ -13,44 +13,66 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 internal sealed class AzureKustoHealthCheck : IHealthCheck
 {
-    private readonly KustoConnectionStringBuilder? _kcsb;
+    private readonly KustoConnectionStringBuilder _kcsb;
+    private readonly bool _isClusterCheck;
 
-    public AzureKustoHealthCheck(KustoConnectionStringBuilder? connectionStringBuilder)
+    private static readonly ClientRequestProperties s_defaultClientRequestProperties = GetClientRequestProperties();
+
+    public AzureKustoHealthCheck(KustoConnectionStringBuilder connectionStringBuilder, bool isClusterCheck)
     {
         _kcsb = connectionStringBuilder;
+        _isClusterCheck = isClusterCheck;
     }
 
-    /// <inheritdoc />
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken)
     {
-        if (_kcsb is null)
-        {
-            // No Kusto connection string builder was provided, so skip the check.
-            // HACK: The delay is to simulate some async work since the resource is Unhealthy to start otherwise.
-            await Task.Delay(200, cancellationToken).ConfigureAwait(false);
-            return HealthCheckResult.Healthy();
-        }
-
         try
         {
-            const string query = "print message = \"Hello, World!\"";
-            var clientRequestProperties = new ClientRequestProperties()
+            if (_isClusterCheck)
             {
-                ClientRequestId = Guid.NewGuid().ToString(),
-            };
-            var client = KustoClientFactory.CreateCslQueryProvider(_kcsb);
-            using var reader = await client.ExecuteQueryAsync(client.DefaultDatabaseName, query, clientRequestProperties, cancellationToken).ConfigureAwait(false);
-
-            if (reader.Read())
-            {
-                return HealthCheckResult.Healthy();
+                return await CheckClusterHealthAsync().ConfigureAwait(false);
             }
-
-            return HealthCheckResult.Unhealthy();
+            else
+            {
+                return await CheckDatabaseHealthAsync(cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
             return HealthCheckResult.Unhealthy(exception: ex);
         }
+    }
+
+    private async Task<HealthCheckResult> CheckClusterHealthAsync()
+    {
+        using var queryProvider = KustoClientFactory.CreateCslAdminProvider(_kcsb);
+
+        var results = await queryProvider.ExecuteControlCommandAsync<string>(".show version", s_defaultClientRequestProperties).ConfigureAwait(false);
+        if (results.Any())
+        {
+            return HealthCheckResult.Healthy();
+        }
+
+        return HealthCheckResult.Unhealthy();
+    }
+
+    private async Task<HealthCheckResult> CheckDatabaseHealthAsync(CancellationToken cancellationToken)
+    {
+        const string query = "print message = \"Hello, World!\"";
+
+        var client = KustoClientFactory.CreateCslQueryProvider(_kcsb);
+        using var reader = await client.ExecuteQueryAsync(client.DefaultDatabaseName, query, s_defaultClientRequestProperties, cancellationToken).ConfigureAwait(false);
+        if (reader.Read())
+        {
+            return HealthCheckResult.Healthy();
+        }
+        return HealthCheckResult.Unhealthy();
+    }
+
+    private static ClientRequestProperties GetClientRequestProperties()
+    {
+        var clientRequestProps = new ClientRequestProperties();
+        clientRequestProps.SetOption("client_timeout", TimeSpan.FromSeconds(30));
+        return clientRequestProps;
     }
 }

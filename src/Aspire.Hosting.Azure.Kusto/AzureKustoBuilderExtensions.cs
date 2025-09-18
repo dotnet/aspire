@@ -4,6 +4,7 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
 using Kusto.Data;
@@ -44,7 +45,7 @@ public static class AzureKustoBuilderExtensions
     /// then the dependent resource will wait until the Kusto database is available.
     /// </para>
     /// <para>
-    /// By default references to the Azure Data Explorer cluster resource will be assigned the following roles:
+    /// By default references to the Azure Data Explorer database resources will be assigned the following roles:
     /// 
     /// - <see cref="KustoDatabasePrincipalRole.User"/>
     /// </para>
@@ -128,16 +129,14 @@ public static class AzureKustoBuilderExtensions
             var connectionString = await db.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
             throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{db.Name}', but the connection string was null.");
 
-            kcsb = new KustoConnectionStringBuilder(connectionString);
+            kcsb = GetConnectionStringBuilder(builder.Resource, connectionString);
         });
 
         var healthCheckKey = $"{kustoDatabase.Name}_check";
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            // Only make a real health check when running as an emulator.
-            // When running in Azure we assume the service is healthy once the provisioning is complete.
-            .AddAzureKustoHealthCheck(healthCheckKey, _ => builder.Resource.IsEmulator ? kcsb! : null);
+            .AddAzureKustoHealthCheck(healthCheckKey, isCluster: false, _ => kcsb!);
 
         resourceBuilder
             .WithHealthCheck(healthCheckKey);
@@ -242,16 +241,14 @@ public static class AzureKustoBuilderExtensions
             var connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false) ??
             throw new DistributedApplicationException($"ConnectionStringAvailableEvent published for resource '{resource.Name}', but the connection string was null.");
 
-            kcsb = new KustoConnectionStringBuilder(connectionString);
+            kcsb = GetConnectionStringBuilder(resource, connectionString);
         });
 
         var healthCheckKey = $"{resource.Name}_check";
         resourceBuilder.ApplicationBuilder
             .Services
             .AddHealthChecks()
-            // Only make a real health check when running as an emulator.
-            // When running in Azure we assume the service is healthy once the provisioning is complete.
-            .AddAzureKustoHealthCheck(healthCheckKey, _ => resource.IsEmulator ? kcsb! : null);
+            .AddAzureKustoHealthCheck(healthCheckKey, isCluster: true, _ => kcsb!);
 
         // Execute any setup now that Kusto is ready
         resourceBuilder.OnResourceReady(async (server, evt, ct) =>
@@ -312,5 +309,19 @@ public static class AzureKustoBuilderExtensions
                 State = KnownResourceStates.FailedToStart
             }).ConfigureAwait(false);
         }
+    }
+
+    private static KustoConnectionStringBuilder GetConnectionStringBuilder(AzureKustoClusterResource resource, string connectionString)
+    {
+        var builder = new KustoConnectionStringBuilder(connectionString);
+
+        if (!resource.IsEmulator)
+        {
+            // When running against Azure, we use the DefaultAzureCredential to authenticate
+            // with the Kusto server.
+            builder = builder.WithAadAzureTokenCredentialsAuthentication(new DefaultAzureCredential());
+        }
+
+        return builder;
     }
 }
