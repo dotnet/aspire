@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
+using System.Xml.Linq;
 
 namespace Aspire.Hosting.Maui;
 
@@ -100,7 +100,7 @@ public sealed class MauiProjectBuilder
 
         var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
     // Use existing AddProject API so we don't rely on internal annotations.
-    var builder = _appBuilder.AddProject(resourceName, _projectPath)
+        var builder = _appBuilder.AddProject(resourceName, _projectPath)
                  .WithExplicitStart()
                  .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore); // never in manifest
 
@@ -136,6 +136,7 @@ public sealed class MauiProjectBuilder
         });
 
         _platformResources.Add(builder);
+
     }
 
     private static HashSet<string> LoadTargetFrameworks(string projectPath)
