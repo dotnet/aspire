@@ -18,8 +18,8 @@
     <XunitV3Version>3.0.1</XunitV3Version>
     <XUnitAnalyzersVersion>1.21.0</XUnitAnalyzersVersion>
     <XunitRunnerVisualStudioVersion>3.1.0</XunitRunnerVisualStudioVersion>
-    <MicrosoftTestingPlatformVersion>1.7.2</MicrosoftTestingPlatformVersion>
-    <MicrosoftNETTestSdkVersion>17.13.0</MicrosoftNETTestSdkVersion>
+    <MicrosoftTestingPlatformVersion>1.8.4</MicrosoftTestingPlatformVersion>
+    <MicrosoftNETTestSdkVersion>17.14.1</MicrosoftNETTestSdkVersion>
     <!-- Enable to remove prerelease label. -->
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">true</StabilizePackageVersion>
     <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>
