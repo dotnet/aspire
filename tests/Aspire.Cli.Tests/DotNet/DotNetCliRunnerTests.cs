@@ -660,13 +660,13 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 
                 // Verify the order: add ProjectFile package PackageName --version Version --source Source
                 var addIndex = Array.IndexOf(args, "add");
-                var packageIndex = Array.IndexOf(args, "package");
                 var projectIndex = Array.IndexOf(args, projectFile.FullName);
+                var packageIndex = Array.IndexOf(args, "package");
                 var packageNameIndex = Array.IndexOf(args, "Aspire.Hosting.Redis@9.2.0");
                 
-                Assert.True(addIndex < packageIndex);
-                Assert.True(packageIndex < projectIndex);
-                Assert.True(projectIndex < packageNameIndex);
+                Assert.True(addIndex < projectIndex);
+                Assert.True(projectIndex < packageIndex);
+                Assert.True(packageIndex < packageNameIndex);
                 
                 // Should NOT contain --file
                 Assert.DoesNotContain("--file", args);
