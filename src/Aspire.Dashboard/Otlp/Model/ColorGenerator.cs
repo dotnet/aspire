@@ -78,7 +78,7 @@ public class ColorGenerator
     public string GetColorVariableByKey(string key)
     {
         var i = GetColorIndex(key);
-        return $"var({_colors[i].VariableName})";
+        return _colors[i].ReferencedVariableName;
     }
 
     public void Clear()
