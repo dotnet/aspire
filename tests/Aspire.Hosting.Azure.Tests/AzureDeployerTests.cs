@@ -251,7 +251,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api" && 
+            call.localImageName == "api" &&
             call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -307,7 +307,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api" && 
+            call.localImageName == "api" &&
             call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -396,11 +396,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify tag calls were made for both registries with deployment tags
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api-service" && 
+            call.localImageName == "api-service" &&
             call.targetImageName.StartsWith("aasregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "python-app" && 
+            call.localImageName == "python-app" &&
             call.targetImageName.StartsWith("acaregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -558,6 +558,104 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        var mockActivityReporter = new TestPublishingActivityReporter();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add a single Redis cache resource which is a compute resource
+        builder.AddRedis("cache").WithComputeEnvironment(containerAppEnv);
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert that container environment outputs are propagated
+        Assert.Equal("testregistry", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_NAME"]);
+        Assert.Equal("testregistry.azurecr.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_ENDPOINT"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"]);
+        Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+
+        // Assert that compute resources deployment logic was triggered (Redis doesn't require image build/push)
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+
+        // Assert that ACR login was not called since Redis uses existing container image
+        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath.Contains("az") &&
+                   cmd.Arguments == "acr login --name testregistry");
+
+        // Assert that deploying steps executed
+        Assert.Contains("Deploying compute resources", mockActivityReporter.CreatedSteps);
+        Assert.Contains(("Deploying compute resources", "Deploying cache"), mockActivityReporter.CreatedTasks);
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        var mockActivityReporter = new TestPublishingActivityReporter();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, processRunner: mockProcessRunner, activityReporter: mockActivityReporter);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add only Azure resources (no compute resources)
+        var storage = builder.AddAzureStorage("teststorage");
+        storage.AddBlobContainer("container1", blobContainerName: "test-container-1");
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert that container environment outputs are propagated
+        Assert.Equal("test.westus.azurecontainerapps.io", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
+        Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
+
+        // Assert that no compute resources were deployed (no image build/push)
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.TagImageCalled);
+        Assert.False(mockImageBuilder.PushImageCalled);
+
+        // Assert that ACR login was not called since no compute resources
+        Assert.DoesNotContain(mockProcessRunner.ExecutedCommands,
+            cmd => cmd.ExecutablePath.Contains("az") &&
+                   cmd.Arguments == "acr login --name testregistry");
+
+        // Assert that the completion request was called
+        Assert.True(mockActivityReporter.CompletePublishCalled);
+    }
+
+    [Fact]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -646,7 +744,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify specific tag call was made (local "funcapp" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "funcapp" && 
+            call.localImageName == "funcapp" &&
             call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -661,6 +759,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
+        IPublishingActivityReporter? activityReporter = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -678,6 +777,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
         if (interactionService is not null)
         {
             builder.Services.AddSingleton(interactionService);
+        }
+        if (activityReporter is not null)
+        {
+            builder.Services.AddSingleton(activityReporter);
         }
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
@@ -729,5 +832,81 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 }
             }
         };
+    }
+
+    private sealed class TestPublishingActivityReporter : IPublishingActivityReporter
+    {
+        public bool CompletePublishCalled { get; private set; }
+        public string? CompletionMessage { get; private set; }
+        public List<string> CreatedSteps { get; } = [];
+        public List<(string StepTitle, string TaskStatusText)> CreatedTasks { get; } = [];
+        public List<(string StepTitle, string CompletionText, CompletionState CompletionState)> CompletedSteps { get; } = [];
+        public List<(string TaskStatusText, string? CompletionMessage, CompletionState CompletionState)> CompletedTasks { get; } = [];
+        public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
+
+        public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
+        {
+            CompletePublishCalled = true;
+            CompletionMessage = completionMessage;
+            return Task.CompletedTask;
+        }
+
+        public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+        {
+            CreatedSteps.Add(title);
+            return Task.FromResult<IPublishingStep>(new TestPublishingStep(this, title));
+        }
+
+        private sealed class TestPublishingStep : IPublishingStep
+        {
+            private readonly TestPublishingActivityReporter _reporter;
+            private readonly string _title;
+
+            public TestPublishingStep(TestPublishingActivityReporter reporter, string title)
+            {
+                _reporter = reporter;
+                _title = title;
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+            public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+            {
+                _reporter.CompletedSteps.Add((_title, completionText, completionState));
+                return Task.CompletedTask;
+            }
+
+            public Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+            {
+                _reporter.CreatedTasks.Add((_title, statusText));
+                return Task.FromResult<IPublishingTask>(new TestPublishingTask(_reporter, statusText));
+            }
+        }
+
+        private sealed class TestPublishingTask : IPublishingTask
+        {
+            private readonly TestPublishingActivityReporter _reporter;
+            private readonly string _initialStatusText;
+
+            public TestPublishingTask(TestPublishingActivityReporter reporter, string initialStatusText)
+            {
+                _reporter = reporter;
+                _initialStatusText = initialStatusText;
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+            public Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+            {
+                _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+                return Task.CompletedTask;
+            }
+
+            public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
+            {
+                _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+                return Task.CompletedTask;
+            }
+        }
     }
 }

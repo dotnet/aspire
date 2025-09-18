@@ -175,7 +175,7 @@ internal sealed class AzureDeployingContext(
 
         if (!computeResources.Any())
         {
-            return false;
+            return true;
         }
 
         // Generate a deployment-scoped timestamp tag for all resources
@@ -232,7 +232,7 @@ internal sealed class AzureDeployingContext(
 
         if (computeResources.Count == 0)
         {
-            return false;
+            return true;
         }
 
         var computeStep = await activityReporter.CreateStepAsync("Deploying compute resources", cancellationToken).ConfigureAwait(false);
