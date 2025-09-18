@@ -14,7 +14,7 @@
     <div class="@GetLogContainerClass()" id="logContainer">
         @if (LogEntries is { } logEntries)
         {
-            <Virtualize Items="@logEntries.GetEntries()" ItemSize="20" OverscanCount="200" TItem="LogEntry">
+            <Virtualize @ref="VirtualizeRef" ItemsProvider="@GetItems" ItemSize="20" OverscanCount="200" TItem="LogEntry">
                 @if (context.Pause is { } pause)
                 {
                     // If this is a previous pause but no logs were obtained during the pause, we don't need to show anything.
@@ -28,9 +28,20 @@
                             <div class="log-line-area" role="log">
                                 <span class="log-line-number"></span>
                                 <span class="log-content log-pause">
+                                    @{
+                                        var hasPrefix = false;
+                                    }
                                     @if (ShowResourcePrefix && context.ResourcePrefix is { } resourcePrefix)
                                     {
+                                        if (DisplayPrefix(ref hasPrefix))
+                                        {
+                                            @s_spaceMarkup
+                                        }
                                         <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
+                                    }
+                                    @if (DisplayPrefix(ref hasPrefix))
+                                    {
+                                        @s_spaceMarkup
                                     }
                                     @pause.GetDisplayText(Loc, TimeProvider)
                                 </span>

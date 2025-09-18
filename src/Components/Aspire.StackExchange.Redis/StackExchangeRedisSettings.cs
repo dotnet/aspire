@@ -28,4 +28,16 @@ public sealed class StackExchangeRedisSettings
     /// The default value is <see langword="false"/>.
     /// </value>
     public bool DisableTracing { get; set; }
+
+    /// <summary>
+    /// Gets or sets a boolean value that indicates whether auto activation is disabled or not.
+    /// </summary>
+    /// <remarks>
+    /// When auto activation is enabled, the Redis connection is established at startup time rather than on first use,
+    /// which prevents blocking threads when the connection is first requested from the DI container.
+    /// </remarks>
+    /// <value>
+    /// The default value is <see langword="true"/>.
+    /// </value>
+    public bool DisableAutoActivation { get; set; } = true;
 }

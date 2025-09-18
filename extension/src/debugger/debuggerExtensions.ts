@@ -1,5 +1,5 @@
 import path from "path";
-import { LaunchConfiguration, EnvVar, LaunchOptions, AspireExtendedDebugConfiguration } from "../dcp/types";
+import { LaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration } from "../dcp/types";
 import { debugProject } from "../loc/strings";
 import { mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
@@ -13,15 +13,15 @@ export interface ResourceDebuggerExtension {
     extensionId: string | null;
     displayName: string;
 
-    createDebugSessionConfigurationCallback?: (launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireExtendedDebugConfiguration) => Promise<void>;
+    createDebugSessionConfigurationCallback?: (launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
 
-export async function createDebugSessionConfiguration(launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension | null): Promise<AspireExtendedDebugConfiguration> {
+export async function createDebugSessionConfiguration(launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension | null): Promise<AspireResourceExtendedDebugConfiguration> {
     if (debuggerExtension === null) {
         extensionLogOutputChannel.warn(`Unknown type: ${launchConfig.type}.`);
     }
 
-    const configuration: AspireExtendedDebugConfiguration = {
+    const configuration: AspireResourceExtendedDebugConfiguration = {
         type: debuggerExtension?.debugAdapter || launchConfig.type,
         request: 'launch',
         name: debugProject(`${debuggerExtension?.displayName ?? launchConfig.type}: ${path.basename(launchConfig.project_path)}`),

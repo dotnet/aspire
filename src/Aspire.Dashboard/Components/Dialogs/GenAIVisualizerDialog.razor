@@ -41,16 +41,17 @@
             <Panel1>
                 <div class="span-messages-sidebar">
                     <TreeGenAISelector PageViewModel="@Content"
+                                       SelectedItem="@SelectedItem"
                                        HandleSelectedTreeItemChangedAsync="@HandleSelectedTreeItemChangedAsync" />
                 </div>
             </Panel1>
             <Panel2>
                 <div class="span-messages-container">
-                    @if (Content.SelectedItem is { } selectedItem)
+                    @if (SelectedItem is { } selectedItem)
                     {
                         var selectedView = selectedItem.Type == GenAIItemType.Error
                             ? ItemViewKind.Raw
-                            : Content.MessageActiveView;
+                            : MessageActiveView;
 
                         <div>
                             <div class="message-header">
@@ -88,17 +89,32 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
+                                    if (IsImagePart(itemPart, out var imageContent) && IsSupportedImageScheme(imageContent))
                                     {
-                                        @itemPart.TextVisualizerViewModel.FormattedText
+                                        <img src="@imageContent" />
                                     }
-                                    else if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
+                                    else if (itemPart.AdditionalProperties is { } additionalProperties && additionalProperties.Count > 0)
                                     {
-                                        <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@itemPart.TextVisualizerViewModel.FormattedText" />
+                                        <PropertyGrid TItem="GenAIPartPropertyViewModel"
+                                                      Items="additionalProperties.AsQueryable()"
+                                                      IsNameSortable="false"
+                                                      IsValueSortable="false"
+                                                      GridTemplateColumns="1fr 1.5fr" />
                                     }
                                     else
                                     {
-                                        <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" />
+                                        if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.PlaintextFormat)
+                                        {
+                                            @itemPart.TextVisualizerViewModel.FormattedText
+                                        }
+                                        else if (itemPart.TextVisualizerViewModel.FormatKind is DashboardUIHelpers.MarkdownFormat)
+                                        {
+                                            <MarkdownRenderer MarkdownProcessor="@_markdownProcess" Markdown="@itemPart.TextVisualizerViewModel.FormattedText" />
+                                        }
+                                        else
+                                        {
+                                            <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                                        }
                                     }
                                 }
                             </div>
@@ -108,14 +124,14 @@
                             <div class="tab-container">
                                 @foreach (var itemPart in selectedItem.ItemParts)
                                 {
-                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" />
+                                    <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" DisplayUnformatted="true" Virtualize="false" />
                                 }
                             </div>
                         }
                         <FluentButton Id="@_copyButtonId"
                                       Class="message-copy-button"
                                       Appearance="Appearance.Stealth"
-                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedItem.ItemParts.Select(p => p.TextVisualizerViewModel.FormattedText)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
+                                      AdditionalAttributes="@FluentUIExtensions.GetClipboardCopyAdditionalAttributes(string.Join(Environment.NewLine + Environment.NewLine, selectedItem.ItemParts.Select(p => p.TextVisualizerViewModel?.FormattedText ?? string.Empty)), ControlsStringsLoc[nameof(ControlsStrings.GridValueCopyToClipboard)], ControlsStringsLoc[nameof(ControlsStrings.GridValueCopied)])">
                             <span slot="start">
                                 <FluentIcon Class="copy-icon" Style="display:inline; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Copy" Slot="start" />
                                 <FluentIcon Class="checkmark-icon" Style="display:none; vertical-align: text-bottom" Icon="Icons.Regular.Size16.Checkmark" Slot="start" />
@@ -156,7 +172,7 @@
                                 Tab content isn't nested inside FluentTab elements. The tab control is just used to display the tabs.
                                 Content is located in manually created divs so they can be placed in their own CSS grid row.
                             *@
-                            <FluentTabs ActiveTabId="@($"tab-overview-{Content.OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
+                            <FluentTabs ActiveTabId="@($"tab-overview-{OverviewActiveView}")" OnTabChange="@OnOverviewTabChange" Size="null">
                                 <FluentTab LabelClass="tab-label"
                                            Id="@($"tab-overview-{OverviewViewKind.InputOutput}")"
                                            Label="@Loc[nameof(Dialogs.GenAIInputOutputTabText)]">
@@ -167,7 +183,7 @@
                                 </FluentTab>
                             </FluentTabs>
                         </div>
-                        @if (Content.OverviewActiveView == OverviewViewKind.InputOutput)
+                        @if (OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
                                 @if (Content.NoMessageContent)
@@ -184,10 +200,10 @@
                                 }
                             </div>
                         }
-                        @if (Content.OverviewActiveView == OverviewViewKind.Details)
+                        @if (OverviewActiveView == OverviewViewKind.Details)
                         {
                             <div class="tab-container">
-                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" CloseCallback="@(() => { })" HideToolbar="true" />
+                                <SpanDetails ViewModel="@Content.SpanDetailsViewModel" HideToolbar="true" />
                             </div>
                         }
                     }
@@ -202,7 +218,7 @@
 @{
     RenderFragment RenderMessageSection(string title, List<GenAIItemViewModel> items, bool noMessageContent)
     {
-        return@<div>
+        return@<div class="section-container">
             <div class="section-title">@title</div>
             @if (items.Count > 0)
             {
@@ -222,11 +238,14 @@
                                 <FluentIcon Icon="Icons.Regular.Size16.SlideSearch" />
                             </FluentButton>
                         </span>
-                        @foreach (var itemPart in itemParts)
+                        @if (itemParts.Count > 0)
                         {
-                            <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" />
+                            foreach (var itemPart in itemParts)
+                            {
+                                <TextVisualizer ViewModel="@itemPart.TextVisualizerViewModel" HideLineNumbers="true" Virtualize="false" />
+                            }
                         }
-                        @if (itemParts.Count == 0)
+                        else
                         {
                             <div class="no-message-content">
                                 @Loc[nameof(Dialogs.GenAINoMessageContent)]

@@ -29,7 +29,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "1-1", parentSpanId: "1", startDate: new DateTime(2001, 1, 1, 1, 1, 3, DateTimeKind.Utc)));
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], [], []));
 
         // Assert
         Assert.Collection(vm,
@@ -60,7 +60,7 @@ public sealed class SpanWaterfallViewModelTests
         var log = new OtlpLogEntry(TelemetryTestHelpers.CreateLogRecord(traceId: trace.TraceId, spanId: "1"), app1View, scope, context);
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, [log], new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vm = SpanWaterfallViewModel.Create(trace, [log], new SpanWaterfallViewModel.TraceDetailState([], [], []));
 
         // Assert
         Assert.Collection(vm,
@@ -89,7 +89,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(TelemetryTestHelpers.CreateOtlpSpan(app2, trace, scope, spanId: "2", parentSpanId: null, startDate: new DateTime(2001, 2, 1, 1, 1, 2, DateTimeKind.Utc), kind: OtlpSpanKind.Client));
 
         // Act
-        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([new BrowserLinkOutgoingPeerResolver()], []));
+        var vm = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([new BrowserLinkOutgoingPeerResolver()], [], []));
 
         // Assert
         Assert.Collection(vm,
@@ -142,7 +142,7 @@ public sealed class SpanWaterfallViewModelTests
         var vm = SpanWaterfallViewModel.Create(
             trace,
             [],
-            new SpanWaterfallViewModel.TraceDetailState([], [])).First();
+            new SpanWaterfallViewModel.TraceDetailState([], [], [])).First();
 
         // Act
         var result = vm.MatchesFilter(filter, typeFilter: null, a => a.Resource.ResourceName, out _);
@@ -152,26 +152,33 @@ public sealed class SpanWaterfallViewModelTests
     }
 
     [Theory]
-    [InlineData("http", new string[] { }, false)]
-    [InlineData("http", new string[] { "http.request.method" }, true)]
-    [InlineData("database", new string[] { "http.request.method" }, false)]
-    [InlineData("database", new string[] { "db.system.name" }, true)]
-    [InlineData("database", new string[] { "db.system" }, true)]
-    [InlineData("database", new string[] { }, false)]
-    [InlineData("messaging", new string[] { "messaging.system" }, true)]
-    [InlineData("messaging", new string[] { }, false)]
-    [InlineData("rpc", new string[] { "rpc.system" }, true)]
-    [InlineData("rpc", new string[] { }, false)]
-    [InlineData("genai", new string[] { "gen_ai.system" }, true)]
-    [InlineData("genai", new string[] { "gen_ai.provider.name" }, true)]
-    [InlineData("genai", new string[] { }, false)]
-    public void MatchesFilter_SpanType_ReturnsExpected(string spanTypeName, string[] presentAttributeNames, bool expected)
+    [InlineData("http", null, new string[] { }, false)]
+    [InlineData("http", null, new string[] { "http.request.method" }, true)]
+    [InlineData("database", "Azure", new string[] { "http.request.method" }, false)]
+    [InlineData("database", null, new string[] { "db.system.name" }, true)]
+    [InlineData("database", null, new string[] { "db.system" }, true)]
+    [InlineData("database", null, new string[] { }, false)]
+    [InlineData("messaging", null, new string[] { "messaging.system" }, true)]
+    [InlineData("messaging", null, new string[] { }, false)]
+    [InlineData("rpc", "Azure", new string[] { "rpc.system" }, true)]
+    [InlineData("rpc", null, new string[] { }, false)]
+    [InlineData("genai", null, new string[] { "gen_ai.system" }, true)]
+    [InlineData("genai", null, new string[] { "gen_ai.provider.name" }, true)]
+    [InlineData("genai", null, new string[] { "gen_ai.operation.name" }, true)]
+    [InlineData("genai", null, new string[] { }, false)]
+    [InlineData("cloud", "Azure", new string[0], true)]
+    [InlineData("cloud", "AZURE", new string[0], true)]
+    [InlineData("cloud", "AZURE.", new string[0], true)]
+    [InlineData("cloud", "Azure.Whatever", new string[0], true)]
+    [InlineData("cloud", "AWSSDK", new string[0], true)]
+    [InlineData("cloud", "Other", new string[0], false)]
+    public void MatchesFilter_SpanType_ReturnsExpected(string spanTypeName, string? scopeName, string[] presentAttributeNames, bool expected)
     {
         // Arrange
         var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
         var app = new OtlpResource("app1", "instance", uninstrumentedPeer: false, context);
         var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
-        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context, name: scopeName);
         var spanType = SpanType.CreateKnownSpanTypes(new TestStringLocalizer<ControlsStrings>()).Single(t => t.Id?.Name == spanTypeName);
         var otherSpanType = SpanType.CreateKnownSpanTypes(new TestStringLocalizer<ControlsStrings>()).Single(t => t.Id?.Name == "other");
 
@@ -195,7 +202,7 @@ public sealed class SpanWaterfallViewModelTests
         var vm = SpanWaterfallViewModel.Create(
             trace,
             [],
-            new SpanWaterfallViewModel.TraceDetailState([], [])).First();
+            new SpanWaterfallViewModel.TraceDetailState([], [], [])).First();
 
         // Act 1
         var result1 = vm.MatchesFilter(string.Empty, typeFilter: spanType.Id?.Filter, a => a.Resource.ResourceName, out _);
@@ -227,7 +234,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], [], []));
         var parent = vms[0];
         var child = vms[1];
 
@@ -249,7 +256,7 @@ public sealed class SpanWaterfallViewModelTests
         trace.AddSpan(parentSpan);
         trace.AddSpan(childSpan);
 
-        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], []));
+        var vms = SpanWaterfallViewModel.Create(trace, [], new SpanWaterfallViewModel.TraceDetailState([], [], []));
         var parent = vms[0];
         var child = vms[1];
 

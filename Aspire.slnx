@@ -20,6 +20,7 @@
     <Project Path="src/Components/Aspire.Confluent.Kafka/Aspire.Confluent.Kafka.csproj" />
     <Project Path="src/Components/Aspire.Keycloak.Authentication/Aspire.Keycloak.Authentication.csproj" />
     <Project Path="src/Components/Aspire.Microsoft.Azure.Cosmos/Aspire.Microsoft.Azure.Cosmos.csproj" />
+    <Project Path="src/Components/Aspire.Microsoft.Azure.StackExchangeRedis/Aspire.Microsoft.Azure.StackExchangeRedis.csproj" />
     <Project Path="src/Components/Aspire.Microsoft.Data.SqlClient/Aspire.Microsoft.Data.SqlClient.csproj" />
     <Project Path="src/Components/Aspire.Microsoft.EntityFrameworkCore.Cosmos/Aspire.Microsoft.EntityFrameworkCore.Cosmos.csproj" />
     <Project Path="src/Components/Aspire.Microsoft.EntityFrameworkCore.SqlServer/Aspire.Microsoft.EntityFrameworkCore.SqlServer.csproj" />
@@ -47,6 +48,7 @@
     <Project Path="src/Aspire.Dashboard/Aspire.Dashboard.csproj" />
     <Project Path="src/Aspire.Hosting.Analyzers/Aspire.Hosting.Analyzers.csproj" />
     <Project Path="src/Aspire.Hosting.AppHost/Aspire.Hosting.AppHost.csproj" />
+    <Project Path="src/Aspire.Hosting.DevTunnels/Aspire.Hosting.DevTunnels.csproj" />
     <Project Path="src/Aspire.Hosting.Docker/Aspire.Hosting.Docker.csproj" />
     <Project Path="src/Aspire.Hosting.Garnet/Aspire.Hosting.Garnet.csproj" />
     <Project Path="src/Aspire.Hosting.GitHub.Models/Aspire.Hosting.GitHub.Models.csproj" />
@@ -173,6 +175,11 @@
   <Folder Name="/playground/deployers/">
     <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/DevTunnels/">
+    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.ApiService/DevTunnels.ApiService.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.WebFrontEnd/DevTunnels.WebFrontEnd.csproj" />
+  </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
   </Folder>
@@ -191,6 +198,11 @@
   </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/javascript/">
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/kafka/">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />
@@ -219,6 +231,11 @@
     <Project Path="playground/nats/Nats.AppHost/Nats.AppHost.csproj" />
     <Project Path="playground/nats/Nats.Backend/Nats.Backend.csproj" />
     <Project Path="playground/nats/Nats.Common/Nats.Common.csproj" />
+  </Folder>
+  <Folder Name="/playground/node/">
+    <Project Path="playground/AspireWithNode/AspireWithNode.AppHost/AspireWithNode.AppHost.csproj" />
+    <Project Path="playground/AspireWithNode/AspireWithNode.ServiceDefaults/AspireWithNode.ServiceDefaults.csproj" />
+    <Project Path="playground/AspireWithNode/AspireWithNode.AspNetCoreApi/AspireWithNode.AspNetCoreApi.csproj" />
   </Folder>
   <Folder Name="/playground/OpenAIEndToEnd/">
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
@@ -256,6 +273,10 @@
   </Folder>
   <Folder Name="/playground/python/">
     <Project Path="playground/python/Python.AppHost/Python.AppHost.csproj" />
+  </Folder>
+  <Folder Name="/playground/pythonweb/">
+    <Project Path="playground/AspireWithPython/AspireWithPython.AppHost/AspireWithPython.AppHost.csproj" />
+    <Project Path="playground/AspireWithPython/AspireWithPython.ServiceDefaults/AspireWithPython.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/qdrant/">
     <Project Path="playground/Qdrant/Qdrant.ApiService/Qdrant.ApiService.csproj" />
@@ -334,6 +355,7 @@
     <File Path="spelling.dic" />
     <File Path="src/Schema/aspire-8.0.json" />
   </Folder>
+  <Folder Name="/src/" />
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
@@ -366,6 +388,7 @@
     <Project Path="tests/Aspire.Confluent.Kafka.Tests/Aspire.Confluent.Kafka.Tests.csproj" />
     <Project Path="tests/Aspire.Keycloak.Authentication.Tests/Aspire.Keycloak.Authentication.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.Azure.Cosmos.Tests/Aspire.Microsoft.Azure.Cosmos.Tests.csproj" />
+    <Project Path="tests/Aspire.Microsoft.Azure.StackExchangeRedis.Tests/Aspire.Microsoft.Azure.StackExchangeRedis.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.Data.SqlClient.Tests/Aspire.Microsoft.Data.SqlClient.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests/Aspire.Microsoft.EntityFrameworkCore.Cosmos.Tests.csproj" />
     <Project Path="tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests/Aspire.Microsoft.EntityFrameworkCore.SqlServer.Tests.csproj" />
@@ -397,6 +420,7 @@
     <Project Path="tests/Aspire.Hosting.Azure.Kusto.Tests/Aspire.Hosting.Azure.Kusto.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Azure.Tests/Aspire.Hosting.Azure.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Containers.Tests/Aspire.Hosting.Containers.Tests.csproj" />
+    <Project Path="tests/Aspire.Hosting.DevTunnels.Tests/Aspire.Hosting.DevTunnels.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Docker.Tests/Aspire.Hosting.Docker.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Garnet.Tests/Aspire.Hosting.Garnet.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.GitHub.Models.Tests/Aspire.Hosting.GitHub.Models.Tests.csproj" />

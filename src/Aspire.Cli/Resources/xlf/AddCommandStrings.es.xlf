@@ -3,13 +3,13 @@
   <file datatype="xml" source-language="en" target-language="es" original="../AddCommandStrings.resx">
     <body>
       <trans-unit id="AddingAspireIntegration">
-        <source>Adding Aspire integration...</source>
-        <target state="translated">Agregando integración de Aspire...</target>
+        <source>Adding Aspire hosting integration...</source>
+        <target state="translated">Agregando integración de hospedaje de Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Add an integration to the Aspire project.</source>
-        <target state="translated">Agregue una integración al proyecto de Aspire.</target>
+        <source>Add a hosting integration to the Aspire AppHost.</source>
+        <target state="translated">Agregue una integración de hospedaje a Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -53,8 +53,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
-        <source>Searching for Aspire packages...</source>
-        <target state="translated">Buscando paquetes de Aspire...</target>
+        <source>Searching for Aspire integrations...</source>
+        <target state="translated">Buscando integraciones de Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">

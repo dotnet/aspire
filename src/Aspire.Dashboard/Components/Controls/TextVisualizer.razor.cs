@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web.Virtualization;
 using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components.Controls;
@@ -13,6 +14,7 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     private IJSObjectReference? _jsModule;
     private ElementReference _containerElement;
     private bool _isObserving;
+    private bool _isInitialized;
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -29,9 +31,28 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     [Parameter]
     public bool DisplayUnformatted { get; set; }
 
+    [Parameter]
+    public bool Virtualize { get; set; } = true;
+
+    private Virtualize<StringLogLine>? VirtualizeRef
+    {
+        get => field;
+        set
+        {
+            field = value;
+
+            // Set max item count when the Virtualize component is set.
+            if (field != null)
+            {
+                VirtualizeHelper<StringLogLine>.TrySetMaxItemCount(field, 10_000);
+            }
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await ThemeManager.EnsureInitializedAsync();
+        _isInitialized = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

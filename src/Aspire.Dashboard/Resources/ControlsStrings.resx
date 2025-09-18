@@ -511,4 +511,7 @@
   <data name="SpanTypeGenAI" xml:space="preserve">
     <value>Gen AI</value>
   </data>
+  <data name="SpanTypeCloud" xml:space="preserve">
+    <value>Cloud</value>
+  </data>
 </root>

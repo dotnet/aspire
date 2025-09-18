@@ -42,6 +42,11 @@
         <target state="translated">開発者証明書が完全に信頼されていない可能性があります (信頼終了コード: {0})。</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">構成キー {0} が見つかりません。</target>
@@ -112,9 +117,9 @@
         <target state="translated">指定された拡張ソケット パスには、2 つの有効な部分が必要です。</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">.NET SDK の最小バージョン ({0}) がインストールされていません。https://get.dot.net にアクセスして、.NET SDK をダウンロードしてインストールします。</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="translated">Aspire CLI には .NET SDK バージョン {0} 以降が必要です。以下を検出しました: {1}。</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -148,13 +153,18 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Aspire アプリ ホスティング プロセスのプロジェクトではないプロジェクト ファイルです。</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="translated">Aspire AppHost プロジェクトではないプロジェクト ファイルです。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">このプロジェクトは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="translated">プロジェクトに Aspire AppHost が含まれていません。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

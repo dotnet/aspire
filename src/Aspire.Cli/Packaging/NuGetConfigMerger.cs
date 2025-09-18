@@ -227,6 +227,25 @@ internal class NuGetConfigMerger
                         patternsToAdd.Add((pattern, newSource));
                     }
                 }
+                // If the pattern is not defined in the new mappings, only remove it in specific cases
+                else if (!patternToNewSource.ContainsKey(pattern))
+                {
+                    // Get the source URL to check if this source should keep obsolete patterns
+                    var sourceElement = urlToExistingKey.FirstOrDefault(kvp => string.Equals(kvp.Value, sourceKey, StringComparison.OrdinalIgnoreCase));
+                    var sourceValue = sourceElement.Key ?? sourceKey;
+                    
+                    // Only remove patterns that are not in the new mappings if:
+                    // 1. The source is safe to remove (like a PR hive) AND the pattern is Aspire-related, OR
+                    // 2. The source is Microsoft-controlled AND the pattern is Aspire-related AND not a wildcard
+                    // This preserves user-defined patterns like "Microsoft.Extensions.SpecialPackage*"
+                    var isAspireRelatedPattern = IsAspireRelatedPattern(pattern);
+                    
+                    if ((IsSourceSafeToRemove(sourceKey, sourceValue) && isAspireRelatedPattern) || 
+                        (IsMicrosoftControlledSource(sourceKey, sourceValue) && isAspireRelatedPattern && pattern != "*"))
+                    {
+                        elementsToRemove.Add(packageElement);
+                    }
+                }
             }
 
             // Remove patterns that need to be moved
@@ -439,20 +458,172 @@ internal class NuGetConfigMerger
 
             var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithPatterns, StringComparer.OrdinalIgnoreCase).ToArray();
             
-            // Add wildcard pattern only to sources that have NO patterns at all
+            // Only add wildcard patterns to sources that originally had NO patterns at all
+            // Sources that had patterns but lost them due to remapping should be removed entirely
+            
+            // Check the original packageSourceMapping to see which sources had patterns originally
+            var originalSourcesWithPatterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var originalPsm = context.PackageSourceMapping;
+            if (originalPsm != null)
+            {
+                foreach (var ps in originalPsm.Elements("packageSource"))
+                {
+                    var originalSourceKey = (string?)ps.Attribute("key");
+                    if (!string.IsNullOrEmpty(originalSourceKey) && ps.Elements("package").Any())
+                    {
+                        // Add the original key
+                        originalSourcesWithPatterns.Add(originalSourceKey);
+                        
+                        // Also add the proper key if this was a URL-based key
+                        if (context.UrlToExistingKey.TryGetValue(originalSourceKey, out var properKey))
+                        {
+                            originalSourcesWithPatterns.Add(properKey);
+                        }
+                    }
+                }
+            }
+            
+            // Only give wildcard patterns to sources that:
+            // 1. Have no patterns now
+            // 2. Originally had no patterns either (were unmapped before) OR still have some patterns left
+            // 3. Are not safe to remove (user-defined sources)
+            // 4. Are required by the current channel OR are not Microsoft-controlled sources
             foreach (var sourceKey in sourcesWithoutAnyPatterns)
             {
-                var sourceElement = new XElement("packageSource");
-                sourceElement.SetAttributeValue("key", sourceKey);
+                // Get the source URL to check if it's safe to give it a wildcard pattern
+                var sourceElement = context.ExistingAdds
+                    .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                var sourceValue = (string?)sourceElement?.Attribute("value");
                 
-                var wildcardPackage = new XElement("package");
-                wildcardPackage.SetAttributeValue("pattern", "*");
-                sourceElement.Add(wildcardPackage);
+                // Check if this source is required by the current channel
+                var isRequiredByCurrentChannel = context.RequiredSources.Contains(sourceKey, StringComparer.OrdinalIgnoreCase) ||
+                                               context.RequiredSources.Contains(sourceValue ?? "", StringComparer.OrdinalIgnoreCase);
                 
-                packageSourceMapping.Add(sourceElement);
-                sourcesInUse.Add(sourceKey);
+                // For user-defined sources, give them wildcard patterns to remain functional
+                // Only skip this for sources that we would remove anyway (like PR hives) OR
+                // Microsoft-controlled sources that are not required by the current channel
+                if (!IsSourceSafeToRemove(sourceKey, sourceValue) && 
+                    (isRequiredByCurrentChannel || !IsMicrosoftControlledSource(sourceKey, sourceValue)))
+                {
+                    var packageSourceElement = new XElement("packageSource");
+                    packageSourceElement.SetAttributeValue("key", sourceKey);
+                    
+                    var wildcardPackage = new XElement("package");
+                    wildcardPackage.SetAttributeValue("pattern", "*");
+                    packageSourceElement.Add(wildcardPackage);
+                    
+                    packageSourceMapping.Add(packageSourceElement);
+                    sourcesInUse.Add(sourceKey);
+                }
+            }
+            
+            // Also give wildcard patterns to sources that still have some patterns left but should remain fully functional
+            // when there's a wildcard mapping that could interfere with their ability to serve packages
+            // But only for user-defined sources, not Microsoft-controlled feeds
+            var sourcesWithPatternsLeft = packageSourceMapping.Elements("packageSource")
+                .Where(ps => ps.Elements("package").Any() && !ps.Elements("package").Any(p => (string?)p.Attribute("pattern") == "*"))
+                .Select(ps => (string?)ps.Attribute("key"))
+                .Where(key => !string.IsNullOrEmpty(key))
+                .Cast<string>()
+                .ToArray();
+                
+            foreach (var sourceKey in sourcesWithPatternsLeft)
+            {
+                // Get the source URL to check if it's a user-defined source
+                var sourceElement = context.ExistingAdds
+                    .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                var sourceValue = (string?)sourceElement?.Attribute("value");
+                
+                // For user-defined sources that still have patterns, also give them wildcard patterns
+                // to ensure they can serve other packages too. But skip Microsoft-controlled sources
+                // that have specific patterns as they are intended to serve specific packages only.
+                if (!IsSourceSafeToRemove(sourceKey, sourceValue) && !IsMicrosoftControlledSource(sourceKey, sourceValue))
+                {
+                    var packageSourceElement = packageSourceMapping.Elements("packageSource")
+                        .FirstOrDefault(ps => string.Equals((string?)ps.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+                    
+                    if (packageSourceElement != null)
+                    {
+                        var wildcardPackage = new XElement("package");
+                        wildcardPackage.SetAttributeValue("pattern", "*");
+                        packageSourceElement.Add(wildcardPackage);
+                        sourcesInUse.Add(sourceKey);
+                    }
+                }
             }
         }
+    }
+
+    private static bool IsMicrosoftControlledSource(string sourceKey, string? sourceValue)
+    {
+        var urlToCheck = sourceValue ?? sourceKey;
+        
+        if (string.IsNullOrEmpty(urlToCheck))
+        {
+            return false;
+        }
+        
+        // Check if this is a Microsoft/Azure DevOps feed
+        if (urlToCheck.Contains("pkgs.dev.azure.com"))
+        {
+            return true;
+        }
+        
+        // Check if this is an official NuGet.org feed
+        if (urlToCheck.Contains("api.nuget.org"))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private static bool IsAspireRelatedPattern(string pattern)
+    {
+        if (string.IsNullOrEmpty(pattern))
+        {
+            return false;
+        }
+        
+        // Patterns that start with "Aspire" or are exactly "Microsoft.Extensions.ServiceDiscovery*" are Aspire-related
+        // Wildcard patterns are not Aspire-specific
+        // Other Microsoft.Extensions.* patterns (like "Microsoft.Extensions.SpecialPackage*") are NOT Aspire-related
+        return pattern.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase) ||
+               pattern.Equals("Microsoft.Extensions.ServiceDiscovery*", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsSourceSafeToRemove(string sourceKey, string? sourceValue)
+    {
+        // Only remove sources that we know are tied to Aspire channels or PR hives
+        if (string.IsNullOrEmpty(sourceKey) && string.IsNullOrEmpty(sourceValue))
+        {
+            return false;
+        }
+
+        var urlToCheck = sourceValue ?? sourceKey;
+        
+        // Check if this is an Aspire PR hive
+        if (!string.IsNullOrEmpty(urlToCheck) && urlToCheck.Contains(".aspire") && urlToCheck.Contains("hives"))
+        {
+            return true;
+        }
+        
+        // Only remove very specific Azure DevOps feeds that we know are temporary (like aspire PR feeds)
+        // Don't remove official .NET feeds or other potentially permanent feeds
+        if (!string.IsNullOrEmpty(urlToCheck) && urlToCheck.Contains("pkgs.dev.azure.com"))
+        {
+            // Only remove if it's specifically an Aspire-related feed
+            if (urlToCheck.Contains("aspire", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+            
+            // Be conservative - don't remove other Azure DevOps feeds as they might be official
+            return false;
+        }
+        
+        // Don't remove other sources - they may be user-defined
+        return false;
     }
 
     private static void RemoveEmptyPackageSourceElements(
@@ -472,6 +643,8 @@ internal class NuGetConfigMerger
             emptyElement.Remove();
 
             // Remove the corresponding source from packageSources if it's not in use elsewhere
+            // For empty package source elements, we remove the source regardless of whether it's "safe to remove"
+            // because an empty package source element means the source is no longer serving any patterns
             if (!string.IsNullOrEmpty(sourceKey) && !sourcesInUse.Contains(sourceKey))
             {
                 // Also check if any existing source key maps to this URL (for URL->key mapping scenario)
@@ -542,16 +715,26 @@ internal class NuGetConfigMerger
         var sourcesWithoutAnyPatterns = existingSourceKeys.Except(sourcesWithNewMappings, StringComparer.OrdinalIgnoreCase).ToArray();
         
         // Add wildcard pattern to existing sources that don't have any patterns to preserve their original functionality
+        // Only exclude PR hives that are not the current target
         foreach (var sourceKey in sourcesWithoutAnyPatterns)
         {
-            var sourceElement = new XElement("packageSource");
-            sourceElement.SetAttributeValue("key", sourceKey);
+            // Get the source URL to check if it should get a wildcard pattern
+            var sourceElement = context.ExistingAdds
+                .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), sourceKey, StringComparison.OrdinalIgnoreCase));
+            var sourceValue = (string?)sourceElement?.Attribute("value");
             
-            var wildcardPackage = new XElement("package");
-            wildcardPackage.SetAttributeValue("pattern", "*");
-            sourceElement.Add(wildcardPackage);
-            
-            packageSourceMapping.Add(sourceElement);
+            // Only exclude PR hives and Aspire-specific feeds that are not the current target
+            if (!IsSourceSafeToRemove(sourceKey, sourceValue))
+            {
+                var packageSourceElement = new XElement("packageSource");
+                packageSourceElement.SetAttributeValue("key", sourceKey);
+                
+                var wildcardPackage = new XElement("package");
+                wildcardPackage.SetAttributeValue("pattern", "*");
+                packageSourceElement.Add(wildcardPackage);
+                
+                packageSourceMapping.Add(packageSourceElement);
+            }
         }
     }
 

@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="translated">Conectando ao host do aplicativo...</target>
+        <source>Connecting to apphost...</source>
+        <target state="translated">Conectando ao apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Execute um host de aplicativo Aspire no modo de desenvolvimento.</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="translated">Execute um apphost do Aspire no modo de desenvolvimento.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
@@ -58,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">O caminho para o arquivo de projeto do host de aplicativo Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">O caminho para o arquivo de projeto do Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -73,18 +73,23 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
-        <source>Whether to start a debug session during the run.</source>
-        <target state="translated">Se deve iniciar uma sessão de depuração durante a execução.</target>
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="needs-review-translation">Se deve iniciar uma sessão de depuração durante a execução.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Iniciando o host de aplicativo Aspire...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">Iniciando o Aspire apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
         <target state="translated">Iniciando o painel...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

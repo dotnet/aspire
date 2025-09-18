@@ -239,6 +239,16 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         }
     }
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Check to see whether max item count should be set on every render.
+        // This is required because the data grid's virtualize component can be recreated on data change.
+        if (_dataGrid != null && FluentDataGridHelper<SpanWaterfallViewModel>.TrySetMaxItemCount(_dataGrid, 10_000))
+        {
+            StateHasChanged();
+        }
+    }
+
     private void UpdateDetailViewData()
     {
         _resources = TelemetryRepository.GetResources();
@@ -274,7 +284,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         var result = TelemetryRepository.GetLogs(logsContext);
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
         var apps = new HashSet<OtlpResource>();
@@ -502,13 +512,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
     }
 
-    private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
+    private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
             ViewportInformation,
             DialogService,
             DialogsLoc,
-            spanViewModel.Span,
+            span,
             selectedLogEntryId: null,
             TelemetryRepository,
             _resources,

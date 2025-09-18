@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
-        <target state="translated">Implantar um projeto hospedeiro de aplicativo Aspire em seus destinos de implantação compatíveis. (Versão Prévia)</target>
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">Implante o conteúdo de um Aspire apphost em seus destinos de implantação definidos. (Versão Prévia)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

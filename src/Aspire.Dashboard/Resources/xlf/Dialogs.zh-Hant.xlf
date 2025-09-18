@@ -352,6 +352,11 @@
         <target state="translated">資源記錄與遙測</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">執行階段: {0}</target>
+        <note>{0} is the .NET runtime version</note>
+      </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
         <target state="translated">語言</target>

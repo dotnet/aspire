@@ -15,6 +15,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -110,6 +111,7 @@ public class Program
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
+        builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
@@ -119,6 +121,7 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
+    builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
@@ -138,6 +141,7 @@ public class Program
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
+        builder.Services.AddTransient<CacheCommand>();
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
@@ -159,7 +163,15 @@ public class Program
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, debugMode);
+        var cacheDirectory = GetCacheDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+    }
+
+    private static DirectoryInfo GetCacheDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var cacheDirectoryPath = Path.Combine(homeDirectory, "cache");
+        return new DirectoryInfo(cacheDirectoryPath);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)

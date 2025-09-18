@@ -53,11 +53,11 @@ namespace Aspire.Cli.Resources {
             }
         }
 
-        public static string MininumSdkVersionMissing
+        public static string MinimumSdkVersionNotMet
         {
             get
             {
-                return ResourceManager.GetString("MininumSdkVersionMissing", resourceCulture);
+                return ResourceManager.GetString("MinimumSdkVersionNotMet", resourceCulture);
             }
         }
 
@@ -313,6 +313,20 @@ namespace Aspire.Cli.Resources {
             get
             {
                 return ResourceManager.GetString("AppHostsMayNotBeBuildable", resourceCulture);
+            }
+        }
+        public static string SingleFileAppHostFeatureNotEnabled
+        {
+            get
+            {
+                return ResourceManager.GetString("SingleFileAppHostFeatureNotEnabled", resourceCulture);
+            }
+        }
+        public static string CommandNotSupportedWithSingleFileAppHost
+        {
+            get
+            {
+                return ResourceManager.GetString("CommandNotSupportedWithSingleFileAppHost", resourceCulture);
             }
         }
     }

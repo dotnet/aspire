@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
-        <target state="translated">将 Aspire 应用主机项目部署到其支持的部署目标。(预览版)</target>
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">将 Aspire 应用主机的内容部署到其定义的部署目标。(预览版)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

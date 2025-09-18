@@ -391,7 +391,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         testInteractionService.ShowStatusCallback = (statusText) =>
         {
             Assert.Contains(
-                $"Building app host: src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                $":hammer_and_wrench:  Building apphost... src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
                 statusText);
         };
 
@@ -471,5 +471,37 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(ExitCodeConstants.Success, exitCode);
         Assert.False(buildCalled, "Build should be skipped when extension DevKit capability is available.");
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenSingleFileAppHostAndFeatureDisabled_ReturnsNonZeroExitCode()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new SingleFileAppHostProjectLocator();
+            // Feature is disabled by default in tests, so we don't need to explicitly disable it
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
+    private sealed class SingleFileAppHostProjectLocator : Aspire.Cli.Projects.IProjectLocator
+    {
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        {
+            // Return a .cs file to simulate single file AppHost
+            return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
+        }
+
+        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new List<FileInfo> { new("/tmp/apphost.cs") });
+        }
     }
 }

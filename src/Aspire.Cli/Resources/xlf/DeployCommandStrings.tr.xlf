@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
-        <target state="translated">Desteklenen dağıtım hedeflerine bir Aspire uygulama ana işlemi projesi dağıtın. (Önizleme)</target>
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">Bir Aspire AppHost içeriğini tanımlanan dağıtım hedeflerine dağıtın. (Önizleme)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

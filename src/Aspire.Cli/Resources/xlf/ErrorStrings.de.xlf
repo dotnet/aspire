@@ -42,6 +42,11 @@
         <target state="translated">Entwicklerzertifikate sind möglicherweise nicht vollständig vertrauenswürdig (vertrauenswürdiger Exitcode war: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">Der Konfigurationsschlüssel „{0}“ wurde nicht gefunden.</target>
@@ -112,9 +117,9 @@
         <target state="translated">Der angegebene Erweiterungssocketpfad benötigt zwei gültige Teile.</target>
         <note />
       </trans-unit>
-      <trans-unit id="MininumSdkVersionMissing">
-        <source>The minimum .NET SDK version ({0}) is not installed. Visit https://get.dot.net to download and install the .NET SDK.</source>
-        <target state="translated">Die minimale .NET SDK-Version ({0}) ist nicht installiert. Besuchen Sie https://get.dot.net, um das .NET SDK herunterzuladen und zu installieren.</target>
+      <trans-unit id="MinimumSdkVersionNotMet">
+        <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
+        <target state="translated">Die Aspire-CLI erfordert .NET SDK-Version {0} oder höher. Erkannt: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -148,13 +153,18 @@
         <note />
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
-        <source>Project file is not an Aspire app host project.</source>
-        <target state="translated">Die Projektdatei ist kein Aspire-App-Hostprojekt.</target>
+        <source>Project file is not an Aspire AppHost project.</source>
+        <target state="translated">Die Projektdatei ist kein Aspire-AppHost-Projekt.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
-        <source>The project is not an Aspire app host project.</source>
-        <target state="translated">Das Projekt ist kein Aspire-App-Hostprojekt.</target>
+        <source>The project does not contain an Aspire apphost.</source>
+        <target state="translated">Das Projekt enthält keinen Aspire-AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

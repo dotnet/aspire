@@ -5,6 +5,7 @@
 
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
@@ -316,6 +317,155 @@ public class ResourceExtensionsTests
         RunTest(builder.AddContainer("myContainer", "nginx"));
         RunTest(builder.AddProject<Projects.ServiceA>("ServiceA"));
         RunTest(builder.AddExecutable("myExecutable", "nginx", string.Empty));
+    }
+
+    [Fact]
+    public async Task WithDeploymentImageTag_AddsDeploymentImageTagCallbackAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callback = () => "test-tag";
+        
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback);
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+        
+        // Test that the callback works by creating a mock context and calling it
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
+        var result = await annotation.Callback(context);
+        Assert.Equal("test-tag", result);
+    }
+
+    [Fact]
+    public void WithDeploymentImageTag_WithNullBuilder_ThrowsArgumentNullException()
+    {
+        IResourceBuilder<ContainerResource> builder = null!;
+        var callback = () => "test-tag";
+
+        var ex = Assert.Throws<ArgumentNullException>(() => builder.WithDeploymentImageTag(callback));
+        Assert.Equal("builder", ex.ParamName);
+    }
+
+    [Fact]
+    public void WithDeploymentImageTag_WithNullCallback_ThrowsArgumentNullException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var containerResource = builder.AddContainer("test-container", "nginx");
+
+        var ex = Assert.Throws<ArgumentNullException>(() => containerResource.WithDeploymentImageTag((Func<string>)null!));
+        Assert.Equal("callback", ex.ParamName);
+    }
+
+    [Fact]
+    public async Task WithDeploymentImageTag_CanBeCalledMultipleTimes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callback1 = () => "tag1";
+        var callback2 = () => "tag2";
+        
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback1)
+            .WithDeploymentImageTag(callback2);
+
+        var annotations = containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>().ToList();
+        Assert.Equal(2, annotations.Count);
+        
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
+        
+        Assert.Equal("tag1", await annotations[0].Callback(context));
+        Assert.Equal("tag2", await annotations[1].Callback(context));
+    }
+
+    [Fact]
+    public void WithDeploymentImageTag_WorksWithDifferentResourceTypes()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callback = () => "test-tag";
+
+        // Test with container resource
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback);
+        Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+
+        // Test with project resource
+        var projectResource = builder.AddProject<Projects.ServiceA>("ServiceA")
+            .WithDeploymentImageTag(callback);
+        Assert.Single(projectResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+
+        // Test with executable resource
+        var executableResource = builder.AddExecutable("test-exec", "dotnet", "myapp.dll")
+            .WithDeploymentImageTag(callback);
+        Assert.Single(executableResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+    }
+
+    [Fact]
+    public async Task WithDeploymentImageTag_CallbackCanReturnDifferentValues()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var counter = 0;
+        var callback = () => $"tag-{++counter}";
+        
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback);
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+        
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
+        
+        // Callback should return different values when called multiple times
+        Assert.Equal("tag-1", await annotation.Callback(context));
+        Assert.Equal("tag-2", await annotation.Callback(context));
+        Assert.Equal("tag-3", await annotation.Callback(context));
+    }
+
+    [Fact]
+    public async Task WithDeploymentImageTag_WithAsyncCallback_AddsCorrectAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var callback = async (DeploymentImageTagCallbackAnnotationContext context) =>
+        {
+            await Task.Delay(1);
+            return $"async-tag-{context.Resource.Name}";
+        };
+        
+        var containerResource = builder.AddContainer("test-container", "nginx")
+            .WithDeploymentImageTag(callback);
+
+        var annotation = Assert.Single(containerResource.Resource.Annotations.OfType<DeploymentImageTagCallbackAnnotation>());
+        Assert.NotNull(annotation.Callback);
+        
+        // Test the async callback
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var context = new DeploymentImageTagCallbackAnnotationContext
+        {
+            Resource = containerResource.Resource,
+            Services = serviceProvider,
+            CancellationToken = CancellationToken.None,
+            ExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+        };
+        var result = await annotation.Callback(context);
+        Assert.Equal("async-tag-test-container", result);
     }
 
     private sealed class ComputeEnvironmentResource(string name) : Resource(name), IComputeEnvironmentResource

@@ -15,19 +15,16 @@ namespace Aspire.Cli.Commands;
 internal sealed class UpdateCommand : BaseCommand
 {
     private readonly IProjectLocator _projectLocator;
-    private readonly IInteractionService _interactionService;
     private readonly IPackagingService _packagingService;
     private readonly IProjectUpdater _projectUpdater;
 
-    public UpdateCommand(IProjectLocator projectLocator, IPackagingService packagingService, IProjectUpdater projectUpdater, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext)
+    public UpdateCommand(IProjectLocator projectLocator, IPackagingService packagingService, IProjectUpdater projectUpdater, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base("update", UpdateCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(projectLocator);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(packagingService);
         ArgumentNullException.ThrowIfNull(projectUpdater);
 
         _projectLocator = projectLocator;
-        _interactionService = interactionService;
         _packagingService = packagingService;
         _projectUpdater = projectUpdater;
     }
@@ -37,21 +34,32 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(null, cancellationToken);
+            if (projectFile is null)
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
+            if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
+                return ExitCodeConstants.SingleFileAppHostNotSupported;
+            }
+
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            var channel = await _interactionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);
+            var channel = await InteractionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);
 
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
         }
         catch (ProjectUpdaterException ex)
         {
             var message = Markup.Escape(ex.Message);
-            _interactionService.DisplayError(message);
+            InteractionService.DisplayError(message);
             return ExitCodeConstants.FailedToUpgradeProject;
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, _interactionService);
+            return HandleProjectLocatorException(ex, InteractionService);
         }
 
         return 0;

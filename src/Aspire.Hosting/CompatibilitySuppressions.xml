@@ -23,6 +23,20 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.PushImageAsync(System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0006</DiagnosticId>
+    <Target>M:Aspire.Hosting.Publishing.IResourceContainerImageBuilder.TagImageAsync(System.String,System.String,System.Threading.CancellationToken)</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0008</DiagnosticId>
     <Target>T:Aspire.Hosting.ApplicationModel.ParameterResource</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>

@@ -5,10 +5,11 @@ using Aspire.Cli.Commands;
 
 namespace Aspire.Cli;
 
-internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, bool debugMode = false)
+internal sealed class CliExecutionContext(DirectoryInfo workingDirectory, DirectoryInfo hivesDirectory, DirectoryInfo cacheDirectory, bool debugMode = false)
 {
     public DirectoryInfo WorkingDirectory { get; } = workingDirectory;
     public DirectoryInfo HivesDirectory { get; } = hivesDirectory;
+    public DirectoryInfo CacheDirectory { get; } = cacheDirectory;
     public bool DebugMode { get; } = debugMode;
 
     private BaseCommand? _command;

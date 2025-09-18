@@ -22,10 +22,11 @@ namespace Aspire.Cli.Commands;
 internal abstract class PublishCommandBase : BaseCommand
 {
     protected readonly IDotNetCliRunner _runner;
-    protected readonly IInteractionService _interactionService;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
+
+    private readonly IFeatures _features;
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -40,19 +41,19 @@ internal abstract class PublishCommandBase : BaseCommand
         completionState == CompletionStates.CompletedWithWarning;
 
     protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base(name, description, features, updateNotifier, executionContext)
+        : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
-        _interactionService = interactionService;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -79,7 +80,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -94,10 +95,19 @@ internal abstract class PublishCommandBase : BaseCommand
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
-            if (effectiveAppHostProjectFile is null)
+            if (effectiveAppHostFile is null)
             {
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
+            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+
+            // Validate that single file AppHost feature is enabled if we detected a .cs file
+            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+            {
+                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
                 return ExitCodeConstants.FailedToFindProject;
             }
 
@@ -109,7 +119,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            if (isSingleFileAppHost)
+            {
+                // TODO: Add logic to read SDK version from *.cs file.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -122,13 +140,16 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, _interactionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-            if (buildExitCode != 0)
+            if (!isSingleFileAppHost)
             {
-                _interactionService.DisplayLines(buildOutputCollector.GetLines());
-                _interactionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+
+                if (buildExitCode != 0)
+                {
+                    InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                    InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
 
             var outputPath = parseResult.GetValue<string?>("--output-path");
@@ -140,13 +161,14 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 StandardOutputCallback = operationOutputCollector.AppendOutput,
                 StandardErrorCallback = operationOutputCollector.AppendError,
-                NoLaunchProfile = true
+                NoLaunchProfile = true,
+                NoExtensionLaunch = true
             };
 
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
             var pendingRun = _runner.RunAsync(
-                effectiveAppHostProjectFile,
+                effectiveAppHostFile,
                 false,
                 true,
                 GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens),
@@ -159,10 +181,10 @@ internal abstract class PublishCommandBase : BaseCommand
             // of the apphost so that the user can attach to it.
             if (waitForDebugger)
             {
-                _interactionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await _interactionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
@@ -187,36 +209,36 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (debugMode)
             {
-                _interactionService.DisplayLines(operationOutputCollector.GetLines());
+                InteractionService.DisplayLines(operationOutputCollector.GetLines());
             }
 
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayError(GetCanceledMessage());
+            InteractionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, _interactionService);
+            return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
-            _interactionService.DisplayLines(operationOutputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            InteractionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
     }
@@ -239,7 +261,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -247,7 +269,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    _interactionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -263,15 +285,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        _interactionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
+                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
                     }
                 }
                 else
                 {
-                    _interactionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
                 }
             }
         }
@@ -282,7 +304,7 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            _interactionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
         }
 
         return !hasErrors;
@@ -530,19 +552,19 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             foreach (var error in errors)
             {
-                _interactionService.DisplayError(error);
+                InteractionService.DisplayError(error);
             }
         }
 
         return inputType switch
         {
-            InputType.Text => await _interactionService.PromptForStringAsync(
+            InputType.Text => await InteractionService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
                 required: input.Required,
                 cancellationToken: cancellationToken),
 
-            InputType.SecretText => await _interactionService.PromptForStringAsync(
+            InputType.SecretText => await InteractionService.PromptForStringAsync(
                 promptText,
                 defaultValue: input.Value,
                 isSecret: true,
@@ -551,11 +573,11 @@ internal abstract class PublishCommandBase : BaseCommand
 
             InputType.Choice => await HandleSelectInputAsync(input, promptText, cancellationToken),
 
-            InputType.Boolean => (await _interactionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
+            InputType.Boolean => (await InteractionService.ConfirmAsync(promptText, defaultValue: ParseBooleanValue(input.Value), cancellationToken: cancellationToken)).ToString().ToLowerInvariant(),
 
             InputType.Number => await HandleNumberInputAsync(input, promptText, cancellationToken),
 
-            _ => await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
+            _ => await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken)
         };
     }
 
@@ -563,12 +585,12 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         if (input.Options is null || input.Options.Count == 0)
         {
-            return await _interactionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
         // but we can reorder the options to put the default first or use a different approach
-        var selectedChoice = await _interactionService.PromptForSelectionAsync(
+        var selectedChoice = await InteractionService.PromptForSelectionAsync(
             promptText,
             input.Options,
             choice => choice.Value,
@@ -591,7 +613,7 @@ internal abstract class PublishCommandBase : BaseCommand
             return ValidationResult.Success();
         }
 
-        return await _interactionService.PromptForStringAsync(
+        return await InteractionService.PromptForStringAsync(
             promptText,
             defaultValue: input.Value,
             validator: Validator,

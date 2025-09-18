@@ -17,7 +17,7 @@ public abstract class MessagePart
     public const string ToolCallType = "tool_call";
     public const string ToolCallResponseType = "tool_call_response";
 
-    public string Type { get; protected set; } = default!;
+    public string Type { get; set; } = default!;
 }
 
 /// <summary>

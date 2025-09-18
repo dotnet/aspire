@@ -20,7 +20,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns packages that do not match Aspire.Cli
                     return (0, [
@@ -53,7 +53,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -70,7 +70,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var nuGetPackageCache = provider.GetRequiredService<INuGetPackageCache>();
-        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, useCache: true, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should include regular packages but exclude deprecated Dapr package
         var packageIds = packages.Select(p => p.Id).ToList();
@@ -91,7 +91,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -108,7 +108,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var nuGetPackageCache = provider.GetRequiredService<INuGetPackageCache>();
-        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, useCache: true, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should include all packages including deprecated Dapr package when showing deprecated is enabled
         var packageIds = packages.Select(p => p.Id).ToList();
@@ -126,7 +126,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
                 {
                     // Simulate a search that returns both regular and deprecated packages
                     return (0, [
@@ -151,6 +151,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             filter: id => id.Contains("Dapr", StringComparison.OrdinalIgnoreCase), 
             prerelease: false, 
             nugetConfigFile: null, 
+            useCache: true,
             CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Custom filter should bypass deprecated package filtering
@@ -169,7 +170,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
             configure.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _) =>
+                runner.SearchPackagesAsyncCallback = (_, _, _, _, _, _, _, _, _) =>
                 {
                     // Test different casing of deprecated package name
                     return (0, [
@@ -186,7 +187,7 @@ public class NuGetPackageCacheTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var nuGetPackageCache = provider.GetRequiredService<INuGetPackageCache>();
-        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
+        var packages = await nuGetPackageCache.GetPackagesAsync(workspace.WorkspaceRoot, "Aspire.Hosting", null, prerelease: false, nugetConfigFile: null, useCache: true, CancellationToken.None).WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Should filter out all case variations of deprecated package
         var packageIds = packages.Select(p => p.Id).ToList();

@@ -13,7 +13,6 @@ namespace Aspire.Cli.Utils;
 
 internal static class AppHostHelper
 {
-
     internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
             var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, workingDirectory, cancellationToken);
@@ -69,7 +68,7 @@ internal static class AppHostHelper
     {
         var relativePath = Path.GetRelativePath(workingDirectory.FullName, projectFile.FullName);
         return await interactionService.ShowStatusAsync(
-            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost}: {relativePath}",
+            $":hammer_and_wrench:  {InteractionServiceStrings.BuildingAppHost} {relativePath}",
             () => runner.BuildAsync(
                 projectFile,
                 options,

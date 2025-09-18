@@ -21,7 +21,8 @@ public sealed class ParameterProcessor(
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
-    DistributedApplicationOptions options)
+    DistributedApplicationOptions options,
+    DistributedApplicationExecutionContext executionContext)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -67,11 +68,102 @@ public sealed class ParameterProcessor(
         }
     }
 
+    /// <summary>
+    /// Initializes parameter resources by collecting dependent parameters from the distributed application model
+    /// and handles unresolved parameters if interaction service is available.
+    /// </summary>
+    /// <param name="model">The distributed application model to collect parameters from.</param>
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for parameters to be resolved.</param>
+    /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
+    public async Task InitializeParametersAsync(DistributedApplicationModel model, bool waitForResolution = false, CancellationToken cancellationToken = default)
+    {
+        var referencedParameters = new Dictionary<string, ParameterResource>();
+        var currentDependencySet = new HashSet<object?>();
+
+        await CollectDependentParameterResourcesAsync(model, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+
+        // Combine explicit parameters with dependent parameters
+        var explicitParameters = model.Resources.OfType<ParameterResource>();
+        var dependentParameters = referencedParameters.Values.Where(p => !explicitParameters.Contains(p));
+        var allParameters = explicitParameters.Concat(dependentParameters);
+
+        if (allParameters.Any())
+        {
+            await InitializeParametersAsync(allParameters, waitForResolution).ConfigureAwait(false);
+        }
+    }
+
+    private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
+    {
+        var publishExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        foreach (var resource in model.Resources)
+        {
+            await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+        }
+
+    }
+
+    private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
+    {
+        // Process environment variables
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (unprocessed is not null)
+                {
+                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
+                }
+            },
+            logger,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Process command line arguments
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, expression, ex, _) =>
+            {
+                if (unprocessed is not null)
+                {
+                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
+                }
+            },
+            logger,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)
+    {
+        if (value is ParameterResource parameter)
+        {
+            referencedParameters.TryAdd(parameter.Name, parameter);
+        }
+        else if (value is IValueWithReferences objectWithReferences)
+        {
+            currentDependencySet.Add(value);
+            foreach (var dependency in objectWithReferences.References)
+            {
+                if (!currentDependencySet.Contains(dependency))
+                {
+                    TryAddDependentParameters(dependency, referencedParameters, currentDependencySet);
+                }
+            }
+            currentDependencySet.Remove(value);
+        }
+    }
+
     private async Task ProcessParameterAsync(ParameterResource parameterResource)
     {
         try
         {
             var value = parameterResource.ValueInternal ?? "";
+
+            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
+            {
+                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+            }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {

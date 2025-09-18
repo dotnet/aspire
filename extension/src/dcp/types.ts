@@ -73,7 +73,12 @@ export interface AspireResourceDebugSession {
     stopSession(): void;
 }
 
-export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
+export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugConfiguration {
     runId: string;
     debugSessionId: string | null;
+}
+
+export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
+    program: string;
+    cliStart?: boolean
 }

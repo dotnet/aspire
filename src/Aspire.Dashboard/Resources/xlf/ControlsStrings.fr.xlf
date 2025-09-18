@@ -219,7 +219,7 @@
       </trans-unit>
       <trans-unit id="GenAIDetailsTitle">
         <source>GenAI details</source>
-        <target state="new">GenAI details</target>
+        <target state="translated">Détails sur GenAI</target>
         <note />
       </trans-unit>
       <trans-unit id="GridValueCopied">
@@ -521,6 +521,11 @@
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
         <target state="translated">&lt;strong&gt;Heure de début : &lt;/strong&gt; {0}</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="new">Cloud</target>
+        <note />
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
