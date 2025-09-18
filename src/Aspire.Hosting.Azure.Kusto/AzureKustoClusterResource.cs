@@ -125,12 +125,37 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
 
     private static BicepValue<KustoPrincipalAssignmentType> GetKustoPrincipalType(BicepValue<RoleManagementPrincipalType> principalType)
     {
-        return principalType.Value switch
+        IBicepValue principalTypeBicepValue = principalType;
+        var kind = principalTypeBicepValue.Kind;
+        if (kind == BicepValueKind.Expression)
         {
-            RoleManagementPrincipalType.User => KustoPrincipalAssignmentType.User,
-            RoleManagementPrincipalType.Group => KustoPrincipalAssignmentType.Group,
-            RoleManagementPrincipalType.ServicePrincipal => KustoPrincipalAssignmentType.App,
-            _ => throw new InvalidOperationException($"Unsupported principal type: {principalType}")
-        };
+            return new ConditionalExpression(
+                new BinaryExpression(
+                    principalTypeBicepValue.Expression!,
+                    BinaryBicepOperator.Equal,
+                    new StringLiteralExpression("User")),
+                new StringLiteralExpression("User"),
+                new ConditionalExpression(
+                    new BinaryExpression(
+                        principalTypeBicepValue.Expression!,
+                        BinaryBicepOperator.Equal,
+                        new StringLiteralExpression("Group")),
+                    new StringLiteralExpression("Group"),
+                    new StringLiteralExpression("App") // Default to App if not User or Group
+                )
+            );
+        }
+        else if (kind == BicepValueKind.Literal)
+        {
+            return principalType.Value switch
+            {
+                RoleManagementPrincipalType.User => KustoPrincipalAssignmentType.User,
+                RoleManagementPrincipalType.Group => KustoPrincipalAssignmentType.Group,
+                RoleManagementPrincipalType.ServicePrincipal => KustoPrincipalAssignmentType.App,
+                _ => throw new InvalidOperationException($"Unsupported principal type: {principalType}")
+            };
+        }
+
+        throw new InvalidOperationException($"Unsupported principal type kind: {kind}");
     }
 }
