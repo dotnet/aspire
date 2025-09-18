@@ -17,7 +17,7 @@ public class FallbackProjectParserTests
         var projectFile = Path.Combine(tempDir, $"Test{Guid.NewGuid()}.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
-                <Sdk Name="Aspire.AppHost.Sdk" Version="9.6.0-test" />
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0-test" />
             </Project>
             """;
 
@@ -32,7 +32,7 @@ public class FallbackProjectParserTests
             // Assert
             var properties = result.RootElement.GetProperty("Properties");
             var sdkVersion = properties.GetProperty("AspireHostingSDKVersion").GetString();
-            Assert.Equal("9.6.0-test", sdkVersion);
+            Assert.Equal("9.5.0-test", sdkVersion);
 
             // Should have fallback flag
             Assert.True(result.RootElement.GetProperty("Fallback").GetBoolean());
@@ -54,9 +54,9 @@ public class FallbackProjectParserTests
         var projectFile = Path.Combine(tempDir, $"Test{Guid.NewGuid()}.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
-                <Sdk Name="Aspire.AppHost.Sdk" Version="9.6.0-test" />
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0-test" />
                 <ItemGroup>
-                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.6.0-test" />
+                    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.5.0-test" />
                     <PackageReference Include="Aspire.Hosting.Redis" Version="9.4.1" />
                 </ItemGroup>
             </Project>
@@ -79,7 +79,7 @@ public class FallbackProjectParserTests
             var appHostPkg = packageRefs.FirstOrDefault(p => 
                 p.GetProperty("Identity").GetString() == "Aspire.Hosting.AppHost");
             Assert.NotEqual(default(JsonElement), appHostPkg);
-            Assert.Equal("9.6.0-test", appHostPkg.GetProperty("Version").GetString());
+            Assert.Equal("9.5.0-test", appHostPkg.GetProperty("Version").GetString());
             
             var redisPkg = packageRefs.FirstOrDefault(p => 
                 p.GetProperty("Identity").GetString() == "Aspire.Hosting.Redis");
@@ -103,7 +103,7 @@ public class FallbackProjectParserTests
         var projectFile = Path.Combine(tempDir, $"Test{Guid.NewGuid()}.csproj");
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
-                <Sdk Name="Aspire.AppHost.Sdk" Version="9.6.0-test" />
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0-test" />
                 <ItemGroup>
                     <ProjectReference Include="../ServiceDefaults/ServiceDefaults.csproj" />
                     <ProjectReference Include="../WebApp/WebApp.csproj" />
@@ -150,7 +150,7 @@ public class FallbackProjectParserTests
         var projectFile = Path.Combine(tempDir, $"Test{Guid.NewGuid()}.csproj");
         var invalidProjectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
-                <Sdk Name="Aspire.AppHost.Sdk" Version="9.6.0-test" />
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.0-test" />
                 <!-- Missing closing tag -->
                 <ItemGroup>
                     <PackageReference Include="Test" Version="1.0.0" />
