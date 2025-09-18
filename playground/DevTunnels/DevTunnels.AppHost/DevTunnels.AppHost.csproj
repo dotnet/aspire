@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ApiService\ApiService.csproj" />
-    <ProjectReference Include="..\WebFrontEnd\WebFrontEnd.csproj" />
+    <ProjectReference Include="..\DevTunnels.ApiService\DevTunnels.ApiService.csproj" />
+    <ProjectReference Include="..\DevTunnels.WebFrontEnd\DevTunnels.WebFrontEnd.csproj" />
   </ItemGroup>
 
 </Project>
