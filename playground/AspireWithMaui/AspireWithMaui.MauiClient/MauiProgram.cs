@@ -28,7 +28,7 @@ public static class MauiProgram
 		builder.Services.AddHttpClient<IWeatherService, WeatherService>(client =>
 		{
 			// This will be resolved via service discovery when running with Aspire
-			client.BaseAddress = new Uri("https://AspireWithMaui-WeatherApi");
+			client.BaseAddress = new Uri("https://mauiclient");
 		});
 
 #if DEBUG
