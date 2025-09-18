@@ -128,7 +128,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }, cts.Token);
     }
 
-    [Theory]
+    [Theory(Skip = "CosmosDB Emulator takes too long to spin up, spinning up twice consecutively will almost always exceed the global test timeout")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
