@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(IsAspireHost)' == 'true' and '$(RepoRoot)' != '' and '$(SkipAspireHostingAnalyzersReference)' != 'true'">
-    <ProjectReference Include="..\..\..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Aspire.Hosting.Analyzers\Aspire.Hosting.Analyzers.csproj" IsAspireProjectResource="false"
                       PrivateAssets="all"
                       ReferenceOutputAssembly="false"
                       OutputItemType="Analyzer"

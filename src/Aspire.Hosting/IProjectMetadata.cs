@@ -13,7 +13,7 @@ namespace Aspire.Hosting;
 public interface IProjectMetadata : IResourceAnnotation
 {
     /// <summary>
-    /// Gets the fully-qualified path to the project.
+    /// Gets the fully-qualified path to the project or file-based app file.
     /// </summary>
     public string ProjectPath { get; }
 
@@ -24,10 +24,42 @@ public interface IProjectMetadata : IResourceAnnotation
 
     // Internal for testing.
     internal IConfiguration? Configuration => null;
+
+    internal bool IsFileBasedApp => string.Equals(Path.GetExtension(ProjectPath), ".cs", StringComparison.OrdinalIgnoreCase);
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
-    public string ProjectPath { get; } = projectPath;
+    public string ProjectPath { get; } = ResolveProjectPath(projectPath);
+
+    private static string ResolveProjectPath(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            // Path is a directory, assume it's a project directory
+            var projectFiles = Directory.GetFiles(path, "*.csproj", new EnumerationOptions
+            {
+                MatchCasing = MatchCasing.CaseInsensitive,
+                RecurseSubdirectories = false,
+                IgnoreInaccessible = true
+            });
+
+            if (projectFiles.Length == 0)
+            {
+                // No project files found, just let it pass through and be handled later
+                return path;
+            }
+            else if (projectFiles.Length > 1)
+            {
+                throw new InvalidOperationException($"The specified project directory '{path}' contains multiple project files. Please specify the path to a specific project file.");
+            }
+            else
+            {
+                return Path.GetFullPath(projectFiles[0]);
+            }
+        }
+
+        return path;
+    }
 }
