@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">Следует ли начинать сеанс отладки во время выполнения.</target>
+        <target state="new">Whether to start a debug session, if running in an Aspire Terminal.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">

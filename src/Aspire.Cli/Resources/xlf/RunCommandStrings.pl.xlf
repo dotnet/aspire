@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">Określa, czy uruchomić sesję debugowania podczas przebiegu.</target>
+        <target state="new">Whether to start a debug session, if running in an Aspire Terminal.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
