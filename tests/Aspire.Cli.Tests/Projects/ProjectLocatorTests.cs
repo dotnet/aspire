@@ -719,7 +719,8 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var features = new TestFeatures();
+        var projectLocator = new ProjectLocator(logger, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
 
         var foundProjects = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 

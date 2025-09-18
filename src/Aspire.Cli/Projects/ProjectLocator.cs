@@ -60,9 +60,9 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutio
                 logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
 
                 // Use XML-based detection instead of MSBuild interrogation
-                var information = GetAppHostInformationFromXml(projectFile);
+                var isAspireHost = IsAppHostProject(projectFile);
 
-                if (information.IsAspireHost)
+                if (isAspireHost)
                 {
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
@@ -169,7 +169,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutio
         return false;
     }
 
-    private static (bool IsAspireHost, string? AspireHostingVersion) GetAppHostInformationFromXml(FileInfo projectFile)
+    private bool IsAppHostProject(FileInfo projectFile)
     {
         try
         {
@@ -187,74 +187,13 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutio
                 isAspireHost = isAspireHostElement?.InnerText?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
             }
 
-            if (!isAspireHost)
-            {
-                return (false, null);
-            }
+            return isAspireHost;
 
-            // Try to find Aspire.Hosting version from multiple sources
-            string? aspireHostingVersion = null;
-
-            // First check if we found Aspire.AppHost.Sdk - get version from it
-            if (aspireAppHostSdk != null)
-            {
-                aspireHostingVersion = aspireAppHostSdk.Attributes?["Version"]?.Value;
-            }
-
-            // Then check AspireProjectOrPackageReference
-            if (aspireHostingVersion == null)
-            {
-                var aspireProjectOrPackageReferences = xmlDocument.SelectNodes("//AspireProjectOrPackageReference[@Include='Aspire.Hosting.AppHost' or starts-with(@Include, 'Aspire.Hosting')]");
-                if (aspireProjectOrPackageReferences != null)
-                {
-                    foreach (XmlNode reference in aspireProjectOrPackageReferences)
-                    {
-                        var include = reference.Attributes?["Include"]?.Value;
-                        if (include == "Aspire.Hosting.AppHost" || include == "Aspire.Hosting")
-                        {
-                            var versionAttr = reference.Attributes?["Version"]?.Value;
-                            if (!string.IsNullOrEmpty(versionAttr))
-                            {
-                                aspireHostingVersion = versionAttr;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Fallback to PackageReference
-            if (aspireHostingVersion == null)
-            {
-                var packageReferences = xmlDocument.SelectNodes("//PackageReference[@Include='Aspire.Hosting']");
-                if (packageReferences != null)
-                {
-                    foreach (XmlNode reference in packageReferences)
-                    {
-                        var versionAttr = reference.Attributes?["Version"]?.Value;
-                        if (!string.IsNullOrEmpty(versionAttr))
-                        {
-                            aspireHostingVersion = versionAttr;
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // Fallback to AspireHostingSDKVersion property
-            if (aspireHostingVersion == null)
-            {
-                var aspireHostingSdkVersionElement = xmlDocument.SelectSingleNode("//PropertyGroup/AspireHostingSDKVersion");
-                aspireHostingVersion = aspireHostingSdkVersionElement?.InnerText;
-            }
-
-            return (true, aspireHostingVersion);
         }
-        catch
+        catch (Exception ex)
         {
-            // If we can't parse the XML, fall back to heuristics or return false
-            // Log the exception but don't fail the entire operation
-            return (false, null);
+            logger.LogDebug(ex, "Failed to parse project file {ProjectFile} as XML.", projectFile.FullName);
+            return false;
         }
     }
 
