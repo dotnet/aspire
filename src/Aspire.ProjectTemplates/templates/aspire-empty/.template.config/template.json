@@ -20,8 +20,8 @@
     "language": "C#",
     "type": "solution",
     "editorTreatAs": "solution",
-    "aspire-9.5-tfms": "net8.0;net9.0;net10.0",
-    "aspire-9.6-tfms": "net8.0;net9.0;net10.0"
+    "aspire-9.4-tfms": "net8.0;net9.0;net10.0",
+    "aspire-9.5-tfms": "net8.0;net9.0;net10.0"
   },
   "precedence": "9000",
   "identity": "Aspire.Empty.CSharp.8.0",
@@ -52,20 +52,6 @@
       "source": "./9.5",
       "target": "./",
       "condition": "AspireVersionActual == 9.5",
-      "modifiers": [
-        {
-          "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
-          "exclude": [
-            "*.sln",
-            "*.slnx"
-          ]
-        }
-      ]
-    },
-    {
-      "source": "./9.6",
-      "target": "./",
-      "condition": "AspireVersionActual == 9.6",
       "modifiers": [
         {
           "condition": "(hostIdentifier != \"dotnetcli\" && hostIdentifier != \"dotnetcli-preview\")",
@@ -107,11 +93,6 @@
       "isEnabled": "Framework != net10.0",
       "choices": [
         {
-          "choice": "9.6",
-          "displayName": "9.6",
-          "description": "Chooses Aspire 9.6"
-        },
-        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
@@ -122,7 +103,7 @@
           "description": "Chooses Aspire 9.4"
         }
       ],
-      "defaultValue": "9.6"
+      "defaultValue": "9.5"
     },
     "AspireVersionNet10": {
       "type": "parameter",
@@ -132,17 +113,12 @@
       "isEnabled": "Framework == net10.0",
       "choices": [
         {
-          "choice": "9.6",
-          "displayName": "9.6",
-          "description": "Chooses Aspire 9.6"
-        },
-        {
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
         }
       ],
-      "defaultValue": "9.6"
+      "defaultValue": "9.5"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -155,16 +131,8 @@
             "value": "9.4"
           },
           {
-            "condition": "AspireVersionNet10 == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersion == 9.5",
-            "value": "9.5"
-          },
-          {
             "condition": "",
-            "value": "9.6"
+            "value": "9.5"
           }
         ]
       }

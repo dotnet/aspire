@@ -20,15 +20,15 @@
     "type": "project"
   },
   "constraints": {
-    "sdk-only": {
+   "sdk-only": {
       "type": "host",
       "args": [
         {
-          "hostname": "dotnetcli",
-          "version": "[10.0,)"
+            "hostname": "dotnetcli",
+            "version": "[10.0,)"
         }
       ]
-    }
+   }
   },
   "sources": [
     {
@@ -44,10 +44,7 @@
       "replaces": "net10.0",
       "defaultValue": "net10.0",
       "choices": [
-        {
-          "choice": "net10.0",
-          "description": "Target net10.0"
-        }
+        { "choice": "net10.0", "description": "Target net10.0" }
       ]
     },
     "AspireVersionCli": {
@@ -55,18 +52,9 @@
       "datatype": "choice",
       "description": "Aspire version",
       "choices": [
-        {
-          "choice": "9.6",
-          "displayName": "9.6",
-          "description": "Chooses Aspire 9.6"
-        },
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Aspire 9.5"
-        }
+        { "choice": "9.5", "displayName": "9.5", "description": "Aspire 9.5" }
       ],
-      "defaultValue": "9.6"
+      "defaultValue": "9.5"
     },
     "AspireVersionActual": {
       "type": "generated",
@@ -74,22 +62,8 @@
       "replaces": "aspireVersion",
       "parameters": {
         "cases": [
-          {
-            "condition": "AspireVersion == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersionNet10 == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "",
-            "value": "9.6"
-          }
+          { "condition": "AspireVersionCli == 9.5", "value": "9.5" },
+          { "condition": "", "value": "9.5" }
         ]
       }
     },
@@ -234,11 +208,9 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Whether to turn off HTTPS."
-    }
+    }    
   },
   "primaryOutputs": [
-    {
-      "path": "apphost.cs"
-    }
+    { "path": "apphost.cs" }
   ]
 }
