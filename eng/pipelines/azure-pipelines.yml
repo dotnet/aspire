@@ -135,8 +135,6 @@ extends:
         parameters:
           enableMicrobuild: true
           enableTelemetry: true
-          enablePublishBuildArtifacts: true
-
           jobs:
           - job: BuildExtension
             displayName: Build VS Code Extension

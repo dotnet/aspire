@@ -11,7 +11,7 @@ parameters:
 
 steps:
   - task: NodeTool@0
-    displayName: 🟣Install node
+    displayName: 🟣Install node.js
     inputs:
       versionSpec: '20.x'
 
@@ -25,7 +25,7 @@ steps:
       workingDirectory: '$(Build.SourcesDirectory)'
 
   - task: PowerShell@2
-    displayName: 🟣Install VSCE
+    displayName: 🟣Install vsce
     inputs:
       targetType: 'inline'
       script: |
@@ -34,7 +34,7 @@ steps:
       workingDirectory: '$(Build.SourcesDirectory)'
 
   - task: PowerShell@2
-    displayName: 🟣Install dependencies and compile
+    displayName: 🟣Install dependencies and run localization
     inputs:
       targetType: 'inline'
       script: |
@@ -52,7 +52,7 @@ steps:
       YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
 
   - task: PowerShell@2
-    displayName: 🟣Package as VSIX
+    displayName: 🟣Package extension as VSIX
     inputs:
       targetType: 'inline'
       script: |
@@ -92,3 +92,9 @@ steps:
         } else {
           Write-Host "Artifacts directory not found: $artifactsDir"
         }
+
+  - task: 1ES.PublishBuildArtifacts@1
+    displayName: 🟣Publish extension artifact
+    inputs:
+      PathtoPublish: '${{ parameters.repoArtifactsPath }}packages/'
+      ArtifactName: aspire-extension
