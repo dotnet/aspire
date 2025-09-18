@@ -37,7 +37,7 @@
                                         {
                                             @s_spaceMarkup
                                         }
-                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorVariableByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (DisplayPrefix(ref hasPrefix))
                                     {
@@ -73,7 +73,7 @@
                                         {
                                             @s_spaceMarkup
                                         }
-                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorHexByKey(resourcePrefix);">@resourcePrefix</span>
+                                        <span class="resource-prefix" style="background: @ColorGenerator.Instance.GetColorVariableByKey(resourcePrefix);">@resourcePrefix</span>
                                     }
                                     @if (context.Type == LogEntryType.Error)
                                     {

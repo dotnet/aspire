@@ -7,12 +7,19 @@ namespace Aspire.Dashboard.Otlp.Model;
 
 public sealed class AccentColor
 {
-    public required string VariableName { get; init; }
+    public AccentColor(string variableName)
+    {
+        VariableName = variableName;
+        ReferencedVariableName = $"var({variableName})";
+    }
+
+    public string VariableName { get; }
+    public string ReferencedVariableName { get; }
 }
 
 public class ColorGenerator
 {
-    private static readonly string[] s_colorsHex =
+    private static readonly string[] s_variableNames =
     [
         "--accent-teal",
         "--accent-marigold",
@@ -47,12 +54,9 @@ public class ColorGenerator
         _colorIndexByKey = new ConcurrentDictionary<string, Lazy<int>>(StringComparer.OrdinalIgnoreCase);
         _currentIndex = 0;
 
-        foreach (var hex in s_colorsHex)
+        foreach (var name in s_variableNames)
         {
-            _colors.Add(new AccentColor
-            {
-                VariableName = hex
-            });
+            _colors.Add(new AccentColor(name));
         }
     }
 
@@ -71,7 +75,7 @@ public class ColorGenerator
         }).Value;
     }
 
-    public string GetColorHexByKey(string key)
+    public string GetColorVariableByKey(string key)
     {
         var i = GetColorIndex(key);
         return $"var({_colors[i].VariableName})";
