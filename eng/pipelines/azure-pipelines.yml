@@ -240,6 +240,35 @@ extends:
                     # non-aot - single file builds
                     - win-x86
 
+              - template: /eng/pipelines/templates/BuildExtension.yml
+                parameters:
+                  buildConfig: $(_BuildConfig)
+                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                  repoLogPath: $(Build.Arcade.LogsPath)
+
+              - task: PowerShell@2
+                displayName: 🟣Verify Extension Artifact
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    $vsixFiles = Get-ChildItem -Path "$(Build.Arcade.ArtifactsPath)packages/" -Filter "*.vsix"
+                    if ($vsixFiles.Count -eq 0) {
+                      Write-Host "##vso[task.logissue type=warning]No .vsix files found in artifacts directory"
+                      Write-Host "##vso[task.setvariable variable=HasExtensionArtifact]false"
+                    } else {
+                      Write-Host "Found $($vsixFiles.Count) .vsix file(s):"
+                      $vsixFiles | ForEach-Object { Write-Host "  $($_.FullName)" }
+                      Write-Host "##vso[task.setvariable variable=HasExtensionArtifact]true"
+                    }
+
+              - task: 1ES.PublishBuildArtifacts@1
+                displayName: 🟣Publish Extension Artifact
+                condition: and(succeeded(), eq(variables['HasExtensionArtifact'], 'true'))
+                inputs:
+                  PathtoPublish: '$(Build.Arcade.ArtifactsPath)packages/'
+                  ArtifactName: aspire-extension
+                  publishLocation: Container
+
       - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
         - template: /eng/common/templates-official/job/onelocbuild.yml@self
           parameters:

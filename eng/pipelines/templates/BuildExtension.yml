@@ -1,0 +1,92 @@
+parameters:
+  - name: buildConfig
+    type: string
+  - name: repoArtifactsPath
+    type: string
+  - name: repoLogPath
+    type: string
+  - name: buildArgs
+    type: string
+    default: ''
+
+steps:
+  - task: NodeTool@0
+    displayName: 🟣Install Node.js
+    inputs:
+      versionSpec: '20.x'
+
+  - task: PowerShell@2
+    displayName: 🟣Install Yarn
+    inputs:
+      targetType: 'inline'
+      script: |
+        npm install -g yarn
+        yarn --version
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+  - task: PowerShell@2
+    displayName: 🟣Install Dependencies and Run Localization
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Install dependencies (includes gulp and all required tools)
+        yarn install
+        
+        # Run localization
+        yarn ci-localize
+      workingDirectory: '$(Build.SourcesDirectory)/extension'
+      errorActionPreference: 'stop'
+    env:
+      YARN_CACHE_FOLDER: $(Pipeline.Workspace)/.yarn
+
+  - task: PowerShell@2
+    displayName: 🟣Build and Package Extension
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Build the extension (this runs webpack in production mode)
+        yarn package
+      workingDirectory: '$(Build.SourcesDirectory)/extension'
+      errorActionPreference: 'stop'
+
+  - task: PowerShell@2
+    displayName: 🟣Package Extension as VSIX
+    inputs:
+      targetType: 'inline'
+      script: |
+        # Read version from package.json and package with pre-release flag
+        $packageJson = Get-Content 'package.json' | ConvertFrom-Json
+        $version = $packageJson.version
+        Write-Host "Packaging extension version: $version"
+        
+        # Create artifacts directory if it doesn't exist - use same pattern as native build
+        $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
+        if (-not (Test-Path $artifactsDir)) {
+          New-Item -ItemType Directory -Path $artifactsDir -Force
+        }
+        
+        # Package extension using locally installed vsce
+        $vsixFileName = "aspire-vscode-$version.vsix"
+        yarn vsce package --pre-release --out "$artifactsDir/$vsixFileName"
+        
+        if ($LASTEXITCODE -ne 0) {
+          throw "Extension packaging failed with exit code $LASTEXITCODE"
+        }
+        
+        Write-Host "Extension packaged successfully to: $artifactsDir/$vsixFileName"
+      workingDirectory: '$(Build.SourcesDirectory)/extension'
+      errorActionPreference: 'stop'
+
+  - task: PowerShell@2
+    displayName: 🟣List Extension Artifacts
+    inputs:
+      targetType: 'inline'
+      script: |
+        $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
+        if (Test-Path $artifactsDir) {
+          Get-ChildItem -Path $artifactsDir -Filter "*.vsix" | ForEach-Object {
+            Write-Host "Found extension artifact: $($_.FullName) (Size: $([math]::Round($_.Length/1KB,2)) KB)"
+          }
+        } else {
+          Write-Host "Artifacts directory not found: $artifactsDir"
+        }
