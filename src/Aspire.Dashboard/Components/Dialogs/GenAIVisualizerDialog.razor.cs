@@ -27,6 +27,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
     private int _currentSpanContextIndex;
     private GenAIVisualizerDialogViewModel? _content;
 
+    private GenAIItemViewModel? SelectedItem { get; set; }
+
+    private OverviewViewKind OverviewActiveView { get; set; }
+    private ItemViewKind MessageActiveView { get; set; }
+
     [Parameter, EditorRequired]
     public required GenAIVisualizerDialogViewModel Content { get; set; }
 
@@ -57,6 +62,11 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             _contextSpans = Content.GetContextGenAISpans();
             _currentSpanContextIndex = _contextSpans.FindIndex(s => s.SpanId == Content.Span.SpanId);
             _content = Content;
+
+            if (Content.SelectedLogEntryId != null)
+            {
+                SelectedItem = Content.Items.SingleOrDefault(e => e.InternalId == Content.SelectedLogEntryId);
+            }
         }
     }
 
@@ -75,13 +85,13 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private void OnViewItem(GenAIItemViewModel viewModel)
     {
-        Content.SelectedItem = viewModel;
+        SelectedItem = viewModel;
     }
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
         var selectedIndex = Content.SelectedTreeItem?.Data as int?;
-        Content.SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
+        SelectedItem = Content.Items.FirstOrDefault(m => m.Index == selectedIndex);
         StateHasChanged();
         return Task.CompletedTask;
     }
@@ -97,7 +107,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             return;
         }
 
-        Content.OverviewActiveView = viewKind;
+        OverviewActiveView = viewKind;
     }
 
     private void OnMessageTabChange(FluentTab newTab)
@@ -111,7 +121,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             return;
         }
 
-        Content.MessageActiveView = viewKind;
+        MessageActiveView = viewKind;
     }
 
     private void OnPreviousGenAISpan()
@@ -138,10 +148,15 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     private bool TryUpdateViewedGenAISpan(OtlpSpan newSpan)
     {
+        var selectedIndex = SelectedItem?.Index;
+
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
         var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, TelemetryRepository, Content.GetContextGenAISpans);
-        dialogViewModel.OverviewActiveView = Content.OverviewActiveView;
-        dialogViewModel.MessageActiveView = Content.MessageActiveView;
+
+        if (selectedIndex != null)
+        {
+            SelectedItem = dialogViewModel.Items.SingleOrDefault(e => e.Index == selectedIndex);
+        }
 
         Content = dialogViewModel;
         _currentSpanContextIndex = _contextSpans.IndexOf(newSpan);
@@ -160,6 +175,33 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
             GenAIItemType.Error => "Error",
             _ => string.Empty
         };
+    }
+
+    private static bool IsImagePart(GenAIItemPartViewModel itemPart, [NotNullWhen(true)] out string? imageContent)
+    {
+        // Image part is a generic part with type "image" and content in additional properties.
+        // An image part isn't in the GenAI semantic conventions. This code follows what MEAI does and will need to change to support a future standard.
+        // See https://github.com/dotnet/extensions/pull/6809.
+        if (itemPart.MessagePart?.Type == "image")
+        {
+            var contentType = itemPart.AdditionalProperties?.SingleOrDefault(p => p.Name == "content");
+            imageContent = contentType?.Value;
+            return !string.IsNullOrEmpty(imageContent);
+        }
+
+        imageContent = null;
+        return false;
+    }
+
+    private static bool IsSupportedImageScheme(string imageContent)
+    {
+        if (Uri.TryCreate(imageContent, UriKind.Absolute, out var result))
+        {
+            // Only attempt to display image if it is an http/https address, or an inline data image.
+            return result.Scheme.ToLowerInvariant() is "http" or "https" or "data";
+        }
+
+        return false;
     }
 
     public void Dispose()

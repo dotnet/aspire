@@ -4,12 +4,12 @@
     <body>
       <trans-unit id="AddingAspireIntegration">
         <source>Adding Aspire hosting integration...</source>
-        <target state="needs-review-translation">Aspire-Integration wird hinzugefügt...</target>
+        <target state="translated">Aspire-Hosting-Integration wird hinzugefügt...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the Aspire AppHost.</source>
-        <target state="needs-review-translation">Fügen Sie dem Aspire-Projekt eine Integration hinzu.</target>
+        <target state="translated">Fügen Sie dem Aspire AppHost eine Hosting-Integration hinzu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ErrorOccurredWhileAddingPackage">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="SearchingForAspirePackages">
         <source>Searching for Aspire integrations...</source>
-        <target state="needs-review-translation">Es wird nach Aspire-Paketen gesucht...</target>
+        <target state="translated">Es wird nach Aspire-Integrationen gesucht...</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAVersionOfPackage">

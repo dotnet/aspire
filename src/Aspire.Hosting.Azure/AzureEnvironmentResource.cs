@@ -9,6 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -77,6 +78,8 @@ public sealed class AzureEnvironmentResource : Resource
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
         var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
@@ -85,7 +88,10 @@ public sealed class AzureEnvironmentResource : Resource
             activityPublisher,
             containerImageBuilder,
             processRunner,
-            parameterProcessor);
+            parameterProcessor,
+            context.Services,
+            configuration,
+            tokenCredentialProvider);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }

@@ -7,17 +7,19 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal interface IDevTunnelClient
 {
-    Task<UserLoginStatus> GetUserLoginStatusAsync(CancellationToken cancellationToken = default);
+    Task<Version> GetVersionAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, CancellationToken cancellationToken = default);
+    Task<UserLoginStatus> GetUserLoginStatusAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, CancellationToken cancellationToken = default);
+    Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelPortStatus> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, CancellationToken cancellationToken = default);
+    Task<DevTunnelStatus> CreateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, CancellationToken cancellationToken = default);
+    Task<DevTunnelPortStatus> CreatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, CancellationToken cancellationToken = default);
+    Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, ILogger? logger = default, CancellationToken cancellationToken = default);
+
+    Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, ILogger? logger = default, CancellationToken cancellationToken = default);
 }
 
 internal sealed record UserLoginStatus(string Status, LoginProvider Provider, string Username)

@@ -14,7 +14,8 @@ namespace Aspire.Hosting.Docker;
 /// </summary>
 internal sealed class DockerComposeInfrastructure(
     ILogger<DockerComposeInfrastructure> logger,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+    DistributedApplicationExecutionContext executionContext,
+    IServiceProvider serviceProvider) : IDistributedApplicationLifecycleHook
 {
     public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
     {
@@ -34,7 +35,7 @@ internal sealed class DockerComposeInfrastructure(
 
         foreach (var environment in dockerComposeEnvironments)
         {
-            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
+            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger, serviceProvider);
 
             if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
             {

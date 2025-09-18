@@ -2,10 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
 
-internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, DevTunnelResource tunnelResource) : IHealthCheck
+internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, DevTunnelResource tunnelResource, ILogger<DevTunnelHealthCheck> logger) : IHealthCheck
 {
     private readonly IDevTunnelClient _devTunnelClient = devTunnelClient ?? throw new ArgumentNullException(nameof(devTunnelClient));
 
@@ -15,7 +16,7 @@ internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, Dev
     {
         try
         {
-            var tunnelStatus = await _devTunnelClient.GetTunnelAsync(_tunnelResource.TunnelId, cancellationToken).ConfigureAwait(false);
+            var tunnelStatus = await _devTunnelClient.GetTunnelAsync(_tunnelResource.TunnelId, logger, cancellationToken).ConfigureAwait(false);
             tunnelResource.LastKnownStatus = tunnelStatus;
             if (tunnelStatus.HostConnections == 0)
             {
@@ -34,13 +35,13 @@ internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, Dev
             }
 
             // Get tunnel and port access status
-            var tunnelAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portNumber: null, cancellationToken).ConfigureAwait(false);
+            var tunnelAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portNumber: null, logger, cancellationToken).ConfigureAwait(false);
             _tunnelResource.LastKnownAccessStatus = tunnelAccessStatus;
 
             // Get access status for each port
             foreach (var portResource in _tunnelResource.Ports)
             {
-                var portAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portResource.TargetEndpoint.Port, cancellationToken).ConfigureAwait(false);
+                var portAccessStatus = await _devTunnelClient.GetAccessAsync(_tunnelResource.TunnelId, portResource.TargetEndpoint.Port, logger, cancellationToken).ConfigureAwait(false);
                 portResource.LastKnownAccessStatus = portAccessStatus;
             }
 

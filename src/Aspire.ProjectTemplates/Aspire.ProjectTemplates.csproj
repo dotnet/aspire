@@ -24,10 +24,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Template project files: *.csproj -->
     <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\**\*.csproj">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
       <DestinationFile>$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
     </TemplateProjectFiles>
+
+    <!-- Template project files: apphost.cs (singlefile only) -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs">
+      <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-apphost-singlefile\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
     <TemplateProjectFilesObj Include="@(TemplateProjectFiles->'%(DestinationFile)')" />
 
     <TemplateFiles Include="$(MSBuildThisFileDirectory)templates\**\*"

@@ -22,6 +22,8 @@ public sealed class DevTunnelOptions
     /// Optional labels to attach to the tunnel.
     /// </summary>
     public List<string>? Labels { get; set; }
+
+    internal string ToLoggerString() => $"{{ Description={Description}, AllowAnonymous={AllowAnonymous}, Labels=[{string.Join(", ", Labels ?? [])}] }}";
 }
 
 /// <summary>
@@ -48,4 +50,6 @@ public sealed class DevTunnelPortOptions
     /// Optional labels to attach to this tunnel port.
     /// </summary>
     public List<string>? Labels { get; set; }
+
+    internal string ToLoggerString() => $"{{ Description={Description}, AllowAnonymous={AllowAnonymous}, Protocol={Protocol}, Labels=[{string.Join(", ", Labels ?? [])}] }}";
 }

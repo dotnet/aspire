@@ -84,6 +84,7 @@ internal sealed class ContainerAppContext(IResource resource, ContainerAppEnviro
             containerAppIdentityId);
         AddAzureClientId(appIdentityAnnotation?.IdentityResource, containerAppContainer.Env);
         AddVolumes(template.Volumes, containerAppContainer);
+        AddProbes(containerAppContainer);
 
         infra.Add(containerAppResource);
 

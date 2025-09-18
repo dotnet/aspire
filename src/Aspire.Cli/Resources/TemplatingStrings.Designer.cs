@@ -74,6 +74,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireServiceDefaults_Description", resourceCulture);
             }
         }
+
+        public static string AspireAppHostSingleFile_Description {
+            get {
+                return ResourceManager.GetString("AspireAppHostSingleFile_Description", resourceCulture);
+            }
+        }
         
         public static string AspireMSTest_Description {
             get {

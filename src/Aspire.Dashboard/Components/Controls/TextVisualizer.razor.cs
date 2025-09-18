@@ -14,6 +14,7 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     private IJSObjectReference? _jsModule;
     private ElementReference _containerElement;
     private bool _isObserving;
+    private bool _isInitialized;
 
     [Inject]
     public required ThemeManager ThemeManager { get; init; }
@@ -29,6 +30,9 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
 
     [Parameter]
     public bool DisplayUnformatted { get; set; }
+
+    [Parameter]
+    public bool Virtualize { get; set; } = true;
 
     private Virtualize<StringLogLine>? VirtualizeRef
     {
@@ -48,6 +52,7 @@ public partial class TextVisualizer : ComponentBase, IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         await ThemeManager.EnsureInitializedAsync();
+        _isInitialized = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

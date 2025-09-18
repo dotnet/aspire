@@ -13,4 +13,5 @@ internal static class KnownFeatures
     public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
     public static string SingleFileAppHostEnabled => "singlefileAppHostEnabled";
+    public static string PackageSearchDiskCachingEnabled => "packageSearchDiskCachingEnabled";
 }

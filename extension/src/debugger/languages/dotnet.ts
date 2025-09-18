@@ -5,7 +5,7 @@ import { execFile } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
-import { AspireExtendedDebugConfiguration } from '../../dcp/types';
+import { AspireResourceExtendedDebugConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
 
 const execFileAsync = util.promisify(execFile);
@@ -15,7 +15,7 @@ export const projectDebuggerExtension: ResourceDebuggerExtension = {
     debugAdapter: 'coreclr',
     extensionId: 'ms-dotnettools.csharp',
     displayName: 'C#',
-    createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireExtendedDebugConfiguration): Promise<void> => {
+    createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
         const projectPath = launchConfig.project_path;
         const workingDirectory = path.dirname(launchConfig.project_path);
 

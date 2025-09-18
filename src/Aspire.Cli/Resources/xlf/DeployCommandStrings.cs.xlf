@@ -9,7 +9,7 @@
       </trans-unit>
       <trans-unit id="Description">
         <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
-        <target state="needs-review-translation">Nasaďte projekt hostitele aplikace Aspire do svých podporovaných cílů nasazení. (Preview)</target>
+        <target state="translated">Nasaďte obsah hostitele aplikací Aspire do svých definovaných cílů nasazení. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">

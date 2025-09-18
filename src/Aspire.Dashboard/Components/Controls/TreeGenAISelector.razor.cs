@@ -15,6 +15,9 @@ public partial class TreeGenAISelector
     [Parameter, EditorRequired]
     public required GenAIVisualizerDialogViewModel PageViewModel { get; set; }
 
+    [Parameter, EditorRequired]
+    public required GenAIItemViewModel? SelectedItem { get; set; }
+
     [Inject]
     public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 }

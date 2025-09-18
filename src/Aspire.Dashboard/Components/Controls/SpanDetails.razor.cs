@@ -4,9 +4,11 @@
 using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Microsoft.AspNetCore.Components;
@@ -21,8 +23,11 @@ public partial class SpanDetails : IDisposable
     [Parameter, EditorRequired]
     public required SpanDetailsViewModel ViewModel { get; set; }
 
-    [Parameter, EditorRequired]
-    public required EventCallback CloseCallback { get; set; }
+    [Parameter]
+    public EventCallback CloseCallback { get; set; }
+
+    [Parameter]
+    public EventCallback<OtlpSpan> LaunchGenAICallback { get; set; }
 
     [Parameter]
     public bool HideToolbar { get; set; }
@@ -66,6 +71,7 @@ public partial class SpanDetails : IDisposable
     private bool _isSpanBacklinksExpanded;
 
     private string _filter = "";
+    private readonly List<MenuButtonItem> _spanActionsMenuItems = [];
     private List<TelemetryPropertyViewModel> _contextAttributes = null!;
     private bool _dataChanged;
     private SpanDetailsViewModel? _viewModel;
@@ -86,6 +92,33 @@ public partial class SpanDetails : IDisposable
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(Loc);
+    }
+
+    private void UpdateSpanActionsMenu()
+    {
+        _spanActionsMenuItems.Clear();
+
+        // Add "View structured logs" at the top
+        _spanActionsMenuItems.Add(new MenuButtonItem
+        {
+            Text = Loc[nameof(ControlsStrings.ViewStructuredLogsText)],
+            Icon = new Icons.Regular.Size16.SlideTextSparkle(),
+            OnClick = () =>
+            {
+                NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId));
+                return Task.CompletedTask;
+            }
+        });
+
+        if (GenAIHelpers.IsGenAISpan(ViewModel.Span.Attributes))
+        {
+            _spanActionsMenuItems.Add(new MenuButtonItem
+            {
+                Text = Loc[nameof(ControlsStrings.GenAIDetailsTitle)],
+                Icon = new Icons.Regular.Size16.Sparkle(),
+                OnClick = () => LaunchGenAICallback.InvokeAsync(ViewModel.Span)
+            });
+        }
     }
 
     protected override void OnParametersSet()
@@ -155,6 +188,17 @@ public partial class SpanDetails : IDisposable
                     Parameters = { ["Icon"] = new Icons.Regular.Size16.GanttChart() }
                 },
             };
+
+            if (_viewModel.Span.GetDestination() is { } destination)
+            {
+                _valueComponents[KnownTraceFields.DestinationField] = new ComponentMetadata
+                {
+                    Type = typeof(ResourceNameButtonValue),
+                    Parameters = { ["Resource"] = destination }
+                };
+            }
+
+            UpdateSpanActionsMenu();
         }
     }
 

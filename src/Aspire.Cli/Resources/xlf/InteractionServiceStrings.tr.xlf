@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="needs-review-translation">Uygulama ana işlemi uyumlu değil. Uygulama ana işlemi veya Aspire CLI'yi yükseltmeyi değerlendirin.</target>
+        <target state="translated">AppHost sürümü uyumlu değil. Lütfen AppHost veya Aspire CLI'yı yükseltin.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building apphost...</source>
-        <target state="needs-review-translation">Uygulama ana işlemi oluşturuluyor</target>
+        <target state="translated">AppHost oluşturuluyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -59,7 +59,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding apphosts...</source>
-        <target state="needs-review-translation">Uygulama ana işlemleri bulunuyor...</target>
+        <target state="translated">AppHost'lar bulunuyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -114,12 +114,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select an apphost to use:</source>
-        <target state="new">Select an apphost to use:</target>
+        <target state="translated">Kullanılacak AppHost seçeneğini belirtin:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire AppHost project.</source>
-        <target state="needs-review-translation">Belirtilen proje dosyası bir Aspire uygulama ana işlemi projesi değil.</target>
+        <target state="translated">Belirtilen proje dosyası bir Aspire AppHost projesi değil.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

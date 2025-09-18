@@ -700,6 +700,11 @@ public static class ProjectResourceBuilderExtensions
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());
 
+        // Configure default http/https endpoints for the container
+        // Note that we set the target port to 8080 (if not already set), which is the port used in the ASP.NET base images
+        cb.WithEndpoint("http", e => e.TargetPort ??= 8080, createIfNotExists: false);
+        cb.WithEndpoint("https", e => e.TargetPort ??= 8080, createIfNotExists: false);
+
         configure?.Invoke(cb);
 
         // Even through we're adding a ContainerResource

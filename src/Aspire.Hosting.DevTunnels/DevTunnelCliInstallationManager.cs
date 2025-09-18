@@ -8,18 +8,36 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal sealed class DevTunnelCliInstallationManager : RequiredCommandValidator
 {
+    private readonly IDevTunnelClient _devTunnelClient;
     private readonly IConfiguration _configuration;
+    private readonly ILogger _logger;
+    private readonly Version _minSupportedVersion;
     private string? _resolvedCommandPath;
 
 #pragma warning disable ASPIREINTERACTION001 // Interaction service is experimental.
     public DevTunnelCliInstallationManager(
+        IDevTunnelClient devTunnelClient,
         IConfiguration configuration,
         IInteractionService interactionService,
         ILogger<DevTunnelCliInstallationManager> logger)
+        : this(devTunnelClient, configuration, interactionService, logger, DevTunnelCli.MinimumSupportedVersion)
+    {
+
+    }
+
+    public DevTunnelCliInstallationManager(
+        IDevTunnelClient devTunnelClient,
+        IConfiguration configuration,
+        IInteractionService interactionService,
+        ILogger<DevTunnelCliInstallationManager> logger,
+        Version minSupportedVersion)
         : base(interactionService, logger)
 #pragma warning restore ASPIREINTERACTION001
     {
+        _devTunnelClient = devTunnelClient ?? throw new ArgumentNullException(nameof(devTunnelClient));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _minSupportedVersion = minSupportedVersion ?? throw new ArgumentNullException(nameof(minSupportedVersion));
     }
 
     /// <summary>
@@ -40,6 +58,17 @@ internal sealed class DevTunnelCliInstallationManager : RequiredCommandValidator
     public Task EnsureInstalledAsync(CancellationToken cancellationToken = default) => RunAsync(cancellationToken);
 
     protected override string GetCommandPath() => DevTunnelCli.GetCliPath(_configuration);
+
+    protected internal override async Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken)
+    {
+        // Verify the version is supported
+        var version = await _devTunnelClient.GetVersionAsync(_logger, cancellationToken).ConfigureAwait(false);
+        if (version < _minSupportedVersion)
+        {
+            return (false, $"The installed devtunnel CLI version {version} is not supported. Version {_minSupportedVersion} or higher is required.");
+        }
+        return (true, null);
+    }
 
     protected override Task OnValidatedAsync(string resolvedCommandPath, CancellationToken cancellationToken)
     {

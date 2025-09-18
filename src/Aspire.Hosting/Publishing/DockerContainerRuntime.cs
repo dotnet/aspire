@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
@@ -70,6 +70,26 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 arguments += $" --output \"{outputType}\"";
             }
 
+            // Add build arguments if specified
+            foreach (var buildArg in buildArguments)
+            {
+                arguments += buildArg.Value is not null
+                    ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
+                    : $" --build-arg \"{buildArg.Key}\"";
+            }
+
+            // Add build secrets if specified
+            foreach (var buildSecret in buildSecrets)
+            {
+                arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
+            }
+
+            // Add stage if specified
+            if (!string.IsNullOrEmpty(stage))
+            {
+                arguments += $" --target \"{stage}\"";
+            }
+
             arguments += $" \"{contextPath}\"";
 
             var spec = new ProcessSpec("docker")
@@ -84,8 +104,17 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                     logger.LogInformation("docker buildx (stderr): {Error}", error);
                 },
                 ThrowOnNonZeroReturnCode = false,
-                InheritEnv = true
+                InheritEnv = true,
             };
+
+            // Add build secrets as environment variables
+            foreach (var buildSecret in buildSecrets)
+            {
+                if (buildSecret.Value is not null)
+                {
+                    spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                }
+            }
 
             logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
@@ -116,16 +145,19 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         // Normalize the context path to handle trailing slashes and relative paths
         var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        
+
         var exitCode = await RunDockerBuildAsync(
             normalizedContextPath,
             dockerfilePath,
             imageName,
             options,
+            buildArguments,
+            buildSecrets,
+            stage,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)

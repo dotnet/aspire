@@ -26,6 +26,7 @@ internal sealed class RootCommand : BaseRootCommand
         PublishCommand publishCommand,
         DeployCommand deployCommand,
         ConfigCommand configCommand,
+        CacheCommand cacheCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         ExtensionInternalCommand extensionInternalCommand,
@@ -38,6 +39,7 @@ internal sealed class RootCommand : BaseRootCommand
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
+        ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
@@ -92,6 +94,7 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
+        Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);

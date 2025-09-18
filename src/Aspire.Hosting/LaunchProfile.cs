@@ -23,6 +23,12 @@ public sealed class LaunchProfile
     public string? CommandLineArgs { get; set; }
 
     /// <summary>
+    /// Gets or sets the executable path for the launch profile.
+    /// </summary>
+    [JsonPropertyName("executablePath")]
+    public string? ExecutablePath { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the project is configured to emit logs when running with dotnet run.
     /// </summary>
     [JsonPropertyName("dotnetRunMessages")]

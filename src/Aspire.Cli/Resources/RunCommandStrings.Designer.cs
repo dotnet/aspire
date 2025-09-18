@@ -69,7 +69,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Connecting to app host....
+        ///   Looks up a localized string similar to Connecting to apphost....
         /// </summary>
         public static string ConnectingToAppHost {
             get {
@@ -96,7 +96,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Run an Aspire app host in development mode..
+        ///   Looks up a localized string similar to Run an Aspire apphost in development mode..
         /// </summary>
         public static string Description {
             get {
@@ -159,7 +159,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The path to the Aspire app host project file..
+        ///   Looks up a localized string similar to The path to the Aspire AppHost project file..
         /// </summary>
         public static string ProjectArgumentDescription {
             get {
@@ -186,7 +186,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Whether to start a debug session during the run..
+        ///   Looks up a localized string similar to Whether to start a debug session, if running in an Aspire Terminal..
         /// </summary>
         public static string StartDebugSessionArgumentDescription {
             get {
@@ -195,7 +195,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Starting Aspire app host....
+        ///   Looks up a localized string similar to Starting Aspire apphost....
         /// </summary>
         public static string StartingAppHost {
             get {
@@ -209,6 +209,15 @@ namespace Aspire.Cli.Resources {
         public static string StartingDashboard {
             get {
                 return ResourceManager.GetString("StartingDashboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detected aspire run inside the Aspire extension, starting a debug session in VS Code....
+        /// </summary>
+        public static string StartingDebugSessionInExtension {
+            get {
+                return ResourceManager.GetString("StartingDebugSessionInExtension", resourceCulture);
             }
         }
         

@@ -13,11 +13,13 @@ namespace Aspire.Cli.Interaction;
 internal interface IExtensionInteractionService : IInteractionService
 {
     IExtensionBackchannel Backchannel { get; }
-    void OpenNewProject(string projectPath);
+    void OpenEditor(string projectPath);
     void LogMessage(LogLevel logLevel, string message);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug);
     void DisplayDashboardUrls(DashboardUrlsState dashboardUrls);
     void NotifyAppHostStartupCompleted();
+    void DisplayConsolePlainText(string message);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -61,11 +63,10 @@ internal class ExtensionInteractionService : IExtensionInteractionService
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        var task = action();
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
 
-        var value = await task.ConfigureAwait(false);
+        var value = await _consoleInteractionService.ShowStatusAsync(statusText, action).ConfigureAwait(false);
         result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
         Debug.Assert(result);
         return value;
@@ -76,6 +77,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(statusText.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
         _consoleInteractionService.ShowStatus(statusText, action);
+
         result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.ShowStatusAsync(null, _cancellationToken));
         Debug.Assert(result);
     }
@@ -168,6 +170,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken));
         Debug.Assert(result);
+
         return _consoleInteractionService.DisplayIncompatibleVersionError(ex, appHostHostingSdkVersion);
     }
 
@@ -216,6 +219,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayCancellationMessageAsync(_cancellationToken));
         Debug.Assert(result);
+        _consoleInteractionService.DisplayCancellationMessage();
     }
 
     public void DisplayEmptyLine()
@@ -225,14 +229,16 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplayEmptyLine();
     }
 
-    public void OpenNewProject(string projectPath)
+    public void OpenEditor(string path)
     {
-        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.OpenProjectAsync(projectPath, _cancellationToken));
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.OpenEditorAsync(path, _cancellationToken));
         Debug.Assert(result);
     }
 
     public void DisplayPlainText(string text)
     {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayPlainTextAsync(text, _cancellationToken));
+        Debug.Assert(result);
         _consoleInteractionService.DisplayPlainText(text);
     }
 
@@ -270,5 +276,15 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.NotifyAppHostStartupCompletedAsync(_cancellationToken));
         Debug.Assert(result);
+    }
+
+    public void DisplayConsolePlainText(string message)
+    {
+        _consoleInteractionService.DisplayPlainText(message);
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    {
+        return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
     }
 }

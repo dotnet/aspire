@@ -5,11 +5,39 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Nodes;
+using Aspire.Cli.Tests.TestServices;
 
 namespace Aspire.Cli.Tests.Commands;
 
 public class ConfigCommandTests(ITestOutputHelper outputHelper)
 {
+    [Fact]
+    public async Task ConfigCommand_WithExtensionMode_Works()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper,
+            options =>
+            {
+                options.ConfigurationCallback += config =>
+                {
+                    // Enable extension mode for testing
+                    config["ASPIRE_EXTENSION_PROMPT_ENABLED"] = "true";
+                    config["ASPIRE_EXTENSION_TOKEN"] = "token";
+                };
+
+                options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
+
+                options.ConfigurationServiceFactory = _ => new TestConfigurationService();
+            });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
+
     [Fact]
     public async Task ConfigCommandReturnsInvalidCommandExitCode()
     {
@@ -92,7 +120,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         Assert.True(settings["foo"] is JsonObject);
         var fooObject = settings["foo"]!.AsObject();
         Assert.True(fooObject["bar"] is JsonObject);
@@ -108,7 +136,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        
+
         // First set a primitive value
         var result1 = command.Parse("config set foo primitive");
         var exitCode1 = await result1.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -124,7 +152,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         Assert.True(settings["foo"] is JsonObject);
         var fooObject = settings["foo"]!.AsObject();
         Assert.Equal("nested", fooObject["bar"]?.ToString());
@@ -244,7 +272,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var json = await File.ReadAllTextAsync(settingsPath);
         var settings = JsonNode.Parse(json)?.AsObject();
         Assert.NotNull(settings);
-        
+
         // The deep object should be completely removed since it became empty
         Assert.False(settings.ContainsKey("deep"));
     }
@@ -349,7 +377,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var rootCommand = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        
+
         // Check that deploy command is always available
         var hasDeployCommand = rootCommand.Subcommands.Any(cmd => cmd.Name == "deploy");
         Assert.True(hasDeployCommand);
@@ -363,7 +391,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
-        
+
         // Set the show deprecated packages feature flag to true
         var setResult = command.Parse($"config set {KnownFeatures.FeaturePrefix}.{KnownFeatures.ShowDeprecatedPackages} true");
         var setExitCode = await setResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
@@ -388,5 +416,37 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         // Verify the feature flag defaults to false
         var featureFlags = provider.GetRequiredService<IFeatures>();
         Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false));
+    }
+}
+
+public class TestConfigurationService : IConfigurationService
+{
+    public Task SetConfigurationAsync(string key, string value, bool isGlobal = false, CancellationToken cancellationToken = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> DeleteConfigurationAsync(string key, bool isGlobal = false, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(true);
+    }
+
+    public Task<Dictionary<string, string>> GetAllConfigurationAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new Dictionary<string, string>
+        {
+            { "testkey", "testvalue" },
+            { "", "" },
+        });
+    }
+
+    public Task<string?> GetConfigurationAsync(string key, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<string?>(key);
+    }
+
+    public string GetSettingsFilePath(bool isGlobal)
+    {
+        return string.Empty;
     }
 }

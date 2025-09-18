@@ -284,7 +284,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         var result = TelemetryRepository.GetLogs(logsContext);
 
         Logger.LogInformation("Trace '{TraceId}' has {SpanCount} spans.", _trace.TraceId, _trace.Spans.Count);
-        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds));
+        _spanWaterfallViewModels = SpanWaterfallViewModel.Create(_trace, result.Items, new SpanWaterfallViewModel.TraceDetailState(OutgoingPeerResolvers.ToArray(), _collapsedSpanIds, _resources));
         _maxDepth = _spanWaterfallViewModels.Max(s => s.Depth);
 
         var apps = new HashSet<OtlpResource>();
@@ -512,13 +512,13 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
         return GenAIHelpers.IsGenAISpan(spanViewModel.Span.Attributes);
     }
 
-    private async Task OnGenAIClickedAsync(SpanWaterfallViewModel spanViewModel)
+    private async Task OnGenAIClickedAsync(OtlpSpan span)
     {
         await GenAIVisualizerDialog.OpenDialogAsync(
             ViewportInformation,
             DialogService,
             DialogsLoc,
-            spanViewModel.Span,
+            span,
             selectedLogEntryId: null,
             TelemetryRepository,
             _resources,

@@ -210,7 +210,7 @@
                                                     <FluentButton Appearance="Appearance.Lightweight"
                                                                   Title="@ControlStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"
                                                                   Class="genai-details-button"
-                                                                  OnClick="() => OnGenAIClickedAsync(context)">
+                                                                  OnClick="() => OnGenAIClickedAsync(context.Span)">
                                                         <FluentIcon Icon="Icons.Regular.Size20.Sparkle"
                                                                     Color="Color.Accent" />
                                                     </FluentButton>
@@ -334,7 +334,7 @@
                     <Details>
                         @if (context?.SpanViewModel is { } spanVm)
                         {
-                            <SpanDetails ViewModel="spanVm" CloseCallback="() => ClearSelectedSpanAsync(causedByUserAction: true)" />
+                            <SpanDetails ViewModel="spanVm" CloseCallback="() => ClearSelectedSpanAsync(causedByUserAction: true)" LaunchGenAICallback="@OnGenAIClickedAsync" />
                         }
                         else if (context?.LogEntryViewModel is { } logEntryVm)
                         {

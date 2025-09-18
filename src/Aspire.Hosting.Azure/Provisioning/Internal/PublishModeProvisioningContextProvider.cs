@@ -125,10 +125,9 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                         if (subscriptionList.Count > 0)
                         {
-                            subscriptionOptions = subscriptionList
+                            subscriptionOptions = [.. subscriptionList
                                 .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
-                                .OrderBy(kvp => kvp.Value)
-                                .ToList();
+                                .OrderBy(kvp => kvp.Value)];
                             fetchSucceeded = true;
                         }
                     }

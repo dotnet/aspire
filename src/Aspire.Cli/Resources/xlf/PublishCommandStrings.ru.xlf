@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="Description">
         <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
-        <target state="needs-review-translation">Генерирует артефакты развертывания для проекта узла приложения Aspire. (Предварительная версия)</target>
+        <target state="translated">Генерирует артефакты развертывания для хоста приложений Aspire. (Предварительная версия)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -24,12 +24,12 @@
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
         <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
-        <target state="needs-review-translation">Путь вывода созданных артефактов.</target>
+        <target state="translated">Путь вывода созданных артефактов. По умолчанию используется "./aspire-output", если не указано иное.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="needs-review-translation">Путь к файлу проекта узла приложения Aspire.</target>
+        <target state="translated">Путь к файлу проекта Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

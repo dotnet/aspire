@@ -42,6 +42,11 @@
         <target state="translated">개발자 인증서를 완전히 신뢰할 수 없습니다(신뢰 종료 코드: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">구성 키 {0}을(를) 찾을 수 없습니다.</target>
@@ -114,7 +119,7 @@
       </trans-unit>
       <trans-unit id="MinimumSdkVersionNotMet">
         <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
-        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
+        <target state="translated">Aspire CLI를 사용하려면 .NET SDK 버전 {0} 이상이 필요합니다. 감지됨: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -149,12 +154,17 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire AppHost project.</source>
-        <target state="needs-review-translation">프로젝트 파일이 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
+        <target state="translated">프로젝트 파일이 Aspire AppHost 프로젝트가 아닙니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
-        <target state="needs-review-translation">프로젝트가 Aspire 앱 호스트 프로젝트가 아닙니다.</target>
+        <target state="translated">프로젝트에 Aspire AppHost가 포함되어 있지 않습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">
