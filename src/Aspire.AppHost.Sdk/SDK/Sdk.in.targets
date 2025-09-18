@@ -6,7 +6,7 @@
   This means they cannot be overridden in the csproj, and may cause ordering issues, particularly StaticWebAssets.
   -->
 
-  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />
+  <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" Condition="'$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true'" />
 
   <ItemGroup>
     <ProjectCapability Include="DynamicFileNesting" />
@@ -51,7 +51,10 @@
     <AspireRidToolExecutable>$(AspireRidToolDirectory)Aspire.RuntimeIdentifier.Tool.dll</AspireRidToolExecutable>
   </PropertyGroup>
 
-  <Target Name="DisablePublishAotForAspireHost" BeforeTargets="_ComputeToolPackInputsToProcessFrameworkReferences;_CollectTargetFrameworkForTelemetry;ProcessFrameworkReferences;Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' and '$(DisableAspirePublishAotDefaults)' != 'true'">
+  <!-- If the AppHost is a file-based app, then force disable AOT and Trimming.
+       This can be removed once https://github.com/dotnet/sdk/pull/50885 is merged and flows through to .NET 10 SDK as the values set in Sdk.props will be sufficient. -->
+  <Target Name="DisablePublishAotForAspireHost" BeforeTargets="_ComputeToolPackInputsToProcessFrameworkReferences;_CollectTargetFrameworkForTelemetry;ProcessFrameworkReferences;Restore;CollectPackageReferences"
+          Condition="'$(_ForceAspireFileBasedAppHostDefaults)' == 'true'">
     <PropertyGroup>
       <PublishAot>false</PublishAot>
       <PublishTrimmed>false</PublishTrimmed>
@@ -64,14 +67,16 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(IsAspireHost)' == 'true' And '$(SkipAddAspireDefaultReferences)' != 'true'">
+  <!-- If the AppHost is a file-based app, add an implicit reference to the Aspire.Hosting.AppHost package if not already referenced.
+       This is done here so that file-based apps only need to set the single #sdk: directive line to make them an Aspire AppHost.
+       This mechanism can be disabled by setting `SkipAddAspireDefaultReferences` to `true` -->
+  <Target Name="AddImplicitAspireAppHostPackage" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(_ForceAspireFileBasedAppHostDefaults)' == 'true' and '$(SkipAddAspireDefaultReferences)' != 'true'">
     <PropertyGroup>
       <_ImplicitAppHostVersion>@VERSION@</_ImplicitAppHostVersion>
     </PropertyGroup>
     <ItemGroup>
-      <!-- Add the reference to the Aspire.Hosting.AppHost package if not already referenced -->
-      <PackageReference Include="Aspire.Hosting.AppHost" Version="$(_ImplicitAppHostVersion)"  IsImplicitlyDefined="true"
-                        Condition="'@(PackageReference->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == '' And '@(PackageVersion->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == ''" />
+      <PackageReference Include="Aspire.Hosting.AppHost" Version="$(_ImplicitAppHostVersion)" IsImplicitlyDefined="true"
+                        Condition="'@(PackageReference->WithMetadataValue('Identity','Aspire.Hosting.AppHost'))' == ''" />
     </ItemGroup>
   </Target>
 
