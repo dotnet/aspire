@@ -103,8 +103,6 @@ public sealed class ParameterProcessor(
             await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
         }
 
-        // Clear any leftover tracking state
-        currentDependencySet.Clear();
     }
 
     private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
