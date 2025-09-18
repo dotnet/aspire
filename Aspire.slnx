@@ -177,8 +177,8 @@
   </Folder>
   <Folder Name="/playground/DevTunnels/">
     <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
-    <Project Path="playground/DevTunnels/ApiService/ApiService.csproj" />
-    <Project Path="playground/DevTunnels/WebFrontEnd/WebFrontEnd.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.ApiService/DevTunnels.ApiService.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.WebFrontEnd/DevTunnels.WebFrontEnd.csproj" />
   </Folder>
   <Folder Name="/playground/dockerfile/">
     <Project Path="playground/withdockerfile/WithDockerfile.AppHost/WithDockerfile.AppHost.csproj" />
