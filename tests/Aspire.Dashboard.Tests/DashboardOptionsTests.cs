@@ -293,7 +293,8 @@ public sealed class DashboardOptionsTests
         var openIdConnectAuthOptions = app.Services.GetService<IOptions<OpenIdConnectOptions>>()?.Value;
         Assert.NotNull(openIdConnectAuthOptions);
         Assert.NotEmpty(openIdConnectAuthOptions.ClaimActions);
-        var claimAction = openIdConnectAuthOptions.ClaimActions.Last();
+        var claimAction = openIdConnectAuthOptions.ClaimActions.FirstOrDefault(x => x.ClaimType == "role");
+        Assert.NotNull(claimAction);
         Assert.Equal("role", claimAction.ClaimType);
         var jsonElement = JsonDocument.Parse("""
                            {
