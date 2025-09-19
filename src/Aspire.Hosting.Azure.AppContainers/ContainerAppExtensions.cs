@@ -204,6 +204,7 @@ public static class ContainerAppExtensions
     /// <typeparam name="T">The type of the compute resource.</typeparam>
     /// <param name="resource">The compute resource builder.</param>
     /// <param name="cronExpression">The cron expression that defines the schedule for the job.</param>
+    /// <param name="configure">The configuration action for the container app job.</param>
     /// <returns>The updated compute resource builder.</returns>
     /// <remarks>
     /// This method is a convenience wrapper around <see cref="PublishAsAzureContainerAppJob{T}(IResourceBuilder{T}, Action{AzureResourceInfrastructure, ContainerAppJob})"/>
@@ -212,12 +213,12 @@ public static class ContainerAppExtensions
     /// <example>
     /// <code>
     /// builder.AddProject&lt;Projects.ProcessorJob&gt;("job")
-    ///        .PublishAsAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
+    ///        .PublishAsScheduledAzureContainerAppJob("0 0 * * *"); // Run every day at midnight
     /// </code>
     /// </example>
     /// </remarks>
     [Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression)
+    public static IResourceBuilder<T> PublishAsScheduledAzureContainerAppJob<T>(this IResourceBuilder<T> resource, string cronExpression, Action<AzureResourceInfrastructure, ContainerAppJob>? configure = null)
         where T : IComputeResource
     {
         ArgumentNullException.ThrowIfNull(resource);
@@ -227,6 +228,8 @@ public static class ContainerAppExtensions
         {
             job.Configuration.TriggerType = ContainerAppJobTriggerType.Schedule;
             job.Configuration.ScheduleTriggerConfig.CronExpression = cronExpression;
+
+            configure?.Invoke(infrastructure, job);
         });
     }
 }

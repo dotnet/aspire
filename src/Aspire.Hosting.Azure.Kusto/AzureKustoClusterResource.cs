@@ -84,7 +84,7 @@ public class AzureKustoClusterResource : AzureProvisioningResource, IResourceWit
         // Create and add new resource if it doesn't exist
         var cluster = KustoCluster.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             cluster))
