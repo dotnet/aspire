@@ -930,6 +930,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
+        IPublishingActivityReporter? activityReporter = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -947,6 +948,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
         if (interactionService is not null)
         {
             builder.Services.AddSingleton(interactionService);
+        }
+        if (activityReporter is not null)
+        {
+            builder.Services.AddSingleton(activityReporter);
         }
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
@@ -998,5 +1003,81 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 }
             }
         };
+    }
+
+    private sealed class TestPublishingActivityReporter : IPublishingActivityReporter
+    {
+        public bool CompletePublishCalled { get; private set; }
+        public string? CompletionMessage { get; private set; }
+        public List<string> CreatedSteps { get; } = [];
+        public List<(string StepTitle, string TaskStatusText)> CreatedTasks { get; } = [];
+        public List<(string StepTitle, string CompletionText, CompletionState CompletionState)> CompletedSteps { get; } = [];
+        public List<(string TaskStatusText, string? CompletionMessage, CompletionState CompletionState)> CompletedTasks { get; } = [];
+        public List<(string TaskStatusText, string StatusText)> UpdatedTasks { get; } = [];
+
+        public Task CompletePublishAsync(string? completionMessage = null, CompletionState? completionState = null, bool isDeploy = false, CancellationToken cancellationToken = default)
+        {
+            CompletePublishCalled = true;
+            CompletionMessage = completionMessage;
+            return Task.CompletedTask;
+        }
+
+        public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+        {
+            CreatedSteps.Add(title);
+            return Task.FromResult<IPublishingStep>(new TestPublishingStep(this, title));
+        }
+
+        private sealed class TestPublishingStep : IPublishingStep
+        {
+            private readonly TestPublishingActivityReporter _reporter;
+            private readonly string _title;
+
+            public TestPublishingStep(TestPublishingActivityReporter reporter, string title)
+            {
+                _reporter = reporter;
+                _title = title;
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+            public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+            {
+                _reporter.CompletedSteps.Add((_title, completionText, completionState));
+                return Task.CompletedTask;
+            }
+
+            public Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+            {
+                _reporter.CreatedTasks.Add((_title, statusText));
+                return Task.FromResult<IPublishingTask>(new TestPublishingTask(_reporter, statusText));
+            }
+        }
+
+        private sealed class TestPublishingTask : IPublishingTask
+        {
+            private readonly TestPublishingActivityReporter _reporter;
+            private readonly string _initialStatusText;
+
+            public TestPublishingTask(TestPublishingActivityReporter reporter, string initialStatusText)
+            {
+                _reporter = reporter;
+                _initialStatusText = initialStatusText;
+            }
+
+            public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+            public Task CompleteAsync(string? completionMessage = null, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
+            {
+                _reporter.CompletedTasks.Add((_initialStatusText, completionMessage, completionState));
+                return Task.CompletedTask;
+            }
+
+            public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
+            {
+                _reporter.UpdatedTasks.Add((_initialStatusText, statusText));
+                return Task.CompletedTask;
+            }
+        }
     }
 }
