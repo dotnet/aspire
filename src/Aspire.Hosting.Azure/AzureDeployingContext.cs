@@ -45,12 +45,8 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Step 1: Resolve parameter resources using ParameterProcessor
-        var parameters = model.Resources.OfType<ParameterResource>();
-        if (parameters.Any())
-        {
-            await parameterProcessor.InitializeParametersAsync(parameters, waitForResolution: true).ConfigureAwait(false);
-        }
+        // Step 1: Initialize parameters by collecting dependencies and resolving values
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
         // Step 2: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
@@ -580,5 +576,4 @@ internal sealed class AzureDeployingContext(
 
         return string.Empty;
     }
-
 }
