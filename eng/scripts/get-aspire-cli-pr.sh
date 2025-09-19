@@ -626,7 +626,7 @@ extract_version_suffix_from_packages() {
     local version
     
     # Look for semantic version pattern with PR suffix (more specific and robust)
-    version=$(echo "$base_name" | sed -n 's/.*\.\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*-pr\.[0-9][0-9]*\.[a-f0-9][a-f0-9]*\)$/\1/p')
+    version=$(echo "$base_name" | sed -En 's/.*\.([0-9]+\.[0-9]+\.[0-9]+-pr\.[0-9]+\.[a-f0-9]+)/\1/p')
     
     if [[ -z "$version" ]]; then
         say_verbose "Could not extract version from package name: $filename"
