@@ -26,10 +26,7 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddOptions<WorkerOptions>();
 
 builder.Services.AddHostedService<QueryWorker>();
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHostedService<IngestionWorker>();
-}
+builder.Services.AddHostedService<IngestionWorker>();
 
 var app = builder.Build();
 
