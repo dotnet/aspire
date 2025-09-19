@@ -182,7 +182,7 @@ internal sealed class AzureDeployingContext(
             {
                 continue;
             }
-            resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(() => deploymentTag));
+            resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
         }
 
         // Step 1: Build ALL images at once regardless of destination registry

@@ -42,7 +42,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// <summary>
     /// The name of the endpoint within this resource that represents the public URL of the tunnel for this port.
     /// </summary>
-    public const string TunnelEndpointName = "tunnel";
+    internal const string TunnelEndpointName = "tunnel";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DevTunnelPortResource"/> class, representing a single forwarded endpoint/port on a dev tunnel.

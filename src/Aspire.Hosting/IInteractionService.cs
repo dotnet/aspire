@@ -321,6 +321,7 @@ public class InputsDialogInteractionOptions : InteractionOptions
 /// <summary>
 /// Represents the context for validating inputs in an inputs dialog interaction.
 /// </summary>
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class InputsDialogValidationContext
 {
     internal bool HasErrors { get; private set; }

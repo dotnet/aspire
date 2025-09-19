@@ -141,7 +141,7 @@ public class AzureEventHubsResource(string name, Action<AzureResourceInfrastruct
         // Create and add new resource if it doesn't exist
         var hubs = EventHubsNamespace.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             hubs))

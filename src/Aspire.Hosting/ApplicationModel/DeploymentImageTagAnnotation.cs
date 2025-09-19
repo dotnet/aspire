@@ -18,11 +18,6 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
     public required IResource Resource { get; init; }
 
     /// <summary>
-    /// Gets the service provider for accessing services during callback execution.
-    /// </summary>
-    public required IServiceProvider Services { get; init; }
-
-    /// <summary>
     /// Gets the cancellation token associated with the callback context.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
@@ -40,16 +35,6 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
 [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback that doesn't use context.
-    /// </summary>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
-    public DeploymentImageTagCallbackAnnotation(Func<string> callback)
-    {
-        ArgumentNullException.ThrowIfNull(callback);
-        Callback = _ => Task.FromResult(callback());
-    }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback.
     /// </summary>
