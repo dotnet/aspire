@@ -120,8 +120,8 @@ public static class PythonAppResourceBuilderExtensions
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
         var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
-        var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
-        var appExecutable = instrumentationExecutable ?? pythonExecutable;
+        var pythonExecutable = virtualEnvironment.GetExecutableIfVenvExists("python");
+        var appExecutable = instrumentationExecutable ?? pythonExecutable ?? "python";
 
         var resource = new PythonAppResource(name, appExecutable, appDirectory);
 
@@ -195,5 +195,70 @@ public static class PythonAppResourceBuilderExtensions
                 throw new ArgumentException($"Array params contains empty item: [{values}]", nameof(scriptArgs));
             }
         }
+    }
+
+    /// <summary>
+    /// Configures the Python app to automatically create its virtual environment if it doesn't exist.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> to configure.</param>
+    /// <param name="autoCreate">Whether to automatically create the virtual environment if it doesn't exist. Defaults to true.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// When enabled, this will automatically create the virtual environment using 'python -m venv' if the directory doesn't exist,
+    /// allowing for easier orchestration without requiring manual setup steps.
+    /// </remarks>
+    public static IResourceBuilder<PythonAppResource> WithVirtualEnvironment(this IResourceBuilder<PythonAppResource> builder, bool autoCreate = true)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (autoCreate)
+        {
+            builder.OnBeforeResourceStarted(async (resource, @event, cancellationToken) =>
+            {
+                // Extract virtual environment path from the command path
+                var command = resource.Command;
+                var virtualEnvPath = GetVirtualEnvironmentPathFromCommand(command);
+                
+                if (!string.IsNullOrEmpty(virtualEnvPath))
+                {
+                    var virtualEnvironment = new VirtualEnvironment(virtualEnvPath);
+                    await virtualEnvironment.CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Fallback: Try to determine from working directory and create default .venv
+                    var defaultVenvPath = Path.Combine(resource.WorkingDirectory, ".venv");
+                    var virtualEnvironment = new VirtualEnvironment(defaultVenvPath);
+                    await virtualEnvironment.CreateIfNotExistsAsync(cancellationToken).ConfigureAwait(false);
+                }
+            });
+        }
+
+        return builder.WithAnnotation(new VirtualEnvironmentAnnotation(autoCreate));
+    }
+
+    private static string? GetVirtualEnvironmentPathFromCommand(string command)
+    {
+        // The command path will be something like:
+        // - Windows: "C:\path\to\app\.venv\Scripts\python.exe"
+        // - Unix: "/path/to/app/.venv/bin/python"
+        
+        if (string.IsNullOrEmpty(command))
+        {
+            return null;
+        }
+
+        // Look for .venv in the path
+        var venvIndex = command.IndexOf(".venv", StringComparison.OrdinalIgnoreCase);
+        if (venvIndex == -1)
+        {
+            return null;
+        }
+
+        // Extract up to and including .venv
+        var endIndex = venvIndex + 5; // ".venv".Length
+        var virtualEnvPath = command[..endIndex];
+        
+        return virtualEnvPath;
     }
 }
