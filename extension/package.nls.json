@@ -10,7 +10,7 @@
 	"command.update": "Update integrations",
 	"command.openTerminal": "Open Aspire terminal",
 	"command.config": "Manage configuration settings",
-	"command.deploy": "Deploy apphost",
+	"command.deploy": "Deploy app",
 	"command.configureLaunchJson": "Configure launch.json file",
 	"aspire-vscode.strings.noCsprojFound": "No apphost found in the current workspace.",
 	"aspire-vscode.strings.error": "Error: {0}",

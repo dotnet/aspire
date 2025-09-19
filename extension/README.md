@@ -9,22 +9,27 @@ The extension adds the following commands to VS Code:
 
 | Command                               | Description                                                                                                                                              | Availability |
 |---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| Aspire: Add an integration            | Add an integration, such as the Aspire Redis integration (`Aspire.Hosting.Redis`) to the Aspire project.                                                 | Available    |
-| Aspire: Configure launch.json         | Adds the default Aspire debugger launch configuration to your workspace's `launch.json`, which will detect and run the apphost project in the workspace. | Available    |
-| Aspire: Deploy apphost                | Deploy the contents of an Aspire apphost to its defined deployment targets.                                                                              | Preview      |
-| Aspire: Manage configuration settings | Manage configuration settings.                                                                                                                           | Available    |
-| Aspire: New Aspire project            | Create a new Aspire project.                                                                                                                             | Available    |
-| Aspire: Open Aspire terminal          | Open an Aspire terminal for working with Aspire projects.                                                                                                | Available    |
+| Aspire: Add an integration            | Add a hosting integration (`Aspire.Hosting.*`) to the Aspire apphost.                                                 | Available    |
+| Aspire: Configure launch.json         | Adds the default Aspire debugger launch configuration to your workspace's `launch.json`, which will detect and run the apphost in the workspace. | Available    |
+| Aspire: Deploy app                | Deploy the contents of an Aspire apphost to its defined deployment targets.                                                                              | Preview      |
+| Aspire: Manage configuration settings | Manage configuration settings including feature flags.                                                                                                                           | Available    |
+| Aspire: New Aspire project            | Create a new Aspire apphost or starter app from a template.                                                                                                                             | Available    |
+| Aspire: Open Aspire terminal          | Open an Aspire VS Code terminal for working with Aspire projects.                                                                                                | Available    |
 | Aspire: Publish deployment artifacts  | Generates deployment artifacts for an Aspire apphost.                                                                                                    | Preview      |
-| Aspire: Update integrations           | Update integrations in the Aspire project.                                                                                                               | Preview      |
+| Aspire: Update integrations           | Update hosting integrations and Aspire SDK in the apphost.                                                                                                               | Preview      |
 
 All commands are available from the Command Palette (`Cmd+Shift+P` or `Ctrl+Shift+P`) and are grouped under the "Aspire" category:
 
 ## Debugging
 
-To run an Aspire application using the Aspire VS Code extension, you must be using Aspire 9.5 or higher, which supports debugging Python and C# projects.
+To run an Aspire application using the Aspire VS Code extension, you must be using Aspire 9.5 or higher. Some features are only available when certain VS Code extensions are installed and available. See the feature matrix below:
 
-To use the Aspire debugger to run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `program` field to an apphost project file based on the below example:
+| Feature | Requirement | Notes |
+|---------|-------------|-------|
+| Debug C# projects | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) or [C# for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) | The C# extension is required for debugging .NET projects. Apphosts will be built in VS Code if C# Dev Kit is available. |
+| Debug Python projects | [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) | Required for debugging Python projects |
+
+To run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `program` field to an apphost project file based on the below example:
 
 ```json
 {
