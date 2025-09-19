@@ -127,8 +127,8 @@ extends:
 
     stages:
 
-    - stage: build_extension
-      displayName: Build VS Code Extension
+    - stage: build_sign_extension
+      displayName: Build VS Code extension
 
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
@@ -137,7 +137,7 @@ extends:
           enableTelemetry: true
           jobs:
           - job: BuildExtension
-            displayName: Build VS Code Extension
+            displayName: Build VS Code extension
             timeoutInMinutes: 30
 
             pool:

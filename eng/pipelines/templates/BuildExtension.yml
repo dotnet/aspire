@@ -106,20 +106,6 @@ steps:
           $artifactsDir = "${{ parameters.repoArtifactsPath }}packages"
           Write-Host "Artifacts directory: $artifactsDir"
 
-          Write-Host "Listing files before signing:"
-          if (Test-Path $artifactsDir) {
-            Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
-              Write-Host "  $($_.Name) - Size: $($_.Length) bytes - Modified: $($_.LastWriteTime)"
-
-              # Check signature before
-              $sig = Get-AuthenticodeSignature $_.FullName
-              Write-Host "  Signature before: $($sig.Status) - $($sig.SignerCertificate.Subject)"
-            }
-          } else {
-            Write-Host "  Directory not found!"
-            exit 1
-          }
-
           Write-Host "=== Starting signing process ==="
           # Use the Arcade common build script with explicit ArtifactsPackagesDir to ensure signing finds the VSIX files
           $buildCmd = "$(Build.SourcesDirectory)\eng\common\build.cmd"
@@ -154,10 +140,6 @@ steps:
           Write-Host "=== Signing completed, listing files after ==="
           Get-ChildItem $artifactsDir -Filter "*.vsix" | ForEach-Object {
             Write-Host "  $($_.Name) - Size: $($_.Length) bytes - Modified: $($_.LastWriteTime)"
-
-            # Check signature after
-            $sig = Get-AuthenticodeSignature $_.FullName
-            Write-Host "  Signature after: $($sig.Status) - $($sig.SignerCertificate.Subject)"
           }
         errorActionPreference: 'stop'
       env:
