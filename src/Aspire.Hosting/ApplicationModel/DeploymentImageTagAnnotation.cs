@@ -41,16 +41,6 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
 public sealed class DeploymentImageTagCallbackAnnotation : IResourceAnnotation
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback that doesn't use context.
-    /// </summary>
-    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
-    public DeploymentImageTagCallbackAnnotation(Func<string> callback)
-    {
-        ArgumentNullException.ThrowIfNull(callback);
-        Callback = _ => Task.FromResult(callback());
-    }
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="DeploymentImageTagCallbackAnnotation"/> class with a synchronous callback.
     /// </summary>
     /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
