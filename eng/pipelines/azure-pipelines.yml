@@ -151,7 +151,7 @@ extends:
                 clean: true
 
             steps:
-              - template: /eng/pipelines/templates/BuildExtension.yml
+              - template: /eng/pipelines/templates/build-extension.yml
                 parameters:
                   buildConfig: $(_BuildConfig)
                   repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
@@ -196,6 +196,7 @@ extends:
       displayName: Build
       dependsOn:
       - build_sign_native
+      - build_sign_extension
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
         parameters:
