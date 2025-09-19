@@ -129,6 +129,7 @@ extends:
 
     - stage: build_sign_extension
       displayName: Build VS Code extension
+      dependsOn: []
 
       jobs:
       - template: /eng/common/templates-official/jobs/jobs.yml@self
@@ -159,6 +160,7 @@ extends:
 
     - stage: build_sign_native
       displayName: Build+Sign native packages
+      dependsOn: []
 
       jobs:
       - template: /eng/pipelines/templates/build_sign_native.yml@self
