@@ -330,7 +330,7 @@ public class AddAzureKustoTests
 
         // Act
         var resourceBuilder = builder.AddAzureKustoCluster("kusto")
-            .RunAsEmulator(c => c.WithHttpPort(port));
+            .RunAsEmulator(c => c.WithHostPort(port));
 
         // Assert
         var endpointAnnotations = resourceBuilder.Resource.Annotations.OfType<EndpointAnnotation>().ToList();
@@ -349,7 +349,7 @@ public class AddAzureKustoTests
         IResourceBuilder<AzureKustoClusterResource> builder = null!;
 
         // Act & Assert
-        var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHttpPort(8080)));
+        var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHostPort(8080)));
         Assert.Equal("builder", exception.ParamName);
     }
 }

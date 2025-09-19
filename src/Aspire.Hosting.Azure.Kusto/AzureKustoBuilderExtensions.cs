@@ -217,7 +217,7 @@ public static class AzureKustoBuilderExtensions
     /// <param name="builder">Kusto emulator resource builder.</param>
     /// <param name="port">Host port to use.</param>
     /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureKustoEmulatorResource"/>.</returns>
-    public static IResourceBuilder<AzureKustoEmulatorResource> WithHttpPort(this IResourceBuilder<AzureKustoEmulatorResource> builder, int port)
+    public static IResourceBuilder<AzureKustoEmulatorResource> WithHostPort(this IResourceBuilder<AzureKustoEmulatorResource> builder, int port)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
