@@ -70,7 +70,6 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
             var context = new DeploymentImageTagCallbackAnnotationContext
             {
                 Resource = Resource,
-                Services = ServiceProvider,
                 CancellationToken = cancellationToken,
                 ExecutionContext = executionContext
             };
