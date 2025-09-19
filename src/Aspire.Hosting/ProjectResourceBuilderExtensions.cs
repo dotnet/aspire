@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREEXTENSION001
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Utils;
@@ -293,6 +294,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="name"></param>
     /// <param name="path"></param>
     /// <returns></returns>
+    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -310,6 +312,7 @@ public static class ProjectResourceBuilderExtensions
     /// <param name="path"></param>
     /// <param name="configure"></param>
     /// <returns></returns>
+    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);

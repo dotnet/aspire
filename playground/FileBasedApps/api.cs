@@ -2,7 +2,7 @@
 
 #:sdk Microsoft.NET.Sdk.Web
 #:package Microsoft.AspNetCore.OpenApi
-#:project ..\Playground.ServiceDefaults\Playground.ServiceDefaults.csproj
+#:project ../Playground.ServiceDefaults
 
 using System.Text.Json.Serialization;
 
