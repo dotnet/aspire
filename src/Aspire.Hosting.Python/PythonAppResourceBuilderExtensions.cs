@@ -120,8 +120,8 @@ public static class PythonAppResourceBuilderExtensions
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
         var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
-        var pythonExecutable = virtualEnvironment.GetExecutableIfVenvExists("python");
-        var appExecutable = instrumentationExecutable ?? pythonExecutable ?? "python";
+        var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
+        var appExecutable = instrumentationExecutable ?? pythonExecutable;
 
         var resource = new PythonAppResource(name, appExecutable, appDirectory);
 
@@ -133,7 +133,7 @@ public static class PythonAppResourceBuilderExtensions
                 AddOpenTelemetryArguments(context);
 
                 // Add the python executable as the next argument so we can run the app.
-                context.Args.Add(pythonExecutable!);
+                context.Args.Add(pythonExecutable);
             }
 
             AddArguments(scriptPath, scriptArgs, context);

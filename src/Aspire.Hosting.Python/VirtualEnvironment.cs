@@ -120,4 +120,18 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
             $"The executable {name} could not be found in the virtual environment at '{virtualEnvironmentPath}' . " +
             "Make sure the virtual environment is initialized and the executable is installed.");
     }
+
+    /// <summary>
+    /// Locates a required executable in the virtual environment, or returns the base executable name if virtual environment doesn't exist.
+    /// </summary>
+    /// <param name="name">The name of the executable.</param>
+    /// <returns>The path to the executable in the virtual environment, or the base executable name if virtual environment doesn't exist.</returns>
+    public string GetRequiredExecutableOrFallback(string name)
+    {
+        if (!Exists())
+        {
+            return name; // Return base executable name (e.g., "python") if venv doesn't exist
+        }
+        return GetRequiredExecutable(name);
+    }
 }

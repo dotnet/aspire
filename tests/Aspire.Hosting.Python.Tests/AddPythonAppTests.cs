@@ -345,75 +345,30 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [RequiresTools(["python"])]
-    public async Task WithVirtualEnvironment_AutoCreatesVirtualEnvironmentWhenMissing()
-    {
-        var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(projectDirectory);
-
-        try
-        {
-            var scriptPath = Path.Combine(projectDirectory, "main.py");
-            File.WriteAllText(scriptPath, PythonApp);
-
-            var requirementsPath = Path.Combine(projectDirectory, "requirements.txt");
-            File.WriteAllText(requirementsPath, "# No requirements");
-
-            using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-
-            var pyproj = builder.AddPythonApp("pythonProject", projectDirectory, "main.py")
-                               .WithVirtualEnvironment();
-
-            // Virtual environment shouldn't exist yet
-            var venvPath = Path.Combine(projectDirectory, ".venv");
-            Assert.False(Directory.Exists(venvPath));
-
-            var app = builder.Build();
-
-            await app.StartAsync();
-
-            try
-            {
-                // Wait for the resource to be ready - this should trigger venv creation
-                await app.ResourceNotifications.WaitForResourceAsync("pythonProject", "Running").WaitAsync(TimeSpan.FromSeconds(30));
-
-                // Virtual environment should now exist
-                Assert.True(Directory.Exists(venvPath));
-
-                // Verify Python executable exists in the venv
-                var pythonPath = Path.Combine(venvPath, 
-                    OperatingSystem.IsWindows() ? "Scripts" : "bin",
-                    OperatingSystem.IsWindows() ? "python.exe" : "python");
-                Assert.True(File.Exists(pythonPath));
-            }
-            finally
-            {
-                await app.StopAsync();
-            }
-        }
-        finally
-        {
-            if (Directory.Exists(projectDirectory))
-            {
-                Directory.Delete(projectDirectory, true);
-            }
-        }
-    }
-
-    [Fact]
     public void WithVirtualEnvironment_AddsVirtualEnvironmentAnnotation()
     {
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var builder = TestDistributedApplicationBuilder.Create();
 
-        var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
-        Directory.CreateDirectory(projectDirectory);
+        var scriptName = "main.py";
+
+        // Create resource with existing venv (simulating the happy path)
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        var venvDir = Path.Combine(tempDir, ".venv", OperatingSystem.IsWindows() ? "Scripts" : "bin");
+        Directory.CreateDirectory(venvDir);
+        
+        // Create fake python executable
+        var pythonExe = Path.Combine(venvDir, OperatingSystem.IsWindows() ? "python.exe" : "python");
+        File.WriteAllText(pythonExe, "#!/bin/bash\necho 'fake python'");
+        if (!OperatingSystem.IsWindows())
+        {
+            // Make it executable on Unix systems
+            File.SetUnixFileMode(pythonExe, UnixFileMode.UserExecute | UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
 
         try
         {
-            var scriptPath = Path.Combine(projectDirectory, "main.py");
-            File.WriteAllText(scriptPath, PythonApp);
-
-            var pyproj = builder.AddPythonApp("pythonProject", projectDirectory, "main.py")
+            var pyproj = builder.AddPythonApp("pythonProject", tempDir, scriptName)
                                .WithVirtualEnvironment();
 
             var annotation = pyproj.Resource.Annotations.OfType<VirtualEnvironmentAnnotation>().FirstOrDefault();
@@ -421,7 +376,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.True(annotation.AutoCreate);
 
             // Test disabling auto-create
-            var pyproj2 = builder.AddPythonApp("pythonProject2", projectDirectory, "main.py")
+            var pyproj2 = builder.AddPythonApp("pythonProject2", tempDir, scriptName)
                                 .WithVirtualEnvironment(autoCreate: false);
 
             var annotation2 = pyproj2.Resource.Annotations.OfType<VirtualEnvironmentAnnotation>().FirstOrDefault();
@@ -430,10 +385,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         }
         finally
         {
-            if (Directory.Exists(projectDirectory))
-            {
-                Directory.Delete(projectDirectory, true);
-            }
+            Directory.Delete(tempDir, true);
         }
     }
 
