@@ -34,7 +34,7 @@ steps:
       workingDirectory: '$(Build.SourcesDirectory)'
 
   - task: PowerShell@2
-    displayName: 🟣Install dependencies and run localization
+    displayName: 🟣Install dependencies and compile
     inputs:
       targetType: 'inline'
       script: |
@@ -43,9 +43,6 @@ steps:
 
         # Compile
         yarn compile
-
-        # Run localization
-        yarn ci-localize
       workingDirectory: '$(Build.SourcesDirectory)/extension'
       errorActionPreference: 'stop'
     env:
@@ -111,13 +108,13 @@ steps:
           $buildCmd = "$(Build.SourcesDirectory)\eng\common\build.cmd"
           $buildArgs = @(
             "-ci"
-            "-restore"
             "-sign"
             "/p:DotNetSignType=$(_SignType)"
             "/p:TeamName=$(_TeamName)"
             "/p:Sign=true"
             "/p:SignType=$(_SignType)"
             "/p:ArtifactsPackagesDir=$artifactsDir\"
+            "/bl:$(Build.Arcade.LogsPath)Build.binlog"
             "/v:normal"
           )
 
