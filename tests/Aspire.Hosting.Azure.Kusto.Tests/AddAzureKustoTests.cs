@@ -323,7 +323,7 @@ public class AddAzureKustoTests
     [InlineData(9090)]
     [InlineData(8080)]
     [InlineData(1234)]
-    public void WithHttpPort_ShouldSetHttpEndpointPort(int port)
+    public void WithHostPort_ShouldSetHttpEndpointPort(int port)
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -343,7 +343,7 @@ public class AddAzureKustoTests
     }
 
     [Fact]
-    public void WithHttpPort_ShouldThrowArgumentNullException_WhenBuilderIsNull()
+    public void WithHostPort_ShouldThrowArgumentNullException_WhenBuilderIsNull()
     {
         // Arrange
         IResourceBuilder<AzureKustoClusterResource> builder = null!;

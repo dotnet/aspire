@@ -18,11 +18,6 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
     public required IResource Resource { get; init; }
 
     /// <summary>
-    /// Gets the service provider for accessing services during callback execution.
-    /// </summary>
-    public required IServiceProvider Services { get; init; }
-
-    /// <summary>
     /// Gets the cancellation token associated with the callback context.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
