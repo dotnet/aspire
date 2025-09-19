@@ -597,6 +597,54 @@ get_pr_head_sha() {
     printf "%s" "$head_sha"
 }
 
+# Function to extract version suffix from downloaded NuGet packages
+extract_version_suffix_from_packages() {
+    local download_dir="$1"
+    
+    if [[ "$DRY_RUN" == true ]]; then
+        # Return a mock version for dry run
+        printf "pr.1234.a1b2c3d4"
+        return 0
+    fi
+    
+    # Look for any .nupkg file and extract version from its name
+    local nupkg_file
+    nupkg_file=$(find "$download_dir" -name "*.nupkg" | head -1)
+    
+    if [[ -z "$nupkg_file" ]]; then
+        say_verbose "No .nupkg files found to extract version from"
+        return 1
+    fi
+    
+    local filename
+    filename=$(basename "$nupkg_file")
+    say_verbose "Extracting version from package: $filename"
+    
+    # Extract version from package name using a more robust two-step approach
+    # First remove the .nupkg extension, then extract the version part
+    local base_name="${filename%.nupkg}"
+    local version
+    
+    # Look for semantic version pattern with PR suffix (more specific and robust)
+    version=$(echo "$base_name" | sed -En 's/.*\.([0-9]+\.[0-9]+\.[0-9]+-pr\.[0-9]+\.[a-f0-9]+)/\1/p')
+    
+    if [[ -z "$version" ]]; then
+        say_verbose "Could not extract version from package name: $filename"
+        return 1
+    fi
+    
+    say_verbose "Extracted full version: $version"
+    
+    # Extract just the PR suffix part using bash regex for better compatibility
+    if [[ "$version" =~ (pr\.[0-9]+\.[a-f0-9]+) ]]; then
+        local version_suffix="${BASH_REMATCH[1]}"
+        printf "%s" "$version_suffix"
+    else
+        say_verbose "Package version does not contain PR suffix: $version"
+        return 1
+    fi
+}
+
 # Function to find workflow run for SHA
 find_workflow_run() {
     local head_sha="$1"
@@ -915,6 +963,14 @@ download_and_install_from_pr() {
     if ! nuget_download_dir=$(download_built_nugets "$workflow_run_id" "$rid" "$temp_dir"); then
         say_error "Failed to download nuget packages"
         return 1
+    fi
+
+    # Extract and print the version suffix from downloaded packages
+    local version_suffix
+    if version_suffix=$(extract_version_suffix_from_packages "$nuget_download_dir"); then
+        say_info "Package version suffix: $version_suffix"
+    else
+        say_warn "Could not extract version suffix from downloaded packages"
     fi
 
     # Download VS Code extension if not skipped
