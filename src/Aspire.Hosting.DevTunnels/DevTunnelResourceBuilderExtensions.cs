@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -523,12 +524,41 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 portResource.TunnelEndpointAnnotation.AllocatedEndpoint = new(portResource.TunnelEndpointAnnotation, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
 
                 // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
-                // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for
-                // the resource every time the tunnel starts, just the first time.
                 if (raiseEndpointsAllocatedEvent)
                 {
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
                     portResource.TunnelEndpointAllocatedTcs.SetResult();
+                }
+                else
+                {
+                    // The port URI can sometimes change for the same tunnel ID between restarts of the tunnel but we already raised the endpoint
+                    // allocated event which is where URL creation usually happens so we need to manually push an update to the URLs on the port resource.
+                    await notifications.PublishUpdateAsync(portResource, snapshot =>
+                    {
+                        var newUrls = ImmutableArray.CreateBuilder<UrlSnapshot>();
+                        var existingEndpointUrl = snapshot.Urls.FirstOrDefault(u => string.Equals(u.Name, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName));
+                        if (existingEndpointUrl is not null)
+                        {
+                            // Add all the existing URLs except the tunnel URL which we replace with the updated one
+                            newUrls.AddRange(snapshot.Urls.Where(u => u != existingEndpointUrl));
+                        }
+                        else
+                        {
+                            // No existing tunnel URL, add all existing URLs
+                            newUrls.AddRange(snapshot.Urls);
+                        }
+                        // Add the updated tunnel URL
+                        var urlString = new UriBuilder(portResource.TunnelEndpoint.Url).Uri.ToString().TrimEnd('/');
+                        var newUrl = existingEndpointUrl is not null
+                            ? existingEndpointUrl with { Url = urlString }
+                            : new(Name: DevTunnelPortResource.TunnelEndpointName, urlString, IsInternal: false)
+                            {
+                                IsInactive = false,
+                                IsInternal = false
+                            };
+                        newUrls.Add(newUrl);
+                        return snapshot with { Urls = newUrls.ToImmutable() };
+                    }).ConfigureAwait(false);
                 }
 
                 // Mark the port as running
