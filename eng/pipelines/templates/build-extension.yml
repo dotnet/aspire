@@ -109,6 +109,7 @@ steps:
           $buildArgs = @(
             "-ci"
             "-sign"
+            "-restore"
             "/p:DotNetSignType=$(_SignType)"
             "/p:TeamName=$(_TeamName)"
             "/p:Sign=true"
