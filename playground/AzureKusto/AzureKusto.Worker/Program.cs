@@ -1,3 +1,4 @@
+using Azure.Identity;
 using AzureKusto.Worker;
 using Kusto.Data;
 using Kusto.Data.Net.Client;
@@ -5,30 +6,27 @@ using Kusto.Data.Net.Client;
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 
+var connectionString = builder.Configuration.GetConnectionString("testdb");
+
+var connectionStringBuilder = new KustoConnectionStringBuilder(connectionString);
+if (connectionStringBuilder.DataSourceUri.Contains("kusto.windows.net"))
+{
+    connectionStringBuilder = connectionStringBuilder.WithAadAzureTokenCredentialsAuthentication(new DefaultAzureCredential());
+}
+
 builder.Services.AddSingleton(sp =>
 {
-    var config = sp.GetRequiredService<IConfiguration>();
-    var connectionString = config.GetConnectionString("testdb");
-    return new KustoConnectionStringBuilder(connectionString);
+    return KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
 });
 builder.Services.AddSingleton(sp =>
 {
-    var kcsb = sp.GetRequiredService<KustoConnectionStringBuilder>();
-    return KustoClientFactory.CreateCslQueryProvider(kcsb);
-});
-builder.Services.AddSingleton(sp =>
-{
-    var kcsb = sp.GetRequiredService<KustoConnectionStringBuilder>();
-    return KustoClientFactory.CreateCslAdminProvider(kcsb);
+    return KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
 });
 
 builder.Services.AddOptions<WorkerOptions>();
 
 builder.Services.AddHostedService<QueryWorker>();
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddHostedService<IngestionWorker>();
-}
+builder.Services.AddHostedService<IngestionWorker>();
 
 var app = builder.Build();
 

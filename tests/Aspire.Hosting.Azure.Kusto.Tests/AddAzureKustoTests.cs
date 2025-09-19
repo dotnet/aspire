@@ -73,20 +73,6 @@ public class AddAzureKustoTests
     }
 
     [Fact]
-    public void AddAzureKustoCluster_ShouldExcludeFromManifest()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
-        var resourceBuilder = builder.AddAzureKustoCluster("kusto");
-
-        // Assert
-        var manifestExclusionAnnotation = resourceBuilder.Resource.Annotations.OfType<ManifestPublishingCallbackAnnotation>().SingleOrDefault();
-        Assert.Same(ManifestPublishingCallbackAnnotation.Ignore, manifestExclusionAnnotation);
-    }
-
-    [Fact]
     public void RunAsEmulator_ShouldAddEmulatorResourceAnnotation()
     {
         // Arrange
@@ -327,7 +313,7 @@ public class AddAzureKustoTests
         var kusto = builder.AddAzureKustoCluster("kusto");
 
         // Act
-        var database = kusto.AddDatabase(name);
+        var database = kusto.AddReadWriteDatabase(name);
 
         // Assert
         Assert.Single(database.Resource.Annotations, annotation => annotation is HealthCheckAnnotation hca && hca.Key == $"{name}_check");

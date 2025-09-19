@@ -5,20 +5,22 @@
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure kusto</PackageTags>
     <Description>Azure Kusto support for .NET Aspire.</Description>
-    <!-- This package is currently in preview because it lacks Azure Provisioning and only provides emulator support. -->
+    <!-- In preview while Azure.Provisioning.Kusto is in preview. -->
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Azure.Kusto.Data" />
+    <PackageReference Include="Azure.Provisioning.Kusto" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.Azure\Aspire.Hosting.Azure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="$(SharedDir)StringComparers.cs" LinkBase="Utils" />
+    <Compile Include="$(SharedDir)AzureRoleAssignmentUtils.cs" />
   </ItemGroup>
 
   <ItemGroup>

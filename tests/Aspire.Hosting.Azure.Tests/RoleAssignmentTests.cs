@@ -5,6 +5,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Kusto;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.CognitiveServices;
@@ -204,6 +205,21 @@ public class RoleAssignmentTests()
             },
             // scrub new lines since the test needs to run on Windows and Linux, and the new lines are different.
             s => s.Replace("\\r\\n", "\\n"));
+    }
+
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+                kusto.AddReadWriteDatabase("db1");
+                kusto.AddReadWriteDatabase("db2");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(kusto);
+            });
     }
 
     private static async Task RoleAssignmentTest(
