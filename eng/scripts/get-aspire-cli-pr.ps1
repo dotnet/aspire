@@ -736,7 +736,7 @@ function Get-VersionSuffixFromPackages {
         Write-Message "Extracted version: $version" -Level Verbose
         
         # Extract just the PR suffix part using more specific regex
-        if ($version -match '(pr\.\d+\.[a-f0-9]+)') {
+        if ($version -match '(pr\.[0-9]+\.[A-Fa-f0-9]+)') {
             $versionSuffix = $Matches[1]
             Write-Message "Extracted version suffix: $versionSuffix" -Level Verbose
             return $versionSuffix
