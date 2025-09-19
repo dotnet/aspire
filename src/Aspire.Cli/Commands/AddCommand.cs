@@ -85,13 +85,6 @@ internal sealed class AddCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            // Disallow commands against single-file AppHosts (.cs wrapper files) until supported
-            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
-            {
-                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
-                return ExitCodeConstants.SingleFileAppHostNotSupported;
-            }
-
             var source = parseResult.GetValue<string?>("--source");
 
             var packagesWithChannels = await InteractionService.ShowStatusAsync(

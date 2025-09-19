@@ -725,13 +725,25 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var cliArgsList = new List<string>
         {
-            "add",
-            projectFilePath.FullName,
-            "package",
-            packageName,
-            "--version",
-            packageVersion
+            "add"
         };
+
+        // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
+        var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        if (isSingleFileAppHost)
+        {
+            cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
+            // For single-file AppHost, use packageName@version format
+            cliArgsList.Add($"{packageName}@{packageVersion}");
+        }
+        else
+        {
+            cliArgsList.AddRange([projectFilePath.FullName, "package"]);
+            // For non single-file scenarios, use separate --version flag
+            cliArgsList.Add(packageName);
+            cliArgsList.Add("--version");
+            cliArgsList.Add(packageVersion);
+        }
 
         if (string.IsNullOrEmpty(nugetSource))
         {
