@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -529,43 +528,23 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
                     portResource.TunnelEndpointAllocatedTcs.SetResult();
                 }
-                else
-                {
-                    // The port URI can sometimes change for the same tunnel ID between restarts of the tunnel but we already raised the endpoint
-                    // allocated event which is where URL creation usually happens so we need to manually push an update to the URLs on the port resource.
-                    await notifications.PublishUpdateAsync(portResource, snapshot =>
-                    {
-                        var newUrls = ImmutableArray.CreateBuilder<UrlSnapshot>();
-                        var existingEndpointUrl = snapshot.Urls.FirstOrDefault(u => string.Equals(u.Name, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName));
-                        if (existingEndpointUrl is not null)
-                        {
-                            // Add all the existing URLs except the tunnel URL which we replace with the updated one
-                            newUrls.AddRange(snapshot.Urls.Where(u => u != existingEndpointUrl));
-                        }
-                        else
-                        {
-                            // No existing tunnel URL, add all existing URLs
-                            newUrls.AddRange(snapshot.Urls);
-                        }
-                        // Add the updated tunnel URL
-                        var urlString = new UriBuilder(portResource.TunnelEndpoint.Url).Uri.ToString().TrimEnd('/');
-                        var newUrl = existingEndpointUrl is not null
-                            ? existingEndpointUrl with { Url = urlString }
-                            : new(Name: DevTunnelPortResource.TunnelEndpointName, urlString, IsInternal: false)
-                            {
-                                IsInactive = false,
-                                IsInternal = false
-                            };
-                        newUrls.Add(newUrl);
-                        return snapshot with { Urls = newUrls.ToImmutable() };
-                    }).ConfigureAwait(false);
-                }
 
                 // Mark the port as running
                 await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
                 {
                     State = KnownResourceStates.Running,
-                    Urls = [.. snapshot.Urls.Select(u => u with { IsInactive = false /* All URLs active */ })]
+                    Urls = [.. snapshot.Urls.Select(u => u with
+                        {
+                            Url = raiseEndpointsAllocatedEvent
+                                  // The event was raised so the URL was already updated
+                                  ? u.Url
+                                  : string.Equals(u.Name, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
+                                      // Update the URL to use the allocated tunnel endpoint in case it changed since the last time it started
+                                      ? new UriBuilder(portResource.TunnelEndpoint.Url).Uri.ToString().TrimEnd('/')
+                                      // Not the tunnel endpoint URL so leave it as-is
+                                      : u.Url,
+                            IsInactive = false /* All URLs active */
+                        })]
                 }).ConfigureAwait(false);
 
                 var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
