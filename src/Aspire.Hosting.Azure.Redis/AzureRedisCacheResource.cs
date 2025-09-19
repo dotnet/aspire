@@ -118,7 +118,7 @@ public class AzureRedisCacheResource(string name, Action<AzureResourceInfrastruc
         // Create and add new resource if it doesn't exist
         var store = CdkRedisResource.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))
