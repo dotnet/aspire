@@ -3,8 +3,7 @@
 
 using System.Text.RegularExpressions;
 using Aspire.Hosting;
-using Aspire.Hosting.Tests.Utils;
-using Aspire.TestUtilities;
+using Aspire.Hosting.Testing;
 using Microsoft.AspNetCore.InternalTesting;
 using SamplesIntegrationTests;
 using SamplesIntegrationTests.Infrastructure;
