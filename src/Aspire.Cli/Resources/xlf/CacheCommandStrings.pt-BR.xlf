@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="CacheAlreadyEmpty">
         <source>Cache is already empty.</source>
-        <target state="new">Cache is already empty.</target>
+        <target state="translated">O cache já está vazio.</target>
         <note />
       </trans-unit>
       <trans-unit id="CacheClearFailed">
         <source>Failed to clear cache: {0}</source>
-        <target state="new">Failed to clear cache: {0}</target>
+        <target state="translated">Falha ao limpar o cache: {0}</target>
         <note>{0} is the error message</note>
       </trans-unit>
       <trans-unit id="CacheCleared">
         <source>Cache cleared successfully.</source>
-        <target state="new">Cache cleared successfully.</target>
+        <target state="translated">Cache limpo com êxito.</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
         <source>Clear all cache entries.</source>
-        <target state="new">Clear all cache entries.</target>
+        <target state="translated">Limpar todas as entradas de cache.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage disk cache for CLI operations.</source>
-        <target state="new">Manage disk cache for CLI operations.</target>
+        <target state="translated">Gerenciar cache de disco para operações da CLI.</target>
         <note />
       </trans-unit>
     </body>

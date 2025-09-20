@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">Si se va a iniciar una sesión de depuración durante la ejecución.</target>
+        <target state="translated">Indique si se debe iniciar una sesión de depuración si se ejecuta en un terminal Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="StartingDebugSessionInExtension">
         <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
-        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
+        <target state="translated">Se detectó una ejecución de Aspire dentro de la extensión Aspire, lo que inició una sesión de depuración en VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

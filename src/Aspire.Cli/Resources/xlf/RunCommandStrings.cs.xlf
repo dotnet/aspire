@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">Určuje, zda se má během běhu spustit relace ladění.</target>
+        <target state="translated">Určuje, jestli se má spustit relace ladění, pokud běží v terminálu Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="StartingDebugSessionInExtension">
         <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
-        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
+        <target state="translated">Bylo zjištěno spuštění Aspire v rozšíření Aspire, spouští se relace ladění ve VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

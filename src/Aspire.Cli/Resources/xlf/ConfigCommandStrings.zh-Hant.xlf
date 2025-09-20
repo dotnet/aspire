@@ -39,12 +39,12 @@
       </trans-unit>
       <trans-unit id="DeleteCommand_PromptForGlobal">
         <source>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</source>
-        <target state="new">Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</target>
+        <target state="translated">是否要在 $HOME/.aspire/settings.json 中全域刪除設定值，而非使用本機設定檔案?</target>
         <note />
       </trans-unit>
       <trans-unit id="DeleteCommand_PromptForKey">
         <source>Which config value do you want to delete?</source>
-        <target state="new">Which config value do you want to delete?</target>
+        <target state="translated">您要刪除哪個設定值?</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
@@ -54,7 +54,7 @@
       </trans-unit>
       <trans-unit id="ExtensionActionPrompt">
         <source>What do you want to do?</source>
-        <target state="new">What do you want to do?</target>
+        <target state="translated">請您指定選項。</target>
         <note />
       </trans-unit>
       <trans-unit id="GetCommand_Description">
@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="GetCommand_PromptForKey">
         <source>Which configuration key do you want to retrieve?</source>
-        <target state="new">Which configuration key do you want to retrieve?</target>
+        <target state="translated">您要擷取哪個設定金鑰?</target>
         <note />
       </trans-unit>
       <trans-unit id="ListCommand_Description">
@@ -99,27 +99,27 @@
       </trans-unit>
       <trans-unit id="SetCommand_PromptForGlobal">
         <source>Where do you want to set the configuration value?</source>
-        <target state="new">Where do you want to set the configuration value?</target>
+        <target state="translated">您要在哪裡設定設定值？</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForGlobal_GlobalOption">
         <source>Globally ($HOME/.aspire/settings.json)</source>
-        <target state="new">Globally ($HOME/.aspire/settings.json)</target>
+        <target state="translated">全域 ($HOME/.aspire/settings.json)</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForGlobal_LocalOption">
         <source>Locally</source>
-        <target state="new">Locally</target>
+        <target state="translated">本機</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForKey">
         <source>Which configuration key do you want to set?</source>
-        <target state="new">Which configuration key do you want to set?</target>
+        <target state="translated">您要設定哪個設定金鑰?</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_PromptForValue">
         <source>What value do you want to set?</source>
-        <target state="new">What value do you want to set?</target>
+        <target state="translated">您想設定什麼值?</target>
         <note />
       </trans-unit>
       <trans-unit id="SetCommand_ValueArgumentDescription">

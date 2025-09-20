@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">是否在运行期间启动调试会话。</target>
+        <target state="translated">是否在 Aspire 终端中运行时启动调试会话。</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="StartingDebugSessionInExtension">
         <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
-        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
+        <target state="translated">检测到 Aspire 在 Aspire 扩展内运行，正在 VS Code 中启动调试会话...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
