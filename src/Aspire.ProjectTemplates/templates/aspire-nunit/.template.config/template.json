@@ -158,6 +158,10 @@
             "value": "9.4"
           },
           {
+            "condition": "AspireVersionNet10 == 9.4",
+            "value": "9.4"
+          },
+          {
             "condition": "",
             "value": "9.5"
           }
