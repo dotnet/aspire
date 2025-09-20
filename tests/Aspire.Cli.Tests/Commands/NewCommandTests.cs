@@ -428,7 +428,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return (0, version); // Success, return the template version
                 };
 
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
                 {
                     return 0; // Success
                 };
@@ -481,7 +481,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                     return (0, version); // Success, return the template version
                 };
 
-                runner.NewProjectAsyncCallback = (templateName, name, outputPath, options, cancellationToken) =>
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
                 {
                     return 73; // Simulate exit code 73 (directory already contains files)
                 };
@@ -496,6 +496,69 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
+    }
+
+    [Fact]
+    public async Task NewCommand_InteractiveFlow_PromptsForFramework()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var frameworkPrompted = false;
+        var selectedFramework = string.Empty;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options => {
+            options.NewCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                return new TestNewCommandPrompter(interactionService);
+            };
+
+            options.InteractionServiceFactory = (sp) =>
+            {
+                return new TestFrameworkInteractionService(() => 
+                {
+                    frameworkPrompted = true;
+                    selectedFramework = "net9.0";
+                });
+            };
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                runner.SearchPackagesAsyncCallback = (dir, query, prerelease, take, skip, nugetSource, options, cancellationToken) =>
+                {
+                    var package = new NuGetPackage()
+                    {
+                        Id = "Aspire.ProjectTemplates",
+                        Source = "nuget",
+                        Version = "9.2.0"
+                    };
+
+                    return (
+                        0, // Exit code.
+                        new NuGetPackage[] { package } // Single package.
+                        );
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, name, outputPath, framework, options, cancellationToken) =>
+                {
+                    // Verify framework parameter is correctly passed
+                    Assert.Equal("net9.0", framework);
+                    return 0; // Success
+                };
+
+                return runner;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("new");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        Assert.Equal(0, exitCode);
+        Assert.True(frameworkPrompted, "Framework selection should have been prompted");
+        Assert.Equal("net9.0", selectedFramework);
     }
 
     private sealed class ThrowingCertificateService : ICertificateService
@@ -659,6 +722,52 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         return Task.FromResult(choices.First());
     }
 
+    public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
+    public void DisplayError(string errorMessage) { }
+    public void DisplayMessage(string emoji, string message) { }
+    public void DisplaySuccess(string message) { }
+    public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
+    public void DisplayCancellationMessage() { }
+    public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
+    public void DisplaySubtleMessage(string message) { }
+    public void DisplayEmptyLine() { }
+    public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
+    public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false) { }
+    public void DisplayVersionUpdateNotification(string newerVersion) { }
+}
+
+internal sealed class TestFrameworkInteractionService : IInteractionService
+{
+    private readonly Action _frameworkPromptCallback;
+
+    public TestFrameworkInteractionService(Action frameworkPromptCallback)
+    {
+        _frameworkPromptCallback = frameworkPromptCallback;
+    }
+
+    public Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        if (promptText.Contains("target framework"))
+        {
+            _frameworkPromptCallback();
+            // Return net9.0 (second choice)
+            return Task.FromResult(choices.Skip(1).First());
+        }
+
+        // For other prompts, return first choice
+        return Task.FromResult(choices.First());
+    }
+
+    // Default implementations for other interface methods
+    public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
+    public void ShowStatus(string statusText, Action action) => action();
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default) => Task.FromResult(defaultValue ?? string.Empty);
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(string emoji, string message) { }
