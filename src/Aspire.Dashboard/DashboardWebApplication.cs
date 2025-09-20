@@ -39,6 +39,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
 
 namespace Aspire.Dashboard;
 
@@ -786,46 +787,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     options.SkipUnrecognizedRequests = true;
 
                     // Configure additional ClaimActions
-                    var claimActionsMap = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
-                    if (!string.IsNullOrEmpty(claimActionsMap))
+                    var claimActions = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
+                    if (claimActions is { Length: > 0 })
                     {
-                        var actions = claimActionsMap.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                        foreach (var action in actions)
+                        foreach (var claimAction in claimActions)
                         {
-                            var ops = action.Split(':');
-                            switch (ops[0], ops.Length)
-                            {
-                                case ("Delete", _):
-                                    foreach (var item in ops.Skip(1))
-                                    {
-                                        options.ClaimActions.DeleteClaim(item);
-                                    }
-                                    break;
-
-                                case ("MapUniqueJsonKey", 3):
-                                    options.ClaimActions.MapUniqueJsonKey(ops[1], ops[2]);
-                                    break;
-                                case ("MapUniqueJsonKey", > 3):
-                                    options.ClaimActions.MapUniqueJsonKey(ops[1], ops[2], ops[3]);
-                                    break;
-
-                                case ("MapJsonKey", 3):
-                                    options.ClaimActions.MapJsonKey(ops[1], ops[2]);
-                                    break;
-                                case ("MapJsonKey", > 3):
-                                    options.ClaimActions.MapJsonKey(ops[1], ops[2], ops[3]);
-                                    break;
-
-                                case ("MapJsonSubKey", 4):
-                                    options.ClaimActions.MapJsonSubKey(ops[1], ops[2], ops[3]);
-                                    break;
-                                case ("MapJsonSubKey", > 4):
-                                    options.ClaimActions.MapJsonSubKey(ops[1], ops[2], ops[3], ops[4]);
-                                    break;
-
-                                default:
-                                    throw new ArgumentException($"Invalid parameter count or not supported claim action type: {ops[0]} with {ops.Length - 1} parameters {action}");
-                            }
+                            var configureAction = GetOidcClaimActionConfigure(claimAction);
+                            configureAction(options);
                         }
                     }
                 });
@@ -903,6 +871,23 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _ => CookieAuthenticationDefaults.AuthenticationScheme
             };
         }
+    }
+
+    internal static Action<OpenIdConnectOptions> GetOidcClaimActionConfigure(ClaimAction action)
+    {
+        Action<OpenIdConnectOptions> configureAction = (action.SubKey is null, action.IsUnique)
+            switch
+            {
+                (true, true) => options =>
+                    options.ClaimActions.MapUniqueJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+
+                (true, _) => options =>
+                    options.ClaimActions.MapJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+
+                (false, _) => options =>
+                    options.ClaimActions.MapJsonSubKey(action.ClaimType, action.JsonKey, action.SubKey!, action.ValueType ?? ClaimValueTypes.String)
+            };
+        return configureAction;
     }
 
     public int Run()
