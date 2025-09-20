@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.AspNetCore.InternalTesting;
+using System.Net.Sockets;
 
 namespace Aspire.Hosting.Tests;
 
@@ -43,6 +44,14 @@ public class ExpressionResolverTests
 
         data.Add(new ExpressionResolverTestData(false, new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)), null, ("SecretParameter", true));
         data.Add(new ExpressionResolverTestData(false, new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)), null, ("NonSecretParameter", false));
+
+        // ContainerPortReference tests
+        var containerResourceWithoutEndpoint = new ContainerResource("container-no-endpoint");
+        data.Add(new ExpressionResolverTestData(false, new ContainerPortReference(containerResourceWithoutEndpoint)), null, ("8080", false));
+
+        var containerResourceWithEndpoint = new ContainerResource("container-with-endpoint");
+        containerResourceWithEndpoint.Annotations.Add(new EndpointAnnotation(ProtocolType.Tcp, "http", null, "http", port: 80, targetPort: 8080, isExternal: false));
+        data.Add(new ExpressionResolverTestData(false, new ContainerPortReference(containerResourceWithEndpoint)), null, ("8080", false));
 
         // ExpressionResolverGeneratesCorrectEndpointStrings separately tests EndpointReference and EndpointReferenceExpression
 
