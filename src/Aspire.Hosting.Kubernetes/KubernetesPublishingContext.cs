@@ -115,7 +115,7 @@ internal sealed class KubernetesPublishingContext(
             }
 
             string? value;
-            
+
             // If there's a parameter source, resolve its value asynchronously
             if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
             {
@@ -126,7 +126,7 @@ internal sealed class KubernetesPublishingContext(
                 value = helmExpressionWithValue.Value;
             }
 
-            paramValues[key] = value ?? string.Empty;
+            paramValues[key.ToHelmValuesSectionName()] = value ?? string.Empty;
         }
 
         if (paramValues.Count > 0)
