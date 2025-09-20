@@ -33,7 +33,7 @@ internal static class ResourceUrlHelpers
                     Name = url.EndpointName ?? "-",
                     Address = url.Url.Host,
                     Port = url.Url.Port,
-                    Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
+                    Url = url.Url.OriginalString,
                     SortOrder = url.DisplayProperties.SortOrder,
                     DisplayName = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? null : url.DisplayProperties.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,
