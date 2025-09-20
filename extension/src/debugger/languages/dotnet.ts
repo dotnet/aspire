@@ -7,6 +7,14 @@ import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
 import { AspireResourceExtendedDebugConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
+import {
+    readLaunchSettings,
+    determineBaseLaunchProfile,
+    mergeEnvironmentVariables,
+    determineArguments,
+    determineWorkingDirectory,
+    determineServerReadyAction
+} from '../launchProfiles';
 
 const execFileAsync = util.promisify(execFile);
 
@@ -17,20 +25,33 @@ export const projectDebuggerExtension: ResourceDebuggerExtension = {
     displayName: 'C#',
     createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
         const projectPath = launchConfig.project_path;
-        const workingDirectory = path.dirname(launchConfig.project_path);
 
+        // Apply launch profile settings if available
+        const launchSettings = await readLaunchSettings(projectPath);
+        const { profile: baseProfile, profileName } = determineBaseLaunchProfile(launchConfig, launchSettings);
+
+        extensionLogOutputChannel.info(profileName
+            ? `Using launch profile '${profileName}' for project: ${projectPath}`
+            : `No launch profile selected for project: ${projectPath}`);
+
+        // Build project if needed
         const outputPath = await getDotNetTargetPath(projectPath);
-
         if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
             await buildDotNetProject(projectPath);
         }
 
+        // Configure debug session with launch profile settings
         debugConfiguration.program = outputPath;
-        debugConfiguration.cwd = workingDirectory;
+        debugConfiguration.cwd = determineWorkingDirectory(projectPath, baseProfile);
+        debugConfiguration.args = determineArguments(baseProfile?.commandLineArgs, args);
+        debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
+        debugConfiguration.executablePath = baseProfile?.executablePath;
+        debugConfiguration.checkForDevCert = baseProfile?.useSSL;
+        debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
     }
 };
 
-async function buildDotNetProject(projectFile: string): Promise<void> {
+export async function buildDotNetProject(projectFile: string): Promise<void> {
     const csharpDevKit = vscode.extensions.getExtension('ms-dotnettools.csdevkit');
     if (!csharpDevKit) {
         // If c# dev kit is not installed, we will have already built this project on the command line using the Aspire CLI
@@ -55,7 +76,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
         return buildTask;
     });
 
-// Modify the task to target the specific project
+    // Modify the task to target the specific project
     const projectName = path.basename(projectFile, '.csproj');
 
     // Create a modified task definition with just the project file
@@ -92,7 +113,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
     }).finally(() => disposable.dispose());
 }
 
-async function getDotNetTargetPath(projectFile: string): Promise<string> {
+export async function getDotNetTargetPath(projectFile: string): Promise<string> {
     const args = [
         'msbuild',
         projectFile,
