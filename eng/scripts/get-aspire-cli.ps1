@@ -554,13 +554,56 @@ function Expand-AspireCliArchive {
                 throw "tar command not found. Please install tar to extract tar.gz files."
             }
 
-            $currentLocation = Get-Location
-            try {
-                Set-Location $DestinationPath
-                & tar -xzf $ArchiveFile
+            # For Linux archives, the structure is different - binary is in aspire/ subdirectory
+            if ($OS -eq "linux" -or $OS -eq "linux-musl") {
+                # Create a temporary directory for extraction
+                $tempExtractDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N").Substring(0, 8))
+                New-Item -ItemType Directory -Path $tempExtractDir -Force | Out-Null
+                
+                try {
+                    # Extract to temporary directory
+                    $currentLocation = Get-Location
+                    try {
+                        Set-Location $tempExtractDir
+                        & tar -xzf $ArchiveFile
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "tar command failed with exit code $LASTEXITCODE"
+                        }
+                    }
+                    finally {
+                        Set-Location $currentLocation
+                    }
+                    
+                    # Move the aspire binary from aspire/ subdirectory to the final destination
+                    $expectedBinary = Join-Path $tempExtractDir "aspire" "aspire"
+                    $targetBinary = Join-Path $DestinationPath "aspire"
+                    if (Test-Path $expectedBinary) {
+                        Move-Item -Path $expectedBinary -Destination $targetBinary -Force
+                    }
+                    else {
+                        throw "Expected aspire binary not found in archive at aspire/aspire"
+                    }
+                }
+                finally {
+                    # Clean up temporary directory
+                    if (Test-Path $tempExtractDir) {
+                        Remove-Item $tempExtractDir -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
             }
-            finally {
-                Set-Location $currentLocation
+            else {
+                # For other Unix systems (macOS), extract directly as before
+                $currentLocation = Get-Location
+                try {
+                    Set-Location $DestinationPath
+                    & tar -xzf $ArchiveFile
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "tar command failed with exit code $LASTEXITCODE"
+                    }
+                }
+                finally {
+                    Set-Location $currentLocation
+                }
             }
         }
 
