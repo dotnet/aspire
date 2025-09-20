@@ -3,8 +3,8 @@
 
 using System.Globalization;
 using System.Text.Json;
+using System.Xml;
 using Aspire.Cli.Configuration;
-using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -19,7 +19,7 @@ internal interface IProjectLocator
     Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
-internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
+internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
 {
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
@@ -44,7 +44,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             };
 
             interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
-            
+
             // Scan for *.csproj files (existing logic)
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
@@ -55,12 +55,14 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 MaxDegreeOfParallelism = Environment.ProcessorCount
             };
 
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
+            Parallel.ForEach(projectFiles, parallelOptions, (projectFile, ct) =>
             {
                 logger.LogDebug("Checking project file {ProjectFile}", projectFile.FullName);
-                var information = await runner.GetAppHostInformationAsync(projectFile, new DotNetCliRunnerInvocationOptions(), ct);
 
-                if (information.ExitCode == 0 && information.IsAspireHost)
+                // Use XML-based detection instead of MSBuild interrogation
+                var isAspireHost = IsAppHostProject(projectFile);
+
+                if (isAspireHost)
                 {
                     logger.LogDebug("Found AppHost project file {ProjectFile} in {SearchDirectory}", projectFile.FullName, searchDirectory.FullName);
                     var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName);
@@ -92,7 +94,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 await Parallel.ForEachAsync(candidateAppHostFiles, parallelOptions, async (candidateFile, ct) =>
                 {
                     logger.LogDebug("Checking single-file apphost candidate {CandidateFile}", candidateFile.FullName);
-                    
+
                     if (await IsValidSingleFileAppHostAsync(candidateFile, ct))
                     {
                         logger.LogDebug("Found single-file apphost candidate {CandidateFile} in {SearchDirectory}", candidateFile.FullName, searchDirectory.FullName);
@@ -165,6 +167,34 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         }
 
         return false;
+    }
+
+    private bool IsAppHostProject(FileInfo projectFile)
+    {
+        try
+        {
+            var xmlDocument = new XmlDocument();
+            xmlDocument.Load(projectFile.FullName);
+
+            // Check for Aspire.AppHost.Sdk first (primary detection method as per original prompt)
+            var aspireAppHostSdk = xmlDocument.SelectSingleNode("//Sdk[@Name='Aspire.AppHost.Sdk']");
+            bool isAspireHost = aspireAppHostSdk != null;
+
+            // Fallback to IsAspireHost property for backward compatibility
+            if (!isAspireHost)
+            {
+                var isAspireHostElement = xmlDocument.SelectSingleNode("//PropertyGroup/IsAspireHost");
+                isAspireHost = isAspireHostElement?.InnerText?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+            }
+
+            return isAspireHost;
+
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to parse project file {ProjectFile} as XML.", projectFile.FullName);
+            return false;
+        }
     }
 
     private async Task<FileInfo?> GetAppHostProjectFileFromSettingsAsync(CancellationToken cancellationToken)
