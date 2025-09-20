@@ -292,3 +292,8 @@
     align-content: center;
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
 }
+
+::deep.log-tooltip-table tr:last-child td {
+    border-bottom: none;
+    padding-bottom: calc(var(--design-unit) * 0.5px);
+}
