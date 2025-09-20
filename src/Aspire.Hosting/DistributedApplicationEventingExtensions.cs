@@ -23,6 +23,21 @@ public static class DistributedApplicationEventingExtensions
         => builder.OnEvent(callback);
 
     /// <summary>
+    /// Subscribes a callback to the <see cref="ResourceStartedEvent"/> event within the AppHost.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">A callback to handle the event.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This event is fired after a resource has started and is in a running state, but before any health checks have run.
+    /// It fills the gap between <see cref="BeforeResourceStartedEvent"/> and <see cref="ResourceReadyEvent"/>.
+    /// </remarks>
+    public static IResourceBuilder<T> OnResourceStarted<T>(this IResourceBuilder<T> builder, Func<T, ResourceStartedEvent, CancellationToken, Task> callback)
+        where T : IResource
+        => builder.OnEvent(callback);
+
+    /// <summary>
     /// Subscribes a callback to the <see cref="ResourceStoppedEvent"/> event within the AppHost.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
