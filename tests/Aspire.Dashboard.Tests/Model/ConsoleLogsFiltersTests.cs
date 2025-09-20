@@ -13,7 +13,14 @@ public sealed class ConsoleLogsFiltersTests
     public void Serialize()
     {
         // Arrange
-        var filters = new ConsoleLogsFilters();
+        var filters = new ConsoleLogsFilters
+        {
+            FilterAllLogsDate = new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc),
+            FilterResourceLogsDates =
+            {
+                ["test-abc"] = new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+            }
+        };
 
         // Act
         var json = JsonSerializer.Serialize(filters);
@@ -21,5 +28,6 @@ public sealed class ConsoleLogsFiltersTests
 
         // Assert
         Assert.Equal(filters.FilterAllLogsDate, deserialized.FilterAllLogsDate);
+        Assert.Equivalent(filters.FilterResourceLogsDates, deserialized.FilterResourceLogsDates);
     }
 }
