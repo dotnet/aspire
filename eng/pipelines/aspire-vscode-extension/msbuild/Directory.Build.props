@@ -1,0 +1,8 @@
+<Project>
+    <PropertyGroup>
+        <RepoRoot>$(MSBuildThisFileDirectory)../../../../</RepoRoot>
+                <!-- Prevent inheriting from parent Directory.Build.props -->
+        <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
+        <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
+    </PropertyGroup>
+</Project>
