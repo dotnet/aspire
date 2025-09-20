@@ -837,7 +837,7 @@ namespace Aspire.Hosting.Kubernetes.Resources
         public string Path { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "port")]
-        public int Port { get { throw null; } set { } }
+        public Int32OrStringV1? Port { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "scheme")]
         public string Scheme { get { throw null; } set { } }

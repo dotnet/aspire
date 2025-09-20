@@ -12,6 +12,8 @@ namespace Aspire.RabbitMQ.Client
     {
         public string? ConnectionString { get { throw null; } set { } }
 
+        public bool DisableAutoActivation { get { throw null; } set { } }
+
         public bool DisableHealthChecks { get { throw null; } set { } }
 
         public bool DisableTracing { get { throw null; } set { } }

@@ -13,6 +13,8 @@ namespace Aspire.Hosting
         Yarp.YarpCluster AddCluster(ApplicationModel.EndpointReference endpoint);
         Yarp.YarpCluster AddCluster(ApplicationModel.IResourceBuilder<ExternalServiceResource> externalService);
         Yarp.YarpCluster AddCluster(ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> resource);
+        Yarp.YarpCluster AddCluster(string clusterName, object destination);
+        Yarp.YarpCluster AddCluster(string clusterName, object[] destinations);
         Yarp.YarpRoute AddRoute(string path, Yarp.YarpCluster cluster);
     }
 
@@ -40,6 +42,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string sourcePath) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder) { throw null; }
     }
 }
 
