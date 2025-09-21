@@ -285,12 +285,11 @@
 }
 
 ::deep.log-tooltip-table td {
-    padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 1px) 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 0.7px) 0;
     align-content: center;
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
+    align-content: start;
+    word-break: break-word;
 }
 
 ::deep.log-tooltip-table tr:last-child td {

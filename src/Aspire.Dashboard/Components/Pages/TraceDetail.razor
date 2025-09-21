@@ -293,7 +293,7 @@
                                                                         </tr>
                                                                         <tr>
                                                                             <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
-                                                                            <td>@OtlpHelpers.TruncateString(item.LogEntry.Message, maxLength: 200)</td>
+                                                                            <td>@FormatHelpers.TruncateText(item.LogEntry.Message, maxLength: 150)</td>
                                                                         </tr>
                                                                     </table>
                                                                 </FluentTooltip>
