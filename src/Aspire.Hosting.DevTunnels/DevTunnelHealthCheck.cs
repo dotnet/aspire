@@ -49,6 +49,7 @@ internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, Dev
         }
         catch (Exception ex)
         {
+            tunnelResource.LastKnownStatus = null;
             return HealthCheckResult.Unhealthy($"Failed to check dev tunnel '{_tunnelResource.TunnelId}': {ex.Message}", ex);
         }
     }
