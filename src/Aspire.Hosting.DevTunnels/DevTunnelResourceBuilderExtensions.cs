@@ -143,7 +143,23 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
+
+                // Ensure any ports that aren't in the application model are deleted
+                var portTasks = new List<Task> { DeleteUnmodeledPortsAsync() };
+                portTasks.AddRange(tunnelResource.Ports.Select(StartPortAsync));
+                await Task.WhenAll(portTasks).ConfigureAwait(false);
+
+                async Task DeleteUnmodeledPortsAsync()
+                {
+                    var existingPorts = await devTunnelClient.GetPortListAsync(tunnelResource.TunnelId, logger, ct).ConfigureAwait(false);
+                    var modeledPortNumbers = tunnelResource.Ports.Select(p => p.TargetEndpoint.Port).ToHashSet();
+                    var unmodeledPorts = existingPorts.Ports.Where(p => !modeledPortNumbers.Contains(p.PortNumber)).ToList();
+                    if (unmodeledPorts.Count > 0)
+                    {
+                        logger.LogInformation("Deleting {Count} unmodeled ports from dev tunnel '{TunnelId}': {Ports}", unmodeledPorts.Count, tunnelResource.TunnelId, string.Join(", ", unmodeledPorts.Select(p => p.PortNumber)));
+                        await Task.WhenAll(unmodeledPorts.Select(p => devTunnelClient.DeletePortAsync(tunnelResource.TunnelId, p.PortNumber, logger, ct))).ConfigureAwait(false);
+                    }
+                }
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
@@ -443,6 +459,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     });
                 }
             })
+            .ExcludeFromManifest() // Dev tunnels do not get deployed
             .WithIconName("VirtualNetwork")
             .WithInitialState(new()
             {
@@ -574,7 +591,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 {
                     portLogger.LogDebug(ex, "Failed to log anonymous access status for port");
                 }
-                
             })
             .OnResourceStopped(async (tunnelResource, e, ct) =>
             {
