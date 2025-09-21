@@ -408,11 +408,21 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);
 
+        // Health check
+        var healtCheckKey = $"{portName}-check";
+        tunnelBuilder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healtCheckKey,
+            services => new DevTunnelPortHealthCheck(tunnel, targetEndpoint.Port),
+            failureStatus: default,
+            tags: default,
+            timeout: default));
+
         var portBuilder = tunnelBuilder.ApplicationBuilder.AddResource(portResource)
             // visual grouping beneath the tunnel
             .WithParentRelationship(tunnelBuilder)
             // indicate the target resource relationship
             .WithReferenceRelationship(targetResource)
+            .WithHealthCheck(healtCheckKey)
             // NOTE:
             // The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
             // We might consider updating the central logic that creates endpoint URLs to allow setting a target host like *.devtunnels.ms & if the
