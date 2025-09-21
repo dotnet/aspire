@@ -276,17 +276,16 @@
 ::deep.log-tooltip-table {
     margin-bottom: 0;
     width: 100%;
-    table-layout: fixed;
     font-size: 12px;
 }
 
-::deep.log-tooltip-table td:nth-child(1) {
-    width: 25%;
+::deep.log-tooltip-table td.label-column {
+    text-wrap-mode: nowrap;
+    padding-right: calc(var(--design-unit)* 4px)
 }
 
 ::deep.log-tooltip-table td {
     padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 0.7px) 0;
-    align-content: center;
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
     align-content: start;
     word-break: break-word;
