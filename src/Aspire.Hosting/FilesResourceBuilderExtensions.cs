@@ -46,24 +46,36 @@ public static class FilesResourceBuilderExtensions
         return builder;
     }
 
-    private static async IAsyncEnumerable<string> EnumerateFilesAsync(string source, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    private static async IAsyncEnumerable<ResourceFile> EnumerateFilesAsync(string source, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        // Get the absolute path for consistent path calculations
+        var absoluteSource = Path.GetFullPath(source);
+        
         // If the source is a directory, enumerate all files in it
-        if (Directory.Exists(source))
+        if (Directory.Exists(absoluteSource))
         {
-            yield return source;
+            // Return the directory itself as a resource file
+            var directoryRelativePath = Path.GetFileName(absoluteSource);
+            yield return new ResourceFile(absoluteSource, directoryRelativePath);
             
-            var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+            var files = Directory.GetFiles(absoluteSource, "*", SearchOption.AllDirectories);
             foreach (var file in files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                yield return file;
+                
+                // Calculate relative path from the source directory
+                var relativePath = Path.GetRelativePath(absoluteSource, file);
+                // Normalize path separators
+                relativePath = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+                
+                yield return new ResourceFile(file, relativePath);
             }
         }
-        else if (File.Exists(source))
+        else if (File.Exists(absoluteSource))
         {
-            // If it's a file, just return it
-            yield return source;
+            // If it's a file, just return it with its filename as relative path
+            var fileName = Path.GetFileName(absoluteSource);
+            yield return new ResourceFile(absoluteSource, fileName);
         }
         
         await Task.CompletedTask.ConfigureAwait(false); // Satisfy async enumerable requirements

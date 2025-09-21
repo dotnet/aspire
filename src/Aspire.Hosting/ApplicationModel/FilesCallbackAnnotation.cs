@@ -14,15 +14,15 @@ public sealed class FilesCallbackAnnotation : IResourceAnnotation
     /// <summary>
     /// Initializes a new instance of the <see cref="FilesCallbackAnnotation"/> class.
     /// </summary>
-    /// <param name="callback">A callback that returns an async enumerable of file paths.</param>
-    public FilesCallbackAnnotation(Func<CancellationToken, IAsyncEnumerable<string>> callback)
+    /// <param name="callback">A callback that returns an async enumerable of resource files.</param>
+    public FilesCallbackAnnotation(Func<CancellationToken, IAsyncEnumerable<ResourceFile>> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
         Callback = callback;
     }
 
     /// <summary>
-    /// Gets the callback that returns an async enumerable of file paths.
+    /// Gets the callback that returns an async enumerable of resource files.
     /// </summary>
-    public Func<CancellationToken, IAsyncEnumerable<string>> Callback { get; }
+    public Func<CancellationToken, IAsyncEnumerable<ResourceFile>> Callback { get; }
 }

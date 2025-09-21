@@ -93,6 +93,25 @@ public class FilesResourceTests
     }
 
     [Fact]
+    public void ResourceFileHasCorrectProperties()
+    {
+        var fullPath = "/full/path/to/file.txt";
+        var relativePath = "folder/file.txt";
+        
+        var resourceFile = new Aspire.Hosting.ApplicationModel.ResourceFile(fullPath, relativePath);
+        
+        Assert.Equal(fullPath, resourceFile.FullPath);
+        Assert.Equal(relativePath, resourceFile.RelativePath);
+    }
+
+    [Fact]
+    public void ResourceFileConstructorThrowsOnNullArguments()
+    {
+        Assert.Throws<ArgumentNullException>(() => new Aspire.Hosting.ApplicationModel.ResourceFile(null!, "relative"));
+        Assert.Throws<ArgumentNullException>(() => new Aspire.Hosting.ApplicationModel.ResourceFile("full", null!));
+    }
+
+    [Fact]
     public void FilesResourceAddFileThrowsOnNull()
     {
         var filesResource = new FilesResource("test", []);
