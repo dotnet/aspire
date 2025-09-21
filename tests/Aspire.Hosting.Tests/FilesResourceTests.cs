@@ -76,20 +76,20 @@ public class FilesResourceTests
     }
 
     [Fact]
-    public void FilesProducedEventCreatesCorrectly()
+    public void WithSourceAddsFilesCallbackAnnotation()
     {
         var appBuilder = DistributedApplication.CreateBuilder();
-        var filesResource = new FilesResource("test", ["/path/to/file.txt"]);
-        var files = new[] { "/path/to/output1.txt", "/path/to/output2.txt" };
+
+        appBuilder.AddFiles("myfiles")
+                  .WithSource("/path/to/directory");
 
         using var app = appBuilder.Build();
-        var services = app.Services;
 
-        var filesProducedEvent = new FilesProducedEvent(filesResource, services, files);
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var filesResource = Assert.Single(appModel.Resources.OfType<FilesResource>());
 
-        Assert.Equal(filesResource, filesProducedEvent.Resource);
-        Assert.Equal(services, filesProducedEvent.Services);
-        Assert.Equal(files, filesProducedEvent.Files);
+        var callbackAnnotation = Assert.Single(filesResource.Annotations.OfType<Aspire.Hosting.ApplicationModel.FilesCallbackAnnotation>());
+        Assert.NotNull(callbackAnnotation.Callback);
     }
 
     [Fact]

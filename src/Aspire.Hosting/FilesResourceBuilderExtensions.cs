@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting;
 
@@ -40,53 +40,32 @@ public static class FilesResourceBuilderExtensions
         // Add the source immediately to maintain existing behavior
         builder.Resource.AddFile(source);
 
-        // Add source annotation to track the source path for validation during initialization
-        builder.WithAnnotation(new FilesSourceAnnotation(source));
-
-        // Check if we've already registered the initialization handler for this resource
-        var handlerRegistered = builder.Resource.Annotations.OfType<FilesInitializationHandlerRegisteredAnnotation>().Any();
-        
-        if (!handlerRegistered)
-        {
-            // Mark that we've registered the handler
-            builder.WithAnnotation(new FilesInitializationHandlerRegisteredAnnotation());
-
-            // Subscribe to the InitializeResourceEvent to process the source when the resource is initialized
-            builder.OnInitializeResource(async (filesResource, initEvent, ct) =>
-            {
-                var sourceAnnotations = filesResource.Annotations.OfType<FilesSourceAnnotation>();
-                var validatedFiles = new List<string>();
-
-                foreach (var sourceAnnotation in sourceAnnotations)
-                {
-                    var sourcePath = sourceAnnotation.Source;
-                    
-                    // Verify that the path specified in WithSource(path) is a valid directory
-                    if (Directory.Exists(sourcePath))
-                    {
-                        validatedFiles.Add(sourcePath);
-                        // Add all files within the directory to the validated list
-                        var filesInDirectory = Directory.GetFiles(sourcePath, "*", SearchOption.AllDirectories);
-                        validatedFiles.AddRange(filesInDirectory);
-                    }
-                    else
-                    {
-                        initEvent.Logger.LogWarning("Source path '{SourcePath}' for files resource '{ResourceName}' is not a valid directory.", sourcePath, filesResource.Name);
-                        continue;
-                    }
-                }
-
-                // Fire the FilesProducedEvent with the validated files
-                if (validatedFiles.Count > 0)
-                {
-                    await initEvent.Eventing.PublishAsync(new FilesProducedEvent(filesResource, initEvent.Services, validatedFiles), ct).ConfigureAwait(false);
-                }
-
-                // Fire the ResourceReadyEvent
-                await initEvent.Eventing.PublishAsync(new ResourceReadyEvent(filesResource, initEvent.Services), ct).ConfigureAwait(false);
-            });
-        }
+        // Add callback annotation that will enumerate files from the source
+        builder.WithAnnotation(new FilesCallbackAnnotation(cancellationToken => EnumerateFilesAsync(source, cancellationToken)));
 
         return builder;
+    }
+
+    private static async IAsyncEnumerable<string> EnumerateFilesAsync(string source, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // If the source is a directory, enumerate all files in it
+        if (Directory.Exists(source))
+        {
+            yield return source;
+            
+            var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+            foreach (var file in files)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return file;
+            }
+        }
+        else if (File.Exists(source))
+        {
+            // If it's a file, just return it
+            yield return source;
+        }
+        
+        await Task.CompletedTask.ConfigureAwait(false); // Satisfy async enumerable requirements
     }
 }
