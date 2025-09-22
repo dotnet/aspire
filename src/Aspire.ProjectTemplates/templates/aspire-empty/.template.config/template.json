@@ -105,21 +105,6 @@
       ],
       "defaultValue": "9.5"
     },
-    "AspireVersionNet10": {
-      "type": "parameter",
-      "description": "The version of Aspire to use.",
-      "displayName": "Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework == net10.0",
-      "choices": [
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Chooses Aspire 9.5"
-        }
-      ],
-      "defaultValue": "9.5"
-    },
     "AspireVersionActual": {
       "type": "generated",
       "generator": "switch",
