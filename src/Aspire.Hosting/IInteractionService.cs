@@ -4,6 +4,7 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -99,12 +100,86 @@ public interface IInteractionService
     Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
+internal sealed class InteractionOptionsProviderState(InteractionOptionsProvider provider)
+{
+    private readonly InteractionOptionsProvider _provider = provider;
+    private readonly object _lock = new object();
+
+    internal IReadOnlyList<KeyValuePair<string, string>>? LoadedOptions { get; private set; }
+    internal bool IsLoading { get; private set; }
+
+    internal (IReadOnlyList<KeyValuePair<string, string>>? loadedOptions, bool isLoading) GetOptions()
+    {
+        lock (_lock)
+        {
+            return (LoadedOptions, IsLoading);
+        }
+    }
+
+    internal void RefreshData(LoadOptionsContext context, ILogger logger)
+    {
+        lock (_lock)
+        {
+            // Don't remove existing loaded options.
+            // We want to keep them so the current value stays selected until it has finished loading.
+            IsLoading = true;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var loadedOptions = await _provider.LoadOptions(context).ConfigureAwait(false);
+                lock (_lock)
+                {
+                    LoadedOptions = loadedOptions;
+                    IsLoading = false;
+                }
+
+                OnDataRefresh?.Invoke(loadedOptions);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ignore.
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error loading options for input '{InputName}'.", context.InputName);
+            }
+        });
+    }
+
+    internal Action<IReadOnlyList<KeyValuePair<string, string>>>? OnDataRefresh { get; set; }
+}
+
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class InteractionOptionsProvider
+{
+    public required Func<LoadOptionsContext, Task<IReadOnlyList<KeyValuePair<string, string>>>> LoadOptions { get; init; }
+    public IReadOnlyList<string>? DependsOnInputs { get; init; }
+}
+
+[Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class LoadOptionsContext
+{
+    public required string InputName { get; init; }
+    public required InteractionInputCollection Inputs { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
+    public required IServiceProvider ServiceProvider { get; init; }
+}
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+
 /// <summary>
 /// Represents an input for an interaction.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[DebuggerDisplay("Name = {Name}, InputType = {InputType}, Required = {Required}, Value = {Value}")]
 public sealed class InteractionInput
 {
+    private IReadOnlyList<KeyValuePair<string, string>>? _options;
+    private InteractionOptionsProvider? _optionsProvider;
+
     /// <summary>
     /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// </summary>
@@ -141,7 +216,44 @@ public sealed class InteractionInput
     /// <summary>
     /// Gets or sets the options for the input. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
-    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; init; }
+    /// <remarks>
+    /// Either <see cref="Options"/> or <see cref="OptionsProvider"/> can be specified. Both properties can't be set on an input.
+    /// </remarks>
+    public IReadOnlyList<KeyValuePair<string, string>>? Options
+    {
+        get => _options;
+        init
+        {
+            _options = value;
+            ValidationOptionsSet();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the <see cref="InteractionOptionsProvider"/> for the input. Only used by <see cref="InputType.Choice"/> inputs.
+    /// </summary>
+    /// <remarks>
+    /// Either <see cref="Options"/> or <see cref="OptionsProvider"/> can be specified. Both properties can't be set on an input.
+    /// </remarks>
+    public InteractionOptionsProvider? OptionsProvider
+    {
+        get => _optionsProvider;
+        init
+        {
+            _optionsProvider = value;
+            ValidationOptionsSet();
+        }
+    }
+
+    internal InteractionOptionsProviderState? OptionsProviderState { get; set; }
+
+    private void ValidationOptionsSet()
+    {
+        if (_options != null && _optionsProvider != null)
+        {
+            throw new ArgumentException($"Either set {nameof(Options)} or {nameof(OptionsProvider)} on {nameof(InteractionInput)}. Both properties can't be set.");
+        }
+    }
 
     /// <summary>
     /// Gets or sets the value of the input.
@@ -194,8 +306,8 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// <param name="inputs">The collection of interaction inputs to wrap.</param>
     public InteractionInputCollection(IReadOnlyList<InteractionInput> inputs)
     {
-        var inputsByName = new Dictionary<string, InteractionInput>(StringComparer.OrdinalIgnoreCase);
-        var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inputsByName = new Dictionary<string, InteractionInput>(StringComparers.InteractionInputName);
+        var usedNames = new HashSet<string>(StringComparers.InteractionInputName);
 
         // Check for duplicate names
         foreach (var input in inputs)

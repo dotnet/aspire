@@ -94,7 +94,7 @@ internal static class InteractionCommands
                var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
 
                var input = result.Data;
-               logger.LogInformation("Input: {Label} = {Value}", input.Label, input.Value);
+               logger.LogInformation("Input: {Name} = {Value}", input.Name, input.Value);
 
                return CommandResults.Success();
            })
@@ -179,7 +179,118 @@ internal static class InteractionCommands
 
                foreach (var updatedInput in result.Data)
                {
-                   logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+                   logger.LogInformation("Input: {Name} = {Value}", updatedInput.Name, updatedInput.Value);
+               }
+
+               return CommandResults.Success();
+           })
+           .WithCommand("choice-interaction", "Choice interactions", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+               var predefinedOptionsInput = new InteractionInput
+               {
+                   Name = "PredefinedOptions",
+                   InputType = InputType.Choice,
+                   Placeholder = "Placeholder!",
+                   Required = true,
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1"),
+                       KeyValuePair.Create("option2", "Option 2"),
+                       KeyValuePair.Create("option3", "Option 3")
+                   ]
+               };
+               var customChoiceInput = new InteractionInput
+               {
+                   Name = "CustomChoice",
+                   InputType = InputType.Choice,
+                   Label = "Custom choice",
+                   Placeholder = "Placeholder!",
+                   AllowCustomChoice = true,
+                   Required = true,
+                   OptionsProvider = new InteractionOptionsProvider
+                   {
+                       LoadOptions = async (context) =>
+                       {
+                           await Task.Delay(1000, context.CancellationToken);
+
+                           // Simulate loading options from a database or web service.
+                           return [
+                               KeyValuePair.Create("option1", "Option 1"),
+                               KeyValuePair.Create("option2", "Option 2"),
+                               KeyValuePair.Create("option3", "Option 3")
+                           ];
+                       }
+                   }
+               };
+               var dependentOptionsProvider = new InteractionOptionsProvider
+               {
+                   LoadOptions = async (context) =>
+                   {
+                       await Task.Delay(1000, context.CancellationToken);
+
+                       var dependsOnInput = context.Inputs["PredefinedOptions"];
+
+                       var list = new List<KeyValuePair<string, string>>();
+                       for (var i = 0; i < 3; i++)
+                       {
+                           list.Add(KeyValuePair.Create($"option{i}-{dependsOnInput.Value}", $"Option {i} - {dependsOnInput.Value}"));
+                       }
+
+                       return list;
+                   },
+                   DependsOnInputs = ["PredefinedOptions"]
+               };
+               var dynamicInput = new InteractionInput
+               {
+                   Name = "Dynamic",
+                   InputType = InputType.Choice,
+                   Label = "Dynamic",
+                   Placeholder = "Select dynamic value",
+                   Required = true,
+                   OptionsProvider = dependentOptionsProvider
+               };
+               var dynamicCustomChoiceInput = new InteractionInput
+               {
+                   Name = "DynamicCustomChoice",
+                   InputType = InputType.Choice,
+                   Label = "Dynamic custom choice",
+                   Placeholder = "Select dynamic value",
+                   AllowCustomChoice = true,
+                   Required = true,
+                   OptionsProvider = dependentOptionsProvider
+               };
+
+               var inputs = new List<InteractionInput>
+               {
+                   predefinedOptionsInput,
+                   customChoiceInput,
+                   dynamicInput,
+                   dynamicCustomChoiceInput
+               };
+               var result = await interactionService.PromptInputsAsync(
+                   "Choice inputs",
+                   "Range of choice inputs",
+                   inputs,
+                   options: new InputsDialogInteractionOptions
+                   {
+                       ValidationCallback = context =>
+                       {
+                           return Task.CompletedTask;
+                       }
+                   },
+                   cancellationToken: commandContext.CancellationToken);
+
+               if (result.Canceled)
+               {
+                   return CommandResults.Failure("Canceled");
+               }
+
+               var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+               var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+               foreach (var updatedInput in result.Data)
+               {
+                   logger.LogInformation("Input: {Name} = {Value}", updatedInput.Name, updatedInput.Value);
                }
 
                return CommandResults.Success();
@@ -255,7 +366,7 @@ internal static class InteractionCommands
 
                foreach (var input in result.Data)
                {
-                   logger.LogInformation("Input: {Label} = {Value}", input.Label, input.Value);
+                   logger.LogInformation("Input: {Name} = {Value}", input.Name, input.Value);
                }
 
                return CommandResults.Success();
