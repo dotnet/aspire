@@ -76,6 +76,39 @@
           "targetPort": 5000
         }
       }
+    },
+    "static-gateway": {
+      "type": "container.v0",
+      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4",
+      "entrypoint": "dotnet",
+      "args": [
+        "/app/yarp.dll"
+      ],
+      "bindMounts": [
+        {
+          "source": "../static-content",
+          "target": "/wwwroot",
+          "readOnly": true
+        }
+      ],
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "YARP_ENABLE_STATIC_FILES": "true",
+        "REVERSEPROXY__ROUTES__route0__MATCH__PATH": "/api/{**catch-all}",
+        "REVERSEPROXY__ROUTES__route0__CLUSTERID": "cluster_backend",
+        "REVERSEPROXY__ROUTES__route0__TRANSFORMS__0__PathRemovePrefix": "/api",
+        "REVERSEPROXY__CLUSTERS__cluster_backend__DESTINATIONS__destination1__ADDRESS": "https\u002Bhttp://backend",
+        "services__backend__http__0": "{backend.bindings.http.url}",
+        "services__backend__https__0": "{backend.bindings.https.url}"
+      },
+      "bindings": {
+        "http": {
+          "scheme": "http",
+          "protocol": "tcp",
+          "transport": "http",
+          "targetPort": 5000
+        }
+      }
     }
   }
 }
