@@ -21,7 +21,7 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
-    private const string OtherValue = "__OTHER";
+    private const string CustomChoiceValue = "__CUSTOM_CHOICE";
 
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
@@ -590,13 +590,13 @@ internal abstract class PublishCommandBase : BaseCommand
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
-        // If AllowCustomChoice is enabled, add an "Other" option to the list.
-        // CLI doesn't support custom values directly in selection prompts. Instead an Other option is added.
-        // If Other is selected then the user is prompted to enter a custom value as text.
+        // If AllowCustomChoice is enabled then add an "Other" option to the list.
+        // CLI doesn't support custom values directly in selection prompts. Instead an "Other" option is added.
+        // If "Other" is selected then the user is prompted to enter a custom value as text.
         var options = input.Options.ToList();
         if (input.AllowCustomChoice)
         {
-            options.Add(KeyValuePair.Create(OtherValue, "Other (specify next)"));
+            options.Add(KeyValuePair.Create(CustomChoiceValue, InteractionServiceStrings.CustomChoiceLabel));
         }
 
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
@@ -607,7 +607,7 @@ internal abstract class PublishCommandBase : BaseCommand
             choice => choice.Value,
             cancellationToken);
 
-        if (value == OtherValue)
+        if (value == CustomChoiceValue)
         {
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
