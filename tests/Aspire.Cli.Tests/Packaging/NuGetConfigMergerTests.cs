@@ -618,12 +618,14 @@ public class NuGetConfigMergerTests
         var root = workspace.WorkspaceRoot;
 
         // Create an existing config
-        var existingConfig = @"<?xml version=""1.0"" encoding=""utf-8""?>
-<configuration>
-  <packageSources>
-    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
-  </packageSources>
-</configuration>";
+        var existingConfig = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <configuration>
+              <packageSources>
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """;
         
         await WriteConfigAsync(root, existingConfig);
 
@@ -667,12 +669,14 @@ public class NuGetConfigMergerTests
         var root = workspace.WorkspaceRoot;
 
         // Create an existing config
-        var existingConfig = @"<?xml version=""1.0"" encoding=""utf-8""?>
-<configuration>
-  <packageSources>
-    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
-  </packageSources>
-</configuration>";
+        var existingConfig = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <configuration>
+              <packageSources>
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """;
         
         await WriteConfigAsync(root, existingConfig);
         var originalContent = await File.ReadAllTextAsync(Path.Combine(root.FullName, "NuGet.config"));
