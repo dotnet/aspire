@@ -5,7 +5,7 @@ resource kusto 'Microsoft.Kusto/clusters@2024-04-13' = {
   name: take('kusto${uniqueString(resourceGroup().id)}', 24)
   location: location
   sku: {
-    name: 'Standard_D11_v2'
+    name: 'Standard_E2a_v4'
     capacity: 2
     tier: 'Standard'
   }
