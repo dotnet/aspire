@@ -27,9 +27,10 @@ internal class NuGetConfigMerger
     /// <param name="targetDirectory">The directory where the NuGet.config should be created or updated.</param>
     /// <param name="channel">The package channel providing mapping information.</param>
     /// <param name="confirmationCallback">Optional callback invoked before creating or updating the NuGet.config file. 
-    /// The callback receives the target file info, original content (null for new files), and proposed new content.
+    /// The callback receives the target file info, original content (null for new files), proposed new content, and a cancellation token.
     /// Return true to proceed with the update, false to skip it.</param>
-    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback = null)
+    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
         ArgumentNullException.ThrowIfNull(channel);
@@ -48,15 +49,15 @@ internal class NuGetConfigMerger
 
         if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            await CreateNewNuGetConfigAsync(targetDirectory, mappings, confirmationCallback);
+            await CreateNewNuGetConfigAsync(targetDirectory, mappings, confirmationCallback, cancellationToken);
         }
         else
         {
-            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings, confirmationCallback);
+            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings, confirmationCallback, cancellationToken);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
         if (mappings.Length == 0)
         {
@@ -74,7 +75,7 @@ internal class NuGetConfigMerger
             var proposedDocument = new XmlDocument();
             proposedDocument.Load(tmpConfig.ConfigFile.FullName);
             
-            var shouldProceed = await confirmationCallback(targetFile, null, proposedDocument);
+            var shouldProceed = await confirmationCallback(targetFile, null, proposedDocument, cancellationToken);
             if (!shouldProceed)
             {
                 return;
@@ -84,7 +85,7 @@ internal class NuGetConfigMerger
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
-    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback)
+    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
         if (mappings is null || mappings.Length == 0)
         {
@@ -120,7 +121,7 @@ internal class NuGetConfigMerger
             configContext.Document.Save(stringWriter);
             proposedDocument.LoadXml(stringWriter.ToString());
             
-            var shouldProceed = await confirmationCallback(nugetConfigFile, originalDocument, proposedDocument);
+            var shouldProceed = await confirmationCallback(nugetConfigFile, originalDocument, proposedDocument, cancellationToken);
             if (!shouldProceed)
             {
                 return;

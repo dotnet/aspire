@@ -112,7 +112,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 cancellationToken: cancellationToken);
 
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
-            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges);
+            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
         }
 
         interactionService.DisplayEmptyLine();
@@ -563,16 +563,16 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
     }
 
-    private async Task<bool> AnalyzeAndConfirmNuGetConfigChanges(FileInfo targetFile, XmlDocument? originalDocument, XmlDocument proposedDocument)
+    private async Task<bool> AnalyzeAndConfirmNuGetConfigChanges(FileInfo targetFile, XmlDocument? originalDocument, XmlDocument proposedDocument, CancellationToken cancellationToken)
     {
         interactionService.DisplayEmptyLine();
-        interactionService.DisplayMessage("package", $"Analyzing changes to NuGet.config: {targetFile.FullName}");
+        interactionService.DisplayPlainText($"Analyzing changes to NuGet.config: {targetFile.FullName}");
         
         var changes = AnalyzeNuGetConfigChanges(originalDocument, proposedDocument);
         
         if (!changes.HasChanges)
         {
-            interactionService.DisplayMessage("check_mark", "No changes detected in NuGet.config");
+            interactionService.DisplayPlainText("No changes detected in NuGet.config");
             return true;
         }
 
@@ -583,7 +583,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var shouldProceed = await interactionService.ConfirmAsync(
             "Apply these changes to NuGet.config?",
             defaultValue: false,
-            CancellationToken.None);
+            cancellationToken);
 
         return shouldProceed;
     }
@@ -604,6 +604,10 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Extract package source mappings from both documents
         var originalMappings = ExtractPackageSourceMappings(originalDocument);
         var proposedMappings = ExtractPackageSourceMappings(proposedDocument);
+
+        // Store mappings for display
+        changes.OriginalMappings = originalMappings;
+        changes.ProposedMappings = proposedMappings;
 
         // Analyze mapping changes
         changes.MappingChanges = AnalyzeMappingChanges(originalMappings, proposedMappings);
@@ -707,51 +711,65 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private void DisplayNuGetConfigChanges(NuGetConfigChanges changes)
     {
-        if (changes.AddedFeeds.Count > 0)
-        {
-            interactionService.DisplayMessage("package", "[bold green]Added package sources:[/]");
-            foreach (var feed in changes.AddedFeeds)
-            {
-                interactionService.DisplayMessage("  ", $"[green]+ {feed.Key}[/] ({feed.Value})");
-            }
-            interactionService.DisplayEmptyLine();
-        }
+        // Create a lookup of mapping changes by source for quick access
+        var mappingChangesBySource = changes.MappingChanges.ToDictionary(mc => mc.SourceKey, mc => mc);
 
-        if (changes.RemovedFeeds.Count > 0)
+        // Display added feeds with their mappings
+        foreach (var feed in changes.AddedFeeds)
         {
-            interactionService.DisplayMessage("package", "[bold red]Removed package sources:[/]");
-            foreach (var feed in changes.RemovedFeeds)
-            {
-                interactionService.DisplayMessage("  ", $"[red]- {feed.Key}[/] ({feed.Value})");
-            }
+            interactionService.DisplayPlainText($"Added: {feed.Value}");
             interactionService.DisplayEmptyLine();
-        }
-
-        if (changes.RetainedFeeds.Count > 0)
-        {
-            interactionService.DisplayMessage("package", "[bold blue]Retained package sources:[/]");
-            foreach (var feed in changes.RetainedFeeds)
+            
+            if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
             {
-                interactionService.DisplayMessage("  ", $"[blue]= {feed.Key}[/] ({feed.Value})");
-            }
-            interactionService.DisplayEmptyLine();
-        }
-
-        if (changes.MappingChanges.Count > 0)
-        {
-            interactionService.DisplayMessage("package", "[bold yellow]Package source mapping changes:[/]");
-            foreach (var mappingChange in changes.MappingChanges)
-            {
-                interactionService.DisplayMessage("  ", $"[yellow]Source: {mappingChange.SourceKey}[/]");
-                
-                foreach (var addedPattern in mappingChange.AddedPatterns)
+                foreach (var pattern in patterns)
                 {
-                    interactionService.DisplayMessage("    ", $"[green]+ {addedPattern}[/]");
+                    interactionService.DisplayPlainText($"   Mapping: {pattern} (added)");
+                }
+            }
+            interactionService.DisplayEmptyLine();
+        }
+
+        // Display removed feeds
+        foreach (var feed in changes.RemovedFeeds)
+        {
+            interactionService.DisplayPlainText($"Removed: {feed.Value}");
+            interactionService.DisplayEmptyLine();
+        }
+
+        // Display retained feeds with their mapping changes and current mappings
+        foreach (var feed in changes.RetainedFeeds)
+        {
+            interactionService.DisplayPlainText($"Retained: {feed.Value}");
+            interactionService.DisplayEmptyLine();
+            
+            if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
+            {
+                // Show added patterns
+                foreach (var pattern in mappingChange.AddedPatterns)
+                {
+                    interactionService.DisplayPlainText($"   Mapping: {pattern} (added)");
                 }
                 
-                foreach (var removedPattern in mappingChange.RemovedPatterns)
+                // Show removed patterns
+                foreach (var pattern in mappingChange.RemovedPatterns)
                 {
-                    interactionService.DisplayMessage("    ", $"[red]- {removedPattern}[/]");
+                    interactionService.DisplayPlainText($"   Mapping: {pattern} (removed)");
+                }
+            }
+            
+            // Show current/unchanged mappings in the proposed configuration
+            if (changes.ProposedMappings.TryGetValue(feed.Key, out var currentPatterns))
+            {
+                var addedPatterns = mappingChangesBySource.TryGetValue(feed.Key, out var currentMappingChange) ? currentMappingChange.AddedPatterns : new List<string>();
+                
+                foreach (var pattern in currentPatterns)
+                {
+                    // Only show patterns that weren't added (they are existing/unchanged)
+                    if (!addedPatterns.Contains(pattern))
+                    {
+                        interactionService.DisplayPlainText($"   Mapping: {pattern}");
+                    }
                 }
             }
             interactionService.DisplayEmptyLine();
@@ -769,6 +787,8 @@ internal class NuGetConfigChanges
     public List<PackageSourceInfo> RemovedFeeds { get; set; } = [];
     public List<PackageSourceInfo> RetainedFeeds { get; set; } = [];
     public List<MappingChange> MappingChanges { get; set; } = [];
+    public Dictionary<string, List<string>> OriginalMappings { get; set; } = new();
+    public Dictionary<string, List<string>> ProposedMappings { get; set; } = new();
 
     public bool HasChanges => AddedFeeds.Count > 0 || RemovedFeeds.Count > 0 || MappingChanges.Count > 0;
 }

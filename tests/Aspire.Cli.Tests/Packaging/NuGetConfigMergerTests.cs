@@ -561,7 +561,7 @@ public class NuGetConfigMergerTests
         XmlDocument? callbackOriginalContent = null;
         XmlDocument? callbackProposedContent = null;
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent, cancellationToken) =>
         {
             callbackInvoked = true;
             callbackTargetFile = targetFile;
@@ -597,7 +597,7 @@ public class NuGetConfigMergerTests
         
         bool callbackInvoked = false;
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent, cancellationToken) =>
         {
             callbackInvoked = true;
             return Task.FromResult(false); // Prevent the update
@@ -641,7 +641,7 @@ public class NuGetConfigMergerTests
         XmlDocument? callbackOriginalContent = null;
         XmlDocument? callbackProposedContent = null;
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent, cancellationToken) =>
         {
             callbackInvoked = true;
             callbackTargetFile = targetFile;
@@ -690,7 +690,7 @@ public class NuGetConfigMergerTests
         
         bool callbackInvoked = false;
 
-        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent, cancellationToken) =>
         {
             callbackInvoked = true;
             return Task.FromResult(false); // Prevent the update
