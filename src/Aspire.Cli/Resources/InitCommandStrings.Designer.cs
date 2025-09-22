@@ -86,5 +86,11 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireInitializationComplete", resourceCulture);
             }
         }
+        
+        internal static string MultipleSolutionsFound {
+            get {
+                return ResourceManager.GetString("MultipleSolutionsFound", resourceCulture);
+            }
+        }
     }
 }
