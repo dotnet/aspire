@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Cli.DotNet;
@@ -572,18 +573,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         
         if (!changes.HasChanges)
         {
-            interactionService.DisplayPlainText("No changes detected in NuGet.config");
+            interactionService.DisplayPlainText(UpdateCommandStrings.NoChangesDetectedInNuGetConfig);
             return true;
         }
-
-        interactionService.DisplayMessage("warning", "[yellow]The following changes will be made to NuGet.config:[/]");
-
-        interactionService.DisplayEmptyLine();
 
         DisplayNuGetConfigChanges(changes);
         
         var shouldProceed = await interactionService.ConfirmAsync(
-            "Apply these changes to NuGet.config?",
+            UpdateCommandStrings.ApplyChangesToNuGetConfig,
             defaultValue: false,
             cancellationToken);
 
@@ -719,14 +716,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display added feeds with their mappings
         foreach (var feed in changes.AddedFeeds)
         {
-            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (added)");
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddedFeedFormat, feed.Value));
             interactionService.DisplayEmptyLine();
             
             if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
             {
                 foreach (var pattern in patterns)
                 {
-                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (added)");
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingAddedFormat, pattern));
                 }
             }
             interactionService.DisplayEmptyLine();
@@ -735,14 +732,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display removed feeds
         foreach (var feed in changes.RemovedFeeds)
         {
-            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (removed)");
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovedFeedFormat, feed.Value));
             interactionService.DisplayEmptyLine();
         }
 
         // Display retained feeds with their mapping changes and current mappings
         foreach (var feed in changes.RetainedFeeds)
         {
-            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (retained)");
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RetainedFeedFormat, feed.Value));
             interactionService.DisplayEmptyLine();
             
             if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
@@ -750,13 +747,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 // Show added patterns
                 foreach (var pattern in mappingChange.AddedPatterns)
                 {
-                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (added)");
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingAddedFormat, pattern));
                 }
                 
                 // Show removed patterns
                 foreach (var pattern in mappingChange.RemovedPatterns)
                 {
-                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (removed)");
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingRemovedFormat, pattern));
                 }
             }
             
@@ -770,7 +767,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                     // Only show patterns that weren't added (they are existing/unchanged)
                     if (!addedPatterns.Contains(pattern))
                     {
-                        interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (retained)");
+                        interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingRetainedFormat, pattern));
                     }
                 }
             }

@@ -84,4 +84,28 @@
   <data name="CouldNotFindPackageVersionInDirectoryPackagesProps" xml:space="preserve">
     <value>Could not find PackageVersion element for '{0}' in {1}</value>
   </data>
+  <data name="NoChangesDetectedInNuGetConfig" xml:space="preserve">
+    <value>No changes detected in NuGet.config</value>
+  </data>
+  <data name="ApplyChangesToNuGetConfig" xml:space="preserve">
+    <value>Apply these changes to NuGet.config?</value>
+  </data>
+  <data name="AddedFeedFormat" xml:space="preserve">
+    <value>Added: {0}</value>
+  </data>
+  <data name="RemovedFeedFormat" xml:space="preserve">
+    <value>Removed: {0}</value>
+  </data>
+  <data name="RetainedFeedFormat" xml:space="preserve">
+    <value>Retained: {0}</value>
+  </data>
+  <data name="MappingAddedFormat" xml:space="preserve">
+    <value>   Mapping: {0} (added)</value>
+  </data>
+  <data name="MappingRemovedFormat" xml:space="preserve">
+    <value>   Mapping: {0} (removed)</value>
+  </data>
+  <data name="MappingRetainedFormat" xml:space="preserve">
+    <value>   Mapping: {0}</value>
+  </data>
 </root>
