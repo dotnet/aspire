@@ -681,36 +681,26 @@ Redis and RabbitMQ connections now support auto activation to prevent startup de
 - **Improves reliability**: Reduces first-request latency by pre-establishing connections
 - **Configurable behavior**: Can be enabled or disabled per connection as needed
 
+#### Redis
+
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
+var redis = builder.AddRedis("redis");
 
-// Auto activation enabled by default for Redis
-var redis = builder.AddRedis("cache");
-
-// Use in applications - connection is already established
-var api = builder.AddProject<Projects.Api>("api")
-    .WithReference(redis);
+// Auto activation is disabled by default for Redis, enable using DisableAutoActivation=false
+var redisClient = builder.AddRedisClient("redis", c => c.DisableAutoActivation = false);
 
 builder.Build().Run();
 ```
 
-#### RabbitMQ auto activation configuration
+#### RabbitMQ
 
 ```csharp
-// Application (not AppHost) code
-var builder = Host.CreateApplicationBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
+var messaging = builder.AddRabbitMQ("messaging");
 
-// Default: auto activation ENABLED (no extra configuration required)
-builder.AddRabbitMQClient("messaging");
-
-// --- OR --- Opt out of auto activation (connection will be created lazily)
-// builder.AddRabbitMQClient("messaging", settings =>
-// {
-//     settings.DisableAutoActivation = true; // disable auto activation
-// });
-
-var app = builder.Build();
-app.Run();
+// Auto activation is disabled by default for RabbitMQ, enable using DisableAutoActivation=false
+builder.AddRabbitMQClient("messaging", o => o.DisableAutoActivation = false);
 ```
 
 ### Redis client builder pattern
