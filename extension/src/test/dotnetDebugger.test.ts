@@ -1,81 +1,122 @@
 import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
-import { projectDebuggerExtension, buildDotNetProject, getDotNetTargetPath } from '../debugger/languages/dotnet';
-import { AspireResourceExtendedDebugConfiguration } from '../dcp/types';
+import { createProjectDebuggerExtension, projectDebuggerExtension } from '../debugger/languages/dotnet';
+import { AspireResourceExtendedDebugConfiguration, LaunchConfiguration } from '../dcp/types';
 import * as io from '../utils/io';
-import * as launchProfiles from '../debugger/launchProfiles';
+import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
+
+class TestDotNetService {
+    private _getDotNetTargetPathStub: sinon.SinonStub;
+    private _hasDevKit: boolean;
+
+    public buildDotNetProjectStub: sinon.SinonStub;
+
+    constructor(outputPath: string, rejectBuild: Error | null, hasDevKit: boolean) {
+        this._getDotNetTargetPathStub = sinon.stub();
+        this._getDotNetTargetPathStub.resolves(outputPath);
+
+        this.buildDotNetProjectStub = sinon.stub();
+        if (rejectBuild) {
+            this.buildDotNetProjectStub.rejects(rejectBuild);
+        } else {
+            this.buildDotNetProjectStub.resolves();
+        }
+
+        this._hasDevKit = hasDevKit;
+    }
+
+    getDotNetTargetPath(projectFile: string): Promise<string> {
+        return this._getDotNetTargetPathStub(projectFile);
+    }
+
+    buildDotNetProject(projectFile: string): Promise<void> {
+        return this.buildDotNetProjectStub(projectFile);
+    }
+
+    getAndActivateDevKit(): Promise<boolean> {
+        return Promise.resolve(this._hasDevKit);
+    }
+}
 
 suite('Dotnet Debugger Extension Tests', () => {
     teardown(() => sinon.restore());
 
-    test('createDebugSessionConfigurationCallback works when C# dev kit is not installed', async () => {
-        const projectPath = 'C:\\temp\\TestProject.csproj';
+    function createDebuggerExtension(outputPath: string, rejectBuild: Error | null, hasDevKit: boolean, doesOutputFileExist: boolean): { dotNetService: TestDotNetService, extension: ResourceDebuggerExtension, doesFileExistStub: sinon.SinonStub } {
+        const fakeDotNetService = new TestDotNetService(outputPath, rejectBuild, hasDevKit);
+        return { dotNetService: fakeDotNetService, extension: createProjectDebuggerExtension(fakeDotNetService), doesFileExistStub: sinon.stub(io, 'doesFileExist').resolves(doesOutputFileExist) };
+    }
+    test('project is built when C# dev kit is installed and executable not found', async () => {
         const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
+        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, false);
 
-        const dotnetModule = require('../debugger/languages/dotnet');
-        sinon.stub(dotnetModule, 'getDotNetTargetPath').resolves(outputPath);
-
-        sinon.stub(io, 'doesFileExist').resolves(false);
-
-        // Simulate C# dev kit not installed
-        sinon.stub(vscode.extensions, 'getExtension').withArgs('ms-dotnettools.csdevkit').returns(undefined);
-
-        const launchConfig: any = {
+        const projectPath = 'C:\\temp\\TestProject.csproj';
+        const launchConfig: LaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
 
-        const debugConfig: AspireResourceExtendedDebugConfiguration = { runId: '1', debugSessionId: null } as any;
+        const debugConfig: AspireResourceExtendedDebugConfiguration = {
+            runId: '1',
+            debugSessionId: '1',
+            type: 'coreclr',
+            name: 'Test Debug Config',
+            request: 'launch'
+        };
 
-        await (projectDebuggerExtension as any).createDebugSessionConfigurationCallback(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: null }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
+        assert.strictEqual(dotNetService.buildDotNetProjectStub.called, true);
     });
 
-    test('createDebugSessionConfigurationCallback calls buildDotNetProject on successful build', async () => {
-        const projectPath = 'C:\\temp\\TestProject.csproj';
+    test('project is not built when C# dev kit is not installed and executable not found', async () => {
         const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
 
-        const dotnetModule = require('../debugger/languages/dotnet');
-        sinon.stub(dotnetModule, 'getDotNetTargetPath').resolves(outputPath);
-        sinon.stub(io, 'doesFileExist').resolves(false);
+        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, false, false);
 
-        const buildStub = sinon.stub(dotnetModule, 'buildDotNetProject').resolves();
-
-        const launchConfig: any = {
+        const projectPath = 'C:\\temp\\TestProject.csproj';
+        const launchConfig: LaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
 
-        const debugConfig: AspireResourceExtendedDebugConfiguration = { runId: '1', debugSessionId: null } as any;
+        const debugConfig: AspireResourceExtendedDebugConfiguration = {
+            runId: '1',
+            debugSessionId: '1',
+            type: 'coreclr',
+            name: 'Test Debug Config',
+            request: 'launch'
+        };
 
-        await (projectDebuggerExtension as any).createDebugSessionConfigurationCallback(launchConfig, ['arg1'], [], { debug: true, runId: '1', debugSessionId: null }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
-        assert.strictEqual(buildStub.calledOnceWithExactly(projectPath), true);
+        assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
     });
 
-    test('createDebugSessionConfigurationCallback rejects when build fails', async () => {
-        const projectPath = 'C:\\temp\\TestProject.csproj';
+    test('project is not built when C# dev kit is installed and executable found', async () => {
         const outputPath = 'C:\\temp\\bin\\Debug\\net7.0\\TestProject.dll';
+        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
-        const dotnetModule = require('../debugger/languages/dotnet');
-        sinon.stub(dotnetModule, 'getDotNetTargetPath').resolves(outputPath);
-        sinon.stub(io, 'doesFileExist').resolves(false);
-
-        const buildStub = sinon.stub(dotnetModule, 'buildDotNetProject').rejects(new Error('build failed'));
-
-        const launchConfig: any = {
+        const projectPath = 'C:\\temp\\TestProject.csproj';
+        const launchConfig: LaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
 
-        const debugConfig: AspireResourceExtendedDebugConfiguration = { runId: '1', debugSessionId: null } as any;
+        const debugConfig: AspireResourceExtendedDebugConfiguration = {
+            runId: '1',
+            debugSessionId: '1',
+            type: 'coreclr',
+            name: 'Test Debug Config',
+            request: 'launch'
+        };
 
-        await (projectDebuggerExtension as any).createDebugSessionConfigurationCallback(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: null }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
 
-        assert.strictEqual(buildStub.calledOnceWithExactly(projectPath), true);
+        assert.strictEqual(debugConfig.program, outputPath);
+        assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
     });
 
     test('applies launch profile settings to debug configuration', async () => {
@@ -110,12 +151,9 @@ suite('Dotnet Debugger Extension Tests', () => {
         fs.writeFileSync(path.join(propertiesDir, 'launchSettings.json'), JSON.stringify(launchSettings, null, 2));
 
         const outputPath = path.join(projectDir, 'bin', 'Debug', 'net7.0', 'TestProject.dll');
+        const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
-        const dotnetModule = require('../debugger/languages/dotnet');
-        sinon.stub(dotnetModule, 'getDotNetTargetPath').resolves(outputPath);
-        sinon.stub(io, 'doesFileExist').resolves(true); // file exists -> no build
-
-        const launchConfig: any = {
+        const launchConfig: LaunchConfiguration = {
             type: 'project',
             project_path: projectPath,
             launch_profile: 'Development'
@@ -127,9 +165,15 @@ suite('Dotnet Debugger Extension Tests', () => {
             { name: 'RUN', value: 'run' }
         ];
 
-        const debugConfig: any = { runId: '1', debugSessionId: null };
+        const debugConfig: AspireResourceExtendedDebugConfiguration = {
+            runId: '1',
+            debugSessionId: '1',
+            type: 'coreclr',
+            name: 'Test Debug Config',
+            request: 'launch'
+        };
 
-        await (projectDebuggerExtension as any).createDebugSessionConfigurationCallback(launchConfig, undefined as any, runEnv, { debug: true, runId: '1', debugSessionId: null }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, undefined, runEnv, { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
 
         // program should be set
         assert.strictEqual(debugConfig.program, outputPath);
