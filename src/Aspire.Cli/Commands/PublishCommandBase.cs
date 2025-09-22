@@ -21,6 +21,8 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
+    private const string s_otherValue = "__OTHER";
+
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
@@ -583,8 +585,6 @@ internal abstract class PublishCommandBase : BaseCommand
 
     private async Task<string?> HandleSelectInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
-        const string OtherValue = "__OTHER";
-
         if (input.Options is null || input.Options.Count == 0)
         {
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
@@ -596,7 +596,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var options = input.Options.ToList();
         if (input.AllowCustomChoice)
         {
-            options.Add(KeyValuePair.Create(OtherValue, "Other (specify next)"));
+            options.Add(KeyValuePair.Create(s_otherValue, "Other (specify next)"));
         }
 
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
@@ -607,7 +607,7 @@ internal abstract class PublishCommandBase : BaseCommand
             choice => choice.Value,
             cancellationToken);
 
-        if (value == OtherValue)
+        if (value == s_otherValue)
         {
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
