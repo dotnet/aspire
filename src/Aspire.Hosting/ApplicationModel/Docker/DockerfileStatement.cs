@@ -4,9 +4,9 @@
 namespace Aspire.Hosting.ApplicationModel.Docker;
 
 /// <summary>
-/// Represents a statement that can be written to a container file.
+/// Represents a statement that can be written to a Dockerfile.
 /// </summary>
-public interface IContainerfileStatement
+public abstract class DockerfileStatement
 {
     /// <summary>
     /// Writes the statement to the specified stream.
@@ -14,5 +14,5 @@ public interface IContainerfileStatement
     /// <param name="stream">The stream to write to.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
-    Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default);
+    public abstract Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default);
 }
