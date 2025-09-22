@@ -580,13 +580,12 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         
         interactionService.DisplayEmptyLine();
         
-        var shouldProceed = await interactionService.PromptForSelectionAsync(
+        var shouldProceed = await interactionService.ConfirmAsync(
             "Apply these changes to NuGet.config?",
-            ["Yes", "No"],
-            choice => choice,
+            defaultValue: false,
             CancellationToken.None);
 
-        return string.Equals(shouldProceed, "Yes", StringComparison.OrdinalIgnoreCase);
+        return shouldProceed;
     }
 
     private static NuGetConfigChanges AnalyzeNuGetConfigChanges(XmlDocument? originalDocument, XmlDocument proposedDocument)
