@@ -86,7 +86,7 @@ public sealed class ResourceUrlHelpersTests
             {
                 Assert.Equal("tcp://localhost:8081", e.Text);
                 Assert.Equal("Test2", e.Name);
-                Assert.Equal("tcp://localhost:8081", e.Url);
+                Assert.Null(e.Url);
                 Assert.Equal("localhost", e.Address);
                 Assert.Equal(8081, e.Port);
             });
@@ -235,8 +235,8 @@ public sealed class ResourceUrlHelpersTests
         Assert.Collection(endpoints,
             e => Assert.Equal("Z", e.Name),
             e => Assert.Equal("a", e.Name),
-            e => Assert.Equal("B", e.Name),
             e => Assert.Equal("C", e.Name),
+            e => Assert.Equal("B", e.Name),
             e => Assert.Equal("D", e.Name));
     }
 
