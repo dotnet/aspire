@@ -6,5 +6,4 @@ namespace Aspire.Cli.Templating;
 internal interface ITemplateFactory
 {
     IEnumerable<ITemplate> GetTemplates();
-    IEnumerable<ITemplate> GetAllTemplates();
 }
