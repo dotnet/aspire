@@ -10,6 +10,7 @@ internal static class ResourceUrlHelpers
 {
     // These are known URL schemes that browsers don't support opening. Don't attempt to display them as a link.
     // Not displaying them as a link makes it clear what can be opened in a browser (http, https) vs what can't (tcp, ws).
+    // This is a deny list because custom schemes could hand off the link to an app registered with the OS. For example, vscode://.
     private static readonly HashSet<string> s_browserUnsupportedSchemes = new(StringComparer.OrdinalIgnoreCase)
     {
         "gopher",
