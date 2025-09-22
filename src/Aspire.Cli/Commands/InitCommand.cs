@@ -9,6 +9,7 @@ using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
@@ -23,6 +24,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly INewCommandPrompter _prompter;
     private readonly ITemplateFactory _templateFactory;
     private readonly IPackagingService _packagingService;
+    private readonly ISolutionLocator _solutionLocator;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IFeatures _features;
@@ -45,6 +47,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         INewCommandPrompter prompter,
         ITemplateFactory templateFactory,
         IPackagingService packagingService,
+        ISolutionLocator solutionLocator,
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
@@ -58,6 +61,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(templateFactory);
         ArgumentNullException.ThrowIfNull(packagingService);
+        ArgumentNullException.ThrowIfNull(solutionLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
@@ -66,6 +70,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _prompter = prompter;
         _templateFactory = templateFactory;
         _packagingService = packagingService;
+        _solutionLocator = solutionLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _features = features;
@@ -93,8 +98,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        // Check for solution files (.sln or .slnx) in the current directory
-        var solutionFile = FindSolutionFile(_executionContext.WorkingDirectory);
+        // Use SolutionLocator to find solution files, walking up the directory tree
+        var solutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
 
         if (solutionFile is not null)
         {
@@ -108,89 +113,116 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private static FileInfo? FindSolutionFile(DirectoryInfo directory)
-    {
-        // Look for .sln files first, then .slnx files
-        var solutionFiles = directory.GetFiles("*.sln", SearchOption.TopDirectoryOnly);
-        if (solutionFiles.Length > 0)
-        {
-            return solutionFiles[0]; // Use the first .sln file found
-        }
-
-        var slnxFiles = directory.GetFiles("*.slnx", SearchOption.TopDirectoryOnly);
-        if (slnxFiles.Length > 0)
-        {
-            return slnxFiles[0]; // Use the first .slnx file found
-        }
-
-        return null;
-    }
-
     private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Create AppHost project
-        InteractionService.DisplayMessage("construction", InitCommandStrings.CreatingAppHostProject);
-        var appHostTemplate = _templateFactory.GetAllTemplates().First(t => t.Name == "aspire-apphost");
-        var appHostResult = await appHostTemplate.ApplyTemplateAsync(parseResult, cancellationToken);
+        // Use the "aspire" template which creates both AppHost and ServiceDefaults projects
+        InteractionService.DisplayMessage("construction", "Creating Aspire projects...");
+        var aspireTemplate = _templateFactory.GetAllTemplates().First(t => t.Name == "aspire");
         
-        if (appHostResult.ExitCode != 0)
-        {
-            return appHostResult.ExitCode;
-        }
-
-        // Create ServiceDefaults project
-        InteractionService.DisplayMessage("construction", InitCommandStrings.CreatingServiceDefaultsProject);
-        var serviceDefaultsTemplate = _templateFactory.GetAllTemplates().First(t => t.Name == "aspire-servicedefaults");
-        var serviceDefaultsResult = await serviceDefaultsTemplate.ApplyTemplateAsync(parseResult, cancellationToken);
+        // Create a temporary directory for the template output
+        var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempProjectDir);
         
-        if (serviceDefaultsResult.ExitCode != 0)
+        try
         {
-            return serviceDefaultsResult.ExitCode;
-        }
-
-        // Add projects to solution
-        InteractionService.DisplayMessage("plus", InitCommandStrings.AddingProjectsToSolution);
-        
-        if (appHostResult.OutputPath is not null)
-        {
-            var appHostProjectFile = FindProjectFile(appHostResult.OutputPath);
-            if (appHostProjectFile is not null)
+            // Set up the parse result to use the temporary directory
+            var tempParseResult = CreateParseResultWithOutput(parseResult, tempProjectDir);
+            var aspireResult = await aspireTemplate.ApplyTemplateAsync(tempParseResult, cancellationToken);
+            
+            if (aspireResult.ExitCode != 0)
             {
-                var addAppHostResult = await _runner.AddProjectToSolutionAsync(
-                    solutionFile, 
-                    appHostProjectFile, 
-                    new DotNetCliRunnerInvocationOptions(), 
-                    cancellationToken);
-                
-                if (addAppHostResult != 0)
-                {
-                    return addAppHostResult;
-                }
+                return aspireResult.ExitCode;
+            }
+
+            // Find the created projects in the temporary directory
+            var tempDir = new DirectoryInfo(tempProjectDir);
+            var appHostProjects = tempDir.GetDirectories("*.AppHost", SearchOption.TopDirectoryOnly);
+            var serviceDefaultsProjects = tempDir.GetDirectories("*.ServiceDefaults", SearchOption.TopDirectoryOnly);
+
+            if (appHostProjects.Length == 0 || serviceDefaultsProjects.Length == 0)
+            {
+                InteractionService.DisplayError("Failed to find created AppHost or ServiceDefaults projects in template output.");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+
+            var appHostProjectDir = appHostProjects[0];
+            var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
+
+            // Move the projects to the solution directory
+            var solutionDir = solutionFile.Directory!;
+            var finalAppHostDir = Path.Combine(solutionDir.FullName, appHostProjectDir.Name);
+            var finalServiceDefaultsDir = Path.Combine(solutionDir.FullName, serviceDefaultsProjectDir.Name);
+
+            Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
+            Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+
+            // Add projects to solution
+            InteractionService.DisplayMessage("plus", InitCommandStrings.AddingProjectsToSolution);
+            
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+
+            var addAppHostResult = await _runner.AddProjectToSolutionAsync(
+                solutionFile, 
+                appHostProjectFile, 
+                new DotNetCliRunnerInvocationOptions(), 
+                cancellationToken);
+            
+            if (addAppHostResult != 0)
+            {
+                return addAppHostResult;
+            }
+
+            var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
+                solutionFile, 
+                serviceDefaultsProjectFile, 
+                new DotNetCliRunnerInvocationOptions(), 
+                cancellationToken);
+            
+            if (addServiceDefaultsResult != 0)
+            {
+                return addServiceDefaultsResult;
+            }
+
+            await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+            
+            InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
+            return ExitCodeConstants.Success;
+        }
+        finally
+        {
+            // Clean up temporary directory
+            if (Directory.Exists(tempProjectDir))
+            {
+                Directory.Delete(tempProjectDir, recursive: true);
             }
         }
+    }
 
-        if (serviceDefaultsResult.OutputPath is not null)
-        {
-            var serviceDefaultsProjectFile = FindProjectFile(serviceDefaultsResult.OutputPath);
-            if (serviceDefaultsProjectFile is not null)
-            {
-                var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
-                    solutionFile, 
-                    serviceDefaultsProjectFile, 
-                    new DotNetCliRunnerInvocationOptions(), 
-                    cancellationToken);
-                
-                if (addServiceDefaultsResult != 0)
-                {
-                    return addServiceDefaultsResult;
-                }
-            }
-        }
-
-        await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
+    private static ParseResult CreateParseResultWithOutput(ParseResult originalResult, string outputPath)
+    {
+        // Create a new argument list with the output path set
+        var args = new List<string> { "init" };
         
-        InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
-        return ExitCodeConstants.Success;
+        // Copy existing arguments except output
+        foreach (var token in originalResult.Tokens)
+        {
+            if (token.Type == System.CommandLine.Parsing.TokenType.Option && token.Value.StartsWith("--output"))
+            {
+                continue; // Skip existing output options
+            }
+            if (token.Type == System.CommandLine.Parsing.TokenType.Argument && token.Value.StartsWith("-o"))
+            {
+                continue; // Skip existing output options
+            }
+            args.Add(token.Value);
+        }
+        
+        // Add the temporary output path
+        args.Add("--output");
+        args.Add(outputPath);
+        
+        return originalResult.CommandResult.Command.Parse(args.ToArray());
     }
 
     private async Task<int> CreateSingleFileAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -218,12 +250,5 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return result.ExitCode;
-    }
-
-    private static FileInfo? FindProjectFile(string directoryPath)
-    {
-        var directory = new DirectoryInfo(directoryPath);
-        var projectFiles = directory.GetFiles("*.csproj", SearchOption.TopDirectoryOnly);
-        return projectFiles.Length > 0 ? projectFiles[0] : null;
     }
 }

@@ -81,4 +81,7 @@
   <data name="AspireInitializationComplete" xml:space="preserve">
     <value>Aspire initialization complete!</value>
   </data>
+  <data name="MultipleSolutionsFound" xml:space="preserve">
+    <value>Multiple solution files found. Please select which one to add the Aspire projects to:</value>
+  </data>
 </root>
