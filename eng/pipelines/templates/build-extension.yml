@@ -115,7 +115,7 @@ steps:
             "/p:Sign=true"
             "/p:SignType=$(_SignType)"
             "/p:ArtifactsPackagesDir=$artifactsDir\"
-            "/bl:$(Build.Arcade.LogsPath)Build.binlog"
+            "/bl:$(Build.Arcade.LogsPath)ExtensionSigning.binlog"
             "/v:normal"
           )
 
@@ -147,3 +147,10 @@ steps:
     inputs:
       PathtoPublish: '${{ parameters.repoArtifactsPath }}packages/'
       ArtifactName: aspire-extension
+
+  - name: Upload logs
+    if: always()
+    uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
+    with:
+      name: cli-native-logs-${{ matrix.targets.rids }}
+      path: artifacts/log/**
