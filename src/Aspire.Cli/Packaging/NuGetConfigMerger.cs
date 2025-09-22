@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Xml.Linq;
+using System.Xml;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Cli.Packaging;
@@ -25,7 +26,10 @@ internal class NuGetConfigMerger
     /// </summary>
     /// <param name="targetDirectory">The directory where the NuGet.config should be created or updated.</param>
     /// <param name="channel">The package channel providing mapping information.</param>
-    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel)
+    /// <param name="confirmationCallback">Optional callback invoked before creating or updating the NuGet.config file. 
+    /// The callback receives the target file info, original content (null for new files), and proposed new content.
+    /// Return true to proceed with the update, false to skip it.</param>
+    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback = null)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
         ArgumentNullException.ThrowIfNull(channel);
@@ -44,15 +48,15 @@ internal class NuGetConfigMerger
 
         if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            await CreateNewNuGetConfigAsync(targetDirectory, mappings);
+            await CreateNewNuGetConfigAsync(targetDirectory, mappings, confirmationCallback);
         }
         else
         {
-            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings);
+            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings, confirmationCallback);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback)
     {
         if (mappings.Length == 0)
         {
@@ -60,15 +64,40 @@ internal class NuGetConfigMerger
         }
 
         var targetPath = Path.Combine(targetDirectory.FullName, "NuGet.config");
+        var targetFile = new FileInfo(targetPath);
+        
         using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+        
+        if (confirmationCallback is not null)
+        {
+            // Load the proposed content as XmlDocument for the callback
+            var proposedDocument = new XmlDocument();
+            proposedDocument.Load(tmpConfig.ConfigFile.FullName);
+            
+            var shouldProceed = await confirmationCallback(targetFile, null, proposedDocument);
+            if (!shouldProceed)
+            {
+                return;
+            }
+        }
+        
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
-    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings)
+    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings, Func<FileInfo, XmlDocument?, XmlDocument, Task<bool>>? confirmationCallback)
     {
         if (mappings is null || mappings.Length == 0)
         {
             return;
+        }
+
+        // Load original content for callback
+        XmlDocument? originalDocument = null;
+        if (confirmationCallback is not null)
+        {
+            originalDocument = new XmlDocument();
+            using var stream = nugetConfigFile.OpenRead();
+            originalDocument.Load(stream);
         }
 
         var configContext = await LoadAndValidateConfigAsync(nugetConfigFile, mappings);
@@ -81,6 +110,21 @@ internal class NuGetConfigMerger
         else
         {
             CreateNewPackageSourceMapping(configContext);
+        }
+
+        if (confirmationCallback is not null)
+        {
+            // Convert XDocument to XmlDocument for the callback
+            var proposedDocument = new XmlDocument();
+            using var stringWriter = new StringWriter();
+            configContext.Document.Save(stringWriter);
+            proposedDocument.LoadXml(stringWriter.ToString());
+            
+            var shouldProceed = await confirmationCallback(nugetConfigFile, originalDocument, proposedDocument);
+            if (!shouldProceed)
+            {
+                return;
+            }
         }
         
         await SaveConfigAsync(nugetConfigFile, configContext.Document);

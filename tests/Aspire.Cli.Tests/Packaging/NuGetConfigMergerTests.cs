@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Xml.Linq;
+using System.Xml;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Tests.Utils;
@@ -540,6 +541,185 @@ public class NuGetConfigMergerTests
         
         // There should be two packageSource elements (nuget.org and valid.example)
         Assert.Equal(2, psm.Elements("packageSource").Count());
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_CallbackInvokedForNewConfig()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://feed1.example")
+        };
+
+        var channel = CreateChannel(mappings);
+        
+        bool callbackInvoked = false;
+        FileInfo? callbackTargetFile = null;
+        XmlDocument? callbackOriginalContent = null;
+        XmlDocument? callbackProposedContent = null;
+
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        {
+            callbackInvoked = true;
+            callbackTargetFile = targetFile;
+            callbackOriginalContent = originalContent;
+            callbackProposedContent = proposedContent;
+            return Task.FromResult(true); // Proceed with the update
+        });
+
+        // Verify callback was invoked
+        Assert.True(callbackInvoked);
+        Assert.NotNull(callbackTargetFile);
+        Assert.Null(callbackOriginalContent); // Should be null for new files
+        Assert.NotNull(callbackProposedContent);
+
+        // Verify file was created
+        var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
+        Assert.True(File.Exists(targetConfigPath));
+        Assert.Equal(targetConfigPath, callbackTargetFile.FullName);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_CallbackCanPreventNewConfigCreation()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://feed1.example")
+        };
+
+        var channel = CreateChannel(mappings);
+        
+        bool callbackInvoked = false;
+
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        {
+            callbackInvoked = true;
+            return Task.FromResult(false); // Prevent the update
+        });
+
+        // Verify callback was invoked
+        Assert.True(callbackInvoked);
+
+        // Verify file was NOT created
+        var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
+        Assert.False(File.Exists(targetConfigPath));
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_CallbackInvokedForExistingConfig()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Create an existing config
+        var existingConfig = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<configuration>
+  <packageSources>
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
+  </packageSources>
+</configuration>";
+        
+        await WriteConfigAsync(root, existingConfig);
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://feed1.example")
+        };
+
+        var channel = CreateChannel(mappings);
+        
+        bool callbackInvoked = false;
+        FileInfo? callbackTargetFile = null;
+        XmlDocument? callbackOriginalContent = null;
+        XmlDocument? callbackProposedContent = null;
+
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        {
+            callbackInvoked = true;
+            callbackTargetFile = targetFile;
+            callbackOriginalContent = originalContent;
+            callbackProposedContent = proposedContent;
+            return Task.FromResult(true); // Proceed with the update
+        });
+
+        // Verify callback was invoked
+        Assert.True(callbackInvoked);
+        Assert.NotNull(callbackTargetFile);
+        Assert.NotNull(callbackOriginalContent); // Should have original content for existing files
+        Assert.NotNull(callbackProposedContent);
+
+        // Verify file exists and was updated
+        var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
+        Assert.True(File.Exists(targetConfigPath));
+        Assert.Equal(targetConfigPath, callbackTargetFile.FullName);
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_CallbackCanPreventExistingConfigUpdate()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        // Create an existing config
+        var existingConfig = @"<?xml version=""1.0"" encoding=""utf-8""?>
+<configuration>
+  <packageSources>
+    <add key=""nuget.org"" value=""https://api.nuget.org/v3/index.json"" />
+  </packageSources>
+</configuration>";
+        
+        await WriteConfigAsync(root, existingConfig);
+        var originalContent = await File.ReadAllTextAsync(Path.Combine(root.FullName, "NuGet.config"));
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://feed1.example")
+        };
+
+        var channel = CreateChannel(mappings);
+        
+        bool callbackInvoked = false;
+
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel, (targetFile, originalContent, proposedContent) =>
+        {
+            callbackInvoked = true;
+            return Task.FromResult(false); // Prevent the update
+        });
+
+        // Verify callback was invoked
+        Assert.True(callbackInvoked);
+
+        // Verify file content was NOT changed
+        var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
+        var currentContent = await File.ReadAllTextAsync(targetConfigPath);
+        Assert.Equal(NormalizeLineEndings(originalContent), NormalizeLineEndings(currentContent));
+    }
+
+    [Fact]
+    public async Task CreateOrUpdateAsync_WorksWithoutCallback()
+    {
+        using var workspace = TemporaryWorkspace.Create(_outputHelper);
+        var root = workspace.WorkspaceRoot;
+
+        var mappings = new[]
+        {
+            new PackageMapping("Aspire.*", "https://feed1.example")
+        };
+
+        var channel = CreateChannel(mappings);
+        
+        // Call without callback - should work as before
+        await NuGetConfigMerger.CreateOrUpdateAsync(root, channel);
+
+        // Verify file was created
+        var targetConfigPath = Path.Combine(root.FullName, "NuGet.config");
+        Assert.True(File.Exists(targetConfigPath));
     }
 
     private static string NormalizeLineEndings(string text) => text.Replace("\r\n", "\n");
