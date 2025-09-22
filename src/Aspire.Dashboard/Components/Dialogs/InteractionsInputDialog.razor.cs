@@ -39,7 +39,7 @@ public partial class InteractionsInputDialog
         _validationMessages = new ValidationMessageStore(_editContext);
 
         _editContext.OnValidationRequested += (s, e) => ValidateModel();
-        _editContext.OnFieldChanged += (s, e) => ValidateField(e.FieldIdentifier);
+        _editContext.OnFieldChanged += (s, e) => FieldChanged(e.FieldIdentifier);
 
         _elementRefs = new();
         _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
@@ -130,7 +130,7 @@ public partial class InteractionsInputDialog
         _editContext.NotifyValidationStateChanged();
     }
 
-    private void ValidateField(FieldIdentifier field)
+    private void FieldChanged(FieldIdentifier field)
     {
         _validationMessages.Clear(field);
 
@@ -139,6 +139,12 @@ public partial class InteractionsInputDialog
             if (IsMissingRequiredValue(inputModel))
             {
                 _validationMessages.Add(field, $"{inputModel.Input.Label} is required.");
+            }
+
+            if (inputModel.Input.UpdateStateOnchange)
+            {
+                Content.Interaction.InputsDialog?.DependOnChange = true;
+                _ = Content.OnSubmitCallback(Content.Interaction);
             }
         }
 
@@ -172,6 +178,7 @@ public partial class InteractionsInputDialog
         // 4. If validation fails, the server sends back validation errors which are displayed in the dialog.
         if (_editContext.Validate())
         {
+            Content.Interaction.InputsDialog?.DependOnChange = false;
             await Content.OnSubmitCallback(Content.Interaction);
         }
     }
