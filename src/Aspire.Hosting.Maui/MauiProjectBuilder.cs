@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 // Android provisioning removed for now.
 
 namespace Aspire.Hosting.Maui;
@@ -28,6 +29,19 @@ public sealed class MauiProjectBuilder
         _mauiLogicalResource = logical;
         _projectPath = projectPath;
         _availableTfms = LoadTargetFrameworks(projectPath);
+
+        // Warn if the user never added at least one MAUI platform for this project.
+        appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+        {
+            if (_platformResources.Count == 0)
+            {
+                var loggerFactory = evt.Services.GetRequiredService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger("Aspire.Hosting.Maui");
+                logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
+            }
+
+            return Task.CompletedTask;
+        });
     }
 
     /// <summary>
