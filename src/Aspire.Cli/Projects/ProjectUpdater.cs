@@ -566,8 +566,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private async Task<bool> AnalyzeAndConfirmNuGetConfigChanges(FileInfo targetFile, XmlDocument? originalDocument, XmlDocument proposedDocument, CancellationToken cancellationToken)
     {
         interactionService.DisplayEmptyLine();
-        interactionService.DisplayPlainText($"Analyzing changes to NuGet.config: {targetFile.FullName}");
-        
+
         var changes = AnalyzeNuGetConfigChanges(originalDocument, proposedDocument);
         
         if (!changes.HasChanges)
@@ -576,9 +575,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return true;
         }
 
-        DisplayNuGetConfigChanges(changes);
-        
+        interactionService.DisplayMessage("warning", "[yellow]The following changes will be made to NuGet.config:[/]");
+
         interactionService.DisplayEmptyLine();
+
+        DisplayNuGetConfigChanges(changes);
         
         var shouldProceed = await interactionService.ConfirmAsync(
             "Apply these changes to NuGet.config?",
@@ -717,14 +718,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display added feeds with their mappings
         foreach (var feed in changes.AddedFeeds)
         {
-            interactionService.DisplayPlainText($"Added: {feed.Value}");
+            interactionService.DisplayMarkdown($"Feed: [green]{feed.Value} (added)[/]");
             interactionService.DisplayEmptyLine();
             
             if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
             {
                 foreach (var pattern in patterns)
                 {
-                    interactionService.DisplayPlainText($"   Mapping: {pattern} (added)");
+                    interactionService.DisplayMarkdown($"   Mapping: [green]{pattern} (added)[/]");
                 }
             }
             interactionService.DisplayEmptyLine();
@@ -733,14 +734,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display removed feeds
         foreach (var feed in changes.RemovedFeeds)
         {
-            interactionService.DisplayPlainText($"Removed: {feed.Value}");
+            interactionService.DisplayMarkdown($"Feed: [red]{feed.Value} (removed)[/]");
             interactionService.DisplayEmptyLine();
         }
 
         // Display retained feeds with their mapping changes and current mappings
         foreach (var feed in changes.RetainedFeeds)
         {
-            interactionService.DisplayPlainText($"Retained: {feed.Value}");
+            interactionService.DisplayMarkdown($"Feed: {feed.Value} (retained)");
             interactionService.DisplayEmptyLine();
             
             if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
@@ -748,13 +749,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 // Show added patterns
                 foreach (var pattern in mappingChange.AddedPatterns)
                 {
-                    interactionService.DisplayPlainText($"   Mapping: {pattern} (added)");
+                    interactionService.DisplayMarkdown($"   Mapping: [green]{pattern} (added)[/]");
                 }
                 
                 // Show removed patterns
                 foreach (var pattern in mappingChange.RemovedPatterns)
                 {
-                    interactionService.DisplayPlainText($"   Mapping: {pattern} (removed)");
+                    interactionService.DisplayMarkdown($"   Mapping: [red]{pattern} (removed)[/]");
                 }
             }
             
@@ -768,7 +769,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                     // Only show patterns that weren't added (they are existing/unchanged)
                     if (!addedPatterns.Contains(pattern))
                     {
-                        interactionService.DisplayPlainText($"   Mapping: {pattern}");
+                        interactionService.DisplayMarkdown($"   Mapping: {pattern} (retained)");
                     }
                 }
             }
