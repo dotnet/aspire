@@ -88,11 +88,11 @@ It's important to note that Aspire releases out-of-band from .NET releases. Whil
 Moving between minor releases of Aspire is simple:
 
 1. Get the latest release of the Aspire CLI:
-    
+
     ```bash
     # Bash
     curl -sSL https://aspire.dev/install.sh | bash
-    
+
     # PowerShell
     iex "& { $(irm https://aspire.dev/install.ps1) }"
     ```
@@ -254,7 +254,7 @@ The dashboard now provides seamless navigation between different telemetry views
 
 - **Trace IDs**: Click to view the complete distributed trace
 - **Span IDs**: Navigate directly to specific trace spans
-- **Resource names**: Jump to resource-specific telemetry views  
+- **Resource names**: Jump to resource-specific telemetry views
 - **Log levels**: Filter logs by severity level instantly
 
 This eliminates the need to manually copy/paste identifiers between different dashboard views, making debugging and monitoring much more efficient.
@@ -265,7 +265,7 @@ A new "All" option in the console logs view streams logs from every running reso
 
 **Features:**
 - **Unified log stream**: See logs from all resources in chronological order
-- **Color-coded prefixes**: Each resource gets a deterministic color for easy identification  
+- **Color-coded prefixes**: Each resource gets a deterministic color for easy identification
 - **Configurable timestamps**: Separate timestamp preference to reduce noise
 - **Real-time updates**: Live streaming of log events across your application
 
@@ -273,7 +273,7 @@ A new "All" option in the console logs view streams logs from every running reso
 
 ```text
 [api      INF] Application starting up
-[postgres INF] Database system is ready to accept connections  
+[postgres INF] Database system is ready to accept connections
 [redis    INF] Server initialized, ready to accept connections
 [api      INF] Connected to database successfully
 ```
@@ -331,7 +331,7 @@ This is particularly useful for deployment scenarios where the dashboard is acce
 The mobile and desktop experience has been redesigned with better responsive layouts and improved usability across all dashboard pages (#10407).
 
 - **Responsive toolbars**: Automatically adapt to screen size
-- **Touch-friendly controls**: Larger targets for mobile interaction  
+- **Touch-friendly controls**: Larger targets for mobile interaction
 - **Optimized layouts**: Better use of screen real estate on smaller devices
 - **Consistent navigation**: Unified experience across desktop and mobile
 
@@ -454,7 +454,7 @@ Version 9.5 introduces a strongly-typed catalog for GitHub-hosted models, provid
 
 **Benefits over string-based approach:**
 - **Type safety**: Compile-time validation of model names
-- **IntelliSense support**: Discover available models and providers  
+- **IntelliSense support**: Discover available models and providers
 - **Refactoring safety**: Rename and find references work correctly
 - **Up-to-date catalog**: Daily automation ensures new models are available (#11040)
 
@@ -462,7 +462,7 @@ Version 9.5 introduces a strongly-typed catalog for GitHub-hosted models, provid
 // Before: String-based approach (error-prone)
 var model = github.AddModel("chat", "gpt-4o-mini"); // Typos not caught
 
-// After: Typed catalog approach  
+// After: Typed catalog approach
 var chatModel = github.AddModel("chat", GitHubModel.OpenAI.Gpt4oMini);
 var claudeModel = github.AddModel("claude", GitHubModel.Anthropic.Claude3_5Sonnet);
 var llamaModel = github.AddModel("llama", GitHubModel.Meta.Llama3_1_405B_Instruct);
@@ -658,11 +658,11 @@ var gateway = builder.AddYarp("app-gateway")
         // API routes
         yarp.AddRoute("/api/{**catch-all}", backendApi)
             .WithTransformPathRemovePrefix("/api");
-            
+
         // Auth routes
         yarp.AddRoute("/auth/{**catch-all}", authService)
             .WithTransformPathRemovePrefix("/auth");
-            
+
         // Static files are served for all other routes
     });
 
@@ -707,81 +707,23 @@ builder.AddRabbitMQClient("messaging", o => o.DisableAutoActivation = false);
 
 Aspire 9.5 introduces a new Redis client builder pattern that provides a fluent, type-safe approach to configuring Redis clients with integrated support for distributed caching, output caching, and Azure authentication.
 
-**Features:**
-
-- **Fluent configuration**: Chain multiple Redis features like distributed caching, output caching, and Azure authentication
-- **Type-safe builders**: `AspireRedisClientBuilder` provides compile-time safety and IntelliSense
-- **Integrated Azure authentication**: Seamless Azure AD/Entra ID authentication with `WithAzureAuthentication`
-- **Service composition**: Build complex Redis configurations with multiple features in a single call chain
-
-#### Basic Redis client builder usage
-
 ```csharp
-var builder = Host.CreateApplicationBuilder(args);
+var redis = builder.AddAzureRedis("cache");
 
-builder.AddRedisClientBuilder("cache")
-    .WithDistributedCache()
-    .WithOutputCache();
+var myService = builder.AddProject<Projects.MyService>()
+                       .WithReference(redis);
 
-var app = builder.Build();
-app.Run();
-```
+var azureOptionsProvider = new AzureOptionsProvider();
+var configurationOptions = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("cache") ?? throw new InvalidOperationException("Could not find a 'cache' connection string."));
+if (configurationOptions.EndPoints.Any(azureOptionsProvider.IsMatch))
+{
+    await configurationOptions.ConfigureForAzureWithTokenCredentialAsync(new DefaultAzureCredential());
+}
 
-**Azure authentication integration:**
-
-#### Azure authentication integration
-
-```csharp
-// Azure authentication integration (application code)
-var builder = Host.CreateApplicationBuilder(args);
-
-builder.AddRedisClientBuilder("azure-redis")
-    .WithAzureAuthentication()  // Uses default Azure credentials
-    .WithDistributedCache(options => 
-    {
-        options.InstanceName = "MyApp";
-    });
-
-// Or with custom credentials
-var credential = new DefaultAzureCredential();
-builder.AddRedisClientBuilder("azure-redis")
-    .WithAzureAuthentication(credential)
-    .WithOutputCache();
-
-var app = builder.Build();
-app.Run();
-```
-
-**Advanced Redis builder patterns:**
-
-#### Advanced Redis builder patterns
-
-```csharp
-// Multiple Redis instances with different configurations (application code)
-var builder = Host.CreateApplicationBuilder(args);
-
-// Cache-focused Redis instance
-builder.AddRedisClientBuilder("cache")
-    .WithDistributedCache(options => 
-    {
-        options.InstanceName = "MainCache";
-        options.DefaultSlidingExpiration = TimeSpan.FromMinutes(30);
-    });
-
-// Output cache Redis instance with Azure authentication
-builder.AddKeyedRedisClientBuilder("output-cache")
-    .WithAzureAuthentication()
-    .WithOutputCache();
-
-// Session Redis instance
-builder.AddKeyedRedisClientBuilder("sessions") 
-    .WithDistributedCache(options =>
-    {
-        options.InstanceName = "Sessions";
-    });
-
-var app = builder.Build();
-app.Run();
+builder.AddRedisClient("cache", configureOptions: options =>
+{
+    options.Defaults = configurationOptions.Defaults;
+});
 ```
 
 ### Azure AI Foundry enhancements
@@ -878,7 +820,7 @@ New reference properties have been added to Azure PostgreSQL and Redis resources
 Three new reference properties enable custom connection string composition:
 
 - **`HostName`** (`ReferenceExpression`): Returns PostgreSQL server hostname with port
-- **`UserName`** (`ReferenceExpression?`): Returns username for password authentication (null for Entra ID)  
+- **`UserName`** (`ReferenceExpression?`): Returns username for password authentication (null for Entra ID)
 - **`Password`** (`ReferenceExpression?`): Returns password for password authentication (null for Entra ID)
 
 ```csharp
@@ -891,7 +833,7 @@ var db = postgres.AddDatabase("appdb");
 // Custom JDBC connection string
 var jdbc = ReferenceExpression.Create($"jdbc:postgresql://{postgres.Resource.HostName}/{db.Resource.DatabaseName}");
 
-// Custom PostgreSQL connection string  
+// Custom PostgreSQL connection string
 var connectionString = ReferenceExpression.Create(
     $"Host={postgres.Resource.HostName};Username={postgres.Resource.UserName};Password={postgres.Resource.Password};Database={db.Resource.DatabaseName}");
 ```
@@ -993,7 +935,7 @@ var database = builder.AddPostgres("postgres", "mypostgres")
     {
         // Perform cleanup when the database stops
         Console.WriteLine($"Database {resource.Name} has stopped");
-        
+
         // Log final metrics, backup data, etc.
         await LogFinalMetrics(resource.Name);
     });
@@ -1023,7 +965,7 @@ var redis = builder.AddRedis("cache")
         Console.WriteLine($"Resource: {resource.Name}");
         Console.WriteLine($"Event timestamp: {stoppedEvent.Timestamp}");
         Console.WriteLine($"Stopping reason: {stoppedEvent.Reason}");
-        
+
         // Perform async cleanup with cancellation support
         await CleanupCacheConnections(cancellationToken);
     });
@@ -1035,14 +977,14 @@ Resource stopped events work seamlessly with existing lifecycle features:
 
 ```csharp
 var database = builder.AddPostgres("postgres")
-    .OnResourceStopped(async (db, evt, ct) => 
+    .OnResourceStopped(async (db, evt, ct) =>
     {
         await BackupDatabase(db.Name, ct);
     });
 
 var worker = builder.AddProject<Projects.Worker>("worker")
     .WaitFor(database)  // Wait for startup
-    .OnResourceStopped(async (svc, evt, ct) => 
+    .OnResourceStopped(async (svc, evt, ct) =>
     {
         await CompleteInFlightJobs(ct);
     })
@@ -1076,7 +1018,7 @@ var rabbitmq = builder.AddContainer("myapp", "mycontainerapp")
         var redisHost = endpoint.Property(EndpointProperty.Host);
         var redisPort = endpoint.Property(EndpointProperty.Port);
 
-        // Previously: redisHost would always resolve to "localhost" 
+        // Previously: redisHost would always resolve to "localhost"
         // Now: redisHost correctly resolves to "redis" (container name)
         context.EnvironmentVariables["REDIS_HOST"] = redisHost;
         context.EnvironmentVariables["REDIS_PORT"] = redisPort;
@@ -1087,7 +1029,7 @@ var rabbitmq = builder.AddContainer("myapp", "mycontainerapp")
 **What you need to review:**
 
 - **Container deployments**: Your apps will now receive correct container hostnames
-- **Local development**: Localhost behavior preserved for non-containerized scenarios  
+- **Local development**: Localhost behavior preserved for non-containerized scenarios
 - **Connection strings**: Automatic connection strings continue to work as expected
 - **Manual environment**: Review custom `WithEnvironment` calls that assume localhost
 
@@ -1146,17 +1088,17 @@ var database = builder.AddPostgres("postgres");
 // Service with complete probe coverage
 var api = builder.AddProject<Projects.Api>("api")
     // Startup probe: Ensures service starts successfully
-    .WithHttpProbe(ProbeType.Startup, "/health/startup", 
+    .WithHttpProbe(ProbeType.Startup, "/health/startup",
         initialDelaySeconds: 15, failureThreshold: 10)
-    
+
     // Readiness probe: Determines when ready to receive traffic
     .WithHttpProbe(ProbeType.Readiness, "/health/ready",
         periodSeconds: 5, timeoutSeconds: 3)
-    
+
     // Liveness probe: Detects if service is still functioning
     .WithHttpProbe(ProbeType.Liveness, "/health/live",
         periodSeconds: 30, failureThreshold: 3)
-    
+
     .WithReference(database);
 
 builder.Build().Run();
@@ -1170,7 +1112,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // Probe specific endpoint by name
 var api = builder.AddProject<Projects.Api>("api")
     .WithHttpEndpoint(8080, name: "management")
-    .WithHttpProbe(ProbeType.Readiness, "/actuator/health", 
+    .WithHttpProbe(ProbeType.Readiness, "/actuator/health",
         endpointName: "management");
 
 // Probe with endpoint selector function
@@ -1392,7 +1334,7 @@ var dataProcessor = builder.AddProject<Projects.DataProcessor>("data-processor")
         job.Configuration.ScheduleTriggerConfig.CronExpression = "0 0 2 * * *";
     });
 
-// Publish a container as a Container App Job  
+// Publish a container as a Container App Job
 var batchJob = builder.AddContainer("batch-job", "my-batch-image")
     .PublishAsAzureContainerAppJob((infrastructure, job) => {
         // Configure manual trigger job
@@ -1563,7 +1505,7 @@ var worker = builder.AddExecutable("worker", "dotnet")
         // Access to the resource instance for dynamic configuration
         var resourceName = context.Resource.Name;
         var environment = context.ExecutionContext.IsRunMode ? "Development" : "Production";
-        
+
         context.Args.Add("--resource-name");
         context.Args.Add(resourceName);
         context.Args.Add("--environment");
@@ -1617,8 +1559,8 @@ public async Task<InteractionResult<InteractionInputCollection>> ProcessParamete
     };
 
     var result = await interactionService.PromptInputsAsync(
-        "Configure Parameters", 
-        "Enter application configuration:", 
+        "Configure Parameters",
+        "Enter application configuration:",
         inputs);
 
     if (result.Success)
@@ -1686,7 +1628,7 @@ var api = builder.AddProject<Projects.Api>("api")
         // Access resource information
         var resourceName = context.Resource.Name;
         var environment = context.Environment;
-        
+
         return $"{resourceName}-{environment}-{GetBuildNumber()}";
     });
 
@@ -1710,7 +1652,7 @@ var database = builder.AddProject<Projects.Database>("database")
         // Perform async operations during deployment
         var buildInfo = await GetBuildInfoFromApi();
         var version = await ReadVersionFromFile();
-        
+
         return $"db-{version}-build{buildInfo.Number}";
     });
 
