@@ -104,7 +104,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (solutionFile is not null)
         {
             InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, solutionFile.Name));
-            return await InitializeExistingSolutionAsync(solutionFile, parseResult, cancellationToken);
+            return await InitializeExistingSolutionAsync(solutionFile, cancellationToken);
         }
         else
         {
@@ -113,11 +113,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, CancellationToken cancellationToken)
     {
-        // Use the "aspire" template which creates both AppHost and ServiceDefaults projects
+        // Use the dotnet CLI runner to create the aspire template directly
         InteractionService.DisplayMessage("construction", "Creating Aspire projects...");
-        var aspireTemplate = _templateFactory.GetAllTemplates().First(t => t.Name == "aspire");
         
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
@@ -125,13 +124,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         
         try
         {
-            // Set up the parse result to use the temporary directory
-            var tempParseResult = CreateParseResultWithOutput(parseResult, tempProjectDir);
-            var aspireResult = await aspireTemplate.ApplyTemplateAsync(tempParseResult, cancellationToken);
+            // Apply the aspire template directly using the CLI runner
+            var createResult = await _runner.NewProjectAsync(
+                "aspire", 
+                "AspireApp", 
+                tempProjectDir, 
+                [], // No extra args needed for aspire template
+                new DotNetCliRunnerInvocationOptions(), 
+                cancellationToken);
             
-            if (aspireResult.ExitCode != 0)
+            if (createResult != 0)
             {
-                return aspireResult.ExitCode;
+                return createResult;
             }
 
             // Find the created projects in the temporary directory
@@ -204,32 +208,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private static ParseResult CreateParseResultWithOutput(ParseResult originalResult, string outputPath)
-    {
-        // Create a new argument list with the output path set
-        var args = new List<string> { "init" };
-        
-        // Copy existing arguments except output
-        foreach (var token in originalResult.Tokens)
-        {
-            if (token.Type == System.CommandLine.Parsing.TokenType.Option && token.Value.StartsWith("--output"))
-            {
-                continue; // Skip existing output options
-            }
-            if (token.Type == System.CommandLine.Parsing.TokenType.Argument && token.Value.StartsWith("-o"))
-            {
-                continue; // Skip existing output options
-            }
-            args.Add(token.Value);
-        }
-        
-        // Add the temporary output path
-        args.Add("--output");
-        args.Add(outputPath);
-        
-        return originalResult.CommandResult.Command.Parse(args.ToArray());
-    }
-
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         ITemplate template;
@@ -237,7 +215,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             // Use single-file AppHost template if feature is enabled
-            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+            var singleFileTemplate = _templateFactory.GetTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
             if (singleFileTemplate is null)
             {
                 InteractionService.DisplayError("Single-file AppHost template not found.");
@@ -248,7 +226,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         else
         {
             // Use regular AppHost template if single-file feature is not enabled
-            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
+            var appHostTemplate = _templateFactory.GetTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
             if (appHostTemplate is null)
             {
                 InteractionService.DisplayError("AppHost template not found.");
