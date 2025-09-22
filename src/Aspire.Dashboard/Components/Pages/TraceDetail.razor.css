@@ -281,7 +281,8 @@
 
 ::deep.log-tooltip-table td.label-column {
     text-wrap-mode: nowrap;
-    padding-right: calc(var(--design-unit)* 4px)
+    padding-right: calc(var(--design-unit)* 4px);
+    width: 20%;
 }
 
 ::deep.log-tooltip-table td {
