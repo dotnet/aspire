@@ -143,6 +143,7 @@ public class Program
         builder.Services.AddTransient<ConfigCommand>();
         builder.Services.AddTransient<CacheCommand>();
         builder.Services.AddTransient<UpdateCommand>();
+        builder.Services.AddTransient<UpgradeCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
