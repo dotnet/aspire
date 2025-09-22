@@ -151,6 +151,16 @@ internal sealed class ApplicationOrchestrator
 
     private async Task OnResourceStarting(OnResourceStartingContext context)
     {
+        // Skip starting resources that are excluded from manifest during publish mode
+        if (_executionContext.IsPublishMode &&
+            context.Resource.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var manifestAnnotation) &&
+            manifestAnnotation.Callback is null)
+        {
+            // This resource is excluded from manifest publishing (e.g., DevTunnel resources)
+            // and should not be started during publish mode to avoid hanging operations
+            return;
+        }
+
         switch (context.ResourceType)
         {
             case KnownResourceTypes.Project:

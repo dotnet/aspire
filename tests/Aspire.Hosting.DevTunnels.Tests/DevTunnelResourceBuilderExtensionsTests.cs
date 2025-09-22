@@ -71,6 +71,33 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.True(port.Options.AllowAnonymous);
     }
 
+    [Fact]
+    public void DevTunnelPortTasksAreCompletedInPublishMode()
+    {
+        // Arrange - create a builder in publish mode
+        using var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "test.json"]);
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint();
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        // Act - Get the DevTunnel port resource
+        var tunnelPort = tunnel.Resource.Ports.FirstOrDefault();
+
+        // Assert
+        Assert.NotNull(tunnelPort);
+        
+        // In publish mode, both task completion sources should be completed immediately
+        // to prevent hanging when waiting for endpoint allocation
+        Assert.True(tunnelPort.TargetEndpointAllocatedTask.IsCompleted, "TargetEndpointAllocatedTask should be completed in publish mode");
+        Assert.True(tunnelPort.TunnelEndpointAllocatedTask.IsCompleted, "TunnelEndpointAllocatedTask should be completed in publish mode");
+        
+        // Tasks should complete successfully, not with exceptions
+        Assert.True(tunnelPort.TargetEndpointAllocatedTask.IsCompletedSuccessfully, "TargetEndpointAllocatedTask should complete successfully");
+        Assert.True(tunnelPort.TunnelEndpointAllocatedTask.IsCompletedSuccessfully, "TunnelEndpointAllocatedTask should complete successfully");
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

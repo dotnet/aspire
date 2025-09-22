@@ -108,6 +108,15 @@ public static partial class DevTunnelsResourceBuilderExtensions
             // Lifecycle
             .OnBeforeResourceStarted(static async (tunnelResource, e, ct) =>
             {
+                // Skip DevTunnel operations during publish mode to avoid hanging
+                var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
+                if (executionContext.IsPublishMode)
+                {
+                    // In publish mode, DevTunnel resources are excluded from manifests and should not perform
+                    // network operations like CLI installation, login, or tunnel creation that can hang
+                    return;
+                }
+
                 var logger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(tunnelResource);
                 var eventing = e.Services.GetRequiredService<IDistributedApplicationEventing>();
                 var devTunnelCliInstallationManager = e.Services.GetRequiredService<DevTunnelCliInstallationManager>();
@@ -388,6 +397,14 @@ public static partial class DevTunnelsResourceBuilderExtensions
             portOptions);
 
         tunnel.Ports.Add(portResource);
+
+        // In publish mode, complete both endpoint allocation tasks immediately
+        // since endpoints are never allocated during manifest publishing
+        if (tunnelBuilder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            portResource.TargetEndpointAllocatedTcs.SetResult();
+            portResource.TunnelEndpointAllocatedTcs.SetResult();
+        }
 
         // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);

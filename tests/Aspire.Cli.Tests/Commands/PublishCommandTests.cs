@@ -233,7 +233,6 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/9870")]
     public async Task PublishCommandSucceedsEndToEnd()
     {
         // Arrange
