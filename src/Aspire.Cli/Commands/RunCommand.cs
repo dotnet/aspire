@@ -22,6 +22,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
+    private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -55,6 +56,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
+        _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
@@ -165,7 +167,7 @@ internal sealed class RunCommand : BaseCommand
                             InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                             return ExitCodeConstants.FailedToBuildArtifacts;
                         }
-                    }                    
+                    }
                 }
             }
 
@@ -177,7 +179,7 @@ internal sealed class RunCommand : BaseCommand
             else
             {
                 appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
-            }         
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -387,6 +389,10 @@ internal sealed class RunCommand : BaseCommand
 
     private void AppendCtrlCMessage(int longestLocalizedLength)
     {
+        if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
+        {
+            return;
+        }
 
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
