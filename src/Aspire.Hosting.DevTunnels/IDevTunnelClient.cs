@@ -42,7 +42,10 @@ internal sealed record DevTunnelStatus(string TunnelId, int HostConnections, int
     public IReadOnlyList<DevTunnelPort> Ports { get; init; } = [];
 }
 
-internal sealed record DevTunnelPortList(IReadOnlyList<DevTunnelPort> Ports);
+internal sealed record DevTunnelPortList
+{
+    public IReadOnlyList<DevTunnelPort> Ports { get; init; } = [];
+}
 
 internal sealed record DevTunnelPort(int PortNumber, string Protocol)
 {
