@@ -7,13 +7,13 @@ using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class ContainerfileBuilderEdgeCasesTests
+public class DockerfileBuilderEdgeCasesTests
 {
     [Fact]
     public async Task EmptyDockerfile_WritesNothing()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         using var stream = new MemoryStream();
 
         // Act
@@ -27,7 +27,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task SingleStageWithOnlyFrom_WritesOnlyFromStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         builder.From("ubuntu");
         using var stream = new MemoryStream();
 
@@ -43,7 +43,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public void EnvStatement_WithEmptyStringValue_AllowedAndWorksCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("alpine");
 
         // Act & Assert - Should not throw
@@ -55,7 +55,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task EnvStatement_WithEmptyStringValue_WritesCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("alpine");
         stage.Env("EMPTY_VAR", "");
         using var stream = new MemoryStream();
@@ -76,7 +76,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task CmdStatement_WithComplexCommand_SerializesCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
         stage.Cmd(["node", "-e", "console.log('Hello, World!')", "--port", "3000"]);
         using var stream = new MemoryStream();
@@ -97,7 +97,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task StageOrdering_PreservesSequence()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         
         // Add stages in specific order
         var stage1 = builder.From("alpine", "3.16", "first");
@@ -125,7 +125,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public void StatementCollection_IsModifiable()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("ubuntu");
         
         // Act
@@ -146,7 +146,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task RunStatement_WithMultiLineCommand_PreservesFormatting()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("ubuntu");
         var multiLineCommand = """
             apt-get update && \
@@ -175,11 +175,11 @@ public class ContainerfileBuilderEdgeCasesTests
     public void ReadOnlyStagesCollection_PreventsDirectModification()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         builder.From("alpine");
 
         // Act & Assert
-        Assert.IsType<ReadOnlyCollection<IContainerStageBuilder>>(builder.Stages);
+        Assert.IsType<ReadOnlyCollection<DockerfileStage>>(builder.Stages);
         Assert.Single(builder.Stages);
     }
 
@@ -187,7 +187,7 @@ public class ContainerfileBuilderEdgeCasesTests
     public async Task WriteAsync_WithLargeDockerfile_HandlesCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("ubuntu", "20.04");
         
         // Add many statements to test performance and correctness

@@ -6,16 +6,15 @@ using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class ContainerfileBuilderTests
+public class DockerfileBuilderTests
 {
     [Fact]
-    public void ContainerfileBuilder_Constructor_SetsDialect()
+    public void DockerfileBuilder_Constructor_InitializesEmpty()
     {
         // Arrange & Act
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Assert
-        Assert.Equal(ContainerDialect.Dockerfile, builder.Dialect);
         Assert.Empty(builder.Stages);
     }
 
@@ -23,7 +22,7 @@ public class ContainerfileBuilderTests
     public void From_WithRepositoryOnly_CreatesStage()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act
         var stage = builder.From("node");
@@ -39,7 +38,7 @@ public class ContainerfileBuilderTests
     public void From_WithRepositoryAndTag_CreatesStage()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act
         var stage = builder.From("node", "20-bullseye");
@@ -55,7 +54,7 @@ public class ContainerfileBuilderTests
     public void From_WithStageParameter_CreatesNamedStage()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act
         var stage = builder.From("node", "20-bullseye", "builder");
@@ -71,7 +70,7 @@ public class ContainerfileBuilderTests
     public void From_WithNullOrEmptyRepository_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => builder.From(""));
@@ -82,7 +81,7 @@ public class ContainerfileBuilderTests
     public void MultipleFromStatements_CreateMultipleStages()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act
         var stage1 = builder.From("node", "20-bullseye", "builder");
@@ -100,7 +99,7 @@ public class ContainerfileBuilderTests
     public async Task WriteAsync_WithSingleStage_WritesCorrectContent()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node", "20-bullseye");
         stage.WorkDir("/app");
         stage.Run("npm install");
@@ -127,7 +126,7 @@ public class ContainerfileBuilderTests
     public async Task WriteAsync_WithMultipleStages_WritesCorrectContent()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         
         var stage1 = builder.From("node", "20-bullseye", "builder");
         stage1.WorkDir("/app");
@@ -169,7 +168,7 @@ public class ContainerfileBuilderTests
     public async Task WriteAsync_WithNullStream_ThrowsArgumentNullException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         builder.From("node");
 
         // Act & Assert
@@ -180,7 +179,7 @@ public class ContainerfileBuilderTests
     public async Task WriteAsync_WithEmptyBuilder_WritesNothing()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         using var stream = new MemoryStream();
 
         // Act
