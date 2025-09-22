@@ -563,7 +563,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.StandardError,
                 "stderr",
                 process,
-                options.StandardOutputCallback,
+                options.StandardErrorCallback,
                 cancellationToken);
             }, cancellationToken);
 
