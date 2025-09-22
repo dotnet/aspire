@@ -138,7 +138,7 @@ IResourceBuilder<IResource>? previousResourceBuilder = null;
 
 for (var i = 0; i < 3; i++)
 {
-    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}")
+    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}", launchProfileName: null)
                                 .WithIconName("Document");
     if (previousResourceBuilder != null)
     {
@@ -148,6 +148,12 @@ for (var i = 0; i < 3; i++)
 
     previousResourceBuilder = resourceBuilder;
 }
+
+builder.AddProject<Projects.Stress_Empty>("empty-profile-1", launchProfileName: "Profile1");
+builder.AddProject<Projects.Stress_Empty>("empty-profile-2", launchProfileName: "Profile1")
+    .WithEnvironment("APPHOST_ENV_VAR", "test")
+    .WithEnvironment("ENV_TO_OVERRIDE", "this value came from the apphost")
+    .WithArgs("arg_from_apphost");
 
 builder.Build().Run();
 
