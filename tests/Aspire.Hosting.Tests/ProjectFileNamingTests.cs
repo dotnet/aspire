@@ -6,13 +6,6 @@ namespace Aspire.Hosting.Tests;
 public class ProjectFileNamingTests
 {
     [Fact]
-    public void SimpleTestThatShouldWork()
-    {
-        // Basic test to verify the test discovery works
-        Assert.True(true);
-    }
-
-    [Fact]
     public void AllProjectFilesHaveUniqueNames()
     {
         // Get the repository root using existing utility
