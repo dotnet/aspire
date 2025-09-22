@@ -284,16 +284,16 @@
                                                                     </div>
                                                                     <table class="log-tooltip-table">
                                                                         <tr>
-                                                                            <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]</td>
+                                                                            <td class="label-column">@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsLevelColumnHeader)]</td>
                                                                             <td>@item.LogEntry.Severity</td>
                                                                         </tr>
                                                                         <tr>
-                                                                            <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]</td>
+                                                                            <td class="label-column">@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsTimestampColumnHeader)]</td>
                                                                             <td>@FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, item.LogEntry.TimeStamp, MillisecondsDisplay.Truncated)</td>
                                                                         </tr>
                                                                         <tr>
-                                                                            <td>@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
-                                                                            <td>@OtlpHelpers.TruncateString(item.LogEntry.Message, maxLength: 200)</td>
+                                                                            <td class="label-column">@StructuredLogsLoc[nameof(Dashboard.Resources.StructuredLogs.StructuredLogsMessageColumnHeader)]</td>
+                                                                            <td>@FormatHelpers.TruncateText(item.LogEntry.Message, maxLength: 150)</td>
                                                                         </tr>
                                                                     </table>
                                                                 </FluentTooltip>
