@@ -6,21 +6,21 @@ using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class ContainerfileBuilderIntegrationTests
+public class DockerfileBuilderIntegrationTests
 {
     [Fact]
     public async Task ExampleFromProblemStatement_ProducesCorrectDockerfile()
     {
         // Arrange - this is the exact example from the problem statement
-        var containerfileBuilder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
-        var baseStage = containerfileBuilder.From(repository: "node", tag: "20-bullseye", stage: "builder"); // Returns IContainerStageBuilder
+        var dockerfileBuilder = new DockerfileBuilder();
+        var baseStage = dockerfileBuilder.From(repository: "node", tag: "20-bullseye", stage: "builder");
         baseStage.WorkDir("/");
         baseStage.Run("apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*");
         baseStage.Copy("package*.json", "./");
         baseStage.Run("npm ci --silent");
         baseStage.Env("NODE_ENV", "production");
 
-        var output = containerfileBuilder.From(repository: "caddy", tag: "2.7.4-alpine");
+        var output = dockerfileBuilder.From(repository: "caddy", tag: "2.7.4-alpine");
         output.CopyFrom("builder", "/app/dist", "/srv");
         output.Copy("caddy.json", "/etc/caddy/caddy.json");
         output.Expose(80);
@@ -29,7 +29,7 @@ public class ContainerfileBuilderIntegrationTests
         using var stream = new MemoryStream();
 
         // Act
-        await containerfileBuilder.WriteAsync(stream);
+        await dockerfileBuilder.WriteAsync(stream);
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -55,7 +55,7 @@ public class ContainerfileBuilderIntegrationTests
     public void AddRemoveStatements_WorksCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("nginx");
 
         // Act - Add multiple statements
@@ -77,7 +77,7 @@ public class ContainerfileBuilderIntegrationTests
     public async Task MultipleStagesWithComplexCommands_ProducesCorrectOutput()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         
         // Stage 1: Build stage
         var buildStage = builder.From("golang", "1.20", "build");
@@ -127,7 +127,7 @@ public class ContainerfileBuilderIntegrationTests
     public void FluentAPI_SupportsMethodChaining()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act - demonstrate fluent API works correctly
         var stage = builder.From("node", "18")
@@ -145,15 +145,21 @@ public class ContainerfileBuilderIntegrationTests
     }
 
     [Fact]
-    public void ContainerfileBuilder_WithMultipleDialects_OnlySupportsDockerfile()
+    public void DockerfileBuilder_WithMultipleStages_ManagesStagesCorrectly()
     {
         // Arrange & Act
-        var dockerfileBuilder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var dockerfileBuilder = new DockerfileBuilder();
 
         // Assert
-        Assert.Equal(ContainerDialect.Dockerfile, dockerfileBuilder.Dialect);
+        Assert.Empty(dockerfileBuilder.Stages);
         
-        // Note: In the future, if other dialects are added (e.g., Buildah, Podman), 
-        // this test would need to be updated to test those as well.
+        // Act - add stages
+        var stage1 = dockerfileBuilder.From("alpine");
+        var stage2 = dockerfileBuilder.From("ubuntu");
+        
+        // Assert
+        Assert.Equal(2, dockerfileBuilder.Stages.Count);
+        Assert.Same(stage1, dockerfileBuilder.Stages[0]);
+        Assert.Same(stage2, dockerfileBuilder.Stages[1]);
     }
 }

@@ -6,17 +6,18 @@ using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class ContainerfileStatementsTests
+public class DockerfileStatementsTests
 {
     [Fact]
     public async Task FromStatement_WithoutStage_WritesCorrectFormat()
     {
-        // Arrange
-        var statement = new FromStatement("node:20-bullseye");
+        // Arrange - test via public API since statements are internal
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node:20-bullseye");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -26,12 +27,13 @@ public class ContainerfileStatementsTests
     [Fact]
     public async Task FromStatement_WithStage_WritesCorrectFormat()
     {
-        // Arrange
-        var statement = new FromStatement("node:20-bullseye", "builder");
+        // Arrange - test via public API
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node:20-bullseye", stage: "builder");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -41,31 +43,33 @@ public class ContainerfileStatementsTests
     [Fact]
     public async Task WorkDirStatement_WritesCorrectFormat()
     {
-        // Arrange
-        var statement = new WorkDirStatement("/app");
+        // Arrange - test via public API
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").WorkDir("/app");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("WORKDIR /app\n", result);
+        Assert.Equal("FROM node\nWORKDIR /app\n", result);
     }
 
     [Fact]
     public async Task RunStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new RunStatement("npm install");
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").Run("npm install");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("RUN npm install\n", result);
+        Assert.Equal("FROM node\nRUN npm install\n", result);
     }
 
     [Fact]
@@ -73,134 +77,143 @@ public class ContainerfileStatementsTests
     {
         // Arrange
         var command = "apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*";
-        var statement = new RunStatement(command);
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("ubuntu").Run(command);
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal($"RUN {command}\n", result);
+        Assert.Equal($"FROM ubuntu\nRUN {command}\n", result);
     }
 
     [Fact]
     public async Task CopyStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new CopyStatement("package*.json", "./");
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").Copy("package*.json", "./");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("COPY package*.json ./\n", result);
+        Assert.Equal("FROM node\nCOPY package*.json ./\n", result);
     }
 
     [Fact]
     public async Task CopyFromStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new CopyFromStatement("builder", "/app/dist", "/srv");
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("nginx").CopyFrom("builder", "/app/dist", "/srv");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("COPY --from=builder /app/dist /srv\n", result);
+        Assert.Equal("FROM nginx\nCOPY --from=builder /app/dist /srv\n", result);
     }
 
     [Fact]
     public async Task EnvStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new EnvStatement("NODE_ENV", "production");
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").Env("NODE_ENV", "production");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("ENV NODE_ENV=production\n", result);
+        Assert.Equal("FROM node\nENV NODE_ENV=production\n", result);
     }
 
     [Fact]
     public async Task EnvStatement_WithEmptyValue_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new EnvStatement("PATH", "");
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine").Env("PATH", "");
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("ENV PATH=\n", result);
+        Assert.Equal("FROM alpine\nENV PATH=\n", result);
     }
 
     [Fact]
     public async Task ExposeStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new ExposeStatement(3000);
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").Expose(3000);
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("EXPOSE 3000\n", result);
+        Assert.Equal("FROM node\nEXPOSE 3000\n", result);
     }
 
     [Fact]
     public async Task CmdStatement_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new CmdStatement(["node", "server.js"]);
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").Cmd(["node", "server.js"]);
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("""CMD ["node","server.js"]""" + "\n", result);
+        Assert.Equal("FROM node\n" + """CMD ["node","server.js"]""" + "\n", result);
     }
 
     [Fact]
     public async Task CmdStatement_WithSingleCommand_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new CmdStatement(["nginx"]);
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("nginx").Cmd(["nginx"]);
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("""CMD ["nginx"]""" + "\n", result);
+        Assert.Equal("FROM nginx\n" + """CMD ["nginx"]""" + "\n", result);
     }
 
     [Fact]
     public async Task CmdStatement_WithComplexCommand_WritesCorrectFormat()
     {
         // Arrange
-        var statement = new CmdStatement(["cmd", "run", "--config", "/etc/caddy/caddy.json"]);
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("caddy").Cmd(["cmd", "run", "--config", "/etc/caddy/caddy.json"]);
         using var stream = new MemoryStream();
 
         // Act
-        await statement.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(stream);
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
-        Assert.Equal("""CMD ["cmd","run","--config","/etc/caddy/caddy.json"]""" + "\n", result);
+        Assert.Equal("FROM caddy\n" + """CMD ["cmd","run","--config","/etc/caddy/caddy.json"]""" + "\n", result);
     }
 }

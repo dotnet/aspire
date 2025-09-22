@@ -5,13 +5,13 @@ using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class ContainerStageBuilderTests
+public class DockerfileStageTests
 {
     [Fact]
     public void WorkDir_WithValidPath_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act
@@ -26,7 +26,7 @@ public class ContainerStageBuilderTests
     public void WorkDir_WithNullOrEmptyPath_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -38,7 +38,7 @@ public class ContainerStageBuilderTests
     public void Run_WithValidCommand_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act
@@ -53,7 +53,7 @@ public class ContainerStageBuilderTests
     public void Run_WithNullOrEmptyCommand_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -65,7 +65,7 @@ public class ContainerStageBuilderTests
     public void Copy_WithValidParameters_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act
@@ -80,7 +80,7 @@ public class ContainerStageBuilderTests
     public void Copy_WithNullOrEmptyParameters_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -94,7 +94,7 @@ public class ContainerStageBuilderTests
     public void CopyFrom_WithValidParameters_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("nginx");
 
         // Act
@@ -109,7 +109,7 @@ public class ContainerStageBuilderTests
     public void CopyFrom_WithNullOrEmptyParameters_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("nginx");
 
         // Act & Assert
@@ -125,7 +125,7 @@ public class ContainerStageBuilderTests
     public void Env_WithValidParameters_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act
@@ -140,7 +140,7 @@ public class ContainerStageBuilderTests
     public void Env_WithNullOrEmptyName_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -152,7 +152,7 @@ public class ContainerStageBuilderTests
     public void Env_WithNullValue_ThrowsArgumentNullException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -163,7 +163,7 @@ public class ContainerStageBuilderTests
     public void Expose_WithValidPort_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act
@@ -178,7 +178,7 @@ public class ContainerStageBuilderTests
     public void Expose_WithInvalidPort_ThrowsArgumentOutOfRangeException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -190,7 +190,7 @@ public class ContainerStageBuilderTests
     public void Cmd_WithValidCommand_AddsStatement()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
         var command = new[] { "node", "server.js" };
 
@@ -206,7 +206,7 @@ public class ContainerStageBuilderTests
     public void Cmd_WithNullCommand_ThrowsArgumentNullException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -217,7 +217,7 @@ public class ContainerStageBuilderTests
     public void Cmd_WithEmptyCommand_ThrowsArgumentException()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
         var stage = builder.From("node");
 
         // Act & Assert
@@ -228,7 +228,7 @@ public class ContainerStageBuilderTests
     public void FluentChaining_WorksCorrectly()
     {
         // Arrange
-        var builder = new ContainerfileBuilder(ContainerDialect.Dockerfile);
+        var builder = new DockerfileBuilder();
 
         // Act
         var stage = builder.From("node", "20-bullseye")
