@@ -3,6 +3,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Maui;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Aspire.Hosting.Lifecycle;
 
 namespace Aspire.Hosting;
 
@@ -24,6 +27,9 @@ public static class MauiProjectExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(projectPath);
+
+        // Ensure lifecycle tracker registered once; harmless if added multiple times.
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationLifecycleHook, MauiStartupPhaseTracker>());
 
         // Normalize the project path relative to the AppHost directory without using internal helpers.
         projectPath = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, projectPath));
