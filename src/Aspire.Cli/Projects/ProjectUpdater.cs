@@ -12,6 +12,7 @@ using Aspire.Shared;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -718,14 +719,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display added feeds with their mappings
         foreach (var feed in changes.AddedFeeds)
         {
-            interactionService.DisplayMarkdown($"Feed: [green]{feed.Value} (added)[/]");
+            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (added)");
             interactionService.DisplayEmptyLine();
             
             if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
             {
                 foreach (var pattern in patterns)
                 {
-                    interactionService.DisplayMarkdown($"   Mapping: [green]{pattern} (added)[/]");
+                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (added)");
                 }
             }
             interactionService.DisplayEmptyLine();
@@ -734,14 +735,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         // Display removed feeds
         foreach (var feed in changes.RemovedFeeds)
         {
-            interactionService.DisplayMarkdown($"Feed: [red]{feed.Value} (removed)[/]");
+            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (removed)");
             interactionService.DisplayEmptyLine();
         }
 
         // Display retained feeds with their mapping changes and current mappings
         foreach (var feed in changes.RetainedFeeds)
         {
-            interactionService.DisplayMarkdown($"Feed: {feed.Value} (retained)");
+            interactionService.DisplaySubtleMessage($"Feed: {feed.Value.EscapeMarkup()} (retained)");
             interactionService.DisplayEmptyLine();
             
             if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
@@ -749,13 +750,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 // Show added patterns
                 foreach (var pattern in mappingChange.AddedPatterns)
                 {
-                    interactionService.DisplayMarkdown($"   Mapping: [green]{pattern} (added)[/]");
+                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (added)");
                 }
                 
                 // Show removed patterns
                 foreach (var pattern in mappingChange.RemovedPatterns)
                 {
-                    interactionService.DisplayMarkdown($"   Mapping: [red]{pattern} (removed)[/]");
+                    interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (removed)");
                 }
             }
             
@@ -769,7 +770,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                     // Only show patterns that weren't added (they are existing/unchanged)
                     if (!addedPatterns.Contains(pattern))
                     {
-                        interactionService.DisplayMarkdown($"   Mapping: {pattern} (retained)");
+                        interactionService.DisplaySubtleMessage($"   Mapping: {pattern.EscapeMarkup()} (retained)");
                     }
                 }
             }
