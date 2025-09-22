@@ -20,6 +20,21 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
+        // Only return the aspire-starter template for 'aspire new' command
+        yield return new CallbackTemplate(
+            "aspire-starter",
+            TemplatingStrings.AspireStarter_Description,
+            projectName => $"./{projectName}",
+            ApplyExtraAspireStarterOptions,
+            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
+            );
+    }
+
+    /// <summary>
+    /// Gets all templates including those hidden from 'aspire new' but available for 'aspire init'
+    /// </summary>
+    public IEnumerable<ITemplate> GetAllTemplates()
+    {
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
