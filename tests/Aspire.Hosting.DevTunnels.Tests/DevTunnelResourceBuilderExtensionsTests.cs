@@ -72,10 +72,10 @@ public class DevTunnelResourceBuilderExtensionsTests
     }
 
     [Fact]
-    public void DevTunnelPortTasksAreCompletedInPublishMode()
+    public void DevTunnelPortResourcesAreExcludedFromManifest()
     {
-        // Arrange - create a builder in publish mode
-        using var builder = TestDistributedApplicationBuilder.Create(["--publisher", "manifest", "--output-path", "test.json"]);
+        // Arrange - create a builder
+        using var builder = TestDistributedApplicationBuilder.Create();
 
         var target = builder.AddProject<ProjectA>("target")
             .WithHttpsEndpoint();
@@ -88,14 +88,10 @@ public class DevTunnelResourceBuilderExtensionsTests
         // Assert
         Assert.NotNull(tunnelPort);
         
-        // In publish mode, both task completion sources should be completed immediately
-        // to prevent hanging when waiting for endpoint allocation
-        Assert.True(tunnelPort.TargetEndpointAllocatedTask.IsCompleted, "TargetEndpointAllocatedTask should be completed in publish mode");
-        Assert.True(tunnelPort.TunnelEndpointAllocatedTask.IsCompleted, "TunnelEndpointAllocatedTask should be completed in publish mode");
-        
-        // Tasks should complete successfully, not with exceptions
-        Assert.True(tunnelPort.TargetEndpointAllocatedTask.IsCompletedSuccessfully, "TargetEndpointAllocatedTask should complete successfully");
-        Assert.True(tunnelPort.TunnelEndpointAllocatedTask.IsCompletedSuccessfully, "TunnelEndpointAllocatedTask should complete successfully");
+        // DevTunnel port resources should be excluded from manifest
+        Assert.True(tunnelPort.TryGetLastAnnotation<ManifestPublishingCallbackAnnotation>(out var annotation), 
+            "DevTunnel port resource should have ManifestPublishingCallbackAnnotation");
+        Assert.Null(annotation.Callback);
     }
 
     private sealed class ProjectA : IProjectMetadata

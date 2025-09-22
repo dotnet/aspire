@@ -112,8 +112,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 var executionContext = e.Services.GetRequiredService<DistributedApplicationExecutionContext>();
                 if (executionContext.IsPublishMode)
                 {
-                    // In publish mode, DevTunnel resources are excluded from manifests and should not perform
-                    // network operations like CLI installation, login, or tunnel creation that can hang
                     return;
                 }
 
@@ -398,14 +396,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         tunnel.Ports.Add(portResource);
 
-        // In publish mode, complete both endpoint allocation tasks immediately
-        // since endpoints are never allocated during manifest publishing
-        if (tunnelBuilder.ApplicationBuilder.ExecutionContext.IsPublishMode)
-        {
-            portResource.TargetEndpointAllocatedTcs.SetResult();
-            portResource.TunnelEndpointAllocatedTcs.SetResult();
-        }
-
         // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);
 
@@ -475,7 +465,8 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     new("Description", portOptions.Description),
                     new("Labels", portOptions.Labels is null ? "" : $"{string.Join(", ", portOptions.Labels)}"),
                 ]
-            });
+            })
+            .ExcludeFromManifest(); // Dev tunnel ports should not be included in manifests
 
         // When the target endpoint is allocated, validate it and mark the TCS accordingly
         var targetResourceBuilder = tunnelBuilder.ApplicationBuilder.CreateResourceBuilder(targetResource);
