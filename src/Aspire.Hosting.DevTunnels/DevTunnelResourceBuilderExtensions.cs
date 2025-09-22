@@ -76,6 +76,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add services
         builder.Services.TryAddSingleton<DevTunnelCliInstallationManager>();
         builder.Services.TryAddSingleton<DevTunnelLoginManager>();
+        builder.Services.TryAddSingleton<LoggedOutNotificationManager>();
         builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
 
         var workingDirectory = builder.AppHostDirectory;
@@ -83,12 +84,18 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         // Health check
         var healtCheckKey = $"{name}-check";
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource, services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
+            services => new DevTunnelHealthCheck(
+                services.GetRequiredService<IDevTunnelClient>(),
+                services.GetRequiredService<LoggedOutNotificationManager>(),
+                tunnelResource,
+                services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
             failureStatus: default,
             tags: default,
             timeout: default));
+#pragma warning restore ASPIREINTERACTION001
 
         var rb = builder.AddResource(tunnelResource)
             .WithArgs("host", tunnelId, "--nologo")

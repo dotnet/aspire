@@ -6,9 +6,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
 
-internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, DevTunnelResource tunnelResource, ILogger<DevTunnelHealthCheck> logger) : IHealthCheck
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+internal sealed class DevTunnelHealthCheck(
+    IDevTunnelClient devTunnelClient,
+    LoggedOutNotificationManager loggedOutNotificationManager,
+    DevTunnelResource tunnelResource,
+    ILogger<DevTunnelHealthCheck> logger) : IHealthCheck
 {
     private readonly IDevTunnelClient _devTunnelClient = devTunnelClient ?? throw new ArgumentNullException(nameof(devTunnelClient));
+
+    private readonly LoggedOutNotificationManager _loggedOutNotificationManager = loggedOutNotificationManager ?? throw new ArgumentNullException(nameof(loggedOutNotificationManager));
 
     private readonly DevTunnelResource _tunnelResource = tunnelResource ?? throw new ArgumentNullException(nameof(tunnelResource));
 
@@ -50,7 +57,20 @@ internal sealed class DevTunnelHealthCheck(IDevTunnelClient devTunnelClient, Dev
         catch (Exception ex)
         {
             tunnelResource.LastKnownStatus = null;
+
+            try
+            {
+                // Check if the user is still logged in
+                var loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(logger, cancellationToken).ConfigureAwait(false);
+                if (!loginStatus.IsLoggedIn)
+                {
+                    _ = Task.Run(() => _loggedOutNotificationManager.NotifyUserLoggedOutAsync(cancellationToken).ConfigureAwait(false));
+                }
+            }
+            catch { } // Ignore errors from login check
+
             return HealthCheckResult.Unhealthy($"Failed to check dev tunnel '{_tunnelResource.TunnelId}': {ex.Message}", ex);
         }
     }
 }
+#pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
