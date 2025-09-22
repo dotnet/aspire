@@ -20,7 +20,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
-        // Only return the aspire-starter template for 'aspire new' command
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
@@ -28,6 +27,88 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyExtraAspireStarterOptions,
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
+
+        yield return new CallbackTemplate(
+            "aspire",
+            TemplatingStrings.AspireEmpty_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTemplateWithNoExtraArgsAsync
+            );
+
+        yield return new CallbackTemplate(
+            "aspire-apphost",
+            TemplatingStrings.AspireAppHost_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTemplateWithNoExtraArgsAsync
+            );
+
+        yield return new CallbackTemplate(
+            "aspire-servicedefaults",
+            TemplatingStrings.AspireServiceDefaults_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTemplateWithNoExtraArgsAsync
+            );
+
+        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
+        // and should be surfaced to the user when the single-file AppHost feature is enabled.
+        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            yield return new CallbackTemplate(
+                "aspire-apphost-singlefile",
+                TemplatingStrings.AspireAppHostSingleFile_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+        }
+
+        // Folded into the last yieled template.
+        var msTestTemplate = new CallbackTemplate(
+            "aspire-mstest",
+            TemplatingStrings.AspireMSTest_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTemplateWithNoExtraArgsAsync
+            );
+
+        // Folded into the last yielded template.
+        var nunitTemplate = new CallbackTemplate(
+            "aspire-nunit",
+            TemplatingStrings.AspireNUnit_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplyTemplateWithNoExtraArgsAsync
+            );
+
+        // Folded into the last yielded template.
+        var xunitTemplate = new CallbackTemplate(
+            "aspire-xunit",
+            TemplatingStrings.AspireXUnit_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireXUnitOptionsAsync, ct)
+            );
+
+        // Prepends a test framework selection step then calls the
+        // underlying test template.
+        yield return new CallbackTemplate(
+            "aspire-test",
+            TemplatingStrings.IntegrationTestsTemplate_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            async (template, parseResult, ct) =>
+            {
+                var testTemplate = await prompter.PromptForTemplateAsync(
+                    [msTestTemplate, xunitTemplate, nunitTemplate],
+                    ct
+                );
+
+                var testCallbackTemplate = (CallbackTemplate)testTemplate;
+                return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
+            });
     }
 
     /// <summary>

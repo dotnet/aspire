@@ -108,8 +108,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
         else
         {
-            InteractionService.DisplayMessage("warning", InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
-            return await CreateSingleFileAppHostAsync(parseResult, cancellationToken);
+            InteractionService.DisplayMessage("information", InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
+            return await CreateEmptyAppHostAsync(parseResult, cancellationToken);
         }
     }
 
@@ -157,31 +157,36 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
             // Add projects to solution
-            InteractionService.DisplayMessage("plus", InitCommandStrings.AddingProjectsToSolution);
-            
-            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            var addResult = await InteractionService.ShowStatusAsync(
+                InitCommandStrings.AddingProjectsToSolution,
+                async () =>
+                {
+                    var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+                    var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
 
-            var addAppHostResult = await _runner.AddProjectToSolutionAsync(
-                solutionFile, 
-                appHostProjectFile, 
-                new DotNetCliRunnerInvocationOptions(), 
-                cancellationToken);
-            
-            if (addAppHostResult != 0)
-            {
-                return addAppHostResult;
-            }
+                    var addAppHostResult = await _runner.AddProjectToSolutionAsync(
+                        solutionFile, 
+                        appHostProjectFile, 
+                        new DotNetCliRunnerInvocationOptions(), 
+                        cancellationToken);
+                    
+                    if (addAppHostResult != 0)
+                    {
+                        return addAppHostResult;
+                    }
 
-            var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
-                solutionFile, 
-                serviceDefaultsProjectFile, 
-                new DotNetCliRunnerInvocationOptions(), 
-                cancellationToken);
+                    var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
+                        solutionFile, 
+                        serviceDefaultsProjectFile, 
+                        new DotNetCliRunnerInvocationOptions(), 
+                        cancellationToken);
+                    
+                    return addServiceDefaultsResult;
+                });
             
-            if (addServiceDefaultsResult != 0)
+            if (addResult != 0)
             {
-                return addServiceDefaultsResult;
+                return addResult;
             }
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
@@ -225,23 +230,34 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return originalResult.CommandResult.Command.Parse(args.ToArray());
     }
 
-    private async Task<int> CreateSingleFileAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        // Use single-file AppHost template if feature is enabled
-        if (!_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        ITemplate template;
+        
+        if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
-            InteractionService.DisplayError("Single-file AppHost feature is not enabled.");
-            return ExitCodeConstants.FailedToCreateNewProject;
+            // Use single-file AppHost template if feature is enabled
+            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+            if (singleFileTemplate is null)
+            {
+                InteractionService.DisplayError("Single-file AppHost template not found.");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            template = singleFileTemplate;
+        }
+        else
+        {
+            // Use regular AppHost template if single-file feature is not enabled
+            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
+            if (appHostTemplate is null)
+            {
+                InteractionService.DisplayError("AppHost template not found.");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            template = appHostTemplate;
         }
 
-        var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
-        if (singleFileTemplate is null)
-        {
-            InteractionService.DisplayError("Single-file AppHost template not found.");
-            return ExitCodeConstants.FailedToCreateNewProject;
-        }
-
-        var result = await singleFileTemplate.ApplyTemplateAsync(parseResult, cancellationToken);
+        var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
         
         if (result.ExitCode == 0)
         {
