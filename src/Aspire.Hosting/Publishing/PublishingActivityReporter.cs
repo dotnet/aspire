@@ -290,7 +290,8 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                     Required = input.Required,
                     Options = input.Options,
                     Value = input.Value,
-                    ValidationErrors = input.ValidationErrors
+                    ValidationErrors = input.ValidationErrors,
+                    AllowCustomChoice = input.AllowCustomChoice
                 }).ToList();
 
                 var activity = new PublishingActivity

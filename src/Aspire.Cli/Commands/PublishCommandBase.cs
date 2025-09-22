@@ -583,22 +583,38 @@ internal abstract class PublishCommandBase : BaseCommand
 
     private async Task<string?> HandleSelectInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
     {
+        const string OtherValue = "__OTHER";
+
         if (input.Options is null || input.Options.Count == 0)
         {
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
+        // If AllowCustomChoice is enabled, add an "Other" option to the list.
+        // CLI doesn't support custom values directly in selection prompts. Instead an Other option is added.
+        // If Other is selected then the user is prompted to enter a custom value as text.
+        var options = input.Options.ToList();
+        if (input.AllowCustomChoice)
+        {
+            options.Add(KeyValuePair.Create(OtherValue, "Other (specify next)"));
+        }
+
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
         // but we can reorder the options to put the default first or use a different approach
-        var selectedChoice = await InteractionService.PromptForSelectionAsync(
+        var (value, displayText) = await InteractionService.PromptForSelectionAsync(
             promptText,
-            input.Options,
+            options,
             choice => choice.Value,
             cancellationToken);
 
-        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
+        if (value == OtherValue)
+        {
+            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+        }
 
-        return selectedChoice.Key;
+        AnsiConsole.MarkupLine($"{promptText} {displayText.EscapeMarkup()}");
+
+        return value;
     }
 
     private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
