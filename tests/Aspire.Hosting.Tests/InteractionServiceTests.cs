@@ -727,7 +727,7 @@ public class InteractionServiceTests
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
     {
-        await interactionService.CompleteInteractionAsync(interactionId, (_, _) => state, CancellationToken.None);
+        await interactionService.PrcoessInteractionFromClientAsync(interactionId, (_, _) => state, CancellationToken.None);
     }
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)

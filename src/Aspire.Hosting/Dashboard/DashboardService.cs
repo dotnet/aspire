@@ -115,13 +115,23 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.InputsDialog = new InteractionInputsDialog();
 
+                            // Find all the inputs that are depended on.
+                            // These inputs value changing will cause the interaction to be sent to the server.
+                            var updateStateOnChangeInputs = inputs.Inputs
+                                .SelectMany(i => i.OptionsProvider?.DependsOnInputs ?? [])
+                                .ToList();
+
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
+                                var updateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName));
+
                                 var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
+                                    Name = input.Name,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required,
                                     AllowCustomChoice = input.AllowCustomChoice,
+                                    UpdateStateOnchange = updateStateOnChange
                                 };
                                 if (input.EffectiveLabel != null)
                                 {
@@ -143,6 +153,16 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.OptionsProviderState is { } providerState)
+                                {
+                                    var (loadedOptions, isLoading) = providerState.GetOptions();
+
+                                    dto.OptionsLoading = isLoading;
+                                    if (loadedOptions != null)
+                                    {
+                                        dto.Options.Add(loadedOptions.ToDictionary());
+                                    }
                                 }
                                 if (input.MaxLength != null)
                                 {
