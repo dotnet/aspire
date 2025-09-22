@@ -14,7 +14,7 @@ internal sealed class LoggedOutNotificationManager(IInteractionService interacti
         {
             _ = await interactionService.PromptNotificationAsync(
                 "Dev tunnels",
-                $"Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.",
+                Resources.MessageStrings.AuthenticationExpiredNotification,
                 new() { Intent = MessageIntent.Warning },
                 cancellationToken).ConfigureAwait(false);
         }

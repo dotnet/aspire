@@ -1,6 +1,6 @@
 # Aspire.Hosting.DevTunnels library
 
-Provides extension methods and resource definitions for an Aspire AppHost to expose local application endpoints publicly via a secure [Dev Tunnel](https://learn.microsoft.com/azure/developer/dev-tunnels/overview).  
+Provides extension methods and resource definitions for an Aspire AppHost to expose local application endpoints publicly via a secure [dev tunnel](https://learn.microsoft.com/azure/developer/dev-tunnels/overview).  
 Dev tunnels are useful for:
 * Sharing a running local service (e.g., a Web API) with teammates, mobile devices, or webhooks.
 * Testing incoming callbacks from external SaaS systems (GitHub / Stripe / etc.) without deploying.
@@ -14,7 +14,7 @@ Dev tunnels are useful for:
 
 ### Install the package
 
-In your AppHost project, install the Aspire Dev Tunnels Hosting library via NuGet:
+In your AppHost project, install the `Aspire.Hosting.DevTunnels` library via NuGet:
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.DevTunnels
@@ -25,6 +25,10 @@ Or using the Aspire CLI:
 ```bash
 aspire add devtunnels
 ```
+
+### Install the devtunnel CLI
+
+Before you create a dev tunnel, you first need to download and install the devtunnel CLI (Command Line Interface) tool that corresponds to your operating system. See the [devtunnel CLI installation documentation](https://learn.microsoft.com/azure/developer/dev-tunnels/get-started#install) for more details.
 
 ---
 
@@ -125,7 +129,7 @@ Example:
 services__web__https__0 = https://myweb-1234.westeurope.devtunnels.ms/
 ```
 
-This lets downstream resources use the tunneled address exactly like any other Aspire service discovery entry.
+This lets downstream resources use the tunneled address exactly like any other Aspire service discovery entry. Note that dev tunnels are a development time concern only and are not included when publishing or deploying an Aspire AppHost, including any service discovery information.
 
 > Referencing a tunnel delays the consumer resource's start until the tunnel has started and its endpoint is fully allocated.
 

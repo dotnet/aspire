@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
@@ -27,7 +28,7 @@ internal sealed class DevTunnelHealthCheck(
             tunnelResource.LastKnownStatus = tunnelStatus;
             if (tunnelStatus.HostConnections == 0)
             {
-                return HealthCheckResult.Unhealthy($"Dev tunnel '{_tunnelResource.TunnelId}' has no active host connections.");
+                return HealthCheckResult.Unhealthy(string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.DevTunnelUnhealthy_NoActiveHostConnections, _tunnelResource.TunnelId));
             }
 
             // Check that expected ports are active
@@ -37,7 +38,7 @@ internal sealed class DevTunnelHealthCheck(
                 portResource.LastKnownStatus = portStatus;
                 if (portStatus?.PortUri is null)
                 {
-                    return HealthCheckResult.Unhealthy($"Dev tunnel '{_tunnelResource.TunnelId}' port {portResource.TargetEndpoint.Port} is not active.");
+                    return HealthCheckResult.Unhealthy(string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.DevTunnelUnhealthy_PortInactive, _tunnelResource.TunnelId, portResource.TargetEndpoint.Port));
                 }
             }
 
@@ -52,7 +53,7 @@ internal sealed class DevTunnelHealthCheck(
                 portResource.LastKnownAccessStatus = portAccessStatus;
             }
 
-            return HealthCheckResult.Healthy($"Dev tunnel '{_tunnelResource.TunnelId}' is active with {tunnelStatus.HostConnections} host connections and {tunnelStatus.Ports?.Count} ports.");
+            return HealthCheckResult.Healthy(string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.DevTunnelHealthy, _tunnelResource.TunnelId, tunnelStatus.HostConnections, tunnelStatus.Ports?.Count));
         }
         catch (Exception ex)
         {
@@ -69,7 +70,7 @@ internal sealed class DevTunnelHealthCheck(
             }
             catch { } // Ignore errors from login check
 
-            return HealthCheckResult.Unhealthy($"Failed to check dev tunnel '{_tunnelResource.TunnelId}': {ex.Message}", ex);
+            return HealthCheckResult.Unhealthy(string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.DevTunnelUnhealthy_Error, _tunnelResource.TunnelId, ex.Message), ex);
         }
     }
 }
