@@ -17,7 +17,8 @@ namespace Aspire.Hosting.Azure.Tests;
 
 public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHelper)
 {
-    [Theory(Skip = "CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
+    [Theory]
+    [OuterloopTest("CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
@@ -59,7 +60,8 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         await app.StopAsync();
     }
 
-    [Theory(Skip = "CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
+    [Theory]
+    [OuterloopTest("CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker(Reason = "CosmosDB emulator is needed for this test")]
@@ -128,7 +130,8 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         }, cts.Token);
     }
 
-    [Theory(Skip = "CosmosDB Emulator takes too long to spin up, spinning up twice consecutively will almost always exceed the global test timeout")]
+    [Theory]
+    [OuterloopTest("CosmosDB Emulator takes too long to spin up, spinning up twice consecutively will almost always exceed the global test timeout")]
     [InlineData(true)]
     [InlineData(false)]
     [RequiresDocker]
@@ -264,7 +267,8 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         DockerUtils.AttemptDeleteDockerVolume(volumeName);
     }
 
-    [Fact(Skip = "CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
+    [Fact]
+    [OuterloopTest("CosmosDB Emulator may take longer than the 7m hang timer to load and cause the tests to fail")]
     [RequiresDocker]
     public async Task AddAzureCosmosDB_RunAsEmulator_CreatesDatabase()
     {
