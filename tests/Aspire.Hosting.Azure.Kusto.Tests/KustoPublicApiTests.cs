@@ -9,7 +9,7 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldThrowWhenNameIsNull()
     {
         // Act
-        var action = () => new AzureKustoClusterResource(null!);
+        var action = () => new AzureKustoClusterResource(null!, _ => { });
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -21,7 +21,7 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Act
-        var action = () => new AzureKustoClusterResource(name);
+        var action = () => new AzureKustoClusterResource(name, _ => { });
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -31,23 +31,24 @@ public class KustoPublicApiTests
     public void AzureKustoClusterResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoClusterResource("test-kusto");
+        var resource = new AzureKustoClusterResource("test-kusto", _ => { });
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
 
         // Assert
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
+        // For Azure provisioned resources (default when directly constructed), should use cluster URI output
+        Assert.Equal("{test-kusto.outputs.clusterUri}", connectionStringExpression.ValueExpression);
     }
 
     [Fact]
     public void AzureKustoDatabaseResourceShouldThrowWhenNameIsNull()
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource(null!, "db", parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource(null!, "db", parentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -59,10 +60,10 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", name, parentResource);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -72,10 +73,10 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenDatabaseNameIsNull()
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", null!, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", null!, parentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -87,10 +88,10 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldThrowWhenDatabaseNameIsInvalid(string name)
     {
         // Arrange
-        var parentResource = new AzureKustoClusterResource("kusto");
+        var parentResource = new AzureKustoClusterResource("kusto", _ => { });
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", name, parentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", name, parentResource);
 
         // Assert
         Assert.Throws<ArgumentException>(action);
@@ -103,7 +104,7 @@ public class KustoPublicApiTests
         AzureKustoClusterResource kustoParentResource = null!;
 
         // Act
-        var action = () => new AzureKustoDatabaseResource("kusto-db", "db1", kustoParentResource);
+        var action = () => new AzureKustoReadWriteDatabaseResource("kusto-db", "db1", kustoParentResource);
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
@@ -113,7 +114,7 @@ public class KustoPublicApiTests
     public void AzureKustoDatabaseResourceShouldReturnValidReferenceExpression()
     {
         // Arrange
-        var resource = new AzureKustoDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto"));
+        var resource = new AzureKustoReadWriteDatabaseResource("kusto-db", "myDatabase", new AzureKustoClusterResource("kusto", _ => { }));
 
         // Act
         var connectionStringExpression = resource.ConnectionStringExpression;
@@ -130,18 +131,5 @@ public class KustoPublicApiTests
 
         // Assert
         Assert.Throws<ArgumentNullException>(action);
-    }
-
-    [Fact]
-    public void KustoEmulatorResourceShouldReturnValidReferenceExpression()
-    {
-        // Arrange
-        var resource = new AzureKustoEmulatorResource(new AzureKustoClusterResource("test-kusto"));
-
-        // Act
-        var connectionStringExpression = resource.ConnectionStringExpression;
-
-        // Assert
-        Assert.Equal("{test-kusto.bindings.http.scheme}://{test-kusto.bindings.http.host}:{test-kusto.bindings.http.port}", connectionStringExpression.ValueExpression);
     }
 }

@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="de" original="../UpdateCommandStrings.resx">
     <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="new">Added: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
         <target state="translated">App-Host analysieren</target>
@@ -20,6 +25,11 @@
       <trans-unit id="AnalyzingProjectStatus">
         <source>Analyzing project...</source>
         <target state="translated">Projekt wird analysiert …</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="new">Apply these changes to NuGet.config?</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
@@ -67,6 +77,26 @@
         <target state="translated">Beim Aktualisieren des Paketverweises für {0} im Projekt {1} ist ein Fehler aufgetreten.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="new">   Mapping: {0} (added)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="new">   Mapping: {0} (removed)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="new">   Mapping: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="new">No changes detected in NuGet.config</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">Im Kanal „{0}“ wurde kein Paket mit der ID „{1}“ gefunden.</target>
@@ -95,6 +125,16 @@
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
         <target state="translated">Das Projekt ist auf dem neuesten Stand. (keine Updates erforderlich)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="new">Removed: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="new">Retained: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">

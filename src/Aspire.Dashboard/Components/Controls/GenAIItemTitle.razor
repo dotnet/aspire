@@ -4,7 +4,7 @@
 @if (_titleBadge is { } titleBadge)
 {
     <span class="message-name">
-        <FluentIcon Value="@titleBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorHexByKey(ResourceName)" />
+        <FluentIcon Value="@titleBadge.Icon" Width="18px" Color="Color.Custom" CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(ResourceName)" />
         @titleBadge.Text
     </span>
 }

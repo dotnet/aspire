@@ -37,7 +37,7 @@ public static class ResourceGraphMapper
             ?? ResourceUrlHelpers.GetUrls(r, includeInternalUrls: false, includeNonEndpointUrls: true).FirstOrDefault();
         var resolvedEndpointText = ResolvedEndpointText(endpoint);
         var resourceName = ResourceViewModel.GetResourceName(r, resourcesByName);
-        var color = ColorGenerator.Instance.GetColorHexByKey(resourceName);
+        var color = ColorGenerator.Instance.GetColorVariableByKey(resourceName);
 
         var icon = GetIconPathData(ResourceIconHelpers.GetIconForResource(r, IconSize.Size24));
 

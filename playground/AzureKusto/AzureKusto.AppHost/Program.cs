@@ -4,9 +4,11 @@ using Kusto.Data.Net.Client;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.AddAzureContainerAppEnvironment("infra");
+
 var kusto = builder.AddAzureKustoCluster("kusto")
     .RunAsEmulator();
-var db = kusto.AddDatabase("testdb");
+var db = kusto.AddReadWriteDatabase("testdb");
 
 builder.AddProject<Projects.AzureKusto_Worker>("worker")
     .WithReference(db)
@@ -17,6 +19,12 @@ builder.AddProject<Projects.AzureKusto_Worker>("worker")
 // in production or other scenarios.
 db.OnResourceReady(async (dbResource, evt, ct) =>
 {
+    if (!kusto.Resource.IsEmulator)
+    {
+        Console.WriteLine("Skipping Kusto DB seeding for non emulator.");
+        return;
+    }
+
     var connectionString = await dbResource.ConnectionStringExpression.GetValueAsync(ct);
     var kcsb = new KustoConnectionStringBuilder(connectionString);
 
@@ -44,9 +52,6 @@ db.OnResourceReady(async (dbResource, evt, ct) =>
 // artifacts dir).
 builder.AddProject<Projects.Aspire_Dashboard>(KnownResourceNames.AspireDashboard);
 #endif
-
-// Add an invalid database to demonstrate how a "failed to start" resource appears in the dashboard
-kusto.AddDatabase("InvalidDb", "__invalid");
 
 var app = builder.Build();
 app.Run();

@@ -100,6 +100,8 @@ public class ModelClient : IDisposable
         Console.WriteLine($"Total pages fetched: {pageCount}");
         Console.WriteLine($"Total models collected: {allModels.Count}");
 
+        RunFixups(allModels);
+
         // Return the consolidated response using our model
         return new ConsolidatedResponse
         {
@@ -162,7 +164,7 @@ public class ModelClient : IDisposable
                     {"field": "annotations/archived", "operator": "ne", "values": ["true"]},
                     {"field": "properties/userProperties/is-promptflow", "operator": "notexists"},
                     {"field": "labels", "operator": "eq", "values": ["latest"]},
-                    {"field": "properties/name", "operator": "eq", "values": ["dall-e-3", "gpt-35-turbo", "gpt-35-turbo-16k", "gpt-4", "gpt-4-32k", "gpt-4o", "gpt-4o-mini", "gpt-4o-audio-preview", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "o1", "o3-mini", "o4-mini", "ada", "text-embedding-ada-002", "babbage", "curie", "davinci", "text-embedding-3-small", "text-embedding-3-large", "AI21-Jamba-1.5-Large", "AI21-Jamba-1.5-Mini", "AI21-Jamba-Instruct", "Codestral-2501", "cohere-command-a", "Cohere-command-r", "Cohere-command-r-08-2024", "Cohere-command-r-plus", "Cohere-command-r-plus-08-2024", "Cohere-embed-v3-english", "Cohere-embed-v3-multilingual", "DeepSeek-R1", "DeepSeek-R1-0528", "DeepSeek-V3", "DeepSeek-V3-0324", "embed-v-4-0", "jais-30b-chat", "Llama-3.2-11B-Vision-Instruct", "Llama-3.2-90B-Vision-Instruct", "Llama-3.3-70B-Instruct", "MAI-DS-R1", "Meta-Llama-3-70B-Instruct", "Meta-Llama-3-8B-Instruct", "Meta-Llama-3.1-405B-Instruct", "Meta-Llama-3.1-70B-Instruct", "Meta-Llama-3.1-8B-Instruct", "Ministral-3B", "Mistral-large-2407", "Mistral-Large-2411", "Mistral-Nemo", "Mistral-small", "mistral-small-2503", "Phi-3-medium-128k-instruct", "Phi-3-medium-4k-instruct", "Phi-3-mini-128k-instruct", "Phi-3-mini-4k-instruct", "Phi-3-small-128k-instruct", "Phi-3-small-8k-instruct", "Phi-3.5-mini-instruct", "Phi-3.5-MoE-instruct", "Phi-3.5-vision-instruct", "Phi-4", "Phi-4-mini-instruct", "Phi-4-multimodal-instruct", "Phi-4-reasoning", "Phi-4-mini-reasoning", "Llama-4-Maverick-17B-128E-Instruct-FP8", "Llama-4-Scout-17B-16E-Instruct", "mistral-medium-2505", "mistral-document-ai-2505", "grok-3", "grok-3-mini", "FLUX-1.1-pro", "FLUX.1-Kontext-pro", "gpt-oss-120b", "code-cushman-001", "code-cushman-fine-tune-002", "whisper", "text-ada-001", "text-similarity-ada-001", "text-search-ada-doc-001", "text-search-ada-query-001", "code-search-ada-code-001", "code-search-ada-text-001", "text-babbage-001", "text-similarity-babbage-001", "text-search-babbage-doc-001", "text-search-babbage-query-001", "code-search-babbage-code-001", "code-search-babbage-text-001", "text-curie-001", "text-similarity-curie-001", "text-search-curie-doc-001", "text-search-curie-query-001", "text-davinci-001", "text-davinci-002", "text-davinci-003", "text-davinci-fine-tune-002", "code-davinci-002", "code-davinci-fine-tune-002", "text-similarity-davinci-001", "text-search-davinci-doc-001", "text-search-davinci-query-001", "dall-e-2", "gpt-35-turbo-instruct", "gpt-4o-mini-audio-preview", "o1-mini", "gpt-4o-mini-realtime-preview", "gpt-4o-realtime-preview", "gpt-4o-transcribe", "gpt-4o-mini-transcribe", "gpt-4o-mini-tts", "gpt-5-mini", "gpt-5-nano", "gpt-5-chat", "model-router", "codex-mini", "sora", "tts", "tts-hd", "babbage-002", "davinci-002", "Azure-AI-Speech", "Azure-AI-Language", "Azure-AI-Vision", "Azure-AI-Translator", "Azure-AI-Content-Understanding", "Azure-AI-Document-Intelligence", "Azure-AI-Content-Safety"]}
+                    {"field": "properties/name", "operator": "eq", "values": ["dall-e-3", "gpt-35-turbo", "gpt-35-turbo-16k", "gpt-4", "gpt-4-32k", "gpt-4o", "gpt-4o-mini", "gpt-4o-audio-preview", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "o1", "o3-mini", "o4-mini", "ada", "text-embedding-ada-002", "babbage", "curie", "davinci", "text-embedding-3-small", "text-embedding-3-large", "AI21-Jamba-1.5-Large", "AI21-Jamba-1.5-Mini", "AI21-Jamba-Instruct", "Codestral-2501", "cohere-command-a", "Cohere-command-r", "Cohere-command-r-08-2024", "Cohere-command-r-plus", "Cohere-command-r-plus-08-2024", "Cohere-embed-v3-english", "Cohere-embed-v3-multilingual", "DeepSeek-R1", "DeepSeek-R1-0528", "DeepSeek-V3", "DeepSeek-V3-0324", "embed-v-4-0", "jais-30b-chat", "Llama-3.2-11B-Vision-Instruct", "Llama-3.2-90B-Vision-Instruct", "Llama-3.3-70B-Instruct", "MAI-DS-R1", "Meta-Llama-3-70B-Instruct", "Meta-Llama-3-8B-Instruct", "Meta-Llama-3.1-405B-Instruct", "Meta-Llama-3.1-70B-Instruct", "Meta-Llama-3.1-8B-Instruct", "Ministral-3B", "Mistral-large-2407", "Mistral-Large-2411", "Mistral-Nemo", "Mistral-small", "mistral-small-2503", "Phi-4", "Phi-4-mini-instruct", "Phi-4-reasoning", "Phi-4-mini-reasoning", "Llama-4-Maverick-17B-128E-Instruct-FP8", "Llama-4-Scout-17B-16E-Instruct", "mistral-medium-2505", "mistral-document-ai-2505", "grok-3", "grok-3-mini", "FLUX-1.1-pro", "FLUX.1-Kontext-pro", "gpt-oss-120b", "code-cushman-001", "code-cushman-fine-tune-002", "whisper", "text-ada-001", "text-similarity-ada-001", "text-search-ada-doc-001", "text-search-ada-query-001", "code-search-ada-code-001", "code-search-ada-text-001", "text-babbage-001", "text-similarity-babbage-001", "text-search-babbage-doc-001", "text-search-babbage-query-001", "code-search-babbage-code-001", "code-search-babbage-text-001", "text-curie-001", "text-similarity-curie-001", "text-search-curie-doc-001", "text-search-curie-query-001", "text-davinci-001", "text-davinci-002", "text-davinci-003", "text-davinci-fine-tune-002", "code-davinci-002", "code-davinci-fine-tune-002", "text-similarity-davinci-001", "text-search-davinci-doc-001", "text-search-davinci-query-001", "dall-e-2", "gpt-35-turbo-instruct", "gpt-4o-mini-audio-preview", "o1-mini", "gpt-4o-mini-realtime-preview", "gpt-4o-realtime-preview", "gpt-4o-transcribe", "gpt-4o-mini-transcribe", "gpt-4o-mini-tts", "gpt-5-mini", "gpt-5-nano", "gpt-5-chat", "model-router", "codex-mini", "sora", "tts", "tts-hd", "babbage-002", "davinci-002", "Azure-AI-Speech", "Azure-AI-Language", "Azure-AI-Vision", "Azure-AI-Translator", "Azure-AI-Content-Understanding", "Azure-AI-Document-Intelligence", "Azure-AI-Content-Safety"]}
                 ],
                 "freeTextSearch": "",
                 "order": [{"field": "properties/name", "direction": "Asc"}],
@@ -202,6 +204,19 @@ public class ModelClient : IDisposable
     {
         _httpClient?.Dispose();
         _handler?.Dispose();
+    }
+
+    private static void RunFixups(List<ModelEntity> allModels)
+    {
+        foreach (var model in allModels)
+        {
+            // Fix up Phi-4 version to 7 since 8 doesn't work in Azure.
+            if (model.Annotations?.Name == "Phi-4")
+            {
+                model.Properties!.AlphanumericVersion = "7";
+                model.Version = "7";
+            }
+        }
     }
 }
 

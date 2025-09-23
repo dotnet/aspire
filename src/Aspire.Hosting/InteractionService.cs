@@ -275,9 +275,12 @@ internal class InteractionService : IInteractionService
                                 }
                                 break;
                             case InputType.Choice:
-                                if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                if (!input.AllowCustomChoice)
                                 {
-                                    context.AddValidationError(input, "Value must be one of the provided options.");
+                                    if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                    {
+                                        context.AddValidationError(input, "Value must be one of the provided options.");
+                                    }
                                 }
                                 break;
                             case InputType.Boolean:

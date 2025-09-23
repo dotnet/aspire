@@ -26,4 +26,7 @@ resource scheduled_job 'Microsoft.App/jobs@2025-01-01' = {
       ]
     }
   }
+  tags: {
+    metadata: 'metadata-value'
+  }
 }
