@@ -12,12 +12,10 @@ public class MauiMacCatalystTests
         var builder = Aspire.Hosting.DistributedApplication.CreateBuilder();
         builder.AddMauiProject("maui", csproj).WithMacCatalyst();
         using var app = builder.Build();
-
+        // Host startup not required for inspecting static argument annotations.
         var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Aspire.Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
         var macRes = Assert.Single(model.Resources.OfType<Aspire.Hosting.ApplicationModel.ProjectResource>(), r => r.Name == "maui-maccatalyst");
-
-        // Retrieve processed argument values using the public extension API (async call). We expect OpenArguments flag added automatically.
-        var args = await global::Aspire.Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(macRes);
+        var args = await global::Aspire.Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(macRes, Aspire.Hosting.DistributedApplicationOperation.Publish);
         Assert.Contains("-p:OpenArguments=-W", args);
     }
 }
