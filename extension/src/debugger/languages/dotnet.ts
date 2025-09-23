@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
 import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
-import { execFile } from 'child_process';
+import { execFile, ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
+import * as readline from 'readline';
+import * as os from 'os';
 import { doesFileExist } from '../../utils/io';
 import { AspireResourceExtendedDebugConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
@@ -19,13 +21,76 @@ export const projectDebuggerExtension: ResourceDebuggerExtension = {
         const projectPath = launchConfig.project_path;
         const workingDirectory = path.dirname(launchConfig.project_path);
 
-        const outputPath = await getDotNetTargetPath(projectPath);
+        if (!isSingleFileAppHost(projectPath)) {
+            const outputPath = await getDotNetTargetPath(projectPath);
 
-        if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
-            await buildDotNetProject(projectPath);
+            if (!(await doesFileExist(outputPath)) || launchOptions.forceBuild) {
+                await buildDotNetProject(projectPath);
+            }
+
+            debugConfiguration.program = outputPath;
+        }
+        else {
+            // Ask `dotnet run-api` for the executable path.
+            const response = await new Promise<string>(async (resolve, reject) => {
+                try {
+                    let childProcess: ChildProcessWithoutNullStreams;
+                    const timeout = setTimeout(() => {
+                        childProcess?.kill();
+                        reject(new Error('Timeout while waiting for dotnet run-api response'));
+                    }, 10_000);
+
+                    const logger = extensionLogOutputChannel;
+                    logger.info('dotnet run-api - starting process');
+
+                    childProcess = spawn('dotnet', ['run-api'], {
+                        cwd: process.cwd(),
+                        env: process.env,
+                        stdio: ['pipe', 'pipe', 'pipe']
+                    });
+
+                    childProcess.on('error', reject);
+                    childProcess.on('exit', (code, signal) => {
+                        clearTimeout(timeout);
+                        reject(new Error(`dotnet run-api exited with ${code ?? signal}`));
+                    });
+
+                    const rl = readline.createInterface(childProcess.stdout);
+                    rl.on('line', line => {
+                        clearTimeout(timeout);
+                        logger.info(`dotnet run-api - received: ${line}`);
+                        resolve(line);
+                    });
+
+                    const message = JSON.stringify({ ['$type']: 'GetRunCommand', ['EntryPointFileFullPath']: projectPath });
+                    logger.info(`dotnet run-api - sending: ${message}`);
+                    childProcess.stdin.write(message + os.EOL);
+                    childProcess.stdin.end();
+                } catch (e) {
+                    reject(e);
+                }
+            });
+
+            const parsed = JSON.parse(response);
+            if (parsed.$type === 'Error') {
+                throw new Error(`dotnet run-api failed: ${parsed.Message}`);
+            } else if (parsed.$type !== 'RunCommand') {
+                throw new Error(`dotnet run-api failed: Unexpected response type '${parsed.$type}'`);
+            }
+
+            debugConfiguration.program = parsed.ExecutablePath;
+            if (parsed.EnvironmentVariables) {
+                debugConfiguration.env = {
+                    ...debugConfiguration.env,
+                    ...parsed.EnvironmentVariables
+                };
+            }
+
+            // TODO integrate this with the launch settings PR.. for now just combine environment
+            // but all variables in https://devdiv.visualstudio.com/DevDiv/_git/vs-green?path=/src/services/DotnetDebugConfigurationService.ts&version=GBmain&line=340&lineEnd=341&lineStartColumn=1&lineEndColumn=1&lineStyle=plain&_a=contents
+            // should be merged according to the DCP rules as well
         }
 
-        debugConfiguration.program = outputPath;
         debugConfiguration.cwd = workingDirectory;
     }
 };
@@ -55,7 +120,7 @@ async function buildDotNetProject(projectFile: string): Promise<void> {
         return buildTask;
     });
 
-// Modify the task to target the specific project
+    // Modify the task to target the specific project
     const projectName = path.basename(projectFile, '.csproj');
 
     // Create a modified task definition with just the project file
@@ -112,4 +177,8 @@ async function getDotNetTargetPath(projectFile: string): Promise<string> {
     } catch (err) {
         throw new Error(failedToGetTargetPath(String(err)));
     }
+}
+
+function isSingleFileAppHost(projectPath: string): boolean {
+    return path.basename(projectPath).toLowerCase() === 'apphost.cs';
 }
