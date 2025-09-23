@@ -134,6 +134,7 @@ public class Program
         // Template factories.
         builder.Services.AddSingleton<ITemplateProvider, TemplateProvider>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, DotNetTemplateFactory>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ITemplateFactory, GitRepositoryTemplateFactory>());
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
