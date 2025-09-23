@@ -653,7 +653,7 @@ find_workflow_run() {
     say_verbose "Finding ci.yml workflow run for SHA: $head_sha"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at, .updated_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
         return 1
     fi
 
