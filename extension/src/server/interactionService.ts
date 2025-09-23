@@ -273,11 +273,14 @@ export class InteractionService implements IInteractionService {
     }
 
     logMessage(logLevel: CSLogLevel, message: string) {
+        // Unable to log trace or debug messages, these levels are ignored by default
+        // and we cannot set the log level programmatically. So for now, log as info
+        // https://github.com/microsoft/vscode/issues/223536
         if (logLevel === 'Trace') {
-            extensionLogOutputChannel.trace(formatText(message));
+            extensionLogOutputChannel.info(`[trace] ${formatText(message)}`);
         }
         else if (logLevel === 'Debug') {
-            extensionLogOutputChannel.debug(formatText(message));
+            extensionLogOutputChannel.info(`[debug] ${formatText(message)}`);
         }
         else if (logLevel === 'Information') {
             extensionLogOutputChannel.info(formatText(message));
