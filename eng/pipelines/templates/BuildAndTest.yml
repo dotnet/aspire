@@ -36,6 +36,7 @@ steps:
               -restore -build
               -pack
               -sign $(_SignArgs)
+              -buildExtension
               -publish $(_PublishArgs)
               -configuration ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/build.binlog

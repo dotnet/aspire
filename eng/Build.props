@@ -20,6 +20,11 @@
     <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />
   </ItemGroup>
 
+  <!-- Extension build project -->
+  <ItemGroup Condition="'$(BuildExtension)' == 'true'">
+    <ProjectToBuild Include="$(RepoRoot)extension\Extension.proj" />
+  </ItemGroup>
+
   <!-- Native build only -->
   <ItemGroup Condition="'$(SkipNativeBuild)' != 'true'">
     <!-- Add Aspire.Cli project here for native-only builds so it gets picked
