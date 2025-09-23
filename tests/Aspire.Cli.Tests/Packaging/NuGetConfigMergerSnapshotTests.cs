@@ -5,6 +5,8 @@ using System.Xml.Linq;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Tests.Utils;
+using Aspire.Cli.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Tests.Packaging;
 
@@ -25,6 +27,18 @@ public class NuGetConfigMergerSnapshotTests
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
         public Task<IEnumerable<Aspire.Shared.NuGetPackageCli>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken) => Task.FromResult<IEnumerable<Aspire.Shared.NuGetPackageCli>>([]);
+    }
+
+    private sealed class FakeFeatures : IFeatures
+    {
+        public bool IsFeatureEnabled(string featureFlag, bool defaultValue) => defaultValue;
+    }
+
+    private static PackagingService CreatePackagingService(CliExecutionContext executionContext)
+    {
+        var features = new FakeFeatures();
+        var configuration = new ConfigurationBuilder().Build();
+        return new PackagingService(executionContext, new FakeNuGetPackageCache(), features, configuration);
     }
 
     private static async Task<FileInfo> WriteConfigAsync(DirectoryInfo dir, string content)
@@ -49,7 +63,7 @@ public class NuGetConfigMergerSnapshotTests
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(root, hivesDir, cacheDir);
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache());
+        var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
         await WriteConfigAsync(root,
@@ -98,7 +112,7 @@ public class NuGetConfigMergerSnapshotTests
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir2 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(root, hivesDir, cacheDir2);
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache());
+        var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
         await WriteConfigAsync(root,
@@ -161,7 +175,7 @@ public class NuGetConfigMergerSnapshotTests
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir3 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(root, hivesDir, cacheDir3);
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache());
+        var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
         await WriteConfigAsync(root,
@@ -223,7 +237,7 @@ public class NuGetConfigMergerSnapshotTests
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir4 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(root, hivesDir, cacheDir4);
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache());
+        var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
         await WriteConfigAsync(root,
@@ -283,7 +297,7 @@ public class NuGetConfigMergerSnapshotTests
         hivesDir.CreateSubdirectory("pr-1234");
         var cacheDir5 = new DirectoryInfo(Path.Combine(root.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(root, hivesDir, cacheDir5);
-        var packagingService = new PackagingService(executionContext, new FakeNuGetPackageCache());
+        var packagingService = CreatePackagingService(executionContext);
 
         // Existing config purposely minimal (no packageSourceMapping yet)
         await WriteConfigAsync(root,
