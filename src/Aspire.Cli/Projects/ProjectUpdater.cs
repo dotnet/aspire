@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.Json;
 using System.Xml;
 using Aspire.Cli.DotNet;
@@ -12,6 +13,7 @@ using Aspire.Shared;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Projects;
 
@@ -112,7 +114,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 cancellationToken: cancellationToken);
 
             var nugetConfigDirectory = new DirectoryInfo(selectedPathForNewNuGetConfigFile);
-            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel);
+            await NuGetConfigMerger.CreateOrUpdateAsync(nugetConfigDirectory, channel, AnalyzeAndConfirmNuGetConfigChanges, cancellationToken);
         }
 
         interactionService.DisplayEmptyLine();
@@ -562,6 +564,232 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
         }
     }
+
+    private async Task<bool> AnalyzeAndConfirmNuGetConfigChanges(FileInfo targetFile, XmlDocument? originalDocument, XmlDocument proposedDocument, CancellationToken cancellationToken)
+    {
+        interactionService.DisplayEmptyLine();
+
+        var changes = AnalyzeNuGetConfigChanges(originalDocument, proposedDocument);
+        
+        if (!changes.HasChanges)
+        {
+            interactionService.DisplayPlainText(UpdateCommandStrings.NoChangesDetectedInNuGetConfig);
+            return true;
+        }
+
+        DisplayNuGetConfigChanges(changes);
+        
+        var shouldProceed = await interactionService.ConfirmAsync(
+            UpdateCommandStrings.ApplyChangesToNuGetConfig,
+            defaultValue: true,
+            cancellationToken);
+
+        return shouldProceed;
+    }
+
+    private static NuGetConfigChanges AnalyzeNuGetConfigChanges(XmlDocument? originalDocument, XmlDocument proposedDocument)
+    {
+        var changes = new NuGetConfigChanges();
+
+        // Extract package sources from both documents
+        var originalSources = ExtractPackageSources(originalDocument);
+        var proposedSources = ExtractPackageSources(proposedDocument);
+
+        // Analyze feed changes
+        changes.AddedFeeds = proposedSources.Where(p => !originalSources.Any(o => o.Key == p.Key)).ToList();
+        changes.RemovedFeeds = originalSources.Where(o => !proposedSources.Any(p => p.Key == o.Key)).ToList();
+        changes.RetainedFeeds = originalSources.Where(o => proposedSources.Any(p => p.Key == o.Key)).ToList();
+
+        // Extract package source mappings from both documents
+        var originalMappings = ExtractPackageSourceMappings(originalDocument);
+        var proposedMappings = ExtractPackageSourceMappings(proposedDocument);
+
+        // Store mappings for display
+        changes.OriginalMappings = originalMappings;
+        changes.ProposedMappings = proposedMappings;
+
+        // Analyze mapping changes
+        changes.MappingChanges = AnalyzeMappingChanges(originalMappings, proposedMappings);
+
+        return changes;
+    }
+
+    private static List<PackageSourceInfo> ExtractPackageSources(XmlDocument? document)
+    {
+        var sources = new List<PackageSourceInfo>();
+        if (document?.DocumentElement == null) 
+        {
+            return sources;
+        }
+
+        var packageSources = document.DocumentElement.SelectSingleNode("packageSources");
+        if (packageSources != null)
+        {
+            var addNodes = packageSources.SelectNodes("add");
+            if (addNodes != null)
+            {
+                foreach (XmlNode addNode in addNodes)
+                {
+                    var key = addNode.Attributes?["key"]?.Value;
+                    var value = addNode.Attributes?["value"]?.Value;
+                    if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value))
+                    {
+                        sources.Add(new PackageSourceInfo(key, value));
+                    }
+                }
+            }
+        }
+
+        return sources;
+    }
+
+    private static Dictionary<string, List<string>> ExtractPackageSourceMappings(XmlDocument? document)
+    {
+        var mappings = new Dictionary<string, List<string>>();
+        if (document?.DocumentElement == null) 
+        {
+            return mappings;
+        }
+
+        var packageSourceMapping = document.DocumentElement.SelectSingleNode("packageSourceMapping");
+        if (packageSourceMapping != null)
+        {
+            var packageSourceNodes = packageSourceMapping.SelectNodes("packageSource");
+            if (packageSourceNodes != null)
+            {
+                foreach (XmlNode packageSourceNode in packageSourceNodes)
+                {
+                    var sourceKey = packageSourceNode.Attributes?["key"]?.Value;
+                    if (!string.IsNullOrEmpty(sourceKey))
+                    {
+                        var patterns = new List<string>();
+                        var packageNodes = packageSourceNode.SelectNodes("package");
+                        if (packageNodes != null)
+                        {
+                            foreach (XmlNode packageNode in packageNodes)
+                            {
+                                var pattern = packageNode.Attributes?["pattern"]?.Value;
+                                if (!string.IsNullOrEmpty(pattern))
+                                {
+                                    patterns.Add(pattern);
+                                }
+                            }
+                        }
+                        mappings[sourceKey] = patterns;
+                    }
+                }
+            }
+        }
+
+        return mappings;
+    }
+
+    private static List<MappingChange> AnalyzeMappingChanges(Dictionary<string, List<string>> originalMappings, Dictionary<string, List<string>> proposedMappings)
+    {
+        var changes = new List<MappingChange>();
+
+        // Find sources with mapping changes
+        var allSources = originalMappings.Keys.Union(proposedMappings.Keys).ToHashSet();
+
+        foreach (var source in allSources)
+        {
+            var originalPatterns = originalMappings.GetValueOrDefault(source, []);
+            var proposedPatterns = proposedMappings.GetValueOrDefault(source, []);
+
+            var addedPatterns = proposedPatterns.Except(originalPatterns).ToList();
+            var removedPatterns = originalPatterns.Except(proposedPatterns).ToList();
+
+            if (addedPatterns.Count > 0 || removedPatterns.Count > 0)
+            {
+                changes.Add(new MappingChange(source, addedPatterns, removedPatterns));
+            }
+        }
+
+        return changes;
+    }
+
+    private void DisplayNuGetConfigChanges(NuGetConfigChanges changes)
+    {
+        // Create a lookup of mapping changes by source for quick access
+        var mappingChangesBySource = changes.MappingChanges.ToDictionary(mc => mc.SourceKey, mc => mc);
+
+        // Display added feeds with their mappings
+        foreach (var feed in changes.AddedFeeds)
+        {
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddedFeedFormat, feed.Value));
+            interactionService.DisplayEmptyLine();
+            
+            if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
+            {
+                foreach (var pattern in patterns)
+                {
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingAddedFormat, pattern));
+                }
+            }
+            interactionService.DisplayEmptyLine();
+        }
+
+        // Display removed feeds
+        foreach (var feed in changes.RemovedFeeds)
+        {
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RemovedFeedFormat, feed.Value));
+            interactionService.DisplayEmptyLine();
+        }
+
+        // Display retained feeds with their mapping changes and current mappings
+        foreach (var feed in changes.RetainedFeeds)
+        {
+            interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RetainedFeedFormat, feed.Value));
+            interactionService.DisplayEmptyLine();
+            
+            if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
+            {
+                // Show added patterns
+                foreach (var pattern in mappingChange.AddedPatterns)
+                {
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingAddedFormat, pattern));
+                }
+                
+                // Show removed patterns
+                foreach (var pattern in mappingChange.RemovedPatterns)
+                {
+                    interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingRemovedFormat, pattern));
+                }
+            }
+            
+            // Show current/unchanged mappings in the proposed configuration
+            if (changes.ProposedMappings.TryGetValue(feed.Key, out var currentPatterns))
+            {
+                var addedPatterns = mappingChangesBySource.TryGetValue(feed.Key, out var currentMappingChange) ? currentMappingChange.AddedPatterns : new List<string>();
+                
+                foreach (var pattern in currentPatterns)
+                {
+                    // Only show patterns that weren't added (they are existing/unchanged)
+                    if (!addedPatterns.Contains(pattern))
+                    {
+                        interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingRetainedFormat, pattern));
+                    }
+                }
+            }
+            interactionService.DisplayEmptyLine();
+        }
+    }
+}
+
+internal record PackageSourceInfo(string Key, string Value);
+
+internal record MappingChange(string SourceKey, List<string> AddedPatterns, List<string> RemovedPatterns);
+
+internal class NuGetConfigChanges
+{
+    public List<PackageSourceInfo> AddedFeeds { get; set; } = [];
+    public List<PackageSourceInfo> RemovedFeeds { get; set; } = [];
+    public List<PackageSourceInfo> RetainedFeeds { get; set; } = [];
+    public List<MappingChange> MappingChanges { get; set; } = [];
+    public Dictionary<string, List<string>> OriginalMappings { get; set; } = new();
+    public Dictionary<string, List<string>> ProposedMappings { get; set; } = new();
+
+    public bool HasChanges => AddedFeeds.Count > 0 || RemovedFeeds.Count > 0 || MappingChanges.Count > 0;
 }
 
 internal sealed class ProjectUpdateResult
