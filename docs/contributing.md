@@ -10,6 +10,16 @@ See [machine-requirements.md](machine-requirements.md).
 
 `.\build.sh` (macOS and Linux) or `.\build.cmd` (Windows)
 
+### Python requirement
+
+Some playground projects (such as `AspireWithPython`) require Python to be available during the build process to create virtual environments. On Linux systems, you may need to install the `python-is-python3` package to make the `python` command available:
+
+```bash
+sudo apt install python-is-python3
+```
+
+This is because the build process uses `python -m venv` commands, but many Linux distributions only provide `python3` by default.
+
 ## Using the `dotnet` CLI
 
 In building and testing, never use the global `dotnet` copy. Use `./dotnet.sh` on Unix, `.\dotnet.cmd` on Windows.
