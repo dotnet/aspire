@@ -117,101 +117,52 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="NoItemsAvailableForSelection" xml:space="preserve">
-    <value>No items available for selection: {0}</value>
-    <comment>{0} is the original selection prompt text.</comment>
+  <data name="AuthenticationExpiredNotification" xml:space="preserve">
+    <value>Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</value>
   </data>
-  <data name="AppHostNotCompatibleConsiderUpgrading" xml:space="preserve">
-    <value>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</value>
+  <data name="AuthenticationRequiredNotification" xml:space="preserve">
+    <value>Dev tunnels requires authentication to continue:</value>
   </data>
-  <data name="AspireHostingSDKVersion" xml:space="preserve">
-    <value>Aspire.Hosting Version</value>
+  <data name="DevtunnelCliVersionNotSupported" xml:space="preserve">
+    <value>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</value>
   </data>
-  <data name="AspireCLIVersion" xml:space="preserve">
-    <value>Aspire CLI Version</value>
+  <data name="DevTunnelHealthy" xml:space="preserve">
+    <value>Dev tunnel '{0}' is active with {1} host connections and {2} ports.</value>
   </data>
-  <data name="RequiredCapability" xml:space="preserve">
-    <value>Required Capability</value>
+  <data name="DevTunnelPortHealthy" xml:space="preserve">
+    <value>Dev tunnel port '{0}' on dev tunnel '{1}' is active.</value>
   </data>
-  <data name="Dashboard" xml:space="preserve">
-    <value>Dashboard</value>
+  <data name="DevTunnelPortUnhealthy_Error" xml:space="preserve">
+    <value>Failed to check port '{0}' on dev tunnel '{1}': {2}</value>
   </data>
-  <data name="DirectLink" xml:space="preserve">
-    <value>Direct</value>
-    <comment>Represents a type of link</comment>
+  <data name="DevTunnelPortUnhealthy_StatusUnknown" xml:space="preserve">
+    <value>Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</value>
   </data>
-  <data name="CodespacesLink" xml:space="preserve">
-    <value>Codespaces</value>
-    <comment>Represents a type of link</comment>
+  <data name="DevTunnelUnhealthy_Error" xml:space="preserve">
+    <value>Failed to check dev tunnel '{0}': {1}</value>
   </data>
-  <data name="StoppingAspire" xml:space="preserve">
-    <value>Stopping Aspire.</value>
+  <data name="DevTunnelUnhealthy_NoActiveHostConnections" xml:space="preserve">
+    <value>Dev tunnel '{0}' has no active host connections.</value>
   </data>
-  <data name="CheckingProjectType" xml:space="preserve">
-    <value>Checking project type...</value>
+  <data name="DevTunnelUnhealthy_PortInactive" xml:space="preserve">
+    <value>Dev tunnel '{0}' port '{1}' is not active.</value>
   </data>
-  <data name="BuildingAppHost" xml:space="preserve">
-    <value>Building apphost...</value>
+  <data name="InstallationInstructions" xml:space="preserve">
+    <value>Installation instructions</value>
   </data>
-  <data name="CheckingCertificates" xml:space="preserve">
-    <value>Checking certificates...</value>
+  <data name="LoginWithGitHub" xml:space="preserve">
+    <value>Login with GitHub</value>
   </data>
-  <data name="TrustingCertificates" xml:space="preserve">
-    <value>Trusting certificates...</value>
+  <data name="LoginWithMicrosoft" xml:space="preserve">
+    <value>Login with Microsoft</value>
   </data>
-  <data name="SearchingProjects" xml:space="preserve">
-    <value>Searching...</value>
+  <data name="RequiredCommandNotification" xml:space="preserve">
+    <value>Required command '{0}' was not found on PATH or at a specified location.</value>
   </data>
-  <data name="FindingAppHosts" xml:space="preserve">
-    <value>Finding apphosts...</value>
+  <data name="RequiredCommandNotificationWithLink" xml:space="preserve">
+    <value>Required command '{0}' was not found. See installation instructions for more details.</value>
   </data>
-  <data name="SelectAppHostToUse" xml:space="preserve">
-    <value>Select an apphost to use:</value>
-  </data>
-  <data name="CreatedSettingsFile" xml:space="preserve">
-    <value>Created settings file at {0}.</value>
-    <comment>{0} is a path</comment>
-  </data>
-  <data name="ProjectOptionDoesntExist" xml:space="preserve">
-    <value>The --project option specified a project that does not exist.</value>
-  </data>
-  <data name="ProjectOptionNotSpecifiedMultipleAppHostsFound" xml:space="preserve">
-    <value>The --project option was not specified and multiple app host project files were detected.</value>
-  </data>
-  <data name="ProjectOptionNotSpecifiedNoCsprojFound" xml:space="preserve">
-    <value>The project argument was not specified and no *.csproj files were detected.</value>
-  </data>
-  <data name="ProjectCouldNotBeBuilt" xml:space="preserve">
-    <value>The project could not be built. For more information run with --debug switch.</value>
-  </data>
-  <data name="OperationCancelled" xml:space="preserve">
-    <value>The operation was canceled.</value>
-  </data>
-  <data name="SpecifiedProjectFileNotAppHostProject" xml:space="preserve">
-    <value>The specified project file is not an Aspire AppHost project.</value>
-  </data>
-  <data name="ErrorConnectingToAppHost" xml:space="preserve">
-    <value>An error occurred while connecting to the app host. The app host possibly crashed before it was available: {0}.</value>
-  </data>
-  <data name="UnexpectedErrorOccurred" xml:space="preserve">
-    <value>An unexpected error occurred: {0}</value>
-    <comment>{0} is the exception message</comment>
-  </data>
-  <data name="WaitingForDebuggerToAttachToAppHost" xml:space="preserve">
-    <value>Waiting for debugger to attach to app host process</value>
-  </data>
-  <data name="NewCliVersionAvailable" xml:space="preserve">
-    <value>[yellow]A new version of the Aspire CLI is available: {0}[/]</value>
-    <comment>Do not translate [yellow] and also leave [/] as-is. {0} is the version number</comment>
-  </data>
-  <data name="MoreInfoNewCliVersion" xml:space="preserve">
-    <value>[dim]For more information, see: [link]{0}[/][/]</value>
-    <comment>Do not translate [dim] and [link]. Also leave [/] as-is. {0} is a URL</comment>
-  </data>
-  <data name="UnbuildableAppHostsDetected" xml:space="preserve">
-    <value>No app hosts were found (there may be app hosts project files with syntax errors/invalid SDK versions).</value>
-  </data>
-  <data name="CustomChoiceLabel" xml:space="preserve">
-    <value>Other (specify next)</value>
+  <data name="RequiredCommandNotificationWithValidation" xml:space="preserve">
+    <value>{0} See installation instructions for more details.</value>
   </data>
 </root>

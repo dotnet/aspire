@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -65,7 +66,7 @@ internal sealed class DevTunnelCliInstallationManager : RequiredCommandValidator
         var version = await _devTunnelClient.GetVersionAsync(_logger, cancellationToken).ConfigureAwait(false);
         if (version < _minSupportedVersion)
         {
-            return (false, $"The installed devtunnel CLI version {version} is not supported. Version {_minSupportedVersion} or higher is required.");
+            return (false, string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.DevtunnelCliVersionNotSupported, version, _minSupportedVersion));
         }
         return (true, null);
     }

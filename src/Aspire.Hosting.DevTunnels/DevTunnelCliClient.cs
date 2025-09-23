@@ -75,15 +75,15 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
 
             if (exitCode == DevTunnelCli.ResourceConflictsWithExistingExitCode)
             {
-                // Delete the tunnel and try again
-                logger?.LogTrace("Dev tunnel '{TunnelId}' already exists, deleting and trying again.", tunnelId);
-                (var result, exitCode, error) = await CallCliAsJsonAsync<DevTunnelDeleteResult>(
-                    (stdout, stderr, log, ct) => _cli.DeleteTunnelAsync(tunnelId, stdout, stderr, log, ct),
+                // Update the tunnel as it already exists
+                logger?.LogTrace("Dev tunnel '{TunnelId}' already exists, will update it instead.", tunnelId);
+                (tunnel, exitCode, error) = await CallCliAsJsonAsync<DevTunnelStatus>(
+                    (stdout, stderr, log, ct) => _cli.UpdateTunnelAsync(tunnelId, options, stdout, stderr, log, ct),
                     logger, cancellationToken).ConfigureAwait(false);
-                if (exitCode == 0)
+                if (exitCode == 0 && tunnel is not null)
                 {
-                    logger?.LogTrace("Dev tunnel '{TunnelId}' deleted successfully.", tunnelId);
-                    continue;
+                    logger?.LogTrace("Dev tunnel '{TunnelId}' updated successfully.", tunnelId);
+                    return tunnel;
                 }
             }
 
@@ -106,6 +106,15 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
             "tunnel",
             logger, cancellationToken).ConfigureAwait(false);
         return tunnel ?? throw new DistributedApplicationException($"Failed to get dev tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
+    }
+
+    public async Task<DevTunnelPortList> GetPortListAsync(string tunnelId, ILogger? logger = default, CancellationToken cancellationToken = default)
+    {
+        logger?.LogTrace("Getting port list for dev tunnel '{TunnelId}'.", tunnelId);
+        var (ports, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortList>(
+            (stdout, stderr, log, ct) => _cli.ListPortsAsync(tunnelId, stdout, stderr, log, ct),
+            logger, cancellationToken).ConfigureAwait(false);
+        return ports ?? throw new DistributedApplicationException($"Failed to get port list for dev tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
     }
 
     public async Task<DevTunnelPortStatus> CreatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, ILogger? logger = default, CancellationToken cancellationToken = default)
@@ -177,6 +186,15 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         throw new DistributedApplicationException($"Failed to create port '{portNumber}' for tunnel '{tunnelId}' after {attempts} attempts. Exit code {exitCode}: {error}");
     }
 
+    public async Task<DevTunnelPortDeleteResult> DeletePortAsync(string tunnelId, int portNumber, ILogger? logger = default, CancellationToken cancellationToken = default)
+    {
+        logger?.LogTrace("Deleting port '{PortNumber}' on dev tunnel '{TunnelId}'.", portNumber, tunnelId);
+        var (result, exitCode, error) = await CallCliAsJsonAsync<DevTunnelPortDeleteResult>(
+            (stdout, stderr, log, ct) => _cli.DeletePortAsync(tunnelId, portNumber, stdout, stderr, log, ct),
+            logger, cancellationToken).ConfigureAwait(false);
+        return result ?? throw new DistributedApplicationException($"Failed to delete port '{portNumber}' on dev tunnel '{tunnelId}'. Exit code {exitCode}: {error}");
+    }
+
     public async Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, ILogger? logger = default, CancellationToken cancellationToken = default)
     {
         logger?.LogTrace("Getting access details for {PortInfo}dev tunnel '{TunnelId}'.", portNumber.HasValue ? $"port '{portNumber}' on " : string.Empty, tunnelId);
@@ -236,6 +254,19 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
 
         var output = stdout.ToString().Trim();
         logger?.LogTrace("CLI call output:\n{Output}", output);
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            logger?.LogDebug("Operation was cancelled.");
+            return (default, exitCode, "Operation was cancelled.");
+        }
+
+        if (string.IsNullOrEmpty(output))
+        {
+            logger?.LogError("CLI call returned empty output with exit code '{ExitCode}'.", exitCode);
+            return (default, exitCode, "CLI call returned empty output.");
+        }
+
         try
         {
             if (!string.IsNullOrEmpty(propertyName))
@@ -249,7 +280,7 @@ internal sealed class DevTunnelCliClient(IConfiguration configuration) : IDevTun
         }
         catch (JsonException ex)
         {
-            logger?.LogError(ex, "Failed to parse JSON output into type '{TypeName}'", typeof(T).Name);
+            logger?.LogError(ex, "Failed to parse JSON output into type '{TypeName}':\n{Output}", typeof(T).Name, output);
             throw new DistributedApplicationException($"Failed to parse JSON output into type '{typeof(T).Name}':\n{output}", ex);
         }
     }
