@@ -76,7 +76,7 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
         // Create and add new resource if it doesn't exist
         var account = CognitiveServicesAccount.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             account))

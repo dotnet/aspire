@@ -76,6 +76,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add services
         builder.Services.TryAddSingleton<DevTunnelCliInstallationManager>();
         builder.Services.TryAddSingleton<DevTunnelLoginManager>();
+        builder.Services.TryAddSingleton<LoggedOutNotificationManager>();
         builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
 
         var workingDirectory = builder.AppHostDirectory;
@@ -83,12 +84,18 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         // Health check
         var healtCheckKey = $"{name}-check";
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource, services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
+            services => new DevTunnelHealthCheck(
+                services.GetRequiredService<IDevTunnelClient>(),
+                services.GetRequiredService<LoggedOutNotificationManager>(),
+                tunnelResource,
+                services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
             failureStatus: default,
             tags: default,
             timeout: default));
+#pragma warning restore ASPIREINTERACTION001
 
         var rb = builder.AddResource(tunnelResource)
             .WithArgs("host", tunnelId, "--nologo")
@@ -143,7 +150,23 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
+
+                // Ensure any ports that aren't in the application model are deleted
+                var portTasks = new List<Task> { DeleteUnmodeledPortsAsync() };
+                portTasks.AddRange(tunnelResource.Ports.Select(StartPortAsync));
+                await Task.WhenAll(portTasks).ConfigureAwait(false);
+
+                async Task DeleteUnmodeledPortsAsync()
+                {
+                    var existingPorts = await devTunnelClient.GetPortListAsync(tunnelResource.TunnelId, logger, ct).ConfigureAwait(false);
+                    var modeledPortNumbers = tunnelResource.Ports.Select(p => p.TargetEndpoint.Port).ToHashSet();
+                    var unmodeledPorts = existingPorts.Ports.Where(p => !modeledPortNumbers.Contains(p.PortNumber)).ToList();
+                    if (unmodeledPorts.Count > 0)
+                    {
+                        logger.LogInformation("Deleting {Count} unmodeled ports from dev tunnel '{TunnelId}': {Ports}", unmodeledPorts.Count, tunnelResource.TunnelId, string.Join(", ", unmodeledPorts.Select(p => p.PortNumber)));
+                        await Task.WhenAll(unmodeledPorts.Select(p => devTunnelClient.DeletePortAsync(tunnelResource.TunnelId, p.PortNumber, logger, ct))).ConfigureAwait(false);
+                    }
+                }
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
@@ -315,6 +338,12 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(targetResource);
         ArgumentNullException.ThrowIfNull(tunnelResource);
 
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            // Skip DevTunnel operations during publish mode to avoid hanging
+            return builder;
+        }
+
         builder
             .WithReferenceRelationship(tunnelResource)
             .WithEnvironment(async context =>
@@ -392,11 +421,22 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);
 
+        // Health check
+        var healtCheckKey = $"{portName}-check";
+        tunnelBuilder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healtCheckKey,
+            services => new DevTunnelPortHealthCheck(tunnel, targetEndpoint.Port),
+            failureStatus: default,
+            tags: default,
+            timeout: default));
+
         var portBuilder = tunnelBuilder.ApplicationBuilder.AddResource(portResource)
             // visual grouping beneath the tunnel
             .WithParentRelationship(tunnelBuilder)
             // indicate the target resource relationship
             .WithReferenceRelationship(targetResource)
+            .ExcludeFromManifest() // Dev tunnels do not get deployed
+            .WithHealthCheck(healtCheckKey)
             // NOTE:
             // The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
             // We might consider updating the central logic that creates endpoint URLs to allow setting a target host like *.devtunnels.ms & if the
@@ -443,6 +483,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     });
                 }
             })
+            .ExcludeFromManifest() // Dev tunnels do not get deployed
             .WithIconName("VirtualNetwork")
             .WithInitialState(new()
             {
@@ -523,8 +564,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 portResource.TunnelEndpointAnnotation.AllocatedEndpoint = new(portResource.TunnelEndpointAnnotation, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
 
                 // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
-                // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for
-                // the resource every time the tunnel starts, just the first time.
                 if (raiseEndpointsAllocatedEvent)
                 {
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
@@ -535,7 +574,18 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
                 {
                     State = KnownResourceStates.Running,
-                    Urls = [.. snapshot.Urls.Select(u => u with { IsInactive = false /* All URLs active */ })]
+                    Urls = [.. snapshot.Urls.Select(u => u with
+                        {
+                            Url = raiseEndpointsAllocatedEvent
+                                  // The event was raised so the URL was already updated
+                                  ? u.Url
+                                  : string.Equals(u.Name, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
+                                      // Update the URL to use the allocated tunnel endpoint in case it changed since the last time it started
+                                      ? new UriBuilder(portResource.TunnelEndpoint.Url).Uri.ToString().TrimEnd('/')
+                                      // Not the tunnel endpoint URL so leave it as-is
+                                      : u.Url,
+                            IsInactive = false /* All URLs active */
+                        })]
                 }).ConfigureAwait(false);
 
                 var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
@@ -565,7 +615,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 {
                     portLogger.LogDebug(ex, "Failed to log anonymous access status for port");
                 }
-                
             })
             .OnResourceStopped(async (tunnelResource, e, ct) =>
             {
@@ -597,7 +646,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
     }
 
-    private static bool TryValidateLabels(IList<string>? labels, [NotNullWhen(false)] out string? errorMessage)
+    private static bool TryValidateLabels(List<string>? labels, [NotNullWhen(false)] out string? errorMessage)
     {
         if (labels is null || labels.Count == 0)
         {

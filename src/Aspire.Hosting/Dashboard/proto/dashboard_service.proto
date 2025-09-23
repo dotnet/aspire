@@ -384,6 +384,7 @@ message InteractionInput {
     string description = 8;
     bool enable_description_markdown = 9;
     int32 max_length = 10;
+    bool allow_custom_choice = 11;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;
