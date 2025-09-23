@@ -89,7 +89,6 @@ public sealed class AzureEnvironmentResource : Resource
             containerImageBuilder,
             processRunner,
             parameterProcessor,
-            context.Services,
             configuration,
             tokenCredentialProvider);
 
