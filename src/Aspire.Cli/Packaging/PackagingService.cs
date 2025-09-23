@@ -83,7 +83,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache);
+        }, nuGetPackageCache, configureGlobalPackagesFolder: true);
 
         return stagingChannel;
     }
