@@ -7,7 +7,7 @@
   <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
     <PropertyGroup>
       <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
-      <_VsixPath>$([MSBuild]::NormalizePath($(Build.SourcesDirectory)/artifacts/vscode, 'aspire-vscode-$(Version).vsix'))</_VsixPath>
+      <_VsixPath>$([MSBuild]::NormalizePath($(ArtifactsPackagesDir), 'aspire-vscode-$(Version).vsix'))</_VsixPath>
     </PropertyGroup>
 
     <Error Text="$(_PackageJsonPath) not found. Cannot package the extension." Condition="!Exists('$(_PackageJsonPath)')" />
@@ -25,10 +25,10 @@
     <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
 
     <!-- Make extension directory -->
-    <MakeDir Directories="$(Build.SourcesDirectory)/artifacts/vscode" />
+    <MakeDir Directories="$(ArtifactsPackagesDir)\vscode" />
 
     <!-- Package extension -->
-    <Exec Command="vsce package --pre-release --out $(Build.SourcesDirectory)/artifacts/vscode/aspire-vscode-$(_ExtractedVersion).vsix"
+    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
   </Target>
