@@ -84,4 +84,7 @@
   <data name="MultipleSolutionsFound" xml:space="preserve">
     <value>Multiple solution files found. Please select which one to add the Aspire projects to:</value>
   </data>
+  <data name="SolutionAlreadyInitialized" xml:space="preserve">
+    <value>Solution has already been initialized with Aspire.</value>
+  </data>
 </root>

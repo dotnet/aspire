@@ -115,6 +115,20 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, CancellationToken cancellationToken)
     {
+        // Get the solution name (without extension) to use for project names
+        var solutionName = Path.GetFileNameWithoutExtension(solutionFile.Name);
+        var solutionDir = solutionFile.Directory!;
+        
+        // Check if AppHost and ServiceDefaults projects already exist
+        var expectedAppHostDir = Path.Combine(solutionDir.FullName, $"{solutionName}.AppHost");
+        var expectedServiceDefaultsDir = Path.Combine(solutionDir.FullName, $"{solutionName}.ServiceDefaults");
+        
+        if (Directory.Exists(expectedAppHostDir) || Directory.Exists(expectedServiceDefaultsDir))
+        {
+            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
+            return ExitCodeConstants.Success;
+        }
+        
         // Use the dotnet CLI runner to create the aspire template directly
         InteractionService.DisplayMessage("construction", "Creating Aspire projects...");
         
@@ -124,10 +138,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         
         try
         {
-            // Apply the aspire template directly using the CLI runner
+            // Apply the aspire template directly using the CLI runner with solution name
             var createResult = await _runner.NewProjectAsync(
                 "aspire", 
-                "AspireApp", 
+                solutionName, 
                 tempProjectDir, 
                 [], // No extra args needed for aspire template
                 new DotNetCliRunnerInvocationOptions(), 
@@ -153,7 +167,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
 
             // Move the projects to the solution directory
-            var solutionDir = solutionFile.Directory!;
             var finalAppHostDir = Path.Combine(solutionDir.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(solutionDir.FullName, serviceDefaultsProjectDir.Name);
 
