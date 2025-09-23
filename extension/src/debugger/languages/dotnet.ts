@@ -52,7 +52,7 @@ class DotNetService implements IDotNetService {
             }
 
             return buildTask;
-        });
+        }, { retries: 10 });
 
         // Modify the task to target the specific project
         const projectName = path.basename(projectFile, '.csproj');
@@ -81,7 +81,7 @@ class DotNetService implements IDotNetService {
             disposable = vscode.tasks.onDidEndTaskProcess(async e => {
                 if (e.execution.task === modifiedTask) {
                     if (e.exitCode !== 0) {
-                        reject(new Error(buildFailedWithExitCode(e.exitCode ?? 0)));
+                        reject(new Error(buildFailedWithExitCode(e.exitCode ?? 'unknown')));
                     }
                     else {
                         return resolve();

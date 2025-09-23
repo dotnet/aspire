@@ -182,7 +182,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         assert.strictEqual(debugConfig.cwd, path.join(projectDir, 'custom'));
 
         // args should be parsed from commandLineArgs
-        assert.deepStrictEqual(debugConfig.args, ['--arg', 'value', '--flag']);
+        assert.deepStrictEqual(debugConfig.args, '--arg "value" --flag');
 
         // env should include merged values with run session overriding base
         assert.strictEqual(debugConfig.env.BASE, 'overridden');

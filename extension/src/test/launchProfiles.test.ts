@@ -142,7 +142,7 @@ suite('Launch Profile Tests', () => {
 
             const result = determineArguments(baseProfileArgs, runSessionArgs);
 
-            assert.deepStrictEqual(result, ['--session-arg', 'value']);
+            assert.deepStrictEqual(result, '--session-arg value');
         });
 
         test('uses empty run session args when explicitly provided', () => {
@@ -151,7 +151,7 @@ suite('Launch Profile Tests', () => {
 
             const result = determineArguments(baseProfileArgs, runSessionArgs);
 
-            assert.deepStrictEqual(result, []);
+            assert.deepStrictEqual(result, '');
         });
 
         test('uses base profile args when run session args are null', () => {
@@ -160,7 +160,7 @@ suite('Launch Profile Tests', () => {
 
             const result = determineArguments(baseProfileArgs, runSessionArgs);
 
-            assert.deepStrictEqual(result, ['--base-arg', 'value', '--flag']);
+            assert.deepStrictEqual(result, baseProfileArgs);
         });
 
         test('uses base profile args when run session args are undefined', () => {
@@ -169,29 +169,13 @@ suite('Launch Profile Tests', () => {
 
             const result = determineArguments(baseProfileArgs, runSessionArgs);
 
-            assert.deepStrictEqual(result, ['--base-arg', 'value', '--flag']);
+            assert.deepStrictEqual(result, baseProfileArgs);
         });
 
-        test('returns empty array when no args available', () => {
+        test('returns undefined when no args available', () => {
             const result = determineArguments(undefined, undefined);
 
-            assert.deepStrictEqual(result, []);
-        });
-
-        test('parses quoted arguments correctly', () => {
-            const baseProfileArgs = '--arg1 "value with spaces" --arg2 value2';
-
-            const result = determineArguments(baseProfileArgs, undefined);
-
-            assert.deepStrictEqual(result, ['--arg1', 'value with spaces', '--arg2', 'value2']);
-        });
-
-        test('parses escaped quotes correctly', () => {
-            const baseProfileArgs = '--arg1 "value with \\"quotes\\"" --arg2 value2';
-
-            const result = determineArguments(baseProfileArgs, undefined);
-
-            assert.deepStrictEqual(result, ['--arg1', 'value with "quotes"', '--arg2', 'value2']);
+            assert.deepStrictEqual(result, undefined);
         });
     });
 

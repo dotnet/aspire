@@ -13,7 +13,7 @@ export interface LaunchProfile {
     workingDirectory?: string;
     // args in debug configuration
     commandLineArgs?: string;
-    // Both these properties must be set to true to launch the browser. See
+    // Both these properties must be set to launch the browser. See
     // https://code.visualstudio.com/docs/csharp/debugger-settings#_starting-a-web-browser
     launchBrowser?: boolean;
     applicationUrl?: string;
@@ -92,7 +92,9 @@ export function determineBaseLaunchProfile(
     // and look for a launch profile with that ServiceDefaults project name in the current project's launch settings
     extensionLogOutputChannel.debug('No base launch profile determined');
     return { profile: null, profileName: null };
-}/**
+}
+
+/**
  * Merges environment variables from launch profile with run session environment variables
  * Run session variables take precedence over launch profile variables
  */
@@ -123,23 +125,21 @@ export function mergeEnvironmentVariables(
 export function determineArguments(
     baseProfileArgs: string | undefined,
     runSessionArgs: string[] | undefined | null
-): string[] {
+): string | undefined {
     // If run session args are explicitly provided (including empty array), use them
     if (runSessionArgs !== undefined && runSessionArgs !== null) {
         extensionLogOutputChannel.debug(`Using run session arguments: ${JSON.stringify(runSessionArgs)}`);
-        return runSessionArgs;
+        return runSessionArgs.join(' ');
     }
 
     // If run session args are absent/null, use launch profile args if available
     if (baseProfileArgs) {
-        // Parse command line args string into array
-        const args = parseCommandLineArgs(baseProfileArgs);
-        extensionLogOutputChannel.debug(`Using launch profile arguments: ${JSON.stringify(args)}`);
-        return args;
+        extensionLogOutputChannel.debug(`Using launch profile arguments: ${baseProfileArgs}`);
+        return baseProfileArgs;
     }
 
     extensionLogOutputChannel.debug('No arguments determined');
-    return [];
+    return undefined;
 }
 
 /**
@@ -167,53 +167,6 @@ export function determineWorkingDirectory(
     const projectDir = path.dirname(projectPath);
     extensionLogOutputChannel.debug(`Using default working directory (project directory): ${projectDir}`);
     return projectDir;
-}
-
-/**
- * Simple command line argument parser
- * Handles quoted arguments and basic escaping
- */
-function parseCommandLineArgs(argsString: string): string[] {
-    const args: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    let escapeNext = false;
-
-    for (let i = 0; i < argsString.length; i++) {
-        const char = argsString[i];
-
-        if (escapeNext) {
-            current += char;
-            escapeNext = false;
-            continue;
-        }
-
-        if (char === '\\') {
-            escapeNext = true;
-            continue;
-        }
-
-        if (char === '"') {
-            inQuotes = !inQuotes;
-            continue;
-        }
-
-        if (char === ' ' && !inQuotes) {
-            if (current.length > 0) {
-                args.push(current);
-                current = '';
-            }
-            continue;
-        }
-
-        current += char;
-    }
-
-    if (current.length > 0) {
-        args.push(current);
-    }
-
-    return args;
 }
 
 interface ServerReadyAction {
