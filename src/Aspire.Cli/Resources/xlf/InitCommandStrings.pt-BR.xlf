@@ -42,6 +42,11 @@
         <target state="new">Solution detected: {0}</target>
         <note />
       </trans-unit>
+      <trans-unit id="SolutionAlreadyInitialized">
+        <source>Solution has already been initialized with Aspire.</source>
+        <target state="new">Solution has already been initialized with Aspire.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>
