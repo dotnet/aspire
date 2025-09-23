@@ -39,7 +39,7 @@
   </Target>
 
   <Target Name="CheckVsceInstalled">
-    <Exec Command="vscep --version" ContinueOnError="true" ConsoleToMSBuild="true">
+    <Exec Command="vsce --version" ContinueOnError="true" ConsoleToMSBuild="true">
       <Output TaskParameter="ExitCode" PropertyName="VsceExitCode" />
       <Output TaskParameter="ConsoleOutput" PropertyName="VsceVersion" />
     </Exec>
