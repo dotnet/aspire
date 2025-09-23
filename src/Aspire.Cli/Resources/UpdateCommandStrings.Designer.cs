@@ -81,5 +81,13 @@ namespace Aspire.Cli.Resources {
     internal static string UnexpectedCodePath => ResourceManager.GetString("UnexpectedCodePath", resourceCulture);
     internal static string CentralPackageManagementNotSupported => ResourceManager.GetString("CentralPackageManagementNotSupported", resourceCulture);
     internal static string CouldNotFindPackageVersionInDirectoryPackagesProps => ResourceManager.GetString("CouldNotFindPackageVersionInDirectoryPackagesProps", resourceCulture);
+    internal static string NoChangesDetectedInNuGetConfig => ResourceManager.GetString("NoChangesDetectedInNuGetConfig", resourceCulture);
+    internal static string ApplyChangesToNuGetConfig => ResourceManager.GetString("ApplyChangesToNuGetConfig", resourceCulture);
+    internal static string AddedFeedFormat => ResourceManager.GetString("AddedFeedFormat", resourceCulture);
+    internal static string RemovedFeedFormat => ResourceManager.GetString("RemovedFeedFormat", resourceCulture);
+    internal static string RetainedFeedFormat => ResourceManager.GetString("RetainedFeedFormat", resourceCulture);
+    internal static string MappingAddedFormat => ResourceManager.GetString("MappingAddedFormat", resourceCulture);
+    internal static string MappingRemovedFormat => ResourceManager.GetString("MappingRemovedFormat", resourceCulture);
+    internal static string MappingRetainedFormat => ResourceManager.GetString("MappingRetainedFormat", resourceCulture);
     }
 }
