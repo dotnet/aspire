@@ -24,8 +24,11 @@
     <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
     <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
 
+    <!-- Make extension directory -->
+    <MakeDir Directories="$(ArtifactsPackagesDir)/vscode" />
+
     <!-- Package extension -->
-    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)/aspire-vscode-$(_ExtractedVersion).vsix"
+    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)/vscode/aspire-vscode-$(_ExtractedVersion).vsix"
           IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)" />
   </Target>

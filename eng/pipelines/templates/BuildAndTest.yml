@@ -46,6 +46,13 @@ steps:
               /p:SkipTestProjects=true
       displayName: 🟣Build
 
+    - task: 1ES.PublishBuildArtifacts@1
+      displayName: 🟣Publish vscode extension
+      condition: always()
+      inputs:
+        PathtoPublish: '${{ parameters.repoArtifactsPath }}/vscode'
+        ArtifactName: aspire-vscode-extension
+
     - script: ${{ parameters.dotnetScript }}
               build
               tests/workloads.proj
