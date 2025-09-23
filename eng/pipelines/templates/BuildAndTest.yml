@@ -50,7 +50,7 @@ steps:
       displayName: 🟣Publish vscode extension
       condition: always()
       inputs:
-        PathtoPublish: '${{ parameters.repoArtifactsPath }}/vscode'
+        PathtoPublish: '${{ parameters.repoArtifactsPath }}/packages/Release/vscode'
         ArtifactName: aspire-vscode-extension
 
     - script: ${{ parameters.dotnetScript }}
