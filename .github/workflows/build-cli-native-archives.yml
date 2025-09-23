@@ -83,7 +83,7 @@ jobs:
           
           Write-Host "✅ aspire.exe size check passed ($sizeMB MB <= $maxSizeMB MB)"
 
-      - name: Check CLI executable size (Linux)
+      - name: Check CLI executable size (Unix)
         if: ${{ matrix.targets.os != 'windows-latest' }}
         shell: bash
         run: |
@@ -94,9 +94,13 @@ jobs:
             exit 1
           fi
           
-          max_size_mb=20 # 20 MB
+          max_size_mb=25 # Unix is larger than Windows
           max_size_bytes=$((max_size_mb * 1024 * 1024))
           size_bytes=$(stat -c%s "$aspire_exe" 2>/dev/null || stat -f%z "$aspire_exe" 2>/dev/null)
+          if [[ -z "$size_bytes" ]] || ! [[ "$size_bytes" =~ ^[0-9]+$ ]]; then
+            echo "Failed to retrieve size of aspire executable (stat command failed or returned invalid output)"
+            exit 1
+          fi
           size_mb=$((size_bytes / 1024 / 1024))
           
           echo "aspire size: ${size_mb} MB (${size_bytes} bytes)"
