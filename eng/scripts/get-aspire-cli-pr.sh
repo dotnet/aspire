@@ -626,7 +626,7 @@ extract_version_suffix_from_packages() {
     local version
     
     # Look for semantic version pattern with PR suffix (more specific and robust)
-    version=$(echo "$base_name" | sed -En 's/.*\.([0-9]+\.[0-9]+\.[0-9]+-pr\.[0-9]+\.[a-f0-9]+)/\1/p')
+    version=$(echo "$base_name" | sed -En 's/.*\.([0-9]+\.[0-9]+\.[0-9]+-pr\.[0-9]+\.[a-g0-9]+)/\1/p')
     
     if [[ -z "$version" ]]; then
         say_verbose "Could not extract version from package name: $filename"
@@ -636,7 +636,7 @@ extract_version_suffix_from_packages() {
     say_verbose "Extracted full version: $version"
     
     # Extract just the PR suffix part using bash regex for better compatibility
-    if [[ "$version" =~ (pr\.[0-9]+\.[a-f0-9]+) ]]; then
+    if [[ "$version" =~ (pr\.[0-9]+\.[a-g0-9]+) ]]; then
         local version_suffix="${BASH_REMATCH[1]}"
         printf "%s" "$version_suffix"
     else
@@ -653,7 +653,7 @@ find_workflow_run() {
     say_verbose "Finding ci.yml workflow run for SHA: $head_sha"
 
     local workflow_run_id
-    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
+    if ! workflow_run_id=$(gh_api_call "${GH_REPOS_BASE}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$head_sha" ".workflow_runs | sort_by(.created_at, .updated_at) | reverse | .[0].id" "Failed to query workflow runs for SHA: $head_sha"); then
         return 1
     fi
 

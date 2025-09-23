@@ -12,11 +12,10 @@ export interface ResourceDebuggerExtension {
     debugAdapter: string;
     extensionId: string | null;
     displayName: string;
-
-    createDebugSessionConfigurationCallback?: (launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
+    createDebugSessionConfigurationCallback?: (launchConfig: LaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
 
-export async function createDebugSessionConfiguration(launchConfig: LaunchConfiguration, args: string[], env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension | null): Promise<AspireResourceExtendedDebugConfiguration> {
+export async function createDebugSessionConfiguration(launchConfig: LaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension | null): Promise<AspireResourceExtendedDebugConfiguration> {
     if (debuggerExtension === null) {
         extensionLogOutputChannel.warn(`Unknown type: ${launchConfig.type}.`);
     }

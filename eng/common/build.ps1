@@ -136,6 +136,7 @@ function Build {
     /p:Sign=$sign `
     /p:Publish=$publish `
     /p:RestoreStaticGraphEnableBinaryLogger=$binaryLog `
+    /p:BuildExtension=$buildExtension `
     @properties
 }
 

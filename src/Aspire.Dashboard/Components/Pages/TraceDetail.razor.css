@@ -188,7 +188,7 @@
 ::deep .trace-header-details .fluent-overflow-item {
     align-content: center;
     padding-right: 8px;
-    text-wrap-mode: nowrap;
+    white-space: nowrap;
 }
 
 ::deep .trace-header-details .fluent-overflow-more {
@@ -280,7 +280,7 @@
 }
 
 ::deep.log-tooltip-table td.label-column {
-    text-wrap-mode: nowrap;
+    white-space: nowrap;
     padding-right: calc(var(--design-unit)* 4px);
     width: 20%;
 }

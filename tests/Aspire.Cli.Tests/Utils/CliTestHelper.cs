@@ -309,7 +309,9 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        return new PackagingService(executionContext, nuGetPackageCache);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new PackagingService(executionContext, nuGetPackageCache, features, configuration);
     };
 
     public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();

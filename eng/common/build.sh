@@ -257,6 +257,7 @@ function Build {
     /p:Sign=$sign \
     /p:Publish=$publish \
     /p:RestoreStaticGraphEnableBinaryLogger=$binary_log \
+    /p:BuildExtension=$build_extension \
     ${properties[@]+"${properties[@]}"}
 
   ExitWithExitCode 0

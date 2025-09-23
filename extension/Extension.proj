@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.Build.NoTargets">
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ExtensionSrcDir>$(MSBuildThisFileDirectory)</ExtensionSrcDir>
+  </PropertyGroup>
+
+  <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
+    <PropertyGroup>
+      <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
+      <_VsixPath>$([MSBuild]::NormalizePath($(ArtifactsPackagesDir), 'aspire-vscode-$(Version).vsix'))</_VsixPath>
+    </PropertyGroup>
+
+    <Error Text="$(_PackageJsonPath) not found. Cannot package the extension." Condition="!Exists('$(_PackageJsonPath)')" />
+
+    <!-- Extract version from package.json using Node.js -->
+    <Exec Command="node -p &quot;require('./package.json').version&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreStandardErrorWarningFormat="true"
+          WorkingDirectory="$(ExtensionSrcDir)">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
+    </Exec>
+
+    <!-- Install dependencies and compile -->
+    <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
+    <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
+
+    <!-- Make extension directory -->
+    <MakeDir Directories="$(ArtifactsPackagesDir)\vscode" />
+
+    <!-- Package extension -->
+    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)\vscode\aspire-vscode-$(_ExtractedVersion).vsix"
+          IgnoreStandardErrorWarningFormat="true"
+          WorkingDirectory="$(ExtensionSrcDir)" />
+  </Target>
+
+  <Target Name="CheckYarnInstalled">
+    <Exec Command="yarn --version" ContinueOnError="true" ConsoleToMSBuild="true" IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="YarnExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="YarnVersion" />
+    </Exec>
+
+    <Error Condition="'$(YarnExitCode)' != '0'" Text="yarn is not installed or not available in PATH. To build the extension, install yarn: https://yarnpkg.com/getting-started/install" />
+
+    <Message Importance="high" Text="yarn version: $(YarnVersion)" />
+  </Target>
+
+  <Target Name="CheckVsceInstalled">
+    <Exec Command="vsce --version" ContinueOnError="true" ConsoleToMSBuild="true" IgnoreStandardErrorWarningFormat="true">
+      <Output TaskParameter="ExitCode" PropertyName="VsceExitCode" />
+      <Output TaskParameter="ConsoleOutput" PropertyName="VsceVersion" />
+    </Exec>
+
+    <Error Condition="'$(VsceExitCode)' != '0'" Text="vsce is not installed or not available in PATH. To build the extension, install vsce: npm install -g vsce" />
+
+    <Message Text="Found vsce version: $(VsceVersion)" />
+  </Target>
+
+</Project>

@@ -71,7 +71,7 @@ public static class AzureKustoBuilderExtensions
                     // Basic cluster configuration - can be enhanced in the future
                     Sku = new KustoSku()
                     {
-                        Name = KustoSkuName.StandardD11V2,
+                        Name = KustoSkuName.StandardE2aV4,
                         Tier = KustoSkuTier.Standard,
                         Capacity = 2
                     },

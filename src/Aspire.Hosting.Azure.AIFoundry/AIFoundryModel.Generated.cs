@@ -235,54 +235,9 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel ModelRouter = new() { Name = "model-router", Version = "2025-08-07", Format = "Microsoft" };
 
         /// <summary>
-        /// Same Phi-3-medium model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Medium128kInstruct = new() { Name = "Phi-3-medium-128k-instruct", Version = "7", Format = "Microsoft" };
-
-        /// <summary>
-        /// A 14B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Medium4kInstruct = new() { Name = "Phi-3-medium-4k-instruct", Version = "6", Format = "Microsoft" };
-
-        /// <summary>
-        /// Same Phi-3-mini model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Mini128kInstruct = new() { Name = "Phi-3-mini-128k-instruct", Version = "13", Format = "Microsoft" };
-
-        /// <summary>
-        /// Tiniest member of the Phi-3 family. Optimized for both quality and low latency.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Mini4kInstruct = new() { Name = "Phi-3-mini-4k-instruct", Version = "15", Format = "Microsoft" };
-
-        /// <summary>
-        /// Same Phi-3-small model, but with a larger context size for RAG or few shot prompting.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Small128kInstruct = new() { Name = "Phi-3-small-128k-instruct", Version = "5", Format = "Microsoft" };
-
-        /// <summary>
-        /// A 7B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
-        /// </summary>
-        public static readonly AIFoundryModel Phi3Small8kInstruct = new() { Name = "Phi-3-small-8k-instruct", Version = "6", Format = "Microsoft" };
-
-        /// <summary>
-        /// Refresh of Phi-3-mini model.
-        /// </summary>
-        public static readonly AIFoundryModel Phi35MiniInstruct = new() { Name = "Phi-3.5-mini-instruct", Version = "6", Format = "Microsoft" };
-
-        /// <summary>
-        /// A new mixture of experts model
-        /// </summary>
-        public static readonly AIFoundryModel Phi35MoeInstruct = new() { Name = "Phi-3.5-MoE-instruct", Version = "5", Format = "Microsoft" };
-
-        /// <summary>
-        /// Refresh of Phi-3-vision model.
-        /// </summary>
-        public static readonly AIFoundryModel Phi35VisionInstruct = new() { Name = "Phi-3.5-vision-instruct", Version = "2", Format = "Microsoft" };
-
-        /// <summary>
         /// Phi-4 14B, a highly capable model for low latency scenarios.
         /// </summary>
-        public static readonly AIFoundryModel Phi4 = new() { Name = "Phi-4", Version = "8", Format = "Microsoft" };
+        public static readonly AIFoundryModel Phi4 = new() { Name = "Phi-4", Version = "7", Format = "Microsoft" };
 
         /// <summary>
         /// 3.8B parameters Small Language Model outperforming larger models in reasoning, math, coding, and function-calling
@@ -293,11 +248,6 @@ public partial class AIFoundryModel
         /// Lightweight math reasoning model optimized for multi-step problem solving
         /// </summary>
         public static readonly AIFoundryModel Phi4MiniReasoning = new() { Name = "Phi-4-mini-reasoning", Version = "1", Format = "Microsoft" };
-
-        /// <summary>
-        /// First small multimodal model to have 3 modality inputs (text, audio, image), excelling in quality and efficiency
-        /// </summary>
-        public static readonly AIFoundryModel Phi4MultimodalInstruct = new() { Name = "Phi-4-multimodal-instruct", Version = "2", Format = "Microsoft" };
 
         /// <summary>
         /// State-of-the-art open-weight reasoning model.
