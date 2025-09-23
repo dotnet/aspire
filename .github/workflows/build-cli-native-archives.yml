@@ -94,15 +94,16 @@ jobs:
             exit 1
           fi
           
+          max_size_mb=20 # 20 MB
+          max_size_bytes=$((max_size_mb * 1024 * 1024))
           size_bytes=$(stat -c%s "$aspire_exe" 2>/dev/null || stat -f%z "$aspire_exe" 2>/dev/null)
-          size_mb=$(echo "scale=2; $size_bytes / 1024 / 1024" | bc)
-          max_size_mb=20
+          size_mb=$((size_bytes / 1024 / 1024))
           
           echo "aspire size: ${size_mb} MB (${size_bytes} bytes)"
           echo "Location: $aspire_exe"
           
-          if (( $(echo "$size_mb > $max_size_mb" | bc -l) )); then
-            echo "aspire size (${size_mb} MB) exceeds maximum allowed size of ${max_size_mb} MB"
+          if (( size_bytes > max_size_bytes )); then
+            echo "aspire size (${size_bytes} bytes) exceeds maximum allowed size of ${max_size_bytes} bytes (${max_size_mb} MB)"
             exit 1
           fi
           
