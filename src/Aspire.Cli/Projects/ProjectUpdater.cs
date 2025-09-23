@@ -581,7 +581,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         
         var shouldProceed = await interactionService.ConfirmAsync(
             UpdateCommandStrings.ApplyChangesToNuGetConfig,
-            defaultValue: false,
+            defaultValue: true,
             cancellationToken);
 
         return shouldProceed;
