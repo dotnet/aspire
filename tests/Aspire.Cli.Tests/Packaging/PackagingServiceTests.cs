@@ -4,19 +4,14 @@
 using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.Configuration;
 using System.Xml.Linq;
 
 namespace Aspire.Cli.Tests.Packaging;
 
-public class PackagingServiceTests
+public class PackagingServiceTests(ITestOutputHelper outputHelper)
 {
-    private readonly ITestOutputHelper _output;
-
-    public PackagingServiceTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
 
     private sealed class FakeNuGetPackageCache : INuGetPackageCache
     {
@@ -45,7 +40,8 @@ public class PackagingServiceTests
     public async Task GetChannelsAsync_WhenStagingChannelDisabled_DoesNotIncludeStagingChannel()
     {
         // Arrange
-        var tempDir = Directory.CreateTempSubdirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
         var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
         var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir);
@@ -73,16 +69,14 @@ public class PackagingServiceTests
         
         var dailyChannel = channels.First(c => c.Name == "daily");
         Assert.False(dailyChannel.ConfigureGlobalPackagesFolder);
-
-        // Cleanup
-        tempDir.Delete(true);
     }
 
     [Fact]
     public async Task GetChannelsAsync_WhenStagingChannelEnabled_IncludesStagingChannelWithOverrideHash()
     {
         // Arrange
-        var tempDir = Directory.CreateTempSubdirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
         var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
         var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir);
@@ -123,16 +117,14 @@ public class PackagingServiceTests
         var nugetMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "*");
         Assert.NotNull(nugetMapping);
         Assert.Equal("https://api.nuget.org/v3/index.json", nugetMapping.Source);
-
-        // Cleanup
-        tempDir.Delete(true);
     }
 
     [Fact]
     public async Task GetChannelsAsync_WhenStagingChannelEnabledWithLongOverrideHash_TruncatesTo8Characters()
     {
         // Arrange
-        var tempDir = Directory.CreateTempSubdirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
         var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
         var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir);
@@ -159,16 +151,14 @@ public class PackagingServiceTests
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
         Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{expectedHash}/nuget/v3/index.json", aspireMapping.Source);
-
-        // Cleanup
-        tempDir.Delete(true);
     }
 
     [Fact]
     public async Task GetChannelsAsync_WhenStagingChannelEnabledWithShortOverrideHash_UsesFull()
     {
         // Arrange
-        var tempDir = Directory.CreateTempSubdirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
         var hivesDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "hives"));
         var cacheDir = new DirectoryInfo(Path.Combine(tempDir.FullName, ".aspire", "cache"));
         var executionContext = new CliExecutionContext(tempDir, hivesDir, cacheDir);
@@ -194,16 +184,14 @@ public class PackagingServiceTests
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
         Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{shortHash}/nuget/v3/index.json", aspireMapping.Source);
-
-        // Cleanup
-        tempDir.Delete(true);
     }
 
     [Fact]
     public async Task NuGetConfigMerger_WhenChannelRequiresGlobalPackagesFolder_AddsGlobalPackagesFolderConfiguration()
     {
         // Arrange
-        var tempDir = Directory.CreateTempSubdirectory();
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var tempDir = workspace.WorkspaceRoot;
         
         var features = new TestFeatures();
         features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
@@ -244,8 +232,5 @@ public class PackagingServiceTests
             .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(globalPackagesFolderAdd);
         Assert.Equal(".nuget\\packages", (string?)globalPackagesFolderAdd.Attribute("value"));
-
-        // Cleanup
-        tempDir.Delete(true);
     }
 }
