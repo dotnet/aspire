@@ -115,7 +115,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
             return null;
         }
 
-        var commitHash = informationalVersion.Substring(plusIndex + 1);
+        var commitHash = informationalVersion[(plusIndex + 1)..];
         return commitHash.Length >= 8 ? commitHash[..8] : commitHash;
     }
 }
