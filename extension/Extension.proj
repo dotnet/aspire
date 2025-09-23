@@ -15,20 +15,23 @@
     <!-- Extract version from package.json using Node.js -->
     <Exec Command="node -p &quot;require('./package.json').version&quot;"
           ConsoleToMSBuild="true"
+          IgnoreStandardErrorWarningFormat="true"
           WorkingDirectory="$(ExtensionSrcDir)">
       <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
     </Exec>
 
     <!-- Install dependencies and compile -->
-    <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" />
-    <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" />
+    <Exec Command="yarn install" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
+    <Exec Command="yarn compile" WorkingDirectory="$(ExtensionSrcDir)" IgnoreStandardErrorWarningFormat="true" />
 
     <!-- Package extension -->
-    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)/aspire-vscode-$(_ExtractedVersion).vsix" WorkingDirectory="$(ExtensionSrcDir)" />
+    <Exec Command="vsce package --pre-release --out $(ArtifactsPackagesDir)/aspire-vscode-$(_ExtractedVersion).vsix"
+          IgnoreStandardErrorWarningFormat="true"
+          WorkingDirectory="$(ExtensionSrcDir)" />
   </Target>
 
   <Target Name="CheckYarnInstalled">
-    <Exec Command="yarn --version" ContinueOnError="true" ConsoleToMSBuild="true">
+    <Exec Command="yarn --version" ContinueOnError="true" ConsoleToMSBuild="true" IgnoreStandardErrorWarningFormat="true">
       <Output TaskParameter="ExitCode" PropertyName="YarnExitCode" />
       <Output TaskParameter="ConsoleOutput" PropertyName="YarnVersion" />
     </Exec>
@@ -39,7 +42,7 @@
   </Target>
 
   <Target Name="CheckVsceInstalled">
-    <Exec Command="vsce --version" ContinueOnError="true" ConsoleToMSBuild="true">
+    <Exec Command="vsce --version" ContinueOnError="true" ConsoleToMSBuild="true" IgnoreStandardErrorWarningFormat="true">
       <Output TaskParameter="ExitCode" PropertyName="VsceExitCode" />
       <Output TaskParameter="ConsoleOutput" PropertyName="VsceVersion" />
     </Exec>
