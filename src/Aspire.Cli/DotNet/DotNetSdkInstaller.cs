@@ -90,7 +90,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                         }
 
                         // Check if this version meets the minimum requirement
-                        if (SemVersion.ComparePrecedence(sdkVersion, minVersion) >= 0)
+                        if (MeetsMinimumRequirement(sdkVersion, minVersion, minimumVersion))
                         {
                             meetsMinimum = true;
                         }
@@ -151,5 +151,26 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             return MinimumSdkVersion;
         }
+    }
+
+    /// <summary>
+    /// Checks if an installed SDK version meets the minimum requirement.
+    /// For .NET 10.x requirements, allows any .NET 10.x version including prereleases.
+    /// </summary>
+    /// <param name="installedVersion">The installed SDK version.</param>
+    /// <param name="requiredVersion">The required minimum version (parsed).</param>
+    /// <param name="requiredVersionString">The required version string.</param>
+    /// <returns>True if the installed version meets the requirement.</returns>
+    private static bool MeetsMinimumRequirement(SemVersion installedVersion, SemVersion requiredVersion, string requiredVersionString)
+    {
+        // Special handling for .NET 10.0.100 requirement - allow any .NET 10.x version
+        if (requiredVersionString == MinimumSdkVersionSingleFileAppHost)
+        {
+            // If we require 10.0.100, accept any version that is >= 10.0.0
+            return installedVersion.Major >= 10;
+        }
+
+        // For all other requirements, use strict version comparison
+        return SemVersion.ComparePrecedence(installedVersion, requiredVersion) >= 0;
     }
 }
