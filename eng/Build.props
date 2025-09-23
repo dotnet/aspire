@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(SkipManagedBuild)' != 'true'">
-    <!-- Project name validation runs first -->
+    <!-- Project name validation runs once in the outer build -->
     <ProjectToBuild Include="$(RepoRoot)eng\OuterPreBuild.proj" />
 
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />

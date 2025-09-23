@@ -1,4 +1,6 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)Build.props" />
+
   <Target Name="Build" Condition="'$(SkipProjectNameValidation)' != 'true'">
     <!-- Validate that all project file names are unique to prevent build output conflicts -->
 
