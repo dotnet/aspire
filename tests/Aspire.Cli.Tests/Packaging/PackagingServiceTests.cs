@@ -5,6 +5,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
 using Aspire.Cli.Packaging;
 using Microsoft.Extensions.Configuration;
+using System.Xml.Linq;
 
 namespace Aspire.Cli.Tests.Packaging;
 
@@ -63,6 +64,16 @@ public class PackagingServiceTests
         Assert.Contains("stable", channelNames);
         Assert.Contains("daily", channelNames);
 
+        // Verify that non-staging channels have ConfigureGlobalPackagesFolder = false
+        var defaultChannel = channels.First(c => c.Name == "default");
+        Assert.False(defaultChannel.ConfigureGlobalPackagesFolder);
+        
+        var stableChannel = channels.First(c => c.Name == "stable");
+        Assert.False(stableChannel.ConfigureGlobalPackagesFolder);
+        
+        var dailyChannel = channels.First(c => c.Name == "daily");
+        Assert.False(dailyChannel.ConfigureGlobalPackagesFolder);
+
         // Cleanup
         tempDir.Delete(true);
     }
@@ -98,6 +109,7 @@ public class PackagingServiceTests
         
         var stagingChannel = channels.First(c => c.Name == "staging");
         Assert.Equal(PackageChannelQuality.Stable, stagingChannel.Quality);
+        Assert.True(stagingChannel.ConfigureGlobalPackagesFolder);
         Assert.NotNull(stagingChannel.Mappings);
         
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
@@ -182,6 +194,56 @@ public class PackagingServiceTests
         var aspireMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Aspire*");
         Assert.NotNull(aspireMapping);
         Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{shortHash}/nuget/v3/index.json", aspireMapping.Source);
+
+        // Cleanup
+        tempDir.Delete(true);
+    }
+
+    [Fact]
+    public async Task NuGetConfigMerger_WhenChannelRequiresGlobalPackagesFolder_AddsGlobalPackagesFolderConfiguration()
+    {
+        // Arrange
+        var tempDir = Directory.CreateTempSubdirectory();
+        
+        var features = new TestFeatures();
+        features.SetFeature(KnownFeatures.StagingChannelEnabled, true);
+        
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["overrideStagingHash"] = "48a11dae"
+            })
+            .Build();
+
+        var packagingService = new PackagingService(
+            new CliExecutionContext(tempDir, tempDir, tempDir), 
+            new FakeNuGetPackageCache(), 
+            features, 
+            configuration);
+
+        var channels = await packagingService.GetChannelsAsync();
+        var stagingChannel = channels.First(c => c.Name == "staging");
+
+        // Act
+        await NuGetConfigMerger.CreateOrUpdateAsync(tempDir, stagingChannel);
+
+        // Assert
+        var nugetConfigPath = Path.Combine(tempDir.FullName, "NuGet.config");
+        Assert.True(File.Exists(nugetConfigPath));
+        
+        var configContent = await File.ReadAllTextAsync(nugetConfigPath);
+        Assert.Contains("globalPackagesFolder", configContent);
+        Assert.Contains(".nuget\\packages", configContent);
+
+        // Verify the XML structure
+        var doc = XDocument.Load(nugetConfigPath);
+        var configSection = doc.Root?.Element("config");
+        Assert.NotNull(configSection);
+        
+        var globalPackagesFolderAdd = configSection.Elements("add")
+            .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(globalPackagesFolderAdd);
+        Assert.Equal(".nuget\\packages", (string?)globalPackagesFolderAdd.Attribute("value"));
 
         // Cleanup
         tempDir.Delete(true);

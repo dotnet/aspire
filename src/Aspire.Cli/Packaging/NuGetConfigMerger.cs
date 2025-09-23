@@ -49,17 +49,18 @@ internal class NuGetConfigMerger
 
         if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            await CreateNewNuGetConfigAsync(targetDirectory, mappings, confirmationCallback, cancellationToken);
+            await CreateNewNuGetConfigAsync(targetDirectory, channel, confirmationCallback, cancellationToken);
         }
         else
         {
-            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings, confirmationCallback, cancellationToken);
+            await UpdateExistingNuGetConfigAsync(nugetConfigFile, channel, confirmationCallback, cancellationToken);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
-        if (mappings.Length == 0)
+        var mappings = channel.Mappings;
+        if (mappings is null || mappings.Length == 0)
         {
             return;
         }
@@ -82,11 +83,18 @@ internal class NuGetConfigMerger
             }
         }
         
+        if (channel.ConfigureGlobalPackagesFolder)
+        {
+            // Need to modify the temporary config to add globalPackagesFolder before copying
+            await AddGlobalPackagesFolderToConfigAsync(tmpConfig.ConfigFile);
+        }
+        
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
-    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
+    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
+        var mappings = channel.Mappings;
         if (mappings is null || mappings.Length == 0)
         {
             return;
@@ -126,6 +134,11 @@ internal class NuGetConfigMerger
             {
                 return;
             }
+        }
+        
+        if (channel.ConfigureGlobalPackagesFolder)
+        {
+            AddGlobalPackagesFolderConfiguration(configContext);
         }
         
         await SaveConfigAsync(nugetConfigFile, configContext.Document);
@@ -924,5 +937,51 @@ internal class NuGetConfigMerger
 
         nugetConfigFile = matches.SingleOrDefault();
         return matches.Length == 1;
+    }
+
+    private static async Task AddGlobalPackagesFolderToConfigAsync(FileInfo configFile)
+    {
+        XDocument doc;
+        await using (var stream = configFile.OpenRead())
+        {
+            doc = XDocument.Load(stream);
+        }
+
+        var configuration = doc.Root ?? throw new InvalidOperationException("Invalid NuGet config structure");
+        AddGlobalPackagesFolderConfiguration(configuration);
+
+        await using (var writeStream = configFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            doc.Save(writeStream);
+        }
+    }
+
+    private static void AddGlobalPackagesFolderConfiguration(NuGetConfigContext configContext)
+    {
+        AddGlobalPackagesFolderConfiguration(configContext.Configuration);
+    }
+
+    private static void AddGlobalPackagesFolderConfiguration(XElement configuration)
+    {
+        // Check if config section already exists
+        var config = configuration.Element("config");
+        if (config is null)
+        {
+            config = new XElement("config");
+            configuration.Add(config);
+        }
+
+        // Check if globalPackagesFolder already exists
+        var existingGlobalPackagesFolder = config.Elements("add")
+            .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
+
+        if (existingGlobalPackagesFolder is null)
+        {
+            // Add globalPackagesFolder configuration
+            var globalPackagesFolderAdd = new XElement("add");
+            globalPackagesFolderAdd.SetAttributeValue("key", "globalPackagesFolder");
+            globalPackagesFolderAdd.SetAttributeValue("value", ".nuget\\packages");
+            config.Add(globalPackagesFolderAdd);
+        }
     }
 }
