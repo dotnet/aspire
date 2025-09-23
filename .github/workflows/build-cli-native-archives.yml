@@ -58,6 +58,56 @@ jobs:
           /p:TargetRids=${{ matrix.targets.rids }}
           ${{ inputs.versionOverrideArg }}
 
+      - name: Check CLI executable size (Windows)
+        if: ${{ matrix.targets.os == 'windows-latest' }}
+        shell: pwsh
+        run: |
+          # Find the aspire.exe executable in the build output
+          $aspireExe = Get-ChildItem -Path "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release" -Filter "aspire.exe" -Recurse | Where-Object { $_.FullName -match "native" } | Select-Object -First 1
+          if (-not $aspireExe) {
+            Write-Error "Could not find aspire.exe executable in artifacts directory"
+            exit 1
+          }
+          
+          $sizeBytes = $aspireExe.Length
+          $sizeMB = [Math]::Round($sizeBytes / 1024 / 1024, 2)
+          $maxSizeMB = 20
+          
+          Write-Host "aspire.exe size: $sizeMB MB ($sizeBytes bytes)"
+          Write-Host "Location: $($aspireExe.FullName)"
+          
+          if ($sizeMB -gt $maxSizeMB) {
+            Write-Error "aspire.exe size ($sizeMB MB) exceeds maximum allowed size of $maxSizeMB MB"
+            exit 1
+          }
+          
+          Write-Host "✅ aspire.exe size check passed ($sizeMB MB <= $maxSizeMB MB)"
+
+      - name: Check CLI executable size (Linux)
+        if: ${{ matrix.targets.os != 'windows-latest' }}
+        shell: bash
+        run: |
+          # Find the aspire executable in the build output
+          aspire_exe=$(find "${{ github.workspace }}/artifacts/bin/Aspire.Cli/Release" -name "aspire" -type f | grep native | head -1)
+          if [[ -z "$aspire_exe" ]]; then
+            echo "Could not find aspire executable in artifacts directory"
+            exit 1
+          fi
+          
+          size_bytes=$(stat -c%s "$aspire_exe" 2>/dev/null || stat -f%z "$aspire_exe" 2>/dev/null)
+          size_mb=$(echo "scale=2; $size_bytes / 1024 / 1024" | bc)
+          max_size_mb=20
+          
+          echo "aspire size: ${size_mb} MB (${size_bytes} bytes)"
+          echo "Location: $aspire_exe"
+          
+          if (( $(echo "$size_mb > $max_size_mb" | bc -l) )); then
+            echo "aspire size (${size_mb} MB) exceeds maximum allowed size of ${max_size_mb} MB"
+            exit 1
+          fi
+          
+          echo "✅ aspire size check passed (${size_mb} MB <= ${max_size_mb} MB)"
+
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1  # v4.6.1
