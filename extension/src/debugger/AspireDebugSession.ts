@@ -172,27 +172,34 @@ export class AspireDebugSession implements vscode.DebugAdapter {
   }
 
   async startAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-    this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
+    try {
+      this.createDebugAdapterTrackerCore(projectDebuggerExtension.debugAdapter);
 
-    extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
-    const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', debugSessionId: this.debugSessionId }, projectDebuggerExtension);
-    const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
+      extensionLogOutputChannel.info(`Starting AppHost for project: ${projectFile} with args: ${args.join(' ')}`);
+      const appHostDebugSessionConfiguration = await createDebugSessionConfiguration({ project_path: projectFile, type: 'project' }, args, environment, { debug, forceBuild: debug, runId: '', debugSessionId: this.debugSessionId }, projectDebuggerExtension);
+      const appHostDebugSession = await this.startAndGetDebugSession(appHostDebugSessionConfiguration);
 
-    if (!appHostDebugSession) {
-      return;
-    }
-
-    this._appHostDebugSession = appHostDebugSession;
-
-    const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
-      if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
-        // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
-        this.dispose();
-        disposable.dispose();
+      if (!appHostDebugSession) {
+        return;
       }
-    });
 
-    this._disposables.push(disposable);
+      this._appHostDebugSession = appHostDebugSession;
+
+      const disposable = vscode.debug.onDidTerminateDebugSession(async session => {
+        if (this._appHostDebugSession && session.id === this._appHostDebugSession.id) {
+          // We should also dispose of the parent Aspire debug session whenever the AppHost stops.
+          this.dispose();
+          disposable.dispose();
+        }
+      });
+
+      this._disposables.push(disposable);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      extensionLogOutputChannel.error(`Error starting AppHost debug session: ${errorMessage}`);
+      vscode.window.showErrorMessage(errorMessage);
+      this.dispose();
+    }
   }
 
   async startAndGetDebugSession(debugConfig: AspireResourceExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
