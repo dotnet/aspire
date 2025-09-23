@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
@@ -23,9 +22,9 @@ internal sealed class FallbackProjectParser
 
     /// <summary>
     /// Parses a project file using direct XML parsing to extract basic project information.
-    /// Returns a synthetic JsonDocument that mimics MSBuild's GetProjectItemsAndProperties output.
+    /// Returns a synthetic JsonObject that mimics MSBuild's GetProjectItemsAndProperties output.
     /// </summary>
-    public JsonDocument ParseProject(FileInfo projectFile)
+    public JsonObject ParseProject(FileInfo projectFile)
     {
         try
         {
@@ -86,8 +85,8 @@ internal sealed class FallbackProjectParser
             // Fallback flag
             rootObject["Fallback"] = JsonValue.Create(true);
 
-            // Convert JsonObject to JsonDocument
-            return JsonDocument.Parse(rootObject.ToJsonString());
+            // Return JsonObject directly instead of converting to JsonDocument
+            return rootObject;
         }
         catch (Exception ex)
         {

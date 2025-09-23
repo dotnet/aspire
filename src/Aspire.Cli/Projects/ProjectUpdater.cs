@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
-using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Xml;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -159,37 +159,37 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private const string ItemsAndPropertiesCacheKeyPrefix = "ItemsAndProperties";
 
-    private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
+    private async Task<JsonObject> GetItemsAndPropertiesAsync(FileInfo projectFile, CancellationToken cancellationToken)
     {
         return await GetItemsAndPropertiesAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], cancellationToken);
     }
 
-    private async Task<JsonDocument> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
+    private async Task<JsonObject> GetItemsAndPropertiesAsync(FileInfo projectFile, string[] items, string[] properties, CancellationToken cancellationToken)
     {
         // Create a cache key that includes the project file and the requested items/properties
         var itemsKey = string.Join(",", items.OrderBy(x => x));
         var propertiesKey = string.Join(",", properties.OrderBy(x => x));
         var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}_{itemsKey}_{propertiesKey}";
         
-        var (exitCode, document) = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        var (exitCode, jsonObject) = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             return await runner.GetProjectItemsAndPropertiesAsync(projectFile, items, properties, new(), cancellationToken);
         });
 
-        if (exitCode != 0 || document is null)
+        if (exitCode != 0 || jsonObject is null)
         {
             throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedFetchItemsAndPropertiesFormat, projectFile.FullName));
         }
 
-        return document;
+        return jsonObject;
     }
 
-    private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
+    private async Task<JsonObject> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
         return await GetItemsAndPropertiesWithFallbackAsync(projectFile, ["PackageReference", "ProjectReference"], ["AspireHostingSDKVersion"], context, cancellationToken);
     }
 
-    private async Task<JsonDocument> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
+    private async Task<JsonObject> GetItemsAndPropertiesWithFallbackAsync(FileInfo projectFile, string[] items, string[] properties, UpdateContext context, CancellationToken cancellationToken)
     {
         try
         {
@@ -244,23 +244,31 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         logger.LogDebug("Analyzing App Host SDK for: {AppHostFile}", context.AppHostProjectFile.FullName);
 
-        var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
-        var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
-        var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        var itemsAndPropertiesObject = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
+        if (!itemsAndPropertiesObject.TryGetPropertyValue("Properties", out var propertiesNode) || propertiesNode is not JsonObject properties)
+        {
+            throw new ProjectUpdaterException("Missing Properties section in project analysis");
+        }
+        
+        if (!properties.TryGetPropertyValue("AspireHostingSDKVersion", out var sdkVersionNode))
+        {
+            throw new ProjectUpdaterException("Missing AspireHostingSDKVersion property");
+        }
 
+        var currentSdkVersion = sdkVersionNode?.GetValue<string>();
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        if (currentSdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", currentSdkVersion, latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            currentSdkVersion ?? "unknown",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
@@ -304,52 +312,69 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var cpmInfo = DetectCentralPackageManagement(projectFile);
 
         // Use fallback wrapper for AppHost project, normal method for others
-        var itemsAndPropertiesDocument = IsAppHostProject(projectFile, context)
+        var itemsAndPropertiesObject = IsAppHostProject(projectFile, context)
             ? await GetItemsAndPropertiesWithFallbackAsync(projectFile, context, cancellationToken)
             : await GetItemsAndPropertiesAsync(projectFile, cancellationToken);
 
-        var itemsElement = itemsAndPropertiesDocument.RootElement.GetProperty("Items");
+        if (!itemsAndPropertiesObject.TryGetPropertyValue("Items", out var itemsNode) || itemsNode is not JsonObject items)
+        {
+            return; // No items section, nothing to analyze
+        }
 
         // Handle ProjectReference items (may not exist if project has no project references)
-        if (itemsElement.TryGetProperty("ProjectReference", out var projectReferencesElement))
+        if (items.TryGetPropertyValue("ProjectReference", out var projectReferencesNode) && projectReferencesNode is JsonArray projectReferences)
         {
-            foreach (var projectReference in projectReferencesElement.EnumerateArray())
+            foreach (var projectRefNode in projectReferences)
             {
-                var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
-                var referencedProjectFile = new FileInfo(referencedProjectPath);
-                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+                if (projectRefNode is JsonObject projectReference &&
+                    projectReference.TryGetPropertyValue("FullPath", out var fullPathNode))
+                {
+                    var referencedProjectPath = fullPathNode?.GetValue<string>() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
+                    var referencedProjectFile = new FileInfo(referencedProjectPath);
+                    context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+                }
             }
         }
 
         // Handle PackageReference items (may not exist if project has no package references)
-        if (itemsElement.TryGetProperty("PackageReference", out var packageReferencesElement))
+        if (items.TryGetPropertyValue("PackageReference", out var packageReferencesNode) && packageReferencesNode is JsonArray packageReferences)
         {
-            foreach (var packageReference in packageReferencesElement.EnumerateArray())
+            foreach (var packageRefNode in packageReferences)
             {
-            var packageId = packageReference.GetProperty("Identity").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
-
-            if (!IsUpdatablePackage(packageId))
-            {
-                continue;
-            }
-
-            if (cpmInfo.UsesCentralPackageManagement)
-            {
-                await AnalyzePackageForCentralPackageManagementAsync(packageId, projectFile, cpmInfo.DirectoryPackagesPropsFile!, context, cancellationToken);
-            }
-            else
-            {
-                // Traditional package management - Version should be in PackageReference
-                if (!packageReference.TryGetProperty("Version", out var versionElement) || versionElement.GetString() is null)
+                if (packageRefNode is not JsonObject packageReference)
                 {
-                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                    continue;
                 }
-                
-                var packageVersion = versionElement.GetString()!;
-                await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+
+                if (!packageReference.TryGetPropertyValue("Identity", out var identityNode))
+                {
+                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
+                }
+
+                var packageId = identityNode?.GetValue<string>() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoIdentity);
+
+                if (!IsUpdatablePackage(packageId))
+                {
+                    continue;
+                }
+
+                if (cpmInfo.UsesCentralPackageManagement)
+                {
+                    await AnalyzePackageForCentralPackageManagementAsync(packageId, projectFile, cpmInfo.DirectoryPackagesPropsFile!, context, cancellationToken);
+                }
+                else
+                {
+                    // Traditional package management - Version should be in PackageReference
+                    if (!packageReference.TryGetPropertyValue("Version", out var versionNode) || versionNode is null)
+                    {
+                        throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                    }
+                    
+                    var packageVersion = versionNode.GetValue<string>() ?? throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                    await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                }
             }
         }
-    }
     }
 
     private static bool IsUpdatablePackage(string packageId)
@@ -496,16 +521,18 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         try
         {
-            var document = await GetItemsAndPropertiesAsync(
+            var jsonObject = await GetItemsAndPropertiesAsync(
                 projectFile, 
                 Array.Empty<string>(), // No items needed
                 [propertyName], // Just the property we want
                 cancellationToken);
 
-            var propertiesElement = document.RootElement.GetProperty("Properties");
-            if (propertiesElement.TryGetProperty(propertyName, out var propertyElement))
+            if (jsonObject.TryGetPropertyValue("Properties", out var propertiesNode) && propertiesNode is JsonObject properties)
             {
-                return propertyElement.GetString();
+                if (properties.TryGetPropertyValue(propertyName, out var propertyNode))
+                {
+                    return propertyNode?.GetValue<string>();
+                }
             }
 
             return null;
