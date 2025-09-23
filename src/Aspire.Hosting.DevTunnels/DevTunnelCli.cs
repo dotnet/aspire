@@ -84,6 +84,19 @@ internal sealed class DevTunnelCli
         , outputWriter, errorWriter, logger, cancellationToken);
     }
 
+    public Task<int> ListPortsAsync(
+        string tunnelId,
+        TextWriter? outputWriter = null,
+        TextWriter? errorWriter = null,
+        ILogger? logger = default,
+        CancellationToken cancellationToken = default)
+    {
+        return RunAsync(new ArgsBuilder(["port", "list", tunnelId])
+            .Add("--json")
+            .Add("--nologo")
+        , outputWriter, errorWriter, logger, cancellationToken);
+    }
+
     public Task<int> ListAccessAsync(
         string tunnelId,
         int? portNumber = null,
@@ -199,7 +212,7 @@ internal sealed class DevTunnelCli
         TextWriter? errorWriter = null,
         ILogger? logger = default,
         CancellationToken cancellationToken = default)
-        => RunAsync(["port", "delete", tunnelId, "--port-number", portNumber.ToString(CultureInfo.InvariantCulture), "--force", "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
+        => RunAsync(["port", "delete", tunnelId, "--port-number", portNumber.ToString(CultureInfo.InvariantCulture), "--json", "--nologo"], outputWriter, errorWriter, logger, cancellationToken);
 
     private Task<int> RunAsync(string[] args, TextWriter? outputWriter = null, TextWriter? errorWriter = null, ILogger? logger = default, CancellationToken cancellationToken = default)
         => RunAsync(args, outputWriter, errorWriter, useShellExecute: false, logger, cancellationToken);
