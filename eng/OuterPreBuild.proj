@@ -23,4 +23,6 @@
     <Error Condition="'$(_TotalProjectCount)' != '$(_DistinctProjectCount)'"
            Text="Found duplicate project file names that can cause build output conflicts.%0ATotal projects: $(_TotalProjectCount), Unique names: $(_DistinctProjectCount)%0A%0AProject files:%0A@(_ProjectFileName -> '%(Identity): %(OriginalPath)', '%0A')%0A%0AEach project file must have a unique name to prevent compiled assemblies from overwriting each other in shared output directories." />
   </Target>
+
+  <Target Name="Pack" />
 </Project>
