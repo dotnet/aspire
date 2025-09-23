@@ -6,14 +6,14 @@
 
   <Target Name="BuildAndPackageExtension" BeforeTargets="Build" DependsOnTargets="CheckYarnInstalled;CheckVsceInstalled">
     <PropertyGroup>
-      <_PackageJsonPath>$(ExtensionSrcDir)/package.json</_PackageJsonPath>
+      <_PackageJsonPath>$([MSBuild]::NormalizePath($(ExtensionSrcDir), 'package.json'))</_PackageJsonPath>
       <_VsixPath>$([MSBuild]::NormalizePath($(ArtifactsPackagesDir), 'aspire-vscode-$(Version).vsix'))</_VsixPath>
     </PropertyGroup>
 
     <Error Text="$(_PackageJsonPath) not found. Cannot package the extension." Condition="!Exists('$(_PackageJsonPath)')" />
 
     <!-- Extract version from package.json using Node.js -->
-    <Exec Command="node -p &quot;require('$(_PackageJsonPath)').version&quot;"
+    <Exec Command="node -p &quot;require('./package.json').version&quot;"
           ConsoleToMSBuild="true"
           WorkingDirectory="$(ExtensionSrcDir)">
       <Output TaskParameter="ConsoleOutput" PropertyName="_ExtractedVersion" />
