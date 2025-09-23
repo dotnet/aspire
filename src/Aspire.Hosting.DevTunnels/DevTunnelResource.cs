@@ -93,7 +93,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
 
     internal Task TargetEndpointAllocatedTask => TargetEndpointAllocatedTcs.Task;
 
-    internal DevTunnelStatus.DevTunnelPort? LastKnownStatus { get; set; }
+    internal DevTunnelPort? LastKnownStatus { get; set; }
 
     internal DevTunnelAccessStatus? LastKnownAccessStatus { get; set; }
 }

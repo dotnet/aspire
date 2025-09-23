@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="zh-Hant" original="../MessageStrings.resx">
+    <body>
+      <trans-unit id="AuthenticationExpiredNotification">
+        <source>Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</source>
+        <target state="new">Dev tunnels authentication has expired. Restart the dev tunnel resources to re-authenticate.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AuthenticationRequiredNotification">
+        <source>Dev tunnels requires authentication to continue:</source>
+        <target state="new">Dev tunnels requires authentication to continue:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelHealthy">
+        <source>Dev tunnel '{0}' is active with {1} host connections and {2} ports.</source>
+        <target state="new">Dev tunnel '{0}' is active with {1} host connections and {2} ports.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortHealthy">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' is active.</source>
+        <target state="new">Dev tunnel port '{0}' on dev tunnel '{1}' is active.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_Error">
+        <source>Failed to check port '{0}' on dev tunnel '{1}': {2}</source>
+        <target state="new">Failed to check port '{0}' on dev tunnel '{1}': {2}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelPortUnhealthy_StatusUnknown">
+        <source>Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</source>
+        <target state="new">Dev tunnel port '{0}' on dev tunnel '{1}' status is not known.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_Error">
+        <source>Failed to check dev tunnel '{0}': {1}</source>
+        <target state="new">Failed to check dev tunnel '{0}': {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_NoActiveHostConnections">
+        <source>Dev tunnel '{0}' has no active host connections.</source>
+        <target state="new">Dev tunnel '{0}' has no active host connections.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevTunnelUnhealthy_PortInactive">
+        <source>Dev tunnel '{0}' port '{1}' is not active.</source>
+        <target state="new">Dev tunnel '{0}' port '{1}' is not active.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DevtunnelCliVersionNotSupported">
+        <source>The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</source>
+        <target state="new">The installed devtunnel CLI version {0} is not supported. Version {1} or higher is required.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InstallationInstructions">
+        <source>Installation instructions</source>
+        <target state="new">Installation instructions</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithGitHub">
+        <source>Login with GitHub</source>
+        <target state="new">Login with GitHub</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="LoginWithMicrosoft">
+        <source>Login with Microsoft</source>
+        <target state="new">Login with Microsoft</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotification">
+        <source>Required command '{0}' was not found on PATH or at a specified location.</source>
+        <target state="new">Required command '{0}' was not found on PATH or at a specified location.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithLink">
+        <source>Required command '{0}' was not found. See installation instructions for more details.</source>
+        <target state="new">Required command '{0}' was not found. See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RequiredCommandNotificationWithValidation">
+        <source>{0} See installation instructions for more details.</source>
+        <target state="new">{0} See installation instructions for more details.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
