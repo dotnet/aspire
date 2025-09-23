@@ -327,7 +327,8 @@ export class InteractionService implements IInteractionService {
             noDebug: !debug,
         };
 
-        const didDebugStart = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], debugConfiguration);
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(workingDirectory));
+        const didDebugStart = await vscode.debug.startDebugging(workspaceFolder, debugConfiguration);
         if (!didDebugStart) {
             throw new Error(failedToStartDebugSession);
         }

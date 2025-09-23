@@ -232,7 +232,8 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
 
       extensionLogOutputChannel.info(`Starting debug session with configuration: ${JSON.stringify(debugConfig)}`);
-      const started = await vscode.debug.startDebugging(undefined, debugConfig, this._session);
+
+      const started = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders![0], debugConfig, this._session);
       if (!started) {
         disposable.dispose();
         resolve(undefined);

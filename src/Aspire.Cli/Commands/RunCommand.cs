@@ -145,7 +145,7 @@ internal sealed class RunCommand : BaseCommand
 
             if (!watch)
             {
-                if (!isSingleFileAppHost)
+                if (!isSingleFileAppHost || isExtensionHost)
                 {
                     var buildOptions = new DotNetCliRunnerInvocationOptions
                     {
@@ -155,7 +155,8 @@ internal sealed class RunCommand : BaseCommand
 
                     // The extension host will build the app host project itself, so we don't need to do it here if host exists.
                     if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
-                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken))
+                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken)
+                         || isSingleFileAppHost)
                     {
                         var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
@@ -165,7 +166,7 @@ internal sealed class RunCommand : BaseCommand
                             InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                             return ExitCodeConstants.FailedToBuildArtifacts;
                         }
-                    }                    
+                    }
                 }
             }
 
@@ -177,7 +178,7 @@ internal sealed class RunCommand : BaseCommand
             else
             {
                 appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
-            }         
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {

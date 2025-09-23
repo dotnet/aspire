@@ -29,14 +29,14 @@ To run an Aspire application using the Aspire VS Code extension, you must be usi
 | Debug C# projects | [C# Dev Kit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit) or [C# for Visual Studio Code](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) | The C# extension is required for debugging .NET projects. Apphosts will be built in VS Code if C# Dev Kit is available. |
 | Debug Python projects | [Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) | Required for debugging Python projects |
 
-To run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `program` field to an apphost project file based on the below example:
+To run and debug your Aspire application, add an entry to the workspace `launch.json`. You can change the apphost to run by setting the `projectPath` field to an apphost project file based on the below example:
 
 ```json
 {
     "type": "aspire",
     "request": "launch",
     "name": "Aspire: Launch MyAppHost",
-    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj"
+    "projectPath": "${workspaceFolder}/MyAppHost/MyAppHost.csproj"
 }
 ```
 
