@@ -36,6 +36,7 @@ steps:
               -restore -build
               -pack
               -sign $(_SignArgs)
+              -buildExtension
               -publish $(_PublishArgs)
               -configuration ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
@@ -44,6 +45,13 @@ steps:
               /p:TargetRids=${{ join(':', parameters.targetRids) }}
               /p:SkipTestProjects=true
       displayName: 🟣Build
+
+    - task: 1ES.PublishBuildArtifacts@1
+      displayName: 🟣Publish vscode extension
+      condition: always()
+      inputs:
+        PathtoPublish: '${{ parameters.repoArtifactsPath }}/packages/Release/vscode'
+        ArtifactName: aspire-vscode-extension
 
     - script: ${{ parameters.dotnetScript }}
               build
