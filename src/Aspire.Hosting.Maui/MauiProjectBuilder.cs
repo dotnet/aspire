@@ -73,7 +73,14 @@ public sealed class MauiProjectBuilder
         return this;
     }
 
-    // Android support temporarily reduced to simple platform inclusion without auto provisioning.
+    /// <summary>
+    /// Adds an Android platform resource if the MAUI project targets Android.
+    /// </summary>
+    /// <param name="adbTarget">Optional adb target passed as an MSBuild property (e.g. <c>-p:AdbTarget=-e</c>) to select a specific emulator or device.</param>
+    /// <remarks>
+    /// Android support is currently limited to adding the platform resource without additional provisioning logic.
+    /// If <paramref name="adbTarget"/> is provided it is forwarded as an MSBuild property when the project is started.
+    /// </remarks>
     public MauiProjectBuilder WithAndroid(string? adbTarget = null)
     {
         AddPlatform("android", msbuildProperty: adbTarget is null ? null : $"AdbTarget={adbTarget}");
@@ -301,7 +308,7 @@ public sealed class MauiProjectBuilder
         return false;
     }
 
-    private readonly Lock _autoDetectLock = new();
+    private readonly object _autoDetectLock = new();
     private bool _autoDetectionAttempted;
 
     // Returns the set of platforms that were auto-detected during this call (empty if already done or none found).

@@ -11,5 +11,8 @@ namespace Aspire.Hosting.Maui;
 /// </summary>
 public sealed class MauiProjectResource(string name, string projectPath) : Resource(name)
 {
+    /// <summary>
+    /// Gets the path to the underlying multi-target .NET MAUI project (.csproj) file.
+    /// </summary>
     public string ProjectPath { get; } = projectPath;
 }
