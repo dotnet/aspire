@@ -138,7 +138,7 @@ while [[ $# > 0 ]]; do
       ;;
 
      -build-extension)
-      arguments="$arguments --build-extension"
+      extraargs="$extraargs /p:BuildExtension=true"
       shift 1
       ;;
 
