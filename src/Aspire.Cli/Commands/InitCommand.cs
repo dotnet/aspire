@@ -14,6 +14,8 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using Semver;
 
 namespace Aspire.Cli.Commands;
 
@@ -104,7 +106,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (solutionFile is not null)
         {
             InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, solutionFile.Name));
-            return await InitializeExistingSolutionAsync(solutionFile, cancellationToken);
+            return await InitializeExistingSolutionAsync(solutionFile, parseResult, cancellationToken);
         }
         else
         {
@@ -113,7 +115,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, CancellationToken cancellationToken)
+    private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Get the solution name (without extension) to use for project names
         var solutionName = Path.GetFileNameWithoutExtension(solutionFile.Name);
@@ -129,6 +131,9 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return ExitCodeConstants.Success;
         }
         
+        // Get template version/channel selection using the same logic as NewCommand
+        var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
+        
         // Use the dotnet CLI runner to create the aspire template directly
         InteractionService.DisplayMessage("construction", "Creating Aspire projects...");
         
@@ -138,6 +143,31 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         
         try
         {
+            // Create temporary NuGet config if using explicit channel
+            using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
+            
+            // Install templates first if needed
+            var templateInstallResult = await InteractionService.ShowStatusAsync(
+                "Getting templates...",
+                async () =>
+                {
+                    var options = new DotNetCliRunnerInvocationOptions();
+                    return await _runner.InstallTemplateAsync(
+                        packageName: "Aspire.ProjectTemplates",
+                        version: selectedTemplateDetails.Package.Version,
+                        nugetConfigFile: temporaryConfig?.ConfigFile,
+                        nugetSource: selectedTemplateDetails.Package.Source,
+                        force: true,
+                        options: options,
+                        cancellationToken: cancellationToken);
+                });
+            
+            if (templateInstallResult.ExitCode != 0)
+            {
+                InteractionService.DisplayError("Failed to install Aspire templates.");
+                return ExitCodeConstants.FailedToCreateNewProject;
+            }
+            
             // Apply the aspire template directly using the CLI runner with solution name
             var createResult = await _runner.NewProjectAsync(
                 "aspire", 
@@ -257,5 +287,48 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         return result.ExitCode;
+    }
+
+    private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        var channels = await _packagingService.GetChannelsAsync(cancellationToken);
+
+        var packagesFromChannels = await InteractionService.ShowStatusAsync("Searching for available template versions...", async () =>
+        {
+            var results = new List<(NuGetPackage Package, PackageChannel Channel)>();
+            var packagesFromChannelsLock = new object();
+
+            await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
+            {
+                var templatePackages = await channel.GetTemplatePackagesAsync(_executionContext.WorkingDirectory, ct);
+                lock (packagesFromChannelsLock)
+                {
+                    results.AddRange(templatePackages.Select(p => (p, channel)));
+                }
+            });
+
+            return results;
+        });
+
+        if (!packagesFromChannels.Any())
+        {
+            throw new InvalidOperationException("No template versions found");
+        }
+
+        var orderedPackagesFromChannels = packagesFromChannels.OrderByDescending(p => SemVersion.Parse(p.Package.Version), SemVersion.PrecedenceComparer);
+
+        // Check for explicit version specified via command line
+        if (parseResult.GetValue<string>("--version") is { } version)
+        {
+            var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
+            if (explicitPackageFromChannel.Package is not null)
+            {
+                return explicitPackageFromChannel;
+            }
+        }
+
+        // Prompt user to select from available versions/channels
+        var selectedPackageFromChannel = await _prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
+        return selectedPackageFromChannel;
     }
 }
