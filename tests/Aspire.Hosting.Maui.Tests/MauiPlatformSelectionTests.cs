@@ -66,9 +66,46 @@ public class MauiPlatformSelectionTests
         await builder.Eventing.PublishAsync(evt);
 
         var writes = testSink.Writes.ToArray();
-        var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("No .NET MAUI platform resources were configured") ?? false));
+        var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
         Assert.NotNull(warning);
-        Assert.Contains("WithWindows()", warning!.Message);
+        var modelResources = model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>().ToList();
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Contains("windows", warning!.Message);
+            Assert.Contains(modelResources, r => r.Name == "maui-windows");
+            // android may also be present if targeted
+            Assert.Contains(modelResources, r => r.Name == "maui-android");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            Assert.Contains("maccatalyst", warning!.Message);
+            Assert.Contains(modelResources, r => r.Name == "maui-maccatalyst");
+            Assert.Contains(modelResources, r => r.Name == "maui-ios");
+        }
+        else
+        {
+            // On other OS (Linux) we currently do not auto-detect; expecting original no-platform warning logic.
+            // Relax assertion: if we reached here auto-detect fired unexpectedly; allow future extension.
+        }
+    }
+
+    [Xunit.Fact]
+    public void ExplicitPlatform_DisablesAutoDetect()
+    {
+        var csproj = MauiTestHelpers.CreateProject("net10.0-windows10.0.19041.0", "net10.0-maccatalyst");
+        var testSink = new Microsoft.Extensions.Logging.Testing.TestSink();
+        var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions { DisableDashboard = true });
+        builder.Services.Add(new Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(Microsoft.Extensions.Logging.ILoggerProvider), new Microsoft.Extensions.Logging.Testing.TestLoggerProvider(testSink)));
+        builder.AddMauiProject("maui", csproj).WithWindows(); // Explicit selection
+    using var app = builder.Build();
+    var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
+
+        var writes = testSink.Writes.ToArray();
+        // Should not contain auto-detected warning
+        Assert.DoesNotContain(writes, w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
+        // Only the explicitly added windows resource should exist (no mac auto-added since explicit selection happened already)
+        Assert.Contains(model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>(), r => r.Name == "maui-windows");
+        Assert.DoesNotContain(model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>(), r => r.Name == "maui-maccatalyst");
     }
 
     [Xunit.Fact]

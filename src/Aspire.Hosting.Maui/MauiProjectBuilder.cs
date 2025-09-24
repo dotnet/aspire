@@ -29,17 +29,32 @@ public sealed class MauiProjectBuilder
         _mauiLogicalResource = logical;
         _projectPath = projectPath;
         _availableTfms = LoadTargetFrameworks(projectPath);
-
-        // Warn if the user never added at least one MAUI platform for this project.
+        // We still log at BeforeStartEvent, but detection may already have happened earlier (e.g. via WithReference()).
         appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
         {
+            var logger = evt.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Hosting.Maui");
+
             if (_platformResources.Count == 0)
             {
-                var loggerFactory = evt.Services.GetRequiredService<ILoggerFactory>();
-                var logger = loggerFactory.CreateLogger("Aspire.Hosting.Maui");
-                logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
+                // Final chance: perform detection so the user can still launch even if they never referenced anything.
+                var detected = EnsureAutoDetection();
+                if (detected.Count == 0)
+                {
+                    logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
+                }
+                else
+                {
+                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() in the AppHost.", string.Join(",", detected), _mauiLogicalResource.Name);
+                }
             }
-
+            else if (_platformResources.Any(p => p.Resource.Annotations.OfType<MauiAutoDetectedPlatformAnnotation>().Any()))
+            {
+                var auto = GetAutoDetectedPlatformNames();
+                if (auto.Count > 0)
+                {
+                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() in the AppHost.", string.Join(",", auto), _mauiLogicalResource.Name);
+                }
+            }
             return Task.CompletedTask;
         });
     }
@@ -91,6 +106,8 @@ public sealed class MauiProjectBuilder
     public MauiProjectBuilder WithReference<TSource>(IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResource
     {
+        // Ensure platforms are materialized early so service discovery / connection string references propagate.
+        EnsureAutoDetection();
         foreach (var pr in _platformResources)
         {
             if (source.Resource is IResourceWithConnectionString && pr.Resource is IResourceWithEnvironment)
@@ -292,4 +309,82 @@ public sealed class MauiProjectBuilder
         }
         return list;
     }
+
+    private List<string> AutoDetectPlatforms()
+    {
+        var added = new List<string>();
+
+        // Platform selection constrained by current host OS for a better default experience.
+        if (OperatingSystem.IsWindows())
+        {
+            Try("windows");
+            Try("android");
+        }
+        else if (OperatingSystem.IsMacOS())
+        {
+            Try("maccatalyst");
+            Try("ios");
+        }
+
+        void Try(string moniker)
+        {
+            if (_availableTfms.Any(t => t.Contains('-') && t.Split('-')[1].StartsWith(moniker, StringComparison.OrdinalIgnoreCase)))
+            {
+                var before = _platformResources.Count;
+                AddPlatform(moniker);
+                if (_platformResources.Count > before)
+                {
+                    // Mark the newly added resource with an auto-detected annotation for test visibility.
+                    var last = _platformResources[^1];
+                    last.WithAnnotation(new MauiAutoDetectedPlatformAnnotation());
+                    added.Add(moniker);
+                }
+            }
+        }
+
+        return added;
+    }
+
+    private readonly object _autoDetectLock = new();
+    private bool _autoDetectionAttempted;
+
+    // Returns the set of platforms that were auto-detected during this call (empty if already done or none found).
+    private List<string> EnsureAutoDetection()
+    {
+        if (_platformResources.Count != 0)
+        {
+            return [];
+        }
+
+        lock (_autoDetectLock)
+        {
+            if (_autoDetectionAttempted || _platformResources.Count != 0)
+            {
+                return [];
+            }
+            _autoDetectionAttempted = true;
+            return AutoDetectPlatforms();
+        }
+    }
+
+    private List<string> GetAutoDetectedPlatformNames()
+    {
+        var list = new List<string>();
+        foreach (var b in _platformResources)
+        {
+            if (b.Resource.Annotations.OfType<MauiAutoDetectedPlatformAnnotation>().Any())
+            {
+                // Resource name pattern: <logical>-<platform>
+                var name = b.Resource.Name;
+                var idx = name.LastIndexOf('-');
+                if (idx >= 0 && idx < name.Length - 1)
+                {
+                    list.Add(name[(idx + 1)..]);
+                }
+            }
+        }
+        return list;
+    }
+
+    private sealed class MauiAutoDetectedPlatformAnnotation : IResourceAnnotation { }
 }
