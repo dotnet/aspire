@@ -31,8 +31,8 @@ public static class MauiProjectExtensions
         // Ensure lifecycle tracker registered once; harmless if added multiple times.
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IDistributedApplicationLifecycleHook, MauiStartupPhaseTracker>());
 
-        // Normalize the project path relative to the AppHost directory without using internal helpers.
-        projectPath = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, projectPath));
+        // Normalize the project path relative to the AppHost directory using shared PathNormalizer
+        projectPath = Aspire.Hosting.Utils.PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
         // Do not register the logical grouping resource so it stays invisible in the dashboard; only per-platform resources appear.
         var logical = new MauiProjectResource(name, projectPath);
         return new MauiProjectBuilder(builder, logical, projectPath);
