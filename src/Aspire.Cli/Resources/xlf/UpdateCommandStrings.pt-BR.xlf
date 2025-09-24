@@ -117,6 +117,11 @@
         <target state="translated">Executar atualizações?</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="new">The path to the Aspire AppHost project file.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">A referência do Project não tem FullPath.</target>
