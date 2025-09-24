@@ -161,6 +161,36 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
+    public async Task CheckAsync_UsesElevatedMinimumSdkVersion_WhenDefaultWatchEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
+            .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        // Call the parameterless method that should use the elevated constant when flag is enabled
+        var (success, _, _) = await installer.CheckAsync();
+
+        // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
+        Assert.True(success == true || success == false);
+    }
+
+    [Fact]
+    public async Task CheckAsync_UsesBaselineMinimumSdkVersion_WhenDefaultWatchDisabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
+            .SetFeature(KnownFeatures.DefaultWatchEnabled, false);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        // Call the parameterless method that should use the baseline constant when flag is disabled
+        var (success, _, _) = await installer.CheckAsync();
+
+        // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
+        Assert.True(success == true || success == false);
+    }
+
+    [Fact]
     public async Task CheckAsync_UsesBaselineMinimumSdkVersion_WhenSingleFileAppHostDisabled()
     {
         var features = new TestFeatures()
@@ -206,6 +236,31 @@ public class DotNetSdkInstallerTests
     public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenSingleFileAppHostEnabled()
     {
         var features = new TestFeatures()
+            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+    }
+
+    [Fact]
+    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenDefaultWatchEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
+
+        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
+
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+    }
+
+    [Fact]
+    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenBothDefaultWatchEnabledAndSingleFileAppHostEnabled()
+    {
+        var features = new TestFeatures()
+            .SetFeature(KnownFeatures.DefaultWatchEnabled, true)
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
 

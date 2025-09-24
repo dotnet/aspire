@@ -143,7 +143,8 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             return overrideVersion;
         }
-        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false) ||
+                 features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, false))
         {
             return MinimumSdkVersionSingleFileAppHost;
         }
