@@ -241,7 +241,7 @@ public class DotNetSdkInstallerTests
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public class DotNetSdkInstallerTests
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class DotNetSdkInstallerTests
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkVersionSingleFileAppHost, effectiveVersion);
+        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
     }
 
     [Fact]
