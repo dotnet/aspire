@@ -380,17 +380,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (packageVersion == latestPackage?.Version)
+        // Handle NuGet version ranges - check if it's a range expression and display accordingly
+        var isVersionRange = IsNuGetVersionRange(packageVersion);
+        var displayVersion = isVersionRange ? "(range)" : packageVersion;
+
+        if (!isVersionRange && packageVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
         }
 
         var updateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, displayVersion, latestPackage!.Version),
             () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
             packageId,
-            packageVersion,
+            displayVersion,
             latestPackage!.Version,
             projectFile);
         context.UpdateSteps.Enqueue(updateStep);
@@ -408,17 +412,21 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
-        if (currentVersion == latestPackage?.Version)
+        // Handle NuGet version ranges - check if it's a range expression and display accordingly
+        var isVersionRange = IsNuGetVersionRange(currentVersion);
+        var displayVersion = isVersionRange ? "(range)" : currentVersion;
+
+        if (!isVersionRange && currentVersion == latestPackage?.Version)
         {
             logger.LogInformation("Package '{PackageId}' is up to date.", packageId);
             return;
         }
 
         var updateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, currentVersion, latestPackage!.Version),
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, displayVersion, latestPackage!.Version),
             () => UpdatePackageVersionInDirectoryPackagesProps(packageId, latestPackage!.Version, directoryPackagesPropsFile),
             packageId,
-            currentVersion,
+            displayVersion,
             latestPackage!.Version,
             projectFile);
         context.UpdateSteps.Enqueue(updateStep);
@@ -530,6 +538,15 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Detects if a version string is a NuGet version range expression.
+    /// Examples: [1.0,2.0), (1.0,2.0], [1.0,2.0], (1.0,2.0)
+    /// </summary>
+    internal static bool IsNuGetVersionRange(string version)
+    {
+        return (version.StartsWith("[") || version.StartsWith("(")) && version.Contains(',');
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)

@@ -943,6 +943,26 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void PackageUpdateStep_GetFormattedDisplayText_WithVersionRange_ShowsRangeText()
+    {
+        // Arrange
+        var projectFile = new FileInfo("/path/to/MyProject.csproj");
+        var packageStep = new PackageUpdateStep(
+            "Update package Aspire.Hosting.Redis from (range) to 9.1.0",
+            () => Task.CompletedTask,
+            "Aspire.Hosting.Redis",
+            "(range)",
+            "9.1.0",
+            projectFile);
+
+        // Act
+        var formattedText = packageStep.GetFormattedDisplayText();
+
+        // Assert
+        Assert.Equal("[bold yellow]Aspire.Hosting.Redis[/] [bold green](range)[/] to [bold green]9.1.0[/]", formattedText);
+    }
+
+    [Fact]
     public async Task UpdateProjectFileAsync_CentralPackageManagement_ResolvesAspireVersionProperty()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -1598,6 +1618,139 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Should discover package reference (version may be absent) and not crash
         Assert.True(updateResult.UpdatedApplied);
+    }
+
+    [Fact]
+    public async Task UpdateProjectFileAsync_WithVersionRange_HandlesGracefully()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFolder = workspace.CreateDirectory("VersionRangeTest.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "VersionRangeTest.AppHost.csproj"));
+
+        // Create a project with a version range expression
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFramework>net8.0</TargetFramework>
+                    <IsAspireHost>true</IsAspireHost>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting" Version="[9.0.0,10.0.0)" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (workingDirectory, packageId, prereleaseVersionsIncluded, take, skip, configFile, includeDelisted, options, cancellationToken) =>
+                    {
+                        if (packageId == "Aspire.AppHost.Sdk")
+                        {
+                            var packages = new[]
+                            {
+                                new NuGetPackageCli() { Id = "Aspire.AppHost.Sdk", Version = "9.5.0" }
+                            };
+                            return (0, packages);
+                        }
+                        else if (packageId == "Aspire.Hosting")
+                        {
+                            var packages = new[]
+                            {
+                                new NuGetPackageCli() { Id = "Aspire.Hosting", Version = "9.5.0" }
+                            };
+                            return (0, packages);
+                        }
+
+                        return (0, Array.Empty<NuGetPackageCli>());
+                    },
+
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
+                    {
+                        var itemsAndProperties = new JsonObject();
+
+                        if (projectFile.FullName == appHostProjectFile.FullName)
+                        {
+                            itemsAndProperties.WithSdkVersion("9.4.1");
+                            // Use version range instead of regular version
+                            var packageRef = new JsonObject
+                            {
+                                ["Identity"] = JsonValue.Create("Aspire.Hosting"),
+                                ["Version"] = JsonValue.Create("[9.0.0,10.0.0)")
+                            };
+                            
+                            itemsAndProperties.WithMSBuildOutput();
+                            var itemsObj = itemsAndProperties["Items"]!.AsObject();
+                            var packageReferences = itemsObj["PackageReference"]!.AsArray();
+                            packageReferences.Add(packageRef);
+                        }
+
+                        var json = itemsAndProperties.ToJsonString();
+                        var document = JsonDocument.Parse(json);
+                        return (0, document);
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.ConfirmCallback = (promptText, defaultValue) =>
+                {
+                    return true;
+                };
+
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = provider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var fallbackParser = provider.GetRequiredService<FallbackProjectParser>();
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        
+        // This should not crash even with version range expressions
+        var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Should handle version ranges and provide updates
+        Assert.True(updateResult.UpdatedApplied);
+    }
+
+    [Theory]
+    [InlineData("[1.0.0,2.0.0)", true)]
+    [InlineData("(1.0.0,2.0.0]", true)]
+    [InlineData("[1.0.0,2.0.0]", true)]
+    [InlineData("(1.0.0,2.0.0)", true)]
+    [InlineData("[1.0.0,)", true)]
+    [InlineData("(,2.0.0]", true)]
+    [InlineData("1.0.0", false)]
+    [InlineData("1.0.0-beta", false)]
+    [InlineData("1.0.0-alpha.1", false)]
+    [InlineData("", false)]
+    [InlineData("[1.0.0", false)]  // Missing comma
+    [InlineData("1.0.0,2.0.0)", false)]  // Missing opening bracket
+    public void ProjectUpdater_IsNuGetVersionRange_DetectsCorrectly(string version, bool expectedIsRange)
+    {
+        // Act
+        var result = ProjectUpdater.IsNuGetVersionRange(version);
+
+        // Assert
+        Assert.Equal(expectedIsRange, result);
     }
 
     [Fact]
