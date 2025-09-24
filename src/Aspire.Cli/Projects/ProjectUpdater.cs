@@ -828,7 +828,33 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+        // NuGet version ranges (e.g. [1.0.0,2.0.0)) break Spectre.Console markup parsing because
+        // they start with '[' which is treated as the beginning of a markup tag. When we detect a
+        // version range we replace the displayed current version with the literal string '(range)'
+        // while still allowing the update logic (which uses the raw version string elsewhere) to
+        // proceed. This prevents crashes when an AppHost project contains a PackageReference that
+        // specifies a version range.
+        var displayCurrentVersion = IsVersionRange(CurrentVersion) ? "(range)" : CurrentVersion;
+        return $"[bold yellow]{PackageId}[/] [bold green]{displayCurrentVersion}[/] to [bold green]{NewVersion}[/]";
+    }
+
+    private static bool IsVersionRange(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        // Basic heuristic for NuGet version range syntax: starts with '[' or '(' and ends with ']' or ')'
+        // and contains a comma OR is an open-ended range like "(,1.0.0]" or "[1.0.0,)".
+        if ((value[0] == '[' || value[0] == '(') && (value[^1] == ']' || value[^1] == ')'))
+        {
+            // Ranges normally contain a comma, but some single-bound ranges like [1.0.0,) also do.
+            // We'll treat anything matching the bracket pattern as a range to be safe.
+            return true;
+        }
+
+        return false;
     }
 }
 
