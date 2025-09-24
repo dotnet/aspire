@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Xml.Linq;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
@@ -28,7 +27,8 @@ public sealed class MauiProjectBuilder
         _appBuilder = appBuilder;
         _mauiLogicalResource = logical;
         _projectPath = projectPath;
-        _availableTfms = LoadTargetFrameworks(projectPath);
+        _availableTfms = MauiPlatformDetection.LoadTargetFrameworks(projectPath);
+        
         // We still log at BeforeStartEvent, but detection may already have happened earlier (e.g. via WithReference()).
         appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
         {
@@ -76,7 +76,7 @@ public sealed class MauiProjectBuilder
     // Android support temporarily reduced to simple platform inclusion without auto provisioning.
     public MauiProjectBuilder WithAndroid(string? adbTarget = null)
     {
-        AddPlatform("android", msbuildProperty: adbTarget is null ? null : ($"AdbTarget={adbTarget}"));
+        AddPlatform("android", msbuildProperty: adbTarget is null ? null : $"AdbTarget={adbTarget}");
         return this;
     }
 
@@ -86,7 +86,7 @@ public sealed class MauiProjectBuilder
     /// <param name="deviceUdid">Optional _DeviceName UDID (simulator or device) passed as -p:_DeviceName=:v2:udid=...</param>
     public MauiProjectBuilder WithIOS(string? deviceUdid = null)
     {
-        AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : ($"_DeviceName=:v2:udid={deviceUdid}"));
+        AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : $"_DeviceName=:v2:udid={deviceUdid}");
         return this;
     }
 
@@ -288,64 +288,20 @@ public sealed class MauiProjectBuilder
 
     }
 
-    private static HashSet<string> LoadTargetFrameworks(string projectPath)
+    // Attempt to add platform; returns true if a new platform resource was created and annotated as auto-detected.
+    private bool TryAddAutoDetectedPlatform(string moniker)
     {
-        var doc = XDocument.Load(projectPath);
-        var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
-        var list = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var tf in doc.Descendants(ns + "TargetFramework").Select(e => e.Value.Split(';', StringSplitOptions.RemoveEmptyEntries)))
+        var before = _platformResources.Count;
+        AddPlatform(moniker);
+        if (_platformResources.Count > before)
         {
-            foreach (var t in tf)
-            {
-                list.Add(t.Trim());
-            }
+            _platformResources[^1].WithAnnotation(new MauiAutoDetectedPlatformAnnotation());
+            return true;
         }
-        foreach (var tfs in doc.Descendants(ns + "TargetFrameworks").Select(e => e.Value.Split(';', StringSplitOptions.RemoveEmptyEntries)))
-        {
-            foreach (var t in tfs)
-            {
-                list.Add(t.Trim());
-            }
-        }
-        return list;
+        return false;
     }
 
-    private List<string> AutoDetectPlatforms()
-    {
-        var added = new List<string>();
-
-        // Platform selection constrained by current host OS for a better default experience.
-        if (OperatingSystem.IsWindows())
-        {
-            Try("windows");
-            Try("android");
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            Try("maccatalyst");
-            Try("ios");
-        }
-
-        void Try(string moniker)
-        {
-            if (_availableTfms.Any(t => t.Contains('-') && t.Split('-')[1].StartsWith(moniker, StringComparison.OrdinalIgnoreCase)))
-            {
-                var before = _platformResources.Count;
-                AddPlatform(moniker);
-                if (_platformResources.Count > before)
-                {
-                    // Mark the newly added resource with an auto-detected annotation for test visibility.
-                    var last = _platformResources[^1];
-                    last.WithAnnotation(new MauiAutoDetectedPlatformAnnotation());
-                    added.Add(moniker);
-                }
-            }
-        }
-
-        return added;
-    }
-
-    private readonly object _autoDetectLock = new();
+    private readonly Lock _autoDetectLock = new();
     private bool _autoDetectionAttempted;
 
     // Returns the set of platforms that were auto-detected during this call (empty if already done or none found).
@@ -363,7 +319,7 @@ public sealed class MauiProjectBuilder
                 return [];
             }
             _autoDetectionAttempted = true;
-            return AutoDetectPlatforms();
+            return MauiPlatformDetection.AutoDetect(_availableTfms, TryAddAutoDetectedPlatform);
         }
     }
 
