@@ -491,6 +491,195 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 
+    [Fact]
+    public async Task RunCommand_WhenDefaultWatchEnabledFeatureFlagIsTrue_UsesWatchMode()
+    {
+        var watchModeUsed = false;
+
+        var runnerFactory = (IServiceProvider sp) =>
+        {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+            // Fake apphost information to return a compatible app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                watchModeUsed = watch;
+                // Make a backchannel and return it
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                
+                // Don't run indefinitely for the test
+                await Task.Delay(100, ct);
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
+            var backchannel = new TestAppHostBackchannel();
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+            return backchannel;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.EnabledFeatures = [KnownFeatures.DefaultWatchEnabled];
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        
+        Assert.True(watchModeUsed, "Expected watch mode to be enabled when defaultWatchEnabled feature flag is true");
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenDefaultWatchEnabledFeatureFlagIsFalse_DoesNotUseWatchMode()
+    {
+        var watchModeUsed = false;
+
+        var runnerFactory = (IServiceProvider sp) =>
+        {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+            // Fake apphost information to return a compatible app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                watchModeUsed = watch;
+                // Make a backchannel and return it
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                
+                // Don't run indefinitely for the test
+                await Task.Delay(100, ct);
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
+            var backchannel = new TestAppHostBackchannel();
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+            return backchannel;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            options.DisabledFeatures = [KnownFeatures.DefaultWatchEnabled];
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        
+        Assert.False(watchModeUsed, "Expected watch mode to be disabled when defaultWatchEnabled feature flag is false");
+    }
+
+    [Fact]
+    public async Task RunCommand_WhenDefaultWatchEnabledFeatureFlagNotSet_DefaultsToFalse()
+    {
+        var watchModeUsed = false;
+
+        var runnerFactory = (IServiceProvider sp) =>
+        {
+            var runner = new TestDotNetCliRunner();
+
+            // Fake the certificate check to always succeed
+            runner.CheckHttpCertificateAsyncCallback = (options, ct) => 0;
+
+            // Fake the build command to always succeed.
+            runner.BuildAsyncCallback = (projectFile, options, ct) => 0;
+
+            // Fake apphost information to return a compatible app host.
+            runner.GetAppHostInformationAsyncCallback = (projectFile, options, ct) => (0, true, VersionHelper.GetDefaultTemplateVersion());
+
+            runner.RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, ct) =>
+            {
+                watchModeUsed = watch;
+                // Make a backchannel and return it
+                var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
+                backchannelCompletionSource!.SetResult(backchannel);
+                
+                // Don't run indefinitely for the test
+                await Task.Delay(100, ct);
+                return 0;
+            };
+
+            return runner;
+        };
+
+        var backchannelFactory = (IServiceProvider sp) =>
+        {
+            var backchannel = new TestAppHostBackchannel();
+            backchannel.GetAppHostLogEntriesAsyncCallback = ReturnLogEntriesUntilCancelledAsync;
+            return backchannel;
+        };
+
+        var projectLocatorFactory = (IServiceProvider sp) => new TestProjectLocator();
+
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = projectLocatorFactory;
+            options.AppHostBackchannelFactory = backchannelFactory;
+            options.DotNetCliRunnerFactory = runnerFactory;
+            // Don't explicitly set the feature flag
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromSeconds(2));
+
+        var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
+        
+        Assert.False(watchModeUsed, "Expected watch mode to be disabled by default when defaultWatchEnabled feature flag is not set");
+    }
+
     private sealed class SingleFileAppHostProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
