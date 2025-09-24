@@ -46,6 +46,15 @@ internal sealed class AzureAppServiceEnvironmentContext(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
 
+        // Add back-pointer to the original compute resource
+        if (resource is
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            IComputeResource computeResource)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        {
+            provisioningResource.Annotations.Add(new TargetComputeResourceAnnotation(computeResource));
+        }
+
         return provisioningResource;
     }
 }
