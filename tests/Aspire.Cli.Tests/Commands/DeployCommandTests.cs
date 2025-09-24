@@ -18,7 +18,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     {
         using var tempRepo = TemporaryWorkspace.Create(outputHelper);
 
-        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+        });
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<RootCommand>();
@@ -36,6 +39,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner
@@ -68,6 +73,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
@@ -102,6 +109,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
@@ -136,6 +145,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
@@ -203,6 +214,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
@@ -275,6 +288,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Arrange
         var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
+            
             options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
 
             options.DotNetCliRunnerFactory = (sp) =>
