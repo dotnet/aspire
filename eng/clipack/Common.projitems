@@ -97,8 +97,9 @@
       <Output TaskParameter="ConsoleOutput" PropertyName="_NativeBinaryFileSizeMB" />
     </Exec>
 
+    <!-- Using &gt; forces a numerical comparison: https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-conditions?view=vs-2022 -->
     <Error Condition="$(_NativeBinaryFileSizeMB) &gt; $(_MaxFileSizeMB)"
-      Text="$(_NativeBinaryPath) size ($(_NativeBinaryFileSizeMB) MB) exceeds maximum allowed size of $(_MaxFileSizeMB) MB" />
+           Text="$(_NativeBinaryPath) size ($(_NativeBinaryFileSizeMB) MB) exceeds maximum allowed size of $(_MaxFileSizeMB) MB" />
 
     <Message Importance="High" Text="✅ $(_NativeBinaryPath) size check passed ($(_NativeBinaryFileSizeMB) MB &lt;= $(_MaxFileSizeMB) MB)" />
   </Target>
