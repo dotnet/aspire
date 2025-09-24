@@ -254,7 +254,7 @@ public class RunCommandEndpointRenderingTests
         // The key insight is that with longestLocalizedLengthWithColon, the content fits
         // regardless of terminal width constraints
         Assert.True(terminalWidth > 0); // Ensure parameter is used
-        Assert.True(longestLocalizedLengthWithColon <= terminalWidth || terminalWidth >= 60); 
+        Assert.True(longestLocalizedLengthWithColon <= terminalWidth);
     }
 
     [Fact]
