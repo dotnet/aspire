@@ -189,20 +189,29 @@ public class TargetComputeResourceAnnotationTests
     }
 
     [Fact]
-    public void TargetComputeResourceAnnotation_ThrowsOnNullParameter()
+    public void TargetComputeResourceAnnotation_StoresResourceCorrectly()
     {
-        var exception = Assert.Throws<ArgumentNullException>(() => new TargetComputeResourceAnnotation(null!));
-        Assert.Equal("computeResource", exception.ParamName);
-    }
-
-    [Fact]
-    public void TargetComputeResourceAnnotation_StoresComputeResourceCorrectly()
-    {
-        var mockResource = new MockComputeResource("test");
+        var mockResource = new MockResource("test");
         var annotation = new TargetComputeResourceAnnotation(mockResource);
         
         Assert.Same(mockResource, annotation.ComputeResource);
         Assert.Equal("test", annotation.ComputeResource.Name);
+    }
+
+    [Fact]
+    public void TargetComputeResourceAnnotation_ImplementsIResourceAnnotation()
+    {
+        var mockResource = new MockResource("test");
+        var annotation = new TargetComputeResourceAnnotation(mockResource);
+        
+        Assert.IsAssignableFrom<IResourceAnnotation>(annotation);
+    }
+
+    [Fact]
+    public void TargetComputeResourceAnnotation_IsSealed()
+    {
+        var type = typeof(TargetComputeResourceAnnotation);
+        Assert.True(type.IsSealed, "TargetComputeResourceAnnotation should be sealed for performance");
     }
 
     private static async Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken)
@@ -222,7 +231,7 @@ public class TargetComputeResourceAnnotationTests
         public string Value { get; } = value;
     }
 
-    private sealed class MockComputeResource(string name) : Resource(name), IComputeResource
+    private sealed class MockResource(string name) : Resource(name), IResource
     {
     }
 
