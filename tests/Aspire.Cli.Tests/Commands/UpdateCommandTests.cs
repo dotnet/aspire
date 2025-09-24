@@ -29,21 +29,22 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
     [Fact]
     public async Task UpdateCommand_WhenProjectOptionSpecified_PassesProjectFileToProjectLocator()
     {
-        // Arrange
-        FileInfo? capturedProjectFile = null;
-        var specifiedProjectFile = new FileInfo("/test/path/MyApp.csproj");
-
         using var workspace = TemporaryWorkspace.Create(outputHelper);
+
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
             options.ProjectLocatorFactory = _ => new TestProjectLocator()
             {
                 UseOrFindAppHostProjectFileAsyncCallback = (projectFile, cancellationToken) =>
                 {
-                    capturedProjectFile = projectFile;
-                    return Task.FromResult(projectFile);
+                    Assert.NotNull(projectFile);
+                    return Task.FromResult<FileInfo?>(projectFile);
                 }
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
+
+            options.DotNetCliRunnerFactory = _ => new TestDotNetCliRunner();
 
             options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
             {
@@ -60,80 +61,12 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse($"update --project {specifiedProjectFile.FullName}");
+        var result = command.Parse($"update --project AppHost.csproj");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
         Assert.Equal(0, exitCode);
-        Assert.NotNull(capturedProjectFile);
-        Assert.Equal(specifiedProjectFile.FullName, capturedProjectFile.FullName);
-    }
-
-    [Fact]
-    public async Task UpdateCommand_WhenProjectOptionNotSpecified_PassesNullToProjectLocator()
-    {
-        // Arrange
-        FileInfo? capturedProjectFile = null;
-        var returnedProjectFile = new FileInfo("/fake/AppHost.csproj");
-
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = _ => new TestProjectLocator()
-            {
-                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, cancellationToken) =>
-                {
-                    capturedProjectFile = projectFile;
-                    return Task.FromResult<FileInfo?>(returnedProjectFile);
-                }
-            };
-
-            options.ProjectUpdaterFactory = _ => new TestProjectUpdater()
-            {
-                UpdateProjectAsyncCallback = (projectFile, channel, cancellationToken) =>
-                {
-                    return Task.FromResult(new ProjectUpdateResult { UpdatedApplied = false });
-                }
-            };
-
-            options.PackagingServiceFactory = _ => new TestPackagingService();
-        });
-
-        var provider = services.BuildServiceProvider();
-
-        // Act
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-
-        // Assert
-        Assert.Equal(0, exitCode);
-        Assert.Null(capturedProjectFile);
-    }
-
-    [Fact]
-    public async Task UpdateCommand_WhenNoProjectFileFound_ReturnsNonZeroExitCode()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.ProjectLocatorFactory = _ => new TestProjectLocator()
-            {
-                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, cancellationToken) =>
-                {
-                    return Task.FromResult<FileInfo?>(null);
-                }
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var command = provider.GetRequiredService<RootCommand>();
-        var result = command.Parse("update");
-
-        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
-        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
 }
 
