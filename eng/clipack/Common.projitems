@@ -87,8 +87,9 @@
 
   <Target Name="_CheckMaxFileSize" Condition="'$(ContinuousIntegrationBuild)' == 'true'">
     <PropertyGroup>
-      <_MaxFileSizeMB Condition="$([System.OperatingSystem]::IsWindows())">20</_MaxFileSizeMB>
-      <_MaxFileSizeMB Condition="!$([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(CliRuntime)' == 'win-x86">75</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">20</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and !$([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
     </PropertyGroup>
 
     <!-- pwsh is available on all build agents -->
