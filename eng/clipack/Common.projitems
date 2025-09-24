@@ -85,15 +85,20 @@
            vs regex: $(FileSignatureRegex)" />
   </Target>
 
-  <Target Name="_CheckMaxFileSize" Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+  <Target Name="_CheckMaxFileSize">
     <PropertyGroup>
       <_MaxFileSizeMB Condition="'$(CliRuntime)' == 'win-x86'">75</_MaxFileSizeMB>
       <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">20</_MaxFileSizeMB>
       <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and !$([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
+
+      <!-- pwsh on windows. Use Ceiling to match `du -m` behavior -->
+      <_GetFileSizeMBCommand Condition="$([System.OperatingSystem]::IsWindows())">pwsh -Command &quot;[Math]::Ceiling((Get-Item '$(_NativeBinaryPath)' -ErrorAction Stop).Length / 1MB)&quot;</_GetFileSizeMBCommand>
+
+      <!-- Using unix tools on Linux/macOS -->
+      <_GetFileSizeMBCommand Condition="!$([System.OperatingSystem]::IsWindows())">du -m '$(_NativeBinaryPath)' | cut -f1</_GetFileSizeMBCommand>
     </PropertyGroup>
 
-    <!-- pwsh is available on all build agents -->
-    <Exec Command="pwsh -Command &quot;[Math]::Round((Get-Item '$(_NativeBinaryPath)' -ErrorAction Stop).Length / 1MB, 0)&quot;" ConsoleToMSBuild="true">
+    <Exec Command="$(_GetFileSizeMBCommand)" ConsoleToMSBuild="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="_NativeBinaryFileSizeMB" />
     </Exec>
 
