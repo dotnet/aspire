@@ -943,6 +943,38 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void PackageUpdateStep_GetFormattedDisplayText_WithVersionRanges_ReturnsRangeText()
+    {
+        // Arrange - test various NuGet version range syntaxes
+        var projectFile = new FileInfo("/path/to/MyProject.csproj");
+        
+        var testCases = new[]
+        {
+            new { CurrentVersion = "[1.0.0,2.0.0)", NewVersion = "2.1.0", Expected = "[bold yellow]MyPackage[/] [bold green](range)[/] to [bold green]2.1.0[/]" },
+            new { CurrentVersion = "(1.0.0,2.0.0]", NewVersion = "[2.1.0,3.0.0)", Expected = "[bold yellow]MyPackage[/] [bold green](range)[/] to [bold green](range)[/]" },
+            new { CurrentVersion = "[1.0.0,)", NewVersion = "2.1.0", Expected = "[bold yellow]MyPackage[/] [bold green](range)[/] to [bold green]2.1.0[/]" },
+            new { CurrentVersion = "(,2.0.0]", NewVersion = "1.5.0", Expected = "[bold yellow]MyPackage[/] [bold green](range)[/] to [bold green]1.5.0[/]" }
+        };
+
+        foreach (var testCase in testCases)
+        {
+            var packageStep = new PackageUpdateStep(
+                "Update package MyPackage",
+                () => Task.CompletedTask,
+                "MyPackage",
+                testCase.CurrentVersion,
+                testCase.NewVersion,
+                projectFile);
+
+            // Act
+            var formattedText = packageStep.GetFormattedDisplayText();
+
+            // Assert
+            Assert.Equal(testCase.Expected, formattedText);
+        }
+    }
+
+    [Fact]
     public async Task UpdateProjectFileAsync_CentralPackageManagement_ResolvesAspireVersionProperty()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);

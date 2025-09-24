@@ -828,7 +828,28 @@ internal record PackageUpdateStep(
 {
     public override string GetFormattedDisplayText()
     {
-        return $"[bold yellow]{PackageId}[/] [bold green]{CurrentVersion}[/] to [bold green]{NewVersion}[/]";
+        var currentVersionDisplay = IsNuGetRangeSyntax(CurrentVersion) ? "(range)" : CurrentVersion;
+        var newVersionDisplay = IsNuGetRangeSyntax(NewVersion) ? "(range)" : NewVersion;
+        return $"[bold yellow]{PackageId}[/] [bold green]{currentVersionDisplay}[/] to [bold green]{newVersionDisplay}[/]";
+    }
+
+    /// <summary>
+    /// Determines if a version string contains NuGet version range syntax that would conflict with Spectre Console markup.
+    /// </summary>
+    /// <param name="version">The version string to check.</param>
+    /// <returns>True if the version contains range syntax like [1.0.0,2.0.0) or (1.0.0,2.0.0], false otherwise.</returns>
+    private static bool IsNuGetRangeSyntax(string version)
+    {
+        if (string.IsNullOrEmpty(version))
+        {
+            return false;
+        }
+
+        // NuGet version ranges use bracket notation like [1.0.0,2.0.0) or (1.0.0,2.0.0]
+        // These brackets conflict with Spectre Console markup syntax
+        return (version.StartsWith('[') || version.StartsWith('(')) && 
+               (version.EndsWith(']') || version.EndsWith(')')) &&
+               version.Contains(',');
     }
 }
 
