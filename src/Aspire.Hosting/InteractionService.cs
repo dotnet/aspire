@@ -273,7 +273,7 @@ internal class InteractionService : IInteractionService
         }
     }
 
-    internal async Task PrcoessInteractionFromClientAsync(int interactionId, Func<Interaction, IServiceProvider, ILogger, InteractionCompletionState> createResult, CancellationToken cancellationToken)
+    internal async Task ProcessInteractionFromClientAsync(int interactionId, Func<Interaction, IServiceProvider, ILogger, InteractionCompletionState> createResult, CancellationToken cancellationToken)
     {
         Interaction? interactionState = null;
 

@@ -158,7 +158,7 @@ internal sealed class DashboardServiceData : IDisposable
 
     internal async Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken)
     {
-        await _interactionService.PrcoessInteractionFromClientAsync(
+        await _interactionService.ProcessInteractionFromClientAsync(
             request.InteractionId,
             (interaction, serviceProvider, logger) =>
             {
