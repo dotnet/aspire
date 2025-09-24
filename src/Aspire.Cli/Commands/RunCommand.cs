@@ -257,7 +257,9 @@ internal sealed class RunCommand : BaseCommand
             var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
                 .Max(s => s.Length);
 
-            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+            // +1 -> accommodates the colon (:) that gets appended to each localized string
+            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
+            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
@@ -303,7 +305,7 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
+                            endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
                             if (firstEndpoint)
                             {
