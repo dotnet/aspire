@@ -32,7 +32,7 @@ Write-Host "Looking for executable: $executableName"
 Write-Host "Maximum allowed size: $maxSizeMB MB"
 
 # Find the CLI executable in the build output
-$searchPath = Split-Path $PSScriptRoot -Parent | Join-Path -ChildPath "../artifacts/bin/Aspire.Cli/Release"
+$searchPath = (Resolve-Path -Path (Join-Path $PSScriptRoot "../../artifacts/bin/Aspire.Cli/Release")).Path
 Write-Host "Searching in: $searchPath"
 
 if (-not (Test-Path $searchPath)) {
