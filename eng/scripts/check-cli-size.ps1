@@ -12,8 +12,6 @@
     .\check-cli-size.ps1
 #>
 
-param(
-)
 
 $ErrorActionPreference = 'Stop'
 
