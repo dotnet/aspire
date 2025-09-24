@@ -1760,6 +1760,224 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         // Normal path unaffected - no updates needed since version is already current
         Assert.False(updateResult.UpdatedApplied);
     }
+
+    [Fact]
+    public async Task UpdateProjectFileAsync_TraditionalManagement_HandlesVersionRangeGracefully()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "UpdateTester.AppHost.csproj"));
+
+        // Create AppHost project file with version range
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.1" />
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.Azure.Functions" Version="(9.4-*,9.5]" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.1", Source = "nuget.org" },
+                            "Aspire.Hosting.Azure.Functions" => new NuGetPackageCli { Id = "Aspire.Hosting.Azure.Functions", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
+                    {
+                        var itemsAndProperties = new JsonObject();
+                        
+                        if (properties.Contains("AspireHostingSDKVersion"))
+                        {
+                            itemsAndProperties.WithSdkVersion("9.5.1");
+                            // Add PackageReference with version range
+                            itemsAndProperties.WithPackageReference("Aspire.Hosting.Azure.Functions", "(9.4-*,9.5]");
+                        }
+
+                        var json = itemsAndProperties.ToJsonString();
+                        var document = JsonDocument.Parse(json);
+                        return (0, document);
+                    },
+                    // AddPackageAsync should NOT be called since we skip version ranges
+                    AddPackageAsyncCallback = (projectFilePath, packageName, packageVersion, nugetSource, options, cancellationToken) =>
+                    {
+                        throw new InvalidOperationException("AddPackageAsync should not be called for version ranges");
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.ConfirmCallback = (promptText, defaultValue) =>
+                {
+                    return true;
+                };
+
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = provider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        var projectUpdater = provider.GetRequiredService<IProjectUpdater>();
+
+        // This should handle version ranges gracefully without throwing
+        var result = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Should complete without exceptions and not report any updates for the version range package
+        Assert.NotNull(result);
+        Assert.False(result.UpdatedApplied); // Should not apply any updates due to version range being skipped
+    }
+
+    [Fact]
+    public async Task UpdateProjectFileAsync_CentralPackageManagement_HandlesVersionRangeGracefully()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "UpdateTester.AppHost.csproj"));
+
+        var directoryPackagesPropsFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Directory.Packages.props"));
+
+        // Create AppHost project file without Version in PackageReference for CPM
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.1" />
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.Azure.Functions" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        // Create Directory.Packages.props with version range
+        await File.WriteAllTextAsync(
+            directoryPackagesPropsFile.FullName,
+            $$"""
+            <Project>
+                <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+                <ItemGroup>
+                    <PackageVersion Include="Aspire.Hosting.Azure.Functions" Version="[9.4.0,9.5.0)" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.1", Source = "nuget.org" },
+                            "Aspire.Hosting.Azure.Functions" => new NuGetPackageCli { Id = "Aspire.Hosting.Azure.Functions", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
+                    {
+                        var itemsAndProperties = new JsonObject();
+                        
+                        if (properties.Contains("AspireHostingSDKVersion"))
+                        {
+                            itemsAndProperties.WithSdkVersion("9.5.1");
+                            // Add PackageReference without version for CPM
+                            itemsAndProperties.WithPackageReferenceWithoutVersion("Aspire.Hosting.Azure.Functions");
+                        }
+
+                        var json = itemsAndProperties.ToJsonString();
+                        var document = JsonDocument.Parse(json);
+                        return (0, document);
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.ConfirmCallback = (promptText, defaultValue) =>
+                {
+                    return true;
+                };
+
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var projectUpdater = provider.GetRequiredService<IProjectUpdater>();
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        // This should handle version ranges gracefully without throwing
+        var result = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Should complete without exceptions and not report any updates for the version range package
+        Assert.NotNull(result);
+        Assert.False(result.UpdatedApplied); // Should not apply any updates due to version range being skipped
+    }
+
+    [Theory]
+    [InlineData("(9.4-*,9.5]", true)]
+    [InlineData("[9.4.0,9.5.0)", true)]
+    [InlineData("(1.0,2.0)", true)]
+    [InlineData("(,2.0]", true)]
+    [InlineData("[1.0,)", true)]
+    [InlineData("9.5.0", false)]
+    [InlineData("9.5.0-preview.1", false)]
+    [InlineData("*", false)] // Wildcard but not range
+    public void IsVersionRangeExpression_DetectsVersionRangesCorrectly(string version, bool expectedIsRange)
+    {
+        // Use reflection to access the private method
+        var projectUpdaterType = typeof(ProjectUpdater);
+        var method = projectUpdaterType.GetMethod("IsVersionRangeExpression", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        
+        Assert.NotNull(method);
+        
+        var result = (bool)method.Invoke(null, [version])!;
+        
+        Assert.Equal(expectedIsRange, result);
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions

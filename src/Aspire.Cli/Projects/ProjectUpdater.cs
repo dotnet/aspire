@@ -378,6 +378,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private async Task AnalyzePackageForTraditionalManagementAsync(string packageId, string packageVersion, FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
+        // Check if this is a version range expression and skip if so
+        if (IsVersionRangeExpression(packageVersion))
+        {
+            logger.LogInformation("Package '{PackageId}' uses version range '{PackageVersion}', skipping update.", packageId, packageVersion);
+            return;
+        }
+
         var latestPackage = await GetLatestVersionOfPackageAsync(context, packageId, cancellationToken);
 
         if (packageVersion == latestPackage?.Version)
@@ -403,6 +410,13 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         if (currentVersion is null)
         {
             logger.LogInformation("Package '{PackageId}' not found in Directory.Packages.props, skipping.", packageId);
+            return;
+        }
+
+        // Check if this is a version range expression and skip if so
+        if (IsVersionRangeExpression(currentVersion))
+        {
+            logger.LogInformation("Package '{PackageId}' uses version range '{CurrentVersion}', skipping update.", packageId, currentVersion);
             return;
         }
 
@@ -530,6 +544,17 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             return false;
         }
+    }
+
+    private static bool IsVersionRangeExpression(string version)
+    {
+        // Version ranges typically start with (, [, or ], or contain commas
+        // Examples: (1.0,2.0), [1.0,2.0), (1.0,), [1.0,), (,2.0], (,2.0)
+        return version.Contains(',') || 
+               version.StartsWith('(') || 
+               version.StartsWith('[') || 
+               version.EndsWith(')') || 
+               version.EndsWith(']');
     }
 
     private static async Task UpdatePackageVersionInDirectoryPackagesProps(string packageId, string newVersion, FileInfo directoryPackagesPropsFile)
