@@ -482,18 +482,18 @@ public class InteractionServiceTests
 
         // Assert
         Assert.Equal(3, collection.Count);
-        
+
         // Names should be accessible
         Assert.True(collection.ContainsName("UserName"));
         Assert.True(collection.ContainsName("EmailAddress"));
         Assert.True(collection.ContainsName("Age"));
-        
+
         // Check that names are accessible
         Assert.Equal("User Name", collection["UserName"].Label);
         Assert.Equal("Email Address", collection["EmailAddress"].Label);
         Assert.Null(collection["Age"].Label); // No label specified, should use EffectiveLabel
         Assert.Equal("Age", collection["Age"].EffectiveLabel);
-        
+
         // Check that the original inputs still work by index
         Assert.Equal("User Name", collection[0].Label);
         Assert.Equal("Email Address", collection[1].Label);
@@ -516,7 +516,7 @@ public class InteractionServiceTests
 
         // Assert
         Assert.Equal(3, collection.Count);
-        
+
         // All names should work
         Assert.Equal("Explicit", collection["ExplicitName"].Label);
         Assert.Equal("Another", collection["AnotherExplicit"].Label);
@@ -569,17 +569,17 @@ public class InteractionServiceTests
 
         // Assert
         Assert.Equal(3, collection.Count);
-        
+
         // All names should be accessible
         Assert.True(collection.ContainsName("Input1"));
         Assert.True(collection.ContainsName("Input2"));
         Assert.True(collection.ContainsName("Input3"));
-        
+
         // All should be accessible by their names
         Assert.NotNull(collection["Input1"]);
         Assert.NotNull(collection["Input2"]);
         Assert.NotNull(collection["Input3"]);
-        
+
         // All should use name as effective label since no label is specified
         Assert.Equal("Input1", collection["Input1"].EffectiveLabel);
         Assert.Equal("Input2", collection["Input2"].EffectiveLabel);
@@ -602,23 +602,23 @@ public class InteractionServiceTests
 
         // Assert
         Assert.Equal(3, collection.Count);
-        
+
         // All names should be accessible
         Assert.True(collection.Names.All(name => !string.IsNullOrWhiteSpace(name)));
-        
+
         // All inputs should be accessible by their names
         foreach (var name in collection.Names)
         {
             Assert.NotNull(collection[name]);
         }
-        
+
         // Labels should be preserved as specified, effective labels should fall back to names
         Assert.Equal("!@#$%^&*()", collection["SpecialInput"].Label);
         Assert.Equal("!@#$%^&*()", collection["SpecialInput"].EffectiveLabel);
-        
+
         Assert.Equal("", collection["EmptyLabel"].Label);
         Assert.Equal("EmptyLabel", collection["EmptyLabel"].EffectiveLabel); // Falls back to name
-        
+
         Assert.Equal("   ", collection["WhitespaceLabel"].Label);
         Assert.Equal("WhitespaceLabel", collection["WhitespaceLabel"].EffectiveLabel); // Falls back to name
     }
@@ -652,11 +652,11 @@ public class InteractionServiceTests
         // Act
         var resultTask = interactionService.PromptInputsAsync("Login", "Please enter credentials", inputs);
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
-        
+
         // Set values and complete
         inputs[0].Value = "testuser";
         inputs[1].Value = "testpass";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, 
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId,
             new InteractionCompletionState { Complete = true, State = inputs });
 
         var result = await resultTask.DefaultTimeout();
@@ -664,14 +664,14 @@ public class InteractionServiceTests
         // Assert
         Assert.False(result.Canceled);
         Assert.NotNull(result.Data);
-        
+
         var resultCollection = result.Data;
         Assert.Equal(2, resultCollection.Count);
-        
+
         // Should be accessible by name
         Assert.Equal("testuser", resultCollection["Username"].Value);
         Assert.Equal("testpass", resultCollection["Password"].Value);
-        
+
         // Should also be accessible by index for backward compatibility
         Assert.Equal("testuser", resultCollection[0].Value);
         Assert.Equal("testpass", resultCollection[1].Value);
@@ -687,24 +687,24 @@ public class InteractionServiceTests
             new InteractionInput { Name = "Email", Label = "Email", InputType = InputType.Text, Required = true },
             new InteractionInput { Name = "Age", Label = "Age", InputType = InputType.Number, Required = true }
         };
-        
+
         var validationCalled = false;
         var options = new InputsDialogInteractionOptions
         {
             ValidationCallback = context =>
             {
                 validationCalled = true;
-                
+
                 // Should be able to access by name
                 Assert.True(context.Inputs.ContainsName("Email"));
                 Assert.True(context.Inputs.ContainsName("Age"));
-                
+
                 var emailInput = context.Inputs["Email"];
                 var ageInput = context.Inputs["Age"];
-                
+
                 Assert.Equal("Email", emailInput.Label);
                 Assert.Equal("Age", ageInput.Label);
-                
+
                 return Task.CompletedTask;
             }
         };
@@ -712,10 +712,10 @@ public class InteractionServiceTests
         // Act
         var resultTask = interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs, options);
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
-        
+
         inputs[0].Value = "test@example.com";
         inputs[1].Value = "25";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, 
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId,
             new InteractionCompletionState { Complete = true, State = inputs });
 
         var result = await resultTask.DefaultTimeout();
@@ -727,7 +727,7 @@ public class InteractionServiceTests
 
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
     {
-        await interactionService.PrcoessInteractionFromClientAsync(interactionId, (_, _) => state, CancellationToken.None);
+        await interactionService.ProcessInteractionFromClientAsync(interactionId, (_, _, _) => state, CancellationToken.None);
     }
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
