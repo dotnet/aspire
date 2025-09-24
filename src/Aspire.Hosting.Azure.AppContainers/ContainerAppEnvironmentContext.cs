@@ -43,6 +43,8 @@ internal sealed class ContainerAppEnvironmentContext(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
 
+        provisioningResource.Annotations.Add(new TargetComputeResourceAnnotation(resource));
+
         return provisioningResource;
     }
 }

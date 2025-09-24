@@ -43,6 +43,8 @@ internal sealed class AzureAppServiceEnvironmentContext(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
 
+        provisioningResource.Annotations.Add(new TargetComputeResourceAnnotation(resource));
+
         return provisioningResource;
     }
 }
