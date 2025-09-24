@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="LoginWithMicrosoft">
         <source>Login with Microsoft</source>
-        <target state="new">Login with Microsoft</target>
+        <target state="translated">使用 Microsoft 登入</target>
         <note />
       </trans-unit>
       <trans-unit id="RequiredCommandNotification">
