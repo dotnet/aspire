@@ -34,6 +34,16 @@ public sealed class MauiProjectBuilder
         {
             var logger = evt.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Hosting.Maui");
 
+            // Emit warnings for any explicitly added but unsupported platform resources.
+            var unsupported = _platformResources
+                .Where(r => r.Resource.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().Any())
+                .Select(r => r.Resource.Name)
+                .ToList();
+            if (unsupported.Count > 0)
+            {
+                logger.LogWarning("The following .NET MAUI platform resource(s) cannot run on this host OS and will fail to start: {Platforms}", string.Join(",", unsupported));
+            }
+
             if (_platformResources.Count == 0)
             {
                 // Final chance: perform detection so the user can still launch even if they never referenced anything.
@@ -144,6 +154,31 @@ public sealed class MauiProjectBuilder
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
 
+        // Determine if the requested platform is supported on the current host OS.
+        var isWindows = OperatingSystem.IsWindows();
+        var isMacOS = OperatingSystem.IsMacOS();
+
+        // Android builds can run on both Windows and macOS (developer tooling scenario). For now we allow always.
+        var supported = platformMoniker switch
+        {
+            "windows" => isWindows,
+            "maccatalyst" or "ios" => isMacOS,
+            // Future: additional host checks for android if needed.
+            _ => true
+        };
+
+        if (!supported)
+        {
+            var reason = platformMoniker switch
+            {
+                "windows" => "Windows platform requires running on a Windows host.",
+                "maccatalyst" => "MacCatalyst platform requires running on a macOS host.",
+                "ios" => "iOS platform requires running on a macOS host with appropriate tooling.",
+                _ => "Unsupported host operating system for this platform."
+            };
+            builder.WithAnnotation(new MauiUnsupportedPlatformAnnotation(reason));
+        }
+
         // Pass framework & device specific msbuild properties via args so launching uses correct target
         builder.WithArgs(context =>
         {
@@ -181,6 +216,16 @@ public sealed class MauiProjectBuilder
                 return;
             }
 
+            var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
+            var logger = loggerService?.GetLogger(res);
+
+            // If this platform is unsupported on the current host, block start with a clear error.
+            if (res.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().FirstOrDefault() is { } unsupported)
+            {
+                logger?.LogWarning("MAUI platform '{Resource}' cannot start on this host: {Reason}", res.Name, unsupported.Reason);
+                throw new InvalidOperationException($"The .NET MAUI platform resource '{res.Name}' cannot be started on this host: {unsupported.Reason}");
+            }
+
             // Defensive: ensure still an explicit-start resource.
             if (!res.Annotations.OfType<ExplicitStartupAnnotation>().Any())
             {
@@ -214,9 +259,6 @@ public sealed class MauiProjectBuilder
                 }
                 return false;
             }
-
-            var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
-            var logger = loggerService?.GetLogger(res);
 
             if (!NeedsBuild())
             {
@@ -350,4 +392,9 @@ public sealed class MauiProjectBuilder
     }
 
     private sealed class MauiAutoDetectedPlatformAnnotation : IResourceAnnotation { }
+
+    private sealed class MauiUnsupportedPlatformAnnotation(string reason) : IResourceAnnotation
+    {
+        public string Reason { get; } = reason;
+    }
 }
