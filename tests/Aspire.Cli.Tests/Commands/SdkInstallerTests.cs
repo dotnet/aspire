@@ -96,6 +96,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.DeployCommandEnabled];
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
@@ -116,7 +117,7 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
+            options.EnabledFeatures = [Aspire.Cli.KnownFeatures.ExecCommandEnabled];
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302") // SDK not installed
