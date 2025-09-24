@@ -95,9 +95,13 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
         Subcommands.Add(cacheCommand);
-        Subcommands.Add(deployCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);
+
+        if (featureFlags.IsFeatureEnabled(KnownFeatures.DeployCommandEnabled, false))
+        {
+            Subcommands.Add(deployCommand);
+        }
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
         {

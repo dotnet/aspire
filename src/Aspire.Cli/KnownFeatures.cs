@@ -10,6 +10,7 @@ internal static class KnownFeatures
     public static string UpdateNotificationsEnabled => "updateNotificationsEnabled";
     public static string MinimumSdkCheckEnabled => "minimumSdkCheckEnabled";
     public static string ExecCommandEnabled => "execCommandEnabled";
+    public static string DeployCommandEnabled => "deployCommandEnabled";
     public static string OrphanDetectionWithTimestampEnabled => "orphanDetectionWithTimestampEnabled";
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
     public static string SingleFileAppHostEnabled => "singlefileAppHostEnabled";
