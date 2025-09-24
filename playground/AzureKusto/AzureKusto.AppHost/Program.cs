@@ -1,4 +1,3 @@
-using Aspire.Hosting.Azure.Kusto;
 using Kusto.Data;
 using Kusto.Data.Net.Client;
 
