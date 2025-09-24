@@ -8,8 +8,12 @@
     <IsPackable>true</IsPackable>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <PackageTags>aspire maui hosting</PackageTags>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
+  </ItemGroup>
+  
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>
