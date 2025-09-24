@@ -210,20 +210,20 @@ public sealed class MauiProjectBuilder
         // Conditional build hook executed right before the resource starts (per explicit start invocation).
         builder.OnBeforeResourceStarted(async (res, evt, ct) =>
         {
-            // Skip during initial AppHost startup; only build on user-initiated explicit start later.
-            if (!MauiStartupPhaseTracker.StartupPhaseComplete)
-            {
-                return;
-            }
-
             var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
             var logger = loggerService?.GetLogger(res);
 
-            // If this platform is unsupported on the current host, block start with a clear error.
+            // Always gate unsupported platform starts (independent of initial startup phase) so tests and early attempts fail fast.
             if (res.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().FirstOrDefault() is { } unsupported)
             {
                 logger?.LogWarning("MAUI platform '{Resource}' cannot start on this host: {Reason}", res.Name, unsupported.Reason);
                 throw new InvalidOperationException($"The .NET MAUI platform resource '{res.Name}' cannot be started on this host: {unsupported.Reason}");
+            }
+
+            // Skip build work during initial AppHost startup; only build on user-initiated explicit start later.
+            if (!MauiStartupPhaseTracker.StartupPhaseComplete)
+            {
+                return;
             }
 
             // Defensive: ensure still an explicit-start resource.
