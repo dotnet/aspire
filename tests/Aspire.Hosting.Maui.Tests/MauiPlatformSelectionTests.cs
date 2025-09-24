@@ -120,4 +120,62 @@ public class MauiPlatformSelectionTests
         Assert.Contains(win.Annotations, a => a is Hosting.ApplicationModel.ExplicitStartupAnnotation);
         Assert.Contains(win.Annotations, a => a is Hosting.ApplicationModel.ManifestPublishingCallbackAnnotation);
     }
+
+    [Xunit.Fact]
+    public void AutoDetectedPlatforms_PropagateServiceDiscoveryReference()
+    {
+        // Only meaningful on Windows or macOS where auto-detection occurs.
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsMacOS())
+        {
+            return; // skip silently on other OS (Linux) where auto-detect currently no-ops.
+        }
+
+        // Create a MAUI project with multiple TFMs so auto-detect will add appropriate platforms for host OS.
+        string[] mauiTfms;
+        if (OperatingSystem.IsWindows())
+        {
+            mauiTfms = ["net10.0-windows10.0.19041.0", "net10.0-android"];
+        }
+        else // macOS
+        {
+            mauiTfms = ["net10.0-maccatalyst", "net10.0-ios"];
+        }
+
+        var mauiCsproj = MauiTestHelpers.CreateProject(mauiTfms);
+
+        // Create a simple backend project that participates in service discovery (ProjectResource implements IResourceWithServiceDiscovery).
+        var backendDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.IO.Path.GetRandomFileName());
+        System.IO.Directory.CreateDirectory(backendDir);
+        var backendProj = System.IO.Path.Combine(backendDir, "backend.csproj");
+        System.IO.File.WriteAllText(backendProj, "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>");
+
+        var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions { DisableDashboard = true });
+        var backend = builder.AddProject("backend", backendProj);
+        builder.AddMauiProject("maui", mauiCsproj)
+               // Intentionally do not call any explicit With* so auto-detect triggers when WithReference executes.
+               .WithReference(backend);
+
+        using var app = builder.Build();
+        var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
+
+        var backendResource = Assert.Single(model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>(), r => r.Name == "backend");
+    Assert.IsAssignableFrom<Hosting.IResourceWithServiceDiscovery>(backendResource);
+
+        // Collect platform resources added via auto-detect.
+        var platformResources = model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>()
+            .Where(r => r.Name.StartsWith("maui-", StringComparison.OrdinalIgnoreCase) && r.Name != "maui")
+            .ToList();
+
+        Assert.NotEmpty(platformResources); // Should have at least one auto-detected platform on supported host OS.
+
+        foreach (var pr in platformResources)
+        {
+            // Each platform project should have a reference relationship to backend.
+            var hasReferenceRelationship = pr.Annotations
+                .OfType<Hosting.ApplicationModel.ResourceRelationshipAnnotation>()
+                .Any(a => a.Resource == backendResource && a.Type == "Reference");
+
+            Assert.True(hasReferenceRelationship, $"Platform resource '{pr.Name}' did not have a service discovery reference relationship to backend.");
+        }
+    }
 }
