@@ -6,9 +6,19 @@
     xmlns:local="clr-namespace:AspireWithMaui.MauiClient"
     Title="AspireWithMaui.MauiClient">
 
-    <ShellContent
-        Title="Home"
-        ContentTemplate="{DataTemplate local:MainPage}"
-        Route="MainPage" />
+    <TabBar>
+        <Tab Title="Weather">
+            <ShellContent
+                Title="Weather"
+                ContentTemplate="{DataTemplate local:MainPage}"
+                Route="weather" />
+        </Tab>
+        <Tab Title="Environment">
+            <ShellContent
+                Title="Environment"
+                ContentTemplate="{DataTemplate local:EnvironmentPage}"
+                Route="environment" />
+        </Tab>
+    </TabBar>
 
 </Shell>

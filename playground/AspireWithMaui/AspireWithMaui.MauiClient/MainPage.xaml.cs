@@ -1,5 +1,5 @@
-﻿using AspireWithMaui.MauiClient.Services;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using AspireWithMaui.MauiClient.Services;
 
 namespace AspireWithMaui.MauiClient;
 
@@ -43,4 +43,5 @@ public partial class MainPage : ContentPage
 			LoadWeatherBtn.IsEnabled = true;
 		}
 	}
+
 }
