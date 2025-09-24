@@ -19,7 +19,6 @@
 		<Nullable>enable</Nullable>
 		
 		<!-- Disable CPM for this MAUI project -->
-				<!-- Disable CPM for this MAUI project -->
 		<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
 		
 		<!-- Disable strong name checking for playground sample -->

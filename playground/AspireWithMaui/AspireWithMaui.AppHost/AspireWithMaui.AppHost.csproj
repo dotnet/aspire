@@ -13,6 +13,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Maui" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.DevTunnels" />
   </ItemGroup>
 
 </Project>

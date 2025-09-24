@@ -4,29 +4,31 @@
              x:Class="AspireWithMaui.MauiClient.MainPage"
              Title="Weather Forecast">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
+    <Grid Padding="30,20"
+          RowSpacing="24"
+          RowDefinitions="Auto,*">
+        <VerticalStackLayout Spacing="16">
             <Image
                 Source="dotnet_bot.png"
-                HeightRequest="100"
+                HeightRequest="120"
                 Aspect="AspectFit"
                 SemanticProperties.Description="dot net bot in a hovercraft number nine" />
 
             <Label
                 Text="Weather Forecast"
                 Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+                SemanticProperties.HeadingLevel="Level1"
+                HorizontalOptions="Center" />
 
             <Label
-                Text="Data from Aspire Weather API"
+                Text="Data from the Aspire Weather API"
                 Style="{StaticResource SubHeadline}"
-                SemanticProperties.HeadingLevel="Level2" />
+                SemanticProperties.HeadingLevel="Level2"
+                HorizontalOptions="Center" />
 
             <Button
                 x:Name="LoadWeatherBtn"
-                Text="Load Weather" 
+                Text="Load Weather"
                 SemanticProperties.Hint="Loads weather data from the API"
                 Clicked="OnLoadWeatherClicked"
                 HorizontalOptions="Fill" />
@@ -35,30 +37,50 @@
                 x:Name="StatusLabel"
                 Text="Click 'Load Weather' to get forecast"
                 HorizontalOptions="Center" />
-
-            <CollectionView x:Name="WeatherCollectionView"
-                            ItemsSource="{Binding WeatherData}"
-                            BackgroundColor="Transparent">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid Padding="10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*">
-                            <Label Grid.Row="0" Grid.ColumnSpan="2"
-                                   Text="{Binding Date, StringFormat='{0:MMMM dd, yyyy}'}"
-                                   FontAttributes="Bold"
-                                   HorizontalOptions="Center" />
-                            <Label Grid.Row="1" Grid.Column="0"
-                                   Text="{Binding TemperatureC, StringFormat='Temperature: {0}°C'}" />
-                            <Label Grid.Row="1" Grid.Column="1"
-                                   Text="{Binding TemperatureF, StringFormat='({0}°F)'}" />
-                            <Label Grid.Row="2" Grid.ColumnSpan="2"
-                                   Text="{Binding Summary}"
-                                   FontAttributes="Italic"
-                                   HorizontalOptions="Center" />
-                        </Grid>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
         </VerticalStackLayout>
-    </ScrollView>
 
+     <CollectionView Grid.Row="1"
+               x:Name="WeatherCollectionView"
+               ItemsSource="{Binding WeatherData}"
+               BackgroundColor="Transparent"
+               EmptyView="No forecasts available yet."
+               HorizontalScrollBarVisibility="Never"
+               SelectionMode="None">
+         <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="12" />
+         </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border StrokeThickness="0"
+                            Padding="14"
+                            BackgroundColor="{AppThemeBinding Light=#F3F6FF, Dark=#1F2633}">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="12" />
+                        </Border.StrokeShape>
+                        <Grid RowDefinitions="Auto,Auto,Auto"
+                            ColumnDefinitions="Auto,*"
+                            ColumnSpacing="12"
+                            RowSpacing="8">
+                            <Label Grid.Row="0" Grid.ColumnSpan="2"
+                                Text="{Binding Date, StringFormat='{0:MMMM dd, yyyy}'}"
+                                FontAttributes="Bold"
+                                HorizontalOptions="Start" />
+                            <Label Grid.Row="1" Grid.Column="0"
+                                Text="{Binding TemperatureC, StringFormat='{0}°C'}"
+                                FontSize="16"
+                                FontAttributes="Bold" />
+                            <Label Grid.Row="1" Grid.Column="1"
+                                Text="{Binding TemperatureF, StringFormat='({0}°F)'}"
+                                HorizontalOptions="Start"
+                                FontSize="16" />
+                            <Label Grid.Row="2" Grid.ColumnSpan="2"
+                                Text="{Binding Summary}"
+                                FontAttributes="Italic"
+                                TextColor="{AppThemeBinding Light=#394867, Dark=#C5D1EB}" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
 </ContentPage>

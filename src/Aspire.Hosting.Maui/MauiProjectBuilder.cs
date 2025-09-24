@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Maui.Platforms.iOS;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 // Android provisioning removed for now.
@@ -180,7 +181,7 @@ public sealed class MauiProjectBuilder
         }
 
         // Pass framework & device specific msbuild properties via args so launching uses correct target
-        builder.WithArgs(context =>
+        builder.WithArgs(async context =>
         {
             context.Args.Add("-f");
             context.Args.Add(tfm);
@@ -202,6 +203,11 @@ public sealed class MauiProjectBuilder
                 {
                     context.Args.Add("-p:OpenArguments=-W");
                 }
+            }
+
+            if (platformMoniker.Equals("ios", StringComparison.OrdinalIgnoreCase))
+            {
+                await iOSMlaunchEnvironmentTargetGenerator.AppendEnvironmentTargetsAsync(context).ConfigureAwait(false);
             }
         });
 
