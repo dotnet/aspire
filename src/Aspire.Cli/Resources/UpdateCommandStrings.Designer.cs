@@ -58,6 +58,15 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to The path to the Aspire AppHost project file.
+        /// </summary>
+        internal static string ProjectArgumentDescription {
+            get {
+                return ResourceManager.GetString("ProjectArgumentDescription", resourceCulture);
+            }
+        }
+
     internal static string SelectChannelPrompt => ResourceManager.GetString("SelectChannelPrompt", resourceCulture);
     internal static string AnalyzingProjectStatus => ResourceManager.GetString("AnalyzingProjectStatus", resourceCulture);
     internal static string ProjectUpToDateMessage => ResourceManager.GetString("ProjectUpToDateMessage", resourceCulture);

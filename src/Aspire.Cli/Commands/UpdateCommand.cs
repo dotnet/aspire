@@ -27,13 +27,18 @@ internal sealed class UpdateCommand : BaseCommand
         _projectLocator = projectLocator;
         _packagingService = packagingService;
         _projectUpdater = projectUpdater;
+
+        var projectOption = new Option<FileInfo?>("--project");
+        projectOption.Description = UpdateCommandStrings.ProjectArgumentDescription;
+        Options.Add(projectOption);
     }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         try
         {
-            var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(null, cancellationToken);
+            var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
+            var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
             if (projectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
