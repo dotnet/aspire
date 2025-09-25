@@ -6,6 +6,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
 using Microsoft.Extensions.Configuration;
+using Semver;
 
 namespace Aspire.Cli.Tests;
 
@@ -236,6 +237,70 @@ public class DotNetSdkInstallerTests
             "(not found)");
 
         Assert.Equal("The Aspire CLI requires .NET SDK version 9.0.302 or later. Detected: (not found).", message);
+    }
+
+    [Fact]
+    public void MeetsMinimumRequirement_AllowsDotNet10Prereleases_ForSingleFileAppHost()
+    {
+        // Test the logic we added for allowing .NET 10 prereleases
+        var installedVersion = SemVersion.Parse("10.0.100-preview.1.25463.5", SemVersionStyles.Strict);
+        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100";
+
+        // Use reflection to access the private method
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void MeetsMinimumRequirement_AllowsDotNet10LatestPrerelease_ForSingleFileAppHost()
+    {
+        // Test with a more recent .NET 10 prerelease
+        var installedVersion = SemVersion.Parse("10.1.0-preview.2.25999.99", SemVersionStyles.Strict);
+        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100";
+
+        // Use reflection to access the private method
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void MeetsMinimumRequirement_RejectsDotNet9_ForSingleFileAppHost()
+    {
+        // Test that .NET 9 is still rejected for single file apphost requirements
+        var installedVersion = SemVersion.Parse("9.0.999", SemVersionStyles.Strict);
+        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100";
+
+        // Use reflection to access the private method
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void MeetsMinimumRequirement_UsesStrictComparison_ForNonSingleFileAppHost()
+    {
+        // Test that other version requirements still use strict comparison
+        var installedVersion = SemVersion.Parse("9.0.301", SemVersionStyles.Strict);
+        var requiredVersion = SemVersion.Parse("9.0.302", SemVersionStyles.Strict);
+        var requiredVersionString = "9.0.302";
+
+        // Use reflection to access the private method
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+
+        Assert.False(result);
     }
 
     private static IConfiguration CreateEmptyConfiguration()
