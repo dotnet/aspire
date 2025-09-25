@@ -12,8 +12,6 @@
   "symbols/AspireVersion/choices/13.0/description": "Chooses Aspire 13.0",
   "symbols/AspireVersion/choices/9.5/displayName": "9.5",
   "symbols/AspireVersion/choices/9.5/description": "Выбор Aspire 9.5",
-  "symbols/AspireVersion/choices/9.4/displayName": "9.4",
-  "symbols/AspireVersion/choices/9.4/description": "Выбор Aspire 9.4",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP OTLP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostResourceHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP службы ресурсов в файле launchSettings.json проекта AppHost.",

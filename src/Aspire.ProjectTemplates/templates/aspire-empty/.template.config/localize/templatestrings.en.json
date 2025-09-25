@@ -12,8 +12,6 @@
   "symbols/AspireVersion/choices/13.0/description": "Chooses Aspire 13.0",
   "symbols/AspireVersion/choices/9.5/displayName": "9.5",
   "symbols/AspireVersion/choices/9.5/description": "Chooses Aspire 9.5",
-  "symbols/AspireVersion/choices/9.4/displayName": "9.4",
-  "symbols/AspireVersion/choices/9.4/description": "Chooses Aspire 9.4",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

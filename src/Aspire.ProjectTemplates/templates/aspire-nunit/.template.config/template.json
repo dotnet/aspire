@@ -28,11 +28,6 @@
   "groupIdentity": "Aspire.Tests.NUnit",
   "sources": [
     {
-      "source": "./9.4",
-      "target": "./",
-      "condition": "AspireVersionActual == 9.4"
-    },
-    {
       "source": "./9.5",
       "target": "./",
       "condition": "AspireVersionActual == 9.5"
@@ -80,11 +75,6 @@
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "13.0"
@@ -105,11 +95,6 @@
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "13.0"
@@ -130,11 +115,6 @@
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "13.0"
@@ -155,11 +135,6 @@
           "choice": "9.5",
           "displayName": "9.5",
           "description": "Chooses Aspire 9.5"
-        },
-        {
-          "choice": "9.4",
-          "displayName": "9.4",
-          "description": "Chooses Aspire 9.4"
         }
       ],
       "defaultValue": "13.0"
@@ -170,22 +145,6 @@
       "replaces": "aspireVersion",
       "parameters": {
         "cases": [
-          {
-            "condition": "AspireVersionCli == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersion == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.4",
-            "value": "9.4"
-          },
-          {
-            "condition": "AspireVersionNet10 == 9.4",
-            "value": "9.4"
-          },
           {
             "condition": "AspireVersionCli == 9.5",
             "value": "9.5"
