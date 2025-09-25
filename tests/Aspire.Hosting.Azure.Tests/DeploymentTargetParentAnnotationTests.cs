@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class TargetComputeResourceAnnotationTests
+public class DeploymentTargetParentAnnotationTests
 {
     [Fact]
-    public async Task PublishAsAzureContainerApp_AddsTargetComputeResourceAnnotation()
+    public async Task PublishAsAzureContainerApp_AddsDeploymentTargetParentAnnotation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -25,16 +25,16 @@ public class TargetComputeResourceAnnotationTests
             .WithHttpEndpoint()
             .PublishAsAzureContainerApp((infrastructure, containerApp) =>
             {
-                // This callback should have access to the original compute resource
-                // via the TargetComputeResourceAnnotation on the infrastructure.AspireResource
+                // This callback should have access to the parent resource
+                // via the DeploymentTargetParentAnnotation on the infrastructure.AspireResource
                 Assert.IsType<AzureProvisioningResource>(infrastructure.AspireResource);
                 var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<TargetComputeResourceAnnotation>()
+                    .OfType<DeploymentTargetParentAnnotation>()
                     .SingleOrDefault();
                 
                 Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ComputeResource.Name);
-                Assert.Same(apiProjectBuilder!.Resource, annotation.ComputeResource);
+                Assert.Equal("api", annotation.ParentResource.Name);
+                Assert.Same(apiProjectBuilder!.Resource, annotation.ParentResource);
             });
         
         apiProjectBuilder = apiProject;
@@ -53,16 +53,16 @@ public class TargetComputeResourceAnnotationTests
 
         // Verify the annotation exists on the AzureProvisioningResource
         var annotation = provisioningResource.Annotations
-            .OfType<TargetComputeResourceAnnotation>()
+            .OfType<DeploymentTargetParentAnnotation>()
             .SingleOrDefault();
         
         Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ComputeResource.Name);
-        Assert.Same(apiProject.Resource, annotation.ComputeResource);
+        Assert.Equal("api", annotation.ParentResource.Name);
+        Assert.Same(apiProject.Resource, annotation.ParentResource);
     }
 
     [Fact]
-    public async Task PublishAsAzureAppServiceWebsite_AddsTargetComputeResourceAnnotation()
+    public async Task PublishAsAzureAppServiceWebsite_AddsDeploymentTargetParentAnnotation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -73,16 +73,16 @@ public class TargetComputeResourceAnnotationTests
             .WithHttpEndpoint()
             .PublishAsAzureAppServiceWebsite((infrastructure, website) =>
             {
-                // This callback should have access to the original compute resource
-                // via the TargetComputeResourceAnnotation on the infrastructure.AspireResource
+                // This callback should have access to the parent resource
+                // via the DeploymentTargetParentAnnotation on the infrastructure.AspireResource
                 Assert.IsType<AzureProvisioningResource>(infrastructure.AspireResource);
                 var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<TargetComputeResourceAnnotation>()
+                    .OfType<DeploymentTargetParentAnnotation>()
                     .SingleOrDefault();
                 
                 Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ComputeResource.Name);
-                Assert.Same(apiProjectBuilder!.Resource, annotation.ComputeResource);
+                Assert.Equal("api", annotation.ParentResource.Name);
+                Assert.Same(apiProjectBuilder!.Resource, annotation.ParentResource);
             });
         
         apiProjectBuilder = apiProject;
@@ -101,16 +101,16 @@ public class TargetComputeResourceAnnotationTests
 
         // Verify the annotation exists on the AzureProvisioningResource
         var annotation = provisioningResource.Annotations
-            .OfType<TargetComputeResourceAnnotation>()
+            .OfType<DeploymentTargetParentAnnotation>()
             .SingleOrDefault();
         
         Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ComputeResource.Name);
-        Assert.Same(apiProject.Resource, annotation.ComputeResource);
+        Assert.Equal("api", annotation.ParentResource.Name);
+        Assert.Same(apiProject.Resource, annotation.ParentResource);
     }
 
     [Fact]
-    public async Task ContainerResource_WithPublishAsContainerApp_AddsTargetComputeResourceAnnotation()
+    public async Task ContainerResource_WithPublishAsContainerApp_AddsDeploymentTargetParentAnnotation()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -122,12 +122,12 @@ public class TargetComputeResourceAnnotationTests
             {
                 // Verify we can access the original container resource
                 var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<TargetComputeResourceAnnotation>()
+                    .OfType<DeploymentTargetParentAnnotation>()
                     .SingleOrDefault();
                 
                 Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ComputeResource.Name);
-                Assert.Same(containerBuilder!.Resource, annotation.ComputeResource);
+                Assert.Equal("api", annotation.ParentResource.Name);
+                Assert.Same(containerBuilder!.Resource, annotation.ParentResource);
             });
         
         containerBuilder = container;
@@ -145,16 +145,16 @@ public class TargetComputeResourceAnnotationTests
         Assert.NotNull(provisioningResource);
 
         var annotation = provisioningResource.Annotations
-            .OfType<TargetComputeResourceAnnotation>()
+            .OfType<DeploymentTargetParentAnnotation>()
             .SingleOrDefault();
         
         Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ComputeResource.Name);
-        Assert.Same(container.Resource, annotation.ComputeResource);
+        Assert.Equal("api", annotation.ParentResource.Name);
+        Assert.Same(container.Resource, annotation.ParentResource);
     }
 
     [Fact]
-    public async Task AnnotationAllowsAccessToComputeResourceAnnotations()
+    public async Task AnnotationAllowsAccessToParentResourceAnnotations()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -167,15 +167,15 @@ public class TargetComputeResourceAnnotationTests
             .WithAnnotation(customAnnotation)
             .PublishAsAzureContainerApp((infrastructure, containerApp) =>
             {
-                // Access the original compute resource through the annotation
+                // Access the parent resource through the annotation
                 var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<TargetComputeResourceAnnotation>()
+                    .OfType<DeploymentTargetParentAnnotation>()
                     .SingleOrDefault();
                 
                 Assert.NotNull(annotation);
                 
-                // Verify we can access annotations on the original compute resource
-                var originalCustomAnnotation = annotation.ComputeResource.Annotations
+                // Verify we can access annotations on the parent resource
+                var originalCustomAnnotation = annotation.ParentResource.Annotations
                     .OfType<CustomTestAnnotation>()
                     .SingleOrDefault();
                     
@@ -189,29 +189,29 @@ public class TargetComputeResourceAnnotationTests
     }
 
     [Fact]
-    public void TargetComputeResourceAnnotation_StoresResourceCorrectly()
+    public void DeploymentTargetParentAnnotation_StoresResourceCorrectly()
     {
         var mockResource = new MockResource("test");
-        var annotation = new TargetComputeResourceAnnotation(mockResource);
+        var annotation = new DeploymentTargetParentAnnotation(mockResource);
         
-        Assert.Same(mockResource, annotation.ComputeResource);
-        Assert.Equal("test", annotation.ComputeResource.Name);
+        Assert.Same(mockResource, annotation.ParentResource);
+        Assert.Equal("test", annotation.ParentResource.Name);
     }
 
     [Fact]
-    public void TargetComputeResourceAnnotation_ImplementsIResourceAnnotation()
+    public void DeploymentTargetParentAnnotation_ImplementsIResourceAnnotation()
     {
         var mockResource = new MockResource("test");
-        var annotation = new TargetComputeResourceAnnotation(mockResource);
+        var annotation = new DeploymentTargetParentAnnotation(mockResource);
         
         Assert.IsAssignableFrom<IResourceAnnotation>(annotation);
     }
 
     [Fact]
-    public void TargetComputeResourceAnnotation_IsSealed()
+    public void DeploymentTargetParentAnnotation_IsSealed()
     {
-        var type = typeof(TargetComputeResourceAnnotation);
-        Assert.True(type.IsSealed, "TargetComputeResourceAnnotation should be sealed for performance");
+        var type = typeof(DeploymentTargetParentAnnotation);
+        Assert.True(type.IsSealed, "DeploymentTargetParentAnnotation should be sealed for performance");
     }
 
     private static async Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken)

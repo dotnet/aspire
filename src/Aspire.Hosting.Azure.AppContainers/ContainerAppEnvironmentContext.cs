@@ -48,8 +48,8 @@ internal sealed class ContainerAppEnvironmentContext(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
 
-        // Add back-pointer to the original compute resource
-        provisioningResource.Annotations.Add(new TargetComputeResourceAnnotation(resource));
+        // Add back-pointer to the parent resource
+        provisioningResource.Annotations.Add(new DeploymentTargetParentAnnotation(resource));
 
         return provisioningResource;
     }
