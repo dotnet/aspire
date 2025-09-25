@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddedFeedFormat">
         <source>Added: {0}</source>
-        <target state="new">Added: {0}</target>
+        <target state="translated">Adicionado: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHost">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ApplyChangesToNuGetConfig">
         <source>Apply these changes to NuGet.config?</source>
-        <target state="new">Apply these changes to NuGet.config?</target>
+        <target state="translated">Aplicar essas alterações ao NuGet.config?</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
@@ -79,22 +79,22 @@
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
-        <target state="new">   Mapping: {0} (added)</target>
+        <target state="translated">   Mapeamento: {0} (adicionado)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRemovedFormat">
         <source>   Mapping: {0} (removed)</source>
-        <target state="new">   Mapping: {0} (removed)</target>
+        <target state="translated">   Mapeamento: {0} (removido)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
-        <target state="new">   Mapping: {0}</target>
+        <target state="translated">   Mapeamento: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
         <source>No changes detected in NuGet.config</source>
-        <target state="new">No changes detected in NuGet.config</target>
+        <target state="translated">Nenhuma alteração detectada no NuGet.config</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
@@ -134,12 +134,12 @@
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
-        <target state="new">Removed: {0}</target>
+        <target state="translated">Removido: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">
         <source>Retained: {0}</source>
-        <target state="new">Retained: {0}</target>
+        <target state="translated">Retidos: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
