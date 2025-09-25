@@ -106,35 +106,6 @@ internal sealed class AzureDeployingContext(
         }
     }
 
-    private async Task<bool> TryValidateAzureCliLoginAsync(CancellationToken cancellationToken)
-    {
-        // Only do the credential check for the AzureCli that we assume is default
-        // for deploy scenarios.
-        if (tokenCredentialProvider.TokenCredential is not AzureCliCredential azureCliCredential)
-        {
-            return true;
-        }
-
-        var validationStep = await activityReporter.CreateStepAsync("Validating Azure CLI authentication", cancellationToken).ConfigureAwait(false);
-        await using (validationStep.ConfigureAwait(false))
-        {
-            try
-            {
-                // Test credential by requesting a token for Azure management
-                var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
-                await azureCliCredential.GetTokenAsync(tokenRequest, cancellationToken).ConfigureAwait(false);
-
-                await validationStep.SucceedAsync("Azure CLI authentication validated successfully", cancellationToken).ConfigureAwait(false);
-                return true;
-            }
-            catch (Exception)
-            {
-                await validationStep.FailAsync("Azure CLI authentication failed. Please run 'az login' to authenticate before deploying.", cancellationToken).ConfigureAwait(false);
-                return false;
-            }
-        }
-    }
-
     private async Task<bool> TryProvisionAzureBicepResources(List<AzureBicepResource> bicepResources, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
         var deployingStep = await activityReporter.CreateStepAsync("Deploying Azure resources", cancellationToken).ConfigureAwait(false);
