@@ -74,7 +74,7 @@
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
         <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
-        <target state="needs-review-translation">실행 중에 디버그 세션을 시작할지 여부입니다.</target>
+        <target state="translated">Aspire 터미널에서 실행 중일 때 디버그 세션을 시작할지 여부입니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
@@ -89,7 +89,7 @@
       </trans-unit>
       <trans-unit id="StartingDebugSessionInExtension">
         <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
-        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
+        <target state="translated">Aspire 확장 내에서 Aspire 실행이 감지되어 VS Code에서 디버그 세션을 시작합니다...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">
