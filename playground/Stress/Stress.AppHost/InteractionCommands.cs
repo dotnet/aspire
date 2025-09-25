@@ -295,6 +295,105 @@ internal static class InteractionCommands
 
                return CommandResults.Success();
            })
+           .WithCommand("dynamic-error", "Dynamic error", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+               var predefinedOptionsInput = new InteractionInput
+               {
+                   Name = "PredefinedOptions",
+                   InputType = InputType.Choice,
+                   Placeholder = "Placeholder!",
+                   Required = true,
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1"),
+                       KeyValuePair.Create("option2", "Option 2"),
+                       KeyValuePair.Create("option3", "Option 3")
+                   ]
+               };
+               var customChoiceInput = new InteractionInput
+               {
+                   Name = "CustomChoice",
+                   InputType = InputType.Choice,
+                   Label = "Custom choice",
+                   Placeholder = "Placeholder!",
+                   AllowCustomChoice = true,
+                   Required = true,
+                   OptionsProvider = new InteractionOptionsProvider
+                   {
+                       LoadOptions = async (context) =>
+                       {
+                           await Task.Delay(1000, context.CancellationToken);
+
+                           throw new InvalidOperationException("Error!");
+                       }
+                   }
+               };
+               var dynamicInput = new InteractionInput
+               {
+                   Name = "Dynamic",
+                   InputType = InputType.Choice,
+                   Label = "Dynamic",
+                   Placeholder = "Select dynamic value",
+                   Required = true,
+                   OptionsProvider = new InteractionOptionsProvider
+                   {
+                       LoadOptions = async (context) =>
+                       {
+                           await Task.Delay(1000, context.CancellationToken);
+
+                           var dependsOnInput = context.Inputs["PredefinedOptions"];
+
+                           if (dependsOnInput.Value == "option1")
+                           {
+                               throw new InvalidOperationException("Error!");
+                           }
+
+                           var list = new List<KeyValuePair<string, string>>();
+                           for (var i = 0; i < 3; i++)
+                           {
+                               list.Add(KeyValuePair.Create($"option{i}-{dependsOnInput.Value}", $"Option {i} - {dependsOnInput.Value}"));
+                           }
+
+                           return list;
+                       },
+                       DependsOnInputs = ["PredefinedOptions"]
+                   }
+               };
+
+               var inputs = new List<InteractionInput>
+               {
+                   predefinedOptionsInput,
+                   customChoiceInput,
+                   dynamicInput
+               };
+               var result = await interactionService.PromptInputsAsync(
+                   "Choice inputs",
+                   "Range of choice inputs",
+                   inputs,
+                   options: new InputsDialogInteractionOptions
+                   {
+                       ValidationCallback = context =>
+                       {
+                           return Task.CompletedTask;
+                       }
+                   },
+                   cancellationToken: commandContext.CancellationToken);
+
+               if (result.Canceled)
+               {
+                   return CommandResults.Failure("Canceled");
+               }
+
+               var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+               var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+               foreach (var updatedInput in result.Data)
+               {
+                   logger.LogInformation("Input: {Name} = {Value}", updatedInput.Name, updatedInput.Value);
+               }
+
+               return CommandResults.Success();
+           })
            .WithCommand("dismiss-interaction", "Dismiss interaction tests", executeCommand: commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
