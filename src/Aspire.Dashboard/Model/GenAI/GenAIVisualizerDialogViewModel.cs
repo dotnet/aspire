@@ -91,7 +91,7 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputMessages = viewModel.Items.Where(e => e.Type is GenAIItemType.SystemMessage or GenAIItemType.UserMessage or GenAIItemType.AssistantMessage or GenAIItemType.ToolMessage).ToList();
         viewModel.OutputMessages = viewModel.Items.Where(e => e.Type == GenAIItemType.OutputMessage).ToList();
 
-        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages);
+        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages) && viewModel.ErrorItem == null;
 
         return viewModel;
     }
