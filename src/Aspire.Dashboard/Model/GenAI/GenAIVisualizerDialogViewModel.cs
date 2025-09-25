@@ -100,7 +100,8 @@ public sealed class GenAIVisualizerDialogViewModel
     {
         if (messageViewModels.Count == 0)
         {
-            return false;
+            // Microsoft.Extensions.AI doesn't output any message telemetry when sensitive data isn't enabled.
+            return true;
         }
 
         foreach (var messageViewModel in messageViewModels)
