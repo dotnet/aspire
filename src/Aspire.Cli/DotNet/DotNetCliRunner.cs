@@ -236,6 +236,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+        // Add --non-interactive flag when using watch to prevent interactive prompts during automation
         var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
 
         string[] cliArgs = isSingleFile switch
