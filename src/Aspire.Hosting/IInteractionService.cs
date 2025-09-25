@@ -180,6 +180,10 @@ public sealed class InteractionInput
     private IReadOnlyList<KeyValuePair<string, string>>? _options;
     private InteractionOptionsProvider? _optionsProvider;
 
+    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
+    internal InteractionOptionsProviderState? OptionsProviderState { get; set; }
+    internal List<string> ValidationErrors { get; } = [];
+
     /// <summary>
     /// Gets or sets the name for the input. Used for accessing inputs by name from a keyed collection.
     /// </summary>
@@ -189,8 +193,6 @@ public sealed class InteractionInput
     /// Gets or sets the label for the input. If not specified, the name will be used as the label.
     /// </summary>
     public string? Label { get; init; }
-
-    internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
 
     /// <summary>
     /// Gets or sets the description for the input.
@@ -225,7 +227,7 @@ public sealed class InteractionInput
         init
         {
             _options = value;
-            ValidationOptionsSet();
+            ValidateOptionsSet();
         }
     }
 
@@ -241,13 +243,11 @@ public sealed class InteractionInput
         init
         {
             _optionsProvider = value;
-            ValidationOptionsSet();
+            ValidateOptionsSet();
         }
     }
 
-    internal InteractionOptionsProviderState? OptionsProviderState { get; set; }
-
-    private void ValidationOptionsSet()
+    private void ValidateOptionsSet()
     {
         if (_options != null && _optionsProvider != null)
         {
@@ -286,8 +286,6 @@ public sealed class InteractionInput
             field = value;
         }
     }
-
-    internal List<string> ValidationErrors { get; } = [];
 }
 
 /// <summary>
@@ -297,8 +295,8 @@ public sealed class InteractionInput
 [DebuggerDisplay("Count = {Count}")]
 public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
 {
-    private readonly IReadOnlyList<InteractionInput> _inputs;
-    private readonly IReadOnlyDictionary<string, InteractionInput> _inputsByName;
+    private readonly List<InteractionInput> _inputs;
+    private readonly Dictionary<string, InteractionInput> _inputsByName;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InteractionInputCollection"/> class.
@@ -319,7 +317,7 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
             inputsByName[input.Name] = input;
         }
 
-        _inputs = inputs;
+        _inputs = inputs.ToList();
         _inputsByName = inputsByName;
     }
 
@@ -390,6 +388,8 @@ public sealed class InteractionInputCollection : IReadOnlyList<InteractionInput>
     /// </summary>
     /// <returns>An enumerator that can be used to iterate through the collection.</returns>
     IEnumerator IEnumerable.GetEnumerator() => _inputs.GetEnumerator();
+
+    internal int IndexOf(InteractionInput input) => _inputs.IndexOf(input);
 }
 
 /// <summary>

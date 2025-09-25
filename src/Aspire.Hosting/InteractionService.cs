@@ -106,17 +106,24 @@ internal class InteractionService : IInteractionService
         var inputCollection = new InteractionInputCollection(inputs);
 
         // Validate inputs.
-        foreach (var input in inputs)
+        for (var i = 0; i < inputs.Count; i++)
         {
+            var input = inputs[i];
             if (input.InputType == InputType.Choice && input.OptionsProvider is { } optionsProvider)
             {
                 if (optionsProvider.DependsOnInputs != null)
                 {
-                    foreach (var dependsOnInputs in optionsProvider.DependsOnInputs)
+                    foreach (var dependsOnInputName in optionsProvider.DependsOnInputs)
                     {
-                        if (!inputCollection.ContainsName(dependsOnInputs))
+                        // Validate dependency input exists and is defined before this input.
+                        // We check that the dependency is defined before this input so that experiences such as the CLI, where inputs are forward only, work correctly.
+                        if (!inputCollection.TryGetByName(dependsOnInputName, out var dependsOnInput))
                         {
-                            throw new InvalidOperationException($"The input '{input.Name}' has an OptionsProvider that depends on an input named '{dependsOnInputs}', but no such input exists.");
+                            throw new InvalidOperationException($"The input '{input.Name}' has an OptionsProvider that depends on an input named '{dependsOnInputName}', but no such input exists.");
+                        }
+                        if (inputCollection.IndexOf(dependsOnInput) >= i)
+                        {
+                            throw new InvalidOperationException($"The input '{input.Name}' has an OptionsProvider that depends on an input named '{dependsOnInputName}', but that input is not defined before it. Inputs must be defined in order so that dependencies are always to earlier inputs.");
                         }
                     }
                 }

@@ -725,6 +725,72 @@ public class InteractionServiceTests
         Assert.False(result.Canceled);
     }
 
+    [Fact]
+    public async Task DependsOn_DoesNotExist_Error()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService();
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput
+            {
+                Name = "Choice",
+                Label = "Choice",
+                InputType = InputType.Choice,
+                Required = true,
+                OptionsProvider = new InteractionOptionsProvider
+                {
+                    DependsOnInputs = ["DoesNotExist"],
+                    LoadOptions = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    {
+                        ["option1"] = "Option 1",
+                        ["option2"] = "Option 2"
+                    }.ToList())
+                }
+            },
+            new InteractionInput { Name = "Age", Label = "Age", InputType = InputType.Number, Required = true }
+        };
+
+        // Act
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
+
+        // Assert
+        Assert.NotNull(ex);
+    }
+
+    [Fact]
+    public async Task DependsOn_LaterInput_Error()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService();
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput
+            {
+                Name = "Choice",
+                Label = "Choice",
+                InputType = InputType.Choice,
+                Required = true,
+                OptionsProvider = new InteractionOptionsProvider
+                {
+                    DependsOnInputs = ["Age"],
+                    LoadOptions = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    {
+                        ["option1"] = "Option 1",
+                        ["option2"] = "Option 2"
+                    }.ToList())
+                }
+            },
+            new InteractionInput { Name = "Age", Label = "Age", InputType = InputType.Number, Required = true }
+        };
+
+        // Act
+        var ex = await Assert.ThrowsAnyAsync<Exception>(() => interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs));
+
+        // Assert
+        Assert.NotNull(ex);
+    }
+
     private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
     {
         await interactionService.ProcessInteractionFromClientAsync(interactionId, (_, _, _) => state, CancellationToken.None);
