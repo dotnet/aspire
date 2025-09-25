@@ -5,6 +5,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Kusto;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.CognitiveServices;

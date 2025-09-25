@@ -29,7 +29,6 @@ internal sealed class AzureDeployingContext(
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
-    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ITokenCredentialProvider tokenCredentialProvider)
 {
@@ -75,6 +74,35 @@ internal sealed class AzureDeployingContext(
         if (!string.IsNullOrEmpty(dashboardUrl))
         {
             await activityReporter.CompletePublishAsync($"Deployment completed successfully. View Aspire dashboard at {dashboardUrl}", cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<bool> TryValidateAzureCliLoginAsync(CancellationToken cancellationToken)
+    {
+        // Only do the credential check for the AzureCli that we assume is default
+        // for deploy scenarios.
+        if (tokenCredentialProvider.TokenCredential is not AzureCliCredential azureCliCredential)
+        {
+            return true;
+        }
+
+        var validationStep = await activityReporter.CreateStepAsync("Validating Azure CLI authentication", cancellationToken).ConfigureAwait(false);
+        await using (validationStep.ConfigureAwait(false))
+        {
+            try
+            {
+                // Test credential by requesting a token for Azure management
+                var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
+                await azureCliCredential.GetTokenAsync(tokenRequest, cancellationToken).ConfigureAwait(false);
+
+                await validationStep.SucceedAsync("Azure CLI authentication validated successfully", cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception)
+            {
+                await validationStep.FailAsync("Azure CLI authentication failed. Please run 'az login' to authenticate before deploying.", cancellationToken).ConfigureAwait(false);
+                return false;
+            }
         }
     }
 
@@ -408,7 +436,7 @@ internal sealed class AzureDeployingContext(
                         .Select(async resource =>
                         {
                             var localImageName = resource.Name.ToLowerInvariant();
-                            IValueProvider cir = new ContainerImageReference(resource, serviceProvider);
+                            IValueProvider cir = new ContainerImageReference(resource);
                             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
                             var pushTask = await pushStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", cancellationToken).ConfigureAwait(false);
