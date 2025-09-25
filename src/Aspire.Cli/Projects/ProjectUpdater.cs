@@ -302,7 +302,9 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             if (needsSdkElement)
             {
-                // Create and inject the new SDK element
+                // Create and inject the new SDK element with proper formatting
+                
+                // Create the SDK element
                 sdkNode = projectDocument.CreateElement("Sdk");
                 var nameAttribute = projectDocument.CreateAttribute("Name");
                 nameAttribute.Value = "Aspire.AppHost.Sdk";
@@ -312,14 +314,34 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 versionAttribute.Value = package.Version;
                 sdkNode.Attributes!.Append(versionAttribute);
                 
-                // Insert the SDK element as the first child of the Project element
-                if (projectNode.FirstChild is not null)
+                // Find the first element child to insert before
+                XmlNode? firstElementChild = null;
+                foreach (XmlNode child in projectNode.ChildNodes)
                 {
-                    projectNode.InsertBefore(sdkNode, projectNode.FirstChild);
+                    if (child.NodeType == XmlNodeType.Element)
+                    {
+                        firstElementChild = child;
+                        break;
+                    }
+                }
+
+                if (firstElementChild is not null)
+                {
+                    // Insert the SDK element before the first element child
+                    projectNode.InsertBefore(sdkNode, firstElementChild);
+                    
+                    // Add newline and indentation after the SDK element
+                    var whitespaceAfterSdk = projectDocument.CreateTextNode("\n    ");
+                    projectNode.InsertBefore(whitespaceAfterSdk, firstElementChild);
                 }
                 else
                 {
+                    // No element children, just append with proper formatting
+                    var whitespaceBeforeSdk = projectDocument.CreateTextNode("\n    ");
+                    projectNode.AppendChild(whitespaceBeforeSdk);
                     projectNode.AppendChild(sdkNode);
+                    var whitespaceAfterSdk = projectDocument.CreateTextNode("\n");
+                    projectNode.AppendChild(whitespaceAfterSdk);
                 }
             }
             else
@@ -330,7 +352,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         else
         {
             // Update existing SDK element version
-            sdkNode.Attributes?["Version"]?.Value = package.Version;
+            sdkNode.Attributes?["Version"]!.Value = package.Version;
         }
 
         projectDocument.Save(projectFile.FullName);
