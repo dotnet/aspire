@@ -248,27 +248,42 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
-        var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        
+        // Check if AspireHostingSDKVersion property exists - it might not exist in legacy 8.x projects
+        string? currentSdkVersion = null;
+        bool needsSdkElement = false;
+        
+        if (propertiesElement.TryGetProperty("AspireHostingSDKVersion", out var sdkVersionElement))
+        {
+            currentSdkVersion = sdkVersionElement.GetString();
+        }
+        else
+        {
+            // Legacy 8.x project without SDK element - needs to be injected
+            logger.LogInformation("Legacy AppHost project detected without SDK element. Will inject Aspire.AppHost.Sdk element.");
+            needsSdkElement = true;
+            currentSdkVersion = null; // Treat as if no version is present
+        }
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        if (currentSdkVersion == latestSdkPackage?.Version && !needsSdkElement)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
-            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", currentSdkVersion ?? "none", latestSdkPackage?.Version),
+            () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!, needsSdkElement),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            currentSdkVersion ?? "none",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
     }
 
-    private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package, bool needsSdkElement = false)
     {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
@@ -282,12 +297,41 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+        
         if (sdkNode is null)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+            if (needsSdkElement)
+            {
+                // Create and inject the new SDK element
+                sdkNode = projectDocument.CreateElement("Sdk");
+                var nameAttribute = projectDocument.CreateAttribute("Name");
+                nameAttribute.Value = "Aspire.AppHost.Sdk";
+                sdkNode.Attributes!.Append(nameAttribute);
+                
+                var versionAttribute = projectDocument.CreateAttribute("Version");
+                versionAttribute.Value = package.Version;
+                sdkNode.Attributes!.Append(versionAttribute);
+                
+                // Insert the SDK element as the first child of the Project element
+                if (projectNode.FirstChild is not null)
+                {
+                    projectNode.InsertBefore(sdkNode, projectNode.FirstChild);
+                }
+                else
+                {
+                    projectNode.AppendChild(sdkNode);
+                }
+            }
+            else
+            {
+                throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+            }
         }
-
-        sdkNode.Attributes?["Version"]?.Value = package.Version;
+        else
+        {
+            // Update existing SDK element version
+            sdkNode.Attributes?["Version"]?.Value = package.Version;
+        }
 
         projectDocument.Save(projectFile.FullName);
 
