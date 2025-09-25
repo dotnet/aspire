@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
@@ -70,6 +70,26 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 arguments += $" --output \"{outputType}\"";
             }
 
+            // Add build arguments if specified
+            foreach (var buildArg in buildArguments)
+            {
+                arguments += buildArg.Value is not null
+                    ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
+                    : $" --build-arg \"{buildArg.Key}\"";
+            }
+
+            // Add build secrets if specified
+            foreach (var buildSecret in buildSecrets)
+            {
+                arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
+            }
+
+            // Add stage if specified
+            if (!string.IsNullOrEmpty(stage))
+            {
+                arguments += $" --target \"{stage}\"";
+            }
+
             arguments += $" \"{contextPath}\"";
 
             var spec = new ProcessSpec("docker")
@@ -84,8 +104,17 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                     logger.LogInformation("docker buildx (stderr): {Error}", error);
                 },
                 ThrowOnNonZeroReturnCode = false,
-                InheritEnv = true
+                InheritEnv = true,
             };
+
+            // Add build secrets as environment variables
+            foreach (var buildSecret in buildSecrets)
+            {
+                if (buildSecret.Value is not null)
+                {
+                    spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                }
+            }
 
             logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
@@ -116,13 +145,19 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
+        // Normalize the context path to handle trailing slashes and relative paths
+        var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
         var exitCode = await RunDockerBuildAsync(
-            contextPath,
+            normalizedContextPath,
             dockerfilePath,
             imageName,
             options,
+            buildArguments,
+            buildSecrets,
+            stage,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)
@@ -292,6 +327,82 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
             }
 
             return processResult.ExitCode;
+        }
+    }
+
+    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"tag \"{localImageName}\" \"{targetImageName}\"";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker tag (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker tag (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Docker tag with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("docker tag for {LocalImageName} -> {TargetImageName} failed with exit code {ExitCode}.", localImageName, targetImageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Docker tag failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("docker tag for {LocalImageName} -> {TargetImageName} succeeded.", localImageName, targetImageName);
+        }
+    }
+
+    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken)
+    {
+        var arguments = $"push \"{imageName}\"";
+
+        var spec = new ProcessSpec("docker")
+        {
+            Arguments = arguments,
+            OnOutputData = output =>
+            {
+                logger.LogInformation("docker push (stdout): {Output}", output);
+            },
+            OnErrorData = error =>
+            {
+                logger.LogInformation("docker push (stderr): {Error}", error);
+            },
+            ThrowOnNonZeroReturnCode = false,
+            InheritEnv = true
+        };
+
+        logger.LogInformation("Running Docker push with arguments: {ArgumentList}", spec.Arguments);
+        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
+
+        await using (processDisposable)
+        {
+            var processResult = await pendingProcessResult
+                .WaitAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            if (processResult.ExitCode != 0)
+            {
+                logger.LogError("docker push for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                throw new DistributedApplicationException($"Docker push failed with exit code {processResult.ExitCode}.");
+            }
+
+            logger.LogInformation("docker push for {ImageName} succeeded.", imageName);
         }
     }
 }

@@ -129,6 +129,19 @@ internal static class InteractionCommands
                        KeyValuePair.Create("welsh-pie", "Llanfair­pwllgwyngyll­gogery­chwyrn­drobwll­llan­tysilio­gogo­goch pie"),
                    ]
                };
+               var requirementsInput = new InteractionInput
+               {
+                   Name = "Requirements",
+                   InputType = InputType.Choice,
+                   Label = "Requirements",
+                   Placeholder = "Select requirements",
+                   AllowCustomChoice = true,
+                   Options =
+                   [
+                       KeyValuePair.Create("vegetarian", "Vegetarian"),
+                       KeyValuePair.Create("vegan", "Vegan")
+                   ]
+               };
                var numberOfPeopleInput = new InteractionInput { Name = "NumberOfPeople", InputType = InputType.Number, Label = "Number of people", Placeholder = "Enter number of people", Value = "2", Required = true };
                var inputs = new List<InteractionInput>
                {
@@ -136,6 +149,7 @@ internal static class InteractionCommands
                    new InteractionInput { Name = "Password", InputType = InputType.SecretText, Label = "Password", Placeholder = "Enter password", Required = true, MaxLength = 20 },
                    dinnerInput,
                    numberOfPeopleInput,
+                   requirementsInput,
                    new InteractionInput { Name = "RememberMe", InputType = InputType.Boolean, Label = "Remember me", Placeholder = "What does this do?", Required = true },
                };
                var result = await interactionService.PromptInputsAsync(

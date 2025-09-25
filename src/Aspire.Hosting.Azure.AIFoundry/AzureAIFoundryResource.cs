@@ -74,7 +74,7 @@ public class AzureAIFoundryResource(string name, Action<AzureResourceInfrastruct
         // Create and add new resource if it doesn't exist
         var csa = CognitiveServicesAccount.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             csa))

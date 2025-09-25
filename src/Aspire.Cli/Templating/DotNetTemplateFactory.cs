@@ -4,6 +4,7 @@
 using System.CommandLine;
 using System.Globalization;
 using Aspire.Cli.Certificates;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -15,7 +16,7 @@ using Semver;
 
 namespace Aspire.Cli.Templating;
 
-internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter, CliExecutionContext executionContext) : ITemplateFactory
+internal class DotNetTemplateFactory(IInteractionService interactionService, IDotNetCliRunner runner, ICertificateService certificateService, IPackagingService packagingService, INewCommandPrompter prompter, CliExecutionContext executionContext, IFeatures features) : ITemplateFactory
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
@@ -50,6 +51,19 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             _ => { },
             ApplyTemplateWithNoExtraArgsAsync
             );
+
+        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
+        // and should be surfaced to the user when the single-file AppHost feature is enabled.
+        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            yield return new CallbackTemplate(
+                "aspire-apphost-singlefile",
+                TemplatingStrings.AspireAppHostSingleFile_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+        }
 
         // Folded into the last yieled template.
         var msTestTemplate = new CallbackTemplate(
@@ -422,7 +436,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             // For subdirectory creation, always create/update NuGet.config in the output directory only
             // and ignore any existing NuGet.config in the working directory
-            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
             interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
             return;
         }
@@ -443,7 +457,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
         }
@@ -457,7 +471,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
+                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel, cancellationToken: cancellationToken);
                 interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
             }
         }

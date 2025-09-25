@@ -2,11 +2,11 @@ import * as vscode from "vscode";
 import { EventEmitter } from "vscode";
 import * as fs from "fs";
 import { createDebugAdapterTracker } from "./adapterTracker";
-import { AspireExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
+import { AspireResourceExtendedDebugConfiguration, AspireResourceDebugSession, EnvVar } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer, { generateDcpIdPrefix } from "../dcp/AspireDcpServer";
 import { spawnCliProcess } from "./languages/cli";
-import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExitedWithCode } from "../loc/strings";
+import { disconnectingFromSession, launchingWithAppHost, launchingWithDirectory, processExceptionOccurred, processExitedWithCode } from "../loc/strings";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
@@ -58,19 +58,6 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       });
     }
     else if (message.command === 'launch') {
-      const appHostPath = this._session.configuration.program as string;
-
-      if (isDirectory(appHostPath)) {
-        this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
-      }
-      else {
-        this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
-
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
-      }
-
       this.sendEvent({
         type: 'response',
         request_seq: message.seq,
@@ -79,6 +66,18 @@ export class AspireDebugSession implements vscode.DebugAdapter {
         command: 'launch',
         body: {}
       });
+
+      const appHostPath = this._session.configuration.program as string;
+
+      if (isDirectory(appHostPath)) {
+        this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
+        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath);
+      }
+      else {
+        this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        this.spawnRunCommand(message.arguments?.noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder);
+      }
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {
       this.sendMessageWithEmoji("🔌", disconnectingFromSession);
@@ -132,6 +131,10 @@ export class AspireDebugSession implements vscode.DebugAdapter {
           for (const line of trimMessage(data)) {
             this.sendMessageWithEmoji("❌", line, false);
           }
+        },
+        errorCallback: (error) => {
+          extensionLogOutputChannel.error(`Error spawning aspire process: ${error}`);
+          vscode.window.showErrorMessage(processExceptionOccurred(error.message, 'aspire run'));
         },
         exitCallback: (code) => {
           this.sendMessageWithEmoji("🔚", processExitedWithCode(code ?? '?'));
@@ -192,7 +195,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this._disposables.push(disposable);
   }
 
-  async startAndGetDebugSession(debugConfig: AspireExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
+  async startAndGetDebugSession(debugConfig: AspireResourceExtendedDebugConfiguration): Promise<AspireResourceDebugSession | undefined> {
     return new Promise(async (resolve) => {
       this.createDebugAdapterTrackerCore(debugConfig.type);
 
@@ -240,6 +243,7 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     vscode.debug.stopDebugging(this._session);
     this._disposables.forEach(disposable => disposable.dispose());
     this._trackedDebugAdapters = [];
+    this._rpcClient?.stopCli();
   }
 
   private sendResponse(request: any, body: any = {}) {

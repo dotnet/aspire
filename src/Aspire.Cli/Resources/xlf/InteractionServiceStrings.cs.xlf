@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">Hostitel aplikací není kompatibilní. Zvažte upgrade hostitele aplikací nebo rozhraní Aspire CLI.</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">Verze AppHost není kompatibilní. Upgradujte prosím hostitele aplikací nebo rozhraní příkazového řádku Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="translated">Vytváří se hostitel aplikací.</target>
+        <source>Building apphost...</source>
+        <target state="translated">Vytváří se hostitel aplikací...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">Byl vytvořen soubor nastavení v cestě {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="new">Other (specify next)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Řídicí panel</target>
@@ -58,7 +63,7 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
+        <source>Finding apphosts...</source>
         <target state="translated">Hledají se hostitelé aplikací...</target>
         <note />
       </trans-unit>
@@ -113,13 +118,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="translated">Vyberte hostitele aplikací, který se má použít:</target>
+        <source>Select an apphost to use:</source>
+        <target state="translated">Vyberte hostitele aplikací, kterého chcete použít:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Zadaný soubor projektu není projekt hostitele aplikací Aspire.</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">Zadaný soubor projektu není projekt Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

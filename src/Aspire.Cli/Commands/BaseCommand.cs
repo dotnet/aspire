@@ -15,18 +15,20 @@ internal abstract class BaseCommand : Command
 {
     protected virtual bool UpdateNotificationsEnabled { get; } = true;
     private readonly CliExecutionContext _executionContext;
-    
+
     protected CliExecutionContext ExecutionContext => _executionContext;
 
-    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext) : base(name, description)
+    protected IInteractionService InteractionService { get; }
+
+    protected BaseCommand(string name, string description, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, IInteractionService interactionService) : base(name, description)
     {
         _executionContext = executionContext;
-        
+        InteractionService = interactionService;
         SetAction(async (parseResult, cancellationToken) =>
         {
             // Set the command on the execution context so background services can access it
             _executionContext.Command = this;
-            
+
             // TODO: SDK install goes here in the future.
 
             var exitCode = await ExecuteAsync(parseResult, cancellationToken);
@@ -42,6 +44,8 @@ internal abstract class BaseCommand : Command
                     // Ignore any errors during update check to avoid impacting the main command
                 }
             }
+
+            InteractionService.DisplayEmptyLine();
 
             return exitCode;
         });

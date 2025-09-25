@@ -111,6 +111,21 @@ public interface IResourceContainerImageBuilder
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
     Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Tags an existing container image with a new target name.
+    /// </summary>
+    /// <param name="localImageName">The name of the local image to tag.</param>
+    /// <param name="targetImageName">The target name for the image tag.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Pushes a container image to a registry.
+    /// </summary>
+    /// <param name="imageName">The name of the image to push.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task PushImageAsync(string imageName, CancellationToken cancellationToken = default);
 }
 
 internal sealed class ResourceContainerImageBuilder(
@@ -200,8 +215,7 @@ internal sealed class ResourceContainerImageBuilder(
                 // This is a container resource so we'll use the container runtime to build the image
                 await BuildContainerImageFromDockerfileAsync(
                     resource.Name,
-                    dockerfileBuildAnnotation.ContextPath,
-                    dockerfileBuildAnnotation.DockerfilePath,
+                    dockerfileBuildAnnotation,
                     containerImageAnnotation.Image,
                     step,
                     options,
@@ -322,13 +336,27 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, string contextPath, string dockerfilePath, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
             $"Building image: {resourceName}",
             cancellationToken
             ).ConfigureAwait(false);
+
+        // Resolve build arguments
+        var resolvedBuildArguments = new Dictionary<string, string?>();
+        foreach (var buildArg in dockerfileBuildAnnotation.BuildArguments)
+        {
+            resolvedBuildArguments[buildArg.Key] = await ResolveValue(buildArg.Value, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Resolve build secrets
+        var resolvedBuildSecrets = new Dictionary<string, string?>();
+        foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
+        {
+            resolvedBuildSecrets[buildSecret.Key] = await ResolveValue(buildSecret.Value, cancellationToken).ConfigureAwait(false);
+        }
 
         if (publishingTask is not null)
         {
@@ -337,10 +365,13 @@ internal sealed class ResourceContainerImageBuilder(
                 try
                 {
                     await ContainerRuntime.BuildImageAsync(
-                        contextPath,
-                        dockerfilePath,
+                        dockerfileBuildAnnotation.ContextPath,
+                        dockerfileBuildAnnotation.DockerfilePath,
                         imageName,
                         options,
+                        resolvedBuildArguments,
+                        resolvedBuildSecrets,
+                        dockerfileBuildAnnotation.Stage,
                         cancellationToken).ConfigureAwait(false);
 
                     await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
@@ -359,10 +390,13 @@ internal sealed class ResourceContainerImageBuilder(
             try
             {
                 await ContainerRuntime.BuildImageAsync(
-                    contextPath,
-                    dockerfilePath,
+                    dockerfileBuildAnnotation.ContextPath,
+                    dockerfileBuildAnnotation.DockerfilePath,
                     imageName,
                     options,
+                    resolvedBuildArguments,
+                    resolvedBuildSecrets,
+                    dockerfileBuildAnnotation.Stage,
                     cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
@@ -370,6 +404,28 @@ internal sealed class ResourceContainerImageBuilder(
                 logger.LogError(ex, "Failed to build container image from Dockerfile.");
                 throw;
             }
+        }
+    }
+
+    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return value switch
+            {
+                FileInfo filePath => filePath.FullName,
+                string stringValue => stringValue,
+                IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
+                bool boolValue => boolValue ? "true" : "false",
+                null => null,
+                _ => value.ToString()
+            };
+        }
+        catch (MissingParameterValueException)
+        {
+            // If a parameter value is missing, we return null to indicate that the build argument or secret cannot be resolved
+            // and we should fallback to resolving it from environment variables.
+            return null;
         }
     }
 
@@ -385,6 +441,16 @@ internal sealed class ResourceContainerImageBuilder(
         }
 
         return await step.CreateTaskAsync(description, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken = default)
+    {
+        await ContainerRuntime.TagImageAsync(localImageName, targetImageName, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task PushImageAsync(string imageName, CancellationToken cancellationToken = default)
+    {
+        await ContainerRuntime.PushImageAsync(imageName, cancellationToken).ConfigureAwait(false);
     }
 
     // .NET Container builds that push OCI images to a local file path do not need a runtime

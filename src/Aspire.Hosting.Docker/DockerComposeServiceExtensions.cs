@@ -103,7 +103,7 @@ public static class DockerComposeServiceExtensions
         );
     }
 
-    internal static string AsContainerImagePlaceholder(this DockerComposeServiceResource dockerComposeService)
+    internal static string AsContainerImagePlaceholder(this DockerComposeServiceResource dockerComposeService, IServiceProvider? serviceProvider = null)
     {
         var resourceInstance = dockerComposeService.TargetResource;
 
@@ -113,7 +113,7 @@ public static class DockerComposeServiceExtensions
              imageEnvName,
              description: $"Container image name for {resourceInstance.Name}",
              defaultValue: $"{resourceInstance.Name}:latest",
-             source: new ContainerImageReference(resourceInstance)
+             source: new ContainerImageReference(resourceInstance, serviceProvider)
         );
     }
 

@@ -5,7 +5,9 @@
 
 @inject IStringLocalizer<ControlsStrings> Loc
 
-<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3">
+@* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+@* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+<FluentStack Orientation="Orientation.Horizontal" HorizontalGap="3" title="@(ViewModel.Name?.Length > 30 ? ViewModel.Name : null)">
     @if (ViewModel.Id?.Type is OtlpResourceType.ResourceGrouping)
     {
         <FluentIcon Icon="Icons.Regular.Size20.AppsList"
@@ -15,7 +17,10 @@
     }
     else if (ViewModel.Id?.Type is OtlpResourceType.Instance)
     {
-        <span style="padding-left: 20px;" aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
+        <FluentIcon Icon="Icons.Regular.Size20.ArrowTurnDownRight"
+                    Color="Color.Accent"
+                    Style="vertical-align: text-bottom;" />
+        <span aria-label="@string.Format(@Loc[nameof(ControlsStrings.ResourceDropdownReplicaAccessibleTitle)], ViewModel.Name, ViewModel.Id.ReplicaSetName)">@ViewModel.Name</span>
     }
     else
     {

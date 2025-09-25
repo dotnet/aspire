@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
+        <source>Container runtime not installed</source>
         <target state="translated">未安裝容器執行階段</target>
         <note />
       </trans-unit>
@@ -38,7 +38,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
+        <source>Container runtime unhealthy</source>
         <target state="translated">容器執行階段狀況不良</target>
         <note />
       </trans-unit>

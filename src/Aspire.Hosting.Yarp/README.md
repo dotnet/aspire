@@ -53,6 +53,41 @@ var gateway = builder.AddYarp("gateway")
                              .WithTransformPathRemovePrefix("/external");
                      });
 ```
+
+### Static file serving
+
+YARP can serve static files alongside proxied routes. There are two approaches:
+
+#### Copy files locally
+
+```C#
+builder.AddYarp("static")
+       .WithStaticFiles("../static");
+```
+This will copy files into the container use container files in run mode, and use a bind mount in publish mode.
+
+#### Copy files via Docker
+
+You can also use a docker file to copy static assets into the yarp container: e.g.
+```C#
+builder.AddYarp("frontend")
+       .WithStaticFiles()
+       .WithDockerFile("../npmapp");
+```
+
+```Dockerfile
+# Stage 1: Build React app
+FROM node:20 AS builder
+WORKDIR /app
+COPY . .
+RUN npm install
+RUN npm run build
+
+# Stage 2: Copy static files to YARP container
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
+WORKDIR /app
+COPY --from=builder /app/dist ./wwwroot
+```
 ## Configuration API
 
 ### Route configuration

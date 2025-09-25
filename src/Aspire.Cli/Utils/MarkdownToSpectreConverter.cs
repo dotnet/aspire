@@ -65,19 +65,19 @@ internal static partial class MarkdownToSpectreConverter
     {
         // Convert ###### Header 6 (most specific first)
         text = HeaderLevel6Regex().Replace(text, "[bold]$1[/]");
-        
+
         // Convert ##### Header 5
         text = HeaderLevel5Regex().Replace(text, "[bold]$1[/]");
-        
+
         // Convert #### Header 4
         text = HeaderLevel4Regex().Replace(text, "[bold]$1[/]");
-        
+
         // Convert ### Header 3
         text = HeaderLevel3Regex().Replace(text, "[bold yellow]$1[/]");
-        
+
         // Convert ## Header 2
         text = HeaderLevel2Regex().Replace(text, "[bold blue]$1[/]");
-        
+
         // Convert # Header 1
         text = HeaderLevel1Regex().Replace(text, "[bold green]$1[/]");
 
@@ -89,7 +89,7 @@ internal static partial class MarkdownToSpectreConverter
         // Convert **bold** and __bold__
         text = BoldDoubleAsterisksRegex().Replace(text, "[bold]$1[/]");
         text = BoldDoubleUnderscoresRegex().Replace(text, "[bold]$1[/]");
-        
+
         return text;
     }
 
@@ -98,7 +98,7 @@ internal static partial class MarkdownToSpectreConverter
         // Convert *italic* and _italic_ (but not ** or __)
         text = ItalicSingleAsteriskRegex().Replace(text, "[italic]$1[/]");
         text = ItalicSingleUnderscoreRegex().Replace(text, "[italic]$1[/]");
-        
+
         return text;
     }
 
@@ -110,12 +110,12 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertCodeBlocks(string text)
     {
-        // Convert multi-line code blocks ```code``` 
+        // Convert multi-line code blocks ```code```
         // Remove language name from the beginning if present
         return CodeBlockRegex().Replace(text, match =>
         {
             var content = match.Groups[1].Value.Trim();
-            
+
             // Check if the first line contains a language name (no spaces, common language names)
             var lines = content.Split('\n');
             if (lines.Length > 1)
@@ -129,7 +129,7 @@ internal static partial class MarkdownToSpectreConverter
                     return $"[grey]{codeContent}[/]";
                 }
             }
-            
+
             return $"[grey]{content}[/]";
         });
     }
@@ -147,7 +147,7 @@ internal static partial class MarkdownToSpectreConverter
             "scala", "clojure", "haskell", "perl", "lua", "r", "matlab",
             "dockerfile", "makefile", "ini", "toml", "properties"
         };
-        
+
         return commonLanguages.Contains(text);
     }
 
@@ -157,7 +157,7 @@ internal static partial class MarkdownToSpectreConverter
         // Process line by line to avoid regex matching across line boundaries
         var lines = text.Split('\n');
         var regex = new Regex(@"^>\s*(.*)$");
-        
+
         for (int i = 0; i < lines.Length; i++)
         {
             var match = regex.Match(lines[i]);
@@ -167,7 +167,7 @@ internal static partial class MarkdownToSpectreConverter
                 lines[i] = $"[italic grey]{content}[/]";
             }
         }
-        
+
         return string.Join('\n', lines);
     }
 
@@ -185,8 +185,8 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertLinks(string text)
     {
-        // Convert [text](url) to just the URL with underline and blue color
-        return LinkRegex().Replace(text, "[blue underline]$2[/]");
+        // Convert [text](url) to Spectre.Console link format with cyan color
+        return LinkRegex().Replace(text, "[cyan link=$2]$1[/]");
     }
 
     private static string EscapeRemainingSquareBrackets(string text)
@@ -194,32 +194,32 @@ internal static partial class MarkdownToSpectreConverter
         // Escape any remaining square brackets that are not part of Spectre markup
         // We need to preserve Spectre markup tags like [bold], [/], [blue underline], etc.
         // but escape markdown constructs like reference links [text][ref]
-        
+
         // Use a regex to find standalone square brackets that are not Spectre markup
-        // Spectre markup pattern: [word] or [word word] or [/] 
+        // Spectre markup pattern: [word] or [word word] or [/]
         // Reference/other markdown pattern: everything else with square brackets
-        
+
         // First, temporarily replace all Spectre markup with placeholders
         var spectreMarkups = new List<string>();
-        var spectrePattern = @"\[(?:/?(?:bold|italic|grey|blue|green|yellow|underline|strikethrough)\s?)+\]|\[/\]";
+        var spectrePattern = @"\[(?:/?(?:bold|italic|grey|blue|green|yellow|cyan|underline|strikethrough)\s?)+\]|\[/\]|\[link=[^\]]+\]|\[cyan\s+link=[^\]]+\]";
         var spectreRegex = new Regex(spectrePattern);
-        
+
         var textWithPlaceholders = spectreRegex.Replace(text, match =>
         {
             var placeholder = $"__SPECTRE_MARKUP_{spectreMarkups.Count}__";
             spectreMarkups.Add(match.Value);
             return placeholder;
         });
-        
+
         // Now escape remaining square brackets
         textWithPlaceholders = textWithPlaceholders.Replace("[", "[[").Replace("]", "]]");
-        
+
         // Restore Spectre markup
         for (int i = 0; i < spectreMarkups.Count; i++)
         {
             textWithPlaceholders = textWithPlaceholders.Replace($"__SPECTRE_MARKUP_{i}__", spectreMarkups[i]);
         }
-        
+
         return textWithPlaceholders;
     }
 

@@ -35,7 +35,8 @@ internal sealed class AzureContainerAppsInfrastructure(
             var containerAppEnvironmentContext = new ContainerAppEnvironmentContext(
                 logger,
                 executionContext,
-                environment);
+                environment,
+                @event.Services);
 
             foreach (var r in @event.Model.GetComputeResources())
             {
@@ -57,7 +58,10 @@ internal sealed class AzureContainerAppsInfrastructure(
     {
         foreach (var r in appModel.GetComputeResources())
         {
-            if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>())
+            if (r.HasAnnotationOfType<AzureContainerAppCustomizationAnnotation>() ||
+#pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                r.HasAnnotationOfType<AzureContainerAppJobCustomizationAnnotation>())
+#pragma warning restore ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 throw new InvalidOperationException($"Resource '{r.Name}' is configured to publish as an Azure Container App, but there are no '{nameof(AzureContainerAppEnvironmentResource)}' resources. Ensure you have added one by calling '{nameof(AzureContainerAppExtensions.AddAzureContainerAppEnvironment)}'.");
             }

@@ -63,7 +63,7 @@ public class AzureServiceBusResource(string name, Action<AzureResourceInfrastruc
         // Create and add new resource if it doesn't exist
         var sbNamespace = ServiceBusNamespace.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             sbNamespace))

@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
+        <source>Container runtime not installed</source>
         <target state="translated">Среда выполнения контейнера не установлена</target>
         <note />
       </trans-unit>
@@ -38,7 +38,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
+        <source>Container runtime unhealthy</source>
         <target state="translated">Неработоспособная среда выполнения контейнера</target>
         <note />
       </trans-unit>

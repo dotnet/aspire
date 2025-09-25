@@ -8,8 +8,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="translated">Uygulama ana işlemine bağlanılıyor...</target>
+        <source>Connecting to apphost...</source>
+        <target state="translated">Apphost'a bağlanılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
+        <source>Run an Aspire apphost in development mode.</source>
         <target state="translated">Geliştirme modunda bir Aspire uygulama ana işlemini çalıştırın.</target>
         <note />
       </trans-unit>
@@ -58,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire uygulama ana işlemi projesi dosyasının yolu.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -73,18 +73,23 @@
         <note>A column header (noun)</note>
       </trans-unit>
       <trans-unit id="StartDebugSessionArgumentDescription">
-        <source>Whether to start a debug session during the run.</source>
-        <target state="translated">Çalışma sırasında hata ayıklama oturumu başlatılıp başlatılmayacağı.</target>
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="needs-review-translation">Çalışma sırasında hata ayıklama oturumu başlatılıp başlatılmayacağı.</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire uygulama ana işlemi başlatılıyor...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">Aspire apphost başlatılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
         <target state="translated">Pano başlatılıyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="new">Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

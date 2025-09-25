@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../UpdateCommandStrings.resx">
     <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="new">Added: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
         <target state="translated">Analizza host delle app</target>
@@ -22,9 +27,19 @@
         <target state="translated">Analisi del progetto in corso...</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="new">Apply these changes to NuGet.config?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
         <target state="translated">La gestione centralizzata dei pacchetti non è attualmente supportata da "aspire update".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
+        <source>Could not find PackageVersion element for '{0}' in {1}</source>
+        <target state="translated">Non è possibile trovare l'elemento PackageVersion per '{0}' in {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
@@ -62,6 +77,26 @@
         <target state="translated">Non è possibile aggiornare il riferimento al pacchetto per {0} nel progetto {1}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="new">   Mapping: {0} (added)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="new">   Mapping: {0} (removed)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="new">   Mapping: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="new">No changes detected in NuGet.config</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">Non sono stati trovati pacchetti con ID "{0}" nel canale "{1}".</target>
@@ -82,6 +117,11 @@
         <target state="translated">Eseguire gli aggiornamenti?</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="new">The path to the Aspire AppHost project file.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">Il riferimento al progetto non contiene FullPath.</target>
@@ -90,6 +130,16 @@
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
         <target state="translated">Il progetto è aggiornato. (non sono necessari aggiornamenti)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="new">Removed: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="new">Retained: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">

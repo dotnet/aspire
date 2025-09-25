@@ -59,7 +59,7 @@ public static class AspireAzureAIInferenceExtensions
             connectionName,
             serviceKey: null);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentName, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: null, settings.DeploymentName, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
     }
 
     /// <summary>
@@ -96,11 +96,17 @@ public static class AspireAzureAIInferenceExtensions
             name,
             serviceKey: name);
 
-        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing);
+        return new AspireChatCompletionsClientBuilder(builder, serviceKey: name, settings.DeploymentName, settings.DisableTracing, settings.EnableSensitiveTelemetryData);
     }
 
     private sealed class ChatCompletionsClientServiceComponent : AzureComponent<ChatCompletionsClientSettings, ChatCompletionsClient, AzureAIInferenceClientOptions>
     {
+        // GenAI telemetry isn't stable so MEAI currently has source name of "Experimental.Microsoft.Extensions.AI".
+        // Listen to both names to ensure we capture telemetry from both stable and experimental versions.
+        // When MEAI removes experimental from the source name, Aspire will continue to work without changes.
+        protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
+        protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
+
         protected override IAzureClientBuilder<ChatCompletionsClient, AzureAIInferenceClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder,
             ChatCompletionsClientSettings settings,
@@ -213,6 +219,9 @@ public static class AspireAzureAIInferenceExtensions
         }
 
         var loggerFactory = services.GetService<ILoggerFactory>();
-        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)));
+        return new OpenTelemetryChatClient(result, loggerFactory?.CreateLogger(typeof(OpenTelemetryChatClient)))
+        {
+            EnableSensitiveData = builder.EnableSensitiveTelemetryData
+        };
     }
 }

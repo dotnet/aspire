@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="ja" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">アプリ ホスティング プロセスに互換性がありません。アプリ ホスティング プロセスまたは Aspire CLI のアップグレードをご検討ください。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">AppHost のバージョンに互換性がありません。AppHost または Aspire CLI をアップグレードしてください。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="translated">アプリ ホスティング プロセスをビルドしています</target>
+        <source>Building apphost...</source>
+        <target state="translated">Apphost をビルドしています...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">{0} で設定ファイルを作成しました。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="new">Other (specify next)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">ダッシュボード</target>
@@ -58,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">アプリ ホスティング プロセスを検索しています...</target>
+        <source>Finding apphosts...</source>
+        <target state="translated">Apphost を検索しています...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -113,13 +118,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="translated">使用するアプリ ホストの選択:</target>
+        <source>Select an apphost to use:</source>
+        <target state="translated">使用する Apphost を選択してください: </target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">指定されたプロジェクト ファイルは、Aspire アプリ ホスティング プロセスのプロジェクトではありません。</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">指定されたプロジェクト ファイルは、Aspire AppHost のプロジェクトではありません。</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

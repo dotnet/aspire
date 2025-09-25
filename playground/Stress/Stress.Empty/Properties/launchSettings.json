@@ -1,0 +1,23 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Profile1": {
+      "commandName": "Project",
+      "commandLineArgs": "arg1 arg2 arg3",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ENV_1": "env1"
+      },
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:5001"
+    },
+    "Profile2": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ENV_TO_OVERRIDE": "this value came from launchSettings.json"
+      }
+    }
+  }
+}

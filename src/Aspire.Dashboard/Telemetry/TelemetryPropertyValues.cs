@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dashboard;
+using Aspire.Dashboard.Model;
 
 namespace Aspire.Dashboard.Telemetry;
 
@@ -12,7 +12,7 @@ public static class TelemetryPropertyValues
 
     public static string GetCommandNameTelemetryValue(string commandName)
     {
-        return KnownResourceCommands.IsKnownCommand(commandName)
+        return CommandViewModel.IsKnownCommand(commandName)
             ? commandName
             : CustomResourceCommand;
     }

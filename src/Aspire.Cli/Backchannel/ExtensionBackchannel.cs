@@ -34,12 +34,14 @@ internal interface IExtensionBackchannel
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
-    Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken);
+    Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken);
     Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug, CancellationToken cancellationToken);
     Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken);
+    Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug, CancellationToken cancellationToken);
+    Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken);
 }
 
 internal sealed class ExtensionBackchannel : IExtensionBackchannel
@@ -424,9 +426,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, choicesArray],
             cancellationToken);
 
-        return result is null
-            ? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText))
-            : choicesByFormattedValue[result];
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return choicesByFormattedValue[result];
     }
 
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)
@@ -444,7 +450,13 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, defaultValue],
             cancellationToken);
 
-        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result.Value;
     }
 
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
@@ -464,10 +476,16 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
             [_token, promptText, defaultValue, required],
             cancellationToken);
 
-        return result ?? throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result;
     }
 
-    public async Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)
+    public async Task OpenEditorAsync(string path, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -475,11 +493,11 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Opening project at path: {ProjectPath}", projectPath);
+        _logger.LogDebug("Opening path: {Path}", path);
 
         await rpc.InvokeWithCancellationAsync(
-            "openProject",
-            [_token, projectPath],
+            "openEditor",
+            [_token, path],
             cancellationToken);
     }
 
@@ -501,6 +519,22 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
             [_token, logLevel.ToString(), message],
+            cancellationToken);
+    }
+
+    public async Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Sent plain text message {Message}", text);
+
+        await rpc.InvokeWithCancellationAsync(
+            "displayPlainText",
+            [_token, text],
             cancellationToken);
     }
 
@@ -557,6 +591,24 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         await rpc.InvokeWithCancellationAsync(
             "notifyAppHostStartupCompleted",
             [_token],
+            cancellationToken);
+    }
+
+    public async Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug,
+        CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Starting extension debugging session in directory {WorkingDirectory} for project file {ProjectFile} with debug={Debug}",
+            workingDirectory, projectFile ?? "<none>", debug);
+
+        await rpc.InvokeWithCancellationAsync(
+            "startDebugSession",
+            [_token, workingDirectory, projectFile, debug],
             cancellationToken);
     }
 

@@ -17,7 +17,7 @@ internal interface INuGetPackageCache
     Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
     Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
     Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
-    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken);
+    Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string packageId, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken);
 }
 
 internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotNetCliRunner cliRunner, IMemoryCache memoryCache, AspireCliTelemetry telemetry, IFeatures features) : INuGetPackageCache
@@ -37,7 +37,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
         var packages = await memoryCache.GetOrCreateAsync(key, async (entry) =>
         {
-            var packages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", null, prerelease, nugetConfigFile, cancellationToken);
+            var packages = await GetPackagesAsync(workingDirectory, "Aspire.ProjectTemplates", null, prerelease, nugetConfigFile, true, cancellationToken);
             return packages.Where(p => p.Id.Equals("Aspire.ProjectTemplates", StringComparison.OrdinalIgnoreCase));
 
         }) ?? throw new NuGetPackageCacheException(ErrorStrings.FailedToRetrieveCachedTemplatePackages);
@@ -47,7 +47,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
 
     public async Task<IEnumerable<NuGetPackage>> GetIntegrationPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
     {
-        return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", null, prerelease, nugetConfigFile, cancellationToken);
+        return await GetPackagesAsync(workingDirectory, "Aspire.Hosting", null, prerelease, nugetConfigFile, true, cancellationToken);
     }
 
     public async Task<IEnumerable<NuGetPackage>> GetCliPackagesAsync(DirectoryInfo workingDirectory, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
@@ -59,7 +59,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         {
             // Set cache expiration to 1 hour for CLI updates
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
-            var packages = await GetPackagesAsync(workingDirectory, "Aspire.Cli", null, prerelease, nugetConfigFile, cancellationToken);
+            var packages = await GetPackagesAsync(workingDirectory, "Aspire.Cli", null, prerelease, nugetConfigFile, false, cancellationToken);
             return packages.Where(p => p.Id.Equals("Aspire.Cli", StringComparison.OrdinalIgnoreCase));
         }) ?? [];
 
@@ -74,7 +74,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
         return Convert.ToHexString(hashBytes);
     }
 
-    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, CancellationToken cancellationToken)
+    public async Task<IEnumerable<NuGetPackage>> GetPackagesAsync(DirectoryInfo workingDirectory, string query, Func<string, bool>? filter, bool prerelease, FileInfo? nugetConfigFile, bool useCache, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -94,6 +94,7 @@ internal sealed class NuGetPackageCache(ILogger<NuGetPackageCache> logger, IDotN
                 SearchPageSize,
                 skip,
                 nugetConfigFile,
+                useCache, // Pass through the useCache parameter
                 new DotNetCliRunnerInvocationOptions(),
                 cancellationToken
                 );

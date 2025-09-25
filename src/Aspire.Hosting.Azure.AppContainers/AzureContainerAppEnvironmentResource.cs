@@ -104,7 +104,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         // Even though it's a compound resource, we'll only expose the managed environment
         var cae = ContainerAppManagedEnvironment.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             cae))

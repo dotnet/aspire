@@ -12,7 +12,8 @@ namespace Aspire.Hosting.Azure.AppService;
 internal sealed class AzureAppServiceInfrastructure(
     ILogger<AzureAppServiceInfrastructure> logger,
     IOptions<AzureProvisioningOptions> provisioningOptions,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
+    DistributedApplicationExecutionContext executionContext) :
+    IDistributedApplicationEventingSubscriber
 {
     private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
@@ -34,7 +35,8 @@ internal sealed class AzureAppServiceInfrastructure(
             var appServiceEnvironmentContext = new AzureAppServiceEnvironmentContext(
                 logger,
                 executionContext,
-                appServiceEnvironment);
+                appServiceEnvironment,
+                @event.Services);
 
             foreach (var resource in @event.Model.GetComputeResources())
             {

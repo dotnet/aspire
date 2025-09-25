@@ -264,6 +264,96 @@ public class PublishAsDockerfileTests
         Assert.Equal(expected, actual, ignoreLineEndingDifferences: true, ignoreWhiteSpaceDifferences: true);
     }
 
+    [Fact]
+    public void PublishProjectAsDockerFile_NoExistingEndpoints_DoesNotAddDefaultEndpoints()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
+                              .PublishAsDockerFile();
+
+        var container = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        // No endpoints should have been created since createIfNotExists=false and the project had none.
+        Assert.Empty(container.Annotations.OfType<EndpointAnnotation>());
+    }
+
+    [Fact]
+    public void PublishProjectAsDockerFile_ExistingHttpEndpointWithoutTargetPort_SetsTargetPortTo8080()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
+                             .WithHttpEndpoint()
+                             .PublishAsDockerFile();
+
+        var container = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        var endpoint = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
+
+        Assert.Equal("http", endpoint.Name);
+        Assert.Equal(8080, endpoint.TargetPort); // TargetPort defaulted to 8080 by PublishAsDockerFile
+    }
+
+    [Fact]
+    public void PublishProjectAsDockerFile_ExistingHttpEndpointWithTargetPort_PreservesTargetPort()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var project = builder.AddProject("project", projectPath, o => o.ExcludeLaunchProfile = true)
+                             .WithEndpoint("http", e =>
+                             {
+                                 e.UriScheme = "http";
+                                 e.TargetPort = 5005; // Explicit target port
+                             })
+                             .PublishAsDockerFile();
+
+        var container = Assert.Single(builder.Resources.OfType<ContainerResource>());
+        var endpoint = Assert.Single(container.Annotations.OfType<EndpointAnnotation>());
+
+        Assert.Equal("http", endpoint.Name);
+        Assert.Equal(5005, endpoint.TargetPort); // Preserved, not overwritten to 8080
+    }
+
+    [Fact]
+    public void PublishProjectAsDockerFile_WithLaunchSettingsHttpAndHttps_EndpointsGetDefaultTargetPort()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = CreateDirectoryWithDockerFile();
+        var path = tempDir.Path;
+        var projectPath = Path.Combine(path, "project.csproj");
+
+        var project = builder.AddProject<TestProjectWithHttpAndHttpsProfile>("project", o => o.LaunchProfileName = "https")
+                             .PublishAsDockerFile();
+
+        // Container resource produced
+        var container = Assert.Single(builder.Resources.OfType<ContainerResource>());
+
+        var endpoints = container.Annotations.OfType<EndpointAnnotation>().OrderBy(e => e.Name).ToList();
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("http", e.Name);
+                Assert.Equal(8080, e.TargetPort);
+            },
+            e =>
+            {
+                Assert.Equal("https", e.Name);
+                Assert.Equal(8080, e.TargetPort);
+            });
+    }
+
     private static TempDirectory CreateDirectoryWithDockerFile()
     {
         var tempDir = new TempDirectory();
@@ -276,5 +366,21 @@ public class PublishAsDockerfileTests
         public string ProjectPath => "another-path";
 
         public LaunchSettings? LaunchSettings { get; set; }
+    }
+
+    private sealed class TestProjectWithHttpAndHttpsProfile : IProjectMetadata
+    {
+        public string ProjectPath => "/foo/another-path";
+        public LaunchSettings? LaunchSettings => new()
+        {
+            Profiles = new()
+            {
+                ["https"] = new LaunchProfile
+                {
+                    ApplicationUrl = "http://localhost:5031;https://localhost:5033",
+                    CommandName = "Project"
+                }
+            }
+        };
     }
 }

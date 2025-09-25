@@ -20,7 +20,6 @@ namespace Aspire.Cli.Commands;
 internal class ExecCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
-    private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -38,7 +37,7 @@ internal class ExecCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         CliExecutionContext executionContext)
-        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext)
+        : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(interactionService);
@@ -49,7 +48,6 @@ internal class ExecCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
-        _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
@@ -83,7 +81,7 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -99,7 +97,7 @@ internal class ExecCommand : BaseCommand
 
         if (targetResource is null)
         {
-            _interactionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
+            InteractionService.DisplayError(ExecCommandStrings.TargetResourceNotSpecified);
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -107,7 +105,7 @@ internal class ExecCommand : BaseCommand
         // if none - we should fail fast
         if (parseResult.UnmatchedTokens.Count == 0)
         {
-            _interactionService.DisplayError(ExecCommandStrings.NoCommandSpecified);
+            InteractionService.DisplayError(ExecCommandStrings.NoCommandSpecified);
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -115,7 +113,7 @@ internal class ExecCommand : BaseCommand
 
         if (commandTokens is null || commandTokens.Count == 0)
         {
-            _interactionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
+            InteractionService.DisplayError(ExecCommandStrings.FailedToParseCommand);
             return ExitCodeConstants.InvalidCommand;
         }
 
@@ -139,6 +137,12 @@ internal class ExecCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
+            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
+                return ExitCodeConstants.SingleFileAppHostNotSupported;
+            }
+
             var env = new Dictionary<string, string>();
 
             var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
@@ -147,7 +151,7 @@ internal class ExecCommand : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, _interactionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
@@ -185,7 +189,7 @@ internal class ExecCommand : BaseCommand
 
                 // We wait for the back channel to be created to signal that
                 // the AppHost is ready to accept requests.
-                backchannel = await _interactionService.ShowStatusAsync(
+                backchannel = await InteractionService.ShowStatusAsync(
                     $":linked_paperclips:  {RunCommandStrings.StartingAppHost}",
                     async () =>
                     {
@@ -193,7 +197,7 @@ internal class ExecCommand : BaseCommand
                         // of the apphost so that the user can attach to it.
                         if (waitForDebugger)
                         {
-                            _interactionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
+                            InteractionService.DisplayMessage(emoji: "bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
                         }
 
                         // The wait for the debugger in the apphost is done inside the CreateBuilder(...) method
@@ -203,7 +207,7 @@ internal class ExecCommand : BaseCommand
                         return backchannel;
                     });
 
-                commandExitCode = await _interactionService.ShowStatusAsync<int?>(
+                commandExitCode = await InteractionService.ShowStatusAsync<int?>(
                     $":running_shoe: {ExecCommandStrings.Running}",
                     async () =>
                     {
@@ -212,7 +216,7 @@ internal class ExecCommand : BaseCommand
                         var outputStream = backchannel.ExecAsync(cancellationToken);
                         await foreach (var output in outputStream)
                         {
-                            _interactionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
+                            InteractionService.WriteConsoleLog(output.Text, output.LineNumber, output.Type, output.IsErrorMessage);
                             if (output.ExitCode is not null)
                             {
                                 exitCode = output.ExitCode;
@@ -226,7 +230,7 @@ internal class ExecCommand : BaseCommand
             {
                 if (backchannel is not null)
                 {
-                    _ = await _interactionService.ShowStatusAsync<int>(
+                    _ = await InteractionService.ShowStatusAsync<int>(
                     $":linked_paperclips: {ExecCommandStrings.StoppingAppHost}",
                     async () =>
                     {
@@ -247,8 +251,8 @@ internal class ExecCommand : BaseCommand
                 var result = await pendingRun;
                 if (result != 0)
                 {
-                    _interactionService.DisplayLines(runOutputCollector.GetLines());
-                    _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                    InteractionService.DisplayLines(runOutputCollector.GetLines());
+                    InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
                     return result;
                 }
                 else
@@ -258,42 +262,42 @@ internal class ExecCommand : BaseCommand
             }
             else
             {
-                _interactionService.DisplayLines(runOutputCollector.GetLines());
-                _interactionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
+                InteractionService.DisplayLines(runOutputCollector.GetLines());
+                InteractionService.DisplayError(RunCommandStrings.ProjectCouldNotBeRun);
                 return ExitCodeConstants.FailedToDotnetRunAppHost;
             }
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken)
         {
-            _interactionService.DisplayCancellationMessage();
+            InteractionService.DisplayCancellationMessage();
             return ExitCodeConstants.Success;
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, _interactionService);
+            return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
-            return _interactionService.DisplayIncompatibleVersionError(
+            return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
                 );
         }
         catch (CertificateServiceException ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, TemplatingStrings.CertificateTrustError, ex.Message));
             return ExitCodeConstants.FailedToTrustCertificates;
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
-            _interactionService.DisplayLines(runOutputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
+            InteractionService.DisplayLines(runOutputCollector.GetLines());
             return ExitCodeConstants.FailedToDotnetRunAppHost;
         }
     }

@@ -35,7 +35,7 @@ internal sealed class DockerComposeInfrastructure(
 
         foreach (var environment in dockerComposeEnvironments)
         {
-            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger);
+            var dockerComposeEnvironmentContext = new DockerComposeEnvironmentContext(environment, logger, @event.Services);
 
             if (environment.DashboardEnabled && environment.Dashboard?.Resource is DockerComposeAspireDashboardResource dashboard)
             {

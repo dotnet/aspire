@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="zh-Hant" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">應用程式主機不相容。請考慮升級應用程式主機或 Aspire CLI。</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">應用程式主機版本不相容。請升級應用程式主機或 Aspire CLI。</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="translated">正在建置應用程式主機</target>
+        <source>Building apphost...</source>
+        <target state="translated">正在建置應用程式主機...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">已在 {0} 建立設定檔案。</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="new">Other (specify next)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">儀表板</target>
@@ -58,7 +63,7 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
+        <source>Finding apphosts...</source>
         <target state="translated">正在尋找應用程式主機...</target>
         <note />
       </trans-unit>
@@ -113,12 +118,12 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="translated">選取要使用的應用程式主機:</target>
+        <source>Select an apphost to use:</source>
+        <target state="translated">選擇要使用的應用程式主機:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
+        <source>The specified project file is not an Aspire AppHost project.</source>
         <target state="translated">指定的專案檔案不是 Aspire 應用程式主機專案。</target>
         <note />
       </trans-unit>

@@ -63,6 +63,9 @@ namespace Aspire.Cli.Resources {
             }
         }
         
+        /// <summary>
+        ///   Looks up a localized string similar to The output path for the generated artifacts. Defaults to './aspire-output' if not specified.
+        /// </summary>
         public static string OutputPathArgumentDescription {
             get {
                 return ResourceManager.GetString("OutputPathArgumentDescription", resourceCulture);

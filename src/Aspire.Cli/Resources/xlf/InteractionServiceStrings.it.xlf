@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="it" original="../InteractionServiceStrings.resx">
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
-        <source>The app host is not compatible. Consider upgrading the app host or Aspire CLI.</source>
-        <target state="translated">L'host delle app non è compatibile. Prendi in considerazione l'aggiornamento dell'host delle app o dell'interfaccia della riga di comando Aspire.</target>
+        <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
+        <target state="translated">La versione di AppHost non è compatibile. Aggiornare AppHost o l'interfaccia della riga di comando di Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -18,8 +18,8 @@
         <note />
       </trans-unit>
       <trans-unit id="BuildingAppHost">
-        <source>Building app host</source>
-        <target state="translated">Creazione dell'host delle app</target>
+        <source>Building apphost...</source>
+        <target state="translated">Compilazione AppHost in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">File di impostazioni creato in {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="new">Other (specify next)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Dashboard</target>
@@ -58,8 +63,8 @@
         <note />
       </trans-unit>
       <trans-unit id="FindingAppHosts">
-        <source>Finding app hosts...</source>
-        <target state="translated">Ricerca degli host delle app in corso...</target>
+        <source>Finding apphosts...</source>
+        <target state="translated">Ricerca AppHost in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -113,13 +118,13 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
-        <source>Select app host to use:</source>
-        <target state="translated">Selezionare l'host delle app da usare:</target>
+        <source>Select an apphost to use:</source>
+        <target state="translated">Selezionare un AppHost da usare:</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
-        <source>The specified project file is not an Aspire app host project.</source>
-        <target state="translated">Il file di progetto specificato non è un progetto host delle app.</target>
+        <source>The specified project file is not an Aspire AppHost project.</source>
+        <target state="translated">Il file di progetto specificato non è un progetto AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

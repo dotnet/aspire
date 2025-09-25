@@ -7,6 +7,10 @@ var computeParam = builder.AddParameter("computeParam");
 var secretParam = builder.AddParameter("secretParam", secret: true);
 var parameterWithDefault = builder.AddParameter("parameterWithDefault", "default");
 
+// Parameters for build args and secrets testing
+var buildVersionParam = builder.AddParameter("buildVersion", "1.0.0");
+var buildSecretParam = builder.AddParameter("buildSecret", secret: true);
+
 var aca = builder.AddAzureContainerAppEnvironment("aca-env");
 var aas = builder.AddAzureAppServiceEnvironment("aas-env");
 
@@ -52,6 +56,10 @@ builder.AddDockerfile("python-app", "../Deployers.Dockerfile")
     .WithEnvironment("P0", computeParam)
     .WithEnvironment("P1", secretParam)
     .WithEnvironment("P3", parameterWithDefault)
+    .WithBuildArg("BUILD_VERSION", buildVersionParam)
+    .WithBuildArg("CUSTOM_MESSAGE", "Built with Aspire WithBuildArgs!")
+    .WithBuildSecret("BUILD_SECRET", buildSecretParam)
+    .WithEnvironment("TEST_SCENARIO", "build-args-and-secrets")
     .WithComputeEnvironment(aca);
 
 builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("func-app")

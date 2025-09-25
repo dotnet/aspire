@@ -58,7 +58,10 @@
     .\get-aspire-cli-pr.ps1 1234 -WhatIf
 
 .EXAMPLE
-    .\get-aspire-cli-pr.ps1 1234 -SkipExtensionInstall
+    .\get-aspire-cli-pr.ps1 1234 -SkipExtension
+
+.EXAMPLE
+    .\get-aspire-cli-pr.ps1 1234 -UseInsiders
 
 .EXAMPLE
     Piped execution
@@ -99,7 +102,10 @@ param(
     [switch]$HiveOnly,
 
     [Parameter(HelpMessage = "Skip VS Code extension download and installation")]
-    [switch]$SkipExtensionInstall,
+    [switch]$SkipExtension,
+
+    [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
+    [switch]$UseInsiders,
 
     [Parameter(HelpMessage = "Keep downloaded archive files after installation")]
     [switch]$KeepArchive
@@ -603,15 +609,20 @@ function Test-GitHubCLIDependency {
 # Function to check VS Code CLI dependency
 function Test-VSCodeCLIDependency {
     [CmdletBinding()]
-    param()
+    param(
+        [switch]$UseInsiders
+    )
 
-    if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
-        Write-Message "VS Code CLI (code) is not available in PATH. Extension installation will be skipped." -Level Warning
-        Write-Message "To install VS Code extensions, ensure VS Code is installed and the 'code' command is available." -Level Info
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    if (-not (Get-Command $vscodeCmd -ErrorAction SilentlyContinue)) {
+        Write-Message "$vscodeName CLI ($vscodeCmd) is not available in PATH. Extension installation will be skipped." -Level Warning
+        Write-Message "To install $vscodeName extensions, ensure $vscodeName is installed and the '$vscodeCmd' command is available." -Level Info
         return $false
     }
 
-    Write-Message "VS Code CLI (code) found" -Level Verbose
+    Write-Message "$vscodeName CLI ($vscodeCmd) found" -Level Verbose
     return $true
 }
 
@@ -691,6 +702,54 @@ function Get-PRHeadSHA {
     return $headSha.Trim()
 }
 
+# Function to extract version suffix from downloaded NuGet packages
+function Get-VersionSuffixFromPackages {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadDir
+    )
+    
+    if ($PSCmdlet.ShouldProcess("packages", "Extract version suffix from packages") -and $WhatIfPreference) {
+        # Return a mock version for WhatIf
+        return "pr.1234.a1b2c3d4"
+    }
+    
+    # Look for any .nupkg file and extract version from its name
+    $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse | Select-Object -First 1
+    
+    if (-not $nupkgFiles) {
+        Write-Message "No .nupkg files found to extract version from" -Level Verbose
+        throw "No NuGet packages found to extract version information from"
+    }
+    
+    $filename = $nupkgFiles.Name
+    Write-Message "Extracting version from package: $filename" -Level Verbose
+    
+    # Extract version from package name using a more robust approach
+    # Remove .nupkg extension first, then look for the specific version pattern
+    $baseName = $filename -replace '\.nupkg$', ''
+    
+    # Look for semantic version pattern with PR suffix (more specific and robust)
+    if ($baseName -match '.*\.(\d+\.\d+\.\d+-pr\.\d+\.[0-9a-g]+)$') {
+        $version = $Matches[1]
+        Write-Message "Extracted version: $version" -Level Verbose
+        
+        # Extract just the PR suffix part using more specific regex
+        if ($version -match '(pr\.[0-9]+\.[0-9a-g]+)') {
+            $versionSuffix = $Matches[1]
+            Write-Message "Extracted version suffix: $versionSuffix" -Level Verbose
+            return $versionSuffix
+        } else {
+            Write-Message "Package version does not contain PR suffix: $version" -Level Verbose
+            throw "Package version does not contain expected PR suffix format"
+        }
+    } else {
+        Write-Message "Could not extract version from package name: $filename" -Level Verbose
+        throw "Could not extract version from package name: $filename"
+    }
+}
+
 # Function to find workflow run for SHA
 function Find-WorkflowRun {
     [CmdletBinding()]
@@ -701,7 +760,7 @@ function Find-WorkflowRun {
 
     Write-Message "Finding ci.yml workflow run for SHA: $HeadSHA" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | sort_by(.created_at, .updated_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
         throw "No ci.yml workflow run found for PR SHA: $HeadSHA. This could mean no workflow has been triggered for this SHA $HeadSHA . Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
@@ -769,10 +828,15 @@ function Install-AspireExtensionFromDownload {
     [CmdletBinding(SupportsShouldProcess)]
     param(
         [Parameter(Mandatory = $true)]
-        [string]$DownloadDir
+        [string]$DownloadDir,
+
+        [switch]$UseInsiders
     )
 
-    if (!$PSCmdlet.ShouldProcess("VS Code", "Installing Aspire extension")) {
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    if (!$PSCmdlet.ShouldProcess($vscodeName, "Installing Aspire extension")) {
         return
     }
 
@@ -788,19 +852,19 @@ function Install-AspireExtensionFromDownload {
 
     try {
         # Install the extension using VS Code CLI
-        Write-Message "Installing VS Code extension: $($vsixFile.Name)" -Level Info
-        $installCommand = @("code", "--install-extension", $vsixFile.FullName)
+        Write-Message "Installing $vscodeName extension: $($vsixFile.Name)" -Level Info
+        $installCommand = @($vscodeCmd, "--install-extension", $vsixFile.FullName)
 
         & $installCommand[0] $installCommand[1..($installCommand.Length-1)]
 
         if ($LASTEXITCODE -eq 0) {
-            Write-Message "VS Code extension successfully installed" -Level Success
+            Write-Message "$vscodeName extension successfully installed" -Level Success
         } else {
-            Write-Message "Failed to install VS Code extension (exit code: $LASTEXITCODE)" -Level Warning
+            Write-Message "Failed to install $vscodeName extension (exit code: $LASTEXITCODE)" -Level Warning
         }
     }
     catch {
-        Write-Message "Failed to install VS Code extension: $($_.Exception.Message)" -Level Warning
+        Write-Message "Failed to install $vscodeName extension: $($_.Exception.Message)" -Level Warning
     }
 }
 
@@ -995,12 +1059,21 @@ function Start-DownloadAndInstall {
     }
     $nugetDownloadDir = Get-BuiltNugets -RunId $runId -RID $rid -TempDir $TempDir
 
+    # Extract and print the version suffix from downloaded packages
+    try {
+        $versionSuffix = Get-VersionSuffixFromPackages -DownloadDir $nugetDownloadDir
+        Write-Message "Package version suffix: $versionSuffix" -Level Info
+    }
+    catch {
+        Write-Message "Could not extract version suffix from downloaded packages: $($_.Exception.Message)" -Level Warning
+    }
+
     # Download VS Code extension if not skipped
     $extensionDownloadDir = $null
-    if (-not $SkipExtensionInstall) {
+    if (-not $SkipExtension) {
         $extensionDownloadDir = Get-AspireExtensionFromArtifact -RunId $runId -TempDir $TempDir
     } else {
-        Write-Message "Skipping VS Code extension download due to -SkipExtensionInstall flag" -Level Info
+        Write-Message "Skipping VS Code extension download due to -SkipExtension flag" -Level Info
     }
 
     # Then, install artifacts
@@ -1013,9 +1086,9 @@ function Start-DownloadAndInstall {
     Install-BuiltNugets -DownloadDir $nugetDownloadDir -NugetHiveDir $nugetHiveDir
 
     # Install VS Code extension if downloaded
-    if ($extensionDownloadDir -and -not $SkipExtensionInstall) {
-        if (Test-VSCodeCLIDependency) {
-            Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir
+    if ($extensionDownloadDir -and -not $SkipExtension) {
+        if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
+            Install-AspireExtensionFromDownload -DownloadDir $extensionDownloadDir -UseInsiders:$UseInsiders
         }
     }
 
