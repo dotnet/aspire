@@ -15,38 +15,38 @@ internal static class AppHostHelper
 {
     internal static async Task<(bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)> CheckAppHostCompatibilityAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
-            var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, workingDirectory, cancellationToken);
+        var appHostInformation = await GetAppHostInformationAsync(runner, interactionService, projectFile, telemetry, workingDirectory, cancellationToken);
 
-            if (appHostInformation.ExitCode != 0)
-            {
-                interactionService.DisplayError(ErrorStrings.ProjectCouldNotBeAnalyzed);
-                return (false, false, null);
-            }
+        if (appHostInformation.ExitCode != 0)
+        {
+            interactionService.DisplayError(ErrorStrings.ProjectCouldNotBeAnalyzed);
+            return (false, false, null);
+        }
 
-            if (!appHostInformation.IsAspireHost)
-            {
-                interactionService.DisplayError(ErrorStrings.ProjectIsNotAppHost);
-                return (false, false, null);
-            }
+        if (!appHostInformation.IsAspireHost)
+        {
+            interactionService.DisplayError(ErrorStrings.ProjectIsNotAppHost);
+            return (false, false, null);
+        }
 
-            if (!SemVersion.TryParse(appHostInformation.AspireHostingVersion, out var aspireVersion))
-            {
-                interactionService.DisplayError(ErrorStrings.CouldNotParseAspireSDKVersion);
-                return (false, false, null);
-            }
+        if (!SemVersion.TryParse(appHostInformation.AspireHostingVersion, out var aspireVersion))
+        {
+            interactionService.DisplayError(ErrorStrings.CouldNotParseAspireSDKVersion);
+            return (false, false, null);
+        }
 
-            var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-            if (!aspireVersion.Satisfies(compatibleRanges))
-            {
-                interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingVersion));
-                return (false, false, appHostInformation.AspireHostingVersion);
-            }
-            else
-            {
-                // NOTE: When we go to support < 9.2.0 app hosts this is where we'll make
-                //       a determination as to whether the apphsot supports backchannel or not.
-                return (true, true, appHostInformation.AspireHostingVersion);
-            }
+        var minimumVersion = SemVersion.Parse("9.2.0");
+        if (aspireVersion.ComparePrecedenceTo(minimumVersion) < 0)
+        {
+            interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingVersion));
+            return (false, false, appHostInformation.AspireHostingVersion);
+        }
+        else
+        {
+            // NOTE: When we go to support < 9.2.0 app hosts this is where we'll make
+            //       a determination as to whether the apphsot supports backchannel or not.
+            return (true, true, appHostInformation.AspireHostingVersion);
+        }
     }
 
     internal static async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(IDotNetCliRunner runner, IInteractionService interactionService, FileInfo projectFile, AspireCliTelemetry telemetry, DirectoryInfo workingDirectory, CancellationToken cancellationToken)
