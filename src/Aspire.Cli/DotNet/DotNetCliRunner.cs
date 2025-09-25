@@ -236,10 +236,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+        var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
 
         string[] cliArgs = isSingleFile switch
         {
-            false => [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            false => [watchOrRunCommand, nonInteractiveSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", projectFile.FullName, "--", ..args]
         };
         

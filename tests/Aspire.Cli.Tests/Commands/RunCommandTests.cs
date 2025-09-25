@@ -3,13 +3,18 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Cli.Backchannel;
+using Aspire.Cli.Caching;
 using Aspire.Cli.Commands;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
+using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Aspire.Cli.Utils;
 using Aspire.TestUtilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -680,6 +685,114 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.False(watchModeUsed, "Expected watch mode to be disabled by default when defaultWatchEnabled feature flag is not set");
     }
 
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsTrue_IncludesNonInteractiveFlag()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            {
+                // Verify that --non-interactive is included when watch mode is enabled
+                Assert.Contains("watch", args);
+                Assert.Contains("--non-interactive", args);
+                
+                // Verify the order: watch should come before --non-interactive
+                var watchIndex = Array.IndexOf(args, "watch");
+                var nonInteractiveIndex = Array.IndexOf(args, "--non-interactive");
+                Assert.True(watchIndex < nonInteractiveIndex);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true, // This should add --non-interactive
+            noBuild: false,
+            args: ["--operation", "inspect"],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsFalse_DoesNotIncludeNonInteractiveFlag()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            {
+                // Verify that --non-interactive is NOT included when watch mode is disabled
+                Assert.Contains("run", args);
+                Assert.DoesNotContain("watch", args);
+                Assert.DoesNotContain("--non-interactive", args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: false, // This should NOT add --non-interactive
+            noBuild: false,
+            args: ["--operation", "inspect"],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
     private sealed class SingleFileAppHostProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
@@ -692,5 +805,25 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             return Task.FromResult(new List<FileInfo> { new("/tmp/apphost.cs") });
         }
+    }
+}
+
+internal sealed class AssertingDotNetCliRunner(
+    ILogger<DotNetCliRunner> logger,
+    IServiceProvider serviceProvider,
+    AspireCliTelemetry telemetry,
+    IConfiguration configuration,
+    IFeatures features,
+    IInteractionService interactionService,
+    CliExecutionContext executionContext,
+    IDiskCache diskCache,
+    Action<string[], IDictionary<string, string>?, DirectoryInfo, FileInfo?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions> assertionCallback,
+    int exitCode
+    ) : DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache)
+{
+    public override Task<int> ExecuteAsync(string[] args, IDictionary<string, string>? env, FileInfo? projectFile, DirectoryInfo workingDirectory, TaskCompletionSource<IAppHostBackchannel>? backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        assertionCallback(args, env, workingDirectory, projectFile, backchannelCompletionSource, options);
+        return Task.FromResult(exitCode);
     }
 }
