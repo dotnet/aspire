@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+
     <!-- This repo version -->
     <MajorVersion>13</MajorVersion>
     <MinorVersion>0</MinorVersion>
