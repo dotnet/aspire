@@ -980,7 +980,7 @@ internal class NuGetConfigMerger
             // Add globalPackagesFolder configuration
             var globalPackagesFolderAdd = new XElement("add");
             globalPackagesFolderAdd.SetAttributeValue("key", "globalPackagesFolder");
-            globalPackagesFolderAdd.SetAttributeValue("value", ".nuget\\packages");
+            globalPackagesFolderAdd.SetAttributeValue("value", ".nugetpackages");
             config.Add(globalPackagesFolderAdd);
         }
     }
