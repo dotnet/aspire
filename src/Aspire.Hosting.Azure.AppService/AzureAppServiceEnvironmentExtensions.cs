@@ -65,9 +65,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(identity);
 
-            var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"))
-            {
-            };
+            var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"));
 
             infra.Add(contributorIdentity);
 
