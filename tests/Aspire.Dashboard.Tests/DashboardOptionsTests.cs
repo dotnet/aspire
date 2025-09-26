@@ -245,6 +245,27 @@ public sealed class DashboardOptionsTests
         Assert.Equal("Failed to parse OTLP HTTP endpoint URL 'invalid'.", result.FailureMessage);
     }
 
+    [Fact]
+    public void OtlpOptions_SuppressUnsecuredTelemetryMessage_DefaultValue()
+    {
+        var options = GetValidOptions();
+
+        Assert.False(options.Otlp.SuppressUnsecuredTelemetryMessage);
+    }
+
+    [Fact]
+    public void OtlpOptions_SuppressUnsecuredTelemetryMessage_CanBeSet()
+    {
+        var options = GetValidOptions();
+        options.Otlp.SuppressUnsecuredTelemetryMessage = true;
+
+        Assert.True(options.Otlp.SuppressUnsecuredTelemetryMessage);
+
+        // Ensure setting this property doesn't affect validation
+        var result = new ValidateDashboardOptions().Validate(null, options);
+        Assert.True(result.Succeeded);
+    }
+
     #endregion
 
     #region OpenIDConnect options

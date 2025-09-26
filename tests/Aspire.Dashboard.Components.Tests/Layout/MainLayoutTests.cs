@@ -125,7 +125,51 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.Empty(messageService.AllMessages);
     }
 
-    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null)
+    [Fact]
+    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar()
+    {
+        // Arrange
+        var testLocalStorage = new TestLocalStorage();
+        var messageService = new MessageService();
+
+        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, suppressUnsecuredMessage: true);
+
+        var messageShownTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        messageService.OnMessageItemsUpdatedAsync += () =>
+        {
+            messageShownTcs.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        testLocalStorage.OnGetUnprotectedAsync = key =>
+        {
+            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            {
+                return (false, false); // Message not dismissed, but should be suppressed by config
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected key.");
+            }
+        };
+
+        // Act
+        var cut = RenderComponent<MainLayout>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // Assert
+        var timeoutTask = Task.Delay(100);
+        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5));
+
+        // It's hard to test something not happening.
+        // In this case of checking for a message, apply a small display and then double check that no message was displayed.
+        Assert.True(completedTask != messageShownTcs.Task, "No message bar should be displayed when suppressed by configuration.");
+        Assert.Empty(messageService.AllMessages);
+    }
+
+    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, bool suppressUnsecuredMessage = false)
     {
         Services.AddLocalization();
         Services.AddOptions();
@@ -144,7 +188,11 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.Configure<DashboardOptions>(o => o.Otlp.AuthMode = OtlpAuthMode.Unsecured);
+        Services.Configure<DashboardOptions>(o =>
+        {
+            o.Otlp.AuthMode = OtlpAuthMode.Unsecured;
+            o.Otlp.SuppressUnsecuredTelemetryMessage = suppressUnsecuredMessage;
+        });
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 
