@@ -78,10 +78,6 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                     batch.Add(entry);
                 }
 
-                if (batch.Count == 0)
-                {
-                    continue;
-                }
 
                 try
                 {
