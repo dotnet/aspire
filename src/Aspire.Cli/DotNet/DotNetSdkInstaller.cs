@@ -20,9 +20,9 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkVersion = "9.0.302";
 
     /// <summary>
-    /// The minimum .NET SDK version required for Aspire when single-file apphost is enabled.
+    /// The minimum .NET SDK version required for Aspire when .NET 10 features are enabled.
     /// </summary>
-    public const string MinimumSdkVersionSingleFileAppHost = "10.0.100";
+    public const string MinimumSdkNet10SdkVersion = "10.0.100";
 
     /// <inheritdoc />
     public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
@@ -143,9 +143,10 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             return overrideVersion;
         }
-        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false) ||
+                 features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, false))
         {
-            return MinimumSdkVersionSingleFileAppHost;
+            return MinimumSdkNet10SdkVersion;
         }
         else
         {
@@ -164,7 +165,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     private static bool MeetsMinimumRequirement(SemVersion installedVersion, SemVersion requiredVersion, string requiredVersionString)
     {
         // Special handling for .NET 10.0.100 requirement - allow any .NET 10.x version
-        if (requiredVersionString == MinimumSdkVersionSingleFileAppHost)
+        if (requiredVersionString == MinimumSdkNet10SdkVersion)
         {
             // If we require 10.0.100, accept any version that is >= 10.0.0
             return installedVersion.Major >= 10;

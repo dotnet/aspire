@@ -30,7 +30,6 @@ Param(
   [string] $runtimeSourceFeedKey = '',
   [switch] $excludePrereleaseVS,
   [switch] $nativeToolsOnMachine,
-  [switch] $buildExtension,
   [switch] $help,
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -77,7 +76,6 @@ function Print-Usage() {
   Write-Host "  -nodeReuse <value>      Sets nodereuse msbuild parameter ('true' or 'false')"
   Write-Host "  -buildCheck             Sets /check msbuild parameter"
   Write-Host "  -fromVMR                Set when building from within the VMR"
-  Write-Host "  -buildExtension         Build the VS Code extension"
   Write-Host ""
 
   Write-Host "Command line arguments not listed above are passed thru to msbuild."
@@ -97,8 +95,6 @@ function InitializeCustomToolset {
     . $script
   }
 }
-
-
 
 function Build {
   $toolsetBuildProj = InitializeToolset
@@ -140,7 +136,6 @@ function Build {
     /p:Sign=$sign `
     /p:Publish=$publish `
     /p:RestoreStaticGraphEnableBinaryLogger=$binaryLog `
-    /p:BuildExtension=$buildExtension `
     @properties
 }
 
