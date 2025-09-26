@@ -1,4 +1,4 @@
-﻿{
+{
   "type": "azure.bicep.v0",
   "path": "api.module.bicep",
   "params": {
@@ -6,6 +6,7 @@
     "env_outputs_planid": "{env.outputs.planId}",
     "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
     "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-    "api_containerimage": "{api.containerImage}"
+    "api_containerimage": "{api.containerImage}",
+    "env_outputs_dashboard_uri": "{env.outputs.DASHBOARD_URI}"
   }
 }

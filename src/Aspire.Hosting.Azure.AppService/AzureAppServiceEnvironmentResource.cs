@@ -32,6 +32,11 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
 
+    /// <summary>
+    /// Gets the URI of the App Service Environment dashboard.
+    /// </summary>
+    public BicepOutputReference DashboardUriReference => new("DASHBOARD_URI", this);
+
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => 
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 

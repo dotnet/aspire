@@ -212,6 +212,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource, environmentContext.ServiceProvider));
+        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(infra);
 
         var webSite = new WebSite("webapp")
         {
@@ -224,6 +225,9 @@ internal sealed class AzureAppServiceWebsiteContext(
                 LinuxFxVersion = "SITECONTAINERS",
                 AcrUserManagedIdentityId = acrClientIdParameter,
                 UseManagedIdentityCreds = true,
+                // Setting NumberOfWorkers to maximum allowed value for Premium SKU
+                // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
+                NumberOfWorkers = 30,
                 AppSettings = []
             },
             Identity = new ManagedServiceIdentity()
@@ -323,6 +327,8 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+        AddDashboardSettings(webSite, acrClientIdParameter, dashboardUri);
+
         infra.Add(webSite);
 
         // Allow users to customize the web app here
@@ -361,6 +367,15 @@ internal sealed class AzureAppServiceWebsiteContext(
     private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, SecretType secretType = SecretType.None)
     {
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
+    }
+    private void AddDashboardSettings(WebSite webSite, ProvisioningParameter acrClientIdParameter, ProvisioningParameter dashboardUri)
+    {
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = resource.Name });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
     }
 
     enum SecretType
