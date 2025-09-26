@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CustomChoiceLabel">
         <source>Other (specify next)</source>
-        <target state="new">Other (specify next)</target>
+        <target state="translated">Autre (précisez ci-dessous)</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
