@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@!!REPLACE_WITH_LATEST_VERSION!!
+#:sdk Aspire.AppHost.Sdk@9.5.0
 
 var builder = DistributedApplication.CreateBuilder(args);
 

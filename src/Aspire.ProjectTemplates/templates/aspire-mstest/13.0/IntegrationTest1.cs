@@ -6,7 +6,6 @@ namespace Aspire.Tests._1;
 public class IntegrationTest1
 {
     public TestContext TestContext { get; set; }
-
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);
 
     // Instructions:
