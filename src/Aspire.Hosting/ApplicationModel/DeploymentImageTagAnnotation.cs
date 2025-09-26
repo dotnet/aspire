@@ -21,11 +21,6 @@ public sealed class DeploymentImageTagCallbackAnnotationContext
     /// Gets the cancellation token associated with the callback context.
     /// </summary>
     public required CancellationToken CancellationToken { get; init; }
-
-    /// <summary>
-    /// Gets the execution context associated with this invocation of the AppHost.
-    /// </summary>
-    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
 }
 
 /// <summary>
