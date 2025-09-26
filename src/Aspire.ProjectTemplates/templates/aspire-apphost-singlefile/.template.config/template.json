@@ -58,7 +58,7 @@
         {
           "choice": "13.0",
           "displayName": "13.0",
-          "description": "Chooses Aspire 13.0"
+          "description": "Aspire 13.0"
         },
         {
           "choice": "9.5",
@@ -76,18 +76,6 @@
         "cases": [
           {
             "condition": "AspireVersionCli == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersion == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersionNet9 == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "AspireVersionNet10 == 9.5",
             "value": "9.5"
           },
           {
