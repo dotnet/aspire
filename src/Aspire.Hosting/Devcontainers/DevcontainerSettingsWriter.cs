@@ -78,7 +78,6 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                     batch.Add(entry);
                 }
 
-
                 try
                 {
                     await WriteSettingsAsync(batch, _processingCancellation.Token).ConfigureAwait(false);
