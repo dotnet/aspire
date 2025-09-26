@@ -142,7 +142,6 @@ internal sealed class PolyglotCommand : BaseCommand
 
             var versionOption = new Option<string>("--version", "-v");
             versionOption.Description = PolyglotCommandStrings.VersionOptionDescription;
-            versionOption.Required = true;
             Options.Add(versionOption);
 
             var outputOption = new Option<string?>("--output", "-o");
@@ -153,19 +152,23 @@ internal sealed class PolyglotCommand : BaseCommand
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var packageName = parseResult.GetValue<string>("package")!;
-            var packageVersion = parseResult.GetValue<string>("--version");
+            var packageVersion = parseResult.GetValue<string?>("--version");
             var output = parseResult.GetValue<string?>("--output") ?? ExecutionContext.WorkingDirectory.FullName;
 
             output = Path.Combine(ExecutionContext.WorkingDirectory.FullName, new DirectoryInfo(output).FullName);
 
             try
             {
+                string? latestVersion = null;
+
                 var packagesJson = PackagesJson.Open(output);
 
                 if (PackagesJson.GetPackageByShortName(packageName) is { } reference)
                 {
-                    (packageName, packageVersion) = reference;
+                    (packageName, latestVersion) = reference;
                 }
+
+                packageVersion ??= latestVersion;
 
                 ArgumentException.ThrowIfNullOrEmpty(packageVersion);
 
