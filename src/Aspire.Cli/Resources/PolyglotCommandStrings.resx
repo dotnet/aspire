@@ -133,7 +133,7 @@
     <value>The output path for the project.</value>
   </data>
   <data name="NewCommand_Failed" xml:space="preserve">
-    <value>Failed to create new new project.</value>
+    <value>Failed to create new project.</value>
   </data>
   <data name="ServeCommand_Failed" xml:space="preserve">
     <value>Failed to start the app host.</value>

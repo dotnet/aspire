@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="NewCommand_Failed">
-        <source>Failed to create new new project.</source>
-        <target state="new">Failed to create new new project.</target>
+        <source>Failed to create new project.</source>
+        <target state="new">Failed to create new project.</target>
         <note />
       </trans-unit>
       <trans-unit id="NewCommand_LangArgumentDescription">

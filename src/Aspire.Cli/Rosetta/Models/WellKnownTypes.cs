@@ -4,9 +4,24 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Aspire.Cli.Rosetta;
 
 namespace Rosetta.Models;
 
+/// <summary>
+/// This class provides access to ReflectionOnly well-known types from the Aspire.Hosting assembly and other loaded assemblies.
+/// </summary>
+
+[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2055", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2065", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2104", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3050", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3053", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 public class WellKnownTypes(IEnumerable<Assembly> assemblies) : IWellKnownTypes
 {
     private readonly Dictionary<Type, Type> _knownTypes = [];
@@ -14,27 +29,22 @@ public class WellKnownTypes(IEnumerable<Assembly> assemblies) : IWellKnownTypes
     private readonly Assembly _aspireHostingAssembly = assemblies.FirstOrDefault(x => x.GetName().Name == "Aspire.Hosting") ??
             throw new InvalidOperationException("Aspire.Hosting assembly not found.");
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     public Type ResourceType =>
         _aspireHostingAssembly.GetType("Aspire.Hosting.ApplicationModel.Resource") ??
         throw new InvalidOperationException("Resource type not found.");
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     public Type IResourceType =>
         _aspireHostingAssembly.GetType("Aspire.Hosting.ApplicationModel.IResource") ??
         throw new InvalidOperationException("IResource type not found.");
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     public Type IResourceWithConnectionStringType =>
         _aspireHostingAssembly.GetType("Aspire.Hosting.ApplicationModel.IResourceWithConnectionString") ??
         throw new InvalidOperationException("IResourceWithConnectionString type not found.");
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     public Type IResourceBuilderType =>
         _aspireHostingAssembly.GetType("Aspire.Hosting.ApplicationModel.IResourceBuilder`1") ??
         throw new InvalidOperationException("IResourceBuilder type not found.");
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
     public Type IDistributedApplicationBuilderType =>
         _aspireHostingAssembly.GetType("Aspire.Hosting.IDistributedApplicationBuilder") ??
         throw new InvalidOperationException("IDistributedApplicationBuilder type not found.");
@@ -63,8 +73,12 @@ public class WellKnownTypes(IEnumerable<Assembly> assemblies) : IWellKnownTypes
         return true;
     }
 
-    [UnconditionalSuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code", Justification = "<Pending>")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "<Pending>")]
+    /// <summary>
+    /// Returns the ReflectionOnly equivalent type for a given type, if it exists in the loaded assemblies.
+    /// </summary>
+    /// <param name="type"></param>
+    /// <param name="knownType"></param>
+    /// <returns></returns>
     public bool TryGetKnownType(Type type, [NotNullWhen(true)] out Type? knownType)
     {
         Debug.Assert(type.FullName != null);

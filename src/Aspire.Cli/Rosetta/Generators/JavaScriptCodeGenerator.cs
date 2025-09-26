@@ -865,9 +865,19 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         // Toolchain requires Node.js and TypeScript
         // npm install -g typescript
 
+        var startInfo = new ProcessStartInfo("npm");
+        startInfo.WorkingDirectory = appPath;
+        startInfo.ArgumentList.Add("install");
+        // startInfo.WindowStyle = ProcessWindowStyle.Minimized;
+        startInfo.UseShellExecute = true;
+        //startInfo.CreateNoWindow = true;
+
+        using var npmProcess = Process.Start(startInfo);
+        npmProcess!.WaitForExit();
+
         // tsc --project tsconfig.json
 
-        var startInfo = new ProcessStartInfo("tsc");
+        startInfo = new ProcessStartInfo("tsc");
         startInfo.WorkingDirectory = appPath;
         // startInfo.WindowStyle = ProcessWindowStyle.Minimized;
         startInfo.UseShellExecute = true;

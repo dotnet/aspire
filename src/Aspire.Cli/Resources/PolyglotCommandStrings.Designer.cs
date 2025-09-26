@@ -97,7 +97,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Failed to create new new project..
+        ///   Looks up a localized string similar to Failed to create new project..
         /// </summary>
         public static string NewCommand_Failed {
             get {

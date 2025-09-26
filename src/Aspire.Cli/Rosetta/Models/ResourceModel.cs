@@ -3,8 +3,20 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Aspire.Cli.Rosetta;
 
 namespace Rosetta.Models;
+
+[UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2055", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2060", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2065", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2070", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2075", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL2104", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3050", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
+[UnconditionalSuppressMessage("Trimming", "IL3053", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 
 public class ResourceModel
 {
@@ -26,7 +38,6 @@ public class ResourceModel
 
     public HashSet<Type> ModelTypes { get; } = [];
 
-    [UnconditionalSuppressMessage("AOT", "IL3050:Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.", Justification = "<Pending>")]
     public void DiscoverExtensionMethods(IntegrationModel integrationModel)
     {
         // Add all concrete resource builder methods from this integration.
@@ -42,8 +53,10 @@ public class ResourceModel
         var allTypeForThisResource = new HashSet<Type>();
         var allInterfacesForThisResource = new HashSet<Type>();
 
-        void PopulateInterfaces([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type t)
+        void PopulateInterfaces(Type t)
         {
+            ArgumentException.ThrowIfNotReflectionOnly(t);
+
             foreach (var i in t.GetInterfaces())
             {
                 allInterfacesForThisResource.Add(i);
@@ -55,18 +68,14 @@ public class ResourceModel
 
         while (parentType != null && parentType != typeof(object))
         {
-#pragma warning disable IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
             PopulateInterfaces(parentType);
-#pragma warning restore IL2072 // Target parameter argument does not satisfy 'DynamicallyAccessedMembersAttribute' in call to target method. The return value of the source method does not have matching annotations.
             allTypeForThisResource.Add(parentType);
             parentType = parentType.BaseType;
         }
 
         foreach (var type in allTypeForThisResource)
         {
-#pragma warning disable IL2055 // Either the type on which the MakeGenericType is called can't be statically determined, or the type parameters to be used for generic arguments can't be statically determined.
             var targetType = integrationModel.WellKnownTypes.IResourceBuilderType.MakeGenericType(type);
-#pragma warning restore IL2055 // Either the type on which the MakeGenericType is called can't be statically determined, or the type parameters to be used for generic arguments can't be statically determined.
             var methods = integrationModel.GetExtensionMethods(integrationModel.WellKnownTypes, targetType).ToArray();
             IResourceTypeBuilderExtensionsMethods.AddRange(methods);
         }
@@ -81,7 +90,7 @@ public class ResourceModel
         {
             var genArgs = m.GetGenericArguments();
             var genArg = genArgs[0];
-            
+
             if (genArgs.Length > 1)
             {
                 // TODO: Not supported:
@@ -91,9 +100,7 @@ public class ResourceModel
 
             if (genArg.GetGenericParameterConstraints().All(x => allInterfacesForThisResource.Contains(x) || allTypeForThisResource.Contains(x)))
             {
-#pragma warning disable IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
                 openGenericMethods.Add(m.MakeGenericMethod(ResourceType));
-#pragma warning restore IL2060 // Call to 'System.Reflection.MethodInfo.MakeGenericMethod' can not be statically analyzed. It's not possible to guarantee the availability of requirements of the generic method.
             }
         }
 
