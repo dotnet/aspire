@@ -162,11 +162,11 @@ public partial class MainLayoutTests : DashboardTestContext
         });
 
         // Assert
-        var timeoutTask = Task.Delay(100);
-        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5));
-
         if (suppressUnsecuredMessage)
         {
+            var timeoutTask = Task.Delay(100);
+            var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).DefaultTimeout();
+
             // When suppressed, no message should be displayed
             Assert.True(completedTask != messageShownTcs.Task, "No message bar should be displayed when suppressed by configuration.");
             Assert.Empty(messageService.AllMessages);
@@ -174,7 +174,7 @@ public partial class MainLayoutTests : DashboardTestContext
         else
         {
             // When not suppressed, message should be displayed since it wasn't dismissed
-            Assert.True(completedTask == messageShownTcs.Task, "Message bar should be displayed when not suppressed and not dismissed.");
+            await messageShownTcs.Task.DefaultTimeout();
             Assert.NotEmpty(messageService.AllMessages);
         }
     }
