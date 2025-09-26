@@ -275,6 +275,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
         }
 
+        // Set DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER when watch is enabled to prevent launching browser
+        if (watch)
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"))
+            {
+                finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
+            }
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
