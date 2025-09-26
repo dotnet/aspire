@@ -50,6 +50,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         import signal
         import sys
         import time
+        import uuid
 
         # Global source variable to capture output code
         source = ""
@@ -188,7 +189,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             # This process inherits the current console directly
             rosetta_process = subprocess.Popen(
                 ["aspire", "polyglot", "serve"],
-                env=envas
+                env=env
             )
 
             global client
