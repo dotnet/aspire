@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../PolyglotCommandStrings.resx">
+    <body>
+      <trans-unit id="AddCommand_Description">
+        <source>Adds a package to the app host.</source>
+        <target state="new">Adds a package to the app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AddCommand_Failed">
+        <source>Failed to add a package.</source>
+        <target state="new">Failed to add a package.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage polyglot app hosts like typescript and python.</source>
+        <target state="new">Manage polyglot app hosts like typescript and python.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_Description">
+        <source>Creates a new polyglot app host.</source>
+        <target state="new">Creates a new polyglot app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_Failed">
+        <source>Failed to create new new project.</source>
+        <target state="new">Failed to create new new project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewCommand_LangArgumentDescription">
+        <source>The language of the new app host.</source>
+        <target state="new">The language of the new app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="OutputArgumentDescription">
+        <source>The output path for the project.</source>
+        <target state="new">The output path for the project.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PackageOptionDescription">
+        <source>The package name, e.g. Redis</source>
+        <target state="new">The package name, e.g. Redis</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommand_Description">
+        <source>Runs the app host.</source>
+        <target state="new">Runs the app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RunCommand_Failed">
+        <source>Failed to run the app host.</source>
+        <target state="new">Failed to run the app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ServeCommand_Description">
+        <source>Starts the generic app host.</source>
+        <target state="new">Starts the generic app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ServeCommand_Failed">
+        <source>Failed to start the app host.</source>
+        <target state="new">Failed to start the app host.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionOptionDescription">
+        <source>The version of the package, e.g. 9.5.0</source>
+        <target state="new">The version of the package, e.g. 9.5.0</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

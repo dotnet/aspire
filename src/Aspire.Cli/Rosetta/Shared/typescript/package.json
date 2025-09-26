@@ -1,0 +1,16 @@
+{
+  "name": "aspire-host",
+  "type": "module",
+  "scripts": {
+    "start": "rosetta run",
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "vscode-jsonrpc": "^8.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2",
+    "@types/node": "^20.0.0"
+  }
+}
