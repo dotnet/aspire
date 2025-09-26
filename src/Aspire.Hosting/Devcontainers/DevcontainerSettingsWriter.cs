@@ -271,6 +271,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     public void Dispose()
     {
         _processingCancellation.Cancel();
+        _portUpdates.Writer.TryComplete();
     }
 
     private sealed record PortForwardEntry(string Url, int Port, string Protocol, string Label, bool OpenBrowser);
