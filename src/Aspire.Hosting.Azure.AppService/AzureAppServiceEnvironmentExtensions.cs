@@ -7,6 +7,7 @@ using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Roles;
@@ -64,6 +65,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             infra.Add(identity);
 
+            var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"))
+            {
+            };
+
+            infra.Add(contributorIdentity);
+
             ContainerRegistryService? containerRegistry = null;
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (resource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
@@ -96,7 +103,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
                     Tier = "Premium"
                 },
                 Kind = "Linux",
-                IsReserved = true
+                IsReserved = true,
+                // Enable per-site scaling so each app service can scale independently
+                IsPerSiteScaling = true
             };
 
             infra.Add(plan);
@@ -110,6 +119,40 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 Value = plan.Id
             });
+
+            // Add Website Contributor role assignment
+            var rgRaId = BicepFunction.GetSubscriptionResourceId(
+                        "Microsoft.Authorization/roleDefinitions",
+                        "de139f84-1756-47ae-9be6-808fbbe84772");
+            var rgRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId);
+            var rgRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra"))
+            {
+                Name = rgRaName,
+                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+                PrincipalId = contributorIdentity.PrincipalId,
+                RoleDefinitionId = rgRaId,
+            };
+
+            infra.Add(rgRa);
+
+            // Add Reader role assignment
+            var rgRaId2 = BicepFunction.GetSubscriptionResourceId(
+                "Microsoft.Authorization/roleDefinitions",
+                "acdd72a7-3385-48ef-bd42-f606fba81ae7");
+            var rgRaName2 = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId2);
+
+            var rgRa2 = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra2"))
+            {
+                Name = rgRaName2,
+                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+                PrincipalId = contributorIdentity.PrincipalId,
+                RoleDefinitionId = rgRaId2
+            };
+
+            infra.Add(rgRa2);
+
+            // Add aspire dashboard website
+            var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, contributorIdentity, plan.Id);
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
@@ -130,6 +173,16 @@ public static partial class AzureAppServiceEnvironmentExtensions
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", typeof(string))
             {
                 Value = identity.ClientId
+            });
+
+            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_NAME", typeof(string))
+            {
+                Value = identity.Name
+            });
+
+            infra.Add(new ProvisioningOutput("DASHBOARD_URI", typeof(string))
+            {
+                Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.DashboardHostName}.azurewebsites.net")
             });
         });
 
