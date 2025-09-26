@@ -36,7 +36,6 @@ steps:
               -restore -build
               -pack
               -sign $(_SignArgs)
-              -buildExtension
               -publish $(_PublishArgs)
               -configuration ${{ parameters.buildConfig }}
               /bl:${{ parameters.repoLogPath }}/build.binlog
@@ -44,6 +43,7 @@ steps:
               $(_InternalBuildArgs)
               /p:TargetRids=${{ join(':', parameters.targetRids) }}
               /p:SkipTestProjects=true
+              /p:BuildExtension=true
       displayName: 🟣Build
 
     - task: 1ES.PublishBuildArtifacts@1

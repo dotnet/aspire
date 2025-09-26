@@ -94,7 +94,7 @@ extends:
       autoEnablePREfastWithNewRuleset: false
       autoEnableRoslynWithNewRuleset: false
     sdl:
-      policheck:
+      policheck:-
         enabled: true
         exclusionsFile: $(Build.SourcesDirectory)\.config\PoliCheckExclusions.xml
       eslint:
