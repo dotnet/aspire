@@ -92,6 +92,40 @@ internal static class iOSMlaunchEnvironmentTargetGenerator
                 },
                 _context.Logger,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            // OTLP tunneled endpoint substitution: if a stub name and its service discovery var exist, override OTEL_EXPORTER_OTLP_ENDPOINT
+            if (_environment.TryGetValue("ASPIRE_MAUI_OTLP_STUB_NAME", out var stubName))
+            {
+                // Service discovery variable from tunnel injection uses the original endpoint scheme (http) even though
+                // the public dev tunnel endpoint is only reachable via HTTPS. Replace the scheme if needed.
+                // New stable endpoint name is 'otlp' (independent of scheme) so look that up first, then fall back.
+                var sdKey = $"services__{stubName}__otlp__0";
+                if (!_environment.ContainsKey(sdKey))
+                {
+                    // Backward compatibility with earlier prototype where endpoint name equaled scheme 'http'.
+                    var legacyKey = $"services__{stubName}__http__0";
+                    if (_environment.ContainsKey(legacyKey))
+                    {
+                        sdKey = legacyKey;
+                    }
+                }
+                if (_environment.TryGetValue(sdKey, out var tunneledUrl))
+                {
+                    if (Uri.TryCreate(tunneledUrl, UriKind.Absolute, out var u) && u.Host.EndsWith(".devtunnels.ms", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var builder = new UriBuilder(u);
+                        // Always use https for dev tunnel hosts
+                        builder.Scheme = "https";
+                        // Remove default port 443 (and any trailing slash after ToString())
+                        if (builder.Port == 443)
+                        {
+                            builder.Port = -1; // clears explicit :443
+                        }
+                        tunneledUrl = builder.Uri.ToString().TrimEnd('/');
+                    }
+                    _environment["OTEL_EXPORTER_OTLP_ENDPOINT"] = tunneledUrl;
+                }
+            }
         }
 
         private string CreateTargetsFile(ILogger logger)
