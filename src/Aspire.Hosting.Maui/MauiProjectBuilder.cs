@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Maui.Platforms.iOS;
+using Aspire.Hosting.DevTunnels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 // Android provisioning removed for now.
@@ -21,6 +22,12 @@ public sealed class MauiProjectBuilder
     private readonly string _projectPath;
     private readonly HashSet<string> _availableTfms;
     private readonly List<IResourceBuilder<ProjectResource>> _platformResources = [];
+    private readonly HashSet<IResourceWithEndpoints> _referencedEndpointResources = [];
+    private IResourceBuilder<DevTunnelResource>? _otlpDevTunnel; // Dev tunnel dedicated to OTLP traffic
+    private OtlpLoopbackResource? _otlpStub; // Synthetic loopback resource representing local OTLP port
+    private int _otlpStubPort; // Cached OTLP port for manual allocation
+    private string? _otlpStubName; // Name of synthetic OTLP stub resource
+    private bool _enableOtelDebug; // Whether to inject verbose OTEL exporter debug env vars
     private static readonly ConcurrentDictionary<string, Lazy<Task>> s_builds = new();
 
     internal MauiProjectBuilder(IDistributedApplicationBuilder appBuilder, MauiProjectResource logical, string projectPath)
@@ -29,7 +36,7 @@ public sealed class MauiProjectBuilder
         _mauiLogicalResource = logical;
         _projectPath = projectPath;
         _availableTfms = MauiPlatformDetection.LoadTargetFrameworks(projectPath);
-        
+
         // We still log at BeforeStartEvent, but detection may already have happened earlier (e.g. via WithReference()).
         appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
         {
@@ -40,6 +47,7 @@ public sealed class MauiProjectBuilder
                 .Where(r => r.Resource.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().Any())
                 .Select(r => r.Resource.Name)
                 .ToList();
+            
             if (unsupported.Count > 0)
             {
                 logger.LogWarning("The following .NET MAUI platform resource(s) cannot run on this host OS and will fail to start: {Platforms}", string.Join(",", unsupported));
@@ -66,6 +74,7 @@ public sealed class MauiProjectBuilder
                     logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() in the AppHost.", string.Join(",", auto), _mauiLogicalResource.Name);
                 }
             }
+
             return Task.CompletedTask;
         });
     }
@@ -126,6 +135,12 @@ public sealed class MauiProjectBuilder
     {
         // Ensure platforms are materialized early so service discovery / connection string references propagate.
         EnsureAutoDetection();
+
+        if (source.Resource is IResourceWithEndpoints endpointsResource && !_referencedEndpointResources.Contains(endpointsResource))
+        {
+            _referencedEndpointResources.Add(endpointsResource);
+        }
+
         foreach (var pr in _platformResources)
         {
             if (source.Resource is IResourceWithConnectionString && pr.Resource is IResourceWithEnvironment)
@@ -137,6 +152,157 @@ public sealed class MauiProjectBuilder
                 pr.WithReference((IResourceBuilder<IResourceWithServiceDiscovery>)source);
             }
         }
+        return this;
+    }
+
+    /// <summary>
+    /// Propagates service discovery variables for the specified endpoint resource through the provided dev tunnel
+    /// into all MAUI platform resources (tunneled service discovery). This allows a device/emulator to reach
+    /// the service via the tunnel host instead of localhost.
+    /// </summary>
+    /// <param name="source">The endpoint-providing resource to expose via the tunnel.</param>
+    /// <param name="tunnel">The dev tunnel resource already configured to reference <paramref name="source"/>.</param>
+    /// <remarks>
+    /// This keeps fluent syntax in the AppHost: <c>.WithReference(weatherApi, publicDevTunnel)</c> without requiring
+    /// callers to access individual platform project resources.
+    /// </remarks>
+    public MauiProjectBuilder WithReference(IResourceBuilder<IResourceWithEndpoints> source, IResourceBuilder<DevTunnelResource> tunnel)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(tunnel);
+
+        EnsureAutoDetection();
+
+        foreach (var pr in _platformResources)
+        {
+            if (pr.Resource is IResourceWithEnvironment)
+            {
+                pr.WithReference(source, tunnel);
+            }
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Creates a single Dev Tunnel exposing only the local OTLP port and rewrites the OTLP exporter endpoint
+    /// to use the tunneled address for device/simulator telemetry.
+    /// </summary>
+    /// <param name="tunnelName">Optional tunnel resource name; defaults to &lt;logical-name&gt;-otlp.</param>
+    /// <param name="enableOtelDebug">When true, injects verbose OTEL exporter debug env vars for troubleshooting (defaults to false).</param>
+    public MauiProjectBuilder WithOtlpDevTunnel(string? tunnelName = null, bool enableOtelDebug = false)
+    {
+        if (_otlpDevTunnel is not null)
+        {
+            return this; // already configured
+        }
+
+        // Use a stable dev tunnel name distinct from the OTLP concept so nested port names can simplify to "-otlp".
+        tunnelName ??= _mauiLogicalResource.Name + "-devtunnel";
+        _otlpDevTunnel = _appBuilder.AddDevTunnel(tunnelName).WithAnonymousAccess();
+        _enableOtelDebug = enableOtelDebug;
+
+        // Determine OTLP port & scheme from configuration.
+        // Priority: unified endpoint key -> HTTP-specific -> gRPC-specific -> fallback.
+        var unifiedUrl = _appBuilder.Configuration["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"]; // launchSettings uses this key
+        var httpUrl = _appBuilder.Configuration["ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"]; // newer split key
+        var grpcUrl = _appBuilder.Configuration["ASPIRE_DASHBOARD_OTLP_GRPC_ENDPOINT_URL"]; // newer split key
+        var otlpPort = 18889;
+        var otlpScheme = "http";
+        if (Uri.TryCreate(unifiedUrl, UriKind.Absolute, out var unified))
+        {
+            otlpScheme = unified.Scheme;
+            otlpPort = unified.IsDefaultPort ? (unified.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? 443 : 80) : unified.Port;
+        }
+        else if (Uri.TryCreate(httpUrl, UriKind.Absolute, out var http))
+        {
+            otlpScheme = http.Scheme;
+            otlpPort = http.IsDefaultPort ? (http.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase) ? 443 : 80) : http.Port;
+        }
+        else if (Uri.TryCreate(grpcUrl, UriKind.Absolute, out var grpc))
+        {
+            otlpScheme = grpc.Scheme; // usually http/https
+            otlpPort = grpc.IsDefaultPort ? 4317 : grpc.Port;
+        }
+
+        // Revert to a valid visible name (leading underscore invalid) but we'll hide via snapshot (IsHidden=true)
+        // so it does not appear in the dashboard UI.
+        _otlpStubName = _mauiLogicalResource.Name + "-otlpstub";
+        if (_appBuilder.Resources.Any(r => string.Equals(r.Name, _otlpStubName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return this; // defensive (should not occur normally)
+        }
+
+         _otlpStub = new OtlpLoopbackResource(_otlpStubName, otlpPort, otlpScheme);
+        _otlpStubPort = otlpPort;
+        var stubBuilder = _appBuilder.AddResource(_otlpStub)
+            .ExcludeFromManifest();
+
+        // Mark the synthetic stub as hidden so the dashboard omits it while still allowing the Dev Tunnel
+        // feature to attach to an endpoint-providing resource.
+        stubBuilder.WithInitialState(new CustomResourceSnapshot
+        {
+            ResourceType = nameof(OtlpLoopbackResource),
+            Properties = [],
+            IsHidden = true
+        });
+
+        // Prefer nesting the synthetic stub under the logical MAUI resource (rather than the dev tunnel) so that
+        // it's grouped with the MAUI app conceptually. If the logical MAUI resource is not surfaced in the dashboard,
+        // this may still appear near the top level, but avoids coupling its hierarchy to the tunnel itself.
+        try
+        {
+            var logicalBuilder = _appBuilder.CreateResourceBuilder(_mauiLogicalResource);
+            stubBuilder.WithParentRelationship(logicalBuilder);
+        }
+        catch
+        {
+            // Fallback: if for some reason we cannot create the logical parent builder, do nothing.
+        }
+
+        // Force the dev tunnel port protocol to HTTPS regardless of the local collector's scheme so the
+        // public tunnel endpoint is always an https:// URL (Dev Tunnels surface TLS endpoints).
+        _otlpDevTunnel.WithReference(stubBuilder, new DevTunnelPortOptions { Protocol = "https" });
+        var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
+
+        // Ensure the stub endpoint appears allocated before the tunnel starts (the dev tunnel waits on allocation events).
+        // We synthesize the allocation and raise ResourceEndpointsAllocatedEvent early.
+        _appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+        {
+            if (_otlpStub is null)
+            {
+                return Task.CompletedTask;
+            }
+            var endpoint = _otlpStub.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+            if (endpoint is null)
+            {
+                return Task.CompletedTask;
+            }
+            if (endpoint.AllocatedEndpoint is null)
+            {
+                endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", _otlpStubPort);
+                return _appBuilder.Eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(_otlpStub, evt.Services), ct);
+            }
+            return Task.CompletedTask;
+        });
+
+        // Ensure platforms exist (auto-detect if user hasn't added explicitly yet) so we can wire env vars.
+        EnsureAutoDetection();
+        foreach (var pr in _platformResources.Where(p => p.Resource is IResourceWithEnvironment))
+        {
+            pr.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
+            if (pr.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase))
+            {
+                pr.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
+            }
+            if (_enableOtelDebug)
+            {
+                pr.WithEnvironment("OTEL_LOG_LEVEL", "debug")
+                  .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
+                  .WithEnvironment("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1");
+            }
+        }
+
         return this;
     }
 
@@ -154,6 +320,11 @@ public sealed class MauiProjectBuilder
         var builder = _appBuilder.AddProject(resourceName, _projectPath)
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+
+        // // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
+        // // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
+        // // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
+        // builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
 
         // Determine if the requested platform is supported on the current host OS.
         var isWindows = OperatingSystem.IsWindows();
@@ -212,6 +383,25 @@ public sealed class MauiProjectBuilder
         });
 
         _platformResources.Add(builder);
+
+        // If OTLP tunneling already configured, wire the new platform to the stub & tunnel now.
+        if (_otlpDevTunnel is not null && _otlpStub is not null && builder.Resource is IResourceWithEnvironment)
+        {
+            var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
+            builder.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
+            
+            if (_otlpStubName is not null && builder.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase))
+            {
+                builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
+            }
+            
+            if (_enableOtelDebug)
+            {
+                builder.WithEnvironment("OTEL_LOG_LEVEL", "debug")
+                       .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
+                       .WithEnvironment("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1");
+            }
+        }
 
         // Conditional build hook executed right before the resource starts (per explicit start invocation).
         builder.OnBeforeResourceStarted(async (res, evt, ct) =>
@@ -341,6 +531,26 @@ public sealed class MauiProjectBuilder
             }
         });
 
+    }
+
+    private sealed class OtlpLoopbackResource : Resource, IResourceWithEndpoints
+    {
+        public OtlpLoopbackResource(string name, int port, string scheme) : base(name)
+        {
+            if (port <= 0 || port > 65535)
+            {
+                throw new ArgumentOutOfRangeException(nameof(port));
+            }
+            if (string.IsNullOrWhiteSpace(scheme))
+            {
+                scheme = "http";
+            }
+            // Stable endpoint name 'otlp' so service discovery key is services__{stubName}__otlp__0 regardless of scheme.
+            Annotations.Add(new EndpointAnnotation(System.Net.Sockets.ProtocolType.Tcp, uriScheme: scheme, name: "otlp", port: port, isProxied: false)
+            {
+                TargetHost = "localhost"
+            });
+        }
     }
 
     // Attempt to add platform; returns true if a new platform resource was created and annotated as auto-detected.
