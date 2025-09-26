@@ -125,14 +125,16 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.Empty(messageService.AllMessages);
     }
 
-    [Fact]
-    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar(bool suppressUnsecuredMessage)
     {
         // Arrange
         var testLocalStorage = new TestLocalStorage();
         var messageService = new MessageService();
 
-        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, suppressUnsecuredMessage: true);
+        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, suppressUnsecuredMessage: suppressUnsecuredMessage);
 
         var messageShownTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         messageService.OnMessageItemsUpdatedAsync += () =>
@@ -145,7 +147,7 @@ public partial class MainLayoutTests : DashboardTestContext
         {
             if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
             {
-                return (false, false); // Message not dismissed, but should be suppressed by config
+                return (false, false); // Message not dismissed, but should be suppressed by config if suppressUnsecuredMessage is true
             }
             else
             {
@@ -163,10 +165,18 @@ public partial class MainLayoutTests : DashboardTestContext
         var timeoutTask = Task.Delay(100);
         var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5));
 
-        // It's hard to test something not happening.
-        // In this case of checking for a message, apply a small display and then double check that no message was displayed.
-        Assert.True(completedTask != messageShownTcs.Task, "No message bar should be displayed when suppressed by configuration.");
-        Assert.Empty(messageService.AllMessages);
+        if (suppressUnsecuredMessage)
+        {
+            // When suppressed, no message should be displayed
+            Assert.True(completedTask != messageShownTcs.Task, "No message bar should be displayed when suppressed by configuration.");
+            Assert.Empty(messageService.AllMessages);
+        }
+        else
+        {
+            // When not suppressed, message should be displayed since it wasn't dismissed
+            Assert.True(completedTask == messageShownTcs.Task, "Message bar should be displayed when not suppressed and not dismissed.");
+            Assert.NotEmpty(messageService.AllMessages);
+        }
     }
 
     private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, bool suppressUnsecuredMessage = false)
