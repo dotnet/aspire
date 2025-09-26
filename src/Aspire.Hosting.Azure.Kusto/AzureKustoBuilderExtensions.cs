@@ -4,6 +4,8 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.Kusto;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
@@ -15,7 +17,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for adding Kusto resources to the application model.
@@ -71,7 +73,7 @@ public static class AzureKustoBuilderExtensions
                     // Basic cluster configuration - can be enhanced in the future
                     Sku = new KustoSku()
                     {
-                        Name = KustoSkuName.StandardD11V2,
+                        Name = KustoSkuName.StandardE2aV4,
                         Tier = KustoSkuTier.Standard,
                         Capacity = 2
                     },
@@ -182,8 +184,7 @@ public static class AzureKustoBuilderExtensions
                 Image = AzureKustoEmulatorContainerImageTags.Image,
                 Tag = AzureKustoEmulatorContainerImageTags.Tag
             })
-            .WithEnvironment("ACCEPT_EULA", "Y")
-            .WithContainerRuntimeArgs("--memory", "4G");
+            .WithEnvironment("ACCEPT_EULA", "Y");
 
         configureContainer?.Invoke(surrogateBuilder);
 

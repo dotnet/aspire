@@ -47,6 +47,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
     public bool NoExtensionLaunch { get; set; }
+    public bool Debug { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
@@ -236,10 +237,14 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+        // Add --non-interactive flag when using watch to prevent interactive prompts during automation
+        var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
+        // Add --verbose flag when using watch and debug is enabled
+        var verboseSwitch = watch && options.Debug ? "--verbose" : string.Empty;
 
         string[] cliArgs = isSingleFile switch
         {
-            false => [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", projectFile.FullName, "--", ..args]
         };
         
@@ -267,6 +272,22 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             if (finalEnv is not null && !finalEnv.ContainsKey(KnownConfigNames.VersionCheckDisabled))
             {
                 finalEnv[KnownConfigNames.VersionCheckDisabled] = "true";
+            }
+        }
+
+        // Set DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER when watch is enabled to prevent launching browser
+        if (watch)
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"))
+            {
+                finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
             }
         }
 
@@ -563,7 +584,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.StandardError,
                 "stderr",
                 process,
-                options.StandardOutputCallback,
+                options.StandardErrorCallback,
                 cancellationToken);
             }, cancellationToken);
 

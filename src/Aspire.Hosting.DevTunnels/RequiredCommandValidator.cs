@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -79,9 +80,9 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
             var message = (link, validationMessage) switch
             {
                 (null, not null) => validationMessage,
-                (not null, not null) => $"{validationMessage} See installation instructions for more details.",
-                (not null, null) => $"Required command '{command}' was not found. See installation instructions for more details.",
-                _ => $"Required command '{command}' was not found on PATH or at a specified location."
+                (not null, not null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithValidation, validationMessage),
+                (not null, null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithLink, command),
+                _ => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotification, command)
             };
 
             _logger.LogWarning("{Message}", message);

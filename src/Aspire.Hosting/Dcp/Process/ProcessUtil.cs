@@ -29,6 +29,7 @@ internal static partial class ProcessUtil
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
+                CreateNoWindow = true,
                 WindowStyle = ProcessWindowStyle.Hidden,
             },
             EnableRaisingEvents = true

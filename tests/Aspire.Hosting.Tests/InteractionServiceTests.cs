@@ -243,6 +243,24 @@ public class InteractionServiceTests
     }
 
     [Fact]
+    public async Task PromptInputsAsync_ChoiceHasNonOptionValueWithAllowCustomChoice_ReturnValue()
+    {
+        var interactionService = CreateInteractionService();
+
+        var input = new InteractionInput { Name = "Value", Label = "Value", InputType = InputType.Choice, AllowCustomChoice = true, Options = [KeyValuePair.Create("first", "First option!"), KeyValuePair.Create("second", "Second option!")] };
+        var resultTask = interactionService.PromptInputAsync("Please provide", "please", input);
+
+        var interaction = Assert.Single(interactionService.GetCurrentInteractions());
+
+        input.Value = "not-in-options";
+        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+
+        var result = await resultTask.DefaultTimeout();
+        Assert.False(result.Canceled);
+        Assert.Equal("not-in-options", result.Data.Value);
+    }
+
+    [Fact]
     public async Task PromptInputsAsync_NumberHasNonNumberValue_ReturnErrors()
     {
         var interactionService = CreateInteractionService();
