@@ -47,6 +47,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
     public bool NoExtensionLaunch { get; set; }
+    public bool Debug { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
@@ -238,10 +239,12 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
         // Add --non-interactive flag when using watch to prevent interactive prompts during automation
         var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
+        // Add --verbose flag when using watch and debug is enabled
+        var verboseSwitch = watch && options.Debug ? "--verbose" : string.Empty;
 
         string[] cliArgs = isSingleFile switch
         {
-            false => [watchOrRunCommand, nonInteractiveSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", projectFile.FullName, "--", ..args]
         };
         

@@ -854,6 +854,165 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
     }
 
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsTrueAndDebugIsTrue_IncludesVerboseFlag()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions { Debug = true };
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            {
+                // Verify that --verbose is included when watch mode and debug are both enabled
+                Assert.Contains("watch", args);
+                Assert.Contains("--verbose", args);
+                
+                // Verify the order: watch should come before --verbose
+                var watchIndex = Array.IndexOf(args, "watch");
+                var verboseIndex = Array.IndexOf(args, "--verbose");
+                Assert.True(watchIndex < verboseIndex);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true, // This should add --verbose when debug is true
+            noBuild: false,
+            args: ["--operation", "inspect"],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsTrueAndDebugIsFalse_DoesNotIncludeVerboseFlag()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions { Debug = false };
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            {
+                // Verify that --verbose is NOT included when debug is false
+                Assert.Contains("watch", args);
+                Assert.DoesNotContain("--verbose", args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true, // This should NOT add --verbose when debug is false
+            noBuild: false,
+            args: ["--operation", "inspect"],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsFalseAndDebugIsTrue_DoesNotIncludeVerboseFlag()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions { Debug = true };
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, options) =>
+            {
+                // Verify that --verbose is NOT included when watch is false even if debug is true
+                Assert.Contains("run", args);
+                Assert.DoesNotContain("watch", args);
+                Assert.DoesNotContain("--verbose", args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: false, // This should NOT add --verbose because it's not in watch mode
+            noBuild: false,
+            args: ["--operation", "inspect"],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
     private sealed class SingleFileAppHostProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
         public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
