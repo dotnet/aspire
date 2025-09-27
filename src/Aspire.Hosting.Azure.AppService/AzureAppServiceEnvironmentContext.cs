@@ -46,6 +46,9 @@ internal sealed class AzureAppServiceEnvironmentContext(
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
 
+        // Add back-pointer to the parent resource
+        provisioningResource.Annotations.Add(new DeploymentTargetParentAnnotation(resource));
+
         return provisioningResource;
     }
 }
