@@ -1,0 +1,22 @@
+{
+  "tsaVersion": "TsaV2",
+  "codebase": "NewOrUpdate",
+  "codebaseName": "aspire-vscode",
+  "tsaStamp": "DevDiv",
+  "tsaEnvironment": "PROD",
+  "notificationAliases": [
+     "jakerad@microsoft.com",
+     "adamratzman@microsoft.com"
+  ],
+  "codebaseAdmins": [
+      "REDMOND\\xiaoyuz",
+      "REDMOND\\adamratzman",
+      "REDMOND\\jakerad"
+  ],
+  "instanceUrl": "https://devdiv.visualstudio.com",
+  "projectName": "DevDiv",
+  "areaPath": "DevDiv\\NET Tools\\Web Tools\\Web\\Aspire",
+  "iterationPath": "DevDiv",
+  "alltools": true,
+  "repositoryName": "aspire-vscode"
+}

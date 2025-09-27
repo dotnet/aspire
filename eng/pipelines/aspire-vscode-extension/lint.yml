@@ -1,0 +1,19 @@
+jobs:
+- job: lint
+  displayName: Lint
+  pool:
+    name: AzurePipelines-EO
+    image: 1ESPT-Ubuntu20.04
+    os: Linux
+  steps:
+  - checkout: self
+    clean: true
+    submodules: false
+    fetchTags: false
+    fetchDepth: 1
+
+  - template: prereqs.yml
+
+  - pwsh: yarn lint --max-warnings=0
+    displayName: 🧹 lint
+    workingDirectory: $(Build.SourcesDirectory)/extension
