@@ -396,9 +396,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         if (parseResult.GetValue<string>("--version") is { } version)
         {
-            var explicitPacakgeFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
-            return explicitPackageFromChannel;
+            if (explicitPackageFromChannel.Package is not null)
+            {
+                return explicitPackageFromChannel;
+            }
         }
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
