@@ -7,6 +7,11 @@
         <target state="translated">Trwa dodawanie integracji hostingu platformy Aspire...</target>
         <note />
       </trans-unit>
+      <trans-unit id="Channels">
+        <source>Channels</source>
+        <target state="new">Channels</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Description">
         <source>Add a hosting integration to the Aspire AppHost.</source>
         <target state="translated">Dodaj integrację hostingu do hosta AppHost platformy Aspire.</target>
