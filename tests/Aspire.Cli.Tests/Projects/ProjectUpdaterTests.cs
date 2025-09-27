@@ -1760,6 +1760,108 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         // Normal path unaffected - no updates needed since version is already current
         Assert.False(updateResult.UpdatedApplied);
     }
+
+    [Fact]
+    public async Task UpdateProjectFileAsync_Legacy_AppHost_Without_Sdk_Element_Injects_Sdk()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
+        var appHostProjectFile = new FileInfo(Path.Combine(appHostFolder.FullName, "UpdateTester.AppHost.csproj"));
+
+        // Create legacy Aspire 8.x AppHost project file without <Sdk /> element
+        await File.WriteAllTextAsync(
+            appHostProjectFile.FullName,
+            $$"""
+            <Project Sdk="Microsoft.NET.Sdk">
+                <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.AppHost" Version="8.2.2" />
+                </ItemGroup>
+            </Project>
+            """);
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
+        {
+            config.DotNetCliRunnerFactory = (sp) =>
+            {
+                return new TestDotNetCliRunner()
+                {
+                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
+                    {
+                        var packages = new List<NuGetPackageCli>();
+
+                        packages.Add(query switch
+                        {
+                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
+                            "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
+                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
+                        });
+
+                        return (0, packages.ToArray());
+                    },
+
+                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, _, _, _, _) =>
+                    {
+                        if (projectFile.FullName == appHostProjectFile.FullName)
+                        {
+                            // Simulate MSBuild failure due to legacy format - it can't resolve the SDK
+                            return (1, null);
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Unexpected project file.");
+                        }
+                    },
+
+                    AddPackageAsyncCallback = (projectFile, packageName, version, source, options, cancellationToken) =>
+                    {
+                        // Simulate successful package addition
+                        return 0;
+                    }
+                };
+            };
+
+            config.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                interactionService.ConfirmCallback = (promptText, defaultValue) =>
+                {
+                    return true;
+                };
+
+                return interactionService;
+            };
+        });
+        var provider = services.BuildServiceProvider();
+
+        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = provider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+        var cache = provider.GetRequiredService<IMemoryCache>();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var fallbackParser = provider.GetRequiredService<FallbackProjectParser>();
+        var packagingService = provider.GetRequiredService<IPackagingService>();
+
+        var channels = await packagingService.GetChannelsAsync();
+        var selectedChannel = channels.Single(c => c.Name == "default");
+
+        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+        var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Should successfully update the project by injecting the <Sdk /> element
+        Assert.True(updateResult.UpdatedApplied);
+
+        // Verify that the <Sdk /> element was injected into the project file
+        var updatedContent = await File.ReadAllTextAsync(appHostProjectFile.FullName);
+        Assert.Contains("<Sdk Name=\"Aspire.AppHost.Sdk\" Version=\"9.5.0\" />", updatedContent);
+        
+        // Verify it was inserted after the <Project> element
+        var lines = updatedContent.Split('\n');
+        var projectLineIndex = Array.FindIndex(lines, line => line.Contains("<Project"));
+        var sdkLineIndex = Array.FindIndex(lines, line => line.Contains("<Sdk Name=\"Aspire.AppHost.Sdk\""));
+        Assert.True(sdkLineIndex > projectLineIndex, "SDK element should appear after Project element");
+        Assert.True(sdkLineIndex < Array.FindIndex(lines, line => line.Contains("<ItemGroup")), "SDK element should appear before ItemGroup");
+    }
 }
 
 internal static class MSBuildJsonDocumentExtensions
