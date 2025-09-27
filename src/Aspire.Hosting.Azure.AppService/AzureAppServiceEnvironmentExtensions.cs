@@ -26,7 +26,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
         builder.Services.Configure<AzureProvisioningOptions>(options => options.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureAppServiceInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<AzureAppServiceInfrastructure>();
 
         return builder;
     }

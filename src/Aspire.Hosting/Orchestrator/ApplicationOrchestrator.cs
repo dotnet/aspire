@@ -19,7 +19,9 @@ internal sealed class ApplicationOrchestrator
     private readonly IDcpExecutor _dcpExecutor;
     private readonly DistributedApplicationModel _model;
     private readonly ILookup<IResource, IResource> _parentChildLookup;
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be supported until fully removed.
     private readonly IDistributedApplicationLifecycleHook[] _lifecycleHooks;
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be supported until fully removed.
     private readonly ResourceNotificationService _notificationService;
     private readonly ResourceLoggerService _loggerService;
     private readonly IDistributedApplicationEventing _eventing;
@@ -31,7 +33,9 @@ internal sealed class ApplicationOrchestrator
     public ApplicationOrchestrator(DistributedApplicationModel model,
                                    IDcpExecutor dcpExecutor,
                                    DcpExecutorEvents dcpExecutorEvents,
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be supported until fully removed.
                                    IEnumerable<IDistributedApplicationLifecycleHook> lifecycleHooks,
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be supported until fully removed.
                                    ResourceNotificationService notificationService,
                                    ResourceLoggerService loggerService,
                                    IDistributedApplicationEventing eventing,

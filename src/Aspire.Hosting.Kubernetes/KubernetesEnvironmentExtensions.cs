@@ -15,7 +15,7 @@ public static class KubernetesEnvironmentExtensions
 {
     internal static IDistributedApplicationBuilder AddKubernetesInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<KubernetesInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<KubernetesInfrastructure>();
 
         return builder;
     }

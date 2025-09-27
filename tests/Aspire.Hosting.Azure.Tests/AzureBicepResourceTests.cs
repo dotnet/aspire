@@ -78,8 +78,8 @@ public class AzureBicepResourceTests
         addAzureResource(builder);
 
         var app = builder.Build();
-        var hooks = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        Assert.Single(hooks.OfType<AzureProvisioner>());
+        var eventingServices = app.Services.GetServices<IDistributedApplicationEventingSubscriber>();
+        Assert.Single(eventingServices.OfType<AzureProvisioner>());
     }
 
     [Theory]
