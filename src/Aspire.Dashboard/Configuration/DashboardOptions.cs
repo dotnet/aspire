@@ -271,6 +271,11 @@ public sealed class OpenIdConnectOptions
     /// </summary>
     public string RequiredClaimValue { get; set; } = "";
 
+    /// <summary>
+    /// Gets or sets the optional value to configure the ClaimActions of <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions"/>
+    /// </summary>
+    public ClaimAction[]? ClaimActions { get; set; }
+
     public string[] GetNameClaimTypes()
     {
         Debug.Assert(_nameClaimTypes is not null, "Should have been parsed during validation.");
@@ -311,6 +316,15 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class ClaimAction
+{
+    public required string ClaimType { get; set; }
+    public required string JsonKey { get; set; }
+    public string? SubKey { get; set; }
+    public bool? IsUnique { get; set; }
+    public string? ValueType { get; set; }
 }
 
 public sealed class DebugSessionOptions
