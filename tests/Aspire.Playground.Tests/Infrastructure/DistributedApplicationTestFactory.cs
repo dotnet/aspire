@@ -49,7 +49,7 @@ internal static class DistributedApplicationTestFactory
 
     internal sealed class ContainerRegistryHook : IDistributedApplicationLifecycleHook
     {
-        public const string AspireTestContainerRegistry = "netaspireci.azurecr.io";
+        public const string AspireTestContainerRegistry = "dotnetdhmirror-f8bzbjakh8cga6ab.azurecr.io";
         public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
         {
             var resourcesWithContainerImages = appModel.Resources
