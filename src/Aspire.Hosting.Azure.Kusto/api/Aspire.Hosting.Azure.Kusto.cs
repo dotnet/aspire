@@ -6,21 +6,24 @@
 //     the code is regenerated.
 // </auto-generated>
 //------------------------------------------------------------------------------
-namespace Aspire.Hosting.Azure.Kusto
+namespace Aspire.Hosting
 {
     public static partial class AzureKustoBuilderExtensions
     {
-        public static ApplicationModel.IResourceBuilder<AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, string name) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoClusterResource> AddAzureKustoCluster(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> AddReadWriteDatabase(this ApplicationModel.IResourceBuilder<AzureKustoClusterResource> builder, string name, string? databaseName = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoReadWriteDatabaseResource> AddReadWriteDatabase(this ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoClusterResource> builder, string name, string? databaseName = null) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoClusterResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<AzureKustoClusterResource> builder, System.Action<ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource>>? configureContainer = null) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoClusterResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoClusterResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoEmulatorResource>>? configureContainer = null) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<AzureKustoReadWriteDatabaseResource> builder, string script) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoReadWriteDatabaseResource> WithCreationScript(this ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoReadWriteDatabaseResource> builder, string script) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<AzureKustoEmulatorResource> builder, int port) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<Azure.Kusto.AzureKustoEmulatorResource> builder, int port) { throw null; }
     }
+}
 
+namespace Aspire.Hosting.Azure.Kusto
+{
     public partial class AzureKustoClusterResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints
     {
         public AzureKustoClusterResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
