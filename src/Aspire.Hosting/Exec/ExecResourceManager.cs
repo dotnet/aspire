@@ -249,9 +249,13 @@ internal class ExecResourceManager
         // we cant resolve dcp name of container resource here - too early in the startup pipeline
         // it will be resolved later in the Dcp layer
         var containerExecutable = new ContainerExecutableResource(execResourceName, container, exe, workingDirectory: workingDirectory)
+
+        // with args
+        containerExecutable.Annotations.Add(new CommandLineArgsCallbackAnnotation((c) =>
         {
-            Args = args
-        };
+            c.Args.AddRange(args ?? []);
+            return Task.CompletedTask;
+        }));
 
         containerExecutable.Annotations.Add(new WaitAnnotation(container, waitType: WaitType.WaitUntilHealthy));
 
