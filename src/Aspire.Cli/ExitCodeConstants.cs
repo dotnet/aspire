@@ -21,4 +21,5 @@ internal static class ExitCodeConstants
     public const int FailedToUpgradeProject = 13;
     public const int CentralPackageManagementNotSupported = 14;
     public const int SingleFileAppHostNotSupported = 15;
+    public const int FailedToUpgradeCliTool = 16;
 }

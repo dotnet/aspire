@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="fr" original="../UpgradeCommandStrings.resx">
+    <body>
+      <trans-unit id="AlreadyUpToDateMessage">
+        <source>You are already using the latest version!</source>
+        <target state="new">You are already using the latest version!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CheckingForUpdatesMessage">
+        <source>Checking for updates...</source>
+        <target state="new">Checking for updates...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ConfirmUpgradePrompt">
+        <source>Do you want to upgrade to version {0}?</source>
+        <target state="new">Do you want to upgrade to version {0}?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CurrentVersionMessage">
+        <source>Current version: {0}</source>
+        <target state="new">Current version: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Upgrade the Aspire CLI to the latest version.</source>
+        <target state="new">Upgrade the Aspire CLI to the latest version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="DotNetToolUpdateFailedMessage">
+        <source>dotnet tool update failed with exit code {0}: {1}</source>
+        <target state="new">dotnet tool update failed with exit code {0}: {1}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FailedToGetCurrentVersion">
+        <source>Failed to determine the current CLI version.</source>
+        <target state="new">Failed to determine the current CLI version.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="InvalidVersionFormat">
+        <source>Invalid version format: {0}</source>
+        <target state="new">Invalid version format: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NewVersionAvailableMessage">
+        <source>New version available: {0}</source>
+        <target state="new">New version available: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="PrereleaseOptionDescription">
+        <source>Include prerelease versions when checking for updates.</source>
+        <target state="new">Include prerelease versions when checking for updates.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RestartShellMessage">
+        <source>Please restart your shell or open a new terminal to use the updated CLI.</source>
+        <target state="new">Please restart your shell or open a new terminal to use the updated CLI.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpgradeCancelledMessage">
+        <source>Upgrade cancelled.</source>
+        <target state="new">Upgrade cancelled.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpgradeFailedMessage">
+        <source>Upgrade failed: {0}</source>
+        <target state="new">Upgrade failed: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpgradeSuccessMessage">
+        <source>Successfully upgraded to version {0}!</source>
+        <target state="new">Successfully upgraded to version {0}!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="UpgradingToVersionMessage">
+        <source>Upgrading to version {0}...</source>
+        <target state="new">Upgrading to version {0}...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="VersionOptionDescription">
+        <source>Upgrade to a specific version instead of the latest.</source>
+        <target state="new">Upgrade to a specific version instead of the latest.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
