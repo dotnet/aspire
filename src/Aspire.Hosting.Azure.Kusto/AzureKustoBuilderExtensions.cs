@@ -184,8 +184,7 @@ public static class AzureKustoBuilderExtensions
                 Image = AzureKustoEmulatorContainerImageTags.Image,
                 Tag = AzureKustoEmulatorContainerImageTags.Tag
             })
-            .WithEnvironment("ACCEPT_EULA", "Y")
-            .WithContainerRuntimeArgs("--memory", "4G");
+            .WithEnvironment("ACCEPT_EULA", "Y");
 
         configureContainer?.Invoke(surrogateBuilder);
 

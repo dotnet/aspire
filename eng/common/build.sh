@@ -44,7 +44,6 @@ usage()
   echo "  --warnAsError <value>    Sets warnaserror msbuild parameter ('true' or 'false')"
   echo "  --buildCheck <value>     Sets /check msbuild parameter"
   echo "  --fromVMR                Set when building from within the VMR"
-  echo "  --build-extension        Build the VS Code extension"
   echo ""
   echo "Command line arguments not listed above are passed thru to msbuild."
   echo "Arguments can also be passed in with a single hyphen."
@@ -91,7 +90,6 @@ prepare_machine=false
 verbosity='minimal'
 runtime_source_feed=''
 runtime_source_feed_key=''
-build_extension=false
 
 properties=()
 while [[ $# > 0 ]]; do
@@ -193,9 +191,6 @@ while [[ $# > 0 ]]; do
       runtime_source_feed_key=$2
       shift
       ;;
-    -build-extension)
-      build_extension=true
-      ;;
     *)
       properties+=("$1")
       ;;
@@ -225,8 +220,6 @@ function InitializeCustomToolset {
     . "$script"
   fi
 }
-
-
 
 function Build {
   InitializeToolset
@@ -264,7 +257,6 @@ function Build {
     /p:Sign=$sign \
     /p:Publish=$publish \
     /p:RestoreStaticGraphEnableBinaryLogger=$binary_log \
-    /p:BuildExtension=$build_extension \
     ${properties[@]+"${properties[@]}"}
 
   ExitWithExitCode 0
