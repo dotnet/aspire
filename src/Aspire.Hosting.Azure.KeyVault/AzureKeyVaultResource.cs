@@ -30,10 +30,19 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     public BicepOutputReference NameOutputReference => new("name", this);
 
     /// <summary>
+    /// Gets a value indicating whether the Azure Key Vault resource is running in the local emulator.
+    /// </summary>
+    public bool IsEmulator => this.IsContainer();
+
+    internal EndpointReference EmulatorEndpoint => new(this, "https");
+
+    /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"{VaultUri}");
+        IsEmulator
+            ? ReferenceExpression.Create($"{EmulatorEndpoint}")
+            : ReferenceExpression.Create($"{VaultUri}");
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 

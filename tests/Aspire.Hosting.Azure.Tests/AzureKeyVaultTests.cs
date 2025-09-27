@@ -376,4 +376,65 @@ public class AzureKeyVaultTests
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public void EmulatorSupport_IsEmulatorFalseByDefault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+
+        Assert.False(keyVault.Resource.IsEmulator);
+    }
+
+    [Fact]
+    public void EmulatorSupport_IsEmulatorTrueWhenContainerPresent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Simulate emulator by adding container annotation
+        keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
+        {
+            Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
+        });
+
+        Assert.True(keyVault.Resource.IsEmulator);
+    }
+
+    [Fact]
+    public async Task EmulatorSupport_ConnectionStringUsesEmulatorEndpointWhenIsEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+        
+        // Add container annotation to simulate emulator
+        keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
+        {
+            Image = "mcr.microsoft.com/azure-key-vault/emulator:latest"
+        });
+        
+        // Add https endpoint for emulator
+        keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
+
+        var connectionString = keyVault.Resource.ConnectionStringExpression;
+
+        Assert.True(keyVault.Resource.IsEmulator);
+        Assert.Contains("localhost:8443", await connectionString.GetValueAsync(default) ?? string.Empty);
+    }
+
+    [Fact]
+    public void EmulatorSupport_ConnectionStringUsesBicepOutputWhenNotEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var keyVault = builder.AddAzureKeyVault("kv");
+
+        var connectionString = keyVault.Resource.ConnectionStringExpression;
+
+        Assert.False(keyVault.Resource.IsEmulator);
+        Assert.Contains("vaultUri", connectionString.ValueExpression);
+    }
 }
