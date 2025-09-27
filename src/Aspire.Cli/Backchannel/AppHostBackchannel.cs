@@ -112,8 +112,6 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
             {
                 throw new InvalidOperationException(ErrorStrings.AlreadyConnectedToBackchannel);
             }
-
-            logger.LogDebug("Connecting to AppHost backchannel at {SocketPath}", socketPath);
             var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             var endpoint = new UnixDomainSocketEndPoint(socketPath);
             await socket.ConnectAsync(endpoint, cancellationToken);
