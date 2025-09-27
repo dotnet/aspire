@@ -167,6 +167,15 @@ namespace Aspire.Hosting.Resources {
                 return ResourceManager.GetString("ParametersInputsMessage", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Please provide values for the unresolved parameters..
+        /// </summary>
+        internal static string ParametersInputsMessagePublishMode {
+            get {
+                return ResourceManager.GetString("ParametersInputsMessagePublishMode", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to Enter value for {0}.

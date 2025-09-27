@@ -130,6 +130,9 @@
     <value>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</value>
     <comment>Contains markdown</comment>
   </data>
+  <data name="ParametersInputsMessagePublishMode" xml:space="preserve">
+    <value>Please provide values for the unresolved parameters.</value>
+  </data>
   <data name="ParametersInputsParameterPlaceholder" xml:space="preserve">
     <value>Enter value for {0}</value>
   </data>

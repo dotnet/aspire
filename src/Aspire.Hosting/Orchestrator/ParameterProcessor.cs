@@ -226,18 +226,35 @@ public sealed class ParameterProcessor(
         // This method will continue in a loop until all unresolved parameters are resolved.
         while (unresolvedParameters.Count > 0)
         {
-            // First we show a notification that there are unresolved parameters.
-            var result = await interactionService.PromptNotificationAsync(
-                InteractionStrings.ParametersBarTitle,
-                InteractionStrings.ParametersBarMessage,
-                 new NotificationInteractionOptions
-                 {
-                     Intent = MessageIntent.Warning,
-                     PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                 })
-                .ConfigureAwait(false);
+            var showNotification = true;
+            var showSaveToSecrets = true;
 
-            if (result.Data)
+            // Skip notification and save to user secrets prompts during publish mode
+            if (executionContext.IsPublishMode)
+            {
+                showNotification = false;
+                showSaveToSecrets = false;
+            }
+
+            var proceedToInputs = true;
+
+            if (showNotification)
+            {
+                // First we show a notification that there are unresolved parameters.
+                var result = await interactionService.PromptNotificationAsync(
+                    InteractionStrings.ParametersBarTitle,
+                    InteractionStrings.ParametersBarMessage,
+                     new NotificationInteractionOptions
+                     {
+                         Intent = MessageIntent.Warning,
+                         PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                     })
+                    .ConfigureAwait(false);
+
+                proceedToInputs = result.Data;
+            }
+
+            if (proceedToInputs)
             {
                 // Now we build up a new form base on the unresolved parameters.
                 var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
@@ -249,17 +266,28 @@ public sealed class ParameterProcessor(
                     resourceInputs.Add((parameter, input));
                 }
 
-                var saveParameters = new InteractionInput
+                var inputs = resourceInputs.Select(i => i.Input).ToList();
+                InteractionInput? saveParameters = null;
+
+                if (showSaveToSecrets)
                 {
-                    Name = "RememberParameters",
-                    InputType = InputType.Boolean,
-                    Label = InteractionStrings.ParametersInputsRememberLabel
-                };
+                    saveParameters = new InteractionInput
+                    {
+                        Name = "RememberParameters",
+                        InputType = InputType.Boolean,
+                        Label = InteractionStrings.ParametersInputsRememberLabel
+                    };
+                    inputs.Add(saveParameters);
+                }
+
+                var message = executionContext.IsPublishMode
+                    ? InteractionStrings.ParametersInputsMessagePublishMode
+                    : InteractionStrings.ParametersInputsMessage;
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
                     InteractionStrings.ParametersInputsTitle,
-                    InteractionStrings.ParametersInputsMessage,
-                    [.. resourceInputs.Select(i => i.Input), saveParameters],
+                    message,
+                    [.. inputs],
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
@@ -300,7 +328,10 @@ public sealed class ParameterProcessor(
                             .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
                         // Persist the parameter value to user secrets if requested.
-                        if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)
+                        if (showSaveToSecrets &&
+                            saveParameters != null &&
+                            bool.TryParse(saveParameters.Value, out var saveToSecrets) &&
+                            saveToSecrets)
                         {
                             SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
                         }
