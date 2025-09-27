@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <Compile Include="$(RepoRoot)src\Aspire.Hosting.Keycloak\KeycloakContainerImageTags.cs" />
+    <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
   </ItemGroup>
 </Project>
