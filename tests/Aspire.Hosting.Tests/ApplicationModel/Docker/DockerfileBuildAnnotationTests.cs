@@ -2,14 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
 public class DockerfileBuildAnnotationTests
 {
     [Fact]
-    public void DockerfileBuildAnnotation_Constructor_WithoutCallback_CreatesAnnotation()
+    public void DockerfileBuildAnnotation_Constructor_CreatesAnnotation()
     {
         // Arrange & Act
         var annotation = new DockerfileBuildAnnotation("/path/to/context", "/path/to/Dockerfile", "stage");
@@ -18,65 +17,51 @@ public class DockerfileBuildAnnotationTests
         Assert.Equal("/path/to/context", annotation.ContextPath);
         Assert.Equal("/path/to/Dockerfile", annotation.DockerfilePath);
         Assert.Equal("stage", annotation.Stage);
-        Assert.Null(annotation.DockerfileCallback);
         Assert.Empty(annotation.BuildArguments);
         Assert.Empty(annotation.BuildSecrets);
     }
 
     [Fact]
-    public void DockerfileBuildAnnotation_Constructor_WithCallback_CreatesAnnotation()
-    {
-        // Arrange
-        Action<DockerfileBuilder> callback = builder => builder.From("test");
-
-        // Act
-        var annotation = new DockerfileBuildAnnotation("/path/to/context", "/path/to/Dockerfile", "stage", callback);
-
-        // Assert
-        Assert.Equal("/path/to/context", annotation.ContextPath);
-        Assert.Equal("/path/to/Dockerfile", annotation.DockerfilePath);
-        Assert.Equal("stage", annotation.Stage);
-        Assert.NotNull(annotation.DockerfileCallback);
-        Assert.Same(callback, annotation.DockerfileCallback);
-        Assert.Empty(annotation.BuildArguments);
-        Assert.Empty(annotation.BuildSecrets);
-    }
-
-    [Fact]
-    public void DockerfileBuildAnnotation_WithCallback_CallbackCanModifyBuilder()
-    {
-        // Arrange
-        DockerfileBuilder? capturedBuilder = null;
-        Action<DockerfileBuilder> callback = builder =>
-        {
-            capturedBuilder = builder;
-            builder.From("node", "18")
-                .WorkDir("/app")
-                .Run("npm install");
-        };
-
-        var annotation = new DockerfileBuildAnnotation("/context", "/dockerfile", null, callback);
-
-        // Act
-        var dockerfileBuilder = new DockerfileBuilder();
-        annotation.DockerfileCallback!(dockerfileBuilder);
-
-        // Assert
-        Assert.NotNull(capturedBuilder);
-        Assert.Same(dockerfileBuilder, capturedBuilder);
-        Assert.Single(dockerfileBuilder.Stages);
-        Assert.Equal(3, dockerfileBuilder.Stages[0].Statements.Count); // FROM + WORKDIR + RUN
-    }
-
-    [Fact]
-    public void DockerfileBuildAnnotation_NullStage_AllowedForBothConstructors()
+    public void DockerfileBuildAnnotation_NullStage_Allowed()
     {
         // Arrange & Act
-        var annotation1 = new DockerfileBuildAnnotation("/context", "/dockerfile", null);
-        var annotation2 = new DockerfileBuildAnnotation("/context", "/dockerfile", null, _ => { });
+        var annotation = new DockerfileBuildAnnotation("/context", "/dockerfile", null);
 
         // Assert
-        Assert.Null(annotation1.Stage);
-        Assert.Null(annotation2.Stage);
+        Assert.Null(annotation.Stage);
+        Assert.Equal("/context", annotation.ContextPath);
+        Assert.Equal("/dockerfile", annotation.DockerfilePath);
+    }
+
+    [Fact]
+    public void DockerfileBuildAnnotation_BuildArguments_Modifiable()
+    {
+        // Arrange
+        var annotation = new DockerfileBuildAnnotation("/context", "/dockerfile", null);
+
+        // Act
+        annotation.BuildArguments["ARG1"] = "value1";
+        annotation.BuildArguments["ARG2"] = null;
+
+        // Assert
+        Assert.Equal(2, annotation.BuildArguments.Count);
+        Assert.Equal("value1", annotation.BuildArguments["ARG1"]);
+        Assert.Null(annotation.BuildArguments["ARG2"]);
+    }
+
+    [Fact]
+    public void DockerfileBuildAnnotation_BuildSecrets_Modifiable()
+    {
+        // Arrange
+        var annotation = new DockerfileBuildAnnotation("/context", "/dockerfile", null);
+
+        // Act
+        annotation.BuildSecrets["SECRET1"] = "secret-value";
+        annotation.BuildSecrets["SECRET2"] = 42;
+
+        // Assert
+        Assert.Equal(2, annotation.BuildSecrets.Count);
+        Assert.Equal("secret-value", annotation.BuildSecrets["SECRET1"]);
+        Assert.Equal(42, annotation.BuildSecrets["SECRET2"]);
     }
 }
