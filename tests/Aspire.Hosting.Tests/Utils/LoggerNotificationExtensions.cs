@@ -20,6 +20,7 @@ public static class LoggerNotificationExtensions
     /// <param name="resourceName">An optional resource name to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
+    [Obsolete("Use the public API from Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions instead")]
     public static Task WaitForTextAsync(this DistributedApplication app, string logText, string? resourceName = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -44,6 +45,7 @@ public static class LoggerNotificationExtensions
     /// <param name="resourceName">An optional resource name to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
+    [Obsolete("Use the public API from Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions instead")]
     public static Task WaitForTextAsync(this DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -59,6 +61,7 @@ public static class LoggerNotificationExtensions
     /// <param name="predicate">A predicate checking the text to wait for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
+    [Obsolete("Use the public API from Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions instead")]
     public static Task WaitForTextAsync(this DistributedApplication app, Predicate<string> predicate, CancellationToken cancellationToken = default)
         => app.WaitForTextAsync(predicate, resourceName: null, cancellationToken);
 
@@ -70,6 +73,7 @@ public static class LoggerNotificationExtensions
     /// <param name="resourceName">An optional resource name to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
+    [Obsolete("Use the public API from Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions instead")]
     public static Task WaitForTextAsync(this DistributedApplication app, Predicate<string> predicate, string? resourceName = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(app);
@@ -94,6 +98,7 @@ public static class LoggerNotificationExtensions
     /// <param name="resourceName">An optional resource name to filter the logs for.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns></returns>
+    [Obsolete("Use the public API from Aspire.Hosting.Testing.DistributedApplicationHostingTestingExtensions instead")]
     public static async Task WaitForAllTextAsync(this DistributedApplication app, IEnumerable<string> logTexts, string? resourceName = null, CancellationToken cancellationToken = default)
     {
         var table = logTexts.ToList();
