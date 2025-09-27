@@ -28,6 +28,7 @@ public static class PostgresBuilderExtensions
     /// <param name="userName">The parameter used to provide the user name for the PostgreSQL resource. If <see langword="null"/> a default value will be used.</param>
     /// <param name="password">The parameter used to provide the administrator password for the PostgreSQL resource. If <see langword="null"/> a random password will be generated.</param>
     /// <param name="port">The host port used when launching the container. If null a random port will be assigned.</param>
+    /// <param name="isPortProxied">Specifies if the port will be proxied by DCP. Defaults to true.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
@@ -42,7 +43,8 @@ public static class PostgresBuilderExtensions
         [ResourceName] string name,
         IResourceBuilder<ParameterResource>? userName = null,
         IResourceBuilder<ParameterResource>? password = null,
-        int? port = null)
+        int? port = null,
+        bool isPortProxied = true)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -102,7 +104,7 @@ public static class PostgresBuilderExtensions
         });
 
         return builder.AddResource(postgresServer)
-                      .WithEndpoint(port: port, targetPort: 5432, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
+                      .WithEndpoint(port: port, targetPort: 5432, isProxied: isPortProxied, name: PostgresServerResource.PrimaryEndpointName) // Internal port is always 5432.
                       .WithImage(PostgresContainerImageTags.Image, PostgresContainerImageTags.Tag)
                       .WithImageRegistry(PostgresContainerImageTags.Registry)
                       .WithEnvironment("POSTGRES_HOST_AUTH_METHOD", "scram-sha-256")
