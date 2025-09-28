@@ -547,7 +547,7 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Last run at.
+        ///   Looks up a localized string similar to Last run time.
         /// </summary>
         public static string LastRunAtColumnHeader {
             get {

@@ -446,7 +446,7 @@
     <value>Endpoint name</value>
   </data>
   <data name="LastRunAtColumnHeader" xml:space="preserve">
-    <value>Last run at</value>
+    <value>Last run time</value>
   </data>
   <data name="LinkAddressColumnHeader" xml:space="preserve">
     <value>Address</value>
