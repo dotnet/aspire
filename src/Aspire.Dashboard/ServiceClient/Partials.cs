@@ -56,8 +56,10 @@ partial class Resource
                 healthReport.Key, 
                 healthReport.HasStatus ? MapHealthStatus(healthReport.Status) : null, 
                 healthReport.Description, 
-                healthReport.Exception,
-                healthReport.LastRunAt?.ToDateTime());
+                healthReport.Exception)
+            {
+                LastRunAt = healthReport.LastRunAt?.ToDateTime()
+            };
         }
 
         Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus MapHealthStatus(HealthStatus healthStatus)

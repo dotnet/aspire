@@ -447,8 +447,12 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText, DateTime? LastRunAt)
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
 {
+    /// <summary>
+    /// The timestamp when this health check was last executed, or <see langword="null"/> if not available.
+    /// </summary>
+    public DateTime? LastRunAt { get; init; }
     private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription
