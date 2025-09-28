@@ -8,23 +8,23 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Deploy an Aspire app host project to its supported deployment targets. (Preview)</source>
-        <target state="translated">Déployez un projet hôte d’application Aspire sur ses cibles de déploiement prises en charge. (Préversion)</target>
+        <source>Deploy the contents of an Aspire apphost to its defined deployment targets. (Preview)</source>
+        <target state="translated">Déployez le contenu d’un Aspire AppHost vers les cibles de déploiement définies. (Préversion)</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
-        <target state="new">DEPLOYMENT COMPLETED</target>
+        <target state="translated">DÉPLOIEMENT TERMINÉ</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationFailedPrefix">
         <source>DEPLOYMENT FAILED</source>
-        <target state="new">DEPLOYMENT FAILED</target>
+        <target state="translated">ÉCHEC DU DÉPLOIEMENT</target>
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for deployment artifacts.</source>
-        <target state="translated">Chemin de sortie des artefacts de déploiement.</target>
+        <source>The optional output path for deployment artifacts.</source>
+        <target state="translated">Le chemin de sortie optionnel des artefacts de déploiement.</target>
         <note />
       </trans-unit>
     </body>

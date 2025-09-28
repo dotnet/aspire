@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
 using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.Configuration;
@@ -35,11 +35,6 @@ public class AddParameterTests
         Assert.Collection(state.Properties,
             prop =>
             {
-                Assert.Equal("parameter.secret", prop.Name);
-                Assert.Equal("True", prop.Value);
-            },
-            prop =>
-            {
                 Assert.Equal(CustomResourceKnownProperties.Source, prop.Name);
                 Assert.Equal("Parameters:pass", prop.Value);
             });
@@ -62,7 +57,9 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     [Theory]
@@ -97,7 +94,9 @@ public class AddParameterTests
 
         // Make sure the code value is used, ignoring any config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"DefaultValue", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest should not include anything about the default value
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
@@ -147,7 +146,9 @@ public class AddParameterTests
 
         // Make sure the code value is used, ignoring any config value
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"DefaultValue", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest should include the default value, since we passed publishValueAsDefault: true
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "pass")).DefaultTimeout();
@@ -206,13 +207,17 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "pass");
         if (hasConfig)
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal("ValueFromConfiguration", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
         else
         {
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.NotEqual("ValueFromConfiguration", parameterResource.Value);
             // We can't test the exact value since it's random, but we can test the length
             Assert.Equal(10, parameterResource.Value.Length);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
 
         // The manifest should always include the fields for the generated default value
@@ -268,7 +273,9 @@ public class AddParameterTests
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>(), r => r.Name == "val");
+#pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal($"MyAccessToken", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
 
         // The manifest is not affected by the custom configuration key
         var paramManifest = await ManifestUtils.GetManifest(appModel.Resources.OfType<ParameterResource>().Single(r => r.Name == "val")).DefaultTimeout();
@@ -320,37 +327,6 @@ public class AddParameterTests
         Assert.Equal(expectedManifest, s);
     }
 
-    [Fact]
-    public async Task AddConnectionStringExpressionIsAValueInTheManifest()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-
-        var endpoint = appBuilder.AddParameter("endpoint", "http://localhost:3452");
-        var key = appBuilder.AddParameter("key", "secretKey", secret: true);
-
-        // Get the service provider.
-        appBuilder.AddConnectionString("mycs", ReferenceExpression.Create($"Endpoint={endpoint};Key={key}"));
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ConnectionStringResource>());
-
-        Assert.Equal("mycs", connectionStringResource.Name);
-        var connectionStringManifest = await ManifestUtils.GetManifest(connectionStringResource).DefaultTimeout();
-
-        var expectedManifest = $$"""
-            {
-              "type": "value.v0",
-              "connectionString": "Endpoint={endpoint.value};Key={key.value}"
-            }
-            """;
-
-        var s = connectionStringManifest.ToString();
-
-        Assert.Equal(expectedManifest, s);
-    }
-
     private sealed class TestParameterDefault(string defaultValue) : ParameterDefault
     {
         public override string GetDefaultValue() => defaultValue;
@@ -359,31 +335,6 @@ public class AddParameterTests
         {
             throw new NotImplementedException();
         }
-    }
-
-    [Fact]
-    public void ConnectionStringsAreVisibleByDefault()
-    {
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var endpoint = appBuilder.AddParameter("endpoint", "http://localhost:3452");
-        var key = appBuilder.AddParameter("key", "secretKey", secret: true);
-
-        appBuilder.AddConnectionString("testcs", ReferenceExpression.Create($"Endpoint={endpoint};Key={key}"));
-
-        using var app = appBuilder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var connectionStringResource = Assert.Single(appModel.Resources.OfType<ConnectionStringResource>());
-        var annotation = connectionStringResource.Annotations.OfType<ResourceSnapshotAnnotation>().SingleOrDefault();
-
-        Assert.NotNull(annotation);
-
-        var state = annotation.InitialSnapshot;
-
-        Assert.False(state.IsHidden);
-        Assert.Equal(KnownResourceTypes.ConnectionString, state.ResourceType);
-        Assert.Equal(KnownResourceStates.Waiting, state.State?.Text);
     }
 
     [Fact]
@@ -428,6 +379,7 @@ public class AddParameterTests
             .WithDescription("Custom input parameter")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "CustomInput",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = p.Description,
@@ -454,7 +406,7 @@ public class AddParameterTests
         Assert.Equal(InputType.Text, input.InputType);
         Assert.Equal("test", input.Label);
         Assert.Equal("Test description", input.Description);
-        Assert.Equal("Enter value for test", input.Placeholder);
+        Assert.Equal(string.Format(InteractionStrings.ParametersInputsParameterPlaceholder, "test"), input.Placeholder);
         Assert.False(input.EnableDescriptionMarkdown);
     }
 
@@ -473,7 +425,7 @@ public class AddParameterTests
         Assert.Equal(InputType.SecretText, input.InputType);
         Assert.Equal("secret", input.Label);
         Assert.Equal("Secret description", input.Description);
-        Assert.Equal("Enter value for secret", input.Placeholder);
+        Assert.Equal(string.Format(InteractionStrings.ParametersInputsParameterPlaceholder, "secret"), input.Placeholder);
         Assert.False(input.EnableDescriptionMarkdown);
     }
 
@@ -486,6 +438,7 @@ public class AddParameterTests
             .WithDescription("Custom description")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParameter",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom: " + p.Description,
@@ -530,6 +483,7 @@ public class AddParameterTests
         var parameter = appBuilder.AddParameter("test")
             .WithCustomInput(p => new InteractionInput
             {
+                Name = "TestParam",
                 InputType = InputType.Number,
                 Label = "Custom Label",
                 Description = "Custom description",

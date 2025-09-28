@@ -31,9 +31,6 @@ public partial class AspirePageContentLayout : ComponentBase
     public RenderFragment? FooterSection { get; set; }
 
     [Parameter]
-    public bool ShouldShowFooter { get; set; } = true;
-
-    [Parameter]
     public string? MobileToolbarButtonText { get; set; }
 
     [Parameter]

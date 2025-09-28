@@ -304,6 +304,16 @@ public class WithReferenceTests
         Assert.Collection(csRelationships,
             r =>
             {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(endpoint.Resource, r.Resource);
+            },
+            r =>
+            {
+                Assert.Equal("WaitFor", r.Type);
+                Assert.Same(key.Resource, r.Resource);
+            },
+            r =>
+            {
                 Assert.Equal("Reference", r.Type);
                 Assert.Same(endpoint.Resource, r.Resource);
             },

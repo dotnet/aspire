@@ -43,7 +43,15 @@ steps:
               $(_InternalBuildArgs)
               /p:TargetRids=${{ join(':', parameters.targetRids) }}
               /p:SkipTestProjects=true
+              /p:BuildExtension=true
       displayName: 🟣Build
+
+    - task: 1ES.PublishBuildArtifacts@1
+      displayName: 🟣Publish vscode extension
+      condition: always()
+      inputs:
+        PathtoPublish: '${{ parameters.repoArtifactsPath }}/packages/Release/vscode'
+        ArtifactName: aspire-vscode-extension
 
     - script: ${{ parameters.dotnetScript }}
               build

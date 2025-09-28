@@ -2,8 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,7 +17,7 @@ namespace Aspire.Hosting.Tests.Orchestrator;
 public class ParameterProcessorTests
 {
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParameters_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParameters_SetsRunningState()
     {
         // Arrange
         var parameterProcessor = CreateParameterProcessor();
@@ -34,12 +35,14 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
     [Fact]
-    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsActiveState()
+    public async Task InitializeParametersAsync_WithValidParametersAndDashboardEnabled_SetsRunningState()
     {
         // Arrange
         var interactionService = CreateInteractionService(disableDashboard: false);
@@ -58,7 +61,9 @@ public class ParameterProcessorTests
         {
             Assert.NotNull(param.WaitForValueTcs);
             Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.Equal(param.Value, await param.WaitForValueTcs.Task);
+#pragma warning restore CS0618 // Type or member is obsolete
         }
     }
 
@@ -89,8 +94,7 @@ public class ParameterProcessorTests
         // Assert
         var (resource, snapshot) = Assert.Single(updates);
         Assert.Same(secretParam, resource);
-        Assert.Equal(KnownResourceStates.Active, snapshot.State?.Text);
-        Assert.Equal(KnownResourceStateStyles.Success, snapshot.State?.Style);
+        Assert.Equal(KnownResourceStates.Running, snapshot.State?.Text);
     }
 
     [Fact]
@@ -186,16 +190,16 @@ public class ParameterProcessorTests
 
         // Assert - Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
-        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", messageBarInteraction.Message);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarMessage, messageBarInteraction.Message);
 
         // Complete the message bar interaction to proceed to inputs dialog
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Set unresolved parameters", inputsInteraction.Title);
-        Assert.Equal("Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.", inputsInteraction.Message);
+        Assert.Equal(InteractionStrings.ParametersInputsTitle, inputsInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersInputsMessage, inputsInteraction.Message);
         Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
 
         Assert.Collection(inputsInteraction.Inputs,
@@ -219,7 +223,7 @@ public class ParameterProcessorTests
             },
             input =>
             {
-                Assert.Equal("Save to user secrets", input.Label);
+                Assert.Equal(InteractionStrings.ParametersInputsRememberLabel, input.Label);
                 Assert.Equal(InputType.Boolean, input.InputType);
                 Assert.False(input.Required);
             });
@@ -242,17 +246,17 @@ public class ParameterProcessorTests
         Assert.Equal("secretValue", await secretParam.WaitForValueTcs.Task);
 
         // Notification service should have received updates for each parameter
-        // Marking them as Active with the provided values
+        // Marking them as Running with the provided values
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value1", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("value2", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
 
         await updates.MoveNextAsync();
-        Assert.Equal(KnownResourceStates.Active, updates.Current.Snapshot.State?.Text);
+        Assert.Equal(KnownResourceStates.Running, updates.Current.Snapshot.State?.Text);
         Assert.Equal("secretValue", updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.Value);
         Assert.True(updates.Current.Snapshot.Properties.FirstOrDefault(p => p.Name == KnownProperties.Parameter.Value)?.IsSensitive ?? false);
     }
@@ -272,14 +276,14 @@ public class ParameterProcessorTests
 
         // Wait for the message bar interaction
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", messageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, messageBarInteraction.Title);
 
         // Complete the message bar interaction with false (user chose not to enter values)
         messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Cancel<bool>());
 
         // Assert that the message bar will show up again if there are still unresolved parameters
         var nextMessageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", nextMessageBarInteraction.Title);
+        Assert.Equal(InteractionStrings.ParametersBarTitle, nextMessageBarInteraction.Title);
 
         // Assert - Parameter should remain unresolved since user cancelled
         Assert.NotNull(parameterWithMissingValue.WaitForValueTcs);
@@ -472,19 +476,224 @@ public class ParameterProcessorTests
         Assert.Equal(InputType.SecretText, secretInput.InputType);
     }
 
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_CollectsAndInitializesAllParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var explicitParam = builder.AddParameter("explicitParam", () => "explicitValue");
+        var referencedParam = builder.AddParameter("referencedParam", () => "referencedValue");
+
+        // Create a container that references the parameter in an environment variable
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", referencedParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var explicitParameterResource = model.Resources.OfType<ParameterResource>().First(p => p.Name == "explicitParam");
+        var referencedParameterResource = model.Resources.OfType<ParameterResource>().First(p => p.Name == "referencedParam");
+
+        Assert.NotNull(explicitParameterResource.WaitForValueTcs);
+        Assert.NotNull(referencedParameterResource.WaitForValueTcs);
+        Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.True(referencedParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
+        Assert.Equal("referencedValue", await referencedParameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_EmptyModel_CompletesSuccessfully()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act & Assert - Should not throw
+        await parameterProcessor.InitializeParametersAsync(model);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_NoParameterReferences_InitializesExplicitOnly()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var explicitParam = builder.AddParameter("explicitParam", () => "explicitValue");
+
+        // Add a container without parameter references
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", "staticValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var explicitParameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.Equal("explicitParam", explicitParameterResource.Name);
+        Assert.NotNull(explicitParameterResource.WaitForValueTcs);
+        Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WithEnvironmentVariableReferences()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var referencedParam = builder.AddParameter("envParam", () => "envValue");
+
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", referencedParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.Equal("envParam", parameterResource.Name);
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("envValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WaitForResolution_True()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("testParam", () => "testValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WaitForResolution_False()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("testParam", () => "testValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: false);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WithMissingParameterValues_HandlesCorrectly()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var missingParam = builder.AddParameter("missingParam", () => throw new MissingParameterValueException("Parameter 'missingParam' is missing"));
+
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", missingParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.False(parameterResource.WaitForValueTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_HandlesCircularReferences()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param1 = builder.AddParameter("param1", () => "value1");
+        var param2 = builder.AddParameter("param2", () => "value2");
+
+        // Create a scenario that could potentially create circular references
+        builder.AddContainer("container1", "nginx")
+               .WithEnvironment("ENV1", param1)
+               .WithEnvironment("ENV2", param2);
+
+        builder.AddContainer("container2", "nginx")
+               .WithEnvironment("ENV3", param1);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act - Should not hang or throw due to circular references
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameters = model.Resources.OfType<ParameterResource>().ToList();
+        Assert.Equal(2, parameters.Count);
+
+        foreach (var param in parameters)
+        {
+            Assert.NotNull(param.WaitForValueTcs);
+            Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        }
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,
         IInteractionService? interactionService = null,
         ILogger<ParameterProcessor>? logger = null,
-        bool disableDashboard = true)
+        bool disableDashboard = true,
+        DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
-            new DistributedApplicationOptions { DisableDashboard = disableDashboard }
+            new DistributedApplicationOptions { DisableDashboard = disableDashboard },
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         );
     }
 

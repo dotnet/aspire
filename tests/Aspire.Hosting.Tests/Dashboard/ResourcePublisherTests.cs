@@ -203,7 +203,9 @@ public class ResourcePublisherTests
             Commands = [],
             Relationships = [],
             IsHidden = false,
-            SupportsDetailedTelemetry = false
+            SupportsDetailedTelemetry = false,
+            IconName = null,
+            IconVariant = null
         };
     }
 

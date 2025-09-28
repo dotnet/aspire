@@ -62,8 +62,28 @@ public class AzureOpenAIResource(string name, Action<AzureResourceInfrastructure
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var account = CognitiveServicesAccount.FromExisting(this.GetBicepIdentifier());
-        account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a CognitiveServicesAccount with the same identifier already exists
+        var existingAccount = resources.OfType<CognitiveServicesAccount>().SingleOrDefault(account => account.BicepIdentifier == bicepIdentifier);
+        
+        if (existingAccount is not null)
+        {
+            return existingAccount;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var account = CognitiveServicesAccount.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            account))
+        {
+            account.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(account);
         return account;
     }

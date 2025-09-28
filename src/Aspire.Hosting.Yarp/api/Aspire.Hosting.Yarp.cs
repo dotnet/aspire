@@ -8,18 +8,179 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
-    public static partial class YarpServiceExtensions
+    public partial interface IYarpConfigurationBuilder
+    {
+        Yarp.YarpCluster AddCluster(ApplicationModel.EndpointReference endpoint);
+        Yarp.YarpCluster AddCluster(ApplicationModel.IResourceBuilder<ExternalServiceResource> externalService);
+        Yarp.YarpCluster AddCluster(ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> resource);
+        Yarp.YarpCluster AddCluster(string clusterName, object destination);
+        Yarp.YarpCluster AddCluster(string clusterName, object[] destinations);
+        Yarp.YarpRoute AddRoute(string path, Yarp.YarpCluster cluster);
+    }
+
+    public static partial class YarpConfigurationBuilderExtensions
+    {
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, ApplicationModel.EndpointReference endpoint) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, ApplicationModel.IResourceBuilder<ExternalServiceResource> externalService) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> resource) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, Yarp.YarpCluster cluster) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, ApplicationModel.EndpointReference endpoint) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, ApplicationModel.IResourceBuilder<ExternalServiceResource> externalService) { throw null; }
+
+        public static Yarp.YarpRoute AddRoute(this IYarpConfigurationBuilder builder, string path, ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> resource) { throw null; }
+    }
+
+    public static partial class YarpResourceExtensions
     {
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> AddYarp(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfigFile(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string configFilePath) { throw null; }
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithConfiguration(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, System.Action<IYarpConfigurationBuilder> configurationBuilder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithHostPort(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, int? port) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder, string sourcePath) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder) { throw null; }
     }
 }
 
 namespace Aspire.Hosting.Yarp
 {
-    public partial class YarpResource : ApplicationModel.ContainerResource
+    public partial interface IYarpJsonConfigGeneratorBuilder
+    {
+        IYarpJsonConfigGeneratorBuilder AddCluster(global::Yarp.ReverseProxy.Configuration.ClusterConfig cluster);
+        IYarpJsonConfigGeneratorBuilder AddRoute(global::Yarp.ReverseProxy.Configuration.RouteConfig route);
+        IYarpJsonConfigGeneratorBuilder WithConfigFile(string configFilePath);
+    }
+
+    public partial class YarpCluster
+    {
+        internal YarpCluster() { }
+    }
+
+    public static partial class YarpClusterExtensions
+    {
+        public static YarpCluster WithForwarderRequestConfig(this YarpCluster cluster, global::Yarp.ReverseProxy.Forwarder.ForwarderRequestConfig config) { throw null; }
+
+        public static YarpCluster WithHealthCheckConfig(this YarpCluster cluster, global::Yarp.ReverseProxy.Configuration.HealthCheckConfig config) { throw null; }
+
+        public static YarpCluster WithHttpClientConfig(this YarpCluster cluster, global::Yarp.ReverseProxy.Configuration.HttpClientConfig config) { throw null; }
+
+        public static YarpCluster WithLoadBalancingPolicy(this YarpCluster cluster, string policy) { throw null; }
+
+        public static YarpCluster WithMetadata(this YarpCluster cluster, System.Collections.Generic.IReadOnlyDictionary<string, string> metadata) { throw null; }
+
+        public static YarpCluster WithSessionAffinityConfig(this YarpCluster cluster, global::Yarp.ReverseProxy.Configuration.SessionAffinityConfig config) { throw null; }
+    }
+
+    public partial class YarpResource : ApplicationModel.ContainerResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
         public YarpResource(string name) : base(default!, default) { }
+    }
+
+    public partial class YarpRoute
+    {
+        internal YarpRoute() { }
+    }
+
+    public static partial class YarpRouteExtensions
+    {
+        public static YarpRoute WithMatch(this YarpRoute route, global::Yarp.ReverseProxy.Configuration.RouteMatch match) { throw null; }
+
+        public static YarpRoute WithMatchHeaders(this YarpRoute route, params global::Yarp.ReverseProxy.Configuration.RouteHeader[] headers) { throw null; }
+
+        public static YarpRoute WithMatchHosts(this YarpRoute route, params string[] hosts) { throw null; }
+
+        public static YarpRoute WithMatchMethods(this YarpRoute route, params string[] methods) { throw null; }
+
+        public static YarpRoute WithMatchPath(this YarpRoute route, string path) { throw null; }
+
+        public static YarpRoute WithMatchRouteQueryParameter(this YarpRoute route, params global::Yarp.ReverseProxy.Configuration.RouteQueryParameter[] queryParameters) { throw null; }
+
+        public static YarpRoute WithMaxRequestBodySize(this YarpRoute route, long maxRequestBodySize) { throw null; }
+
+        public static YarpRoute WithMetadata(this YarpRoute route, System.Collections.Generic.IReadOnlyDictionary<string, string>? metadata) { throw null; }
+
+        public static YarpRoute WithOrder(this YarpRoute route, int? order) { throw null; }
+
+        public static YarpRoute WithTransform(this YarpRoute route, System.Action<System.Collections.Generic.IDictionary<string, string>> createTransform) { throw null; }
+
+        public static YarpRoute WithTransforms(this YarpRoute route, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyDictionary<string, string>>? transforms) { throw null; }
+    }
+}
+
+namespace Aspire.Hosting.Yarp.Transforms
+{
+    public static partial class ForwardedTransformExtensions
+    {
+        public static YarpRoute WithTransformClientCertHeader(this YarpRoute route, string headerName) { throw null; }
+
+        public static YarpRoute WithTransformForwarded(this YarpRoute route, bool useHost = true, bool useProto = true, global::Yarp.ReverseProxy.Transforms.NodeFormat forFormat = global::Yarp.ReverseProxy.Transforms.NodeFormat.Random, global::Yarp.ReverseProxy.Transforms.NodeFormat byFormat = global::Yarp.ReverseProxy.Transforms.NodeFormat.Random, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions action = global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions.Set) { throw null; }
+
+        public static YarpRoute WithTransformXForwarded(this YarpRoute route, string headerPrefix = "X-Forwarded-", global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions xDefault = global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions.Set, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xFor = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xHost = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xProto = null, global::Yarp.ReverseProxy.Transforms.ForwardedTransformActions? xPrefix = null) { throw null; }
+    }
+
+    public static partial class HttpMethodTransformExtensions
+    {
+        public static YarpRoute WithTransformHttpMethodChange(this YarpRoute route, string fromHttpMethod, string toHttpMethod) { throw null; }
+    }
+
+    public static partial class PathTransformExtensions
+    {
+        public static YarpRoute WithTransformPathPrefix(this YarpRoute route, Microsoft.AspNetCore.Http.PathString prefix) { throw null; }
+
+        public static YarpRoute WithTransformPathRemovePrefix(this YarpRoute route, Microsoft.AspNetCore.Http.PathString prefix) { throw null; }
+
+        public static YarpRoute WithTransformPathRouteValues(this YarpRoute route, Microsoft.AspNetCore.Http.PathString pattern) { throw null; }
+
+        public static YarpRoute WithTransformPathSet(this YarpRoute route, Microsoft.AspNetCore.Http.PathString path) { throw null; }
+    }
+
+    public static partial class QueryTransformExtensions
+    {
+        public static YarpRoute WithTransformQueryRemoveKey(this YarpRoute route, string queryKey) { throw null; }
+
+        public static YarpRoute WithTransformQueryRouteValue(this YarpRoute route, string queryKey, string routeValueKey, bool append = true) { throw null; }
+
+        public static YarpRoute WithTransformQueryValue(this YarpRoute route, string queryKey, string value, bool append = true) { throw null; }
+    }
+
+    public static partial class RequestHeadersTransformExtensions
+    {
+        public static YarpRoute WithTransformCopyRequestHeaders(this YarpRoute route, bool copy = true) { throw null; }
+
+        public static YarpRoute WithTransformRequestHeader(this YarpRoute route, string headerName, string value, bool append = true) { throw null; }
+
+        public static YarpRoute WithTransformRequestHeaderRemove(this YarpRoute route, string headerName) { throw null; }
+
+        public static YarpRoute WithTransformRequestHeaderRouteValue(this YarpRoute route, string headerName, string routeValueKey, bool append = true) { throw null; }
+
+        public static YarpRoute WithTransformRequestHeadersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
+
+        public static YarpRoute WithTransformUseOriginalHostHeader(this YarpRoute route, bool useOriginal = true) { throw null; }
+    }
+
+    public static partial class ResponseTransformExtensions
+    {
+        public static YarpRoute WithTransformCopyResponseHeaders(this YarpRoute route, bool copy = true) { throw null; }
+
+        public static YarpRoute WithTransformCopyResponseTrailers(this YarpRoute route, bool copy = true) { throw null; }
+
+        public static YarpRoute WithTransformResponseHeader(this YarpRoute route, string headerName, string value, bool append = true, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
+
+        public static YarpRoute WithTransformResponseHeaderRemove(this YarpRoute route, string headerName, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
+
+        public static YarpRoute WithTransformResponseHeadersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
+
+        public static YarpRoute WithTransformResponseTrailer(this YarpRoute route, string headerName, string value, bool append = true, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
+
+        public static YarpRoute WithTransformResponseTrailerRemove(this YarpRoute route, string headerName, global::Yarp.ReverseProxy.Transforms.ResponseCondition condition = global::Yarp.ReverseProxy.Transforms.ResponseCondition.Success) { throw null; }
+
+        public static YarpRoute WithTransformResponseTrailersAllowed(this YarpRoute route, params string[] allowedHeaders) { throw null; }
     }
 }

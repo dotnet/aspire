@@ -16,9 +16,6 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     private const string ConnectionStringEndpoint = "Endpoint";
     private const string ConnectionStringKey = "Key";
 
-    private bool? _disableTracing;
-    private bool? _disableMetrics;
-
     /// <summary>
     /// Gets or sets a <see cref="Uri"/> referencing the Azure OpenAI endpoint.
     /// This is likely to be similar to "https://{account_name}.openai.azure.com".
@@ -46,46 +43,40 @@ public sealed class AzureOpenAISettings : IConnectionStringSettings
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <remarks>
-    /// Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
-    /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
-    /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
-    public bool DisableMetrics
-    {
-        get { return _disableMetrics ??= !GetTelemetryDefaultValue(); }
-        set { _disableMetrics = value; }
-    }
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
-    /// Azure AI OpenAI telemetry support is experimental, the shape of traces may change in the future without notice.
-    /// It can be enabled by setting "OpenAI.Experimental.EnableOpenTelemetry" <see cref="AppContext"/> switch to true.
-    /// Or by setting "OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY" environment variable to "true".
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
-    public bool DisableTracing
-    {
-        get { return _disableTracing ??= !GetTelemetryDefaultValue(); }
-        set { _disableTracing = value; }
-    }
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
+    public bool DisableTracing { get; set; }
 
-    // TODO: remove this when telemetry support is no longer experimental
-    private static bool GetTelemetryDefaultValue()
-    {
-        if (AppContext.TryGetSwitch("OpenAI.Experimental.EnableOpenTelemetry", out var enabled))
-        {
-            return enabled;
-        }
-
-        var envVar = Environment.GetEnvironmentVariable("OPENAI_EXPERIMENTAL_ENABLE_OPEN_TELEMETRY");
-        if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
-        {
-            return true;
-        }
-
-        return false;
-    }
+    /// <summary>
+    /// Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if potentially sensitive information should be included in telemetry;
+    /// <see langword="false"/> if telemetry shouldn't include raw inputs and outputs.
+    /// The default value is <see langword="false"/>, unless the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable is set to "true" (case-insensitive).
+    /// </value>
+    /// <remarks>
+    /// By default, telemetry includes metadata, such as token counts, but not raw inputs
+    /// and outputs, such as message content, function call arguments, and function call results.
+    /// The default value can be overridden by setting the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable to "true". Explicitly setting this property will override the environment variable.
+    /// </remarks>
+    public bool EnableSensitiveTelemetryData { get; set; } = TelemetryHelpers.EnableSensitiveDataDefault;
 
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {

@@ -380,7 +380,7 @@ internal sealed class AzureResourcePreparer(
 
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext([], cancellationToken: cancellationToken);
+            var context = new CommandLineArgsCallbackContext([], resource, cancellationToken: cancellationToken);
 
             foreach (var c in commandLineArgsCallbackAnnotations)
             {
@@ -396,8 +396,20 @@ internal sealed class AzureResourcePreparer(
         return azureReferences;
     }
 
-    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object value)
+    /// <summary>
+    /// Processes a value to extract Azure resource references and adds them to the collection.
+    /// Null values are ignored since they cannot contain Azure resource references.
+    /// </summary>
+    private static void ProcessAzureReferences(HashSet<IAzureResource> azureReferences, object? value)
     {
+        // Null values can be added by environment variable or command line argument callbacks
+        // and should be ignored since they cannot contain Azure resource references.
+        // See: https://github.com/dotnet/aspire/discussions/11127
+        if (value is null)
+        {
+            return;
+        }
+
         if (value is string or EndpointReference or ParameterResource or EndpointReferenceExpression or HostUrl)
         {
             return;

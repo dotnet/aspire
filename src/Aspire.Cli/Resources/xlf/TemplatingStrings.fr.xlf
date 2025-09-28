@@ -27,6 +27,11 @@
         <target state="translated">Paramètres par défaut du service</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Single-file AppHost (experimental)</source>
+        <target state="translated">AppHost à fichier unique (expérimental)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
         <target state="translated">Modèle de démarrage</target>
@@ -46,6 +51,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">Une erreur s’est produite lors de l’approbation des certificats : {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">Voulez-vous créer un fichier NuGet.config pour les canaux sélectionnés ?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -85,6 +95,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">Aucun</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">Le fichier NuGet.config a été créé pour le canal de packages sélectionné.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

@@ -2,9 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="es" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="new">Connecting to app host...</target>
+        <source>Connecting to apphost...</source>
+        <target state="translated">Conectando con apphost...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -14,17 +19,22 @@
       </trans-unit>
       <trans-unit id="DashboardFailedToStart">
         <source>Aspire Dashboard failed to start.</source>
-        <target state="new">Aspire Dashboard failed to start.</target>
+        <target state="translated">No se pudo iniciar el panel de Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
-        <target state="translated">Ejecute un host de aplicaciones Aspire en modo de desarrollo.</target>
+        <source>Run an Aspire apphost in development mode.</source>
+        <target state="translated">Ejecutar un apphost de Aspire en modo de desarrollo.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Puntos de conexión</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="translated">Para ver los registros de AppHost en tiempo real, cambie a la Consola de depuración de AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -48,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">La ruta de acceso al archivo del proyecto host de la aplicación Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">La ruta de acceso al archivo del proyecto host de la AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -62,14 +72,24 @@
         <target state="translated">Recurso</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="translated">Indique si se debe iniciar una sesión de depuración si se ejecuta en un terminal Aspire.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Iniciando el host de aplicaciones Aspire...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">Iniciando apphost de Aspire...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
-        <target state="needs-review-translation">Iniciando el panel Aspire...</target>
+        <target state="translated">Iniciando el panel...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="translated">Se detectó una ejecución de Aspire dentro de la extensión Aspire, lo que inició una sesión de depuración en VS Code...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

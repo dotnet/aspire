@@ -8,26 +8,38 @@
 @inject IStringLocalizer<Dialogs> DialogsLoc
 
 <div class="span-details-layout">
-    <FluentToolbar Orientation="Orientation.Horizontal">
-        <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Application.ApplicationName))
-        </div>
-        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsDuration, DurationFormatter.FormatDuration(ViewModel.Span.Duration)))
-        </div>
-        <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <div>
-            @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, DurationFormatter.FormatDuration(ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime)))
-        </div>
-        <FluentAnchor slot="end" Appearance="Appearance.Lightweight" Href="@DashboardUrls.StructuredLogsUrl(spanId: ViewModel.Span.SpanId)">@Loc[nameof(ControlsStrings.ViewLogsLink)]</FluentAnchor>
-        <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
-        <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
-                      Immediate="true"
-                      Autofocus="true"
-                      @bind-Value="_filter"
-                      slot="end" />
-    </FluentToolbar>
+    @if (!HideToolbar)
+    {
+        <FluentToolbar Orientation="Orientation.Horizontal">
+            <div>
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsResource, ViewModel.Span.Source.Resource.ResourceName))
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsDuration, DurationFormatter.FormatDuration(ViewModel.Span.Duration)))
+            </div>
+            <FluentDivider Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <div>
+                @{
+                    // Start time for root span is zero. We don't want to display the smallest unit (0μs) because that looks odd. Use the unit from duration.
+                    var startTime = ViewModel.Span.StartTime - ViewModel.Span.Trace.FirstSpan.StartTime;
+                    var formattedStartTime = startTime > TimeSpan.Zero ? DurationFormatter.FormatDuration(startTime) : $"0{DurationFormatter.GetUnit(ViewModel.Span.Duration)}";
+                }
+                @((MarkupString)string.Format(ControlsStrings.SpanDetailsStartTime, formattedStartTime))
+            </div>
+            <FluentSearch Placeholder="@Loc[nameof(ControlsStrings.FilterPlaceholder)]"
+                          Immediate="true"
+                          Autofocus="true"
+                          @bind-Value="_filter"
+                          slot="end" />
+            <FluentDivider slot="end" Role="DividerRole.Presentation" Orientation="Orientation.Vertical" />
+            <AspireMenuButton ButtonAppearance="Appearance.Lightweight"
+                              Icon="@(new Icons.Regular.Size20.Options())"
+                              Items="@_spanActionsMenuItems"
+                              Title="@Loc[nameof(ControlsStrings.ActionsButtonText)]"
+                              slot="end" />
+        </FluentToolbar>
+    }
     <div class="property-grid-container">
         <FluentAccordion>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsSpanHeader)]" Expanded="true">
@@ -39,7 +51,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsContextHeader)]" Expanded="true">
                 <div slot="end">
@@ -50,7 +63,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredContextItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsResourceHeader)]" Expanded="true">
                 <div slot="end">
@@ -61,7 +75,8 @@
                 <PropertyGrid TItem="TelemetryPropertyViewModel"
                               Items="@FilteredResourceItems"
                               GridTemplateColumns="1fr 2fr"
-                              HighlightText="@_filter" />
+                              HighlightText="@_filter"
+                              ValueComponents="@_valueComponents" />
             </FluentAccordionItem>
             <FluentAccordionItem Heading="@Loc[nameof(ControlsStrings.SpanDetailsEventsHeader)]" Expanded="@_isSpanEventsExpanded">
                 <div slot="end">
@@ -107,12 +122,15 @@
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
-                                ShowHover="true">
+                                ShowHover="true"
+                                Multiline="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton OnClick="@(() => OnViewDetailsAsync(context))" Appearance="Appearance.Lightweight" Class="button-hyperlink" IconStart="new Icons.Regular.Size16.GanttChart()">
+                            @OtlpHelpers.ToShortenedId(context.SpanId)
+                        </FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -132,12 +150,15 @@
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
                                 GridTemplateColumns="4fr 1fr"
-                                ShowHover="true">
+                                ShowHover="true"
+                                Multiline="true">
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsSpanColumnHeader)]">
                         @WriteSpanLink(context)
                     </TemplateColumn>
                     <TemplateColumn Title="@Loc[nameof(ControlsStrings.SpanDetailsDetailsColumnHeader)]">
-                        <FluentButton Appearance="Appearance.Lightweight" OnClick="@(() => OnViewDetailsAsync(context))">@Loc[nameof(ControlsStrings.ViewAction)]</FluentButton>
+                        <FluentButton OnClick="@(() => OnViewDetailsAsync(context))" Appearance="Appearance.Lightweight" Class="button-hyperlink" IconStart="new Icons.Regular.Size16.GanttChart()">
+                            @OtlpHelpers.ToShortenedId(context.SpanId)
+                        </FluentButton>
                     </TemplateColumn>
                 </FluentDataGrid>
             </FluentAccordionItem>
@@ -149,10 +170,10 @@
     RenderFragment WriteSpanLink(SpanLinkViewModel context)
     {
         var content = context.Span != null
-            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Applications)
+            ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Resources)
             : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
         var color = context.Span != null
-            ? ColorGenerator.Instance.GetColorHexByKey(OtlpApplication.GetResourceName(context.Span.Source, ViewModel.Applications))
+            ? ColorGenerator.Instance.GetColorVariableByKey(OtlpResource.GetResourceName(context.Span.Source, ViewModel.Resources))
             : "transparent";
 
         return @<div>

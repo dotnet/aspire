@@ -73,6 +73,36 @@ public static class AzureAIFoundryExtensions
     }
 
     /// <summary>
+    /// Adds and returns an Azure AI Foundry Deployment resource to the application model using a <see cref="AIFoundryModel"/>.
+    /// </summary>
+    /// <param name="builder">The Azure AI Foundry resource builder.</param>
+    /// <param name="name">The name of the Azure AI Foundry Deployment resource.</param>
+    /// <param name="model">The model descriptor, using the <see cref="AIFoundryModel"/> class like so: <code lang="csharp">aiFoundry.AddDeployment(name: "chat", model: AIFoundryModel.OpenAI.Gpt5Mini)</code></param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Create a deployment for the OpenAI GTP-5-mini model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var aiFoundry = builder.AddAzureAIFoundry("aiFoundry");
+    /// var gpt5mini = aiFoundry.AddDeployment("chat", AIFoundryModel.OpenAI.Gpt5Mini);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureAIFoundryDeploymentResource> AddDeployment(this IResourceBuilder<AzureAIFoundryResource> builder, [ResourceName] string name, AIFoundryModel model)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Name);
+        ArgumentException.ThrowIfNullOrEmpty(model.Version);
+        ArgumentException.ThrowIfNullOrEmpty(model.Format);
+
+        return builder.AddDeployment(name, model.Name, model.Version, model.Format);
+    }
+
+    /// <summary>
     /// Allows setting the properties of an Azure AI Foundry Deployment resource.
     /// </summary>
     /// <param name="builder">The Azure AI Foundry Deployment resource builder.</param>
@@ -242,8 +272,11 @@ public static class AzureAIFoundryExtensions
                 {
                     if (progress.IsCompleted && progress.ModelInfo is not null)
                     {
-                        deployment.DeploymentName = progress.ModelInfo.ModelId;
-                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.DeploymentName);
+                        // Set the model id that was actually downloaded. This is the value that is used in the
+                        // connection string
+
+                        deployment.ModelId = progress.ModelInfo.ModelId;
+                        logger.LogInformation("Model {Model} downloaded successfully ({ModelId}).", model, deployment.ModelId);
 
                         // Re-publish the connection string since the model id is now known
                         var connectionStringAvailableEvent = new ConnectionStringAvailableEvent(deployment, @event.Services);
@@ -251,7 +284,7 @@ public static class AzureAIFoundryExtensions
 
                         await rns.PublishUpdateAsync(deployment, state => state with
                         {
-                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({progress.ModelInfo.ModelId})")]
+                            Properties = [.. state.Properties, new(CustomResourceKnownProperties.Source, $"{model} ({deployment.ModelId})")]
                         }).ConfigureAwait(false);
 
                         await rns.PublishUpdateAsync(deployment, state => state with
@@ -261,7 +294,7 @@ public static class AzureAIFoundryExtensions
 
                         try
                         {
-                            _ = await manager.LoadModelAsync(deployment.DeploymentName, ct: ct).ConfigureAwait(false);
+                            _ = await manager.LoadModelAsync(deployment.ModelId, ct: ct).ConfigureAwait(false);
 
                             await rns.PublishUpdateAsync(deployment, state => state with
                             {
@@ -306,7 +339,7 @@ public static class AzureAIFoundryExtensions
         builder.ApplicationBuilder.Services.AddHealthChecks()
                 .Add(new HealthCheckRegistration(
                     healthCheckKey,
-                    sp => new LocalModelHealthCheck(modelAlias: deployment.ModelName, sp.GetRequiredService<FoundryLocalManager>()),
+                    sp => new LocalModelHealthCheck(modelId: deployment.ModelId, sp.GetRequiredService<FoundryLocalManager>()),
                     failureStatus: default,
                     tags: default,
                     timeout: default

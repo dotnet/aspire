@@ -30,6 +30,7 @@ public class AzureAIFoundryExtensionsTests
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
         var deployment = Assert.Single(resource.Deployments);
         Assert.Equal("deployment1", deployment.Name);
+        Assert.Equal("deployment1", deployment.DeploymentName);
         Assert.Equal("gpt-4", deployment.ModelName);
         Assert.Equal("1.0", deployment.ModelVersion);
         Assert.Equal("OpenAI", deployment.Format);
@@ -117,14 +118,43 @@ public class AzureAIFoundryExtensionsTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var foundry = builder.AddAzureAIFoundry("myAIFoundry");
         var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
         foundry.RunAsFoundryLocal();
+
         var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
         Assert.Single(resource.Deployments);
-        var connectionString = deployment.Resource.ConnectionStringExpression.ValueExpression;
-        Assert.Contains("Model=gpt-4", connectionString);
-        Assert.Contains("DeploymentId=gpt-4", connectionString);
-        Assert.Contains("Endpoint=", connectionString);
-        Assert.Contains("Key=", connectionString);
+
+        // NB: The value of the ModelName property is updated with the downloaded model id when the resource is starting.
+        // We are only testing that the value in the ModelName property is referenced in the connection string.
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=gpt-4", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void RunAsFoundryLocal_DeploymentConnectionString_UsesModelId()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+        foundry.RunAsFoundryLocal();
+
+        deployment.Resource.ModelId = "custom-model-id";
+
+        Assert.Equal("{myAIFoundry.connectionString};Model=custom-model-id", deployment.Resource.ConnectionStringExpression.ValueExpression);
+    }
+
+    [Fact]
+    public void AIFoundry_DeploymentConnectionString_HasDeploymentProperty()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var foundry = builder.AddAzureAIFoundry("myAIFoundry");
+        var deployment = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
+
+        var resource = Assert.Single(builder.Resources.OfType<AzureAIFoundryResource>());
+
+        Assert.Single(resource.Deployments);
+        Assert.Equal("{myAIFoundry.connectionString};Deployment=deployment1", deployment.Resource.ConnectionStringExpression.ValueExpression);
     }
 
     [Fact]
@@ -135,6 +165,7 @@ public class AzureAIFoundryExtensionsTests
         var foundry = builder.AddAzureAIFoundry("foundry");
         var deployment1 = foundry.AddDeployment("deployment1", "gpt-4", "1.0", "OpenAI");
         var deployment2 = foundry.AddDeployment("deployment2", "Phi-4", "1.0", "Microsoft");
+        var deployment3 = foundry.AddDeployment("my-model", "Phi-4", "1.0", "Microsoft");
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -146,5 +177,20 @@ public class AzureAIFoundryExtensionsTests
 
         await Verify(manifest.BicepText, extension: "bicep")
             .AppendContentAsFile(rolesManifest.BicepText, "bicep");
+    }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureAIFoundryResource()
+    {
+        // Arrange
+        var aiFoundryResource = new AzureAIFoundryResource("test-foundry", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(aiFoundryResource, "test-foundry");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+        var secondResult = aiFoundryResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
     }
 }

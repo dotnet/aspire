@@ -69,16 +69,16 @@ public partial class StructuredLogsTests : DashboardTestContext
         // Act
         var cut = RenderComponent<StructuredLogs>(builder =>
         {
-            builder.Add(p => p.ApplicationName, "TestApp");
+            builder.Add(p => p.ResourceName, "TestApp");
             builder.Add(p => p.ViewportInformation, viewport);
         });
 
         // Assert
         var viewModel = Services.GetRequiredService<StructuredLogsViewModel>();
 
-        Assert.NotNull(viewModel.ApplicationKey);
-        Assert.Equal("TestApp", viewModel.ApplicationKey.Value.Name);
-        Assert.Equal("abc-def", viewModel.ApplicationKey.Value.InstanceId);
+        Assert.NotNull(viewModel.ResourceKey);
+        Assert.Equal("TestApp", viewModel.ResourceKey.Value.Name);
+        Assert.Equal("abc-def", viewModel.ResourceKey.Value.InstanceId);
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         // Arrange
         SetupStructureLogsServices();
 
-        var filter = new TelemetryFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
+        var filter = new FieldTelemetryFilter { Field = "TestField", Condition = FilterCondition.Contains, Value = "TestValue" };
         var serializedFilter = TelemetryFilterFormatter.SerializeFiltersToString([filter, filter]);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();
@@ -160,9 +160,9 @@ public partial class StructuredLogsTests : DashboardTestContext
         // Arrange
         SetupStructureLogsServices();
 
-        var filter1 = new TelemetryFilter { Field = "Test:Field", Condition = FilterCondition.Contains, Value = "Test Value" };
-        var filter2 = new TelemetryFilter { Field = "Test!@#", Condition = FilterCondition.Contains, Value = "http://localhost#fragment?hi=true" };
-        var filter3 = new TelemetryFilter { Field = "\u2764\uFE0F", Condition = FilterCondition.Contains, Value = "\u4F60" };
+        var filter1 = new FieldTelemetryFilter { Field = "Test:Field", Condition = FilterCondition.Contains, Value = "Test Value" };
+        var filter2 = new FieldTelemetryFilter { Field = "Test!@#", Condition = FilterCondition.Contains, Value = "http://localhost#fragment?hi=true" };
+        var filter3 = new FieldTelemetryFilter { Field = "\u2764\uFE0F", Condition = FilterCondition.Contains, Value = "\u4F60" };
         var serializedFilter = TelemetryFilterFormatter.SerializeFiltersToString([filter1, filter2, filter3]);
 
         var navigationManager = Services.GetRequiredService<NavigationManager>();

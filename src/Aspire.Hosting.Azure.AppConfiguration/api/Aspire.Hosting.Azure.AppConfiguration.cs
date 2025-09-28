@@ -12,6 +12,14 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> AddAzureAppConfiguration(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> RunAsEmulator(this ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> builder, System.Action<ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource>>? configureEmulator = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> builder, string? path = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> WithDataVolume(this ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> builder, string? name = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> WithHostPort(this ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationEmulatorResource> builder, int? port) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<T> WithRoleAssignments<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<Azure.AzureAppConfigurationResource> target, params global::Azure.Provisioning.AppConfiguration.AppConfigurationBuiltInRole[] roles)
             where T : ApplicationModel.IResource { throw null; }
     }
@@ -19,13 +27,24 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
-    public partial class AzureAppConfigurationResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureAppConfigurationEmulatorResource : ApplicationModel.ContainerResource, ApplicationModel.IResource
+    {
+        public AzureAppConfigurationEmulatorResource(AzureAppConfigurationResource innerResource) : base(default!, default) { }
+
+        public override ApplicationModel.ResourceAnnotationCollection Annotations { get { throw null; } }
+    }
+
+    public partial class AzureAppConfigurationResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences, ApplicationModel.IResourceWithEndpoints
     {
         public AzureAppConfigurationResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
         public BicepOutputReference Endpoint { get { throw null; } }
+
+        public bool IsEmulator { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }

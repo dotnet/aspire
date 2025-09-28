@@ -329,6 +329,42 @@ public class AzureUserAssignedIdentityTests
             .AppendContentAsFile(roleBicep2, "bicep");
     }
 
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureUserAssignedIdentityResource()
+    {
+        // Arrange
+        var userAssignedIdentityResource = new AzureUserAssignedIdentityResource("test-identity");
+        var infrastructure = new AzureResourceInfrastructure(userAssignedIdentityResource, "test-identity");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = userAssignedIdentityResource.AddAsExistingResource(infrastructure);
+        var secondResult = userAssignedIdentityResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureUserAssignedIdentityResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-identity-name");
+        var existingResourceGroup = builder.AddParameter("existing-identity-rg");
+
+        var userAssignedIdentity = builder.AddAzureUserAssignedIdentity("test-identity")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = userAssignedIdentity.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
     private sealed class TestProject : IProjectMetadata
     {
         public string ProjectPath => "some-path";

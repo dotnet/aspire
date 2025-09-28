@@ -263,12 +263,6 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 
     private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
     {
-        // Only handle input interaction types
-        if (interaction.InteractionInfo is not Interaction.InputsInteractionInfo inputsInfo || inputsInfo.Inputs.Count == 0)
-        {
-            return;
-        }
-
         if (interaction.State == Interaction.InteractionState.InProgress)
         {
             if (HasStepsInProgress())
@@ -286,29 +280,64 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 return;
             }
 
-            var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
+            // Handle input interaction types
+            if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo && inputsInfo.Inputs.Count > 0)
             {
-                Label = input.Label,
-                InputType = input.InputType.ToString(),
-                Required = input.Required,
-                Options = input.Options,
-                Value = input.Value,
-                ValidationErrors = input.ValidationErrors
-            }).ToList();
-
-            var activity = new PublishingActivity
-            {
-                Type = PublishingActivityTypes.Prompt,
-                Data = new PublishingActivityData
+                var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
-                    Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
-                    StatusText = interaction.Message ?? $"{interaction.Title}: ",
-                    CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
-                    Inputs = promptInputs
-                }
-            };
+                    Label = input.EffectiveLabel,
+                    InputType = input.InputType.ToString(),
+                    Required = input.Required,
+                    Options = input.Options,
+                    Value = input.Value,
+                    ValidationErrors = input.ValidationErrors,
+                    AllowCustomChoice = input.AllowCustomChoice
+                }).ToList();
 
-            await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+                var activity = new PublishingActivity
+                {
+                    Type = PublishingActivityTypes.Prompt,
+                    Data = new PublishingActivityData
+                    {
+                        Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
+                        StatusText = interaction.Message ?? $"{interaction.Title}: ",
+                        CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
+                        Inputs = promptInputs
+                    }
+                };
+
+                await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+            }
+            // Handle notification interaction types (PromptNotificationAsync)
+            else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
+            {
+                var promptInputs = new List<PublishingPromptInput>
+                {
+                    new PublishingPromptInput
+                    {
+                        Label = "Confirm",
+                        InputType = "Boolean",
+                        Required = true,
+                        Options = null,
+                        Value = null,
+                        ValidationErrors = null
+                    }
+                };
+
+                var activity = new PublishingActivity
+                {
+                    Type = PublishingActivityTypes.Prompt,
+                    Data = new PublishingActivityData
+                    {
+                        Id = interaction.InteractionId.ToString(CultureInfo.InvariantCulture),
+                        StatusText = interaction.Message ?? $"{interaction.Title}: ",
+                        CompletionState = ToBackchannelCompletionState(CompletionState.InProgress),
+                        Inputs = promptInputs
+                    }
+                };
+
+                await ActivityItemUpdated.Writer.WriteAsync(activity, cancellationToken).ConfigureAwait(false);
+            }
         }
     }
 
@@ -334,6 +363,22 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         {
                             Complete = true,
                             State = inputsInfo.Inputs
+                        };
+                    }
+                    else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
+                    {
+                        // Handle notification interactions with boolean result
+                        bool result = false;
+                        if (responses is not null && responses.Length > 0)
+                        {
+                            // Parse the boolean value from the first response
+                            result = bool.TryParse(responses[0].Value, out var parsedValue) && parsedValue;
+                        }
+
+                        return new InteractionCompletionState
+                        {
+                            Complete = true,
+                            State = result
                         };
                     }
 

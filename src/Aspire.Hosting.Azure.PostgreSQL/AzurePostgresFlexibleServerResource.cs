@@ -17,7 +17,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource.</param>
 /// <param name="configureInfrastructure">Callback to configure infrastructure.</param>
 public class AzurePostgresFlexibleServerResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
-    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithConnectionString
+    : AzureProvisioningResource(name, configureInfrastructure), IResourceWithEndpoints, IResourceWithConnectionString
 {
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 
@@ -39,6 +39,11 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// Gets the "name" output reference for the resource.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the "hostName" output reference from the bicep template for the Azure Postgres Flexible Server.
+    /// </summary>
+    private BicepOutputReference HostNameOutput => new("hostName", this);
 
     /// <summary>
     /// Gets a value indicating whether the resource uses password authentication.
@@ -65,6 +70,46 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// Gets or sets the parameter that contains the PostgreSQL server password.
     /// </summary>
     internal ParameterResource? PasswordParameter { get; set; }
+
+    /// <summary>
+    /// Gets the host name for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// In container mode, resolves to the container's primary endpoint host.
+    /// In Azure mode, resolves to the Azure PostgreSQL server's fully qualified domain name.
+    /// </remarks>
+    public ReferenceExpression HostName => 
+        InnerResource is not null ?
+            ReferenceExpression.Create($"{InnerResource.PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}") :
+            ReferenceExpression.Create($"{HostNameOutput}");
+
+    /// <summary>
+    /// Gets the user name for the PostgreSQL server when password authentication is enabled.
+    /// </summary>
+    /// <remarks>
+    /// This property returns null when using Entra ID (Azure Active Directory) authentication.
+    /// When password authentication is enabled, it resolves to the user name parameter value.
+    /// </remarks>
+    public ReferenceExpression? UserName => 
+        InnerResource is not null ?
+            InnerResource.UserNameReference :
+            UsePasswordAuthentication && UserNameParameter is not null ?
+                ReferenceExpression.Create($"{UserNameParameter}") :
+                null;
+
+    /// <summary>
+    /// Gets the password for the PostgreSQL server when password authentication is enabled.
+    /// </summary>
+    /// <remarks>
+    /// This property returns null when using Entra ID (Azure Active Directory) authentication.
+    /// When password authentication is enabled, it resolves to the password parameter value.
+    /// </remarks>
+    public ReferenceExpression? Password => 
+        InnerResource is not null && InnerResource.PasswordParameter is not null ?
+            ReferenceExpression.Create($"{InnerResource.PasswordParameter}") :
+            UsePasswordAuthentication && PasswordParameter is not null ?
+                ReferenceExpression.Create($"{PasswordParameter}") :
+                null;
 
     /// <summary>
     /// Gets the connection template for the manifest for the Azure Postgres Flexible Server.
@@ -113,8 +158,28 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var store = PostgreSqlFlexibleServer.FromExisting(this.GetBicepIdentifier());
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if a PostgreSqlFlexibleServer with the same identifier already exists
+        var existingStore = resources.OfType<PostgreSqlFlexibleServer>().SingleOrDefault(store => store.BicepIdentifier == bicepIdentifier);
+        
+        if (existingStore is not null)
+        {
+            return existingStore;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var store = PostgreSqlFlexibleServer.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

@@ -84,8 +84,7 @@ public class ConformanceTests : ConformanceTests<IConfigurationRefresherProvider
         };
 
     protected override void SetHealthCheck(AzureAppConfigurationSettings options, bool enabled)
-        // WIP: https://github.com/Azure/AppConfiguration-DotnetProvider/pull/644
-        => throw new NotImplementedException();
+        => options.DisableHealthChecks = !enabled;
 
     protected override void SetMetrics(AzureAppConfigurationSettings options, bool enabled)
         => throw new NotImplementedException();

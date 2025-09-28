@@ -24,10 +24,10 @@ public sealed class DeployingContext(
     IServiceProvider serviceProvider,
     ILogger logger,
     CancellationToken cancellationToken,
-    string outputPath)
+    string? outputPath)
 {
     private IPublishingActivityReporter? _activityReporter;
-    
+
     /// <summary>
     /// Gets the distributed application model to be deployed.
     /// </summary>
@@ -62,7 +62,7 @@ public sealed class DeployingContext(
     /// <summary>
     /// Gets the output path for deployment artifacts.
     /// </summary>
-    public string OutputPath { get; } = outputPath;
+    public string? OutputPath { get; } = outputPath;
 
     /// <summary>
     /// Invokes deploying callbacks for each resource in the provided distributed application model.

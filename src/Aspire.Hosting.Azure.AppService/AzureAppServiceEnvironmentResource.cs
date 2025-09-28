@@ -44,8 +44,28 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
-        var plan = AppServicePlan.FromExisting(this.GetBicepIdentifier());
-        plan.Name = NameOutputReference.AsProvisioningParameter(infra);
+        var bicepIdentifier = this.GetBicepIdentifier();
+        var resources = infra.GetProvisionableResources();
+        
+        // Check if an AppServicePlan with the same identifier already exists
+        var existingPlan = resources.OfType<AppServicePlan>().SingleOrDefault(plan => plan.BicepIdentifier == bicepIdentifier);
+        
+        if (existingPlan is not null)
+        {
+            return existingPlan;
+        }
+        
+        // Create and add new resource if it doesn't exist
+        var plan = AppServicePlan.FromExisting(bicepIdentifier);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            plan))
+        {
+            plan.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(plan);
         return plan;
     }

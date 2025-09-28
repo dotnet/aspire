@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Spectre.Console;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.Tests.Commands;
 
@@ -521,6 +522,52 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Equal("Environment name must be at least 3 characters long.", displayedError);
     }
 
+    [Fact]
+    public async Task PublishCommand_MarkdownPromptText_ConvertsToSpectreMarkup()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt with markdown in the activity status text
+        promptBackchannel.AddPrompt("markdown-prompt-1", "Config Value", InputTypes.Text, "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("test-value");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was received
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+
+        // Verify that the prompt text was converted from markdown to Spectre markup
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+
+        // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
+        // should be converted to Spectre markup preserving both link text and URL
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]";
+        Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
+    }
+
     private static TestDotNetCliRunner CreateTestRunnerWithPromptBackchannel(TestPromptBackchannel promptBackchannel)
     {
         var runner = new TestDotNetCliRunner();
@@ -543,6 +590,50 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         };
 
         return runner;
+    }
+
+    [Fact]
+    public async Task PublishCommand_DebugMode_HandlesPromptsWithoutProgressUI()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up the prompt that will be sent from AppHost
+        promptBackchannel.AddPrompt("debug-prompt-1", "Environment Name", InputTypes.Text, "Enter environment name:", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("debug-env");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act - use the --debug flag
+        var result = command.Parse("publish --debug");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt was still handled correctly in debug mode
+        Assert.Single(promptBackchannel.ReceivedPrompts);
+        var receivedPrompt = promptBackchannel.ReceivedPrompts[0];
+        Assert.Equal("debug-prompt-1", receivedPrompt.PromptId);
+
+        // Verify the response was sent back
+        Assert.Single(promptBackchannel.CompletedPrompts);
+        var completedPrompt = promptBackchannel.CompletedPrompts[0];
+        Assert.Equal("debug-prompt-1", completedPrompt.PromptId);
+        Assert.Equal("debug-env", completedPrompt.Answers[0].Value);
     }
 }
 
@@ -595,7 +686,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
                     Id = prompt.PromptId,
                     StatusText = prompt.Inputs.Count > 1
                         ? prompt.Title ?? prompt.Message
-                        : prompt.Inputs[0].Label,
+                        : prompt.Message,
                     CompletionState = CompletionStates.InProgress,
                     StepId = "publish-step",
                     Inputs = inputs
@@ -629,7 +720,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
             BaseUrlWithLoginToken = "http://localhost:5000",
             CodespacesUrlWithLoginToken = null
         });
-        
+
     public async IAsyncEnumerable<BackchannelLogEntry> GetAppHostLogEntriesAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await Task.CompletedTask; // Suppress CS1998
@@ -648,6 +739,11 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         await Task.CompletedTask; // Suppress CS1998
         yield break;
     }
+
+    public void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected)
+    {
+        // No-op for test implementation
+    }
 }
 
 // Data structures for tracking prompts
@@ -661,12 +757,12 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
 {
     private readonly Queue<(string response, ResponseType type)> _responses = new();
     private bool _shouldCancel;
-    
+
     public List<StringPromptCall> StringPromptCalls { get; } = [];
     public List<object> SelectionPromptCalls { get; } = []; // Using object to handle generic types
     public List<BooleanPromptCall> BooleanPromptCalls { get; } = [];
     public List<string> DisplayedErrors { get; } = [];
-    
+
     public void SetupStringPromptResponse(string response) => _responses.Enqueue((response, ResponseType.String));
     public void SetupSelectionResponse(string response) => _responses.Enqueue((response, ResponseType.Selection));
     public void SetupBooleanResponse(bool response) => _responses.Enqueue((response.ToString().ToLower(), ResponseType.Boolean));
@@ -683,7 +779,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         StringPromptCalls.Add(new StringPromptCall(promptText, defaultValue, isSecret));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();
@@ -720,7 +816,7 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));
-        
+
         if (_shouldCancel || cancellationToken.IsCancellationRequested)
         {
             throw new OperationCanceledException();
@@ -742,11 +838,11 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
     public void DisplayMessage(string emoji, string message) { }
     public void DisplaySuccess(string message) { }
     public void DisplaySubtleMessage(string message) { }
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls) { }
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
+    public void DisplayMarkdown(string markdown) { }
 
     public void DisplayVersionUpdateNotification(string newerVersion) { }
 

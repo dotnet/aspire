@@ -9,7 +9,7 @@ namespace Aspire.Hosting;
 /// <summary>
 /// Represents an external service resource with service discovery capabilities.
 /// </summary>
-public sealed class ExternalServiceResource : Resource, IResourceWithoutLifetime
+public sealed class ExternalServiceResource : Resource
 {
     private readonly Uri? _uri;
     private readonly ParameterResource? _urlParameter;

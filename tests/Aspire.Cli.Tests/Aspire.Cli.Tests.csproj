@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="StreamJsonRpc" VersionOverride="$(StreamJsonRpcPackageVersionForCli)" />
+  <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
 </Project>

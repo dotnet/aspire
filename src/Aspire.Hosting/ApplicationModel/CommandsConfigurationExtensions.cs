@@ -1,8 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Resources;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -18,7 +18,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.StartCommand,
-            displayName: "Start",
+            displayName: CommandStrings.StartName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -42,7 +42,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Start resource",
+            displayDescription: CommandStrings.StartDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "Play",
@@ -51,7 +51,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.StopCommand,
-            displayName: "Stop",
+            displayName: CommandStrings.StopName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -75,7 +75,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Hidden;
                 }
             },
-            displayDescription: "Stop resource",
+            displayDescription: CommandStrings.StopDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "Stop",
@@ -84,7 +84,7 @@ internal static class CommandsConfigurationExtensions
 
         resource.Annotations.Add(new ResourceCommandAnnotation(
             name: KnownResourceCommands.RestartCommand,
-            displayName: "Restart",
+            displayName: CommandStrings.RestartName,
             executeCommand: async context =>
             {
                 var orchestrator = context.ServiceProvider.GetRequiredService<ApplicationOrchestrator>();
@@ -105,7 +105,7 @@ internal static class CommandsConfigurationExtensions
                     return ResourceCommandState.Enabled;
                 }
             },
-            displayDescription: "Restart resource",
+            displayDescription: CommandStrings.RestartDescription,
             parameter: null,
             confirmationMessage: null,
             iconName: "ArrowCounterclockwise",

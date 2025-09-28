@@ -247,17 +247,6 @@ public class ExternalServiceTests
     }
 
     [Fact]
-    public void ExternalServiceResourceImplementsExpectedInterfaces()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
-
-        // Verify the resource implements the expected interfaces
-        Assert.IsAssignableFrom<IResourceWithoutLifetime>(externalService.Resource);
-    }
-
-    [Fact]
     public void ExternalServiceResourceIsExcludedFromPublishingManifest()
     {
         //ManifestPublishingCallbackAnnotation
@@ -441,6 +430,23 @@ public class ExternalServiceTests
         // The result should be healthy since we're using httpbin.org which should be accessible
         // However, in a test environment this might fail due to network issues, so we just check that it ran
         Assert.Contains(healthCheckKey, result.Entries.Keys);
+    }
+
+    [Fact]
+    public async Task ExternalServiceWithParameterPublishManifest()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var urlParam = builder.AddParameter("external-url");
+        var externalService = builder.AddExternalService("external", urlParam);
+
+        var project = builder.AddProject<TestProject>("project")
+                     .WithReference(externalService)
+                     .WithEnvironment("EXTERNAL_SERVICE", externalService);
+
+        var manifest = await ManifestUtils.GetManifest(project.Resource);
+
+        await Verify(manifest.ToString(), extension: "json");
     }
 
     private sealed class TestProject : IProjectMetadata

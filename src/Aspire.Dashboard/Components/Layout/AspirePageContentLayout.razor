@@ -53,17 +53,17 @@
     <!-- Footer -->
     @if (ViewportInformation.IsDesktop)
     {
-        @if (FooterSection is not null && ShouldShowFooter)
+        @if (FooterSection is not null && !IsSummaryDetailsViewOpen)
         {
             <footer style="grid-area: footer">@FooterSection</footer>
         }
     }
     else if (!IsSummaryDetailsViewOpen)
     {
-        if ((FooterSection is not null && ShouldShowFooter) || ToolbarSection is not null)
+        if (FooterSection is not null || ToolbarSection is not null)
         {
             <footer style="grid-area: footer">
-                @if (FooterSection is not null && ShouldShowFooter)
+                @if (FooterSection is not null)
                 {
                     @FooterSection
                 }

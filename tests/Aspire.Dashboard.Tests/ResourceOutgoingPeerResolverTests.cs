@@ -17,7 +17,7 @@ public class ResourceOutgoingPeerResolverTests
     private static ResourceViewModel CreateResource(string name, string? serviceAddress = null, int? servicePort = null, string? displayName = null, KnownResourceState? state = null)
     {
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             displayName: displayName,
             state: state,
             urls: serviceAddress is null || servicePort is null ? [] : [new UrlViewModel(name, new($"http://{serviceAddress}:{servicePort}"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)]);
@@ -76,8 +76,13 @@ public class ResourceOutgoingPeerResolverTests
         Assert.Equal("test", value);
     }
 
-    [Fact]
-    public void NumberAddressValueAttribute_Match()
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    [InlineData("HOST.DOCKER.INTERNAL")]
+    [InlineData("HOST.CONTAINERS.INTERNAL")]
+    public void NonLocalhostAttribute_Match(string host)
     {
         // Arrange
         var resources = new Dictionary<string, ResourceViewModel>
@@ -86,7 +91,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "127.0.0.1:5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", $"{host}:5000")], out var value));
         Assert.Equal("test", value);
     }
 
@@ -224,7 +229,7 @@ public class ResourceOutgoingPeerResolverTests
     public void ConnectionStringWithEndpoint_Match()
     {
         // Arrange - GitHub Models resource with connection string containing endpoint
-        var connectionString = "Endpoint=https://models.github.ai/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var connectionString = "Endpoint=https://models.github.ai/inference;Key=test-key;Model=openai/gpt-4o-mini";
         var resources = new Dictionary<string, ResourceViewModel>
         {
             ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
@@ -239,7 +244,7 @@ public class ResourceOutgoingPeerResolverTests
     public void ConnectionStringWithEndpointOrganization_Match()
     {
         // Arrange - GitHub Models resource with organization endpoint
-        var connectionString = "Endpoint=https://models.github.ai/orgs/myorg/inference;Key=test-key;Model=openai/gpt-4o-mini;DeploymentId=openai/gpt-4o-mini";
+        var connectionString = "Endpoint=https://models.github.ai/orgs/myorg/inference;Key=test-key;Model=openai/gpt-4o-mini";
         var resources = new Dictionary<string, ResourceViewModel>
         {
             ["github-model"] = CreateResourceWithConnectionString("github-model", connectionString)
@@ -334,7 +339,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.ConnectionString,
             properties: properties);
     }
@@ -352,7 +357,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         return ModelTestHelpers.CreateResource(
-            appName: name,
+            resourceName: name,
             resourceType: KnownResourceTypes.Parameter,
             properties: properties);
     }
@@ -412,6 +417,7 @@ public class ResourceOutgoingPeerResolverTests
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public ResourceViewModel? GetResource(string resourceName) => throw new NotImplementedException();
         public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();

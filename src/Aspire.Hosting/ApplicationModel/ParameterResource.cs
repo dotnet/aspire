@@ -1,12 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
+using Aspire.Hosting.Resources;
+
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Represents a parameter resource.
 /// </summary>
-public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestExpressionProvider, IValueProvider
+public class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
 {
     private readonly Lazy<string> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
@@ -31,6 +34,10 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
     /// <summary>
     /// Gets the value of the parameter.
     /// </summary>
+    /// <remarks>
+    /// This property is obsolete. Use <see cref="GetValueAsync(CancellationToken)"/> for async access or pass the <see cref="ParameterResource"/> directly to methods that accept it (e.g., environment variables).
+    /// </remarks>
+    [Obsolete("Use GetValueAsync for async access or pass the ParameterResource directly to methods that accept it (e.g., environment variables).")]
     public string Value => GetValueAsync(default).AsTask().GetAwaiter().GetResult()!;
 
     internal string ValueInternal => _lazyValue.Value;
@@ -108,11 +115,12 @@ public class ParameterResource : Resource, IResourceWithoutLifetime, IManifestEx
 
         var input = new InteractionInput
         {
+            Name = Name,
             InputType = Secret ? InputType.SecretText : InputType.Text,
             Label = Name,
             Description = Description,
             EnableDescriptionMarkdown = EnableDescriptionMarkdown,
-            Placeholder = $"Enter value for {Name}"
+            Placeholder = string.Format(CultureInfo.CurrentCulture, InteractionStrings.ParametersInputsParameterPlaceholder, Name)
         };
         return input;
     }

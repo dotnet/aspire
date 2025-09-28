@@ -28,6 +28,10 @@ namespace Aspire.Hosting
         public static IDistributedApplicationBuilder AddAzureContainerAppsInfrastructure(this IDistributedApplicationBuilder builder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzdResourceNaming(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithAzureLogAnalyticsWorkspace(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, ApplicationModel.IResourceBuilder<Azure.AzureLogAnalyticsWorkspaceResource> workspaceBuilder) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AppContainers.AzureContainerAppEnvironmentResource> builder, bool enable = true) { throw null; }
     }
 
     public static partial class AzureContainerAppProjectExtensions
@@ -40,6 +44,18 @@ namespace Aspire.Hosting
     {
         [System.Diagnostics.CodeAnalysis.Experimental("ASPIREACADOMAINS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public static void ConfigureCustomDomain(this global::Azure.Provisioning.AppContainers.ContainerApp app, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> customDomain, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource> certificateName) { }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this ApplicationModel.IResourceBuilder<T> resource, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerAppJob> configure)
+            where T : ApplicationModel.IComputeResource { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<T> PublishAsAzureContainerAppJob<T>(this ApplicationModel.IResourceBuilder<T> resource)
+            where T : ApplicationModel.IComputeResource { throw null; }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<T> PublishAsScheduledAzureContainerAppJob<T>(this ApplicationModel.IResourceBuilder<T> resource, string cronExpression, System.Action<Azure.AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerAppJob>? configure = null)
+            where T : ApplicationModel.IComputeResource { throw null; }
     }
 }
 
@@ -51,11 +67,19 @@ namespace Aspire.Hosting.Azure
 
         public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerApp> Configure { get { throw null; } }
     }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class AzureContainerAppJobCustomizationAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public AzureContainerAppJobCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerAppJob> configure) { }
+
+        public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppContainers.ContainerAppJob> Configure { get { throw null; } }
+    }
 }
 
 namespace Aspire.Hosting.Azure.AppContainers
 {
-    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
+    public partial class AzureContainerAppEnvironmentResource : AzureProvisioningResource, IAzureComputeEnvironmentResource, ApplicationModel.IComputeEnvironmentResource, ApplicationModel.IResource, IAzureContainerRegistry, ApplicationModel.IContainerRegistry
     {
         public AzureContainerAppEnvironmentResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 
@@ -64,5 +88,9 @@ namespace Aspire.Hosting.Azure.AppContainers
         ApplicationModel.ReferenceExpression ApplicationModel.IContainerRegistry.Name { get { throw null; } }
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
+
+        public BicepOutputReference NameOutputReference { get { throw null; } }
+
+        public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
 }

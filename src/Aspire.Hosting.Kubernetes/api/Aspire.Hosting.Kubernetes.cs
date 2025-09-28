@@ -51,9 +51,9 @@ namespace Aspire.Hosting.Kubernetes
     {
         public KubernetesResource(string name, ApplicationModel.IResource resource, KubernetesEnvironmentResource kubernetesEnvironmentResource) : base(default!) { }
 
-        public Resources.ConfigMap? ConfigMap { get { throw null; } set { } }
+        public System.Collections.Generic.List<Resources.BaseKubernetesResource> AdditionalResources { get { throw null; } }
 
-        public Resources.Deployment? Deployment { get { throw null; } set { } }
+        public Resources.ConfigMap? ConfigMap { get { throw null; } set { } }
 
         public KubernetesEnvironmentResource Parent { get { throw null; } }
 
@@ -61,7 +61,7 @@ namespace Aspire.Hosting.Kubernetes
 
         public Resources.Service? Service { get { throw null; } set { } }
 
-        public Resources.StatefulSet? StatefulSet { get { throw null; } set { } }
+        public Resources.Workload? Workload { get { throw null; } set { } }
     }
 
     public sealed partial class KubernetesServiceCustomizationAnnotation : ApplicationModel.IResourceAnnotation
@@ -367,9 +367,11 @@ namespace Aspire.Hosting.Kubernetes.Resources
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class Deployment : BaseKubernetesResource
+    public sealed partial class Deployment : Workload
     {
         public Deployment() : base(default!, default!) { }
+
+        public override PodTemplateSpecV1 PodTemplate { get { throw null; } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "spec")]
         public DeploymentSpecV1 Spec { get { throw null; } set { } }
@@ -835,7 +837,7 @@ namespace Aspire.Hosting.Kubernetes.Resources
         public string Path { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "port")]
-        public int Port { get { throw null; } set { } }
+        public Int32OrStringV1? Port { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "scheme")]
         public string Scheme { get { throw null; } set { } }
@@ -2186,9 +2188,11 @@ namespace Aspire.Hosting.Kubernetes.Resources
     }
 
     [YamlDotNet.Serialization.YamlSerializable]
-    public sealed partial class StatefulSet : BaseKubernetesResource
+    public sealed partial class StatefulSet : Workload
     {
         public StatefulSet() : base(default!, default!) { }
+
+        public override PodTemplateSpecV1 PodTemplate { get { throw null; } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "spec")]
         public StatefulSetSpecV1 Spec { get { throw null; } set { } }
@@ -2474,6 +2478,14 @@ namespace Aspire.Hosting.Kubernetes.Resources
 
         [YamlDotNet.Serialization.YamlMember(Alias = "runAsUserName")]
         public string RunAsUserName { get { throw null; } set { } }
+    }
+
+    public abstract partial class Workload : BaseKubernetesResource
+    {
+        protected Workload(string apiVersion, string kind) : base(default!, default!) { }
+
+        [YamlDotNet.Serialization.YamlIgnore]
+        public abstract PodTemplateSpecV1 PodTemplate { get; }
     }
 }
 

@@ -120,11 +120,12 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
                                     InputType = MapInputType(input.InputType),
-                                    Required = input.Required
+                                    Required = input.Required,
+                                    AllowCustomChoice = input.AllowCustomChoice,
                                 };
-                                if (input.Label != null)
+                                if (input.EffectiveLabel != null)
                                 {
-                                    dto.Label = input.Label;
+                                    dto.Label = input.EffectiveLabel;
                                 }
                                 if (input.Description != null)
                                 {

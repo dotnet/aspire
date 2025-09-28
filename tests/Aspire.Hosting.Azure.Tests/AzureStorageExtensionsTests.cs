@@ -889,4 +889,40 @@ public class AzureStorageExtensionsTests(ITestOutputHelper output)
         Assert.True(storage.Resource.IsEmulator());
         Assert.Contains(storage.Resource.Annotations, a => a is EmulatorResourceAnnotation);
     }
+
+    [Fact]
+    public void AddAsExistingResource_ShouldBeIdempotent_ForAzureStorageResource()
+    {
+        // Arrange
+        var storageResource = new AzureStorageResource("test-storage", _ => { });
+        var infrastructure = new AzureResourceInfrastructure(storageResource, "test-storage");
+
+        // Act - Call AddAsExistingResource twice
+        var firstResult = storageResource.AddAsExistingResource(infrastructure);
+        var secondResult = storageResource.AddAsExistingResource(infrastructure);
+
+        // Assert - Both calls should return the same resource instance, not duplicates
+        Assert.Same(firstResult, secondResult);
+    }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureStorageResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-storage-name");
+        var existingResourceGroup = builder.AddParameter("existing-storage-rg");
+
+        var storage = builder.AddAzureStorage("test-storage")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = storage.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }
