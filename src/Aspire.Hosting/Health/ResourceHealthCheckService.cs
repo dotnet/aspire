@@ -180,7 +180,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                     await resourceNotificationService.PublishUpdateAsync(resource, s =>
                     {
-                        var healthReports = MergeHealthReports(s.HealthReports, report, timeProvider.GetUtcNow().DateTime);
+                        var healthReports = MergeHealthReports(s.HealthReports, report, timeProvider.GetUtcNow().UtcDateTime);
 
                         return s with
                         {
