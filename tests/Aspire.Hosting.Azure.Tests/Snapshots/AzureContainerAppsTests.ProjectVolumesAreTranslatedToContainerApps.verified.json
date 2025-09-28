@@ -1,0 +1,13 @@
+{
+  "type": "azure.bicep.v0",
+  "path": "myproject.module.bicep",
+  "params": {
+    "env_outputs_azure_container_apps_environment_default_domain": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}",
+    "env_outputs_azure_container_apps_environment_id": "{env.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID}",
+    "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
+    "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
+    "myproject_containerimage": "{myproject.containerImage}",
+    "env_outputs_volumes_myproject_0": "{env.outputs.volumes_myproject_0}",
+    "env_outputs_volumes_myproject_1": "{env.outputs.volumes_myproject_1}"
+  }
+}
