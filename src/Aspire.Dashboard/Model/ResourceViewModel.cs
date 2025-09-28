@@ -447,7 +447,7 @@ public sealed record class VolumeViewModel(int index, string Source, string Targ
         Target?.Contains(filter, StringComparison.CurrentCultureIgnoreCase) == true;
 }
 
-public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText)
+public sealed record class HealthReportViewModel(string Name, HealthStatus? HealthStatus, string? Description, string? ExceptionText, DateTime? LastRunAt)
 {
     private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 

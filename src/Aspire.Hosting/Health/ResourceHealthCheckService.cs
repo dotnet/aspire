@@ -180,7 +180,7 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                     await resourceNotificationService.PublishUpdateAsync(resource, s =>
                     {
-                        var healthReports = MergeHealthReports(s.HealthReports, report);
+                        var healthReports = MergeHealthReports(s.HealthReports, report, timeProvider.GetUtcNow().DateTime);
 
                         return s with
                         {
@@ -269,13 +269,13 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
         cancellationToken);
     }
 
-    private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report)
+    private static ImmutableArray<HealthReportSnapshot> MergeHealthReports(ImmutableArray<HealthReportSnapshot> healthReports, HealthReport report, DateTime runAt)
     {
         var builder = healthReports.ToBuilder();
 
         foreach (var (key, entry) in report.Entries)
         {
-            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString());
+            var snapshot = new HealthReportSnapshot(key, entry.Status, entry.Description, entry.Exception?.ToString(), runAt);
 
             var found = false;
             for (var i = 0; i < builder.Count; i++)

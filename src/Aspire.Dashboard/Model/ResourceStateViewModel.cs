@@ -119,7 +119,20 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         else if (resource is { KnownState: KnownResourceState.Running, HealthStatus: not HealthStatus.Healthy })
         {
             // Resource is running but not healthy (initializing).
-            return loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
+            var baseMessage = loc[nameof(Columns.RunningAndUnhealthyResourceStateToolTip)];
+
+            // Try to find the most recent health check timestamp
+            var latestRunAt = resource.HealthReports
+                .Where(hr => hr.LastRunAt.HasValue)
+                .Max(hr => hr.LastRunAt);
+
+            if (latestRunAt.HasValue)
+            {
+                var timeAgo = DateTimeOffset.UtcNow.Subtract(latestRunAt.Value).Humanize();
+                return $"{baseMessage} (last checked {timeAgo} ago)";
+            }
+
+            return baseMessage;
         }
         else if (resource.IsRuntimeUnhealthy() && resource.IsContainer())
         {

@@ -302,8 +302,9 @@ public sealed record ResourceCommandSnapshot(string Name, ResourceCommandState S
 /// <param name="Status">The state of the resource, according to the report, or <see langword="null"/> if a health report has not yet been received for this health check.</param>
 /// <param name="Description">An optional description of the report, for display.</param>
 /// <param name="ExceptionText">An optional string containing exception details.</param>
+/// <param name="LastRunAt">The timestamp when this health check was last executed, or <see langword="null"/> if not available.</param>
 [DebuggerDisplay("{Status}", Name = "{Name}")]
-public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText);
+public sealed record HealthReportSnapshot(string Name, HealthStatus? Status, string? Description, string? ExceptionText, DateTime? LastRunAt);
 
 /// <summary>
 /// The state of a resource command.
