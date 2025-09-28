@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
@@ -36,7 +38,9 @@ public class DockerfileBuildCallbackAnnotationTests
         };
 
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
-        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", "production");
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection().BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", "production", builder, services);
 
         // Act
         await annotation.Callback(context);
@@ -61,12 +65,71 @@ public class DockerfileBuildCallbackAnnotationTests
         };
 
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
-        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null);
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection().BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
 
         // Act
         await annotation.Callback(context);
 
         // Assert
         Assert.True(callbackCompleted);
+    }
+
+    [Fact]
+    public async Task DockerfileBuildCallbackAnnotation_CallbackCanModifyDockerfileBuilder()
+    {
+        // Arrange
+        var builderModified = false;
+
+        Func<DockerfileBuildCallbackContext, Task> callback = context =>
+        {
+            context.Builder.From("alpine", "latest")
+                .WorkDir("/workspace")
+                .Run("apk add curl");
+            builderModified = true;
+            return Task.CompletedTask;
+        };
+
+        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection().BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
+
+        // Act
+        await annotation.Callback(context);
+
+        // Assert
+        Assert.True(builderModified);
+        Assert.Single(context.Builder.Stages);
+        Assert.Equal(3, context.Builder.Stages[0].Statements.Count); // FROM + WORKDIR + RUN
+    }
+
+    [Fact]
+    public async Task DockerfileBuildCallbackAnnotation_CallbackCanAccessServices()
+    {
+        // Arrange
+        var serviceAccessed = false;
+        var testService = "test-service-value";
+
+        Func<DockerfileBuildCallbackContext, Task> callback = context =>
+        {
+            var retrievedService = context.Services.GetService<string>();
+            serviceAccessed = retrievedService == testService;
+            return Task.CompletedTask;
+        };
+
+        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection()
+            .AddSingleton(testService)
+            .BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
+
+        // Act
+        await annotation.Callback(context);
+
+        // Assert
+        Assert.True(serviceAccessed);
     }
 }
