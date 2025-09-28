@@ -262,13 +262,13 @@
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.LastRunAtColumnHeader)]" Class="lastRunAtColumn">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LastRunAtColumnHeader)]"
-                                   Value="@(context.LastRunAt.HasValue ? FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LastRunAt.Value) : "")"
+                                   Value="@(context.LastRunAt.HasValue ? DateTimeOffset.UtcNow.Subtract(context.LastRunAt.Value).Humanize() + " ago" : "")"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter">
                             <ContentBeforeValue>
                                 @if (context.LastRunAt.HasValue)
                                 {
-                                    <FluentIcon Value="@(new Icons.Regular.Size16.Clock())" Class="timestamp-icon" />
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Clock())" Class="severity-icon" />
                                 }
                             </ContentBeforeValue>
                         </GridValue>
