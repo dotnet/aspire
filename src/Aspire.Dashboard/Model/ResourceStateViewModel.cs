@@ -128,7 +128,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
 
             if (latestRunAt.HasValue)
             {
-                var timeAgo = DateTime.UtcNow.Subtract(latestRunAt.Value).Humanize();
+                var timeAgo = DateTimeOffset.UtcNow.Subtract(latestRunAt.Value).Humanize();
                 return $"{baseMessage} (last checked {timeAgo} ago)";
             }
 
