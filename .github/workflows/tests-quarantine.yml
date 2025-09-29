@@ -18,3 +18,4 @@ jobs:
       extraRunSheetBuilderArgs: "-p:RunQuarantinedTests=true"
       extraTestArgs: "--filter-trait quarantined=true"
       enablePlaywrightInstall: true
+      ignoreFailuresAndCheckTrx: true

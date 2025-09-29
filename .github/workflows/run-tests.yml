@@ -48,6 +48,11 @@ on:
         required: false
         type: string
         default: "ubuntu-latest"
+      # When true, ignores test failures and checks if .trx files have nonzero test count
+      ignoreFailuresAndCheckTrx:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -287,16 +292,18 @@ jobs:
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
-        run: >
-          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
-          --ignore-exit-code 8
-          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
-          --crashdump
-          --results-directory ${{ github.workspace }}/testresults
-          --filter-not-trait "category=failing"
-          --timeout ${{ inputs.testSessionTimeout }}
-          ${{ inputs.extraTestArgs }}
+        shell: bash
+        run: |
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll \
+            --ignore-exit-code 8 \
+            --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
+            --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }} \
+            --crashdump \
+            --results-directory ${{ github.workspace }}/testresults \
+            --filter-not-trait "category=failing" \
+            --timeout ${{ inputs.testSessionTimeout }} \
+            ${{ inputs.extraTestArgs }} \
+          ${{ inputs.ignoreFailuresAndCheckTrx && '|| true' || '' }}
 
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
@@ -310,21 +317,64 @@ jobs:
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
-        run: >
-          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
-          /p:ContinuousIntegrationBuild=true
-          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
-          -bl:${{ github.workspace }}/testresults/test.binlog
-          --no-restore
-          --no-build
-          --
-          --ignore-exit-code 8
-          --report-trx
-          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
-          --crashdump
-          --results-directory ${{ github.workspace }}/testresults
-          --timeout ${{ inputs.testSessionTimeout }}
-          ${{ inputs.extraTestArgs }}
+        shell: bash
+        run: |
+          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }} \
+            /p:ContinuousIntegrationBuild=true \
+            /p:TrxFileNamePrefix="${{ inputs.testShortName }}" \
+            -bl:${{ github.workspace }}/testresults/test.binlog \
+            --no-restore \
+            --no-build \
+            -- \
+            --ignore-exit-code 8 \
+            --report-trx \
+            --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }} \
+            --crashdump \
+            --results-directory ${{ github.workspace }}/testresults \
+            --timeout ${{ inputs.testSessionTimeout }} \
+            ${{ inputs.extraTestArgs }} \
+          ${{ inputs.ignoreFailuresAndCheckTrx && '|| true' || '' }}
+
+      - name: Verify test results exist
+        if: ${{ inputs.ignoreFailuresAndCheckTrx }}
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
+          
+          if ($trxFiles.Count -eq 0) {
+            Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
+            exit 1
+          }
+          
+          Write-Host "Found $($trxFiles.Count) .trx file(s)"
+          
+          $totalTests = 0
+          foreach ($trxFile in $trxFiles) {
+            Write-Host "Checking $($trxFile.Name)..."
+            
+            try {
+              [xml]$trxContent = Get-Content -Path $trxFile.FullName
+              $countersNode = $trxContent.TestRun.ResultSummary.Counters
+              
+              if ($countersNode -and $countersNode.total) {
+                $testCount = [int]$countersNode.total
+                $totalTests += $testCount
+                Write-Host "  Total tests in file: $testCount"
+              }
+            }
+            catch {
+              Write-Warning "Failed to parse $($trxFile.Name): $_"
+            }
+          }
+          
+          Write-Host "Total tests across all .trx files: $totalTests"
+          
+          if ($totalTests -eq 0) {
+            Write-Error "All .trx files have zero test count. Tests may not have run due to infrastructure issues."
+            exit 1
+          }
+          
+          Write-Host "✓ Tests were successfully executed (found $totalTests test(s) in .trx files)"
 
       - name: Dump docker info
         if: ${{ always() && inputs.os == 'ubuntu-latest' }}
