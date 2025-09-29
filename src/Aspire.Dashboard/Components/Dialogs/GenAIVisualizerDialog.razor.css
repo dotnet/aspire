@@ -141,6 +141,8 @@
     row-gap: 12px;
     /* don't stretch images */
     align-items: flex-start;
+    /* break up long words that take up the entire line. avoid horizontal scrollbars */
+    word-break: break-word;
 }
 
 ::deep .tab-container img {
@@ -197,4 +199,8 @@
     margin-left: auto;
     margin-top: 4px;
     margin-right: 4px;
+}
+
+::deep .markdown-container {
+    width: 100%;
 }
