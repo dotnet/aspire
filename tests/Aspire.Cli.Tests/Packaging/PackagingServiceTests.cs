@@ -221,7 +221,7 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         
         var configContent = await File.ReadAllTextAsync(nugetConfigPath);
         Assert.Contains("globalPackagesFolder", configContent);
-        Assert.Contains(".nuget\\packages", configContent);
+        Assert.Contains(".nugetpackages", configContent);
 
         // Verify the XML structure
         var doc = XDocument.Load(nugetConfigPath);
@@ -231,6 +231,6 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         var globalPackagesFolderAdd = configSection.Elements("add")
             .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(globalPackagesFolderAdd);
-        Assert.Equal(".nuget\\packages", (string?)globalPackagesFolderAdd.Attribute("value"));
+        Assert.Equal(".nugetpackages", (string?)globalPackagesFolderAdd.Attribute("value"));
     }
 }
