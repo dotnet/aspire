@@ -46,26 +46,13 @@ internal sealed class PodmanContainerRuntime : ContainerRuntimeBase<PodmanContai
         }
 
         // Add build arguments if specified
-        foreach (var buildArg in buildArguments)
-        {
-            arguments += buildArg.Value is not null
-                ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
-                : $" --build-arg \"{buildArg.Key}\"";
-        }
+        arguments += BuildArgumentsString(buildArguments);
 
         // Add build secrets if specified
-        foreach (var buildSecret in buildSecrets)
-        {
-            arguments += buildSecret.Value is not null
-                ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
-                : $" --secret \"id={buildSecret.Key}\"";
-        }
+        arguments += BuildSecretsString(buildSecrets, requireValue: true);
 
         // Add stage if specified
-        if (!string.IsNullOrEmpty(stage))
-        {
-            arguments += $" --target \"{stage}\"";
-        }
+        arguments += BuildStageString(stage);
 
         arguments += $" \"{contextPath}\"";
 

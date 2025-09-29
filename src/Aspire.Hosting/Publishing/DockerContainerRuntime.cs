@@ -76,24 +76,13 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
             }
 
             // Add build arguments if specified
-            foreach (var buildArg in buildArguments)
-            {
-                arguments += buildArg.Value is not null
-                    ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
-                    : $" --build-arg \"{buildArg.Key}\"";
-            }
+            arguments += BuildArgumentsString(buildArguments);
 
             // Add build secrets if specified
-            foreach (var buildSecret in buildSecrets)
-            {
-                arguments += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
-            }
+            arguments += BuildSecretsString(buildSecrets);
 
             // Add stage if specified
-            if (!string.IsNullOrEmpty(stage))
-            {
-                arguments += $" --target \"{stage}\"";
-            }
+            arguments += BuildStageString(stage);
 
             arguments += $" \"{contextPath}\"";
 

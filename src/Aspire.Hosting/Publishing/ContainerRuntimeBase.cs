@@ -153,6 +153,56 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     }
 
     /// <summary>
+    /// Builds a string of build arguments for container build commands.
+    /// </summary>
+    /// <param name="buildArguments">The build arguments to include.</param>
+    /// <returns>A string containing the formatted build arguments.</returns>
+    protected virtual string BuildArgumentsString(Dictionary<string, string?> buildArguments)
+    {
+        var result = string.Empty;
+        foreach (var buildArg in buildArguments)
+        {
+            result += buildArg.Value is not null
+                ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
+                : $" --build-arg \"{buildArg.Key}\"";
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Builds a string of build secrets for container build commands.
+    /// </summary>
+    /// <param name="buildSecrets">The build secrets to include.</param>
+    /// <param name="requireValue">Whether to require a non-null value for secrets (default: false).</param>
+    /// <returns>A string containing the formatted build secrets.</returns>
+    protected virtual string BuildSecretsString(Dictionary<string, string?> buildSecrets, bool requireValue = false)
+    {
+        var result = string.Empty;
+        foreach (var buildSecret in buildSecrets)
+        {
+            if (requireValue && buildSecret.Value is null)
+            {
+                result += $" --secret \"id={buildSecret.Key}\"";
+            }
+            else
+            {
+                result += $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\"";
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Builds a string for the target stage in container build commands.
+    /// </summary>
+    /// <param name="stage">The target stage to include.</param>
+    /// <returns>A string containing the formatted target stage, or empty string if stage is null or empty.</returns>
+    protected virtual string BuildStageString(string? stage)
+    {
+        return !string.IsNullOrEmpty(stage) ? $" --target \"{stage}\"" : string.Empty;
+    }
+
+    /// <summary>
     /// Creates a ProcessSpec for executing container runtime commands.
     /// </summary>
     /// <param name="arguments">The command arguments.</param>
