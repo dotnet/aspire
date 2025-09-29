@@ -326,8 +326,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAt.Value);
             var formattedDuration = DurationFormatter.FormatDuration(duration);
-            var agoText = Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckAgoFormat), formattedDuration];
-            return $"{statusText} ({agoText})";
+            return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
         
         return statusText;

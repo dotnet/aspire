@@ -196,6 +196,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} ({1} ago).
+        /// </summary>
+        public static string HealthCheckStatusWithTimeFormat {
+            get {
+                return ResourceManager.GetString("HealthCheckStatusWithTimeFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
         public static string ResourcesActionsColumnHeader {

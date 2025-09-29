@@ -7,6 +7,11 @@
         <target state="new">{0} ago</target>
         <note>{0} is a duration like "2s" or "5m" representing how long ago a health check ran</note>
       </trans-unit>
+      <trans-unit id="HealthCheckStatusWithTimeFormat">
+        <source>{0} ({1} ago)</source>
+        <target state="new">{0} ({1} ago)</target>
+        <note>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</note>
+      </trans-unit>
       <trans-unit id="ResourceActionCommandsText">
         <source>Commands</source>
         <target state="translated">Příkazy</target>
