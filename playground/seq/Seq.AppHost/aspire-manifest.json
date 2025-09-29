@@ -4,9 +4,10 @@
     "seq": {
       "type": "container.v0",
       "connectionString": "{seq.bindings.http.url}",
-      "image": "docker.io/datalust/seq:2025.1",
+      "image": "docker.io/datalust/seq:2025.2",
       "env": {
-        "ACCEPT_EULA": "Y"
+        "ACCEPT_EULA": "Y",
+        "SEQ_FIRSTRUN_NOAUTHENTICATION": "True"
       },
       "bindings": {
         "http": {

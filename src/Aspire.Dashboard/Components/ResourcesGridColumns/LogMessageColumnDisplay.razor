@@ -1,25 +1,33 @@
 ﻿@namespace Aspire.Dashboard.Components
 
 @using Aspire.Dashboard.Extensions
+@using Aspire.Dashboard.Model.GenAI
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 
 @inject IStringLocalizer<StructuredLogs> Loc
+@inject IStringLocalizer<ControlsStrings> ControlStringsLoc
 
-<GridValue Value="@LogEntry.Message"
+<GridValue Value="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.ColumnMaximumTextLength)"
+           ValueToVisualize="@LogEntry.Message"
            ValueDescription="@Loc[nameof(StructuredLogs.StructuredLogsMessageColumnHeader)]"
+           ToolTip="@FormatHelpers.TruncateText(LogEntry.Message, FormatHelpers.TooltipMaximumTextLength)"
            EnableHighlighting="true"
            HighlightText="@FilterText"
            StopClickPropagation="true">
     <ContentInButtonArea>
+        @if (!string.IsNullOrEmpty(LogEntry.TraceId) &&
+            !string.IsNullOrEmpty(LogEntry.SpanId) &&
+            GenAIHelpers.IsGenAISpan(LogEntry.Attributes))
+        {
+            <FluentButton Appearance="Appearance.Lightweight"
+                          Title="@ControlStringsLoc[nameof(ControlsStrings.GenAIDetailsTitle)]"
+                          OnClick="OnLaunchGenAIVisualizerAsync">
+                <FluentIcon Icon="Icons.Regular.Size20.Sparkle"
+                            Color="Color.Accent" />
+            </FluentButton>
+        }
         <ExceptionDetails ExceptionText="@_exceptionText" />
     </ContentInButtonArea>
 </GridValue>
-
-@code {
-    [Parameter, EditorRequired]
-    public required OtlpLogEntry LogEntry { get; set; }
-
-    [Parameter, EditorRequired]
-    public required string FilterText { get; set; }
-}

@@ -18,7 +18,8 @@ namespace Aspire.OpenAI;
 /// <param name="connectionName">The name used to retrieve the connection string from the ConnectionStrings configuration section.</param>
 /// <param name="serviceKey">The service key used to register the <see cref="OpenAIClient"/> service, if any.</param>
 /// <param name="disableTracing">A flag to indicate whether tracing should be disabled.</param>
-public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing)
+/// <param name="enableSensitiveTelemetryData">A flag indicating whether potentially sensitive information should be included in telemetry.</param>
+public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, string connectionName, string? serviceKey, bool disableTracing, bool enableSensitiveTelemetryData)
 {
     private const string DeploymentKey = "Deployment";
     private const string ModelKey = "Model";
@@ -44,9 +45,16 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
     public bool DisableTracing { get; } = disableTracing;
 
     /// <summary>
+    /// Gets a flag indicating whether potentially sensitive information should be included in telemetry.
+    /// </summary>
+    public bool EnableSensitiveTelemetryData { get; } = enableSensitiveTelemetryData;
+
+    /// <summary>
     /// Gets the name of the configuration section for this component type.
     /// </summary>
-    public virtual string ConfigurationSectionName => AspireOpenAIExtensions.DefaultConfigSectionName;
+    public virtual string ConfigurationSectionName => ServiceKey is null ?
+        AspireOpenAIExtensions.DefaultConfigSectionName :
+        $"{AspireOpenAIExtensions.DefaultConfigSectionName}:{ServiceKey}";
 
     internal string GetRequiredDeploymentName()
     {
@@ -55,10 +63,8 @@ public class AspireOpenAIClientBuilder(IHostApplicationBuilder hostBuilder, stri
         var configuration = HostBuilder.Configuration;
         if (configuration.GetConnectionString(ConnectionName) is string connectionString)
         {
-            // The reason we accept either 'Deployment' or 'Model' as the key is because OpenAI's terminology
-            // is 'Model' and Azure OpenAI's terminology is 'Deployment'. It may seem awkward if we picked just
-            // one of these, as it might not match the usage scenario. We could restrict it based on which backend
-            // you're using, but that adds an unnecessary failure case for no clear benefit.
+            // The reason we accept either 'Deployment' or 'Model' as the key is because some hosting solutions
+            // require specific named deployments (Azure Foundry AI) while others may use a generic model name (OpenAI, GitHub Models).
             var connectionBuilder = new DbConnectionStringBuilder { ConnectionString = connectionString };
             var deploymentValue = ConnectionStringValue(connectionBuilder, DeploymentKey);
             var modelValue = ConnectionStringValue(connectionBuilder, ModelKey);

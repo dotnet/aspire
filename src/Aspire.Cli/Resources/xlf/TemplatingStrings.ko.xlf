@@ -27,6 +27,11 @@
         <target state="translated">서비스 기본값</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Single-file AppHost (experimental)</source>
+        <target state="translated">단일 파일 AppHost(실험적)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
         <target state="translated">시작 템플릿</target>
@@ -46,6 +51,11 @@
         <source>An error occurred while trusting the certificates: {0}</source>
         <target state="translated">인증서의 신뢰성을 확인하는 중에 오류가 발생했습니다. {0}</target>
         <note>{0} is an exception message</note>
+      </trans-unit>
+      <trans-unit id="CreateNugetConfigConfirmation">
+        <source>Create NuGet.config for selected channels?</source>
+        <target state="translated">선택한 채널에 대한 NuGet.config를 만드시겠습니까?</target>
+        <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
         <source>Creating new Aspire project...</source>
@@ -85,6 +95,11 @@
       <trans-unit id="None">
         <source>None</source>
         <target state="translated">없음</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NuGetConfigCreatedConfirmationMessage">
+        <source>Created NuGet.config for the selected package channel.</source>
+        <target state="translated">선택한 패키지 채널에 대한 NuGet.config를 만들었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

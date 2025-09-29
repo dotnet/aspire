@@ -2,12 +2,11 @@ import * as assert from 'assert';
 import * as vscode from 'vscode';
 import * as sinon from 'sinon';
 
-import { codespacesLink, directLink } from '../../loc/strings';
-import { createRpcServer, RpcServerInformation } from '../../server/rpcServer';
 import { IInteractionService, InteractionService } from '../../server/interactionService';
 import { ICliRpcClient, ValidationResult } from '../../server/rpcClient';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import * as terminalUtils from '../../utils/terminal';
+import AspireRpcServer, { RpcServerConnectionInfo } from '../../server/AspireRpcServer';
+import { AspireDebugSession } from '../../debugger/AspireDebugSession';
 
 suite('InteractionService endpoints', () => {
 	let statusBarItem: vscode.StatusBarItem;
@@ -21,36 +20,6 @@ suite('InteractionService endpoints', () => {
 	teardown(() => {
 		createStatusBarItemStub.restore();
 		statusBarItem.dispose();
-	});
-
-	// showStatus
-	test('Calling showStatus with new status should show that status', async () => {
-		const testInfo = await createTestRpcServer();
-		const showStub = sinon.stub(statusBarItem, 'show');
-
-		testInfo.interactionService.showStatus('Test status');
-		assert.strictEqual(statusBarItem.text, 'Test status');
-		assert.ok(showStub.called, 'show should be called on the status bar item');
-		showStub.restore();
-	});
-
-	test("Calling showStatus with existing status but null should hide the status bar item", async () => {
-		const testInfo = await createTestRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus("Status to hide");
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, 'Status to hide');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
-	});
-
-	test("Calling showStatus with null with no existing status should not throw an error", async () => {
-		const testInfo = await createTestRpcServer();
-		const hideStub = sinon.stub(statusBarItem, 'hide');
-		testInfo.interactionService.showStatus(null);
-		assert.strictEqual(statusBarItem.text, '');
-		assert.ok(hideStub.called, 'hide should be called on the status bar item');
-		hideStub.restore();
 	});
 
 	// promptForString
@@ -132,34 +101,6 @@ suite('InteractionService endpoints', () => {
 		stub.restore();
 	});
 
-	test("displayDashboardUrls shows correct actions and URLs", async () => {
-		const testInfo = await createTestRpcServer();
-		const dashboardMessageItem: vscode.MessageItem = { title: directLink };
-		const showInfoMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves(dashboardMessageItem);
-		const openExternalStub = sinon.stub(vscode.env, 'openExternal').resolves(true as any);
-
-		const baseUrl = 'http://localhost';
-		const codespacesUrl = 'http://codespaces';
-		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
-		});
-
-		// Check that showInformationMessage was called with the expected arguments
-		const expectedArgs = [
-			'Open Aspire Dashboard',
-			{ title: directLink },
-			{ title: codespacesLink }
-		];
-		const actualArgs = showInfoMessageStub.getCall(0)?.args;
-		assert.deepStrictEqual(actualArgs, expectedArgs, 'showInformationMessage should be called with correct arguments');
-
-		// Check that openExternal was called with the baseUrl
-		assert.ok(openExternalStub.calledWith(vscode.Uri.parse(baseUrl)), 'openExternal should be called with baseUrl');
-		showInfoMessageStub.restore();
-		openExternalStub.restore();
-	});
-
 	test("displayDashboardUrls writes URLs to output channel", async () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const showInformationMessageStub = sinon.stub(vscode.window, 'showInformationMessage').resolves();
@@ -167,11 +108,17 @@ suite('InteractionService endpoints', () => {
 
 		const baseUrl = 'http://localhost';
 		const codespacesUrl = 'http://codespaces';
+
 		await testInfo.interactionService.displayDashboardUrls({
-			baseUrlWithLoginToken: baseUrl,
-			codespacesUrlWithLoginToken: codespacesUrl
+			BaseUrlWithLoginToken: baseUrl,
+			CodespacesUrlWithLoginToken: codespacesUrl
 		});
+
 		const outputLines = stub.getCalls().map(call => call.args[0]);
+
+        // wait 2 seconds to ensure we waited for displayDashboardUrls to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
 		assert.ok(outputLines.some(line => line.includes(baseUrl)), 'Output should contain base URL');
 		assert.ok(outputLines.some(line => line.includes(codespacesUrl)), 'Output should contain codespaces URL');
 		assert.equal(showInformationMessageStub.callCount, 1);
@@ -182,30 +129,37 @@ suite('InteractionService endpoints', () => {
 	test("displayLines endpoint", async () => {
 		const stub = sinon.stub(extensionLogOutputChannel, 'info');
 		const testInfo = await createTestRpcServer();
-		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		const openTextDocumentStub = sinon.stub(vscode.workspace, 'openTextDocument');
 
 		testInfo.interactionService.displayLines([
 			{ Stream: 'stdout', Line: 'line1' },
 			{ Stream: 'stderr', Line: 'line2' }
 		]);
-		assert.ok(showInformationMessageSpy.called);
-		assert.ok(stub.calledWith('line1'));
-		assert.ok(stub.calledWith('line2'));
-		showInformationMessageSpy.restore();
+
+		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
+		openTextDocumentStub.restore();
 	});
 });
 
 type RpcServerTestInfo = {
-	rpcServerInfo: RpcServerInformation;
+	rpcServerInfo: RpcServerConnectionInfo;
 	rpcClient: ICliRpcClient;
 	interactionService: IInteractionService;
 };
 
 class TestCliRpcClient implements ICliRpcClient {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
+
+    constructor(debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
+        this.debugSessionId = debugSessionId;
+        this.interactionService = new InteractionService(getAspireDebugSession, this);
+    }
+
 	stopCli(): Promise<void> {
 		return Promise.resolve();
 	}
-	
+
 	getCliVersion(): Promise<string> {
 		return Promise.resolve('1.0.0');
 	}
@@ -223,22 +177,22 @@ class TestCliRpcClient implements ICliRpcClient {
 	}
 }
 
-async function createTestRpcServer(): Promise<RpcServerTestInfo> {
-	const rpcClient = new TestCliRpcClient();
-	const interactionService = new InteractionService();
+async function createTestRpcServer(debugSessionId?: string | null, getAspireDebugSession?: () => AspireDebugSession | null): Promise<RpcServerTestInfo> {
+    getAspireDebugSession ??= () => {
+        return null;
+    };
 
-	const rpcServerInfo = await createRpcServer(
-		() => interactionService,
-		() => rpcClient
-	);
+	const rpcClient = new TestCliRpcClient(debugSessionId ?? null, getAspireDebugSession);
 
-	if (!rpcServerInfo) {
+	const rpcServer = await AspireRpcServer.create(() => rpcClient);
+
+	if (!rpcServer) {
 		throw new Error('Failed to set up RPC server');
 	}
 
 	return {
-		rpcServerInfo,
+		rpcServerInfo: rpcServer.connectionInfo,
 		rpcClient: rpcClient,
-		interactionService: interactionService
+		interactionService: rpcClient.interactionService
 	};
 }

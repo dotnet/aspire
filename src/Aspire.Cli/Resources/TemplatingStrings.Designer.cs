@@ -74,6 +74,12 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("AspireServiceDefaults_Description", resourceCulture);
             }
         }
+
+        public static string AspireAppHostSingleFile_Description {
+            get {
+                return ResourceManager.GetString("AspireAppHostSingleFile_Description", resourceCulture);
+            }
+        }
         
         public static string AspireMSTest_Description {
             get {
@@ -244,6 +250,18 @@ namespace Aspire.Cli.Resources {
         public static string ProjectAlreadyExists {
             get {
                 return ResourceManager.GetString("ProjectAlreadyExists", resourceCulture);
+            }
+        }
+
+        public static string CreateNugetConfigConfirmation {
+            get {
+                return ResourceManager.GetString("CreateNugetConfigConfirmation", resourceCulture);
+            }
+        }
+
+        public static string NuGetConfigCreatedConfirmationMessage {
+            get {
+                return ResourceManager.GetString("NuGetConfigCreatedConfirmationMessage", resourceCulture);
             }
         }
     }

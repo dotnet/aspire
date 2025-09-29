@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="fr" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
-        <target state="translated">Génère des artefacts de déploiement pour un projet hôte d’application Aspire. (Préversion)</target>
+        <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
+        <target state="translated">Génère des artefacts de déploiement pour un Aspire AppHost. (Préversion)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">Le chemin de sortie des artefacts générés.</target>
+        <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
+        <target state="translated">Le chemin de sortie des artefacts générés. Par défaut, il est « ./aspire-output » si aucun chemin n’est spécifié.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Le chemin d’accès au fichier projet hôte de l’application Aspire.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Chemin d’accès au fichier projet AppHost Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

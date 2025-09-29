@@ -64,6 +64,11 @@ Příklady:
         <target state="translated">Cílový prostředek není zadaný. K určení cíle použijte --resource nebo --start-resource.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute the command in.</source>
+        <target state="translated">Pracovní adresář, ve kterém se má příkaz spustit</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

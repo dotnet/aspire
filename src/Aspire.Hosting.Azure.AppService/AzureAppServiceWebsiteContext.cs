@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
@@ -61,7 +62,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var commandLineArgsCallbackAnnotations))
         {
-            var context = new CommandLineArgsCallbackContext(Args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(Args, resource, cancellationToken)
             {
                 ExecutionContext = environmentContext.ExecutionContext
             };
@@ -115,7 +116,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (value is EndpointReference ep)
         {
             var context = environmentContext.GetAppServiceContext(ep.Resource);
-            return (GetValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
+            return (GetEndpointValue(context._endpointMapping[ep.EndpointName], EndpointProperty.Url), secretType);
         }
 
         if (value is ParameterResource param)
@@ -153,7 +154,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             var context = environmentContext.GetAppServiceContext(epExpr.Endpoint.Resource);
             var mapping = context._endpointMapping[epExpr.Endpoint.EndpointName];
-            var val = GetValue(mapping, epExpr.Property);
+            var val = GetEndpointValue(mapping, epExpr.Property);
             return (val, secretType);
         }
 
@@ -178,7 +179,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 args[index++] = val;
             }
 
-            return (new BicepFormatString(expr.Format, args), finalSecretType);
+            return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)
@@ -196,7 +197,7 @@ internal sealed class AzureAppServiceWebsiteContext(
             BicepValue<string> s => s,
             string s => s,
             ProvisioningParameter p => p,
-            BicepFormatString fs => BicepFunction2.Interpolate(fs),
+            FormattableString fs => BicepFunction.Interpolate(fs),
             _ => throw new NotSupportedException($"Unsupported value type {val.GetType()}")
         };
     }
@@ -305,6 +306,23 @@ internal sealed class AzureAppServiceWebsiteContext(
             });
         }
 
+        // Probes
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        if (resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
+        {
+            // AppService allow only one "health check" with only path, so prioritize "liveness" and/or take the first one
+            var endpointProbeAnnotation = probeAnnotations
+                .OfType<EndpointProbeAnnotation>()
+                .OrderBy(probeAnnotation => probeAnnotation.Type == ProbeType.Liveness ? 0 : 1)
+                .FirstOrDefault();
+
+            if (endpointProbeAnnotation is not null)
+            {
+                webSite.SiteConfig.HealthCheckPath = endpointProbeAnnotation.Path;
+            }
+        }
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         infra.Add(webSite);
 
         // Allow users to customize the web app here
@@ -317,7 +335,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
     }
 
-    private BicepValue<string> GetValue(EndpointMapping mapping, EndpointProperty property)
+    private BicepValue<string> GetEndpointValue(EndpointMapping mapping, EndpointProperty property)
     {
         return property switch
         {

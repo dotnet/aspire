@@ -128,12 +128,17 @@ internal class ResourceSnapshotBuilder
     public CustomResourceSnapshot ToSnapshot(Executable executable, CustomResourceSnapshot previous)
     {
         string? projectPath = null;
+        string? launchProfileName = null;
         IResource? appModelResource = null;
 
         if (executable.AppModelResourceName is not null &&
             _resourceState.ApplicationModel.TryGetValue(executable.AppModelResourceName, out appModelResource))
         {
-            projectPath = appModelResource is ProjectResource p ? p.GetProjectMetadata().ProjectPath : null;
+            if (appModelResource is ProjectResource projectResource)
+            {
+                projectPath = projectResource.GetProjectMetadata().ProjectPath;
+                launchProfileName = projectResource.GetEffectiveLaunchProfile()?.Name;
+            }
         }
 
         var state = executable.AppModelInitialState is "Hidden" ? "Hidden" : executable.Status?.State;
@@ -163,6 +168,7 @@ internal class ResourceSnapshotBuilder
                     new(KnownProperties.Executable.Args, executable.Status?.EffectiveArgs ?? []) { IsSensitive = true },
                     new(KnownProperties.Executable.Pid, executable.Status?.ProcessId),
                     new(KnownProperties.Project.Path, projectPath),
+                    new(KnownProperties.Project.LaunchProfile, launchProfileName),
                     new(KnownProperties.Resource.AppArgs, launchArguments?.Args) { IsSensitive = launchArguments?.IsSensitive ?? false },
                     new(KnownProperties.Resource.AppArgsSensitivity, launchArguments?.ArgsAreSensitive) { IsSensitive = launchArguments?.IsSensitive ?? false },
                 ]),

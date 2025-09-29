@@ -40,7 +40,9 @@ partial class Resource
                 Commands = GetCommands(),
                 HealthReports = HealthReports.Select(ToHealthReportViewModel).OrderBy(vm => vm.Name).ToImmutableArray(),
                 IsHidden = IsHidden,
-                SupportsDetailedTelemetry = SupportsDetailedTelemetry
+                SupportsDetailedTelemetry = SupportsDetailedTelemetry,
+                IconName = HasIconName ? IconName : null,
+                IconVariant = HasIconVariant ? MapResourceIconVariant(IconVariant) : null
             };
         }
         catch (Exception ex)
@@ -130,6 +132,16 @@ partial class Resource
                     _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
                 };
             }
+        }
+
+        static FluentUIIconVariant MapResourceIconVariant(IconVariant iconVariant)
+        {
+            return iconVariant switch
+            {
+                IconVariant.Regular => FluentUIIconVariant.Regular,
+                IconVariant.Filled => FluentUIIconVariant.Filled,
+                _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
+            };
         }
     }
 

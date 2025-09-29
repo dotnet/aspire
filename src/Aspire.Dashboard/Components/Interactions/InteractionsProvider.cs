@@ -6,7 +6,8 @@ using System.Diagnostics;
 using System.Net;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
-using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Interaction;
+using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Aspire.DashboardService.Proto.V1;
@@ -40,7 +41,7 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly KeyedInteractionCollection _pendingInteractions = new();
     private readonly KeyedMessageCollection _openMessageBars = new();
-
+    private MarkdownProcessor _markdownProcessor = default!;
     private Task? _dialogDisplayTask;
     private Task? _watchInteractionsTask;
     private TaskCompletionSource _interactionAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -76,6 +77,9 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
     public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
     public required ILogger<InteractionsProvider> Logger { get; init; }
 
     [Inject]
@@ -94,6 +98,8 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         {
             _enabled = true;
         }
+
+        _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
 
         _dialogDisplayTask = Task.Run(async () =>
         {
@@ -309,14 +315,14 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
         return telemetryContext;
     }
 
-    private static string GetMessageHtml(WatchInteractionsResponseUpdate item)
+    private string GetMessageHtml(WatchInteractionsResponseUpdate item)
     {
         if (!item.EnableMessageMarkdown)
         {
             return WebUtility.HtmlEncode(item.Message);
         }
 
-        return InteractionMarkdownHelper.ToHtml(item.Message);
+        return InteractionMarkdownHelper.ToHtml(_markdownProcessor, item.Message);
     }
 
     private async Task WatchInteractionsAsync()

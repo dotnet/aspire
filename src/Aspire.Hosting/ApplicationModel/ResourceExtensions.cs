@@ -282,7 +282,7 @@ public static class ResourceExtensions
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
             var args = new List<object>();
-            var context = new CommandLineArgsCallbackContext(args, cancellationToken)
+            var context = new CommandLineArgsCallbackContext(args, resource, cancellationToken)
             {
                 Logger = logger,
                 ExecutionContext = executionContext
@@ -579,6 +579,20 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Determines whether the specified resource requires image building and pushing.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build and a push to a container registry if they provide
+    /// their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image push requirements.</param>
+    /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
+    public static bool RequiresImageBuildAndPush(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+    }
+
+    /// <summary>
     /// Gets the deployment target for the specified resource, if any. Throws an exception if
     /// there are multiple compute environments and a compute environment is not explicitly specified.
     /// </summary>
@@ -714,5 +728,37 @@ public static class ResourceExtensions
         {
             return [resource.Name];
         }
+    }
+
+    /// <summary>
+    /// Adds a deployment-specific image tag callback to a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The synchronous callback that returns the deployment tag name.</param>
+    /// <returns>The resource builder.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, string> callback) where T : class, IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Adds a deployment-specific image tag callback to a resource.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The asynchronous callback that returns the deployment tag name.</param>
+    /// <returns>The resource builder.</returns>
+    [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithDeploymentImageTag<T>(this IResourceBuilder<T> builder, Func<DeploymentImageTagCallbackAnnotationContext, Task<string>> callback) where T : class, IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
     }
 }

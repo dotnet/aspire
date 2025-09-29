@@ -8,7 +8,7 @@ namespace Aspire.Hosting.GitHub.Models;
 /// <summary>
 /// Represents a GitHub Model resource.
 /// </summary>
-public class GitHubModelResource : Resource, IResourceWithConnectionString, IResourceWithoutLifetime
+public class GitHubModelResource : Resource, IResourceWithConnectionString
 {
     internal ParameterResource DefaultKeyParameter { get; set; }
 
@@ -52,6 +52,6 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString, IRes
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         Organization is not null
-            ? ReferenceExpression.Create($"Endpoint=https://models.github.ai/orgs/{Organization}/inference;Key={Key};Model={Model};DeploymentId={Model}")
-            : ReferenceExpression.Create($"Endpoint=https://models.github.ai/inference;Key={Key};Model={Model};DeploymentId={Model}");
+            ? ReferenceExpression.Create($"Endpoint=https://models.github.ai/orgs/{Organization}/inference;Key={Key};Model={Model}")
+            : ReferenceExpression.Create($"Endpoint=https://models.github.ai/inference;Key={Key};Model={Model}");
 }

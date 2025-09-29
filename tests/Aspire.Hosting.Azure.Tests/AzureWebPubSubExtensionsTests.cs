@@ -365,6 +365,27 @@ public class AzureWebPubSubExtensionsTests(ITestOutputHelper output)
         Assert.Same(firstResult, secondResult);
     }
 
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureWebPubSubResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-webpubsub-name");
+        var existingResourceGroup = builder.AddParameter("existing-webpubsub-rg");
+
+        var webPubSub = builder.AddAzureWebPubSub("test-webpubsub")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = webPubSub.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";

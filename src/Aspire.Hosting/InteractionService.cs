@@ -74,7 +74,7 @@ internal class InteractionService : IInteractionService
 
     public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, string inputLabel, string placeHolder, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return await PromptInputAsync(title, message, new InteractionInput { InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
+        return await PromptInputAsync(title, message, new InteractionInput { Name = inputLabel, InputType = InputType.Text, Label = inputLabel, Required = true, Placeholder = placeHolder }, options, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<InteractionResult<InteractionInput>> PromptInputAsync(string title, string? message, InteractionInput input, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -88,7 +88,7 @@ internal class InteractionService : IInteractionService
         return InteractionResult.Ok(result.Data[0]);
     }
 
-    public async Task<InteractionResult<IReadOnlyList<InteractionInput>>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
+    public async Task<InteractionResult<InteractionInputCollection>> PromptInputsAsync(string title, string? message, IReadOnlyList<InteractionInput> inputs, InputsDialogInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
         EnsureServiceAvailable();
 
@@ -96,7 +96,10 @@ internal class InteractionService : IInteractionService
 
         options ??= InputsDialogInteractionOptions.Default;
 
-        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputs), cancellationToken);
+        // Create the collection early to validate names and generate missing ones
+        var inputCollection = new InteractionInputCollection(inputs);
+
+        var newState = new Interaction(title, message, options, new Interaction.InputsInteractionInfo(inputCollection), cancellationToken);
         AddInteractionUpdate(newState);
 
         using var _ = cancellationToken.Register(OnInteractionCancellation, state: newState);
@@ -104,8 +107,8 @@ internal class InteractionService : IInteractionService
         var completion = await newState.CompletionTcs.Task.ConfigureAwait(false);
         var inputState = completion.State as IReadOnlyList<InteractionInput>;
         return inputState == null
-            ? InteractionResult.Cancel<IReadOnlyList<InteractionInput>>()
-            : InteractionResult.Ok(inputState);
+            ? InteractionResult.Cancel<InteractionInputCollection>()
+            : InteractionResult.Ok(new InteractionInputCollection(inputState));
     }
 
     public async Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default)
@@ -272,9 +275,12 @@ internal class InteractionService : IInteractionService
                                 }
                                 break;
                             case InputType.Choice:
-                                if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                if (!input.AllowCustomChoice)
                                 {
-                                    context.AddValidationError(input, "Value must be one of the provided options.");
+                                    if (!input.Options?.Any(o => o.Key == value) ?? true)
+                                    {
+                                        context.AddValidationError(input, "Value must be one of the provided options.");
+                                    }
                                 }
                                 break;
                             case InputType.Boolean:
@@ -433,12 +439,12 @@ internal class Interaction
 
     internal sealed class InputsInteractionInfo : InteractionInfoBase
     {
-        public InputsInteractionInfo(IReadOnlyList<InteractionInput> inputs)
+        public InputsInteractionInfo(InteractionInputCollection inputs)
         {
             Inputs = inputs;
         }
 
-        public IReadOnlyList<InteractionInput> Inputs { get; }
+        public InteractionInputCollection Inputs { get; }
     }
 }
 

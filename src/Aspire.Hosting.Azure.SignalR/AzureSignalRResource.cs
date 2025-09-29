@@ -56,7 +56,15 @@ public class AzureSignalRResource(string name, Action<AzureResourceInfrastructur
         
         // Create and add new resource if it doesn't exist
         var store = SignalRService.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

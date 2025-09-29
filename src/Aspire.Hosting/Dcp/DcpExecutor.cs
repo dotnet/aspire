@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
@@ -557,7 +558,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 timestamp = result.Value.Timestamp.UtcDateTime;
             }
 
-            yield return LogEntry.Create(timestamp, resolvedContent, content, isError);
+            yield return LogEntry.Create(timestamp, resolvedContent, content, isError, resourcePrefix: null);
         }
     }
 
@@ -961,6 +962,28 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceNameAnnotation, executable.Name);
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
+
+            if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
+                && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetDebugSupportedResourceTypes()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
+            {
+                exe.Spec.ExecutionType = ExecutionType.IDE;
+                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                projectLaunchConfiguration.Type = supportsDebuggingAnnotation.DebugAdapterId;
+                projectLaunchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
+
+                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
+                {
+                    projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
+                }
+
+                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+            }
+            else
+            {
+                exe.Spec.ExecutionType = ExecutionType.Process;
+            }
+
             SetInitialResourceState(executable, exe);
 
             var exeAppResource = new AppResource(executable, exe);
@@ -1003,14 +1026,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 var projectArgs = new List<string>();
 
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]))
+                // We cannot use the IDE execution type if the Aspire extension does not support c# projects
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains("project") is not false)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
 
-                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
-                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.TryGetLastAnnotation<LaunchProfileAnnotation>(out var lpa))
+                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
                     {
-                        projectLaunchConfiguration.LaunchProfile = lpa.LaunchProfileName;
+                        projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
+                    }
+
+                    projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
+
+                    // Use the effective launch profile which has fallback logic
+                    if (!projectLaunchConfiguration.DisableLaunchProfile && project.GetEffectiveLaunchProfile() is NamedLaunchProfile namedLaunchProfile)
+                    {
+                        projectLaunchConfiguration.LaunchProfile = namedLaunchProfile.Name;
                     }
                 }
                 else
@@ -1986,6 +2017,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
+    }
+
+    /// <summary>
+    /// Returns a list of resource types that are supported for IDE launch. Always contains project
+    /// </summary>
+    private List<string>? GetDebugSupportedResourceTypes()
+    {
+        return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
+            ? null
+            : capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)

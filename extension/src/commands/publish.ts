@@ -1,10 +1,10 @@
-import { sendToAspireTerminal } from '../utils/terminal';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 import { isWorkspaceOpen } from '../utils/workspace';
 
-export async function publishCommand() {
+export async function publishCommand(terminalProvider: AspireTerminalProvider) {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    sendToAspireTerminal("aspire publish");
+    terminalProvider.sendToAspireTerminal("aspire publish");
 }

@@ -49,7 +49,8 @@ public static class AspireAzureOpenAIExtensions
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddSingleton(typeof(OpenAIClient), static provider => provider.GetRequiredService<AzureOpenAIClient>());
 
-        return new AspireAzureOpenAIClientBuilder(builder, connectionName, serviceKey: null, disableTracing: settings.DisableTracing);
+        return new AspireAzureOpenAIClientBuilder(builder, connectionName,
+            serviceKey: null, disableTracing: settings.DisableTracing, enableSensitiveTelemetryData: settings.EnableSensitiveTelemetryData);
     }
 
     /// <summary>
@@ -77,14 +78,17 @@ public static class AspireAzureOpenAIExtensions
         // Add the AzureOpenAIClient service as OpenAIClient. That way the service can be resolved by both service Types.
         builder.Services.TryAddKeyedSingleton(typeof(OpenAIClient), serviceKey: name, static (provider, key) => provider.GetRequiredKeyedService<AzureOpenAIClient>(key));
 
-        return new AspireAzureOpenAIClientBuilder(builder, name, name, settings.DisableTracing);
+        return new AspireAzureOpenAIClientBuilder(builder, name, name,
+            disableTracing: settings.DisableTracing, enableSensitiveTelemetryData: settings.EnableSensitiveTelemetryData);
     }
 
     private sealed class OpenAIComponent : AzureComponent<AzureOpenAISettings, AzureOpenAIClient, AzureOpenAIClientOptions>
     {
-        protected override string[] ActivitySourceNames => ["OpenAI.*"];
-
-        protected override string[] MetricSourceNames => ["OpenAI.*"];
+        // GenAI telemetry isn't stable so MEAI currently has source name of "Experimental.Microsoft.Extensions.AI".
+        // Listen to both names to ensure we capture telemetry from both stable and experimental versions.
+        // When MEAI removes experimental from the source name, Aspire will continue to work without changes.
+        protected override string[] ActivitySourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
+        protected override string[] MetricSourceNames => ["Experimental.Microsoft.Extensions.AI", "Microsoft.Extensions.AI"];
 
         protected override IAzureClientBuilder<AzureOpenAIClient, AzureOpenAIClientOptions> AddClient(
             AzureClientFactoryBuilder azureFactoryBuilder, AzureOpenAISettings settings, string connectionName,

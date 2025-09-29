@@ -87,6 +87,40 @@ public class AspireOpenAIExtensionsTests
     }
 
     [Theory]
+    [InlineData("Endpoint=http://domain.com:12345;Key=abc123", false)]
+    [InlineData("Endpoint=http://domain.com:12345;Key=abc123", true)]
+    public void ReadsEndpointFromConnectionStrings(string connectionString, bool useKeyed)
+    {
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:openai", connectionString)
+        ]);
+
+        if (useKeyed)
+        {
+            builder.AddKeyedOpenAIClient("openai");
+        }
+        else
+        {
+            builder.AddOpenAIClient("openai");
+        }
+
+        using var host = builder.Build();
+        var client = useKeyed ?
+            host.Services.GetRequiredKeyedService<OpenAIClient>("openai") :
+            host.Services.GetRequiredService<OpenAIClient>();
+
+        Assert.NotNull(client);
+
+        var endpointField = client.GetType().GetField("_endpoint", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(endpointField);
+
+        var endpoint = endpointField.GetValue(client);
+        Assert.NotNull(endpoint);
+        Assert.Equal("http://domain.com:12345/", endpoint.ToString());
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData("Endpoint=http://domain.com:12345")]
     public void ThrowsWhitInvalidConnectionString(string connectionString)

@@ -64,6 +64,11 @@ Examples:
         <target state="translated">Целевой ресурс не указан. Используйте --resource или --start-resource для указания цели.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute the command in.</source>
+        <target state="translated">Рабочий каталог, в котором будет выполнена команда.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

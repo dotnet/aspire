@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(TestsSharedDir)\VerifyExtensions.cs" />
+
     <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
   </ItemGroup>
 

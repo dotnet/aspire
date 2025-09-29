@@ -64,6 +64,11 @@ Exemples :
         <target state="translated">La ressource cible n’est pas spécifiée. Utilisez --resource ou --start-resource pour spécifier la cible.</target>
         <note />
       </trans-unit>
+      <trans-unit id="WorkdirArgumentDescription">
+        <source>The working directory to execute the command in.</source>
+        <target state="translated">Répertoire de travail dans lequel exécuter la commande.</target>
+        <note />
+      </trans-unit>
     </body>
   </file>
 </xliff>

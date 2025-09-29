@@ -69,6 +69,8 @@ namespace Aspire.Hosting.ApplicationModel
 
         public ParameterResource? UserNameParameter { get { throw null; } set { } }
 
+        public ReferenceExpression UserNameReference { get { throw null; } }
+
         public System.Threading.Tasks.ValueTask<string?> GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 }

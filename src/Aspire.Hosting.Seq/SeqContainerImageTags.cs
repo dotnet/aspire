@@ -11,6 +11,6 @@ internal static class SeqContainerImageTags
     /// <remarks>datalust/seq</remarks>
     public const string Image = "datalust/seq";
 
-    /// <remarks>2025.1</remarks>
-    public const string Tag = "2025.1";
+    /// <remarks>2025.2</remarks>
+    public const string Tag = "2025.2";
 }

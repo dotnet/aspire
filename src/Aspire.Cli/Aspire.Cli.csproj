@@ -19,8 +19,6 @@
 
   <!-- Set the nuget properties when building as a global tool. -->
   <PropertyGroup Condition="'$(IsCliToolProject)' == 'true'">
-    <!-- This package needs to remain as preview. -->
-    <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
     <IsPackable>true</IsPackable>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>aspire</ToolCommandName>
@@ -28,7 +26,10 @@
     <RollForward>Major</RollForward>
     <PackageTags>aspire cli</PackageTags>
     <Description>Command line tool for Aspire developers.</Description>
+    <!-- For 9.5 we want to keep the tool platform-independent, framework-dependent.
+         To do this we make sure it doesn't PublishAOT, and ensure that it doesn't publish for any RIDs at all. -->
     <PublishAot>false</PublishAot>
+    <RuntimeIdentifiers></RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(PublishAot)' == 'true'">
@@ -47,10 +48,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="KnownConfigNames.cs" />
+    <Compile Include="$(SharedDir)KnownConfigNames.cs" Link="Utils\KnownConfigNames.cs" />
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Utils\CircularBuffer.cs" />
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="StringComparers.cs" />
+    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="$(SharedDir)LocaleHelpers.cs" Link="Utils\LocaleHelpers.cs" />
     <Compile Include="$(RepoRoot)src\Aspire.Hosting\Backchannel\BackchannelDataTypes.cs" Link="Backchannel\CliBackchannelDataTypes.cs" />
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
   </ItemGroup>
