@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
+using Aspire.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model.GenAI;
@@ -39,6 +40,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
+        ILogger logger,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
@@ -67,7 +69,34 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
-        CreateMessages(viewModel, telemetryRepository);
+        try
+        {
+            CreateMessages(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            // There could be invalid or unexpected message JSON that causes deserialization to fail.
+            // Add an error item with the details error. It's a bit of a hack to display a dashboard error like this.
+            // Consider improving in future if this solution creates problems.
+            logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
+
+            var errorMessage = $"""
+                Error reading GenAI telemetry messages:
+
+                {ex.ToString()}
+                """ ;
+
+            viewModel.ErrorItem = new GenAIItemViewModel
+            {
+                Index = viewModel.Items.Count,
+                InternalId = null,
+                ItemParts = [GenAIItemPartViewModel.CreateErrorMessage(errorMessage)],
+                Parent = viewModel.Span,
+                ResourceName = KnownResourceNames.AspireDashboard,
+                Type = GenAIItemType.Error
+            };
+            viewModel.Items.Add(viewModel.ErrorItem);
+        }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
         {
