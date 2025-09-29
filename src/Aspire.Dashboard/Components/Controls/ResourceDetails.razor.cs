@@ -321,9 +321,9 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
         
         // Show timestamp for all resources when available per @davidfowl feedback
-        if (context.LastRunAt.HasValue)
+        if (context.LastRunAtTimeStamp.HasValue)
         {
-            var duration = DateTime.UtcNow.Subtract(context.LastRunAt.Value);
+            var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
             var formattedDuration = DurationFormatter.FormatDuration(duration);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }

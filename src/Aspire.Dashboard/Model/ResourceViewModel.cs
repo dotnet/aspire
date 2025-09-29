@@ -452,7 +452,7 @@ public sealed record class HealthReportViewModel(string Name, HealthStatus? Heal
     /// <summary>
     /// The timestamp when this health check was last executed, or <see langword="null"/> if not available.
     /// </summary>
-    public DateTime? LastRunAt { get; init; }
+    public DateTime? LastRunAtTimeStamp { get; init; }
     private readonly string? _humanizedHealthStatus = HealthStatus?.Humanize();
 
     public string? DisplayedDescription

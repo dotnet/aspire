@@ -58,7 +58,7 @@ partial class Resource
                 healthReport.Description, 
                 healthReport.Exception)
             {
-                LastRunAt = healthReport.LastRunAt?.ToDateTime()
+                LastRunAtTimeStamp = healthReport.LastRunAt?.ToDateTime()
             };
         }
 
