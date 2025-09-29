@@ -21,7 +21,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
+    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse = false, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
@@ -183,7 +183,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         return capabilities;
     }
 
-    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
         var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -192,7 +192,7 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
 
         await rpc.InvokeWithCancellationAsync(
             "CompletePromptResponseAsync",
-            [promptId, answers],
+            [promptId, answers, updateResponse],
             cancellationToken).ConfigureAwait(false);
     }
 

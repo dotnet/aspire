@@ -245,11 +245,18 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
+    public class PromptState
+    {
+        public required string ActivityId { get; init; }
+        public int InputIndex { get; internal set; }
+    }
+
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, string>();
         PublishingActivity? publishingActivity = null;
+        PromptState? promptState = null;
 
         await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
@@ -277,6 +284,11 @@ internal abstract class PublishCommandBase : BaseCommand
             }
             else if (activity.Type == PublishingActivityTypes.Prompt)
             {
+                if (promptState == null || promptState.ActivityId != activity.Data.Id)
+                {
+                    promptState = new PromptState { ActivityId = activity.Data.Id };
+                }
+
                 await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
             }
             else
@@ -502,7 +514,7 @@ internal abstract class PublishCommandBase : BaseCommand
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
-    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, PromptState promptState, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
         {
@@ -529,6 +541,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
         // Handle multiple inputs
         var answers = new PublishingPromptInputAnswer[inputs.Count];
+        var sendUpdateResponse = false;
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
@@ -543,6 +556,8 @@ internal abstract class PublishCommandBase : BaseCommand
                 var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+
+                sendUpdateResponse = input.UpdateStateOnChange;
             }
             else
             {
@@ -553,10 +568,16 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 Value = result
             };
+
+            if (sendUpdateResponse)
+            {
+                promptState.InputIndex = i;
+                break;
+            }
         }
 
         // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, updateResponse: sendUpdateResponse, cancellationToken);
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

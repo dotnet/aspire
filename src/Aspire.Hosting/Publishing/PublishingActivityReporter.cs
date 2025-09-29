@@ -283,6 +283,12 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
             // Handle input interaction types
             if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo && inputsInfo.Inputs.Count > 0)
             {
+                // Find all the inputs that are depended on.
+                // These inputs value changing will cause the interaction to be sent to the server.
+                var updateStateOnChangeInputs = inputsInfo.Inputs
+                    .SelectMany(i => i.OptionsProvider?.DependsOnInputs ?? [])
+                    .ToList();
+
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
                     Label = input.EffectiveLabel,
@@ -291,7 +297,8 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                     Options = input.Options,
                     Value = input.Value,
                     ValidationErrors = input.ValidationErrors,
-                    AllowCustomChoice = input.AllowCustomChoice
+                    AllowCustomChoice = input.AllowCustomChoice,
+                    UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName))
                 }).ToList();
 
                 var activity = new PublishingActivity
@@ -341,7 +348,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         }
     }
 
-    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, CancellationToken cancellationToken = default)
+    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, bool updateResponse = false, CancellationToken cancellationToken = default)
     {
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
@@ -361,14 +368,14 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 
                         return new InteractionCompletionState
                         {
-                            Complete = true,
+                            Complete = !updateResponse,
                             State = inputsInfo.Inputs
                         };
                     }
                     else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
                     {
                         // Handle notification interactions with boolean result
-                        bool result = false;
+                        var result = false;
                         if (responses is not null && responses.Length > 0)
                         {
                             // Parse the boolean value from the first response
