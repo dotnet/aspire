@@ -214,10 +214,15 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
+            // Disable noBuild for generic app host.
+            // TODO: Reconsider when "watch" is supported for generic app host.
+            var isGenericAppHost = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PIPE_NAME") != null;
+            var noBuild = !watch && !isGenericAppHost;
+
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostFile,
                 watch,
-                !watch,
+                noBuild,
                 unmatchedTokens,
                 env,
                 backchannelCompletitionSource,
