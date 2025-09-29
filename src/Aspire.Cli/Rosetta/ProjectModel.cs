@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,6 +15,8 @@ namespace Rosetta;
 /// <summary>
 /// Represents the dotnet project that is used to generate the AppHost.
 /// </summary>
+
+[UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 internal class ProjectModel
 {
     const string ProjectHashFileName = ".projecthash";
@@ -164,6 +167,7 @@ internal class ProjectModel
                     <AssemblyName>{AssemblyName}</AssemblyName>
                     <IsAspireHost>true</IsAspireHost>
                     <IsPublishable>true</IsPublishable>
+                    <SelfContained>true</SelfContained>
                     <ImplicitUsings>enable</ImplicitUsings>
                     <Nullable>enable</Nullable>
                     <WarningLevel>0</WarningLevel>
@@ -290,15 +294,22 @@ internal class ProjectModel
             var depsPath = Path.Combine(artifactsPath, $"{AssemblyName}.deps.json");
             var depsObj = JsonNode.Parse(File.ReadAllText(depsPath));
 
+            if (depsObj == null)
+            {
+                throw new InvalidOperationException($"{depsPath} could not be parsed.");
+            }
+
             // Use the first target as the default target.
-            var targets = depsObj?["targets"]?.AsObject();
+            var targets = depsObj["targets"]?.AsObject();
 
             if (targets == null || targets.Count == 0)
             {
                 throw new InvalidOperationException($"No targets found in {depsPath}.");
             }
 
-            _libraries = targets[RuntimeDepsTarget]?.AsObject() ?? throw new InvalidOperationException("Invalid target structure.");
+            var runtimeTarget = depsObj["runtimeTarget"]?["name"]?.ToString() ?? throw new InvalidOperationException("Invalid deps file structure.");
+
+            _libraries = targets[runtimeTarget]?.AsObject() ?? throw new InvalidOperationException("Invalid target structure.");
         }
 
         public string ArtifactsPath => _artifactsPath;

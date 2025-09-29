@@ -165,13 +165,15 @@ public class PackagesJson
     public MetadataLoadContext GetMetadataLoadContext(IDependencyContext dependencyContext)
     {
         var artifactsAssemblies = new List<string>(Directory.GetFiles(dependencyContext.ArtifactsPath, "*.dll"));
-        var runtimeAssemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
+        var resolver = new PathAssemblyResolver(artifactsAssemblies);
+        //var runtimeAssemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
 
-        var resolver = new PathAssemblyResolver(artifactsAssemblies.Union(runtimeAssemblies));
+        //var resolver = new Rosetta.PathAssemblyResolver(artifactsAssemblies.Union(runtimeAssemblies));
 
         // Use MetadataLoadContext to isolate the types from Aspire.Hosting since this project will
         // be built using a different version than the one we load dynamically.
         var metadataLoadContext = new MetadataLoadContext(resolver);
+
         //var wellKnownTypes = new WellKnownTypes([metadataLoadContext.LoadFromAssemblyName("Aspire.Hosting"), metadataLoadContext.LoadFromAssemblyName("System.Private.CoreLib")]);
 
         //return (metadataLoadContext, wellKnownTypes);
@@ -272,4 +274,3 @@ internal partial class PackagesJsonSerializerContext : JsonSerializerContext
 {
 
 }
-

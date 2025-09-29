@@ -12,7 +12,12 @@
     <NoWarn>$(NoWarn);CS1591</NoWarn>
     <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
-    <TrimmerSingleWarn>false</TrimmerSingleWarn> <!-- Show individual warnings -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <!-- Show individual warnings -->
+    <TrimmerSingleWarn>false</TrimmerSingleWarn>
+    <!-- Ignore trim warnings for now -->
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <SuppressAotAnalysisWarnings>true</SuppressAotAnalysisWarnings>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>

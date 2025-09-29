@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
@@ -9,6 +10,7 @@ using Rosetta.Models;
 
 namespace Rosetta.Generators;
 
+[UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
 {
     private const string ModulePath = "./.modules";
