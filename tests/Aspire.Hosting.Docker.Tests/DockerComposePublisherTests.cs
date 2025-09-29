@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIRECOMPUTE001
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
@@ -100,7 +101,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -133,7 +135,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -158,7 +161,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.True(File.Exists(composePath));
 
-        await Verify(File.ReadAllText(composePath), "yaml");
+        await Verify(File.ReadAllText(composePath), "yaml")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Theory]
@@ -245,7 +249,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         Assert.True(File.Exists(envPath));
 
         await Verify(File.ReadAllText(composePath), "yaml")
-            .AppendContentAsFile(File.ReadAllText(envPath), "env");
+            .AppendContentAsFile(File.ReadAllText(envPath), "env")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -369,7 +374,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeContent = File.ReadAllText(composePath);
 
-        await Verify(composeContent, "yaml");
+        await Verify(composeContent, "yaml")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -395,7 +401,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeContent = File.ReadAllText(composePath);
 
-        await Verify(composeContent, "yaml");
+        await Verify(composeContent, "yaml")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -423,7 +430,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeContent = File.ReadAllText(composePath);
 
-        await Verify(composeContent, "yaml");
+        await Verify(composeContent, "yaml")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -455,7 +463,8 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var composeContent = File.ReadAllText(composePath);
 
-        await Verify(composeContent, "yaml");
+        await Verify(composeContent, "yaml")
+            .ScrubLinesWithReplace(line => System.Text.RegularExpressions.Regex.Replace(line, @"docker-compose-\d{14}", "docker-compose-{timestamp}"));
     }
 
     [Fact]
@@ -477,6 +486,31 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
         // In run mode, no compose file should be generated
         var composePath = Path.Combine(tempDir.Path, "docker-compose.yaml");
         Assert.False(File.Exists(composePath));
+    }
+
+    [Fact]
+    public void PublishAsync_WithDeploymentImageTagCallback_UsesCorrectTag()
+    {
+        using var tempDir = new TempDirectory();
+
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        builder.AddDockerComposeEnvironment("docker-compose")
+            .WithDashboard(false);
+
+        const string customTag = "custom-deployment-tag";
+
+        builder.AddDockerfile("api", "my-api")
+            .WithDeploymentImageTag(context => customTag);
+
+        var app = builder.Build();
+        app.Run();
+
+        var envPath = Path.Combine(tempDir.Path, ".env");
+        Assert.True(File.Exists(envPath));
+        var envContent = File.ReadAllText(envPath);
+        Assert.Contains(customTag, envContent);
     }
 
     private sealed class MockImageBuilder : IResourceContainerImageBuilder

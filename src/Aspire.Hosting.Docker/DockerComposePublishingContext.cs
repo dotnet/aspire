@@ -156,14 +156,18 @@ internal sealed class DockerComposePublishingContext(
                     foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                     {
                         var (key, (description, defaultValue, source)) = entry;
-                        
+
                         // If the source is a parameter and there's no explicit default value,
                         // resolve the parameter's default value asynchronously
                         if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
                         {
                             defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                         }
-                        
+                        else if (source is ContainerImageReference imageReference)
+                        {
+                            defaultValue = await ((IValueProvider)imageReference).GetValueAsync(cancellationToken).ConfigureAwait(false);
+                        }
+
                         envFile.AddIfMissing(key, defaultValue, description);
                     }
 

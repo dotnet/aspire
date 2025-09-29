@@ -10,22 +10,18 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents the fully‑qualified container image reference that should be deployed.
 /// </summary>
+/// <remarks>
+/// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
+/// </remarks>
+/// <param name="resource">The resource that this container image is associated with.</param>
 [DebuggerDisplay("{ValueExpression}")]
-public class ContainerImageReference : IManifestExpressionProvider, IValueWithReferences, IValueProvider
+public class ContainerImageReference(IResource resource) : IManifestExpressionProvider, IValueWithReferences, IValueProvider
 {
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
-    /// </summary>
-    /// <param name="resource">The resource that this container image is associated with.</param>
-    public ContainerImageReference(IResource resource)
-    {
-        Resource = resource;
-    }
 
     /// <summary>
     /// Gets the resource that this container image is associated with.
     /// </summary>
-    public IResource Resource { get; }
+    public IResource Resource { get; } = resource;
 
     /// <inheritdoc/>
     public string ValueExpression => $"{{{Resource.Name}.containerImage}}";
@@ -37,8 +33,10 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
     async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
         var deploymentTarget = Resource.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a deployment target.");
-        var containerRegistry = deploymentTarget.ContainerRegistry ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry.");
-        var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        var containerRegistry = deploymentTarget.ContainerRegistry;
+        var registryEndpoint = containerRegistry is not null
+            ? $"{await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false)}/"
+            : string.Empty;
 
         string tag;
         if (Resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var deploymentTag))
@@ -58,7 +56,7 @@ public class ContainerImageReference : IManifestExpressionProvider, IValueWithRe
         {
             tag = "latest";
         }
-        
-        return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:{tag}";
+
+        return $"{registryEndpoint}{Resource.Name.ToLowerInvariant()}:{tag}";
     }
 }

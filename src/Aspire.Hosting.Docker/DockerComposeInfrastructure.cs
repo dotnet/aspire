@@ -55,6 +55,13 @@ internal sealed class DockerComposeInfrastructure(
                     ConfigureOtlp(r, otlpGrpcEndpoint);
                 }
 
+                // Add deployment tag callback annotation if not already present
+                if (!r.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+                {
+                    var deploymentTag = $"{environment.Name}-{DateTime.UtcNow:yyyyMMddHHmmss}";
+                    r.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
+                }
+
                 // Create a Docker Compose compute resource for the resource
                 var serviceResource = await dockerComposeEnvironmentContext.CreateDockerComposeServiceResourceAsync(r, executionContext, cancellationToken).ConfigureAwait(false);
 

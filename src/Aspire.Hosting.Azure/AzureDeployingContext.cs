@@ -30,7 +30,8 @@ internal sealed class AzureDeployingContext(
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
     IConfiguration configuration,
-    ITokenCredentialProvider tokenCredentialProvider)
+    ITokenCredentialProvider tokenCredentialProvider,
+    string environmentName)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
@@ -174,7 +175,7 @@ internal sealed class AzureDeployingContext(
         }
 
         // Generate a deployment-scoped timestamp tag for all resources
-        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var deploymentTag = $"{environmentName}-{DateTime.UtcNow:yyyyMMddHHmmss}";
         foreach (var resource in computeResources)
         {
             if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))

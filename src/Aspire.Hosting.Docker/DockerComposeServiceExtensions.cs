@@ -112,7 +112,7 @@ public static class DockerComposeServiceExtensions
         return dockerComposeService.Parent.AddEnvironmentVariable(
              imageEnvName,
              description: $"Container image name for {resourceInstance.Name}",
-             defaultValue: $"{resourceInstance.Name}:latest",
+             defaultValue: null, // Compute value from ContainerImageReference source
              source: new ContainerImageReference(resourceInstance)
         );
     }

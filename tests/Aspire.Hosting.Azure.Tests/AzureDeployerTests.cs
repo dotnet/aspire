@@ -252,13 +252,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
             call.localImageName == "api" &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+            call.targetImageName.StartsWith("testregistry.azurecr.io/api:"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
-            imageName.StartsWith("testregistry.azurecr.io/") &&
-            imageName.Contains("aspire-deploy-"));
+            imageName.StartsWith("testregistry.azurecr.io/api:"));
     }
 
     [Fact]
@@ -308,13 +306,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
             call.localImageName == "api" &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+            call.targetImageName.StartsWith("testregistry.azurecr.io/api:"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
-            imageName.StartsWith("testregistry.azurecr.io/") &&
-            imageName.Contains("aspire-deploy-"));
+            imageName.StartsWith("testregistry.azurecr.io/api:"));
     }
 
     [Fact]
@@ -397,20 +393,16 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Verify tag calls were made for both registries with deployment tags
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
             call.localImageName == "api-service" &&
-            call.targetImageName.StartsWith("aasregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+            call.targetImageName.StartsWith("aasregistry.azurecr.io/api-service:"));
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
             call.localImageName == "python-app" &&
-            call.targetImageName.StartsWith("acaregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+            call.targetImageName.StartsWith("acaregistry.azurecr.io/python-app:"));
 
         // Verify push calls were made for both registries with deployment tags
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
-            imageName.StartsWith("aasregistry.azurecr.io/") &&
-            imageName.Contains("aspire-deploy-"));
+            imageName.StartsWith("aasregistry.azurecr.io/api-service:"));
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
-            imageName.StartsWith("acaregistry.azurecr.io/") &&
-            imageName.Contains("aspire-deploy-"));
+            imageName.StartsWith("acaregistry.azurecr.io/python-app:"));
 
         // Verify that redis (existing container) was not tagged/pushed
         Assert.DoesNotContain(mockImageBuilder.TagImageCalls, call => call.localImageName == "cache");
@@ -916,13 +908,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Verify specific tag call was made (local "funcapp" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
             call.localImageName == "funcapp" &&
-            call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
-            call.targetImageName.Contains("aspire-deploy-"));
+            call.targetImageName.StartsWith("testregistry.azurecr.io/funcapp:"));
 
         // Verify specific push call was made with deployment tag
         Assert.Contains(mockImageBuilder.PushImageCalls, imageName =>
-            imageName.StartsWith("testregistry.azurecr.io/") &&
-            imageName.Contains("aspire-deploy-"));
+            imageName.StartsWith("testregistry.azurecr.io/funcapp:"));
     }
 
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
