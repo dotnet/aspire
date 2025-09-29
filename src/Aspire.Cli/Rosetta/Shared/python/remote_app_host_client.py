@@ -1,34 +1,3 @@
-"""RemoteAppHost Python client.
-
-Implements a minimal JSON-RPC 2.0 client compatible with the RemoteAppHost
-named pipe server implemented in C# (StreamJsonRpc) using the same method names:
-  - ping
-  - executeInstruction (expects a single string argument containing JSON)
-
-Transport:
-  * Windows: Named pipe (\\.\pipe\RemoteAppHost)
-  * Unix (Linux/macOS): Unix Domain Socket at $XDG_RUNTIME_DIR/remote-app-host.sock
-    or /tmp/remote-app-host.sock if XDG_RUNTIME_DIR not set.
-
-We use jsonrpcclient to build JSON-RPC requests, but we handle framing manually
-to remain interoperable with StreamJsonRpc which defaults to the "header" style
-protocol (Content-Length based) without WebSocket framing.
-
-Usage:
-    from remote_app_host_client import RemoteAppHostClient, make_instruction
-
-    client = RemoteAppHostClient()
-    client.connect(timeout=5)
-    print(client.ping())
-    create_builder = make_instruction('CREATE_BUILDER', builderName='appBuilder1', args=[])
-    print(client.execute_instruction(create_builder))
-    run_builder = make_instruction('RUN_BUILDER', builderName='appBuilder1')
-    print(client.execute_instruction(run_builder))
-    client.disconnect()
-
-This module purposefully keeps dependencies minimal.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -212,31 +181,3 @@ class RemoteAppHostClient:
         # Align with server signature: ExecuteInstructionAsync(string instructionJson)
         instruction_json = json.dumps(instruction)
         return self._send_request("executeInstruction", instruction_json)
-
-
-def main() -> int:
-    import argparse
-
-    parser = argparse.ArgumentParser(description="RemoteAppHost Python client test")
-    parser.add_argument("--pipe", default="RemoteAppHost", help="Named pipe / socket name")
-    parser.add_argument("--timeout", type=float, default=5.0)
-    args = parser.parse_args()
-
-    client = RemoteAppHostClient(pipe_name=args.pipe)
-    client.connect(timeout=args.timeout)
-    print("Connected. Pinging...")
-    print("Ping =>", client.ping())
-
-    create_builder = make_instruction("CREATE_BUILDER", builderName="appBuilder1", args=[])
-    print("CREATE_BUILDER =>", client.execute_instruction(create_builder))
-
-    run_builder = make_instruction("RUN_BUILDER", builderName="appBuilder1")
-    print("RUN_BUILDER =>", client.execute_instruction(run_builder))
-
-    client.disconnect()
-    print("Disconnected.")
-    return 0
-
-
-if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())

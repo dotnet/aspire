@@ -47,18 +47,22 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
 
         from enum import Enum
         from typing import Optional
+        import hashlib
         import os
         import subprocess
         import signal
         import sys
         import time
-        import uuid
+        from datetime import timedelta # Required by integrations
 
         # Global source variable to capture output code
         source = ""
         
-        # Global variable to store the rosetta process
-        rosetta_process = None
+        # Global variable to store the aspire process
+        aspire_process = None
+
+        # Global variable to store the client
+        client = None
 
         def write_line(code):
             global source
@@ -118,40 +122,37 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         class DistributedApplication:
             def __init__(self, builder_name):
                 self.builder_name = builder_name
-                
+
             def run(self):
                 run = make_instruction("RUN_BUILDER", builderName = self.builder_name)
                 send_instruction(run)
-                
+
                 print("Application is running. Press Ctrl+C to stop...")
-                
+
                 def signal_handler(sig, frame):
-                    print("\nStopping application...")
-                    global rosetta_process
-                    if rosetta_process:
-                        print("Terminating rosetta process...")
-                        rosetta_process.terminate()
+                    global aspire_process, client
+
+                    # Disconnect client if it exists
+                    if client:
+                        try:
+                            print("Disconnecting client...")
+                            client.disconnect()
+                        except Exception as e:
+                            print(f"Error disconnecting client: {e}")
+                    # Terminate aspire process if it exists
+                    if aspire_process:
+                        print("Terminating aspire process...")
+                        aspire_process.terminate()
                         try:
                             # Wait for process to terminate gracefully
-                            rosetta_process.wait(timeout=5)
+                            aspire_process.wait(timeout=5)
                         except subprocess.TimeoutExpired:
-                            print("Forcing rosetta process to stop...")
-                            rosetta_process.kill()
+                            print("Forcing aspire process to stop...")
+                            aspire_process.kill()
                     sys.exit(0)
-                
+
                 # Register signal handler for CTRL+C
                 signal.signal(signal.SIGINT, signal_handler)
-                
-                try:
-                    # Keep the main thread alive
-                    signal.pause()
-                except AttributeError:
-                    # signal.pause() is not available on Windows, use alternative
-                    try:
-                        while True:
-                            time.sleep(1)
-                    except KeyboardInterrupt:
-                        signal_handler(signal.SIGINT, None)
 
         class DistributedApplicationBuilderBase:
             _index = 1
@@ -180,25 +181,33 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             if args is None:
                 args = [] 
 
-            # Start the rosetta process with "serve" argument
-            print("Starting rosetta serve process...")
+            print("🚀 Starting generic app host...")
             global rosetta_process
 
-            pipeName = str(uuid.uuid4())
+            pipeName = hashlib.md5(os.getcwd().encode()).hexdigest()
             env = os.environ.copy()
             env["REMOTE_APP_HOST_PIPE_NAME"] = pipeName
 
             # This process inherits the current console directly
             rosetta_process = subprocess.Popen(
-                ["aspire", "polyglot", "serve"],
+                ["aspire", "polyglot", "serve", "-o", os.getcwd()],
                 env=env
             )
+
+            print("🔌 Connecting...")
 
             global client
             client = RemoteAppHostClient()
             client.pipe_name = pipeName
-            client.connect()
-            print("Ping:", client.ping())
+
+            # Loop until connection is successful
+            while True:
+                try:
+                    client.connect()
+                    client.ping()
+                    break  # Connection successful, exit loop
+                except Exception as e:
+                    time.sleep(1)
 
             global distributedApplicationBuilder
             distributedApplicationBuilder = DistributedApplicationBuilder(args)

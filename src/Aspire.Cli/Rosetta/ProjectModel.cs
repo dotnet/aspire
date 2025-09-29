@@ -28,7 +28,6 @@ internal class ProjectModel
     const string TargetFramework = "net9.0";
     public const string AspireHostVersion = "9.5.0";
     const string AssemblyName = "rosettahost";
-    const string RuntimeDepsTarget = ".NETCoreApp,Version=v9.0";
     private readonly string _projectModelPath;
     private readonly string _appPath;
 
@@ -39,6 +38,8 @@ internal class ProjectModel
     public ProjectModel(string appPath)
     {
         _appPath = Path.GetFullPath(appPath);
+        _appPath = new Uri(_appPath).LocalPath;
+        _appPath = OperatingSystem.IsWindows() ? _appPath.ToLowerInvariant() : _appPath;
 
         var pathHash = SHA256.HashData(Encoding.UTF8.GetBytes(_appPath));
         var pathDir = Convert.ToHexString(pathHash)[..12].ToLowerInvariant();

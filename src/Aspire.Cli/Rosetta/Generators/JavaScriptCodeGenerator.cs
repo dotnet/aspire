@@ -46,9 +46,11 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         import { RemoteAppHostClient } from './RemoteAppHostClient.js';
         import { AnyInstruction, CreateBuilderInstruction, RunBuilderInstruction } from './types.js';
         import { spawn, ChildProcess } from 'child_process';
-        import { randomUUID } from 'crypto';
+        import { createHash } from 'crypto';
 
-        var pipeName = randomUUID().toString();
+        // use a fixed pipe name for the app such that it can reconnect to a watched generic host
+        const pipeName = createHash('sha256').update(process.cwd(), 'utf8').digest('hex');
+        
         const client = new RemoteAppHostClient(pipeName);
 
         const _name = Symbol('_name');
@@ -138,62 +140,41 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
 
             // Start the rosetta remote host process
-            console.log('🚀 Starting rosetta remote host process...');
-            const rosettaProcess: ChildProcess = spawn('aspire', ['polyglot', 'serve'], {
+
+            console.log(`🚀 Starting generic app host...`);
+
+            const rosettaProcess: ChildProcess = spawn('aspire', ['polyglot', 'serve', '-o', process.cwd()], {
               stdio: 'inherit',
               shell: false,
               env: { ...process.env, 'REMOTE_APP_HOST_PIPE_NAME': pipeName }
             });
 
-            let rosettaReady = false;
-
-            rosettaProcess.stdout?.on('data', (data: any) => {
-              const output = data.toString().trim();
-              // console.log(`aspire: ${output}`);
-              // Check if rosetta indicates it's ready to accept connections
-              if (output.includes('Connecting to apphost')) {
-                rosettaReady = true;
-              }
-            });
-
-            rosettaProcess.stderr?.on('data', (data: any) => {
-              console.error(`rosetta error: ${data.toString().trim()}`);
-            });
-
-            rosettaProcess.on('error', (error: any) => {
-              console.error('❌ Failed to start rosetta run:', error);
-            });
-
-            rosettaProcess.on('exit', (code: any, signal: any) => {
-              console.log(`rosetta process exited with code ${code} and signal ${signal}`);
-            });
-
             // Give the process more time to start up and establish the named pipe
-            console.log('⏳ Waiting for rosetta to initialize...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            console.log('🔌 Connecting...');
 
-            try {
-              console.log('🔌 Connecting to RemoteAppHost JsonRpc server...');
-              await client.connect(5000);
-              console.log('✅ Connected successfully!');
+            while (true) {
+              try {
+                await client.connect();
+                await client.ping();
+                console.log('✅ Connected successfully!');
 
-              // Test ping
-              const pong = await client.ping();
+                break
+              } catch (error) {
+                // Failed to connect, wait an try again
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }   
 
-              const createBuilderInstruction: CreateBuilderInstruction = {
-                name: 'CREATE_BUILDER',
-                builderName: distributedApplicationBuilder[_name],
-                args: args
-              };
+            const createBuilderInstruction: CreateBuilderInstruction = {
+              name: 'CREATE_BUILDER',
+              builderName: distributedApplicationBuilder[_name],
+              args: args
+            };
 
-              await sendInstruction(createBuilderInstruction);
-
-            } catch (error) {
-              console.error('❌ Error:', error);
-            }
+            await sendInstruction(createBuilderInstruction);
 
             return distributedApplicationBuilder;
-        }           
+        } 
 
         export class DistributedApplication {
           constructor(private builderName: string) {

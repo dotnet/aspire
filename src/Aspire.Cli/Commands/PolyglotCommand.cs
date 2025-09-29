@@ -71,6 +71,10 @@ internal sealed class PolyglotCommand : BaseCommand
                     Directory.CreateDirectory(output);
                 }
 
+                var projectModel = new ProjectModel(output);
+
+                InteractionService.DisplaySubtleMessage($"Generic App Host: '{projectModel.ProjectModelPath}'");
+
                 var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 var codegen = RosettaServices.CreateCodegenerator(appModel, language);
@@ -88,6 +92,7 @@ internal sealed class PolyglotCommand : BaseCommand
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, PolyglotCommandStrings.NewCommand_Failed, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
@@ -111,6 +116,7 @@ internal sealed class PolyglotCommand : BaseCommand
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
             var output = parseResult.GetValue<string?>("--output") ?? ExecutionContext.WorkingDirectory.FullName;
+            var debug = parseResult.GetValue<bool>("--debug");
 
             output = Path.Combine(ExecutionContext.WorkingDirectory.FullName, new DirectoryInfo(output).FullName);
 
@@ -118,9 +124,11 @@ internal sealed class PolyglotCommand : BaseCommand
             {
                 var projectModel = new ProjectModel(output);
 
-                var passedAppHostProjectFile = new FileInfo(Path.Combine(projectModel.ProjectModelPath, "RosettaHost.csproj"));
+                InteractionService.DisplaySubtleMessage($"Generic App Host: '{projectModel.ProjectModelPath}' served from '{output}'");
 
-                return await _runCommand.ExecuteInternalAsync(passedAppHostProjectFile, false, false, false, [], cancellationToken);
+                var appHostProjectFile = new FileInfo(Path.Combine(projectModel.ProjectModelPath, "RosettaHost.csproj"));
+
+                return await _runCommand.ExecuteInternalAsync(appHostProjectFile, false, false, debug, [], cancellationToken);
             }
             catch (Exception ex)
             {
@@ -159,6 +167,10 @@ internal sealed class PolyglotCommand : BaseCommand
 
             try
             {
+                var projectModel = new ProjectModel(output);
+
+                InteractionService.DisplaySubtleMessage($"Generic App Host: '{projectModel.ProjectModelPath}'");
+
                 string? latestVersion = null;
 
                 var packagesJson = PackagesJson.Open(output);
@@ -213,6 +225,8 @@ internal sealed class PolyglotCommand : BaseCommand
 
             try
             {
+                var projectModel = new ProjectModel(output);
+
                 var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 // Detect language

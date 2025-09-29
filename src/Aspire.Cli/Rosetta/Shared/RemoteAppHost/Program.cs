@@ -3,10 +3,12 @@
 
 using RemoteAppHost;
 
-Console.WriteLine("🚀 Starting RemoteAppHost JsonRpc Server...");
+var pipeName = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PIPE_NAME") ?? "RemoteAppHost";
+
+Console.WriteLine($"🚀 Starting RemoteAppHost JsonRpc Server on {pipeName}...");
 Console.WriteLine("This server will continue running until stopped with Ctrl+C");
 
-var server = new JsonRpcServer(Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PIPE_NAME") ?? "RemoteAppHost");
+var server = new JsonRpcServer(pipeName);
 
 // Handle graceful shutdown
 Console.CancelKeyPress += (sender, e) =>
