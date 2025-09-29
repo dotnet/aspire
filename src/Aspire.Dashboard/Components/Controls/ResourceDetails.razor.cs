@@ -9,6 +9,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
+using Humanizer;
 using Microsoft.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
@@ -312,6 +313,19 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         TelemetryContext.UpdateTelemetryProperties([
             new ComponentTelemetryProperty(TelemetryPropertyKeys.ResourceType, new AspireTelemetryProperty(TelemetryPropertyValues.GetResourceTypeTelemetryValue(Resource.ResourceType, Resource.SupportsDetailedTelemetry))),
         ], Logger);
+    }
+
+    private string GetHealthStatusWithTime(HealthReportViewModel context)
+    {
+        var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
+        
+        if (context.LastRunAt.HasValue)
+        {
+            var timeAgo = DateTime.UtcNow.Subtract(context.LastRunAt.Value).Humanize();
+            return $"{statusText} ({timeAgo} ago)";
+        }
+        
+        return statusText;
     }
 
     public void Dispose()

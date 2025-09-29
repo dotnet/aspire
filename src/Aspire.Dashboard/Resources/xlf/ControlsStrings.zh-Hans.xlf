@@ -272,11 +272,6 @@
         <target state="translated">(取消设置)</target>
         <note>Unset is a noun, not a verb, to indicate that the value has not been set.</note>
       </trans-unit>
-      <trans-unit id="LastRunAtColumnHeader">
-        <source>Last run time</source>
-        <target state="new">Last run time</target>
-        <note />
-      </trans-unit>
       <trans-unit id="LinkAddressColumnHeader">
         <source>Address</source>
         <target state="translated">地址</target>

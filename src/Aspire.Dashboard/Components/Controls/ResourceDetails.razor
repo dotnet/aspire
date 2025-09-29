@@ -221,7 +221,7 @@
                                 ResizableColumns="true"
                                 Style="width:100%"
                                 RowSize="DataGridRowSize.Medium"
-                                GridTemplateColumns="1fr 0.8fr 1.5fr 1fr"
+                                GridTemplateColumns="1fr 1fr 1.5fr"
                                 ShowHover="true">
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]" Class="nameColumn">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.NameColumnHeader)]"
@@ -231,7 +231,7 @@
                     </AspireTemplateColumn>
                     <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]" Class="stateColumn">
                         <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.StateColumnHeader)]"
-                                   Value="@(context.HealthStatus?.Humanize() ?? Loc[nameof(Resources.WaitingHealthDataStatusMessage)])"
+                                   Value="@GetHealthStatusWithTime(context)"
                                    EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
                                    HighlightText="@_filter"
                                    TextVisualizerTitle="@context.Name">
@@ -258,19 +258,6 @@
                             <ContentInButtonArea>
                                 <ExceptionDetails ExceptionText="@context.ExceptionText" />
                             </ContentInButtonArea>
-                        </GridValue>
-                    </AspireTemplateColumn>
-                    <AspireTemplateColumn Title="@ControlStringsLoc[nameof(ControlsStrings.LastRunAtColumnHeader)]" Class="lastRunAtColumn">
-                        <GridValue ValueDescription="@ControlStringsLoc[nameof(ControlsStrings.LastRunAtColumnHeader)]"
-                                   Value="@(context.LastRunAt.HasValue ? DateTime.UtcNow.Subtract(context.LastRunAt.Value).Humanize() + " ago" : "")"
-                                   EnableHighlighting="@(!string.IsNullOrEmpty(_filter))"
-                                   HighlightText="@_filter">
-                            <ContentBeforeValue>
-                                @if (context.LastRunAt.HasValue)
-                                {
-                                    <FluentIcon Value="@(new Icons.Regular.Size16.Clock())" Class="severity-icon" />
-                                }
-                            </ContentBeforeValue>
                         </GridValue>
                     </AspireTemplateColumn>
                 </FluentDataGrid>

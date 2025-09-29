@@ -547,15 +547,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Last run time.
-        /// </summary>
-        public static string LastRunAtColumnHeader {
-            get {
-                return ResourceManager.GetString("LastRunAtColumnHeader", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Address.
         /// </summary>
         public static string LinkAddressColumnHeader {
