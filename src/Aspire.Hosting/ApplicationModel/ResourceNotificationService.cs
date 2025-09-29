@@ -758,9 +758,9 @@ public class ResourceNotificationService : IDisposable
             return previousState;
         }
 
-        // Always use the latest annotation values to support overriding
-        var newIconName = iconAnnotation.IconName;
-        var newIconVariant = iconAnnotation.IconVariant;
+        // Only update icon information if not already set
+        var newIconName = string.IsNullOrEmpty(previousState.IconName) ? iconAnnotation.IconName : previousState.IconName;
+        var newIconVariant = previousState.IconVariant ?? iconAnnotation.IconVariant;
 
         // Only create new snapshot if there are changes
         if (previousState.IconName == newIconName && previousState.IconVariant == newIconVariant)

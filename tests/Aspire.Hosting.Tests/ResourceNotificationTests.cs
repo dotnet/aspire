@@ -432,7 +432,7 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task UpdateIcons_OverwritesExistingIconValues()
+    public async Task UpdateIcons_DoesNotOverwriteExistingIconValues()
     {
         var resource = new CustomResource("myResource");
 
@@ -469,7 +469,7 @@ public class ResourceNotificationTests
             IconVariant = IconVariant.Filled
         }).DefaultTimeout();
 
-        // Publish another update that SHOULD overwrite with the latest annotation
+        // Publish another update that should NOT overwrite the existing icon values
         await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
         {
             State = "Running"  // Change something else to trigger an update
@@ -484,11 +484,48 @@ public class ResourceNotificationTests
         Assert.Equal("ExistingIcon", firstEvent.Snapshot.IconName);
         Assert.Equal(IconVariant.Filled, firstEvent.Snapshot.IconVariant);
 
-        // Check the second event (icon values should be overwritten with last annotation)
+        // Check the second event (icon values should not be overwritten)
         var secondEvent = values[1];
-        Assert.Equal("LastIcon", secondEvent.Snapshot.IconName);
-        Assert.Equal(IconVariant.Regular, secondEvent.Snapshot.IconVariant);
+        Assert.Equal("ExistingIcon", secondEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Filled, secondEvent.Snapshot.IconVariant);
         Assert.Equal("Running", secondEvent.Snapshot.State?.Text);
+    }
+
+    [Fact]
+    public async Task UpdateIcons_UsesLastAnnotationWhenNoIconSet()
+    {
+        var resource = new CustomResource("myResource");
+
+        // Add multiple icon annotations to simulate .WithIconName("FirstIcon").WithIconName("LastIcon")
+        resource.Annotations.Add(new ResourceIconAnnotation("FirstIcon", IconVariant.Filled));
+        resource.Annotations.Add(new ResourceIconAnnotation("LastIcon", IconVariant.Regular));
+
+        var notificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        async Task<ResourceEvent> GetFirstValueAsync(CancellationToken cancellationToken)
+        {
+            await foreach (var item in notificationService.WatchAsync(cancellationToken))
+            {
+                return item;
+            }
+            throw new InvalidOperationException("No events received");
+        }
+
+        using var cts = AsyncTestHelpers.CreateDefaultTimeoutTokenSource();
+        var enumerableTask = GetFirstValueAsync(cts.Token);
+
+        // Publish an update with no existing icon values (simulates initial resource creation)
+        await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
+        {
+            State = "Starting"
+        }).DefaultTimeout();
+
+        var value = await enumerableTask.DefaultTimeout();
+
+        // Verify that the icon values were set from the LAST annotation (not the first)
+        Assert.Equal("LastIcon", value.Snapshot.IconName);
+        Assert.Equal(IconVariant.Regular, value.Snapshot.IconVariant);
+        Assert.Equal("Starting", value.Snapshot.State?.Text);
     }
 
     [Fact]
