@@ -189,7 +189,7 @@
                                 @if (!string.IsNullOrEmpty(Content.DisplayErrorMessage))
                                 {
                                     <div class="display-error-message">
-                                        <h5>Error displaying GenAI content:</h5>
+                                        <h5>@Loc[nameof(Dialogs.GenAIDisplayErrorMessageText)]</h5>
                                         <div>
                                             @Content.DisplayErrorMessage
                                         </div>

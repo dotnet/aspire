@@ -241,6 +241,15 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Error displaying GenAI content:.
+        /// </summary>
+        public static string GenAIDisplayErrorMessageText {
+            get {
+                return ResourceManager.GetString("GenAIDisplayErrorMessageText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Duration.
         /// </summary>
         public static string GenAIDurationLabel {
