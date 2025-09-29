@@ -416,6 +416,26 @@ app.MapGet("/genai-trace", async () =>
             """);
     }
 
+    // Avoid zero seconds span.
+    await Task.Delay(100);
+
+    activity?.Stop();
+
+    return "Created GenAI trace";
+});
+
+app.MapGet("/genai-trace-display-error", async () =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    var activity = source.StartActivity("chat gpt", ActivityKind.Client);
+    if (activity != null)
+    {
+        activity.SetTag("gen_ai.system", "gpt");
+        activity.SetTag("gen_ai.input.messages", "invalid");
+    }
+
+    // Avoid zero seconds span.
     await Task.Delay(100);
 
     activity?.Stop();
