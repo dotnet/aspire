@@ -247,10 +247,6 @@
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
   </data>
-  <data name="HealthCheckAgoFormat" xml:space="preserve">
-    <value>{0} ago</value>
-    <comment>{0} is a duration like "2s" or "5m" representing how long ago a health check ran</comment>
-  </data>
   <data name="HealthCheckStatusWithTimeFormat" xml:space="preserve">
     <value>{0} ({1} ago)</value>
     <comment>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</comment>

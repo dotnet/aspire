@@ -2,11 +2,6 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../Resources.resx">
     <body>
-      <trans-unit id="HealthCheckAgoFormat">
-        <source>{0} ago</source>
-        <target state="new">{0} ago</target>
-        <note>{0} is a duration like "2s" or "5m" representing how long ago a health check ran</note>
-      </trans-unit>
       <trans-unit id="HealthCheckStatusWithTimeFormat">
         <source>{0} ({1} ago)</source>
         <target state="new">{0} ({1} ago)</target>

@@ -12,7 +12,6 @@ using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -321,8 +320,8 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
         
-        // Only show timestamp for unhealthy resources as suggested by @JamesNK
-        if (context.LastRunAt.HasValue && context.HealthStatus != HealthStatus.Healthy)
+        // Show timestamp for all resources when available per @davidfowl feedback
+        if (context.LastRunAt.HasValue)
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAt.Value);
             var formattedDuration = DurationFormatter.FormatDuration(duration);
