@@ -6,11 +6,13 @@ using System.Diagnostics;
 using Aspire.Dashboard.Components.Controls.PropertyValues;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Humanizer;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -319,10 +321,13 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
     {
         var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
         
-        if (context.LastRunAt.HasValue)
+        // Only show timestamp for unhealthy resources as suggested by @JamesNK
+        if (context.LastRunAt.HasValue && context.HealthStatus != HealthStatus.Healthy)
         {
-            var timeAgo = DateTime.UtcNow.Subtract(context.LastRunAt.Value).Humanize();
-            return $"{statusText} ({timeAgo} ago)";
+            var duration = DateTime.UtcNow.Subtract(context.LastRunAt.Value);
+            var formattedDuration = DurationFormatter.FormatDuration(duration);
+            var agoText = Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckAgoFormat), formattedDuration];
+            return $"{statusText} ({agoText})";
         }
         
         return statusText;

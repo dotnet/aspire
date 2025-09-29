@@ -247,6 +247,10 @@
   <data name="ResourceActionMetricsText" xml:space="preserve">
     <value>Metrics</value>
   </data>
+  <data name="HealthCheckAgoFormat" xml:space="preserve">
+    <value>{0} ago</value>
+    <comment>{0} is a duration like "2s" or "5m" representing how long ago a health check ran</comment>
+  </data>
   <data name="WaitingForHealthDataMessage" xml:space="preserve">
     <value>Waiting for health data...</value>
     <comment>A message shown in the UI as a placeholder to indicate that a health check is expected to produce health report data soon. Once it arrives, this message will be hidden and the data shown in its place.</comment>
