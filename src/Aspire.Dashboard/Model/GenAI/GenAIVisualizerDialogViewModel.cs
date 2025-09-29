@@ -9,7 +9,6 @@ using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Utils;
-using Aspire.Hosting;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model.GenAI;
@@ -31,6 +30,9 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
+
+    // Used for error message from the dashboard when displaying GenAI telemetry.
+    public string? DisplayErrorMessage { get; set; }
 
     public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
@@ -75,27 +77,13 @@ public sealed class GenAIVisualizerDialogViewModel
         }
         catch (Exception ex)
         {
-            // There could be invalid or unexpected message JSON that causes deserialization to fail.
-            // Add an error item with the details error. It's a bit of a hack to display a dashboard error like this.
-            // Consider improving in future if this solution creates problems.
             logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
 
-            var errorMessage = $"""
-                Error reading GenAI telemetry messages:
+            // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
+            viewModel.DisplayErrorMessage = $"{ex.GetType().FullName}: {ex.Message}";
+            viewModel.Items.Clear();
 
-                {ex.ToString()}
-                """ ;
-
-            viewModel.ErrorItem = new GenAIItemViewModel
-            {
-                Index = viewModel.Items.Count,
-                InternalId = null,
-                ItemParts = [GenAIItemPartViewModel.CreateErrorMessage(errorMessage)],
-                Parent = viewModel.Span,
-                ResourceName = KnownResourceNames.AspireDashboard,
-                Type = GenAIItemType.Error
-            };
-            viewModel.Items.Add(viewModel.ErrorItem);
+            return viewModel;
         }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
