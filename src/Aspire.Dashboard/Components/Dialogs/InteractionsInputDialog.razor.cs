@@ -39,7 +39,7 @@ public partial class InteractionsInputDialog
         _validationMessages = new ValidationMessageStore(_editContext);
 
         _editContext.OnValidationRequested += (s, e) => ValidateModel();
-        _editContext.OnFieldChanged += (s, e) => FieldChanged(e.FieldIdentifier);
+        _editContext.OnFieldChanged += (s, e) => InputValueChanged(e.FieldIdentifier);
 
         _elementRefs = new();
         _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
@@ -130,7 +130,7 @@ public partial class InteractionsInputDialog
         _editContext.NotifyValidationStateChanged();
     }
 
-    private void FieldChanged(FieldIdentifier field)
+    private void InputValueChanged(FieldIdentifier field)
     {
         _validationMessages.Clear(field);
 
@@ -141,7 +141,7 @@ public partial class InteractionsInputDialog
                 _validationMessages.Add(field, $"{inputModel.Input.Label} is required.");
             }
 
-            if (inputModel.Input.UpdateStateOnchange)
+            if (inputModel.Input.UpdateStateOnChange)
             {
                 Content.Interaction.InputsDialog?.DependOnChange = true;
                 _ = Content.OnSubmitCallback(Content.Interaction);

@@ -389,7 +389,7 @@ message InteractionInput {
     int32 max_length = 10;
     bool allow_custom_choice = 11;
     bool options_loading = 12;
-    bool update_state_onchange = 13;
+    bool update_state_on_change = 13;
     string name = 14;
 }
 enum MessageIntent {

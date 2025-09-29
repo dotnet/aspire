@@ -166,6 +166,11 @@ internal sealed class PublishingPromptInput
     /// Gets or sets a value indicating whether a custom choice is allowed.
     /// </summary>
     public bool AllowCustomChoice { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the state should be updated when the input value changes.
+    /// </summary>
+    public bool UpdateStateOnChange { get; init; }
 }
 
 /// <summary>

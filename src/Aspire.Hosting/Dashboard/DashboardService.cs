@@ -131,7 +131,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required,
                                     AllowCustomChoice = input.AllowCustomChoice,
-                                    UpdateStateOnchange = updateStateOnChange
+                                    UpdateStateOnChange = updateStateOnChange
                                 };
                                 if (input.EffectiveLabel != null)
                                 {
