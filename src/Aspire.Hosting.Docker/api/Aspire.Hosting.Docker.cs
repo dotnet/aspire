@@ -584,7 +584,7 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm
         public string? Delay { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "failure_action")]
-        public string? FailureAction { get { throw null; } set { } }
+        public bool? FailOnError { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "max_failure_ratio")]
         public string? MaxFailureRatio { get { throw null; } set { } }
@@ -596,6 +596,6 @@ namespace Aspire.Hosting.Docker.Resources.ServiceNodes.Swarm
         public string? Order { get { throw null; } set { } }
 
         [YamlDotNet.Serialization.YamlMember(Alias = "parallelism")]
-        public int? Parallelism { get { throw null; } set { } }
+        public string? Parallelism { get { throw null; } set { } }
     }
 }
