@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.Tests;
 
-public class DeploymentTargetParentAnnotationTests
+public class AzureProvisioningResourceTests
 {
     [Fact]
-    public async Task PublishAsAzureContainerApp_AddsDeploymentTargetParentAnnotation()
+    public async Task PublishAsAzureContainerApp_CreatesAzureContainerAppResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -25,16 +25,14 @@ public class DeploymentTargetParentAnnotationTests
             .WithHttpEndpoint()
             .PublishAsAzureContainerApp((infrastructure, containerApp) =>
             {
-                // This callback should have access to the parent resource
-                // via the DeploymentTargetParentAnnotation on the infrastructure.AspireResource
-                Assert.IsType<AzureProvisioningResource>(infrastructure.AspireResource);
-                var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<DeploymentTargetParentAnnotation>()
-                    .SingleOrDefault();
+                // This callback should have access to the original resource
+                // via the AzureContainerAppResource.TargetResource property
+                Assert.IsType<AzureContainerAppResource>(infrastructure.AspireResource);
+                var containerAppResource = (AzureContainerAppResource)infrastructure.AspireResource;
                 
-                Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ParentResource.Name);
-                Assert.Same(apiProjectBuilder!.Resource, annotation.ParentResource);
+                Assert.NotNull(containerAppResource.TargetResource);
+                Assert.Equal("api", containerAppResource.TargetResource.Name);
+                Assert.Same(apiProjectBuilder!.Resource, containerAppResource.TargetResource);
             });
         
         apiProjectBuilder = apiProject;
@@ -48,21 +46,17 @@ public class DeploymentTargetParentAnnotationTests
 
         // Verify the deployment target was created
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
-        var provisioningResource = target?.DeploymentTarget as AzureProvisioningResource;
+        var provisioningResource = target?.DeploymentTarget as AzureContainerAppResource;
         Assert.NotNull(provisioningResource);
 
-        // Verify the annotation exists on the AzureProvisioningResource
-        var annotation = provisioningResource.Annotations
-            .OfType<DeploymentTargetParentAnnotation>()
-            .SingleOrDefault();
-        
-        Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ParentResource.Name);
-        Assert.Same(apiProject.Resource, annotation.ParentResource);
+        // Verify the target resource is accessible
+        Assert.NotNull(provisioningResource.TargetResource);
+        Assert.Equal("api", provisioningResource.TargetResource.Name);
+        Assert.Same(apiProject.Resource, provisioningResource.TargetResource);
     }
 
     [Fact]
-    public async Task PublishAsAzureAppServiceWebsite_AddsDeploymentTargetParentAnnotation()
+    public async Task PublishAsAzureAppServiceWebsite_CreatesAzureWebSiteResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -73,16 +67,14 @@ public class DeploymentTargetParentAnnotationTests
             .WithHttpEndpoint()
             .PublishAsAzureAppServiceWebsite((infrastructure, website) =>
             {
-                // This callback should have access to the parent resource
-                // via the DeploymentTargetParentAnnotation on the infrastructure.AspireResource
-                Assert.IsType<AzureProvisioningResource>(infrastructure.AspireResource);
-                var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<DeploymentTargetParentAnnotation>()
-                    .SingleOrDefault();
+                // This callback should have access to the original resource
+                // via the AzureWebSiteResource.TargetResource property
+                Assert.IsType<AzureWebSiteResource>(infrastructure.AspireResource);
+                var webSiteResource = (AzureWebSiteResource)infrastructure.AspireResource;
                 
-                Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ParentResource.Name);
-                Assert.Same(apiProjectBuilder!.Resource, annotation.ParentResource);
+                Assert.NotNull(webSiteResource.TargetResource);
+                Assert.Equal("api", webSiteResource.TargetResource.Name);
+                Assert.Same(apiProjectBuilder!.Resource, webSiteResource.TargetResource);
             });
         
         apiProjectBuilder = apiProject;
@@ -96,21 +88,17 @@ public class DeploymentTargetParentAnnotationTests
 
         // Verify the deployment target was created
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
-        var provisioningResource = target?.DeploymentTarget as AzureProvisioningResource;
+        var provisioningResource = target?.DeploymentTarget as AzureWebSiteResource;
         Assert.NotNull(provisioningResource);
 
-        // Verify the annotation exists on the AzureProvisioningResource
-        var annotation = provisioningResource.Annotations
-            .OfType<DeploymentTargetParentAnnotation>()
-            .SingleOrDefault();
-        
-        Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ParentResource.Name);
-        Assert.Same(apiProject.Resource, annotation.ParentResource);
+        // Verify the target resource is accessible
+        Assert.NotNull(provisioningResource.TargetResource);
+        Assert.Equal("api", provisioningResource.TargetResource.Name);
+        Assert.Same(apiProject.Resource, provisioningResource.TargetResource);
     }
 
     [Fact]
-    public async Task ContainerResource_WithPublishAsContainerApp_AddsDeploymentTargetParentAnnotation()
+    public async Task ContainerResource_WithPublishAsContainerApp_CreatesAzureContainerAppResource()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -121,13 +109,12 @@ public class DeploymentTargetParentAnnotationTests
             .PublishAsAzureContainerApp((infrastructure, containerApp) =>
             {
                 // Verify we can access the original container resource
-                var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<DeploymentTargetParentAnnotation>()
-                    .SingleOrDefault();
+                Assert.IsType<AzureContainerAppResource>(infrastructure.AspireResource);
+                var containerAppResource = (AzureContainerAppResource)infrastructure.AspireResource;
                 
-                Assert.NotNull(annotation);
-                Assert.Equal("api", annotation.ParentResource.Name);
-                Assert.Same(containerBuilder!.Resource, annotation.ParentResource);
+                Assert.NotNull(containerAppResource.TargetResource);
+                Assert.Equal("api", containerAppResource.TargetResource.Name);
+                Assert.Same(containerBuilder!.Resource, containerAppResource.TargetResource);
             });
         
         containerBuilder = container;
@@ -139,22 +126,18 @@ public class DeploymentTargetParentAnnotationTests
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
         var containerResource = Assert.Single(model.GetContainerResources());
 
-        // Verify the deployment target was created with the annotation
+        // Verify the deployment target was created with the correct type
         containerResource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
-        var provisioningResource = target?.DeploymentTarget as AzureProvisioningResource;
+        var provisioningResource = target?.DeploymentTarget as AzureContainerAppResource;
         Assert.NotNull(provisioningResource);
 
-        var annotation = provisioningResource.Annotations
-            .OfType<DeploymentTargetParentAnnotation>()
-            .SingleOrDefault();
-        
-        Assert.NotNull(annotation);
-        Assert.Equal("api", annotation.ParentResource.Name);
-        Assert.Same(container.Resource, annotation.ParentResource);
+        Assert.NotNull(provisioningResource.TargetResource);
+        Assert.Equal("api", provisioningResource.TargetResource.Name);
+        Assert.Same(container.Resource, provisioningResource.TargetResource);
     }
 
     [Fact]
-    public async Task AnnotationAllowsAccessToParentResourceAnnotations()
+    public async Task TargetResourceAllowsAccessToOriginalResourceAnnotations()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -167,15 +150,14 @@ public class DeploymentTargetParentAnnotationTests
             .WithAnnotation(customAnnotation)
             .PublishAsAzureContainerApp((infrastructure, containerApp) =>
             {
-                // Access the parent resource through the annotation
-                var annotation = infrastructure.AspireResource.Annotations
-                    .OfType<DeploymentTargetParentAnnotation>()
-                    .SingleOrDefault();
+                // Access the original resource through the TargetResource property
+                Assert.IsType<AzureContainerAppResource>(infrastructure.AspireResource);
+                var containerAppResource = (AzureContainerAppResource)infrastructure.AspireResource;
                 
-                Assert.NotNull(annotation);
+                Assert.NotNull(containerAppResource.TargetResource);
                 
-                // Verify we can access annotations on the parent resource
-                var originalCustomAnnotation = annotation.ParentResource.Annotations
+                // Verify we can access annotations on the original resource
+                var originalCustomAnnotation = containerAppResource.TargetResource.Annotations
                     .OfType<CustomTestAnnotation>()
                     .SingleOrDefault();
                     
@@ -189,29 +171,41 @@ public class DeploymentTargetParentAnnotationTests
     }
 
     [Fact]
-    public void DeploymentTargetParentAnnotation_StoresResourceCorrectly()
+    public void AzureContainerAppResource_StoresTargetResourceCorrectly()
     {
         var mockResource = new MockResource("test");
-        var annotation = new DeploymentTargetParentAnnotation(mockResource);
+        var containerAppResource = new AzureContainerAppResource("test-app", _ => { }, mockResource);
         
-        Assert.Same(mockResource, annotation.ParentResource);
-        Assert.Equal("test", annotation.ParentResource.Name);
+        Assert.Same(mockResource, containerAppResource.TargetResource);
+        Assert.Equal("test", containerAppResource.TargetResource.Name);
     }
 
     [Fact]
-    public void DeploymentTargetParentAnnotation_ImplementsIResourceAnnotation()
+    public void AzureWebSiteResource_StoresTargetResourceCorrectly()
     {
         var mockResource = new MockResource("test");
-        var annotation = new DeploymentTargetParentAnnotation(mockResource);
+        var webSiteResource = new AzureWebSiteResource("test-site", _ => { }, mockResource);
         
-        Assert.IsAssignableFrom<IResourceAnnotation>(annotation);
+        Assert.Same(mockResource, webSiteResource.TargetResource);
+        Assert.Equal("test", webSiteResource.TargetResource.Name);
     }
 
     [Fact]
-    public void DeploymentTargetParentAnnotation_IsSealed()
+    public void AzureContainerAppResource_InheritsFromAzureProvisioningResource()
     {
-        var type = typeof(DeploymentTargetParentAnnotation);
-        Assert.True(type.IsSealed, "DeploymentTargetParentAnnotation should be sealed for performance");
+        var mockResource = new MockResource("test");
+        var containerAppResource = new AzureContainerAppResource("test-app", _ => { }, mockResource);
+        
+        Assert.IsAssignableFrom<AzureProvisioningResource>(containerAppResource);
+    }
+
+    [Fact]
+    public void AzureWebSiteResource_InheritsFromAzureProvisioningResource()
+    {
+        var mockResource = new MockResource("test");
+        var webSiteResource = new AzureWebSiteResource("test-site", _ => { }, mockResource);
+        
+        Assert.IsAssignableFrom<AzureProvisioningResource>(webSiteResource);
     }
 
     private static async Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken)

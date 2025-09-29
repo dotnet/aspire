@@ -41,13 +41,10 @@ internal sealed class AzureAppServiceEnvironmentContext(
             await context.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildWebSite)
+        var provisioningResource = new AzureWebSiteResource(resource.Name, context.BuildWebSite, resource)
         {
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };
-
-        // Add back-pointer to the parent resource
-        provisioningResource.Annotations.Add(new DeploymentTargetParentAnnotation(resource));
 
         return provisioningResource;
     }
