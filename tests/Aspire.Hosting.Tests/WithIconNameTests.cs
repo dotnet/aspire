@@ -86,14 +86,19 @@ public class WithIconNameTests
                               .WithIconName("Database")
                               .WithIconName("CloudArrowUp", IconVariant.Regular);
 
-        // Should only have one annotation with the latest values
+        // Should have both annotations (WithIconName adds, doesn't replace)
         var iconAnnotations = container.Resource.Annotations.OfType<ResourceIconAnnotation>().ToList();
-        Assert.Equal(2, iconAnnotations.Count); // Both annotations should exist since we don't override
+        Assert.Equal(2, iconAnnotations.Count);
         
-        // Get the latest one
+        // Get the latest one - this is what ResourceNotificationService should use
         var latestAnnotation = iconAnnotations.Last();
         Assert.Equal("CloudArrowUp", latestAnnotation.IconName);
         Assert.Equal(IconVariant.Regular, latestAnnotation.IconVariant);
+        
+        // Verify that TryGetLastAnnotation returns the correct one
+        Assert.True(container.Resource.TryGetLastAnnotation<ResourceIconAnnotation>(out var lastAnnotation));
+        Assert.Equal("CloudArrowUp", lastAnnotation.IconName);
+        Assert.Equal(IconVariant.Regular, lastAnnotation.IconVariant);
     }
 
     private sealed class TestProject : IProjectMetadata

@@ -432,12 +432,13 @@ public class ResourceNotificationTests
     }
 
     [Fact]
-    public async Task UpdateIcons_DoesNotOverwriteExistingIconValues()
+    public async Task UpdateIcons_OverwritesExistingIconValues()
     {
         var resource = new CustomResource("myResource");
 
-        // Add icon annotation to the resource
-        resource.Annotations.Add(new ResourceIconAnnotation("NewIcon", IconVariant.Regular));
+        // Add multiple icon annotations to test the override behavior
+        resource.Annotations.Add(new ResourceIconAnnotation("FirstIcon", IconVariant.Filled));
+        resource.Annotations.Add(new ResourceIconAnnotation("LastIcon", IconVariant.Regular));
 
         var notificationService = ResourceNotificationServiceTestHelpers.Create();
 
@@ -468,7 +469,7 @@ public class ResourceNotificationTests
             IconVariant = IconVariant.Filled
         }).DefaultTimeout();
 
-        // Publish another update that should NOT overwrite the existing icon values
+        // Publish another update that SHOULD overwrite with the latest annotation
         await notificationService.PublishUpdateAsync(resource, snapshot => snapshot with
         {
             State = "Running"  // Change something else to trigger an update
@@ -483,10 +484,10 @@ public class ResourceNotificationTests
         Assert.Equal("ExistingIcon", firstEvent.Snapshot.IconName);
         Assert.Equal(IconVariant.Filled, firstEvent.Snapshot.IconVariant);
 
-        // Check the second event (icon values should not be overwritten)
+        // Check the second event (icon values should be overwritten with last annotation)
         var secondEvent = values[1];
-        Assert.Equal("ExistingIcon", secondEvent.Snapshot.IconName);
-        Assert.Equal(IconVariant.Filled, secondEvent.Snapshot.IconVariant);
+        Assert.Equal("LastIcon", secondEvent.Snapshot.IconName);
+        Assert.Equal(IconVariant.Regular, secondEvent.Snapshot.IconVariant);
         Assert.Equal("Running", secondEvent.Snapshot.State?.Text);
     }
 

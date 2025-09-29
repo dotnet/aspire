@@ -752,17 +752,15 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private static CustomResourceSnapshot UpdateIcons(IResource resource, CustomResourceSnapshot previousState)
     {
-        var iconAnnotation = resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
-        
-        if (iconAnnotation == null)
+        if (!resource.TryGetLastAnnotation<ResourceIconAnnotation>(out var iconAnnotation))
         {
             // No icon annotation, keep existing icon information
             return previousState;
         }
 
-        // Only update icon information if not already set
-        var newIconName = string.IsNullOrEmpty(previousState.IconName) ? iconAnnotation.IconName : previousState.IconName;
-        var newIconVariant = previousState.IconVariant ?? iconAnnotation.IconVariant;
+        // Always use the latest annotation values to support overriding
+        var newIconName = iconAnnotation.IconName;
+        var newIconVariant = iconAnnotation.IconVariant;
 
         // Only create new snapshot if there are changes
         if (previousState.IconName == newIconName && previousState.IconVariant == newIconVariant)
