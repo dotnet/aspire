@@ -416,6 +416,7 @@ app.MapGet("/genai-trace", async () =>
             """);
     }
 
+    // Avoid zero seconds span.
     await Task.Delay(100);
 
     activity?.Stop();
@@ -434,6 +435,7 @@ app.MapGet("/genai-trace-display-error", async () =>
         activity.SetTag("gen_ai.input.messages", "invalid");
     }
 
+    // Avoid zero seconds span.
     await Task.Delay(100);
 
     activity?.Stop();
