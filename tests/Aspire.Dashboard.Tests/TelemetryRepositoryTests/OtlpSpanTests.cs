@@ -126,4 +126,62 @@ public class OtlpSpanTests
         // Assert
         Assert.Equal(app2, destination);
     }
+
+    public static IEnumerable<object[]> DisplaySummary_SpanData =>
+        new List<object[]>
+        {
+            new object[]
+            {
+                "HTTP GET 200",
+                "SpanName!",
+                OtlpSpanKind.Client,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.request.method", "GET"),
+                    KeyValuePair.Create("http.response.status_code", "200")
+                }
+            },
+            new object[]
+            {
+                "HTTP GET 200",
+                "SpanName!",
+                OtlpSpanKind.Client,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.method", "GET"),
+                    KeyValuePair.Create("http.status_code", "200")
+                }
+            },
+            new object[]
+            {
+                "SpanName!",
+                "SpanName!",
+                OtlpSpanKind.Server,
+                new KeyValuePair<string, string>[]
+                {
+                    KeyValuePair.Create("http.method", "GET"),
+                    KeyValuePair.Create("http.status_code", "200")
+                }
+            },
+        };
+
+    [Theory]
+    [MemberData(nameof(DisplaySummary_SpanData))]
+    public void GetDisplaySummary_SpanData_ReturnExpectedDisplaySummary(string expectedDisplaySummary, string spanName, OtlpSpanKind kind, KeyValuePair<string, string>[] attributes)
+    {
+        // Arrange
+        var context = new OtlpContext { Logger = NullLogger.Instance, Options = new() };
+        var app = new OtlpResource("app", "instance", uninstrumentedPeer: false, context);
+        var trace = new OtlpTrace(new byte[] { 1, 2, 3 }, DateTime.MinValue);
+        var scope = TelemetryTestHelpers.CreateOtlpScope(context);
+
+        var span = TelemetryTestHelpers.CreateOtlpSpan(app, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime,
+            kind: kind, attributes: attributes, spanName: spanName);
+
+        // Act
+        var displaySummary = span.GetDisplaySummary();
+
+        // Assert
+        Assert.Equal(expectedDisplaySummary, displaySummary);
+    }
 }

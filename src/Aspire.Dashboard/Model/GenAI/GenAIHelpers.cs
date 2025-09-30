@@ -19,7 +19,6 @@ public static class GenAIHelpers
 
     public static bool IsGenAISpan(KeyValuePair<string, string>[] attributes)
     {
-        return attributes.GetValue(GenAISystem) is { Length: > 0 } ||
-            attributes.GetValue(GenAIProviderName) is { Length: > 0 };
+        return attributes.GetValueWithFallback(GenAISystem, GenAIProviderName) is { Length: > 0 };
     }
 }
