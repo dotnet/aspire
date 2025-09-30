@@ -208,8 +208,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Attempt get get messages from span events.
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
-            if (GenAIHelpers.IsGenAISpan(item.Attributes) &&
-                TryMapEventName(item.Name, out var type))
+            // Detect GenAI messages by event name. Don't check for the gen_ai.system attribute because it's optional on events.
+            if (TryMapEventName(item.Name, out var type))
             {
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
                 var parts = content != null ? DeserializeBody(type.Value, content) : [];
