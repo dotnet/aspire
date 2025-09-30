@@ -27,7 +27,7 @@ internal sealed class DevTunnelLoginManager(
         while (true)
         {
             _logger.LogDebug("Checking dev tunnel login status");
-            var loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
+            var loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(_logger, cancellationToken).ConfigureAwait(false);
             if (loginStatus.IsLoggedIn)
             {
                 _logger.LogDebug("User already logged in to dev tunnel service as {Username} with {Provider}", loginStatus.Username, loginStatus.Provider);
@@ -55,12 +55,12 @@ internal sealed class DevTunnelLoginManager(
                     _logger.LogDebug("Prompting user to login to dev tunnel service");
                     var result = await _interactionService.PromptNotificationAsync(
                         "Dev tunnels",
-                        $"Dev tunnels requires authentication to continue:",
+                        Resources.MessageStrings.AuthenticationRequiredNotification,
                         new()
                         {
                             Intent = MessageIntent.Warning,
-                            PrimaryButtonText = "Login with Microsoft",
-                            SecondaryButtonText = "Login with GitHub",
+                            PrimaryButtonText = Resources.MessageStrings.LoginWithMicrosoft,
+                            SecondaryButtonText = Resources.MessageStrings.LoginWithGitHub,
                             ShowSecondaryButton = true,
                             ShowDismiss = false
                         },
@@ -69,13 +69,13 @@ internal sealed class DevTunnelLoginManager(
                     selectedProvider = result.Data ? LoginProvider.Microsoft : LoginProvider.GitHub;
                     _logger.LogDebug("User selected {LoginProvider} for dev tunnel login", selectedProvider);
                     // Check again in case they logged in from another window while we were prompting
-                    loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(cancellationToken).ConfigureAwait(false);
+                    loginStatus = await _devTunnelClient.GetUserLoginStatusAsync(_logger, cancellationToken).ConfigureAwait(false);
                 }
                 if (!loginStatus.IsLoggedIn || loginStatus.Provider != selectedProvider)
                 {
                     // Trigger the login flow
                     _logger.LogInformation("Initiating dev tunnel login via {LoginProvider}", selectedProvider);
-                    loginStatus = await _devTunnelClient.UserLoginAsync(selectedProvider, cancellationToken).ConfigureAwait(false);
+                    loginStatus = await _devTunnelClient.UserLoginAsync(selectedProvider, _logger, cancellationToken).ConfigureAwait(false);
 
                     if (loginStatus.IsLoggedIn)
                     {

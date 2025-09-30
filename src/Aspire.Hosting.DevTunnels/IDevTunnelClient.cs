@@ -7,17 +7,23 @@ namespace Aspire.Hosting.DevTunnels;
 
 internal interface IDevTunnelClient
 {
-    Task<UserLoginStatus> GetUserLoginStatusAsync(CancellationToken cancellationToken = default);
+    Task<Version> GetVersionAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, CancellationToken cancellationToken = default);
+    Task<UserLoginStatus> GetUserLoginStatusAsync(ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelStatus> CreateOrUpdateTunnelAsync(string tunnelId, DevTunnelOptions options, CancellationToken cancellationToken = default);
+    Task<UserLoginStatus> UserLoginAsync(LoginProvider provider, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelPortStatus> CreateOrUpdatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, CancellationToken cancellationToken = default);
+    Task<DevTunnelStatus> CreateTunnelAsync(string tunnelId, DevTunnelOptions options, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, CancellationToken cancellationToken = default);
+    Task<DevTunnelPortList> GetPortListAsync(string tunnelId, ILogger? logger = default, CancellationToken cancellationToken = default);
 
-    Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, CancellationToken cancellationToken = default);
+    Task<DevTunnelPortStatus> CreatePortAsync(string tunnelId, int portNumber, DevTunnelPortOptions options, ILogger? logger = default, CancellationToken cancellationToken = default);
+
+    Task<DevTunnelPortDeleteResult> DeletePortAsync(string tunnelId, int portNumber, ILogger? logger = default, CancellationToken cancellationToken = default);
+
+    Task<DevTunnelStatus> GetTunnelAsync(string tunnelId, ILogger? logger = default, CancellationToken cancellationToken = default);
+
+    Task<DevTunnelAccessStatus> GetAccessAsync(string tunnelId, int? portNumber = null, ILogger? logger = default, CancellationToken cancellationToken = default);
 }
 
 internal sealed record UserLoginStatus(string Status, LoginProvider Provider, string Username)
@@ -34,14 +40,23 @@ internal enum LoginProvider
 internal sealed record DevTunnelStatus(string TunnelId, int HostConnections, int ClientConnections, string Description, IReadOnlyList<string> Labels)
 {
     public IReadOnlyList<DevTunnelPort> Ports { get; init; } = [];
+}
 
-    public sealed record DevTunnelPort(int PortNumber, string Protocol)
-    {
-        public Uri? PortUri { get; init; }
-    }
+internal sealed record DevTunnelPortList
+{
+    public IReadOnlyList<DevTunnelPort> Ports { get; init; } = [];
+}
+
+internal sealed record DevTunnelPort(int PortNumber, string Protocol)
+{
+    public Uri? PortUri { get; init; }
+
+    public int? ClientConnections { get; init; }
 }
 
 internal sealed record DevTunnelPortStatus(string TunnelId, int PortNumber, string Protocol, int ClientConnections);
+
+internal sealed record DevTunnelPortDeleteResult(string DeletedPort);
 
 internal sealed record DevTunnelAccessStatus
 {

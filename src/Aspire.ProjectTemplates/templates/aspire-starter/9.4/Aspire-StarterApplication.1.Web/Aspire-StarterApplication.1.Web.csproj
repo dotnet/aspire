@@ -12,7 +12,7 @@
 
   <!--#if (UseRedisCache) -->
   <ItemGroup>
-    <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.4.1" />
+    <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.4.2" />
   </ItemGroup>
 
   <!--#endif -->

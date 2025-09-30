@@ -19,8 +19,20 @@ export class AspireDebugConfigurationProvider implements vscode.DebugConfigurati
     }
 
     async resolveDebugConfiguration(folder: vscode.WorkspaceFolder | undefined, config: vscode.DebugConfiguration, token?: vscode.CancellationToken): Promise<vscode.DebugConfiguration> {
-        if (config.program === '') {
-            config.program = folder?.uri.fsPath || '';
+        if (!config.type) {
+            config.type = 'aspire';
+        }
+
+        if (!config.request) {
+            config.request = 'launch';
+        }
+
+        if (!config.name) {
+            config.name = defaultConfigurationName;
+        }
+
+        if (!config.program) {
+            config.program = folder?.uri.fsPath || '${workspaceFolder}';
         }
 
         return config;

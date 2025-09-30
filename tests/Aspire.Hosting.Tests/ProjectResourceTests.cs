@@ -656,6 +656,79 @@ public class ProjectResourceTests
         Assert.Equal(https.Port.ToString(), config["ASPNETCORE_HTTPS_PORT"]);
     }
 
+    [Fact]
+    public void SelectLaunchProfileName_IgnoresIISExpressProfile()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithIISExpressFirst>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should select the "ProjectProfile" even though "IIS Express" is first
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("ProjectProfile", selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_ReturnsNullWhenOnlyDisallowedProfiles()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithOnlyDisallowedProfiles>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should return null when no allowed profiles are found
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Null(selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_SupportsExecutableCommandName()
+    {
+        var appBuilder = CreateBuilder();
+
+        appBuilder.AddProject<TestProjectWithExecutableProfile>("projectName");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Should select the "Executable" profile, ignoring "IIS Express"
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("Executable", selectedProfile);
+    }
+
+    [Fact]
+    public void SelectLaunchProfileName_AnnotationOverridesFiltering()
+    {
+        var appBuilder = CreateBuilder();
+
+        // Even if we specifically request an IIS Express profile via annotation, it should work
+        appBuilder.AddProject<TestProjectWithIISExpressFirst>("projectName", launchProfileName: "IIS Express");
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+
+        // Annotation should override the filtering
+        var selectedProfile = resource.SelectLaunchProfileName();
+        Assert.Equal("IIS Express", selectedProfile);
+    }
+
     internal static IDistributedApplicationBuilder CreateBuilder(string[]? args = null, DistributedApplicationOperation operation = DistributedApplicationOperation.Publish)
     {
         var resolvedArgs = new List<string>();
@@ -751,6 +824,71 @@ public class ProjectResourceTests
                     {
                         ["ASPNETCORE_ENVIRONMENT"] = "Development"
                     }
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithIISExpressFirst : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithIISExpressFirst()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["ProjectProfile"] = new()
+                {
+                    CommandName = "Project",
+                    ApplicationUrl = "http://localhost:5000"
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithOnlyDisallowedProfiles : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithOnlyDisallowedProfiles()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["Docker"] = new()
+                {
+                    CommandName = "Docker",
+                    ApplicationUrl = "http://localhost:5000"
+                }
+            };
+        }
+    }
+
+    private sealed class TestProjectWithExecutableProfile : BaseProjectWithProfileAndConfig
+    {
+        public TestProjectWithExecutableProfile()
+        {
+            Profiles = new()
+            {
+                ["IIS Express"] = new()
+                {
+                    CommandName = "IISExpress",
+                    LaunchBrowser = true,
+                    ApplicationUrl = "http://localhost:12345"
+                },
+                ["Executable"] = new()
+                {
+                    CommandName = "Executable",
+                    ApplicationUrl = "http://localhost:5000",
+                    ExecutablePath = "dotnet",
+                    CommandLineArgs = "exec app.dll"
                 }
             };
         }

@@ -1,12 +1,13 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
-import { isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized } from '../loc/strings';
+import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
+import { ProgressNotifier } from './progressNotifier';
 import { formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { EnvVar } from '../dcp/types';
+import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface IInteractionService {
@@ -29,6 +30,7 @@ export interface IInteractionService {
     launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void>;
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
+    startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -46,27 +48,17 @@ type ConsoleLine = {
 export class InteractionService implements IInteractionService {
     private _getAspireDebugSession: () => AspireDebugSession | null;
 
-    private _statusBarItem: vscode.StatusBarItem | undefined;
+    private _rpcClient?: ICliRpcClient;
+    private _progressNotifier: ProgressNotifier;
 
-    constructor(getAspireDebugSession: () => AspireDebugSession | null) {
+    constructor(getAspireDebugSession: () => AspireDebugSession | null, rpcClient: ICliRpcClient) {
         this._getAspireDebugSession = getAspireDebugSession;
+        this._rpcClient = rpcClient;
+        this._progressNotifier = new ProgressNotifier(this._rpcClient);
     }
 
     showStatus(statusText: string | null) {
-        extensionLogOutputChannel.info(`Setting status bar text: ${statusText ?? 'null'}`);
-
-        if (!this._statusBarItem) {
-            this._statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
-        }
-
-        if (statusText) {
-            this._statusBarItem.text = formatText(statusText);
-            this._statusBarItem.show();
-
-            this._getAspireDebugSession()?.sendMessage(formatText(statusText));
-        } else if (this._statusBarItem) {
-            this._statusBarItem.hide();
-        }
+        this._progressNotifier.show(statusText);
     }
 
     async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
@@ -161,7 +153,7 @@ export class InteractionService implements IInteractionService {
 
         extensionLogOutputChannel.error(`Displaying error: ${errorMessage}`);
         vscode.window.showErrorMessage(formatText(errorMessage));
-        this.clearStatusBar();
+        this.clearProgressNotification();
     }
 
     displayMessage(emoji: string, message: string) {
@@ -217,24 +209,27 @@ export class InteractionService implements IInteractionService {
             actions.push({ title: codespacesLink });
         }
 
-        // Don't await - fire and forget to avoid blocking
-        vscode.window.showInformationMessage(
-            openAspireDashboard,
-            ...actions
-        ).then(selected => {
-            if (!selected) {
-                return;
-            }
+        // Delay 1 second to allow a slight pause between progress notification and message
+        setTimeout(() => {
+            // Don't await - fire and forget to avoid blocking
+            vscode.window.showInformationMessage(
+                openAspireDashboard,
+                ...actions
+            ).then(selected => {
+                if (!selected) {
+                    return;
+                }
 
-            extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
+                extensionLogOutputChannel.info(`Selected action: ${selected.title}`);
 
-            if (selected.title === directLink) {
-                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
-            }
-            else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
-                vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
-            }
-        });
+                if (selected.title === directLink) {
+                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.BaseUrlWithLoginToken));
+                }
+                else if (selected.title === codespacesLink && dashboardUrls.CodespacesUrlWithLoginToken) {
+                    vscode.env.openExternal(vscode.Uri.parse(dashboardUrls.CodespacesUrlWithLoginToken));
+                }
+            });
+        }, 1000);
     }
 
     async displayLines(lines: ConsoleLine[]) {
@@ -295,8 +290,8 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
-        const debugSession = this._getAspireDebugSession();
+    async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
+        let debugSession = this._getAspireDebugSession();
         if (!debugSession) {
             throw new Error(aspireDebugSessionNotInitialized);
         }
@@ -305,7 +300,7 @@ export class InteractionService implements IInteractionService {
     }
 
     stopDebugging() {
-        this.clearStatusBar();
+        this.clearProgressNotification();
         this._getAspireDebugSession()?.dispose();
     }
 
@@ -318,33 +313,64 @@ export class InteractionService implements IInteractionService {
         debugSession.notifyAppHostStartupCompleted();
     }
 
-    clearStatusBar() {
-        if (this._statusBarItem) {
-            this._statusBarItem.hide();
-            this._statusBarItem.dispose();
-            this._statusBarItem = undefined;
+    async startDebugSession(workingDirectory: string, projectFile: string | null, debug: boolean): Promise<void> {
+        this.clearProgressNotification();
+
+        const debugConfiguration: AspireExtendedDebugConfiguration = {
+            type: 'aspire',
+            name: `Aspire: ${getRelativePathToWorkspace(projectFile ?? workingDirectory)}`,
+            request: 'launch',
+            program: projectFile ?? workingDirectory,
+            noDebug: !debug,
+        };
+
+        const didDebugStart = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], debugConfiguration);
+        if (!didDebugStart) {
+            throw new Error(failedToStartDebugSession);
         }
+    }
+
+    clearProgressNotification() {
+        this._progressNotifier.clear();
     }
 }
 
+function tryExecuteEndpoint(interactionService: IInteractionService, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
+    return (name: string, handler: (...args: any[]) => any) => withAuthentication(async (...args: any[]) => {
+        try {
+            return await Promise.resolve(handler(...args));
+        }
+        catch (err) {
+            const message = (err && (((err as any).message) ?? String(err))) || 'An unknown error occurred';
+            extensionLogOutputChannel.error(`Interaction service endpoint '${name}' failed: ${message}`);
+            vscode.window.showErrorMessage(errorMessage(message));
+            interactionService.showStatus(null);
+            throw err;
+        }
+    });
+}
+
 export function addInteractionServiceEndpoints(connection: MessageConnection, interactionService: IInteractionService, rpcClient: ICliRpcClient, withAuthentication: (callback: (...params: any[]) => any) => (...params: any[]) => any) {
-    connection.onRequest("showStatus", withAuthentication(interactionService.showStatus.bind(interactionService)));
-    connection.onRequest("promptForString", withAuthentication(async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
-    connection.onRequest("confirm", withAuthentication(interactionService.confirm.bind(interactionService)));
-    connection.onRequest("promptForSelection", withAuthentication(interactionService.promptForSelection.bind(interactionService)));
-    connection.onRequest("displayIncompatibleVersionError", withAuthentication((requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
-    connection.onRequest("displayError", withAuthentication(interactionService.displayError.bind(interactionService)));
-    connection.onRequest("displayMessage", withAuthentication(interactionService.displayMessage.bind(interactionService)));
-    connection.onRequest("displaySuccess", withAuthentication(interactionService.displaySuccess.bind(interactionService)));
-    connection.onRequest("displaySubtleMessage", withAuthentication(interactionService.displaySubtleMessage.bind(interactionService)));
-    connection.onRequest("displayEmptyLine", withAuthentication(interactionService.displayEmptyLine.bind(interactionService)));
-    connection.onRequest("displayDashboardUrls", withAuthentication(interactionService.displayDashboardUrls.bind(interactionService)));
-    connection.onRequest("displayLines", withAuthentication(interactionService.displayLines.bind(interactionService)));
-    connection.onRequest("displayPlainText", withAuthentication(interactionService.displayPlainText.bind(interactionService)));
-    connection.onRequest("displayCancellationMessage", withAuthentication(interactionService.displayCancellationMessage.bind(interactionService)));
-    connection.onRequest("openEditor", withAuthentication(interactionService.openEditor.bind(interactionService)));
-    connection.onRequest("logMessage", withAuthentication(interactionService.logMessage.bind(interactionService)));
-    connection.onRequest("launchAppHost", withAuthentication(async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
-    connection.onRequest("stopDebugging", withAuthentication(interactionService.stopDebugging.bind(interactionService)));
-    connection.onRequest("notifyAppHostStartupCompleted", withAuthentication(interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
+    const middleware = tryExecuteEndpoint(interactionService, withAuthentication);
+
+    connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
+    connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
+    connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
+    connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
+    connection.onRequest("displayIncompatibleVersionError", middleware('displayIncompatibleVersionError', (requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
+    connection.onRequest("displayError", middleware('displayError', interactionService.displayError.bind(interactionService)));
+    connection.onRequest("displayMessage", middleware('displayMessage', interactionService.displayMessage.bind(interactionService)));
+    connection.onRequest("displaySuccess", middleware('displaySuccess', interactionService.displaySuccess.bind(interactionService)));
+    connection.onRequest("displaySubtleMessage", middleware('displaySubtleMessage', interactionService.displaySubtleMessage.bind(interactionService)));
+    connection.onRequest("displayEmptyLine", middleware('displayEmptyLine', interactionService.displayEmptyLine.bind(interactionService)));
+    connection.onRequest("displayDashboardUrls", middleware('displayDashboardUrls', interactionService.displayDashboardUrls.bind(interactionService)));
+    connection.onRequest("displayLines", middleware('displayLines', interactionService.displayLines.bind(interactionService)));
+    connection.onRequest("displayPlainText", middleware('displayPlainText', interactionService.displayPlainText.bind(interactionService)));
+    connection.onRequest("displayCancellationMessage", middleware('displayCancellationMessage', interactionService.displayCancellationMessage.bind(interactionService)));
+    connection.onRequest("openEditor", middleware('openEditor', interactionService.openEditor.bind(interactionService)));
+    connection.onRequest("logMessage", middleware('logMessage', interactionService.logMessage.bind(interactionService)));
+    connection.onRequest("launchAppHost", middleware('launchAppHost', async (projectFile: string, args: string[], environment: EnvVar[], debug: boolean) => interactionService.launchAppHost(projectFile, args, environment, debug)));
+    connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
+    connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
+    connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
 }

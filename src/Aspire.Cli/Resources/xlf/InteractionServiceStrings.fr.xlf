@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AppHostNotCompatibleConsiderUpgrading">
         <source>The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</source>
-        <target state="new">The AppHost version is not compatible. Please upgrade the apphost or Aspire CLI.</target>
+        <target state="translated">La version de l’AppHost n’est pas compatible. Veuillez mettre à jour l’AppHost ou l’interface CLI Aspire.</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireCLIVersion">
@@ -19,7 +19,7 @@
       </trans-unit>
       <trans-unit id="BuildingAppHost">
         <source>Building apphost...</source>
-        <target state="new">Building apphost...</target>
+        <target state="translated">Génération de l’AppHost…</target>
         <note />
       </trans-unit>
       <trans-unit id="CheckingCertificates">
@@ -42,6 +42,11 @@
         <target state="translated">Fichier de paramètres créé dans {0}.</target>
         <note>{0} is a path</note>
       </trans-unit>
+      <trans-unit id="CustomChoiceLabel">
+        <source>Other (specify next)</source>
+        <target state="translated">Autre (précisez ci-dessous)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="Dashboard">
         <source>Dashboard</source>
         <target state="translated">Tableau de bord</target>
@@ -59,7 +64,7 @@
       </trans-unit>
       <trans-unit id="FindingAppHosts">
         <source>Finding apphosts...</source>
-        <target state="new">Finding apphosts...</target>
+        <target state="translated">Recherche des AppHosts…</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
@@ -114,12 +119,12 @@
       </trans-unit>
       <trans-unit id="SelectAppHostToUse">
         <source>Select an apphost to use:</source>
-        <target state="new">Select an apphost to use:</target>
+        <target state="translated">Sélectionnez un AppHost à utiliser :</target>
         <note />
       </trans-unit>
       <trans-unit id="SpecifiedProjectFileNotAppHostProject">
         <source>The specified project file is not an Aspire AppHost project.</source>
-        <target state="new">The specified project file is not an Aspire AppHost project.</target>
+        <target state="translated">Le fichier projet spécifié n’est pas un projet Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="StoppingAspire">

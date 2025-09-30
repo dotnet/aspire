@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Publishing;
 internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> logger) : IContainerRuntime
 {
     public string Name => "Podman";
-    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task<int> RunPodmanBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var arguments = $"build --file \"{dockerfilePath}\" --tag \"{imageName}\"";
 
@@ -41,6 +41,28 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             arguments += $" --output \"{Path.Combine(options.OutputPath, resourceName)}.tar\"";
         }
 
+        // Add build arguments if specified
+        foreach (var buildArg in buildArguments)
+        {
+            arguments += buildArg.Value is not null
+                ? $" --build-arg \"{buildArg.Key}={buildArg.Value}\""
+                : $" --build-arg \"{buildArg.Key}\"";
+        }
+
+        // Add build secrets if specified
+        foreach (var buildSecret in buildSecrets)
+        {
+            arguments += buildSecret.Value is not null
+                ? $" --secret \"id={buildSecret.Key},env={buildSecret.Key.ToUpperInvariant()}\""
+                : $" --secret \"id={buildSecret.Key}\"";
+        }
+
+        // Add stage if specified
+        if (!string.IsNullOrEmpty(stage))
+        {
+            arguments += $" --target \"{stage}\"";
+        }
+
         arguments += $" \"{contextPath}\"";
 
         var spec = new ProcessSpec("podman")
@@ -57,6 +79,15 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true
         };
+
+        // Add build secrets as environment variables
+        foreach (var buildSecret in buildSecrets)
+        {
+            if (buildSecret.Value is not null)
+            {
+                spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+            }
+        }
 
         logger.LogInformation("Running Podman CLI with arguments: {ArgumentList}", spec.Arguments);
         var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
@@ -78,13 +109,16 @@ internal sealed class PodmanContainerRuntime(ILogger<PodmanContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         var exitCode = await RunPodmanBuildAsync(
             contextPath,
             dockerfilePath,
             imageName,
             options,
+            buildArguments,
+            buildSecrets,
+            stage,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)

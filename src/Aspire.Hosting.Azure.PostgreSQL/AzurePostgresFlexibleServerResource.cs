@@ -172,7 +172,7 @@ public class AzurePostgresFlexibleServerResource(string name, Action<AzureResour
         // Create and add new resource if it doesn't exist
         var store = PostgreSqlFlexibleServer.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

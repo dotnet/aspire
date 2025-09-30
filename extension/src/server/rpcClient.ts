@@ -1,7 +1,8 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
-import { IInteractionService } from './interactionService';
+import { IInteractionService, InteractionService } from './interactionService';
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface ICliRpcClient {
     debugSessionId: string | null;
@@ -24,12 +25,12 @@ export class RpcClient implements ICliRpcClient {
     public debugSessionId: string | null;
     public interactionService: IInteractionService;
 
-    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, debugSessionId: string | null, interactionService: IInteractionService) {
+    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
         this._terminalProvider = terminalProvider;
         this._messageConnection = messageConnection;
         this._connectionClosed = false;
         this.debugSessionId = debugSessionId;
-        this.interactionService = interactionService;
+        this.interactionService = new InteractionService(getAspireDebugSession, this);
 
         this._messageConnection.onClose(() => {
             this._connectionClosed = true;
@@ -60,11 +61,7 @@ export class RpcClient implements ICliRpcClient {
     }
 
     async stopCli() {
-        if (this._connectionClosed) {
-            // If connection is already closed for some reason, we cannot send a request
-            // Instead, dispose of the terminal directly.
-            this._terminalProvider.getAspireTerminal(this.debugSessionId).dispose();
-        } else {
+        if (!this._connectionClosed) {
             await this._messageConnection.sendRequest('stopCli');
         }
     }

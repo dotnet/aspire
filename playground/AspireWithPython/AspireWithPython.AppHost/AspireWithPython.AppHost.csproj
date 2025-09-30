@@ -30,7 +30,15 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="CreatePythonVirtualEnvironments">
+  <Target Name="CheckPythonAvailable">
+    <CheckCommandAvailable Command="python">
+      <Output TaskParameter="IsAvailable" PropertyName="IsPythonAvailable" />
+    </CheckCommandAvailable>
+    <Message Importance="Normal" Text="Python command is available: $(IsPythonAvailable)" />
+    <Warning Text="Python is not available on PATH. Python virtual environment setup will be skipped. Install Python to enable full functionality." Condition="'$(IsPythonAvailable)' == 'false'" />
+  </Target>
+
+  <Target Name="CreatePythonVirtualEnvironments" DependsOnTargets="CheckPythonAvailable" Condition="'$(IsPythonAvailable)' == 'true'">
     <PropertyGroup>
       <PipRequirementsTxtDir>%(PipRequirementsTxt.RootDir)%(PipRequirementsTxt.Directory)</PipRequirementsTxtDir>
       <VenvDir>$(PipRequirementsTxtDir)$(PythonVirtualEnvironmentName)/</VenvDir>
@@ -42,7 +50,7 @@
     <Exec Command="python -m venv $(VenvDir)" WorkingDirectory="$(PipRequirementsTxtDir)" Condition=" '$(CreateVenv)' == 'True' " />
   </Target>
 
-  <Target Name="PipInstall" AfterTargets="PrepareForBuild" DependsOnTargets="SetPipInstallSentinelFilePath;CreatePythonVirtualEnvironments" Condition=" '$(DesignTimeBuild)' != 'True' " Inputs="@(PipRequirementsTxt)" Outputs="$(PipInstallSentinelFilePath)">
+  <Target Name="PipInstall" AfterTargets="PrepareForBuild" DependsOnTargets="SetPipInstallSentinelFilePath;CreatePythonVirtualEnvironments" Condition=" '$(DesignTimeBuild)' != 'True' and '$(IsPythonAvailable)' == 'true' " Inputs="@(PipRequirementsTxt)" Outputs="$(PipInstallSentinelFilePath)">
     <PropertyGroup>
       <PipRequirementsTxtDir>%(PipRequirementsTxt.RootDir)%(PipRequirementsTxt.Directory)</PipRequirementsTxtDir>
       <PipCmd Condition=" '$(OS)' == 'Windows_NT' ">pip</PipCmd>

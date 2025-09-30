@@ -86,6 +86,8 @@ serviceBuilder.WithHttpCommand("/overflow-counter", "Overflow counter", commandO
 serviceBuilder.WithHttpCommand("/nested-trace-spans", "Out of order nested spans", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/exemplars-no-span", "Examplars with no span", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 serviceBuilder.WithHttpCommand("/genai-trace", "Gen AI trace", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
+serviceBuilder.WithHttpCommand("/genai-trace-display-error", "Gen AI trace display error", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
+serviceBuilder.WithHttpCommand("/log-formatting", "Log formatting", commandOptions: new() { Method = HttpMethod.Get, IconName = "ContentViewGalleryLightning" });
 
 builder.AddProject<Projects.Stress_TelemetryService>("stress-telemetryservice")
        .WithUrls(c => c.Urls.Add(new() { Url = "https://someplace.com", DisplayText = "Some place" }))
@@ -137,7 +139,7 @@ IResourceBuilder<IResource>? previousResourceBuilder = null;
 
 for (var i = 0; i < 3; i++)
 {
-    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}")
+    var resourceBuilder = builder.AddProject<Projects.Stress_Empty>($"empty-{i:0000}", launchProfileName: null)
                                 .WithIconName("Document");
     if (previousResourceBuilder != null)
     {
@@ -147,6 +149,12 @@ for (var i = 0; i < 3; i++)
 
     previousResourceBuilder = resourceBuilder;
 }
+
+builder.AddProject<Projects.Stress_Empty>("empty-profile-1", launchProfileName: "Profile1");
+builder.AddProject<Projects.Stress_Empty>("empty-profile-2", launchProfileName: "Profile1")
+    .WithEnvironment("APPHOST_ENV_VAR", "test")
+    .WithEnvironment("ENV_TO_OVERRIDE", "this value came from the apphost")
+    .WithArgs("arg_from_apphost");
 
 builder.Build().Run();
 

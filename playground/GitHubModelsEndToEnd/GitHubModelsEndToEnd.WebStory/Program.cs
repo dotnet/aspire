@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddAzureChatCompletionsClient("chat", settings => settings.EnableSensitiveTelemetryData = true)
+builder.AddAzureChatCompletionsClient("chat")
        .AddChatClient()
        .UseFunctionInvocation();
 

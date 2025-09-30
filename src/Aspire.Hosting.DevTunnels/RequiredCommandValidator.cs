@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -26,11 +27,21 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     private readonly ILogger _logger = logger;
 
     private Task? _notificationTask;
+    private string? _notificationMessage;
 
     /// <summary>
     /// Returns the command string (file name or path) that should be validated.
     /// </summary>
     protected abstract string GetCommandPath();
+
+    /// <summary>
+    /// Called after the command has been successfully resolved to a full path.
+    /// Default implementation does nothing.
+    /// </summary>
+    /// <remarks>
+    /// Overrides can perform additional validation to verify the command is usable.
+    /// </remarks>
+    protected internal virtual Task<(bool IsValid, string? ValidationMessage)> OnResolvedAsync(string resolvedCommandPath, CancellationToken cancellationToken) => Task.FromResult((true, (string?)null));
 
     /// <summary>
     /// Called after the command has been successfully validated and resolved to a full path.
@@ -49,7 +60,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
         if (notificationTask is { IsCompleted: false })
         {
             // Failure notification is still being shown so just throw again.
-            throw GetCommandNotFoundException(command);
+            throw new DistributedApplicationException(_notificationMessage ?? $"Required command '{command}' was not found on PATH, at the specified location, or failed validation.");
         }
 
         if (string.IsNullOrWhiteSpace(command))
@@ -57,15 +68,26 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
             throw new InvalidOperationException("Command path cannot be null or empty.");
         }
         var resolved = ResolveCommand(command);
-        if (resolved is null)
+        var isValid = true;
+        string? validationMessage = null;
+        if (resolved is not null)
+        {
+            (isValid, validationMessage) = await OnResolvedAsync(resolved, cancellationToken).ConfigureAwait(false);
+        }
+        if (resolved is null || !isValid)
         {
             var link = GetHelpLink();
-            var message = link is null
-                ? $"Required command '{command}' was not found on PATH or at a specified location."
-                : $"Required command '{command}' was not found. See installation instructions for more details.";
+            var message = (link, validationMessage) switch
+            {
+                (null, not null) => validationMessage,
+                (not null, not null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithValidation, validationMessage),
+                (not null, null) => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotificationWithLink, command),
+                _ => string.Format(CultureInfo.CurrentCulture, Resources.MessageStrings.RequiredCommandNotification, command)
+            };
 
             _logger.LogWarning("{Message}", message);
 
+            _notificationMessage = message;
             if (_interactionService.IsAvailable == true)
             {
                 try
@@ -91,14 +113,12 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
                     _logger.LogDebug(ex, "Failed to show missing command notification");
                 }
             }
-            throw GetCommandNotFoundException(command);
+            throw new DistributedApplicationException(message);
         }
 
+        _notificationMessage = null;
         await OnValidatedAsync(resolved, cancellationToken).ConfigureAwait(false);
     }
-
-    private static DistributedApplicationException GetCommandNotFoundException(string command) =>
-        new($"Required command '{command}' was not found on PATH or at the specified location.");
 
     /// <summary>
     /// Optional link returned to guide users when the command is missing. Return null for no link.

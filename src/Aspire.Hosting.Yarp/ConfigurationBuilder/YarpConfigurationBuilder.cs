@@ -51,7 +51,7 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
     }
 
     /// <inheritdoc/>
-    public YarpCluster AddCluster(string clusterName, string[] destinations)
+    public YarpCluster AddCluster(string clusterName, object[] destinations)
     {
         var destination = new YarpCluster(clusterName, destinations);
         _parent.Resource.Clusters.Add(destination);

@@ -4,6 +4,7 @@
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -475,19 +476,224 @@ public class ParameterProcessorTests
         Assert.Equal(InputType.SecretText, secretInput.InputType);
     }
 
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_CollectsAndInitializesAllParameters()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var explicitParam = builder.AddParameter("explicitParam", () => "explicitValue");
+        var referencedParam = builder.AddParameter("referencedParam", () => "referencedValue");
+
+        // Create a container that references the parameter in an environment variable
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", referencedParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var explicitParameterResource = model.Resources.OfType<ParameterResource>().First(p => p.Name == "explicitParam");
+        var referencedParameterResource = model.Resources.OfType<ParameterResource>().First(p => p.Name == "referencedParam");
+
+        Assert.NotNull(explicitParameterResource.WaitForValueTcs);
+        Assert.NotNull(referencedParameterResource.WaitForValueTcs);
+        Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.True(referencedParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
+        Assert.Equal("referencedValue", await referencedParameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_EmptyModel_CompletesSuccessfully()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act & Assert - Should not throw
+        await parameterProcessor.InitializeParametersAsync(model);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_NoParameterReferences_InitializesExplicitOnly()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var explicitParam = builder.AddParameter("explicitParam", () => "explicitValue");
+
+        // Add a container without parameter references
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", "staticValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var explicitParameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.Equal("explicitParam", explicitParameterResource.Name);
+        Assert.NotNull(explicitParameterResource.WaitForValueTcs);
+        Assert.True(explicitParameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("explicitValue", await explicitParameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WithEnvironmentVariableReferences()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var referencedParam = builder.AddParameter("envParam", () => "envValue");
+
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", referencedParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.Equal("envParam", parameterResource.Name);
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("envValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WaitForResolution_True()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("testParam", () => "testValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WaitForResolution_False()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("testParam", () => "testValue");
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: false);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("testValue", await parameterResource.WaitForValueTcs.Task);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_WithMissingParameterValues_HandlesCorrectly()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var missingParam = builder.AddParameter("missingParam", () => throw new MissingParameterValueException("Parameter 'missingParam' is missing"));
+
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment("TEST_ENV", missingParam);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(interactionService: interactionService);
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.False(parameterResource.WaitForValueTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithDistributedApplicationModel_HandlesCircularReferences()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param1 = builder.AddParameter("param1", () => "value1");
+        var param2 = builder.AddParameter("param2", () => "value2");
+
+        // Create a scenario that could potentially create circular references
+        builder.AddContainer("container1", "nginx")
+               .WithEnvironment("ENV1", param1)
+               .WithEnvironment("ENV2", param2);
+
+        builder.AddContainer("container2", "nginx")
+               .WithEnvironment("ENV3", param1);
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act - Should not hang or throw due to circular references
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        var parameters = model.Resources.OfType<ParameterResource>().ToList();
+        Assert.Equal(2, parameters.Count);
+
+        foreach (var param in parameters)
+        {
+            Assert.NotNull(param.WaitForValueTcs);
+            Assert.True(param.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        }
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,
         IInteractionService? interactionService = null,
         ILogger<ParameterProcessor>? logger = null,
-        bool disableDashboard = true)
+        bool disableDashboard = true,
+        DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
-            new DistributedApplicationOptions { DisableDashboard = disableDashboard }
+            new DistributedApplicationOptions { DisableDashboard = disableDashboard },
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
         );
     }
 

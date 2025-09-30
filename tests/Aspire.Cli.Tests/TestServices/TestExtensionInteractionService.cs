@@ -17,6 +17,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public Action? LaunchAppHostCallback { get; set; }
     public Action? NotifyAppHostStartupCompletedCallback { get; set; }
     public Action<DashboardUrlsState>? DisplayDashboardUrlsCallback { get; set; }
+    public Action<string, string?, bool>? StartDebugSessionCallback { get; set; }
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
@@ -71,6 +72,17 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public void NotifyAppHostStartupCompleted()
     {
         NotifyAppHostStartupCompletedCallback?.Invoke();
+    }
+
+    public void DisplayConsolePlainText(string message)
+    {
+        DisplayConsoleWriteLineMessage?.Invoke(message);
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    {
+        StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
+        return Task.CompletedTask;
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)

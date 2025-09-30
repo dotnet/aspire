@@ -102,6 +102,11 @@
         <target state="translated">Ayrıntılar</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIDurationLabel">
         <source>Duration</source>
         <target state="translated">Süre</target>
@@ -354,7 +359,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogDotNetRuntimeVersion">
         <source>Runtime: {0}</source>
-        <target state="new">Runtime: {0}</target>
+        <target state="translated">Çalışma Zamanı: {0}</target>
         <note>{0} is the .NET runtime version</note>
       </trans-unit>
       <trans-unit id="SettingsDialogLanguage">

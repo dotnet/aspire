@@ -42,6 +42,11 @@
         <target state="translated">Entwicklerzertifikate sind möglicherweise nicht vollständig vertrauenswürdig (vertrauenswürdiger Exitcode war: {0}).</target>
         <note />
       </trans-unit>
+      <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
+        <source>This command is not yet supported with single file AppHosts.</source>
+        <target state="translated">Dieser Befehl wird für AppHosts mit einer einzelnen Datei noch nicht unterstützt.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
         <source>Configuration key {0} not found.</source>
         <target state="translated">Der Konfigurationsschlüssel „{0}“ wurde nicht gefunden.</target>
@@ -114,7 +119,7 @@
       </trans-unit>
       <trans-unit id="MinimumSdkVersionNotMet">
         <source>The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</source>
-        <target state="new">The Aspire CLI requires .NET SDK version {0} or later. Detected: {1}.</target>
+        <target state="translated">Die Aspire-CLI erfordert .NET SDK-Version {0} oder höher. Erkannt: {1}.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleProjectFilesFound">
@@ -149,12 +154,17 @@
       </trans-unit>
       <trans-unit id="ProjectFileNotAppHostProject">
         <source>Project file is not an Aspire AppHost project.</source>
-        <target state="new">Project file is not an Aspire AppHost project.</target>
+        <target state="translated">Die Projektdatei ist kein Aspire-AppHost-Projekt.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectIsNotAppHost">
         <source>The project does not contain an Aspire apphost.</source>
-        <target state="new">The project does not contain an Aspire apphost.</target>
+        <target state="translated">Das Projekt enthält keinen Aspire-AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SingleFileAppHostFeatureNotEnabled">
+        <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
+        <target state="translated">Das AppHost-Feature für einzelne Dateien ist nicht aktiviert. Um .cs-AppHost-Dateien zu verwenden, aktivieren Sie das Feature über die Konfiguration.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

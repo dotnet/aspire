@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
+using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model.Otlp;
 using Grpc.Core;
 
@@ -98,7 +99,7 @@ public class OtlpSpan
         };
     }
 
-    public List<OtlpDisplayField> AllProperties()
+    public List<OtlpDisplayField> GetKnownProperties()
     {
         var props = new List<OtlpDisplayField>
         {
@@ -117,12 +118,43 @@ public class OtlpSpan
             props.Add(new OtlpDisplayField { DisplayName = "StatusMessage", Key = KnownTraceFields.StatusMessageField, Value = StatusMessage });
         }
 
+        return props;
+    }
+
+    public List<OtlpDisplayField> GetAttributeProperties()
+    {
+        var props = new List<OtlpDisplayField>();
+
         foreach (var kv in Attributes.OrderBy(a => a.Key))
         {
             props.Add(new OtlpDisplayField { DisplayName = kv.Key, Key = $"unknown-{kv.Key}", Value = kv.Value });
         }
 
         return props;
+    }
+
+    public OtlpResource? GetDestination()
+    {
+        // Calculate destination. The destination could either be resolved from:
+        // - An uninstrumented peer, or
+        // - From single child span when the child span has a different resources and is a server/consumer.
+        //   This is the same situation as an uninstrumented peer except in this case the peer is recording telemetry.
+        if (UninstrumentedPeer is { } peer)
+        {
+            return peer;
+        }
+        else
+        {
+            if (GetChildSpans().SingleOrNull() is { } childSpan)
+            {
+                if (childSpan.Source.ResourceKey != Source.ResourceKey && childSpan.Kind is OtlpSpanKind.Server or OtlpSpanKind.Consumer)
+                {
+                    return childSpan.Source.Resource;
+                }
+            }
+        }
+
+        return null;
     }
 
     private string DebuggerToString()

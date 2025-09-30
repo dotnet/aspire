@@ -333,6 +333,11 @@
                   "type": "string",
                   "description": "Gets or sets the connection string of the RabbitMQ server to connect to."
                 },
+                "DisableAutoActivation": {
+                  "type": "boolean",
+                  "description": "Gets or sets a boolean value that indicates whether auto activation is disabled or not.",
+                  "default": true
+                },
                 "DisableHealthChecks": {
                   "type": "boolean",
                   "description": "Gets or sets a boolean value that indicates whether the RabbitMQ health check is disabled or not.",

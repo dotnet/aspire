@@ -173,7 +173,7 @@
             ? SpanWaterfallViewModel.GetTitle(context.Span, ViewModel.Resources)
             : $"{Loc[nameof(ControlsStrings.SpanDetailsSpanPrefix)]}: {OtlpHelpers.ToShortenedId(context.SpanId)}";
         var color = context.Span != null
-            ? ColorGenerator.Instance.GetColorHexByKey(OtlpResource.GetResourceName(context.Span.Source, ViewModel.Resources))
+            ? ColorGenerator.Instance.GetColorVariableByKey(OtlpResource.GetResourceName(context.Span.Source, ViewModel.Resources))
             : "transparent";
 
         return @<div>
