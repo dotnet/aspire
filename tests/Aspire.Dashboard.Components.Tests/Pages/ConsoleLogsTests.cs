@@ -826,6 +826,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<IconResolver>();
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();

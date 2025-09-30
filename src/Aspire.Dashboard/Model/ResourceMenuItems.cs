@@ -35,7 +35,8 @@ public static class ResourceMenuItems
         EventCallback<CommandViewModel> commandSelected,
         Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting,
         bool showConsoleLogsItem,
-        bool showUrls)
+        bool showUrls,
+        IconResolver iconResolver)
     {
         menuItems.Add(new MenuButtonItem
         {
@@ -60,7 +61,7 @@ public static class ResourceMenuItems
 
         AddTelemetryMenuItems(menuItems, resource, navigationManager, telemetryRepository, getResourceName, loc);
 
-        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting);
+        AddCommandMenuItems(menuItems, resource, loc, commandsLoc, commandSelected, isCommandExecuting, iconResolver);
 
         if (showUrls)
         {
@@ -177,7 +178,7 @@ public static class ResourceMenuItems
         }
     }
 
-    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting)
+    private static void AddCommandMenuItems(List<MenuButtonItem> menuItems, ResourceViewModel resource, IStringLocalizer<Resources.Resources> loc, IStringLocalizer<Commands> commandsLoc, EventCallback<CommandViewModel> commandSelected, Func<ResourceViewModel, CommandViewModel, bool> isCommandExecuting, IconResolver iconResolver)
     {
         var menuCommands = resource.Commands
                     .Where(c => c.State != CommandViewModelState.Hidden)
@@ -228,7 +229,7 @@ public static class ResourceMenuItems
 
         MenuButtonItem CreateMenuItem(CommandViewModel command)
         {
-            var icon = (!string.IsNullOrEmpty(command.IconName) && IconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
+            var icon = (!string.IsNullOrEmpty(command.IconName) && iconResolver.ResolveIconName(command.IconName, IconSize.Size16, command.IconVariant) is { } i) ? i : null;
 
             return new MenuButtonItem
             {

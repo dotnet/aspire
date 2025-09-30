@@ -7,15 +7,21 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Model;
 
-public static class IconResolver
+public sealed class IconResolver
 {
     private sealed record IconKey(string IconName, IconSize DesiredIconSize, IconVariant IconVariant);
-    private static readonly ConcurrentDictionary<IconKey, Icon?> s_iconCache = new();
+    private readonly ConcurrentDictionary<IconKey, Icon?> _iconCache = new();
+    private readonly ILogger<IconResolver> _logger;
 
-    public static Icon? ResolveIconName(string iconName, IconSize? desiredIconSize, IconVariant? iconVariant)
+    public IconResolver(ILogger<IconResolver> logger)
+    {
+        _logger = logger;
+    }
+
+    public Icon? ResolveIconName(string iconName, IconSize? desiredIconSize, IconVariant? iconVariant)
     {
         // Icons.GetInstance isn't efficient. Cache icon lookup.
-        return s_iconCache.GetOrAdd(new IconKey(iconName, desiredIconSize ?? IconSize.Size20, iconVariant ?? IconVariant.Regular), static key =>
+        return _iconCache.GetOrAdd(new IconKey(iconName, desiredIconSize ?? IconSize.Size20, iconVariant ?? IconVariant.Regular), key =>
         {
             // Try to get the desired size.
             CustomIcon? icon;
@@ -38,6 +44,7 @@ public static class IconResolver
                 return icon;
             }
 
+            _logger.LogWarning("Icon '{IconName}' (variant: {IconVariant}, size: {IconSize}) could not be resolved.", key.IconName, key.IconVariant, key.DesiredIconSize);
             return null;
         });
     }

@@ -30,12 +30,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
 
     public async Task OnResourceEndpointsAllocatedAsync(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
-        if (@event.Resource is not IResourceWithEndpoints resourceWithEndpoints)
-        {
-            return;
-        }
-
-        foreach (var endpoint in resourceWithEndpoints.Annotations.OfType<EndpointAnnotation>())
+        foreach (var endpoint in @event.Resource.Annotations.OfType<EndpointAnnotation>())
         {
             if (_codespacesOptions.Value.IsCodespace && !(endpoint.UriScheme is "https" or "http"))
             {
@@ -52,7 +47,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                 $"{@event.Resource.Name}-{endpoint.Name}");
         }
 
-        await _settingsWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext execContext, CancellationToken cancellationToken)

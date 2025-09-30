@@ -118,6 +118,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
 
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
+
     [CascadingParameter]
     public required ViewportInformation ViewportInformation { get; init; }
 
@@ -489,7 +492,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 EventCallback.Factory.Create<CommandViewModel>(this, ExecuteResourceCommandAsync),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: false,
-                showUrls: true);
+                showUrls: true,
+                IconResolver);
         }
     }
 

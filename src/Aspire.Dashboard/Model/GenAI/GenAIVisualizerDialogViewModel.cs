@@ -31,6 +31,9 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
 
+    // Used for error message from the dashboard when displaying GenAI telemetry.
+    public string? DisplayErrorMessage { get; set; }
+
     public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
     public int? InputTokens { get; set; }
@@ -39,6 +42,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
+        ILogger logger,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
@@ -67,7 +71,20 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
-        CreateMessages(viewModel, telemetryRepository);
+        try
+        {
+            CreateMessages(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
+
+            // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
+            viewModel.DisplayErrorMessage = $"{ex.GetType().FullName}: {ex.Message}";
+            viewModel.Items.Clear();
+
+            return viewModel;
+        }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
         {
@@ -191,8 +208,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Attempt get get messages from span events.
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
-            if (GenAIHelpers.IsGenAISpan(item.Attributes) &&
-                TryMapEventName(item.Name, out var type))
+            // Detect GenAI messages by event name. Don't check for the gen_ai.system attribute because it's optional on events.
+            if (TryMapEventName(item.Name, out var type))
             {
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
                 var parts = content != null ? DeserializeBody(type.Value, content) : [];

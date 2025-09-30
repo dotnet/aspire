@@ -752,9 +752,7 @@ public class ResourceNotificationService : IDisposable
     /// </summary>
     private static CustomResourceSnapshot UpdateIcons(IResource resource, CustomResourceSnapshot previousState)
     {
-        var iconAnnotation = resource.Annotations.OfType<ResourceIconAnnotation>().FirstOrDefault();
-        
-        if (iconAnnotation == null)
+        if (!resource.TryGetLastAnnotation<ResourceIconAnnotation>(out var iconAnnotation))
         {
             // No icon annotation, keep existing icon information
             return previousState;

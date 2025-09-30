@@ -60,6 +60,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
     [Inject]
     public required ILogger<Resources> Logger { get; init; }
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
 
     public string BasePath => DashboardUrls.ResourcesBasePath;
     public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
@@ -369,7 +371,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
 
         var activeResources = _resourceByName.Values.Where(Filter).OrderBy(e => e.ResourceType).ThenBy(e => e.Name).ToList();
-        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc, _showHiddenResources)).ToList();
+        var resources = activeResources.Select(r => ResourceGraphMapper.MapResource(r, _resourceByName, ColumnsLoc, _showHiddenResources, IconResolver)).ToList();
         await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
     }
 
@@ -595,7 +597,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                 EventCallback.Factory.Create<CommandViewModel>(this, (command) => ExecuteResourceCommandAsync(resource, command)),
                 (resource, command) => DashboardCommandExecutor.IsExecuting(resource.Name, command.Name),
                 showConsoleLogsItem: true,
-                showUrls: true);
+                showUrls: true,
+                IconResolver);
 
             // The previous context menu should always be closed by this point but complete just in case.
             _contextMenuClosedTcs?.TrySetResult();

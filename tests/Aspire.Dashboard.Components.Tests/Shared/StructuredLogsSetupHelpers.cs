@@ -20,6 +20,7 @@ internal static class StructuredLogsSetupHelpers
         context.Services.AddSingleton<IInstrumentUnitResolver, TestInstrumentUnitResolver>();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
         context.Services.AddSingleton<TelemetryRepository>();
+        context.Services.AddSingleton<IconResolver>();
         context.Services.AddSingleton<IDialogService, DialogService>();
         context.Services.AddSingleton<LibraryConfiguration>();
         context.Services.AddSingleton<IKeyCodeService, KeyCodeService>();

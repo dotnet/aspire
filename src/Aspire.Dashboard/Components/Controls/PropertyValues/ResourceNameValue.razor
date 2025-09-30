@@ -1,12 +1,14 @@
 ﻿@using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Utils
 
+@inject IconResolver IconResolver
+
 @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
 @{
     <FluentIcon Width="16px"
                 Class="resource-icon"
                 Color="Color.Custom"
                 CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(FormatName(Resource))"
-                Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
+                Value="@ResourceIconHelpers.GetIconForResource(IconResolver, Resource, IconSize.Size16)" />
 }
 <FluentHighlighter HighlightedText="@HighlightText" Text="@Value" />
