@@ -8,6 +8,9 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Dashboard;
+using StreamJsonRpc;
+using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -244,7 +247,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         {
             await foreach (var interaction in _interactionService.SubscribeInteractionUpdates(cancellationToken).ConfigureAwait(false))
             {
-                await HandleInteractionUpdateAsync(interaction, cancellationToken).ConfigureAwait(false);
+                await WriteInteractionUpdateToClientAsync(interaction, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -261,7 +264,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         return _steps.Any(step => step.Value.CompletionState == CompletionState.InProgress);
     }
 
-    private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
+    private async Task WriteInteractionUpdateToClientAsync(Interaction interaction, CancellationToken cancellationToken)
     {
         if (interaction.State == Interaction.InteractionState.InProgress)
         {
@@ -294,11 +297,12 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                     Label = input.EffectiveLabel,
                     InputType = input.InputType.ToString(),
                     Required = input.Required,
-                    Options = input.Options,
+                    Options = input.Options ?? input.OptionsProviderState?.LoadedOptions,
                     Value = input.Value,
                     ValidationErrors = input.ValidationErrors,
                     AllowCustomChoice = input.AllowCustomChoice,
-                    UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName))
+                    UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName)),
+                    IsOptionsLoading = input.OptionsProviderState?.IsLoading ?? false
                 }).ToList();
 
                 var activity = new PublishingActivity
@@ -357,13 +361,38 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 {
                     if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
                     {
+                        var options = (InputsDialogInteractionOptions)interaction.Options;
+
                         // Set values for all inputs if we have responses
                         if (responses is not null)
                         {
+                            var dtos = new List<InputDto>();
+
+                            foreach (var responseAnswer in responses)
+                            {
+                                if (responseAnswer.Name != null && inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out var matchingInput))
+                                {
+
+                                }
+
+                                inputsInfo.Inputs[i].Value = responseAnswer.Value ?? "";
+                            }
+
                             for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
                             {
-                                inputsInfo.Inputs[i].Value = responses[i].Value ?? "";
+                                responses[i].
+                                if (responses[i] is { } responseAnswer)
+                                {
+                                }
                             }
+
+                            DashboardServiceData.ProcessInputs(
+                                serviceProvider,
+                                logger,
+                                inputsInfo,
+                                request.InputsDialog,
+                                dependencyChange: updateResponse,
+                                interaction.CancellationToken);
                         }
 
                         return new InteractionCompletionState

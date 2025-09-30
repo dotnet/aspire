@@ -216,7 +216,7 @@ internal class AppHostRpcTarget(
     }
 #pragma warning restore CA1822
 
-    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse = false, CancellationToken cancellationToken = default)
+    public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse, cancellationToken).ConfigureAwait(false);
     }

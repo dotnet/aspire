@@ -234,6 +234,20 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }
+
+    public static Aspire.Hosting.InputType MapInputType(Aspire.DashboardService.Proto.V1.InputType inputType)
+    {
+        return inputType switch
+        {
+            Aspire.DashboardService.Proto.V1.InputType.Text => InputType.Text,
+            Aspire.DashboardService.Proto.V1.InputType.SecretText => InputType.SecretText,
+            Aspire.DashboardService.Proto.V1.InputType.Choice => InputType.Choice,
+            Aspire.DashboardService.Proto.V1.InputType.Boolean => InputType.Boolean,
+            Aspire.DashboardService.Proto.V1.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
+    }
+
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(

@@ -172,7 +172,13 @@ internal sealed class DashboardServiceData : IDisposable
                         var inputsInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
                         var options = (InputsDialogInteractionOptions)interaction.Options;
 
-                        ProcessInputs(serviceProvider, logger, inputsInfo, request.InputsDialog, interaction.CancellationToken);
+                        ProcessInputs(
+                            serviceProvider,
+                            logger,
+                            inputsInfo,
+                            request.InputsDialog.InputItems.Select(i => new InputDto(i.Name, i.Value, DashboardService.MapInputType(i.InputType))).ToList(),
+                            request.InputsDialog.DependOnChange,
+                            interaction.CancellationToken);
 
                         // If the interaction was sent to the server because an input changed, don't try to complete the interaction.
                         return new InteractionCompletionState { Complete = !request.InputsDialog.DependOnChange, State = inputsInfo.Inputs };
@@ -183,13 +189,15 @@ internal sealed class DashboardServiceData : IDisposable
             cancellationToken).ConfigureAwait(false);
     }
 
-    private static void ProcessInputs(IServiceProvider serviceProvider, ILogger logger, Interaction.InputsInteractionInfo inputsInfo, InteractionInputsDialog inputsDialog, CancellationToken cancellationToken)
+    public record InputDto(string Name, string Value, InputType InputType);
+
+    public static void ProcessInputs(IServiceProvider serviceProvider, ILogger logger, Interaction.InputsInteractionInfo inputsInfo, List<InputDto> inputDtos, bool dependencyChange, CancellationToken cancellationToken)
     {
         var choiceInteractionsToUpdate = new HashSet<InteractionInput>();
 
-        for (var i = 0; i < inputsDialog.InputItems.Count; i++)
+        for (var i = 0; i < inputDtos.Count; i++)
         {
-            var requestInput = inputsDialog.InputItems[i];
+            var requestInput = inputDtos[i];
             if (!inputsInfo.Inputs.TryGetByName(requestInput.Name, out var modelInput))
             {
                 continue;
@@ -198,7 +206,7 @@ internal sealed class DashboardServiceData : IDisposable
             var incomingValue = requestInput.Value;
 
             // Ensure checkbox value is either true or false.
-            if (requestInput.InputType == Aspire.DashboardService.Proto.V1.InputType.Boolean)
+            if (requestInput.InputType == InputType.Boolean)
             {
                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
             }
@@ -208,7 +216,7 @@ internal sealed class DashboardServiceData : IDisposable
                 modelInput.Value = incomingValue;
 
                 // If we're processing updates because of a dependency change, check to see if this input is depended on.
-                if (inputsDialog.DependOnChange)
+                if (dependencyChange)
                 {
                     var dependentInputs = inputsInfo.Inputs.Where(
                         i => i.InputType == InputType.Choice &&
