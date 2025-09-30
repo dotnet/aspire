@@ -102,6 +102,11 @@
         <target state="translated">Detalles</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIDurationLabel">
         <source>Duration</source>
         <target state="translated">Duración</target>

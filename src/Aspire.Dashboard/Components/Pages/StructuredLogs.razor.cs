@@ -500,6 +500,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 span,
                 logEntry.InternalId,
                 TelemetryRepository,
+                Logger,
                 _resources,
                 () =>
                 {

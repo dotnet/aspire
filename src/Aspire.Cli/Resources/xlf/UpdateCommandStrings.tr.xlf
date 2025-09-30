@@ -4,7 +4,7 @@
     <body>
       <trans-unit id="AddedFeedFormat">
         <source>Added: {0}</source>
-        <target state="new">Added: {0}</target>
+        <target state="translated">Eklendi: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="AnalyzeAppHost">
@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="ApplyChangesToNuGetConfig">
         <source>Apply these changes to NuGet.config?</source>
-        <target state="new">Apply these changes to NuGet.config?</target>
+        <target state="translated">Bu değişiklikler NuGet.config dosyasına uygulansın mı?</target>
         <note />
       </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
@@ -79,22 +79,22 @@
       </trans-unit>
       <trans-unit id="MappingAddedFormat">
         <source>   Mapping: {0} (added)</source>
-        <target state="new">   Mapping: {0} (added)</target>
+        <target state="translated">   Eşleme: {0} (eklendi)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRemovedFormat">
         <source>   Mapping: {0} (removed)</source>
-        <target state="new">   Mapping: {0} (removed)</target>
+        <target state="translated">   Eşleme: {0} (kaldırıldı)</target>
         <note />
       </trans-unit>
       <trans-unit id="MappingRetainedFormat">
         <source>   Mapping: {0}</source>
-        <target state="new">   Mapping: {0}</target>
+        <target state="translated">   Eşleme: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="NoChangesDetectedInNuGetConfig">
         <source>No changes detected in NuGet.config</source>
-        <target state="new">No changes detected in NuGet.config</target>
+        <target state="translated">NuGet.config dosyasında değişiklik algılanmadı</target>
         <note />
       </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
@@ -119,7 +119,7 @@
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
         <source>The path to the Aspire AppHost project file.</source>
-        <target state="new">The path to the Aspire AppHost project file.</target>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
@@ -134,12 +134,12 @@
       </trans-unit>
       <trans-unit id="RemovedFeedFormat">
         <source>Removed: {0}</source>
-        <target state="new">Removed: {0}</target>
+        <target state="translated">Kaldırıldı: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="RetainedFeedFormat">
         <source>Retained: {0}</source>
-        <target state="new">Retained: {0}</target>
+        <target state="translated">Korundu: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">
