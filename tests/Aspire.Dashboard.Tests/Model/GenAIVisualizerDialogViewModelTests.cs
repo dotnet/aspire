@@ -242,6 +242,12 @@ public sealed class GenAIVisualizerDialogViewModelTests
                 startTime: 2,
                 attributes: [
                     KeyValuePair.Create(GenAIHelpers.GenAIEventContent, JsonSerializer.Serialize(new AssistantEvent { Content = "Assistant!" }, GenAIEventsContext.Default.AssistantEvent)),
+                ]),
+            CreateSpanEvent(
+                name: "other_name_that_is_ignored",
+                startTime: 3,
+                attributes: [
+                    KeyValuePair.Create(GenAIHelpers.GenAIEventContent, JsonSerializer.Serialize(new AssistantEvent { Content = "Assistant!" }, GenAIEventsContext.Default.AssistantEvent)),
                     KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
                 ])
         };
