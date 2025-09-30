@@ -728,7 +728,7 @@ public class ParameterProcessorTests
                });
 
         // Mark the container as excluded from publish
-        excludedContainer.WithAnnotation(ApplicationModel.ManifestPublishingCallbackAnnotation.Ignore);
+        excludedContainer.ExcludeFromManifest();
 
         using var app = builder.Build();
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
