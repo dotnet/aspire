@@ -19,7 +19,7 @@ IResourceBuilder<IComputeEnvironmentResource>? environment = (publisher, target)
     ("default", "azure") => builder.AddAzureContainerAppEnvironment("env"),
     ("default", "publish-test") => builder.AddPublishTestResource("env"),
     ("default", "docker") => builder.AddDockerComposeEnvironment("env"),
-    ("default", _) => null,
+    ("default", _) => builder.AddDockerComposeEnvironment("env"),
     _ => null
 };
 
