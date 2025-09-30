@@ -310,6 +310,8 @@ jobs:
           # So, we manually set NUGET_PACKAGES
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
+          # Set GH_TOKEN for CLI Scripts tests that need to query GitHub API via gh cli
+          GH_TOKEN: ${{ contains(inputs.testShortName, 'Cli.Scripts') && secrets.GITHUB_TOKEN || '' }}
         run: >
           ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
           /p:ContinuousIntegrationBuild=true

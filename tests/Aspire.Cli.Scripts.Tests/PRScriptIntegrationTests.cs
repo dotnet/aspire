@@ -21,12 +21,6 @@ public class PRScriptIntegrationShellTests(ITestOutputHelper output, RealGitHubP
     [Fact]
     public async Task Shell_DryRunWithRealPR_ShowsDownloadAndInstallSteps()
     {
-        if (fixture.PRNumber == null)
-        {
-            output.WriteLine("Skipping test - no suitable PR found");
-            return;
-        }
-
         using var env = new TestEnvironment();
         var command = new ScriptToolCommand(_shellScriptPath, env, output);
         var result = await command.ExecuteAsync(fixture.PRNumber.ToString()!, "--dry-run");
@@ -43,12 +37,6 @@ public class PRScriptIntegrationShellTests(ITestOutputHelper output, RealGitHubP
     [Fact]
     public async Task Shell_RealPR_CanListArtifacts()
     {
-        if (fixture.PRNumber == null)
-        {
-            output.WriteLine("Skipping test - no suitable PR found");
-            return;
-        }
-
         using var env = new TestEnvironment();
         var command = new ScriptToolCommand(_shellScriptPath, env, output);
         var result = await command.ExecuteAsync(fixture.PRNumber.ToString()!, "--dry-run", "--verbose");
@@ -74,12 +62,6 @@ public class PRScriptIntegrationPowerShellTests(ITestOutputHelper output, RealGi
     [Fact]
     public async Task PowerShell_WhatIfWithRealPR_ShowsDownloadAndInstallSteps()
     {
-        if (fixture.PRNumber == null)
-        {
-            output.WriteLine("Skipping test - no suitable PR found");
-            return;
-        }
-
         using var env = new TestEnvironment();
         var command = new ScriptToolCommand(_powerShellScriptPath, env, output);
         var result = await command.ExecuteAsync("-PrNumber", fixture.PRNumber.ToString()!, "-WhatIf");

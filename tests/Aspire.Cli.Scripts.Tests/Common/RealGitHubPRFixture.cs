@@ -22,7 +22,7 @@ public class RealGitHubPRFixture : IAsyncLifetime
     public RealGitHubPRFixture(IMessageSink diagnosticMessageSink)
     {
         _diagnosticMessageSink = diagnosticMessageSink;
-        _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink);
+        _testOutput = new TestOutputWrapper(messageSink: _diagnosticMessageSink, forceShowBuildOutput: true);
     }
 
     public async ValueTask InitializeAsync()
@@ -32,12 +32,13 @@ public class RealGitHubPRFixture : IAsyncLifetime
         
         if (PRNumber == null)
         {
-            _testOutput.WriteLine("Warning: Could not find a suitable PR for testing");
+            throw new InvalidOperationException(
+                "Could not find a suitable PR for testing. " +
+                "Ensure gh cli is authenticated and there are recent merged PRs with required artifacts " +
+                "(cli-native-*, built-nugets, built-nugets-for*).");
         }
-        else
-        {
-            _testOutput.WriteLine($"Found suitable PR: {PRNumber}");
-        }
+        
+        _testOutput.WriteLine($"Found suitable PR: {PRNumber}");
     }
 
     private async Task<int?> FindSuitablePRAsync()

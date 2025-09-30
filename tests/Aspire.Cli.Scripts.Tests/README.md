@@ -5,6 +5,7 @@ This project contains functional tests for the Aspire CLI acquisition scripts lo
 ## Target Scripts
 
 The tests validate the following scripts:
+
 - `get-aspire-cli.sh` / `get-aspire-cli.ps1` - Release and rolling builds
 - `get-aspire-cli-pr.sh` / `get-aspire-cli-pr.ps1` - PR builds
 
@@ -20,7 +21,7 @@ The tests validate the following scripts:
 
 ## Test Structure
 
-```
+```text
 tests/Aspire.Cli.Scripts.Tests/
 ├── Common/
 │   ├── TestEnvironment.cs      # Isolated temp directory management
@@ -45,6 +46,7 @@ dotnet test tests/Aspire.Cli.Scripts.Tests/ -- --filter-method "Shell_HelpFlag_S
 ## Test Coverage
 
 ### Release Scripts (16 tests)
+
 - Help flag functionality
 - Dry-run/WhatIf modes
 - Parameter validation (quality, OS, architecture)
@@ -53,6 +55,7 @@ dotnet test tests/Aspire.Cli.Scripts.Tests/ -- --filter-method "Shell_HelpFlag_S
 - Error handling for invalid inputs
 
 ### PR Scripts (12 tests)
+
 - Missing PR number handling
 - Dry-run/WhatIf modes
 - Custom install paths
@@ -70,16 +73,20 @@ dotnet test tests/Aspire.Cli.Scripts.Tests/ -- --filter-method "Shell_HelpFlag_S
 ## Implementation Details
 
 ### TestEnvironment Class
+
 Creates an isolated temporary directory structure:
-```
+
+```text
 /tmp/aspire-test-{guid}/
 └── home/
     └── .bashrc  # Mock shell config to prevent script errors
 ```
 
 ### ScriptExecutor Class
+
 - Executes scripts with redirected HOME/USERPROFILE environment variables
 - Sets CI=true to prevent interactive prompts
 - Captures stdout and stderr for validation
 - Implements 60-second timeout to prevent hanging
 - Properly cleans up processes
+
