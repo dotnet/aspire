@@ -22,10 +22,9 @@ on:
       - '.github/actions/**'
       - '.github/workflows/**'
       - 'eng/**'
-    paths-ignore:
-      - 'eng/pipelines/**'
-      - 'eng/scripts/**'
-      - 'eng/*pack/**'
+      - '!eng/pipelines/**'
+      - '!eng/scripts/**'
+      - '!eng/*pack/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
