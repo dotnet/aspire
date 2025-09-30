@@ -28,6 +28,12 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
 
     /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableDashboard { get; set; } = true;
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);

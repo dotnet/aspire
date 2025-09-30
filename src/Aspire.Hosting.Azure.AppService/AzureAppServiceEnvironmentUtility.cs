@@ -4,6 +4,7 @@
 using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -19,12 +20,47 @@ internal static class AzureAppServiceEnvironmentUtility
 
     public static WebSite AddDashboard(AzureResourceInfrastructure infra,
         UserAssignedIdentity otelIdentity,
-        UserAssignedIdentity contributorIdentity,
         BicepValue<ResourceIdentifier> appServicePlanId)
     {
         var acrClientIdParameter = otelIdentity.ClientId;
+        var prefix = infra.AspireResource.Name;
+        var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"));
+
         var contributorMidParameter = contributorIdentity.Id;
         var contributorClientIdParameter = contributorIdentity.ClientId;
+
+        infra.Add(contributorIdentity);
+
+        // Add Website Contributor role assignment
+        var rgRaId = BicepFunction.GetSubscriptionResourceId(
+                    "Microsoft.Authorization/roleDefinitions",
+                    "de139f84-1756-47ae-9be6-808fbbe84772");
+        var rgRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId);
+        var rgRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra"))
+        {
+            Name = rgRaName,
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorIdentity.PrincipalId,
+            RoleDefinitionId = rgRaId,
+        };
+
+        infra.Add(rgRa);
+
+        // Add Reader role assignment
+        var rgRaId2 = BicepFunction.GetSubscriptionResourceId(
+            "Microsoft.Authorization/roleDefinitions",
+            "acdd72a7-3385-48ef-bd42-f606fba81ae7");
+        var rgRaName2 = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId2);
+
+        var rgRa2 = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra2"))
+        {
+            Name = rgRaName2,
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorIdentity.PrincipalId,
+            RoleDefinitionId = rgRaId2
+        };
+
+        infra.Add(rgRa2);
 
         var webSite = new WebSite("webapp")
         {
@@ -53,8 +89,6 @@ internal static class AzureAppServiceEnvironmentUtility
             }
         };
 
-        //var acrMid = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
-        //webSite.Identity.UserAssignedIdentities[acrMid] = new UserAssignedIdentityDetails();
         var contributorMid = BicepFunction.Interpolate($"{contributorMidParameter}").Compile().ToString();
         webSite.Identity.UserAssignedIdentities[contributorMid] = new UserAssignedIdentityDetails();
 

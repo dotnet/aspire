@@ -7,7 +7,6 @@ using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Roles;
@@ -45,7 +44,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
             var prefix = infra.AspireResource.Name;
-            var resource = infra.AspireResource;
+            var resource = (AzureAppServiceEnvironmentResource)infra.AspireResource;
 
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
@@ -64,12 +63,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
             };
 
             infra.Add(identity);
-
-            var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"))
-            {
-            };
-
-            infra.Add(contributorIdentity);
 
             ContainerRegistryService? containerRegistry = null;
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -120,39 +113,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = plan.Id
             });
 
-            // Add Website Contributor role assignment
-            var rgRaId = BicepFunction.GetSubscriptionResourceId(
-                        "Microsoft.Authorization/roleDefinitions",
-                        "de139f84-1756-47ae-9be6-808fbbe84772");
-            var rgRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId);
-            var rgRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra"))
+            if (resource.EnableDashboard)
             {
-                Name = rgRaName,
-                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-                PrincipalId = contributorIdentity.PrincipalId,
-                RoleDefinitionId = rgRaId,
-            };
-
-            infra.Add(rgRa);
-
-            // Add Reader role assignment
-            var rgRaId2 = BicepFunction.GetSubscriptionResourceId(
-                "Microsoft.Authorization/roleDefinitions",
-                "acdd72a7-3385-48ef-bd42-f606fba81ae7");
-            var rgRaName2 = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId2);
-
-            var rgRa2 = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra2"))
-            {
-                Name = rgRaName2,
-                PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-                PrincipalId = contributorIdentity.PrincipalId,
-                RoleDefinitionId = rgRaId2
-            };
-
-            infra.Add(rgRa2);
-
-            // Add aspire dashboard website
-            var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, contributorIdentity, plan.Id);
+                // Add aspire dashboard website
+                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+            }
 
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
@@ -192,5 +157,17 @@ public static partial class AzureAppServiceEnvironmentExtensions
         }
 
         return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableDashboard = enable;
+        return builder;
     }
 }

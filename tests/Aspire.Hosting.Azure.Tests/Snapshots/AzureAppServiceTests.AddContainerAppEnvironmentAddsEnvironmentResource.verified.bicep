@@ -11,11 +11,6 @@ resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = 
   tags: tags
 }
 
-resource env_contributor_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
-  name: take('env_contributor_mi-${uniqueString(resourceGroup().id)}', 128)
-  location: location
-}
-
 resource env_acr 'Microsoft.ContainerRegistry/registries@2025-04-01' = {
   name: take('envacr${uniqueString(resourceGroup().id)}', 50)
   location: location
@@ -47,6 +42,11 @@ resource env_asplan 'Microsoft.Web/serverfarms@2024-11-01' = {
     name: 'P0V3'
     tier: 'Premium'
   }
+}
+
+resource env_contributor_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
+  name: take('env_contributor_mi-${uniqueString(resourceGroup().id)}', 128)
+  location: location
 }
 
 resource env_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {

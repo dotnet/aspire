@@ -327,7 +327,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-        AddDashboardSettings(webSite, acrClientIdParameter, dashboardUri);
+        if (environmentContext.Environment.EnableDashboard)
+        {
+            AddDashboardSettings(webSite, acrClientIdParameter, dashboardUri);
+        }
 
         infra.Add(webSite);
 
