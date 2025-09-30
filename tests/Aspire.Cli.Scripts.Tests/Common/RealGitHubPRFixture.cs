@@ -55,7 +55,7 @@ public class RealGitHubPRFixture : IAsyncLifetime
                 "--state", "all",
                 "--limit", "50",
                 "--json", "number,state,mergedAt,headRefOid",
-                "--jq", "[.[] | select(.mergedAt != null)] | .[0:10] | .[] | .number"
+                "--jq", "[.[]|select(.mergedAt!=null)]|.[0:10]|.[].number"
             );
 
             if (result.ExitCode != 0)
@@ -104,7 +104,7 @@ public class RealGitHubPRFixture : IAsyncLifetime
                 "--repo", Repository,
                 "--json", "databaseId,conclusion,displayTitle",
                 "--limit", "20",
-                "--jq", $"[.[] | select(.displayTitle | contains(\"#{prNumber}\")) | select(.conclusion == \"success\")] | .[0].databaseId"
+                "--jq", $"[.[]|select(.displayTitle|contains(\"#{prNumber}\"))|select(.conclusion==\"success\")]|.[0].databaseId"
             );
 
             if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(result.Output))
