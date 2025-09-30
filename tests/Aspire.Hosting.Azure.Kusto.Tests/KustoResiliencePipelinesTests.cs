@@ -21,7 +21,7 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<KustoRequestThrottledException>(async () =>
         {
-            await KustoResiliencePipelines.ThrottleRetry.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await KustoResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount > 1, "Operation should have been retried");
     }
@@ -40,13 +40,13 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            await KustoResiliencePipelines.ThrottleRetry.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await KustoResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount == 1, "Operation should not have been retried");
     }
 
     [Fact]
-    public async Task ShouldNotRetryOnPermanateExceptions()
+    public async Task ShouldNotRetryOnPermanentExceptions()
     {
         // Arrange
         var attemptCount = 0;
@@ -59,7 +59,7 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<KustoBadRequestException>(async () =>
         {
-            await KustoResiliencePipelines.ThrottleRetry.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await KustoResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount == 1, "Operation should not have been retried");
     }
