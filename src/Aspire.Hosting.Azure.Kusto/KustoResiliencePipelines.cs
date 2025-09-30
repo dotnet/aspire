@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Kusto.Data.Exceptions;
+using Kusto.Cloud.Platform.Utils;
 using Polly;
 
 namespace Aspire.Hosting.Azure.Kusto;
@@ -12,18 +12,14 @@ namespace Aspire.Hosting.Azure.Kusto;
 internal static class KustoResiliencePipelines
 {
     /// <summary>
-    /// Gets a resilience pipeline configured to handle Kusto throttling exceptions with retry logic.
+    /// Gets a resilience pipeline configured to handle non-permanent exceptions.
     /// </summary>
-    /// <remarks>
-    /// This pipeline retries operations that fail with <see cref="KustoRequestThrottledException"/>
-    /// up to 3 times with a 2-second delay between attempts.
-    /// </remarks>
-    public static ResiliencePipeline ThrottleRetry { get; } = new ResiliencePipelineBuilder()
+    public static ResiliencePipeline Default { get; } = new ResiliencePipelineBuilder()
         .AddRetry(new()
         {
             MaxRetryAttempts = 3,
             Delay = TimeSpan.FromSeconds(2),
-            ShouldHandle = new PredicateBuilder().Handle<KustoRequestThrottledException>(),
+            ShouldHandle = new PredicateBuilder().Handle<Exception>(e => e is ICloudPlatformException cpe && !cpe.IsPermanent),
         })
         .Build();
 }
