@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Xml.Linq;
+using System.Xml;
 using System.Diagnostics.CodeAnalysis;
 
 namespace Aspire.Cli.Packaging;
@@ -25,7 +26,11 @@ internal class NuGetConfigMerger
     /// </summary>
     /// <param name="targetDirectory">The directory where the NuGet.config should be created or updated.</param>
     /// <param name="channel">The package channel providing mapping information.</param>
-    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel)
+    /// <param name="confirmationCallback">Optional callback invoked before creating or updating the NuGet.config file. 
+    /// The callback receives the target file info, original content (null for new files), proposed new content, and a cancellation token.
+    /// Return true to proceed with the update, false to skip it.</param>
+    /// <param name="cancellationToken">A cancellation token to observe while waiting for the task to complete.</param>
+    public static async Task CreateOrUpdateAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(targetDirectory);
         ArgumentNullException.ThrowIfNull(channel);
@@ -44,31 +49,64 @@ internal class NuGetConfigMerger
 
         if (!TryFindNuGetConfigInDirectory(targetDirectory, out var nugetConfigFile))
         {
-            await CreateNewNuGetConfigAsync(targetDirectory, mappings);
+            await CreateNewNuGetConfigAsync(targetDirectory, channel, confirmationCallback, cancellationToken);
         }
         else
         {
-            await UpdateExistingNuGetConfigAsync(nugetConfigFile, mappings);
+            await UpdateExistingNuGetConfigAsync(nugetConfigFile, channel, confirmationCallback, cancellationToken);
         }
     }
 
-    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageMapping[] mappings)
+    private static async Task CreateNewNuGetConfigAsync(DirectoryInfo targetDirectory, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
-        if (mappings.Length == 0)
+        var mappings = channel.Mappings;
+        if (mappings is null || mappings.Length == 0)
         {
             return;
         }
 
         var targetPath = Path.Combine(targetDirectory.FullName, "NuGet.config");
+        var targetFile = new FileInfo(targetPath);
+        
         using var tmpConfig = await TemporaryNuGetConfig.CreateAsync(mappings);
+        
+        if (confirmationCallback is not null)
+        {
+            // Load the proposed content as XmlDocument for the callback
+            var proposedDocument = new XmlDocument();
+            proposedDocument.Load(tmpConfig.ConfigFile.FullName);
+            
+            var shouldProceed = await confirmationCallback(targetFile, null, proposedDocument, cancellationToken);
+            if (!shouldProceed)
+            {
+                return;
+            }
+        }
+        
+        if (channel.ConfigureGlobalPackagesFolder)
+        {
+            // Need to modify the temporary config to add globalPackagesFolder before copying
+            await AddGlobalPackagesFolderToConfigAsync(tmpConfig.ConfigFile);
+        }
+        
         File.Copy(tmpConfig.ConfigFile.FullName, targetPath, overwrite: true);
     }
 
-    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageMapping[]? mappings)
+    private static async Task UpdateExistingNuGetConfigAsync(FileInfo nugetConfigFile, PackageChannel channel, Func<FileInfo, XmlDocument?, XmlDocument, CancellationToken, Task<bool>>? confirmationCallback, CancellationToken cancellationToken)
     {
+        var mappings = channel.Mappings;
         if (mappings is null || mappings.Length == 0)
         {
             return;
+        }
+
+        // Load original content for callback
+        XmlDocument? originalDocument = null;
+        if (confirmationCallback is not null)
+        {
+            originalDocument = new XmlDocument();
+            using var stream = nugetConfigFile.OpenRead();
+            originalDocument.Load(stream);
         }
 
         var configContext = await LoadAndValidateConfigAsync(nugetConfigFile, mappings);
@@ -81,6 +119,26 @@ internal class NuGetConfigMerger
         else
         {
             CreateNewPackageSourceMapping(configContext);
+        }
+
+        if (confirmationCallback is not null)
+        {
+            // Convert XDocument to XmlDocument for the callback
+            var proposedDocument = new XmlDocument();
+            using var stringWriter = new StringWriter();
+            configContext.Document.Save(stringWriter);
+            proposedDocument.LoadXml(stringWriter.ToString());
+            
+            var shouldProceed = await confirmationCallback(nugetConfigFile, originalDocument, proposedDocument, cancellationToken);
+            if (!shouldProceed)
+            {
+                return;
+            }
+        }
+        
+        if (channel.ConfigureGlobalPackagesFolder)
+        {
+            AddGlobalPackagesFolderConfiguration(configContext);
         }
         
         await SaveConfigAsync(nugetConfigFile, configContext.Document);
@@ -879,5 +937,51 @@ internal class NuGetConfigMerger
 
         nugetConfigFile = matches.SingleOrDefault();
         return matches.Length == 1;
+    }
+
+    private static async Task AddGlobalPackagesFolderToConfigAsync(FileInfo configFile)
+    {
+        XDocument doc;
+        await using (var stream = configFile.OpenRead())
+        {
+            doc = XDocument.Load(stream);
+        }
+
+        var configuration = doc.Root ?? throw new InvalidOperationException("Invalid NuGet config structure");
+        AddGlobalPackagesFolderConfiguration(configuration);
+
+        await using (var writeStream = configFile.Open(FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            doc.Save(writeStream);
+        }
+    }
+
+    private static void AddGlobalPackagesFolderConfiguration(NuGetConfigContext configContext)
+    {
+        AddGlobalPackagesFolderConfiguration(configContext.Configuration);
+    }
+
+    private static void AddGlobalPackagesFolderConfiguration(XElement configuration)
+    {
+        // Check if config section already exists
+        var config = configuration.Element("config");
+        if (config is null)
+        {
+            config = new XElement("config");
+            configuration.Add(config);
+        }
+
+        // Check if globalPackagesFolder already exists
+        var existingGlobalPackagesFolder = config.Elements("add")
+            .FirstOrDefault(add => string.Equals((string?)add.Attribute("key"), "globalPackagesFolder", StringComparison.OrdinalIgnoreCase));
+
+        if (existingGlobalPackagesFolder is null)
+        {
+            // Add globalPackagesFolder configuration
+            var globalPackagesFolderAdd = new XElement("add");
+            globalPackagesFolderAdd.SetAttributeValue("key", "globalPackagesFolder");
+            globalPackagesFolderAdd.SetAttributeValue("value", ".nugetpackages");
+            config.Add(globalPackagesFolderAdd);
+        }
     }
 }

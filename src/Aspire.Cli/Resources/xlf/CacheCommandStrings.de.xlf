@@ -4,27 +4,27 @@
     <body>
       <trans-unit id="CacheAlreadyEmpty">
         <source>Cache is already empty.</source>
-        <target state="new">Cache is already empty.</target>
+        <target state="translated">Cache ist bereits leer.</target>
         <note />
       </trans-unit>
       <trans-unit id="CacheClearFailed">
         <source>Failed to clear cache: {0}</source>
-        <target state="new">Failed to clear cache: {0}</target>
+        <target state="translated">Fehler beim Löschen von Cache: {0}</target>
         <note>{0} is the error message</note>
       </trans-unit>
       <trans-unit id="CacheCleared">
         <source>Cache cleared successfully.</source>
-        <target state="new">Cache cleared successfully.</target>
+        <target state="translated">Cache wurde erfolgreich gelöscht.</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearCommand_Description">
         <source>Clear all cache entries.</source>
-        <target state="new">Clear all cache entries.</target>
+        <target state="translated">Alle Cacheeinträge löschen.</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Manage disk cache for CLI operations.</source>
-        <target state="new">Manage disk cache for CLI operations.</target>
+        <target state="translated">Datenträgercache für CLI-Vorgänge verwalten.</target>
         <note />
       </trans-unit>
     </body>

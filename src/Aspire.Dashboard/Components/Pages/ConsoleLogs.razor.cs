@@ -815,7 +815,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
         if (PageViewModel.SelectedResource.Id is not null &&
             _consoleLogFilters.FilterResourceLogsDates.TryGetValue(
-                PageViewModel.SelectedResource.Id.GetResourceKey(),
+                PageViewModel.SelectedResource.Id.GetResourceKey().ToString(),
                 out var filterResourceLogsDate))
         {
             // There is a filter for this individual resource.
@@ -933,7 +933,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         else
         {
             _consoleLogFilters.FilterResourceLogsDates ??= [];
-            _consoleLogFilters.FilterResourceLogsDates[key.Value] = now;
+            _consoleLogFilters.FilterResourceLogsDates[key.Value.ToString()] = now;
         }
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.

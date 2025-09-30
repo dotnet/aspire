@@ -76,7 +76,7 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
         // Create and add new resource if it doesn't exist
         var store = KeyVaultService.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

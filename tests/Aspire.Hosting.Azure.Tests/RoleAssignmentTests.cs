@@ -206,6 +206,21 @@ public class RoleAssignmentTests()
             s => s.Replace("\\r\\n", "\\n"));
     }
 
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+                kusto.AddReadWriteDatabase("db1");
+                kusto.AddReadWriteDatabase("db2");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(kusto);
+            });
+    }
+
     private static async Task RoleAssignmentTest(
         string azureResourceName,
         Action<IDistributedApplicationBuilder> configureBuilder,

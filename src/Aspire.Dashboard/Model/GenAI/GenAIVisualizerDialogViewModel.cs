@@ -31,6 +31,9 @@ public sealed class GenAIVisualizerDialogViewModel
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
 
+    // Used for error message from the dashboard when displaying GenAI telemetry.
+    public string? DisplayErrorMessage { get; set; }
+
     public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
     public int? InputTokens { get; set; }
@@ -39,6 +42,7 @@ public sealed class GenAIVisualizerDialogViewModel
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
+        ILogger logger,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
@@ -67,7 +71,20 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
-        CreateMessages(viewModel, telemetryRepository);
+        try
+        {
+            CreateMessages(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
+
+            // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
+            viewModel.DisplayErrorMessage = $"{ex.GetType().FullName}: {ex.Message}";
+            viewModel.Items.Clear();
+
+            return viewModel;
+        }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
         {
@@ -91,7 +108,7 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputMessages = viewModel.Items.Where(e => e.Type is GenAIItemType.SystemMessage or GenAIItemType.UserMessage or GenAIItemType.AssistantMessage or GenAIItemType.ToolMessage).ToList();
         viewModel.OutputMessages = viewModel.Items.Where(e => e.Type == GenAIItemType.OutputMessage).ToList();
 
-        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages);
+        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages) && viewModel.ErrorItem == null;
 
         return viewModel;
     }
@@ -100,7 +117,8 @@ public sealed class GenAIVisualizerDialogViewModel
     {
         if (messageViewModels.Count == 0)
         {
-            return false;
+            // Microsoft.Extensions.AI doesn't output any message telemetry when sensitive data isn't enabled.
+            return true;
         }
 
         foreach (var messageViewModel in messageViewModels)

@@ -79,6 +79,7 @@ public sealed class AzureEnvironmentResource : Resource
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
         var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
@@ -88,8 +89,8 @@ public sealed class AzureEnvironmentResource : Resource
             containerImageBuilder,
             processRunner,
             parameterProcessor,
-            context.Services,
-            configuration);
+            configuration,
+            tokenCredentialProvider);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }

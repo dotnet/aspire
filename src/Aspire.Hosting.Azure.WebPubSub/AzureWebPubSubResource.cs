@@ -49,7 +49,7 @@ public class AzureWebPubSubResource(string name, Action<AzureResourceInfrastruct
         // Create and add new resource if it doesn't exist
         var store = WebPubSubService.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

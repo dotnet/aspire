@@ -188,7 +188,7 @@
 ::deep .trace-header-details .fluent-overflow-item {
     align-content: center;
     padding-right: 8px;
-    text-wrap-mode: nowrap;
+    white-space: nowrap;
 }
 
 ::deep .trace-header-details .fluent-overflow-more {
@@ -276,19 +276,23 @@
 ::deep.log-tooltip-table {
     margin-bottom: 0;
     width: 100%;
-    table-layout: fixed;
     font-size: 12px;
 }
 
-::deep.log-tooltip-table td:nth-child(1) {
-    width: 25%;
+::deep.log-tooltip-table td.label-column {
+    white-space: nowrap;
+    padding-right: calc(var(--design-unit)* 4px);
+    width: 20%;
 }
 
 ::deep.log-tooltip-table td {
-    padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 1px) 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    align-content: center;
+    padding: calc((var(--design-unit) + var(--focus-stroke-width) - var(--stroke-width))* 0.7px) 0;
     border-bottom: calc(var(--stroke-width) * 1px) solid var(--neutral-stroke-divider-rest);
+    align-content: start;
+    word-break: break-word;
+}
+
+::deep.log-tooltip-table tr:last-child td {
+    border-bottom: none;
+    padding-bottom: calc(var(--design-unit) * 0.5px);
 }

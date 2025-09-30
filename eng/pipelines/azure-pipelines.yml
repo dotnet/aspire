@@ -224,6 +224,29 @@ extends:
                   script: |
                     Get-ChildItem -Path "$(Build.SourcesDirectory)\artifacts\packages" -File -Recurse | Select-Object FullName, @{Name="Size(MB)";Expression={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
 
+              - task: NodeTool@0
+                displayName: 🟣Install node.js
+                inputs:
+                  versionSpec: '20.x'
+
+              - task: PowerShell@2
+                displayName: 🟣Install yarn
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    npm install -g yarn
+                    yarn --version
+                  workingDirectory: '$(Build.SourcesDirectory)'
+
+              - task: PowerShell@2
+                displayName: 🟣Install vsce
+                inputs:
+                  targetType: 'inline'
+                  script: |
+                    npm install -g @vscode/vsce
+                    vsce --version
+                  workingDirectory: '$(Build.SourcesDirectory)'
+
               - template: /eng/pipelines/templates/BuildAndTest.yml
                 parameters:
                   dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd

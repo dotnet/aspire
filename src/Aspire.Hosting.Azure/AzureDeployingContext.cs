@@ -12,6 +12,8 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing;
 using Azure;
+using Azure.Core;
+using Azure.Identity;
 using Aspire.Hosting.ApplicationModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Dcp.Process;
@@ -27,23 +29,25 @@ internal sealed class AzureDeployingContext(
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
-    IServiceProvider serviceProvider,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    ITokenCredentialProvider tokenCredentialProvider)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
     {
+        // Step 0: Validate that Azure CLI is logged in
+        if (!await TryValidateAzureCliLoginAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return;
+        }
+
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Step 0: Resolve parameter resources using ParameterProcessor
-        var parameters = model.Resources.OfType<ParameterResource>();
-        if (parameters.Any())
-        {
-            await parameterProcessor.InitializeParametersAsync(parameters, waitForResolution: true).ConfigureAwait(false);
-        }
+        // Step 1: Initialize parameters by collecting dependencies and resolving values
+        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
-        // Step 1: Provision Azure Bicep resources from the distributed application model
+        // Step 2: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
@@ -53,13 +57,13 @@ internal sealed class AzureDeployingContext(
             return;
         }
 
-        // Step 2: Build and push container images to ACR
+        // Step 3: Build and push container images to ACR
         if (!await TryDeployContainerImages(model, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
 
-        // Step 3: Deploy compute resources to compute environment with images from step 2
+        // Step 4: Deploy compute resources to compute environment with images from step 2
         if (!await TryDeployComputeResources(model, provisioningContext, cancellationToken).ConfigureAwait(false))
         {
             return;
@@ -70,6 +74,35 @@ internal sealed class AzureDeployingContext(
         if (!string.IsNullOrEmpty(dashboardUrl))
         {
             await activityReporter.CompletePublishAsync($"Deployment completed successfully. View Aspire dashboard at {dashboardUrl}", cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<bool> TryValidateAzureCliLoginAsync(CancellationToken cancellationToken)
+    {
+        // Only do the credential check for the AzureCli that we assume is default
+        // for deploy scenarios.
+        if (tokenCredentialProvider.TokenCredential is not AzureCliCredential azureCliCredential)
+        {
+            return true;
+        }
+
+        var validationStep = await activityReporter.CreateStepAsync("Validating Azure CLI authentication", cancellationToken).ConfigureAwait(false);
+        await using (validationStep.ConfigureAwait(false))
+        {
+            try
+            {
+                // Test credential by requesting a token for Azure management
+                var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
+                await azureCliCredential.GetTokenAsync(tokenRequest, cancellationToken).ConfigureAwait(false);
+
+                await validationStep.SucceedAsync("Azure CLI authentication validated successfully", cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+            catch (Exception)
+            {
+                await validationStep.FailAsync("Azure CLI authentication failed. Please run 'az login' to authenticate before deploying.", cancellationToken).ConfigureAwait(false);
+                return false;
+            }
         }
     }
 
@@ -137,7 +170,7 @@ internal sealed class AzureDeployingContext(
 
         if (!computeResources.Any())
         {
-            return false;
+            return true;
         }
 
         // Generate a deployment-scoped timestamp tag for all resources
@@ -148,7 +181,7 @@ internal sealed class AzureDeployingContext(
             {
                 continue;
             }
-            resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(() => deploymentTag));
+            resource.Annotations.Add(new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
         }
 
         // Step 1: Build ALL images at once regardless of destination registry
@@ -194,7 +227,7 @@ internal sealed class AzureDeployingContext(
 
         if (computeResources.Count == 0)
         {
-            return false;
+            return true;
         }
 
         var computeStep = await activityReporter.CreateStepAsync("Deploying compute resources", cancellationToken).ConfigureAwait(false);
@@ -374,7 +407,7 @@ internal sealed class AzureDeployingContext(
                         .Select(async resource =>
                         {
                             var localImageName = resource.Name.ToLowerInvariant();
-                            IValueProvider cir = new ContainerImageReference(resource, serviceProvider);
+                            IValueProvider cir = new ContainerImageReference(resource);
                             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
                             var pushTask = await pushStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", cancellationToken).ConfigureAwait(false);
@@ -542,5 +575,4 @@ internal sealed class AzureDeployingContext(
 
         return string.Empty;
     }
-
 }

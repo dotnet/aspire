@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Devcontainers.Codespaces;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,14 +12,16 @@ namespace Aspire.Hosting.Devcontainers;
 
 internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedApplicationLifecycleHook
 {
+    private readonly IDistributedApplicationEventing _eventing;
     private readonly ILogger _hostingLogger;
     private readonly IOptions<CodespacesOptions> _codespacesOptions;
     private readonly IOptions<DevcontainersOptions> _devcontainersOptions;
     private readonly IOptions<SshRemoteOptions> _sshRemoteOptions;
     private readonly DevcontainerSettingsWriter _settingsWriter;
 
-    public DevcontainerPortForwardingLifecycleHook(ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions, IOptions<SshRemoteOptions> sshRemoteOptions, DevcontainerSettingsWriter settingsWriter)
+    public DevcontainerPortForwardingLifecycleHook(IDistributedApplicationEventing eventing, ILoggerFactory loggerFactory, IOptions<CodespacesOptions> codespacesOptions, IOptions<DevcontainersOptions> devcontainersOptions, IOptions<SshRemoteOptions> sshRemoteOptions, DevcontainerSettingsWriter settingsWriter)
     {
+        _eventing = eventing;
         _hostingLogger = loggerFactory.CreateLogger("Aspire.Hosting");
         _codespacesOptions = codespacesOptions;
         _devcontainersOptions = devcontainersOptions;
@@ -26,22 +29,19 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
         _settingsWriter = settingsWriter;
     }
 
-    public async Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken)
-    {
+    public Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    {        
         if (!_devcontainersOptions.Value.IsDevcontainer && !_codespacesOptions.Value.IsCodespace && !_sshRemoteOptions.Value.IsSshRemote)
         {
             // We aren't a codespace, devcontainer, or SSH remote so there is nothing to do here.
-            return;
+            return Task.CompletedTask;
         }
 
-        foreach (var resource in appModel.Resources)
+        _eventing.Subscribe<ResourceEndpointsAllocatedEvent>((evt, cancellationToken) =>
         {
-            if (resource is not IResourceWithEndpoints resourceWithEndpoints)
-            {
-                continue;
-            }
+            var resource = evt.Resource;
 
-            foreach (var endpoint in resourceWithEndpoints.Annotations.OfType<EndpointAnnotation>())
+            foreach (var endpoint in resource.Annotations.OfType<EndpointAnnotation>())
             {
                 if (_codespacesOptions.Value.IsCodespace && !(endpoint.UriScheme is "https" or "http"))
                 {
@@ -57,8 +57,10 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
                     endpoint.UriScheme,
                     $"{resource.Name}-{endpoint.Name}");
             }
-        }
 
-        await _settingsWriter.FlushAsync(cancellationToken).ConfigureAwait(false);
+            return Task.CompletedTask;
+        });
+
+        return Task.CompletedTask;
     }
 }
