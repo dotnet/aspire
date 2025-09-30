@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -420,6 +421,80 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.Null(vm.ModelName);
         Assert.Null(vm.InputTokens);
         Assert.Null(vm.OutputTokens);
+        Assert.Null(vm.DisplayErrorMessage);
+    }
+
+    [Fact]
+    public void Create_GenAISpanAttributes_InvalidJson_DisplayErrorMessage()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var systemInstruction = JsonSerializer.Serialize(new List<MessagePart>
+        {
+            new TextPart { Content = "System!" }
+        }, GenAIMessagesContext.Default.ListMessagePart);
+
+        var inputMessages = JsonSerializer.Serialize(new List<ChatMessage>
+        {
+            new ChatMessage
+            {
+                Role = "user",
+                Parts = [new TextPart { Content = "User!" }]
+            },
+            new ChatMessage
+            {
+                Role = "assistant",
+                Parts = [new ToolCallRequestPart { Name = "generate_names", Arguments = JsonNode.Parse(@"{""count"":2}") }]
+            },
+            new ChatMessage
+            {
+                Role = "user",
+                Parts = [new ToolCallResponsePart { Response = JsonNode.Parse(@"[""Jack"",""Jane""]") }]
+            }
+        }, GenAIMessagesContext.Default.ListChatMessage);
+
+        var outputMessages = "invalid!";
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+            KeyValuePair.Create(GenAIHelpers.GenAISystemInstructions, systemInstruction),
+            KeyValuePair.Create(GenAIHelpers.GenAIInputMessages, inputMessages),
+            KeyValuePair.Create(GenAIHelpers.GenAIOutputInstructions, outputMessages)
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Items);
+        Assert.StartsWith("System.Text.Json.JsonException: ", vm.DisplayErrorMessage);
     }
 
     [Fact]
@@ -542,6 +617,50 @@ public sealed class GenAIVisualizerDialogViewModelTests
         Assert.True(vm.NoMessageContent);
     }
 
+    [Fact]
+    public void Create_NoMessages_HasNoMessageContent()
+    {
+        // Arrange
+        var repository = CreateRepository();
+
+        var attributes = new KeyValuePair<string, string>[]
+        {
+            KeyValuePair.Create(GenAIHelpers.GenAISystem, "System!"),
+            KeyValuePair.Create("server.address", "ai-server.address"),
+        };
+
+        var addContext = new AddContext();
+        repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
+        {
+            new ResourceSpans
+            {
+                Resource = CreateResource(),
+                ScopeSpans =
+                {
+                    new ScopeSpans
+                    {
+                        Scope = CreateScope(),
+                        Spans =
+                        {
+                            CreateSpan(traceId: "1", spanId: "1-1", startTime: s_testTime.AddMinutes(1), endTime: s_testTime.AddMinutes(10), attributes: attributes)
+                        }
+                    }
+                }
+            }
+        });
+        Assert.Equal(0, addContext.FailureCount);
+
+        var span = repository.GetSpan(GetHexId("1"), GetHexId("1-1"))!;
+        var spanDetailsViewModel = SpanDetailsViewModel.Create(span, repository, repository.GetResources());
+
+        // Act
+        var vm = Create(repository, spanDetailsViewModel);
+
+        // Assert
+        Assert.Empty(vm.Items);
+        Assert.True(vm.NoMessageContent);
+    }
+
     private static GenAIVisualizerDialogViewModel Create(
         TelemetryRepository repository,
         SpanDetailsViewModel spanDetailsViewModel)
@@ -549,6 +668,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
         return GenAIVisualizerDialogViewModel.Create(
             spanDetailsViewModel,
             selectedLogEntryId: null,
+            logger: NullLogger.Instance,
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
     }

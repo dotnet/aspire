@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Testing;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Azure.Kusto.Tests;
@@ -88,7 +89,7 @@ public class AddAzureKustoTests
     }
 
     [Fact]
-    public void RunAsEmulator_RespectsConfigurationCallback()
+    public async Task RunAsEmulator_RespectsConfigurationCallback()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -97,12 +98,33 @@ public class AddAzureKustoTests
         var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator(builder =>
         {
             builder.WithAnnotation(new ContainerNameAnnotation() { Name = "custom-kusto-emulator" });
+            builder.WithContainerRuntimeArgs("--memory", "4G");
         });
 
         // Assert
-        var annotation = resourceBuilder.Resource.Annotations.OfType<ContainerNameAnnotation>().SingleOrDefault();
+        var nameAnnotation = resourceBuilder.Resource.Annotations.OfType<ContainerNameAnnotation>().SingleOrDefault();
+        Assert.NotNull(nameAnnotation);
+        Assert.Equal("custom-kusto-emulator", nameAnnotation.Name);
+
+        var argsAnnotation = resourceBuilder.Resource.Annotations.OfType<ContainerRuntimeArgsCallbackAnnotation>().SingleOrDefault();
+        Assert.NotNull(argsAnnotation);
+        Assert.Equivalent(new[] { "--memory", "4G" }, await argsAnnotation.GetContainerRuntimeArgs());
+    }
+
+    [Fact]
+    public async Task RunAsEmulator_SetsEula()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Act
+        var resourceBuilder = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
+
+        // Assert
+        var annotation = resourceBuilder.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);
-        Assert.Equal("custom-kusto-emulator", annotation.Name);
+        var env = await builder.GetEnvironmentVariables(annotation);
+        Assert.Equivalent(new Dictionary<string, object>() { { "ACCEPT_EULA", "Y" } }, env);
     }
 
     [Theory]
@@ -351,5 +373,25 @@ public class AddAzureKustoTests
         // Act & Assert
         var exception = Assert.Throws<ArgumentNullException>(() => builder.RunAsEmulator(c => c.WithHostPort(8080)));
         Assert.Equal("builder", exception.ParamName);
+    }
+}
+
+file static class TestingExtensions
+{
+    public static async Task<Dictionary<string, object>> GetEnvironmentVariables(this IDistributedApplicationTestingBuilder builder, EnvironmentCallbackAnnotation annotation)
+    {
+        var context = new EnvironmentCallbackContext(builder.ExecutionContext);
+        await annotation.Callback(context);
+
+        return context.EnvironmentVariables;
+    }
+
+    public static async Task<IList<object>> GetContainerRuntimeArgs(this ContainerRuntimeArgsCallbackAnnotation annotation)
+    {
+        var results = new List<object>();
+        var context = new ContainerRuntimeArgsCallbackContext(results);
+        await annotation.Callback(context);
+
+        return context.Args;
     }
 }

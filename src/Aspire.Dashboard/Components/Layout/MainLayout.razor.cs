@@ -105,7 +105,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
 
-        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured)
+        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredTelemetryMessage)
         {
             var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey);
             var skipMessage = dismissedResult.Success && dismissedResult.Value;

@@ -140,7 +140,7 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var watch = _features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession);
+            var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession));
 
             if (!watch)
             {
@@ -187,7 +187,8 @@ internal sealed class RunCommand : BaseCommand
             {
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
-                StartDebugSession = startDebugSession
+                StartDebugSession = startDebugSession,
+                Debug = debug
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
