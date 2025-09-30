@@ -1,4 +1,4 @@
-﻿@description('The location for the resource(s) to be deployed.')
+@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param appservice_outputs_azure_container_registry_endpoint string
@@ -10,6 +10,8 @@ param appservice_outputs_azure_container_registry_managed_identity_id string
 param appservice_outputs_azure_container_registry_managed_identity_client_id string
 
 param myapp_containerimage string
+
+param appservice_outputs_dashboard_uri string
 
 param myidentity_outputs_id string
 
@@ -33,6 +35,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
     serverFarmId: appservice_outputs_planid
     keyVaultReferenceIdentity: myidentity_outputs_id
     siteConfig: {
+      numberOfWorkers: 30
       linuxFxVersion: 'SITECONTAINERS'
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: appservice_outputs_azure_container_registry_managed_identity_client_id
@@ -52,6 +55,30 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         {
           name: 'AZURE_CLIENT_ID'
           value: myidentity_outputs_clientid
+        }
+        {
+          name: 'OTEL_SERVICE_NAME'
+          value: 'myapp'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
+          value: 'grpc'
+        }
+        {
+          name: 'OTEL_EXPORTER_OTLP_ENDPOINT'
+          value: 'http://localhost:6001'
+        }
+        {
+          name: 'WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR'
+          value: 'true'
+        }
+        {
+          name: 'OTEL_COLLECTOR_URL'
+          value: appservice_outputs_dashboard_uri
+        }
+        {
+          name: 'OTEL_CLIENT_ID'
+          value: appservice_outputs_azure_container_registry_managed_identity_client_id
         }
       ]
     }

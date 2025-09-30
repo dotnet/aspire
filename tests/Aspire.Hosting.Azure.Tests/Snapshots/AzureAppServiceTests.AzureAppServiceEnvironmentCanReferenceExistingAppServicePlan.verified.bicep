@@ -87,6 +87,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: 'Unsecured'
         }
         {
+          name: 'Dashboard__Otlp__SuppressUnsecuredTelemetryMessage'
+          value: 'true'
+        }
+        {
           name: 'Dashboard__ResourceServiceClient__AuthMode'
           value: 'Unsecured'
         }
