@@ -11,9 +11,9 @@ public sealed class IconResolver
 {
     private sealed record IconKey(string IconName, IconSize DesiredIconSize, IconVariant IconVariant);
     private readonly ConcurrentDictionary<IconKey, Icon?> _iconCache = new();
-    private readonly Microsoft.Extensions.Logging.ILogger<IconResolver> _logger;
+    private readonly ILogger<IconResolver> _logger;
 
-    public IconResolver(Microsoft.Extensions.Logging.ILogger<IconResolver> logger)
+    public IconResolver(ILogger<IconResolver> logger)
     {
         _logger = logger;
     }
