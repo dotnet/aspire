@@ -9,6 +9,7 @@ using Aspire.Tests.Shared.DashboardModel;
 using Aspire.Tests.Shared.Telemetry;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
 
@@ -17,6 +18,7 @@ namespace Aspire.Dashboard.Tests.Model;
 public sealed class ResourceMenuItemsTests
 {
     private static readonly DateTime s_testTime = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
 
     [Fact]
     public void AddMenuItems_NoTelemetry_NoTelemetryItems()
@@ -40,7 +42,8 @@ public sealed class ResourceMenuItemsTests
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,
@@ -91,7 +94,8 @@ public sealed class ResourceMenuItemsTests
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,
@@ -142,7 +146,8 @@ public sealed class ResourceMenuItemsTests
             EventCallback<CommandViewModel>.Empty,
             (_, _) => false,
             true,
-            true);
+            true,
+            _iconResolver);
 
         // Assert
         Assert.Collection(menuItems,

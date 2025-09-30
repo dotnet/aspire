@@ -33,6 +33,9 @@ public partial class ResourceActions : ComponentBase
     [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
+
     [Parameter]
     public required EventCallback<CommandViewModel> CommandSelected { get; set; }
 
@@ -78,7 +81,8 @@ public partial class ResourceActions : ComponentBase
             CommandSelected,
             IsCommandExecuting,
             showConsoleLogsItem: true,
-            showUrls: false);
+            showUrls: false,
+            IconResolver);
 
         // If display is desktop then we display highlighted commands next to the ... button.
         if (ViewportInformation.IsDesktop)

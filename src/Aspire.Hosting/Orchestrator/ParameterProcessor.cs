@@ -96,11 +96,14 @@ public sealed class ParameterProcessor(
 
     private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        var publishExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-
         foreach (var resource in model.Resources)
         {
-            await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+            if (resource.IsExcludedFromPublish())
+            {
+                continue;
+            }
+
+            await ProcessResourceDependenciesAsync(resource, executionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
         }
 
     }

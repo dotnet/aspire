@@ -19,6 +19,11 @@ on:
         required: true
         type: boolean
         default: false
+      # When true, ignores test failures and checks if .trx files have nonzero test count
+      ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -88,6 +93,7 @@ jobs:
       os: ${{ matrix.tests.os }}
       enablePlaywrightInstall: ${{ inputs.enablePlaywrightInstall }}
       extraTestArgs: ${{ inputs.extraTestArgs }}
+      ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
 
   results:
     if: ${{ github.repository_owner == 'dotnet' }}
