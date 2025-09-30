@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
     <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
   </ItemGroup>
 
