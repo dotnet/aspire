@@ -7,9 +7,9 @@ using Polly;
 namespace Aspire.Hosting.Azure.Kusto;
 
 /// <summary>
-/// Provides pre-configured resilience pipelines for Azure Kusto operations.
+/// Provides pre-configured resilience pipelines for Azure Kusto emulator operations.
 /// </summary>
-internal static class KustoResiliencePipelines
+internal static class KustoEmulatorResiliencePipelines
 {
     /// <summary>
     /// Gets a resilience pipeline configured to handle non-permanent exceptions.
@@ -17,9 +17,12 @@ internal static class KustoResiliencePipelines
     public static ResiliencePipeline Default { get; } = new ResiliencePipelineBuilder()
         .AddRetry(new()
         {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            ShouldHandle = new PredicateBuilder().Handle<Exception>(e => e is ICloudPlatformException cpe && !cpe.IsPermanent),
+            MaxRetryAttempts = 10,
+            Delay = TimeSpan.FromMilliseconds(100),
+            BackoffType = DelayBackoffType.Exponential,
+            ShouldHandle = new PredicateBuilder().Handle<Exception>(IsTransient),
         })
         .Build();
+
+    private static bool IsTransient(Exception ex) => ex is ICloudPlatformException cpe && !cpe.IsPermanent;
 }
