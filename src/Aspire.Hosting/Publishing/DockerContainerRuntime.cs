@@ -226,20 +226,11 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
     {
         var arguments = $"buildx rm \"{builderName}\"";
 
-        var exitCode = await ExecuteContainerCommandWithExitCodeAsync(
+        return await ExecuteContainerCommandWithExitCodeAsync(
             arguments,
             "Failed to remove buildkit instance {BuilderName} with exit code {ExitCode}.",
             "Successfully removed buildkit instance {BuilderName}.",
             cancellationToken,
             new object[] { builderName }).ConfigureAwait(false);
-
-        // For cleanup operations, log failures as warnings rather than errors
-        if (exitCode != 0)
-        {
-            // The base class already logged as error, but we want to log as warning for cleanup
-            // Since we can't modify the base class behavior easily, we'll accept this minor inconsistency
-        }
-
-        return exitCode;
     }
 }
