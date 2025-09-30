@@ -154,4 +154,28 @@
   <data name="VersionCheckTitle" xml:space="preserve">
     <value>Update now</value>
   </data>
+  <data name="ContainerRuntimeUnhealthyTitle" xml:space="preserve">
+    <value>Container runtime unhealthy</value>
+  </data>
+  <data name="ContainerRuntimeUnhealthyMessage" xml:space="preserve">
+    <value>Container runtime '{0}' was found but appears to be unhealthy. </value>
+  </data>
+  <data name="ContainerRuntimeDockerAdvice" xml:space="preserve">
+    <value>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</value>
+  </data>
+  <data name="ContainerRuntimePodmanAdvice" xml:space="preserve">
+    <value>Ensure that Podman is running.</value>
+  </data>
+  <data name="ContainerRuntimeGenericAdvice" xml:space="preserve">
+    <value>Ensure that the container runtime is running.</value>
+  </data>
+  <data name="ContainerRuntimeLinkText" xml:space="preserve">
+    <value>Learn more</value>
+  </data>
+  <data name="ContainerRuntimeNotInstalledTitle" xml:space="preserve">
+    <value>Container runtime not installed</value>
+  </data>
+  <data name="ContainerRuntimeNotInstalledMessage" xml:space="preserve">
+    <value>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</value>
+  </data>
 </root>

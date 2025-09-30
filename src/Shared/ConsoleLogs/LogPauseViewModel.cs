@@ -15,6 +15,7 @@ internal sealed class LogPauseViewModel
 #endif
 {
     public required DateTime StartTime { get; init; }
+    public required string? ResourcePrefix { get; set; }
     public DateTime? EndTime { get; set; }
     public int FilteredCount { get; set; }
 

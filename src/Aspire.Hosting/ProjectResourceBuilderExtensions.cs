@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREEXTENSION001
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
@@ -281,6 +282,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
+                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -697,6 +699,11 @@ public static class ProjectResourceBuilderExtensions
         // Arguments to the executable often contain physical paths that are not valid in the container
         // Clear them out so that the container can be set up with the correct arguments
         cb.WithArgs(c => c.Args.Clear());
+
+        // Configure default http/https endpoints for the container
+        // Note that we set the target port to 8080 (if not already set), which is the port used in the ASP.NET base images
+        cb.WithEndpoint("http", e => e.TargetPort ??= 8080, createIfNotExists: false);
+        cb.WithEndpoint("https", e => e.TargetPort ??= 8080, createIfNotExists: false);
 
         configure?.Invoke(cb);
 

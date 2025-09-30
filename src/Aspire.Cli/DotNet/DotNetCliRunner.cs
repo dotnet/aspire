@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Caching;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
+using System.Security.Cryptography;
 
 namespace Aspire.Cli.DotNet;
 
@@ -33,7 +35,8 @@ internal interface IDotNetCliRunner
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
-    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -43,10 +46,13 @@ internal sealed class DotNetCliRunnerInvocationOptions
 
     public bool NoLaunchProfile { get; set; }
     public bool StartDebugSession { get; set; }
+    public bool NoExtensionLaunch { get; set; }
+    public bool Debug { get; set; }
 }
 
-internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext) : IDotNetCliRunner
+internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
 {
+    private readonly IDiskCache _diskCache = diskCache;
 
     internal Func<int> GetCurrentProcessId { get; set; } = () => Environment.ProcessId;
 
@@ -60,6 +66,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         return configuration["DOTNET_CLI_USE_MSBUILD_SERVER"] ?? "true";
     }
+
+    // Cache expiry/max age handled inside DiskCache implementation.
 
     public async Task<(int ExitCode, bool IsAspireHost, string? AspireHostingVersion)> GetAppHostInformationAsync(FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -148,12 +156,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        string[] cliArgs = [
-            "msbuild",
-            $"-getProperty:{string.Join(",", properties)}",
-            $"-getItem:{string.Join(",", items)}",
-            projectFile.FullName
-            ];
+        var cliArgsList = new List<string> { "msbuild" };
+
+        if (properties.Length > 0)
+        {
+            // HACK: MSBuildVersion here because if you ever invoke `dotnet msbuild -getproperty with just a single
+            //       property it will not be returned as JSON. I've reported this as a problem to MSBuild but obviously
+            //       we need to work around it:
+            //
+            //       https://github.com/dotnet/msbuild/issues/12490
+            //
+            cliArgsList.Add($"-getProperty:MSBuildVersion,{string.Join(",", properties)}");
+        }
+
+        if (items.Length > 0)
+        {
+            cliArgsList.Add($"-getItem:{string.Join(",", items)}");
+        }
+
+        cliArgsList.Add(projectFile.FullName);
+
+        string[] cliArgs = [.. cliArgsList];
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
@@ -210,12 +233,21 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             throw ex;
         }
 
+        var isSingleFile = projectFile.Extension.Equals(".cs", StringComparison.OrdinalIgnoreCase);
         var watchOrRunCommand = watch ? "watch" : "run";
         var noBuildSwitch = noBuild ? "--no-build" : string.Empty;
         var noProfileSwitch = options.NoLaunchProfile ? "--no-launch-profile" : string.Empty;
+        // Add --non-interactive flag when using watch to prevent interactive prompts during automation
+        var nonInteractiveSwitch = watch ? "--non-interactive" : string.Empty;
+        // Add --verbose flag when using watch and debug is enabled
+        var verboseSwitch = watch && options.Debug ? "--verbose" : string.Empty;
 
-        string[] cliArgs = [watchOrRunCommand, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", ..args];
-
+        string[] cliArgs = isSingleFile switch
+        {
+            false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
+            true => ["run", projectFile.FullName, "--", ..args]
+        };
+        
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
@@ -225,6 +257,38 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             {
                 ["DOTNET_CLI_USE_MSBUILD_SERVER"] = GetMsBuildServerValue()
             };
+        }
+
+        // Check if update notifications are disabled and set version check environment variable
+        if (!features.IsFeatureEnabled(KnownFeatures.UpdateNotificationsEnabled, defaultValue: true))
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey(KnownConfigNames.VersionCheckDisabled))
+            {
+                finalEnv[KnownConfigNames.VersionCheckDisabled] = "true";
+            }
+        }
+
+        // Set DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER when watch is enabled to prevent launching browser
+        if (watch)
+        {
+            // Copy the environment if we haven't already
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"))
+            {
+                finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
+            }
         }
 
         return await ExecuteAsync(
@@ -472,20 +536,27 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
-        if (backchannelCompletionSource is not null
-            && projectFile is not null
-            && ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+        if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
-            await extensionInteractionService.LaunchAppHostAsync(
-                projectFile.FullName,
-                startInfo.WorkingDirectory,
-                startInfo.ArgumentList.ToList(),
-                startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
-                options.StartDebugSession);
+            // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
+            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
-            _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+            if (backchannelCompletionSource is not null
+                && projectFile is not null
+                && !options.NoExtensionLaunch
+                && await backchannel.HasCapabilityAsync(KnownCapabilities.Project, cancellationToken))
+            {
+                await extensionInteractionService.LaunchAppHostAsync(
+                    projectFile.FullName,
+                    startInfo.ArgumentList.ToList(),
+                    startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
+                    options.StartDebugSession);
 
-            return ExitCodeConstants.Success;
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+
+                return ExitCodeConstants.Success;
+            }
         }
 
         var process = new Process { StartInfo = startInfo };
@@ -513,7 +584,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 process.StandardError,
                 "stderr",
                 process,
-                options.StandardOutputCallback,
+                options.StandardErrorCallback,
                 cancellationToken);
             }, cancellationToken);
 
@@ -675,15 +746,31 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var cliArgsList = new List<string>
         {
-            "add",
-            projectFilePath.FullName,
-            "package",
-            packageName,
-            "--version",
-            packageVersion
+            "add"
         };
 
-        if (!string.IsNullOrEmpty(nugetSource))
+        // For single-file AppHost (apphost.cs), use --file switch instead of positional argument
+        var isSingleFileAppHost = projectFilePath.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        if (isSingleFileAppHost)
+        {
+            cliArgsList.AddRange(["package", "--file", projectFilePath.FullName]);
+            // For single-file AppHost, use packageName@version format
+            cliArgsList.Add($"{packageName}@{packageVersion}");
+        }
+        else
+        {
+            cliArgsList.AddRange([projectFilePath.FullName, "package"]);
+            // For non single-file scenarios, use separate --version flag
+            cliArgsList.Add(packageName);
+            cliArgsList.Add("--version");
+            cliArgsList.Add(packageVersion);
+        }
+
+        if (string.IsNullOrEmpty(nugetSource))
+        {
+            cliArgsList.Add("--no-restore");
+        }
+        else
         {
             cliArgsList.Add("--source");
             cliArgsList.Add(nugetSource);
@@ -714,9 +801,117 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         return result;
     }
 
-    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    public async Task<string> ComputeNuGetConfigHierarchySha256Async(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        // The purpose of this method is to compute a hash that can be used as a substitute for an explicitly passed
+        // in NuGet.config file hash. This is useful for when `aspire add` is invoked and we present options from the
+        // implicit feed where we effectively are presenting cached options based on the NuGet.config config in the
+        // current working directory. If any NuGet.config in the hierarchy of NuGet.config files is touched then the
+        // cache will be invalidated and we'll do a live search instead of using the cache. This is necessary for
+        // implicit channel searches which generally provide the best choice to users in the case of `aspire add`.
+
+        ArgumentNullException.ThrowIfNull(workingDirectory);
+
+        using var activity = telemetry.ActivitySource.StartActivity(nameof(ComputeNuGetConfigHierarchySha256Async));
+
+        var (exitCode, configPaths) = await GetNuGetConfigPathsAsync(workingDirectory, options, cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return string.Empty;
+        }
+
+        if (configPaths.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        var hashes = new List<string>();
+
+        foreach (var configPath in configPaths)
+        {
+            if (string.IsNullOrWhiteSpace(configPath))
+            {
+                continue;
+            }
+
+            var filePath = Path.IsPathRooted(configPath)
+                ? configPath
+                : Path.Combine(workingDirectory.FullName, configPath);
+
+            if (!File.Exists(filePath))
+            {
+                logger.LogDebug("NuGet config file not found at path: {Path}", filePath);
+                continue;
+            }
+
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                var bytes = await SHA256.HashDataAsync(stream, cancellationToken);
+                var hex = Convert.ToHexString(bytes);
+                hashes.Add(hex);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                logger.LogDebug(ex, "Failed to read or hash NuGet config file at path: {Path}", filePath);
+                continue;
+            }
+        }
+
+        var result = string.Join("|", hashes);
+        return result;
+    }
+
+    public async Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
+
+        string? rawKey = null;
+        bool cacheEnabled = useCache && features.IsFeatureEnabled(KnownFeatures.PackageSearchDiskCachingEnabled, defaultValue: true);
+        if (cacheEnabled)
+        {
+            try
+            {
+                // Compute optional hash of the nuget.config file contents (if any)
+                string nugetConfigHash = string.Empty;
+                if (nugetConfigFile is not null && nugetConfigFile.Exists)
+                {
+                    using var stream = nugetConfigFile.OpenRead();
+                    var bytes = await SHA256.HashDataAsync(stream, cancellationToken);
+                    nugetConfigHash = Convert.ToHexString(bytes);
+                }
+                else
+                {
+                    nugetConfigHash = await ComputeNuGetConfigHierarchySha256Async(workingDirectory, options, cancellationToken);
+                }
+
+                // Build a cache key using the main discriminators, including CLI version.
+                var cliVersion = VersionHelper.GetDefaultTemplateVersion();
+                rawKey = $"query={query}|prerelease={prerelease}|take={take}|skip={skip}|nugetConfigHash={nugetConfigHash}|cliVersion={cliVersion}";
+                var cached = await _diskCache.GetAsync(rawKey, cancellationToken).ConfigureAwait(false);
+                if (cached is not null)
+                {
+                    try
+                    {
+                        var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(cached);
+                        return (0, foundPackages.ToArray());
+                    }
+                    catch (JsonException ex)
+                    {
+                        logger.LogDebug(ex, "Failed to parse cached package search JSON; performing live search.");
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                // Fail open – treat as cache miss.
+                logger.LogDebug(ex, "Failed to probe package search disk cache; proceeding without cache.");
+                cacheEnabled = false; // disable write attempt as well
+            }
+        }
+
         List<string> cliArgs = [
             "package",
             "search",
@@ -742,14 +937,16 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         var stdoutBuilder = new StringBuilder();
         var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
-        options.StandardOutputCallback = (line) => {
+        options.StandardOutputCallback = (line) =>
+        {
             stdoutBuilder.AppendLine(line);
             existingStandardOutputCallback?.Invoke(line);
         };
 
         var stderrBuilder = new StringBuilder();
         var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
-        options.StandardErrorCallback = (line) => {
+        options.StandardErrorCallback = (line) =>
+        {
             stderrBuilder.AppendLine(line);
             existingStandardErrorCallback?.Invoke(line);
         };
@@ -786,6 +983,13 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             try
             {
                 var foundPackages = PackageUpdateHelpers.ParsePackageSearchResults(stdout);
+
+                // Attempt to persist the raw stdout JSON for future lookups when cache enabled
+                if (cacheEnabled && rawKey is not null)
+                {
+                    await _diskCache.SetAsync(rawKey, stdout, cancellationToken).ConfigureAwait(false);
+                }
+
                 return (result, foundPackages.ToArray());
             }
             catch (JsonException ex)
@@ -794,6 +998,46 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 return (ExitCodeConstants.FailedToAddPackage, null);
             }
 
+        }
+    }
+
+    public async Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["nuget", "config", "paths"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback; // Preserve the existing callback if it exists.
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback; // Preserve the existing callback if it exists.
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: workingDirectory,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to get NuGet config paths. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<string>());
+        }
+        else
+        {
+            return (exitCode, stdoutLines.ToArray());
         }
     }
 }

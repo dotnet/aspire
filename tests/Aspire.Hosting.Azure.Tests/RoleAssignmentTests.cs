@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
@@ -163,6 +165,19 @@ public class RoleAssignmentTests()
     }
 
     [Fact]
+    public Task RedisEnterpriseSupport()
+    {
+        return RoleAssignmentTest("redis",
+            builder =>
+            {
+                var redis = builder.AddAzureRedisEnterprise("redis");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(redis);
+            });
+    }
+
+    [Fact]
     public Task PostgresSupport()
     {
         return RoleAssignmentTest("postgres",
@@ -189,6 +204,21 @@ public class RoleAssignmentTests()
             },
             // scrub new lines since the test needs to run on Windows and Linux, and the new lines are different.
             s => s.Replace("\\r\\n", "\\n"));
+    }
+
+    [Fact]
+    public Task KustoSupport()
+    {
+        return RoleAssignmentTest("kusto",
+            builder =>
+            {
+                var kusto = builder.AddAzureKustoCluster("kusto");
+                kusto.AddReadWriteDatabase("db1");
+                kusto.AddReadWriteDatabase("db2");
+
+                builder.AddProject<Project>("api", launchProfileName: null)
+                    .WithReference(kusto);
+            });
     }
 
     private static async Task RoleAssignmentTest(

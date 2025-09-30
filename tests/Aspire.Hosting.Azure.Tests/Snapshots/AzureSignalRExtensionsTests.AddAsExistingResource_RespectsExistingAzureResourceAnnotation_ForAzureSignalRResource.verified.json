@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "mymodule.module.bicep",
+  "params": {
+    "existing_signalr_name": "{existing-signalr-name.value}",
+    "existing_signalr_rg": "{existing-signalr-rg.value}"
+  }
+}

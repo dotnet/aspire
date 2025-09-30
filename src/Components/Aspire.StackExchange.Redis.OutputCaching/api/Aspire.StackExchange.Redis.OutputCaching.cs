@@ -13,5 +13,7 @@ namespace Microsoft.Extensions.Hosting
         public static void AddKeyedRedisOutputCache(this IHostApplicationBuilder builder, string name, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
 
         public static void AddRedisOutputCache(this IHostApplicationBuilder builder, string connectionName, System.Action<Aspire.StackExchange.Redis.StackExchangeRedisSettings>? configureSettings = null, System.Action<StackExchange.Redis.ConfigurationOptions>? configureOptions = null) { }
+
+        public static Aspire.StackExchange.Redis.AspireRedisClientBuilder WithOutputCache(this Aspire.StackExchange.Redis.AspireRedisClientBuilder builder) { throw null; }
     }
 }

@@ -37,7 +37,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<IEnumerable<DisplayLineState>, Task>? DisplayLinesAsyncCallback { get; set; }
 
     public TaskCompletionSource? DisplayDashboardUrlsAsyncCalled { get; set; }
-    public Func<(string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken), Task>? DisplayDashboardUrlsAsyncCallback { get; set; }
+    public Func<DashboardUrlsState, Task>? DisplayDashboardUrlsAsyncCallback { get; set; }
 
     public TaskCompletionSource? ShowStatusAsyncCalled { get; set; }
     public Func<string?, Task>? ShowStatusAsyncCallback { get; set; }
@@ -50,17 +50,28 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public TaskCompletionSource? PromptForStringAsyncCalled { get; set; }
     public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
 
-    public TaskCompletionSource? OpenProjectAsyncCalled { get; set; }
-    public Func<string, Task>? OpenProjectAsyncCallback { get; set; }
+    public TaskCompletionSource? OpenEditorAsyncCalled { get; set; }
+    public Func<string, Task>? OpenEditorAsyncCallback { get; set; }
 
     public TaskCompletionSource? LogMessageAsyncCalled { get; set; }
     public Func<LogLevel, string, Task>? LogMessageAsyncCallback { get; set; }
+
+    public TaskCompletionSource? GetCapabilitiesAsyncCalled { get; set; }
+    public Func<CancellationToken, Task<string[]>>? GetCapabilitiesAsyncCallback { get; set; }
 
     public TaskCompletionSource? HasCapabilityAsyncCalled { get; set; }
     public Func<string, CancellationToken, Task<bool>>? HasCapabilityAsyncCallback { get; set; }
 
     public TaskCompletionSource? LaunchAppHostAsyncCalled { get; set; }
-    public Func<string, string, List<string>, List<EnvVar>, bool, Task>? LaunchAppHostAsyncCallback { get; set; }
+    public Func<string, List<string>, List<EnvVar>, bool, Task>? LaunchAppHostAsyncCallback { get; set; }
+
+    public TaskCompletionSource? NotifyAppHostStartupCompletedAsyncCalled { get; set; }
+
+    public TaskCompletionSource? StartDebugSessionAsyncCalled { get; set; }
+    public Func<string, string?, bool, Task>? StartDebugSessionAsyncCallback { get; set; }
+
+    public TaskCompletionSource? DisplayPlainTextAsyncCalled { get; set; }
+    public Func<string, Task>? DisplayPlainTextAsyncCallback { get; set; }
 
     public Task ConnectAsync(CancellationToken cancellationToken)
     {
@@ -117,7 +128,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         return DisplayLinesAsyncCallback?.Invoke(lines) ?? Task.CompletedTask;
     }
 
-    public Task DisplayDashboardUrlsAsync((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls, CancellationToken cancellationToken)
+    public Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken)
     {
         DisplayDashboardUrlsAsyncCalled?.SetResult();
         return DisplayDashboardUrlsAsyncCallback?.Invoke(dashboardUrls) ?? Task.CompletedTask;
@@ -157,11 +168,11 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(defaultValue ?? string.Empty);
     }
 
-    public Task OpenProjectAsync(string projectPath, CancellationToken cancellationToken)
+    public Task OpenEditorAsync(string projectPath, CancellationToken cancellationToken)
     {
-        OpenProjectAsyncCalled?.SetResult();
-        return OpenProjectAsyncCallback != null
-            ? OpenProjectAsyncCallback.Invoke(projectPath)
+        OpenEditorAsyncCalled?.SetResult();
+        return OpenEditorAsyncCallback != null
+            ? OpenEditorAsyncCallback.Invoke(projectPath)
             : Task.CompletedTask;
     }
 
@@ -173,6 +184,14 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.CompletedTask;
     }
 
+    public Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken)
+    {
+        GetCapabilitiesAsyncCalled?.SetResult();
+        return GetCapabilitiesAsyncCallback != null
+            ? GetCapabilitiesAsyncCallback.Invoke(cancellationToken)
+            : Task.FromResult(Array.Empty<string>());
+    }
+
     public Task<bool> HasCapabilityAsync(string capability, CancellationToken cancellationToken)
     {
         HasCapabilityAsyncCalled?.SetResult();
@@ -181,11 +200,34 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(false);
     }
 
-    public Task LaunchAppHostAsync(string projectPath, string targetFramework, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)
+    public Task LaunchAppHostAsync(string projectPath, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)
     {
         LaunchAppHostAsyncCalled?.SetResult();
         return LaunchAppHostAsyncCallback != null
-            ? LaunchAppHostAsyncCallback.Invoke(projectPath, targetFramework, arguments, envVars, debug)
+            ? LaunchAppHostAsyncCallback.Invoke(projectPath, arguments, envVars, debug)
+            : Task.CompletedTask;
+    }
+
+    public Task NotifyAppHostStartupCompletedAsync(CancellationToken cancellationToken)
+    {
+        NotifyAppHostStartupCompletedAsyncCalled?.SetResult();
+        return Task.CompletedTask;
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug,
+        CancellationToken cancellationToken)
+    {
+        StartDebugSessionAsyncCalled?.SetResult();
+        return StartDebugSessionAsyncCallback != null
+            ? StartDebugSessionAsyncCallback.Invoke(workingDirectory, projectFile, debug)
+            : Task.CompletedTask;
+    }
+
+    public Task DisplayPlainTextAsync(string text, CancellationToken cancellationToken)
+    {
+        DisplayPlainTextAsyncCalled?.SetResult();
+        return DisplayPlainTextAsyncCallback != null
+            ? DisplayPlainTextAsyncCallback.Invoke(text)
             : Task.CompletedTask;
     }
 }

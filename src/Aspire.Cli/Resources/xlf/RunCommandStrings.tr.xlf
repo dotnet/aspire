@@ -2,9 +2,14 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="tr" original="../RunCommandStrings.resx">
     <body>
+      <trans-unit id="AppHost">
+        <source>AppHost</source>
+        <target state="translated">AppHost</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ConnectingToAppHost">
-        <source>Connecting to app host...</source>
-        <target state="translated">Uygulama ana işlemine bağlanılıyor...</target>
+        <source>Connecting to apphost...</source>
+        <target state="translated">Apphost'a bağlanılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="Dashboard">
@@ -18,13 +23,18 @@
         <note />
       </trans-unit>
       <trans-unit id="Description">
-        <source>Run an Aspire app host in development mode.</source>
+        <source>Run an Aspire apphost in development mode.</source>
         <target state="translated">Geliştirme modunda bir Aspire uygulama ana işlemini çalıştırın.</target>
         <note />
       </trans-unit>
       <trans-unit id="Endpoints">
         <source>Endpoints</source>
         <target state="translated">Uç Noktalar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ExtensionSwitchingToAppHostConsole">
+        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
+        <target state="translated">AppHost günlüklerini gerçek zamanlı olarak görüntülemek için AppHost Hata Ayıklama Konsoluna geçin.</target>
         <note />
       </trans-unit>
       <trans-unit id="Health">
@@ -48,8 +58,8 @@
         <note>[bold] should not be localized</note>
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire uygulama ana işlemi projesi dosyasının yolu.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectCouldNotBeRun">
@@ -57,24 +67,29 @@
         <target state="translated">Proje çalıştırılamadı. Daha fazla bilgi için --debug anahtarıyla çalıştırın.</target>
         <note />
       </trans-unit>
-      <trans-unit id="PromptForDebugging">
-        <source>Do you want to start a debugging session?</source>
-        <target state="translated">Hata ayıklama oturumu başlatmak istiyor musunuz?</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Resource">
         <source>Resource</source>
         <target state="translated">Kaynak</target>
         <note>A column header (noun)</note>
       </trans-unit>
+      <trans-unit id="StartDebugSessionArgumentDescription">
+        <source>Whether to start a debug session, if running in an Aspire Terminal.</source>
+        <target state="translated">Aspire Terminal'de çalışıyorsa, hata ayıklama oturumu başlatılıp başlatılmayacağı.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="StartingAppHost">
-        <source>Starting Aspire app host...</source>
-        <target state="translated">Aspire uygulama ana işlemi başlatılıyor...</target>
+        <source>Starting Aspire apphost...</source>
+        <target state="translated">Aspire apphost başlatılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="StartingDashboard">
         <source>Starting dashboard...</source>
         <target state="translated">Pano başlatılıyor...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="StartingDebugSessionInExtension">
+        <source>Detected aspire run inside the Aspire extension, starting a debug session in VS Code...</source>
+        <target state="translated">Aspire uzantısı içinde Aspire çalıştırması algılandı, VS Code'da hata ayıklama oturumu başlatılıyor...</target>
         <note />
       </trans-unit>
       <trans-unit id="State">

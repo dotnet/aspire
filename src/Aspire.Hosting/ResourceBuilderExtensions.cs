@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -918,19 +919,53 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The builder for the resource.</param>
-    /// <param name="url">The URL.</param>
+    /// <param name="url">A URL to show for the resource.</param>
     /// <param name="displayText">The display text to show when the link is displayed.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// Use this method to add a URL to be displayed for the resource.<br/>
-    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.
+    /// If the URL is relative, it will be applied to all URLs for the resource, replacing the path portion of the URL.<br/>
+    /// Note that any endpoints on the resource will automatically get a corresponding URL added for them.<br/>
+    /// To modify the URL for a specific endpoint, use <see cref="WithUrlForEndpoint{T}(IResourceBuilder{T}, string, Action{ResourceUrlAnnotation})"/>.
     /// </remarks>
+    /// <example>
+    /// Add a static URL to be displayed for the resource:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrl("https://example.com/", "Home");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Update all displayed URLs to use the specified path and (optional) display text:
+    /// <code lang="C#">
+    /// var frontend = builder.AddProject&lt;Projects.Frontend&gt;("frontend")
+    ///                       .WithUrl("/home", "Home");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<T> WithUrl<T>(this IResourceBuilder<T> builder, string url, string? displayText = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(url);
 
+        if (Uri.TryCreate(url, UriKind.Relative, out var relativeUri))
+        {
+            // Apply relative URL to all URLs for the resource
+            return builder.WithUrls(c =>
+            {
+                foreach (var u in c.Urls)
+                {
+                    if (Uri.TryCreate(u.Url, UriKind.Absolute, out var absoluteUri)
+                        && Uri.TryCreate(absoluteUri, relativeUri, out var uri))
+                    {
+                        u.Url = uri.ToString();
+                        u.DisplayText = displayText ?? u.DisplayText;
+                    }
+                }
+            });
+        }
+
+        // Treat as a static URL
         return builder.WithAnnotation(new ResourceUrlAnnotation { Url = url, DisplayText = displayText });
     }
 
@@ -1202,13 +1237,117 @@ public static class ResourceBuilderExtensions
             builder.WaitForCore(parentBuilder, waitBehavior, addRelationship: false);
         }
 
+        if (addRelationship)
+        {
+            builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
+        }
+
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running but
+    /// doesn't need to wait for health checks to pass. This can help enable initialization scenarios
+    /// where services need to start before health checks can pass.</para>
+    /// <para>Unlike <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/>, this method
+    /// only waits for the dependency resource to enter the Running state and ignores any health check
+    /// annotations associated with the dependency resource.</para>
+    /// <example>
+    /// Start message queue before starting the worker service, but don't wait for health checks.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitForStart(messaging);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WaitForStart<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return WaitForStartCore(builder, dependency, waitBehavior: null, addRelationship: true);
+    }
+
+    /// <summary>
+    /// Waits for the dependency resource to enter the Running state before starting the resource.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder for the resource that will be waiting.</param>
+    /// <param name="dependency">The resource builder for the dependency resource.</param>
+    /// <param name="waitBehavior">The wait behavior to use.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>This method is useful when a resource should wait until another has started running but
+    /// doesn't need to wait for health checks to pass. This can help enable initialization scenarios
+    /// where services need to start before health checks can pass.</para>
+    /// <para>Unlike <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource}, WaitBehavior)"/>, this method
+    /// only waits for the dependency resource to enter the Running state and ignores any health check
+    /// annotations associated with the dependency resource.</para>
+    /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the
+    /// wait operation. When <see cref="WaitBehavior.WaitOnResourceUnavailable"/> is specified, the wait
+    /// operation will continue to wait until the resource enters the Running state. This is the default
+    /// behavior with the <see cref="WaitForStart{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> overload.</para>
+    /// <para>When <see cref="WaitBehavior.StopOnResourceUnavailable"/> is specified, the wait operation
+    /// will throw a <see cref="DistributedApplicationException"/> if the resource enters an unavailable state.</para>
+    /// <example>
+    /// Start message queue before starting the worker service, but don't wait for health checks.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var messaging = builder.AddRabbitMQ("messaging");
+    /// builder.AddProject&lt;Projects.MyApp&gt;("myapp")
+    ///        .WithReference(messaging)
+    ///        .WaitForStart(messaging, WaitBehavior.StopOnResourceUnavailable);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WaitForStart<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior waitBehavior) where T : IResourceWithWaitSupport
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(dependency);
+
+        return WaitForStartCore(builder, dependency, waitBehavior, addRelationship: true);
+    }
+
+    private static IResourceBuilder<T> WaitForStartCore<T>(this IResourceBuilder<T> builder, IResourceBuilder<IResource> dependency, WaitBehavior? waitBehavior, bool addRelationship) where T : IResourceWithWaitSupport
+    {
+        if (builder.Resource as IResource == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for itself.");
+        }
+
+        if (builder.Resource is IResourceWithParent resourceWithParent && resourceWithParent.Parent == dependency.Resource)
+        {
+            throw new DistributedApplicationException($"The '{builder.Resource.Name}' resource cannot wait for its parent '{dependency.Resource.Name}'.");
+        }
+
+        if (dependency.Resource is IResourceWithParent dependencyResourceWithParent)
+        {
+            // If the dependency resource is a child resource we automatically apply
+            // the WaitForStart to the parent resource. This caters for situations where
+            // the child resource itself does not have any health checks setup.
+            var parentBuilder = builder.ApplicationBuilder.CreateResourceBuilder(dependencyResourceWithParent.Parent);
+
+            // Waiting for the parent is an internal implementation detail. Don't add a relationship here.
+            builder.WaitForStartCore(parentBuilder, waitBehavior, addRelationship: false);
+        }
+
         // Wait for any referenced resources in the connection string.
         if (dependency.Resource is ConnectionStringResource cs)
         {
             // We only look at top level resources with the assumption that they are transitive themselves.
             foreach (var referencedResource in cs.ConnectionStringExpression.ValueProviders.OfType<IResource>())
             {
-                builder.WaitForCore(builder.ApplicationBuilder.CreateResourceBuilder(referencedResource), waitBehavior, addRelationship: false);
+                builder.WaitForStartCore(builder.ApplicationBuilder.CreateResourceBuilder(referencedResource), waitBehavior, addRelationship: false);
             }
         }
 
@@ -1217,7 +1356,7 @@ public static class ResourceBuilderExtensions
             builder.WithRelationship(dependency.Resource, KnownRelationshipTypes.WaitFor);
         }
 
-        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilHealthy) { WaitBehavior = waitBehavior });
+        return builder.WithAnnotation(new WaitAnnotation(dependency.Resource, WaitType.WaitUntilStarted) { WaitBehavior = waitBehavior });
     }
 
     /// <summary>
@@ -2154,5 +2293,160 @@ public static class ResourceBuilderExtensions
 
         builder.WithAnnotation(new ComputeEnvironmentAnnotation(computeEnvironmentResource.Resource));
         return builder;
+    }
+
+    /// <summary>
+    /// Adds support for debugging the resource in VS Code when running in an extension host.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="debugAdapterId">The debug adapter ID to use. Ie, coreclr</param>
+    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
+    [Experimental("ASPIREEXTENSION001")]
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(debugAdapterId);
+
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
+        {
+            resourceWithArgs.WithArgs(ctx =>
+            {
+                if (!ctx.ExecutionContext.IsRunMode)
+                {
+                    return;
+                }
+
+                var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+                if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
+                {
+                    argsCallback(ctx);
+                }
+            });
+        }
+
+        return builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId));
+    }
+
+    /// <summary>
+    /// Adds a HTTP probe to the resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="type">Type of the probe.</param>
+    /// <param name="path">The path to be used.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <param name="timeoutSeconds">Number of seconds after which the probe times out.</param>
+    /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
+    /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
+    /// <param name="endpointName">The name of the endpoint to be used for the probe.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a probe and implicit adds an http health check to the resource based on probe parameters.
+    /// </para>
+    /// <example>
+    /// For example add a probe to a resource in this way:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health");
+    /// </code>
+    /// Is the same of writing:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health")
+    ///     .WithHttpHealthCheck("/health");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null, string? endpointName = null)
+        where T : IResourceWithEndpoints, IResourceWithProbes
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var endpointSelector = endpointName is not null
+            ? NamedEndpointSelector(builder, [endpointName], "HTTP probe")
+            : NamedEndpointSelector(builder, s_httpSchemes, "HTTP probe");
+
+        return builder.WithHttpProbe(type, endpointSelector, path, initialDelaySeconds, periodSeconds, timeoutSeconds, failureThreshold, successThreshold);
+    }
+
+    /// <summary>
+    /// Adds a HTTP probe to the resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="type">Type of the probe.</param>
+    /// <param name="endpointSelector">The selector used to get endpoint reference.</param>
+    /// <param name="path">The path to be used.</param>
+    /// <param name="initialDelaySeconds">The initial delay before calling the probe endpoint for the first time.</param>
+    /// <param name="periodSeconds">The period between each probe.</param>
+    /// <param name="timeoutSeconds">Number of seconds after which the probe times out.</param>
+    /// <param name="failureThreshold">Number of failures in a row before considers that the overall check has failed.</param>
+    /// <param name="successThreshold">Minimum consecutive successes for the probe to be considered successful after having failed.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to specify a probe and implicit adds an http health check to the resource based on probe parameters.
+    /// </para>
+    /// <example>
+    /// For example add a probe to a resource in this way:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health");
+    /// </code>
+    /// Is the same of writing:
+    /// <code lang="C#">
+    /// var service = builder.AddProject&lt;Projects.MyService&gt;("service")
+    ///     .WithHttpProbe(ProbeType.Liveness, "/health")
+    ///     .WithHttpHealthCheck("/health");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithHttpProbe<T>(this IResourceBuilder<T> builder, ProbeType type, Func<EndpointReference>? endpointSelector, string? path = null, int? initialDelaySeconds = null, int? periodSeconds = null, int? timeoutSeconds = null, int? failureThreshold = null, int? successThreshold = null)
+        where T : IResourceWithEndpoints, IResourceWithProbes
+    {
+        endpointSelector ??= DefaultEndpointSelector(builder);
+
+        var endpoint = endpointSelector() ?? throw new DistributedApplicationException($"Could not create HTTP probe for resource '{builder.Resource.Name}' as the endpoint selector returned null.");
+        var endpointProbeAnnotation = new EndpointProbeAnnotation
+        {
+            Type = type,
+            EndpointReference = endpoint,
+            Path = path ?? "/",
+            InitialDelaySeconds = initialDelaySeconds ?? 5,
+            PeriodSeconds = periodSeconds ?? 5,
+            TimeoutSeconds = timeoutSeconds ?? 1,
+            FailureThreshold = failureThreshold ?? 3,
+            SuccessThreshold = successThreshold ?? 1,
+        };
+
+        return builder
+            .WithProbe(endpointProbeAnnotation)
+            .WithHttpHealthCheck(endpointSelector, path);
+    }
+
+    /// <summary>
+    /// Adds a probe to the resource to check its health state.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">Resource builder.</param>
+    /// <param name="probeAnnotation">Probe annotation to add to resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    [Experimental("ASPIREPROBES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    private static IResourceBuilder<T> WithProbe<T>(this IResourceBuilder<T> builder, ProbeAnnotation probeAnnotation) where T : IResourceWithProbes
+    {
+        // Replace existing annotation with the same type
+        if (builder.Resource.Annotations.OfType<ProbeAnnotation>().SingleOrDefault(a => a.Type == probeAnnotation.Type) is { } existingAnnotation)
+        {
+            builder.Resource.Annotations.Remove(existingAnnotation);
+        }
+
+        return builder.WithAnnotation(probeAnnotation);
     }
 }

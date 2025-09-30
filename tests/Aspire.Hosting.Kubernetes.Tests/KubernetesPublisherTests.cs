@@ -119,7 +119,8 @@ public class KubernetesPublisherTests()
         var api = builder.AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             .WithHttpEndpoint(targetPort: 8080)
-            .PublishAsKubernetesService(serviceResource => {
+            .PublishAsKubernetesService(serviceResource =>
+            {
                 serviceResource.Workload = new ArgoRollout
                 {
                     Metadata = { Name = "myapp-rollout", Labels = serviceResource.Labels.ToDictionary() },
@@ -182,11 +183,13 @@ public class KubernetesPublisherTests()
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
         var cs = builder.AddConnectionString("api-cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+        var csPlain = builder.AddConnectionString("api-cs2", ReferenceExpression.Create($"host.local:80"));
 
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
         builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
             .WithEnvironment("param3", param3)
-            .WithReference(cs);
+            .WithReference(cs)
+            .WithReference(csPlain);
 
         var app = builder.Build();
 
@@ -200,6 +203,61 @@ public class KubernetesPublisherTests()
             "templates/SpeciaL-ApP/deployment.yaml",
             "templates/SpeciaL-ApP/config.yaml",
             "templates/SpeciaL-ApP/secrets.yaml"
+        };
+
+        SettingsTask settingsTask = default!;
+
+        foreach (var expectedFile in expectedFiles)
+        {
+            var filePath = Path.Combine(tempDir.Path, expectedFile);
+            var fileExtension = Path.GetExtension(filePath)[1..];
+
+            if (settingsTask is null)
+            {
+                settingsTask = Verify(File.ReadAllText(filePath), fileExtension);
+            }
+            else
+            {
+                settingsTask = settingsTask.AppendContentAsFile(File.ReadAllText(filePath), fileExtension);
+            }
+        }
+
+        await settingsTask;
+    }
+
+    [Fact]
+    public async Task PublishAsync_ResourceWithProbes()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        // Add a container to the application
+#pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var api = builder
+            .AddContainer("myapp", "mcr.microsoft.com/dotnet/aspnet:8.0")
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            .WithHttpEndpoint(targetPort: 8080)
+            .WithHttpProbe(ProbeType.Readiness, "/ready")
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+
+        builder
+            .AddProject<TestProject>("project1", launchProfileName: null)
+            .WithHttpsEndpoint()
+            .WithHttpProbe(ProbeType.Readiness,"/ready", initialDelaySeconds: 60)
+            .WithHttpProbe(ProbeType.Liveness, "/health");
+#pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Assert
+        var expectedFiles = new[]
+        {
+            "templates/myapp/deployment.yaml",
+            "templates/project1/deployment.yaml",
         };
 
         SettingsTask settingsTask = default!;

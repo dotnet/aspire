@@ -9,6 +9,14 @@ namespace Aspire.Hosting.Yarp.Tests;
 public class YarpClusterTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
+    public void Create_YarpCluster_From_Raw_Strings()
+    {
+        var cluster = new YarpCluster("raw_cluster", "http://localhost:5000", "https://localhost:5001");
+        Assert.Equal("http://localhost:5000", cluster.Targets[0]);
+        Assert.Equal("https://localhost:5001", cluster.Targets[1]);
+    }
+
+    [Fact]
     public void Create_YarpCluster_From_Endpoints_With_Names()
     {
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
@@ -20,10 +28,10 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
         var httpsEndpoint = resource.GetEndpoint("anotherendpoint");
 
         var httpCluster = new YarpCluster(httpEndpoint);
-        Assert.Equal("http://_testendpoint.ServiceA", httpCluster.Target);
+        Assert.Equal("http://_testendpoint.ServiceA", httpCluster.Targets[0]);
 
         var httpsCluster = new YarpCluster(httpsEndpoint);
-        Assert.Equal("https://_anotherendpoint.ServiceA", httpsCluster.Target);
+        Assert.Equal("https://_anotherendpoint.ServiceA", httpsCluster.Targets[0]);
     }
 
     [Fact]
@@ -38,10 +46,10 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
         var httpsEndpoint = resource.GetEndpoint("https");
 
         var httpCluster = new YarpCluster(httpEndpoint);
-        Assert.Equal("http://_http.ServiceC", httpCluster.Target);
+        Assert.Equal("http://_http.ServiceC", httpCluster.Targets[0]);
 
         var httpsCluster = new YarpCluster(httpsEndpoint);
-        Assert.Equal("https://_https.ServiceC", httpsCluster.Target);
+        Assert.Equal("https://_https.ServiceC", httpsCluster.Targets[0]);
     }
 
     [Fact]
@@ -54,14 +62,14 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
                                  .WithHttpEndpoint(name: "grpc");
 
         var httpCluster = new YarpCluster(httpService.Resource);
-        Assert.Equal($"http://ServiceC", httpCluster.Target);
+        Assert.Equal($"http://ServiceC", httpCluster.Targets[0]);
 
         var httpsService = builder.AddResource(new TestResource("ServiceD"))
                                   .WithHttpsEndpoint()
                                   .WithHttpsEndpoint(name: "grpc");
 
         var httpsCluster = new YarpCluster(httpsService.Resource);
-        Assert.Equal($"https://ServiceD", httpsCluster.Target);
+        Assert.Equal($"https://ServiceD", httpsCluster.Targets[0]);
     }
 
     [Fact]
@@ -73,7 +81,7 @@ public class YarpClusterTests(ITestOutputHelper testOutputHelper)
                               .WithHttpsEndpoint();
 
         var clusterA = new YarpCluster(serviceA.Resource);
-        Assert.Equal($"https+http://ServiceA", clusterA.Target);
+        Assert.Equal($"https+http://ServiceA", clusterA.Targets[0]);
     }
 
     private sealed class TestResource(string name) : IResourceWithServiceDiscovery

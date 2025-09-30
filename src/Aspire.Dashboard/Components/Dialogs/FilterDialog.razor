@@ -20,7 +20,15 @@
                           Width="100%"
                           Height="400px"
                           OptionText="@(c => c.Name)"
-                          OptionDisabled="@(c => c.Id is null)" />
+                          OptionDisabled="@(c => c.Id is null)">
+                <OptionTemplate Context="optionContext">
+                    @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+                    @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+                    <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
+                        @optionContext.Name
+                    </span>
+                </OptionTemplate>
+            </FluentSelect>
         </div>
 
         <div class="filter-input-container">
@@ -51,7 +59,11 @@
                         @* Workaround this issue by inserting extra text using CSS. *@
                         <span data-filtercount="@optionContext.Id!.Count"></span>
                     </FluentBadge>
-                    <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
+                    @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+                    @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+                    <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
+                        <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
+                    </span>
                 </OptionTemplate>
             </FluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />

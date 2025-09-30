@@ -15,6 +15,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
+using Aspire.Cli.Caching;
 using Aspire.Hosting;
 using Aspire.Shared;
 using Microsoft.Extensions.Configuration;
@@ -100,14 +101,18 @@ public class Program
         if (debugMode)
         {
             builder.Logging.AddFilter("Aspire.Cli", LogLevel.Debug);
-            builder.Logging.AddConsole();
+            builder.Logging.AddFilter("Microsoft.Hosting.Lifetime", LogLevel.Warning); // Reduce noise from hosting lifecycle
+            // Use custom Spectre Console logger for clean debug output instead of built-in console logger
+            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, SpectreConsoleLoggerProvider>());
         }
 
         // Shared services.
-        builder.Services.AddSingleton(BuildCliExecutionContext);
+        builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
-        builder.Services.AddSingleton(BuildProjectLocator);
+        builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
+        builder.Services.AddSingleton<FallbackProjectParser>();
+        builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
         builder.Services.AddSingleton<IAddCommandPrompter, AddCommandPrompter>();
         builder.Services.AddSingleton<IPublishCommandPrompter, PublishCommandPrompter>();
@@ -116,10 +121,12 @@ public class Program
         builder.Services.AddSingleton<IFeatures, Features>();
         builder.Services.AddSingleton<AspireCliTelemetry>();
         builder.Services.AddTransient<IDotNetCliRunner, DotNetCliRunner>();
+    builder.Services.AddSingleton<IDiskCache, DiskCache>();
         builder.Services.AddSingleton<IDotNetSdkInstaller, DotNetSdkInstaller>();
         builder.Services.AddTransient<IAppHostBackchannel, AppHostBackchannel>();
         builder.Services.AddSingleton<INuGetPackageCache, NuGetPackageCache>();
-    builder.Services.AddHostedService(BuildNuGetPackagePrefetcher);
+        builder.Services.AddSingleton<NuGetPackagePrefetcher>();
+        builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
         builder.Services.AddMemoryCache();
@@ -134,9 +141,12 @@ public class Program
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
         builder.Services.AddTransient<ConfigCommand>();
+        builder.Services.AddTransient<CacheCommand>();
+        builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
         builder.Services.AddTransient<RootCommand>();
+        builder.Services.AddTransient<ExtensionInternalCommand>();
 
         var app = builder.Build();
         return app;
@@ -149,12 +159,19 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
-    private static CliExecutionContext BuildCliExecutionContext(IServiceProvider serviceProvider)
+    private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
-        _ = serviceProvider;
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory);
+        var cacheDirectory = GetCacheDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+    }
+
+    private static DirectoryInfo GetCacheDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var cacheDirectoryPath = Path.Combine(homeDirectory, "cache");
+        return new DirectoryInfo(cacheDirectoryPath);
     }
 
     private static async Task TrySetLocaleOverrideAsync(string? localeOverride)
@@ -190,37 +207,17 @@ public class Program
         return new ConfigurationService(configuration, executionContext, globalSettingsFile);
     }
 
-    private static NuGetPackagePrefetcher BuildNuGetPackagePrefetcher(IServiceProvider serviceProvider)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger<NuGetPackagePrefetcher>>();
-        var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
-        return new NuGetPackagePrefetcher(logger, nuGetPackageCache, executionContext, features, packagingService);
-    }
-
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
-        AnsiConsoleSettings settings = new AnsiConsoleSettings()
+        var settings = new AnsiConsoleSettings()
         {
             Ansi = AnsiSupport.Detect,
             Interactive = InteractionSupport.Detect,
             ColorSystem = ColorSystemSupport.Detect
         };
+
         var ansiConsole = AnsiConsole.Create(settings);
         return ansiConsole;
-    }
-
-    private static IProjectLocator BuildProjectLocator(IServiceProvider serviceProvider)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger<ProjectLocator>>();
-        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
-        var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public static async Task<int> Main(string[] args)
@@ -232,12 +229,16 @@ public class Program
         await app.StartAsync().ConfigureAwait(false);
 
         var rootCommand = app.Services.GetRequiredService<RootCommand>();
-        var config = new CommandLineConfiguration(rootCommand);
-        config.EnableDefaultExceptionHandler = true;
+        var invokeConfig = new InvocationConfiguration()
+        {
+            EnableDefaultExceptionHandler = true,
+            // HACK: Workaround until we get 10.0 RC2: https://github.com/dotnet/command-line-api/pull/2674/files
+            ProcessTerminationTimeout = TimeSpan.FromSeconds(2)
+        };
 
         var telemetry = app.Services.GetRequiredService<AspireCliTelemetry>();
         using var activity = telemetry.ActivitySource.StartActivity();
-        var exitCode = await config.InvokeAsync(args);
+        var exitCode = await rootCommand.Parse(args).InvokeAsync(invokeConfig);
 
         await app.StopAsync().ConfigureAwait(false);
 
@@ -257,7 +258,9 @@ public class Program
             builder.Services.AddSingleton<IInteractionService>(provider =>
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole);
+                ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -270,7 +273,12 @@ public class Program
         }
         else
         {
-            builder.Services.AddSingleton<IInteractionService, ConsoleInteractionService>();
+            builder.Services.AddSingleton<IInteractionService>(provider =>
+            {
+                var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
+                var executionContext = provider.GetRequiredService<CliExecutionContext>();
+                return new ConsoleInteractionService(ansiConsole, executionContext);
+            });
         }
     }
 }

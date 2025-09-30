@@ -3,27 +3,36 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
-namespace Aspire.Hosting.Orchestrator;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Handles processing of parameter resources during application orchestration.
 /// </summary>
-internal sealed class ParameterProcessor(
+[Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+public sealed class ParameterProcessor(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
-    DistributedApplicationOptions options)
+    DistributedApplicationOptions options,
+    DistributedApplicationExecutionContext executionContext)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
-    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources)
+    /// <summary>
+    /// Initializes parameter resources and handles unresolved parameters if interaction service is available.
+    /// </summary>
+    /// <param name="parameterResources">The parameter resources to initialize.</param>
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
+    /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
+    public async Task InitializeParametersAsync(IEnumerable<ParameterResource> parameterResources, bool waitForResolution = false)
     {
         // Initialize all parameter resources by setting their WaitForValueTcs.
         // This allows them to be processed asynchronously later.
@@ -36,26 +45,112 @@ internal sealed class ParameterProcessor(
 
         // If interaction service is available, we can handle unresolved parameters.
         // This will allow the user to provide values for parameters that could not be initialized.
-        if (interactionService.IsAvailable)
+        if (interactionService.IsAvailable && _unresolvedParameters.Count > 0)
         {
-            // All parameters have been processed, we can now handle unresolved parameters if any.
-            if (_unresolvedParameters.Count > 0)
+            // Start the loop that will allow the user to specify values for unresolved parameters.
+            var parameterResolutionTask = Task.Run(async () =>
             {
-                // Start the loop that will allow the user to specify values for unresolved parameters.
-                _ = Task.Run(async () =>
+                try
                 {
-                    try
-                    {
-                        await HandleUnresolvedParametersAsync().ConfigureAwait(false);
+                    await HandleUnresolvedParametersAsync().ConfigureAwait(false);
+                    logger.LogDebug("All unresolved parameters have been handled successfully.");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to handle unresolved parameters.");
+                }
+            });
 
-                        logger.LogDebug("All unresolved parameters have been handled successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Failed to handle unresolved parameters.");
-                    }
-                });
+            if (waitForResolution)
+            {
+                await parameterResolutionTask.ConfigureAwait(false);
             }
+        }
+    }
+
+    /// <summary>
+    /// Initializes parameter resources by collecting dependent parameters from the distributed application model
+    /// and handles unresolved parameters if interaction service is available.
+    /// </summary>
+    /// <param name="model">The distributed application model to collect parameters from.</param>
+    /// <param name="waitForResolution">Whether to wait for all parameters to be resolved before completing the returned Task.</param>
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for parameters to be resolved.</param>
+    /// <returns>A task that completes when all parameters are resolved (if waitForResolution is true) or when initialization is complete.</returns>
+    public async Task InitializeParametersAsync(DistributedApplicationModel model, bool waitForResolution = false, CancellationToken cancellationToken = default)
+    {
+        var referencedParameters = new Dictionary<string, ParameterResource>();
+        var currentDependencySet = new HashSet<object?>();
+
+        await CollectDependentParameterResourcesAsync(model, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+
+        // Combine explicit parameters with dependent parameters
+        var explicitParameters = model.Resources.OfType<ParameterResource>();
+        var dependentParameters = referencedParameters.Values.Where(p => !explicitParameters.Contains(p));
+        var allParameters = explicitParameters.Concat(dependentParameters);
+
+        if (allParameters.Any())
+        {
+            await InitializeParametersAsync(allParameters, waitForResolution).ConfigureAwait(false);
+        }
+    }
+
+    private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
+    {
+        var publishExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+
+        foreach (var resource in model.Resources)
+        {
+            await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+        }
+
+    }
+
+    private async Task ProcessResourceDependenciesAsync(IResource resource, DistributedApplicationExecutionContext executionContext, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
+    {
+        // Process environment variables
+        await resource.ProcessEnvironmentVariableValuesAsync(
+            executionContext,
+            (key, unprocessed, processed, ex) =>
+            {
+                if (unprocessed is not null)
+                {
+                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
+                }
+            },
+            logger,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+
+        // Process command line arguments
+        await resource.ProcessArgumentValuesAsync(
+            executionContext,
+            (unprocessed, expression, ex, _) =>
+            {
+                if (unprocessed is not null)
+                {
+                    TryAddDependentParameters(unprocessed, referencedParameters, currentDependencySet);
+                }
+            },
+            logger,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    private static void TryAddDependentParameters(object? value, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet)
+    {
+        if (value is ParameterResource parameter)
+        {
+            referencedParameters.TryAdd(parameter.Name, parameter);
+        }
+        else if (value is IValueWithReferences objectWithReferences)
+        {
+            currentDependencySet.Add(value);
+            foreach (var dependency in objectWithReferences.References)
+            {
+                if (!currentDependencySet.Contains(dependency))
+                {
+                    TryAddDependentParameters(dependency, referencedParameters, currentDependencySet);
+                }
+            }
+            currentDependencySet.Remove(value);
         }
     }
 
@@ -65,12 +160,17 @@ internal sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
+            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
+            {
+                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+            }
+
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
                 {
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, value, parameterResource.Secret),
-                    State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                    State = KnownResourceStates.Running
                 };
             })
             .ConfigureAwait(false);
@@ -131,10 +231,10 @@ internal sealed class ParameterProcessor(
                 InteractionStrings.ParametersBarTitle,
                 InteractionStrings.ParametersBarMessage,
                  new NotificationInteractionOptions
-                {
-                    Intent = MessageIntent.Warning,
-                    PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                })
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                 })
                 .ConfigureAwait(false);
 
             if (result.Data)
@@ -151,6 +251,7 @@ internal sealed class ParameterProcessor(
 
                 var saveParameters = new InteractionInput
                 {
+                    Name = "RememberParameters",
                     InputType = InputType.Boolean,
                     Label = InteractionStrings.ParametersInputsRememberLabel
                 };
@@ -189,7 +290,7 @@ internal sealed class ParameterProcessor(
                             return s with
                             {
                                 Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, inputValue, parameter.Secret),
-                                State = new(KnownResourceStates.Active, KnownResourceStateStyles.Success)
+                                State = KnownResourceStates.Running
                             };
                         })
                         .ConfigureAwait(false);

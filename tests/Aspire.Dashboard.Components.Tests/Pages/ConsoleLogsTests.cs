@@ -45,7 +45,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name =>
@@ -95,8 +95,8 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var subscribedResourceNamesChannel = Channel.CreateUnbounded<string>();
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
-        var testResource2 = ModelTestHelpers.CreateResource(appName: "test-resource2", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
+        var testResource2 = ModelTestHelpers.CreateResource(resourceName: "test-resource2", state: KnownResourceState.Running);
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name =>
@@ -131,7 +131,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert 1
         logger.LogInformation("Waiting for selected resource.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         consoleLogsChannel.Writer.TryWrite([new ResourceLogLine(1, "Test content", IsErrorMessage: false)]);
@@ -163,7 +163,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert 2
         logger.LogInformation("Waiting for selected resource.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource2);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource2.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         var subscribedResourceName2 = await subscribedResourceNamesChannel.Reader.ReadAsync().DefaultTimeout();
@@ -177,9 +177,9 @@ public partial class ConsoleLogsTests : DashboardTestContext
     public void ToggleHiddenResources_HiddenResourceVisibilityAndSelection_WorksCorrectly()
     {
         // Arrange
-        var regularResource = ModelTestHelpers.CreateResource(appName: "regular-resource", state: KnownResourceState.Running);
-        var hiddenResource = ModelTestHelpers.CreateResource(appName: "hidden-resource", state: KnownResourceState.Running, hidden: true);
-        
+        var regularResource = ModelTestHelpers.CreateResource(resourceName: "regular-resource", state: KnownResourceState.Running);
+        var hiddenResource = ModelTestHelpers.CreateResource(resourceName: "hidden-resource", state: KnownResourceState.Running, hidden: true);
+
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
         var dashboardClient = new TestDashboardClient(
@@ -201,23 +201,23 @@ public partial class ConsoleLogsTests : DashboardTestContext
         });
 
         var instance = cut.Instance;
-        
+
         // Wait for resources to load - use resource select component as proxy
         cut.WaitForAssertion(() =>
         {
             var resourceSelect = cut.FindComponent<ResourceSelect>();
             var selectElement = resourceSelect.Find("fluent-select");
             var selectOptions = selectElement.QuerySelectorAll("fluent-option");
-            
+
             // Should have at least 1 option (regular resource) when resources are loaded
             Assert.True(selectOptions.Length >= 1);
         });
-        
+
         // Initially, hidden resources should not be shown
         var resourceSelect = cut.FindComponent<ResourceSelect>();
         var selectElement = resourceSelect.Find("fluent-select");
         var selectOptions = selectElement.QuerySelectorAll("fluent-option");
-        
+
         // Should only have regular resource (hidden resource filtered out)
         Assert.Equal(1, selectOptions.Length); // regular-resource
         var optionValues = selectOptions.Select(opt => opt.GetAttribute("value")).ToList();
@@ -228,7 +228,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var settingsMenuButton = cut.Find("fluent-button[title='" + Resources.ConsoleLogs.ConsoleLogsSettings + "']");
         Assert.NotNull(settingsMenuButton);
         settingsMenuButton.Click();
-        
+
         // Find and click the "Show hidden resources" menu item
         cut.WaitForAssertion(() =>
         {
@@ -236,7 +236,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
             Assert.NotNull(showHiddenMenuItem);
             showHiddenMenuItem.Click();
         });
-        
+
         // Wait for UI to update
         cut.WaitForAssertion(() =>
         {
@@ -252,19 +252,19 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var hiddenResourceOption = selectElement.QuerySelector("fluent-option[value='hidden-resource']");
         Assert.NotNull(hiddenResourceOption);
         selectElement.Change("hidden-resource");
-        
+
         cut.WaitForState(() => instance.PageViewModel.SelectedResource?.Name == "hidden-resource");
 
         // Act & Assert 4: Click the settings menu button again and click "Hide hidden resources" to hide them again
         settingsMenuButton.Click();
-        
+
         cut.WaitForAssertion(() =>
         {
             var hideHiddenMenuItem = cut.Find("fluent-menu-item:contains('" + Resources.ControlsStrings.HideHiddenResources + "')");
             Assert.NotNull(hideHiddenMenuItem);
             hideHiddenMenuItem.Click();
         });
-        
+
         // Wait for UI to update - hidden resource should be filtered out and selection should be cleared
         cut.WaitForAssertion(() =>
         {
@@ -275,16 +275,16 @@ public partial class ConsoleLogsTests : DashboardTestContext
             Assert.Contains("regular-resource", finalOptionValues);
             Assert.DoesNotContain("hidden-resource", finalOptionValues);
         });
-        
+
         // Selection should be cleared since selected resource is now hidden
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == regularResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == regularResource.Name);
     }
 
     [Fact]
     public async Task ResourceName_ViaUrlAndResourceLoaded_LogViewerUpdated()
     {
         // Arrange
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
@@ -317,7 +317,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert
         logger.LogInformation("Resource and subscription should be set immediately on first render.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         var subscribedResource = await subscribedResourceNameTcs.Task;
@@ -332,7 +332,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     public async Task ReadingLogs_ErrorDuringRead_SetStatusAndLog()
     {
         // Arrange
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
@@ -365,7 +365,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert
         logger.LogInformation("Resource and subscription should be set immediately on first render.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         var subscribedResource = await subscribedResourceNameTcs.Task;
@@ -381,7 +381,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     public async Task ReadingLogs_ErrorDuringReadAfterDispose_StatusUnchanged()
     {
         // Arrange
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
@@ -414,7 +414,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert
         logger.LogInformation("Resource and subscription should be set immediately on first render.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         var subscribedResource = await subscribedResourceNameTcs.Task;
@@ -434,7 +434,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Arrange
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name => consoleLogsChannel,
@@ -461,7 +461,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Assert
         logger.LogInformation("Waiting for selected resource.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         logger.LogInformation("Log results are added to log viewer.");
@@ -491,7 +491,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         // Arrange
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var dashboardClient = new TestDashboardClient(
             isEnabled: true,
             consoleLogsChannelProvider: name => consoleLogsChannel,
@@ -521,7 +521,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Assert.Single(consoleLogsManager.GetSubscriptions());
 
         logger.LogInformation("Waiting for selected resource.");
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForState(() => instance.PageViewModel.Status == loc[nameof(Resources.ConsoleLogs.ConsoleLogsWatchingLogs)]);
 
         logger.LogInformation("Log results are added to log viewer.");
@@ -546,7 +546,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     {
         // Arrange
         var testResource = ModelTestHelpers.CreateResource(
-            appName: "test-resource",
+            resourceName: "test-resource",
             state: KnownResourceState.Running,
             commands: [new CommandViewModel("test-name", CommandViewModelState.Enabled, "test-displayname", "test-displaydescription", confirmationMessage: "", parameter: null, isHighlighted: true, iconName: string.Empty, iconVariant: IconVariant.Regular)]);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -580,7 +580,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
         // Assert 1
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
 
         cut.WaitForAssertion(() =>
         {
@@ -590,7 +590,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
 
         // Act 2
         testResource = ModelTestHelpers.CreateResource(
-            appName: "test-resource",
+            resourceName: "test-resource",
             state: KnownResourceState.Running,
             commands: []);
         resourceChannel.Writer.TryWrite([
@@ -610,7 +610,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     {
         // Arrange
         var testResource = ModelTestHelpers.CreateResource(
-            appName: "test-resource",
+            resourceName: "test-resource",
             state: KnownResourceState.Running,
             commands: [new CommandViewModel("test-name", CommandViewModelState.Enabled, "test-displayname", "test-displaydescription", confirmationMessage: "", parameter: null, isHighlighted: true, iconName: string.Empty, iconVariant: IconVariant.Regular)]);
         var subscribedResourceNameTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -647,7 +647,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var loc = Services.GetRequiredService<IStringLocalizer<Resources.ConsoleLogs>>();
 
         AngleSharp.Dom.IElement highlightedCommand = default!;
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
         cut.WaitForAssertion(() =>
         {
             var highlightedCommands = cut.FindAll(".highlighted-command");
@@ -672,7 +672,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
     public void PauseResumeButton_TogglePauseResume_LogsPausedAndResumed()
     {
         // Arrange
-        var testResource = ModelTestHelpers.CreateResource(appName: "test-resource", state: KnownResourceState.Running);
+        var testResource = ModelTestHelpers.CreateResource(resourceName: "test-resource", state: KnownResourceState.Running);
         var consoleLogsChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceLogLine>>();
         var resourceChannel = Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>();
         var dashboardClient = new TestDashboardClient(
@@ -702,7 +702,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         var instance = cut.Instance;
 
         // Assert initial state
-        cut.WaitForState(() => instance.PageViewModel.SelectedResource == testResource);
+        cut.WaitForState(() => instance.PageViewModel.SelectedResource.Id?.InstanceId == testResource.Name);
 
         logger.LogInformation("Check logs are empty.");
         PrintCurrentLogEntries(cut.Instance._logEntries);

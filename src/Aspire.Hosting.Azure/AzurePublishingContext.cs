@@ -59,6 +59,15 @@ public sealed class AzurePublishingContext(
     public Dictionary<BicepOutputReference, ProvisioningOutput> OutputLookup { get; } = [];
 
     /// <summary>
+    /// Gets a dictionary that provides direct lookup of output references based on bicep identifier.
+    /// </summary>
+    /// <remarks>
+    /// This reverse lookup map allows efficient retrieval of <see cref="BicepOutputReference"/>
+    /// instances using their corresponding bicep identifier strings.
+    /// </remarks>
+    internal Dictionary<string, BicepOutputReference> ReverseOutputLookup { get; } = [];
+
+    /// <summary>
     /// Writes the specified distributed application model to the output path using Bicep templates.
     /// </summary>
     /// <param name="model">The distributed application model to write to the output path.</param>
@@ -251,6 +260,11 @@ public sealed class AzurePublishingContext(
                     module.Parameters.Add(parameter.Key, principalId);
                     continue;
                 }
+                if (parameter.Key == AzureBicepResource.KnownParameters.PrincipalId && parameter.Value is null)
+                {
+                    module.Parameters.Add(parameter.Key, principalId);
+                    continue;
+                }
 
                 var value = ResolveValue(Eval(parameter.Value));
 
@@ -356,6 +370,7 @@ public sealed class AzurePublishingContext(
             };
 
             OutputLookup[output] = bicepOutput;
+            ReverseOutputLookup[bicepOutput.BicepIdentifier] = output;
             MainInfrastructure.Add(bicepOutput);
         }
     }

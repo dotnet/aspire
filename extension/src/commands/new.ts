@@ -1,5 +1,5 @@
-import { sendToAspireTerminal } from '../utils/terminal';
+import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 
-export async function newCommand() {
-    sendToAspireTerminal("aspire new");
+export async function newCommand(terminalProvider: AspireTerminalProvider) {
+    terminalProvider.sendToAspireTerminal("aspire new");
 };

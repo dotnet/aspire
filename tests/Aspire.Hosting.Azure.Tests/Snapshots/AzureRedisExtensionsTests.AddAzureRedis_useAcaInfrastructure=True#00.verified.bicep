@@ -25,3 +25,5 @@ resource redis_cache 'Microsoft.Cache/redis@2024-11-01' = {
 output connectionString string = '${redis_cache.properties.hostName},ssl=true'
 
 output name string = redis_cache.name
+
+output hostName string = redis_cache.properties.hostName

@@ -27,6 +27,11 @@
         <target state="translated">サービスの既定値</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Single-file AppHost (experimental)</source>
+        <target state="translated">単一ファイル AppHost (試験段階)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
         <target state="translated">スターター テンプレート</target>
@@ -49,7 +54,7 @@
       </trans-unit>
       <trans-unit id="CreateNugetConfigConfirmation">
         <source>Create NuGet.config for selected channels?</source>
-        <target state="new">Create NuGet.config for selected channels?</target>
+        <target state="translated">選択したチャネルの NuGet.config を作成しますか?</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
@@ -94,7 +99,7 @@
       </trans-unit>
       <trans-unit id="NuGetConfigCreatedConfirmationMessage">
         <source>Created NuGet.config for the selected package channel.</source>
-        <target state="new">Created NuGet.config for the selected package channel.</target>
+        <target state="translated">選択したパッケージ チャネルの NuGet.config を作成しました。</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

@@ -27,6 +27,11 @@
         <target state="translated">서비스 기본값</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspireAppHostSingleFile_Description">
+        <source>Single-file AppHost (experimental)</source>
+        <target state="translated">단일 파일 AppHost(실험적)</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Starter template</source>
         <target state="translated">시작 템플릿</target>
@@ -49,7 +54,7 @@
       </trans-unit>
       <trans-unit id="CreateNugetConfigConfirmation">
         <source>Create NuGet.config for selected channels?</source>
-        <target state="new">Create NuGet.config for selected channels?</target>
+        <target state="translated">선택한 채널에 대한 NuGet.config를 만드시겠습니까?</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingNewProject">
@@ -94,7 +99,7 @@
       </trans-unit>
       <trans-unit id="NuGetConfigCreatedConfirmationMessage">
         <source>Created NuGet.config for the selected package channel.</source>
-        <target state="new">Created NuGet.config for the selected package channel.</target>
+        <target state="translated">선택한 패키지 채널에 대한 NuGet.config를 만들었습니다.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectAlreadyExists">

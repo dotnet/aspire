@@ -15,6 +15,9 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     public Action<string>? DisplaySubtleMessageCallback { get; set; }
     public Action<string>? DisplayConsoleWriteLineMessage { get; set; }
     public Action? LaunchAppHostCallback { get; set; }
+    public Action? NotifyAppHostStartupCompletedCallback { get; set; }
+    public Action<DashboardUrlsState>? DisplayDashboardUrlsCallback { get; set; }
+    public Action<string, string?, bool>? StartDebugSessionCallback { get; set; }
 
     public IExtensionBackchannel Backchannel { get; } = serviceProvider.GetRequiredService<IExtensionBackchannel>();
 
@@ -61,8 +64,25 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
-    public void DisplayDashboardUrls((string BaseUrlWithLoginToken, string? CodespacesUrlWithLoginToken) dashboardUrls)
+    public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
     {
+        DisplayDashboardUrlsCallback?.Invoke(dashboardUrls);
+    }
+
+    public void NotifyAppHostStartupCompleted()
+    {
+        NotifyAppHostStartupCompletedCallback?.Invoke();
+    }
+
+    public void DisplayConsolePlainText(string message)
+    {
+        DisplayConsoleWriteLineMessage?.Invoke(message);
+    }
+
+    public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
+    {
+        StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
+        return Task.CompletedTask;
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)
@@ -91,6 +111,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
     }
 
+    public void DisplayMarkdown(string markdown)
+    {
+    }
+
     public void WriteConsoleLog(string message, int? lineNumber = null, string? type = null, bool isErrorMessage = false)
     {
         var output = $"[{(isErrorMessage ? "Error" : type ?? "Info")}] {message} (Line: {lineNumber})";
@@ -104,11 +128,11 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         DisplayVersionUpdateNotificationCallback?.Invoke(newerVersion);
     }
 
-    public Action<string>? OpenNewProjectCallback { get; set; }
+    public Action<string>? OpenEditorCallback { get; set; }
 
-    public void OpenNewProject(string projectPath)
+    public void OpenEditor(string projectPath)
     {
-        OpenNewProjectCallback?.Invoke(projectPath);
+        OpenEditorCallback?.Invoke(projectPath);
     }
 
     public Action<int, string>? RequestAppHostAttachCallback { get; set; }
@@ -126,7 +150,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         LogMessageCallback?.Invoke(logLevel, message);
     }
 
-    public Task LaunchAppHostAsync(string projectFile, string workingDirectory, List<string> arguments, List<EnvVar> environment, bool debug)
+    public Task LaunchAppHostAsync(string projectFile, List<string> arguments, List<EnvVar> environment, bool debug)
     {
         LaunchAppHostCallback?.Invoke();
         return Task.CompletedTask;

@@ -47,7 +47,15 @@ public class AzureContainerRegistryResource(string name, Action<AzureResourceInf
         
         // Create and add new resource if it doesn't exist
         var store = ContainerRegistryService.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

@@ -15,8 +15,9 @@ public class OpenAIPublicApiTests
         const string connectionName = "open-ai";
         const string? serviceKey = null;
         bool disableTracing = false;
+        bool enableSensitiveTelemetryData = false;
 
-        var action = () => new AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing);
+        var action = () => new AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData);
 
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(hostBuilder), exception.ParamName);
@@ -31,8 +32,9 @@ public class OpenAIPublicApiTests
         var connectionName = isNull ? null! : string.Empty;
         const string? serviceKey = null;
         bool disableTracing = false;
+        bool enableSensitiveTelemetryData = false;
 
-        var action = () => new AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing);
+        var action = () => new AspireOpenAIClientBuilder(hostBuilder, connectionName, serviceKey, disableTracing, enableSensitiveTelemetryData);
 
         var exception = isNull
             ? Assert.Throws<ArgumentNullException>(action)
@@ -72,7 +74,8 @@ public class OpenAIPublicApiTests
         const string connectionName = "open-ai";
         const string? hostServiceKey = null;
         bool disableTracing = false;
-        var builder = new AspireOpenAIClientBuilder(hostBuilder, connectionName, hostServiceKey, disableTracing);
+        bool enableSensitiveTelemetryData = false;
+        var builder = new AspireOpenAIClientBuilder(hostBuilder, connectionName, hostServiceKey, disableTracing, enableSensitiveTelemetryData);
         var serviceKey = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedChatClient(serviceKey);
@@ -115,7 +118,8 @@ public class OpenAIPublicApiTests
         const string connectionName = "open-ai";
         const string? hostServiceKey = null;
         bool disableTracing = false;
-        var builder = new AspireOpenAIClientBuilder(hostBuilder, connectionName, hostServiceKey, disableTracing);
+        bool enableSensitiveTelemetryData = false;
+        var builder = new AspireOpenAIClientBuilder(hostBuilder, connectionName, hostServiceKey, disableTracing, enableSensitiveTelemetryData);
         var serviceKey = isNull ? null! : string.Empty;
 
         var action = () => builder.AddKeyedEmbeddingGenerator(serviceKey);
