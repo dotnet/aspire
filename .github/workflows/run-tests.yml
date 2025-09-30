@@ -49,7 +49,7 @@ on:
         type: string
         default: "ubuntu-latest"
       # When true, ignores test failures and checks if .trx files have nonzero test count
-      ignoreFailuresAndCheckTrx:
+      ignoreTestFailures:
         required: false
         type: boolean
         default: false
@@ -293,17 +293,17 @@ jobs:
           TEST_LOG_PATH: ${{ github.workspace }}/artifacts/log/test-logs
           TestsRunningOutsideOfRepo: true
         shell: bash
-        run: |
-          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll \
-            --ignore-exit-code 8 \
-            --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx" \
-            --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }} \
-            --crashdump \
-            --results-directory ${{ github.workspace }}/testresults \
-            --filter-not-trait "category=failing" \
-            --timeout ${{ inputs.testSessionTimeout }} \
-            ${{ inputs.extraTestArgs }} \
-          ${{ inputs.ignoreFailuresAndCheckTrx && '|| true' || '' }}
+        run: >
+          dotnet ${{ env.TEST_ASSEMBLY_NAME }}.dll
+          --ignore-exit-code 8
+          --report-trx --report-trx-filename "${{ inputs.testShortName }}.trx"
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
+          --results-directory ${{ github.workspace }}/testresults
+          --filter-not-trait "category=failing"
+          --timeout ${{ inputs.testSessionTimeout }}
+          ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
 
       - name: Run tests
         if: ${{ ! inputs.requiresNugets }}
@@ -318,25 +318,25 @@ jobs:
           NUGET_PACKAGES: ${{ github.workspace }}/.packages
           PLAYWRIGHT_INSTALLED: ${{ !inputs.enablePlaywrightInstall && 'false' || 'true' }}
         shell: bash
-        run: |
-          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }} \
-            /p:ContinuousIntegrationBuild=true \
-            /p:TrxFileNamePrefix="${{ inputs.testShortName }}" \
-            -bl:${{ github.workspace }}/testresults/test.binlog \
-            --no-restore \
-            --no-build \
-            -- \
-            --ignore-exit-code 8 \
-            --report-trx \
-            --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }} \
-            --crashdump \
-            --results-directory ${{ github.workspace }}/testresults \
-            --timeout ${{ inputs.testSessionTimeout }} \
-            ${{ inputs.extraTestArgs }} \
-          ${{ inputs.ignoreFailuresAndCheckTrx && '|| true' || '' }}
+        run: >
+          ${{ env.DOTNET_SCRIPT }} test ${{ env.TEST_PROJECT_PATH }}
+          /p:ContinuousIntegrationBuild=true
+          /p:TrxFileNamePrefix="${{ inputs.testShortName }}"
+          -bl:${{ github.workspace }}/testresults/test.binlog
+          --no-restore
+          --no-build
+          --
+          --ignore-exit-code 8
+          --report-trx
+          --hangdump --hangdump-timeout ${{ inputs.testHangTimeout }}
+          --crashdump
+          --results-directory ${{ github.workspace }}/testresults
+          --timeout ${{ inputs.testSessionTimeout }}
+          ${{ inputs.extraTestArgs }}
+          ${{ inputs.ignoreTestFailures && '|| true' || '' }}
 
       - name: Verify test results exist
-        if: ${{ inputs.ignoreFailuresAndCheckTrx }}
+        if: ${{ inputs.ignoreTestFailures }}
         shell: pwsh
         run: |
           $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
