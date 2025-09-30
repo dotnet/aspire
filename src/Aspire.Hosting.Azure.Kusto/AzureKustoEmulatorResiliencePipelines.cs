@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// <summary>
 /// Provides pre-configured resilience pipelines for Azure Kusto emulator operations.
 /// </summary>
-internal static class KustoEmulatorResiliencePipelines
+internal static class AzureKustoEmulatorResiliencePipelines
 {
     /// <summary>
     /// Gets a resilience pipeline configured to handle non-permanent exceptions.

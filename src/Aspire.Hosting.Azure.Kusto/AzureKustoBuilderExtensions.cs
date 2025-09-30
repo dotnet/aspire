@@ -283,7 +283,7 @@ public static class AzureKustoBuilderExtensions
 
         try
         {
-            await KustoEmulatorResiliencePipelines.Default.ExecuteAsync(async ct => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(async ct => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Database '{DatabaseName}' created successfully", databaseResource.DatabaseName);
         }
         catch (KustoBadRequestException e) when (e.Message.Contains("EntityNameAlreadyExistsException"))

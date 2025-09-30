@@ -21,7 +21,7 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<KustoRequestThrottledException>(async () =>
         {
-            await KustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount > 1, "Operation should have been retried");
     }
@@ -40,7 +40,7 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
         {
-            await KustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount == 1, "Operation should not have been retried");
     }
@@ -59,7 +59,7 @@ public class KustoResiliencePipelinesTests
         // Act + Assert
         await Assert.ThrowsAsync<KustoBadRequestException>(async () =>
         {
-            await KustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
         Assert.True(attemptCount == 1, "Operation should not have been retried");
     }
