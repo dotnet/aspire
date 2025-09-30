@@ -4,7 +4,7 @@
 using Kusto.Cloud.Platform.Utils;
 using Polly;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Provides pre-configured resilience pipelines for Azure Kusto emulator operations.
