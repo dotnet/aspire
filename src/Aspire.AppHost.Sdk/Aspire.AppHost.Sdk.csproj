@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets">
 
-  <Import Project="$(SharedDir)Workload.targets" />
+  <Import Project="$(SharedDir)SdkPack.targets" />
 
   <PropertyGroup>
     <PackageTags>aspire apphost sdk</PackageTags>

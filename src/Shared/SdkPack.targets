@@ -1,5 +1,4 @@
 <Project>
-  <Import Project="Workload.props" />
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -14,8 +13,6 @@
     <DotNetOutputPath>$(RepoRoot)artifacts/bin/</DotNetOutputPath>
     <DotNetDirectory>$(DotNetOutputPath)dotnet/</DotNetDirectory>
     <DotNetPacksDirectory>$(DotNetDirectory)packs/</DotNetPacksDirectory>
-    <DotNetSdkManifestsFolder>$(DotNetVersionBand)</DotNetSdkManifestsFolder>
-    <DotNetSdkManifestsDirectory>$(DotNetDirectory)sdk-manifests/$(DotNetSdkManifestsFolder)/</DotNetSdkManifestsDirectory>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)eng/ReplaceText.targets" />
