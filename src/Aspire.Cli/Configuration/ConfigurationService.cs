@@ -63,7 +63,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
 
             // Delete using dot notation support and return whether deletion occurred
             var deleted = DeleteNestedValue(settings, key);
-            
+
             if (deleted)
             {
                 // Write the updated settings
@@ -79,7 +79,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         }
     }
 
-    private string GetSettingsFilePath(bool isGlobal)
+    public string GetSettingsFilePath(bool isGlobal)
     {
         if (isGlobal)
         {
@@ -129,7 +129,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         {
             var content = await File.ReadAllTextAsync(filePath, cancellationToken);
             var settings = JsonNode.Parse(content)?.AsObject();
-            
+
             if (settings is not null)
             {
                 FlattenJsonObject(settings, config, string.Empty);
@@ -154,13 +154,13 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         for (int i = 0; i < keyParts.Length - 1; i++)
         {
             var part = keyParts[i];
-            
+
             // If the property doesn't exist or isn't an object, replace it with a new object
             if (!currentObject.ContainsKey(part) || currentObject[part] is not JsonObject)
             {
                 currentObject[part] = new JsonObject();
             }
-            
+
             currentObject = currentObject[part]!.AsObject();
         }
 
@@ -184,17 +184,17 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         {
             var part = keyParts[i];
             objectPath.Add((currentObject, part));
-            
+
             if (!currentObject.ContainsKey(part) || currentObject[part] is not JsonObject)
             {
                 return false; // Path doesn't exist
             }
-            
+
             currentObject = currentObject[part]!.AsObject();
         }
 
         var finalKey = keyParts[keyParts.Length - 1];
-        
+
         // Check if the final key exists
         if (!currentObject.ContainsKey(finalKey))
         {
@@ -208,7 +208,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         for (int i = objectPath.Count - 1; i >= 0; i--)
         {
             var (parentObject, parentKey) = objectPath[i];
-            
+
             // If the current object is empty, remove it from its parent
             if (currentObject.Count == 0)
             {
@@ -232,7 +232,7 @@ internal sealed class ConfigurationService(IConfiguration configuration, CliExec
         foreach (var kvp in obj)
         {
             var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}.{kvp.Key}";
-            
+
             if (kvp.Value is JsonObject nestedObj)
             {
                 FlattenJsonObject(nestedObj, result, key);

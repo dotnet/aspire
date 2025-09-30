@@ -17,7 +17,8 @@ internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
-     ISecretClientProvider secretClientProvider) : IBicepProvisioner
+    ISecretClientProvider secretClientProvider,
+    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
     /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
@@ -126,7 +127,7 @@ internal sealed class BicepProvisioner(
             ])
         }).ConfigureAwait(false);
 
-        var template = resource.GetBicepTemplateFile(context.OutputPath);
+        var template = resource.GetBicepTemplateFile();
         var path = template.Path;
 
         // GetBicepTemplateFile may have added new well-known parameters, so we need
@@ -164,12 +165,11 @@ internal sealed class BicepProvisioner(
 
         resourceLogger.LogInformation("Deploying {Name} to {ResourceGroup}", resource.Name, resourceGroup.Name);
 
-        // Deploy-time provisioning should target the subscription scope while run-time
-        // provisioning should target the resource group scope.
-        var deployments = context.ExecutionContext.IsPublishMode
+        // Resources with a Subscription scope should use a subscription-level deployment.
+        var deployments = resource.Scope?.Subscription != null
             ? context.Subscription.GetArmDeployments()
             : resourceGroup.GetArmDeployments();
-        var deploymentName = resource.Name;
+        var deploymentName = executionContext.IsPublishMode ? $"{resource.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}" : resource.Name;
 
         var deploymentContent = new ArmDeploymentContent(new(ArmDeploymentMode.Incremental)
         {
@@ -177,14 +177,6 @@ internal sealed class BicepProvisioner(
             Parameters = BinaryData.FromObjectAsJson(parameters),
             DebugSettingDetailLevel = "ResponseContent"
         });
-        // Only set the location for publish mode deployments
-        // and set the deployment name to include the resource group name
-        // hashed with the current Unix timestamp
-        if (context.ExecutionContext.IsPublishMode)
-        {
-            deploymentContent.Location = context.Location;
-            deploymentName = $"{resourceGroup.Name}-{DateTimeOffset.Now.ToUnixTimeSeconds()}";
-        }
         var operation = await deployments.CreateOrUpdateAsync(WaitUntil.Started, deploymentName, deploymentContent, cancellationToken).ConfigureAwait(false);
 
         // Resolve the deployment URL before waiting for the operation to complete

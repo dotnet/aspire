@@ -234,10 +234,13 @@
             </SummaryDetailsView>
         </MainSection>
         <FooterSection>
-            <TotalItemsFooter @ref="_totalItemsFooter"
-                              SingularText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterSingularText)]"
-                              PluralText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterPluralText)]"
-                              TotalItemCount="@_totalItemsCount"/>
+            @* Don't display footer with the resource graph *@
+            <div hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table)">
+                <TotalItemsFooter @ref="_totalItemsFooter"
+                                  SingularText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterSingularText)]"
+                                  PluralText="@Loc[nameof(Dashboard.Resources.Resources.TotalItemsFooterPluralText)]"
+                                  TotalItemCount="@_totalItemsCount"/>
+            </div>
         </FooterSection>
     </AspirePageContentLayout>
 </div>

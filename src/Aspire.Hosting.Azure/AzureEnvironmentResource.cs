@@ -9,6 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -16,10 +17,10 @@ namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// Represents the root Azure deployment target for an Aspire application.
-/// Emits a <c>main.bicep</c> that aggregates all provisionable resources.
+/// Manages deployment parameters and context for Azure resources.
 /// </summary>
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class AzureEnvironmentResource : AzureBicepResource
+public sealed class AzureEnvironmentResource : Resource
 {
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
@@ -36,8 +37,6 @@ public sealed class AzureEnvironmentResource : AzureBicepResource
     /// </summary>
     public ParameterResource PrincipalId { get; set; }
 
-    internal AzurePublishingContext? PublishingContext { get; set; }
-
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
     /// </summary>
@@ -47,7 +46,7 @@ public sealed class AzureEnvironmentResource : AzureBicepResource
     /// <param name="principalId">The Azure principal ID that will be used to deploy the resources.</param>
     /// <exception cref="ArgumentNullException">Thrown when the name is null or empty.</exception>
     /// <exception cref="ArgumentException">Thrown when the name is invalid.</exception>
-    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name, templateFile: "main.bicep")
+    public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
         Annotations.Add(new DeployingCallbackAnnotation(DeployAsync));
@@ -61,14 +60,13 @@ public sealed class AzureEnvironmentResource : AzureBicepResource
     private Task PublishAsync(PublishingContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
-
-        PublishingContext = new AzurePublishingContext(
+        var publishingContext = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
             context.Logger,
             context.ActivityReporter);
 
-        return PublishingContext.WriteModelAsync(context.Model, this);
+        return publishingContext.WriteModelAsync(context.Model, this);
     }
 
     private Task DeployAsync(DeployingContext context)
@@ -77,13 +75,23 @@ public sealed class AzureEnvironmentResource : AzureBicepResource
         var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var processRunner = context.Services.GetRequiredService<IProcessRunner>();
+        var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
             userSecretsManager,
             bicepProvisioner,
-            activityPublisher);
+            activityPublisher,
+            containerImageBuilder,
+            processRunner,
+            parameterProcessor,
+            configuration,
+            tokenCredentialProvider);
 
-        return azureCtx.DeployModelAsync(this, context.CancellationToken);
+        return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }
 }

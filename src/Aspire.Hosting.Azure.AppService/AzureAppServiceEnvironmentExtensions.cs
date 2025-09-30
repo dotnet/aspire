@@ -47,7 +47,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
             var resource = infra.AspireResource;
 
             // This tells azd to avoid creating infrastructure
-            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string));
+            var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
             infra.Add(userPrincipalId);
 
             var tags = new ProvisioningParameter("tags", typeof(object))

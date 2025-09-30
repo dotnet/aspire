@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Description" xml:space="preserve">
+    <value>Update integrations in the Aspire project. (Preview)</value>
+  </data>
+  <data name="ProjectArgumentDescription" xml:space="preserve">
+    <value>The path to the Aspire AppHost project file.</value>
+  </data>
+  <data name="SelectChannelPrompt" xml:space="preserve">
+    <value>Select a channel:</value>
+  </data>
+  <data name="AnalyzingProjectStatus" xml:space="preserve">
+    <value>Analyzing project...</value>
+  </data>
+  <data name="ProjectUpToDateMessage" xml:space="preserve">
+    <value>Project is up to date! (no updates necessary)</value>
+  </data>
+  <data name="PerformUpdatesPrompt" xml:space="preserve">
+    <value>Perform updates?</value>
+  </data>
+  <data name="WhichDirectoryNuGetConfigPrompt" xml:space="preserve">
+    <value>Which directory for NuGet.config file?</value>
+  </data>
+  <data name="ExecutingUpdateStepFormat" xml:space="preserve">
+    <value>Executing: {0}</value>
+  </data>
+  <data name="UpdateSuccessfulMessage" xml:space="preserve">
+    <value>Update successful!</value>
+  </data>
+  <data name="AnalyzeAppHost" xml:space="preserve">
+    <value>Analyze App Host</value>
+  </data>
+  <data name="AnalyzeAppHostSdk" xml:space="preserve">
+    <value>Analyze App Host SDK</value>
+  </data>
+  <data name="AnalyzeProjectFormat" xml:space="preserve">
+    <value>Analyze project: {0}</value>
+  </data>
+  <data name="UpdatePackageFormat" xml:space="preserve">
+    <value>Update package {0} from {1} to {2}</value>
+  </data>
+  <data name="FailedDiscoverNuGetConfig" xml:space="preserve">
+    <value>Failed to discover NuGet.config files.</value>
+  </data>
+  <data name="FailedFetchItemsAndPropertiesFormat" xml:space="preserve">
+    <value>Failed to fetch items and properties for project: {0}</value>
+  </data>
+  <data name="NoPackageFoundFormat" xml:space="preserve">
+    <value>No package found with ID '{0}' in channel '{1}'.</value>
+  </data>
+  <data name="CouldNotFindRootProjectElementFormat" xml:space="preserve">
+    <value>Could not find root &lt;Project&gt; element in {0}</value>
+  </data>
+  <data name="CouldNotFindSdkElementFormat" xml:space="preserve">
+    <value>Could not find &lt;Sdk Name='Aspire.AppHost.Sdk' /&gt; element in {0}</value>
+  </data>
+  <data name="ProjectReferenceNoFullPath" xml:space="preserve">
+    <value>Project reference does not have FullPath.</value>
+  </data>
+  <data name="PackageReferenceNoIdentity" xml:space="preserve">
+    <value>Package reference does not have Identity.</value>
+  </data>
+  <data name="PackageReferenceNoVersion" xml:space="preserve">
+    <value>Package reference does not have Version.</value>
+  </data>
+  <data name="FailedUpdatePackageReferenceFormat" xml:space="preserve">
+    <value>Failed to update package reference for {0} in project {1}.</value>
+  </data>
+  <data name="UnxpectedCodePath" xml:space="preserve">
+    <value>Unexpected code path.</value>
+  </data>
+  <data name="CentralPackageManagementNotSupported" xml:space="preserve">
+    <value>Central package management is currently not supported by 'aspire update'.</value>
+  </data>
+  <data name="CouldNotFindPackageVersionInDirectoryPackagesProps" xml:space="preserve">
+    <value>Could not find PackageVersion element for '{0}' in {1}</value>
+  </data>
+  <data name="NoChangesDetectedInNuGetConfig" xml:space="preserve">
+    <value>No changes detected in NuGet.config</value>
+  </data>
+  <data name="ApplyChangesToNuGetConfig" xml:space="preserve">
+    <value>Apply these changes to NuGet.config?</value>
+  </data>
+  <data name="AddedFeedFormat" xml:space="preserve">
+    <value>Added: {0}</value>
+  </data>
+  <data name="RemovedFeedFormat" xml:space="preserve">
+    <value>Removed: {0}</value>
+  </data>
+  <data name="RetainedFeedFormat" xml:space="preserve">
+    <value>Retained: {0}</value>
+  </data>
+  <data name="MappingAddedFormat" xml:space="preserve">
+    <value>   Mapping: {0} (added)</value>
+  </data>
+  <data name="MappingRemovedFormat" xml:space="preserve">
+    <value>   Mapping: {0} (removed)</value>
+  </data>
+  <data name="MappingRetainedFormat" xml:space="preserve">
+    <value>   Mapping: {0}</value>
+  </data>
+</root>

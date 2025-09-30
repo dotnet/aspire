@@ -128,7 +128,15 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         
         // Create and add new resource if it doesn't exist
         var store = SqlServer.FromExisting(bicepIdentifier);
-        store.Name = NameOutputReference.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = NameOutputReference.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

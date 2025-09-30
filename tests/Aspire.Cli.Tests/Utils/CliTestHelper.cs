@@ -15,12 +15,14 @@ using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Utils;
 using Microsoft.Extensions.Logging.Abstractions;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Caching;
 
 namespace Aspire.Cli.Tests.Utils;
 
@@ -84,6 +86,11 @@ internal static class CliTestHelper
         services.AddSingleton(options.DotNetSdkInstallerFactory);
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
+        services.AddSingleton(options.DiskCacheFactory);
+        services.AddSingleton<FallbackProjectParser>();
+        services.AddSingleton(options.ProjectUpdaterFactory);
+        services.AddSingleton<NuGetPackagePrefetcher>();
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         services.AddTransient<RootCommand>();
         services.AddTransient<NewCommand>();
         services.AddTransient<RunCommand>();
@@ -92,6 +99,9 @@ internal static class CliTestHelper
         services.AddTransient<DeployCommand>();
         services.AddTransient<PublishCommand>();
         services.AddTransient<ConfigCommand>();
+        services.AddTransient<CacheCommand>();
+        services.AddTransient<UpdateCommand>();
+        services.AddTransient<ExtensionInternalCommand>();
         services.AddTransient(options.AppHostBackchannelFactory);
 
         return services;
@@ -115,7 +125,8 @@ internal sealed class CliServiceCollectionTestOptions
     private CliExecutionContext CreateDefaultCliExecutionContextFactory(IServiceProvider provider)
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory);
+        var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory);
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -192,7 +203,8 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
     }
 
     public Func<IServiceProvider, AspireCliTelemetry> TelemetryFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -200,10 +212,22 @@ internal sealed class CliServiceCollectionTestOptions
         return new AspireCliTelemetry();
     };
 
+    public Func<IServiceProvider, IProjectUpdater> ProjectUpdaterFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<ProjectUpdater>>();
+        var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
+        var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
+        var cache = serviceProvider.GetRequiredService<IMemoryCache>();
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var fallbackParser = serviceProvider.GetRequiredService<FallbackProjectParser>();
+        return new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
+    };
+
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
-        return new ConsoleInteractionService(ansiConsole);
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        return new ConsoleInteractionService(ansiConsole, executionContext);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -220,9 +244,10 @@ internal sealed class CliServiceCollectionTestOptions
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
         var features = serviceProvider.GetRequiredService<IFeatures>();
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
-        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+    var diskCache = serviceProvider.GetRequiredService<IDiskCache>();
 
-        return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext);
+    return new DotNetCliRunner(logger, serviceProvider, telemetry, configuration, features, interactionService, executionContext, diskCache);
     };
 
     public Func<IServiceProvider, IDotNetSdkInstaller> DotNetSdkInstallerFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -236,7 +261,8 @@ internal sealed class CliServiceCollectionTestOptions
         var runner = serviceProvider.GetRequiredService<IDotNetCliRunner>();
         var cache = serviceProvider.GetRequiredService<IMemoryCache>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new NuGetPackageCache(logger, runner, cache, telemetry);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new NuGetPackageCache(logger, runner, cache, telemetry, features);
     };
 
     public Func<IServiceProvider, IAppHostBackchannel> AppHostBackchannelFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -274,7 +300,8 @@ internal sealed class CliServiceCollectionTestOptions
         var packagingService = serviceProvider.GetRequiredService<IPackagingService>();
         var prompter = serviceProvider.GetRequiredService<INewCommandPrompter>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        var factory = new DotNetTemplateFactory(interactionService, runner, certificateService, packagingService, prompter, executionContext, features);
         return new TemplateProvider([factory]);
     };
 
@@ -282,8 +309,12 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
         var nuGetPackageCache = serviceProvider.GetRequiredService<INuGetPackageCache>();
-        return new PackagingService(executionContext, nuGetPackageCache);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new PackagingService(executionContext, nuGetPackageCache, features, configuration);
     };
+
+    public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

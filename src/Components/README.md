@@ -195,12 +195,12 @@ builder.AddAzureServiceBus(settings =>
 });
 ```
 
-- If the underlying client library supports secret credentials (like a connection string), this should be read from `IConfiguration`. This can be placed either in the client integration-specific section, or under the global `ConnectionStrings` section. If both are specified, the client integration-specific section is used. For example:
+- If the underlying client library supports secret credentials (like a connection string), this should be read from `IConfiguration`. This can be placed either in the client integration-specific section, or under the global `ConnectionStrings` section. If both are specified, the `ConnectionStrings` section is used. For example:
 
 ```json
 {
   "ConnectionStrings": {
-    "Aspire.Azure.Messaging.ServiceBus": "Endpoint=sb://foo;..."
+    "myServiceBus": "Endpoint=sb://foo;..."
   },
   "Aspire": {
     "Azure": {

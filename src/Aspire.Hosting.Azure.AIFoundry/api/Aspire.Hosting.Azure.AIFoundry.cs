@@ -12,6 +12,8 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> AddAzureAIFoundry(this IDistributedApplicationBuilder builder, string name) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> builder, string name, Azure.AIFoundryModel model) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryDeploymentResource> AddDeployment(this ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> builder, string name, string modelName, string modelVersion, string format) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> RunAsFoundryLocal(this ApplicationModel.IResourceBuilder<Azure.AzureAIFoundryResource> builder) { throw null; }
@@ -25,6 +27,141 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Azure
 {
+    public partial class AIFoundryModel
+    {
+        public required string Format { get { throw null; } init { } }
+
+        public required string Name { get { throw null; } init { } }
+
+        public required string Version { get { throw null; } init { } }
+
+        public static partial class AI21Labs
+        {
+            public static readonly AIFoundryModel Ai21Jamba15Large;
+            public static readonly AIFoundryModel Ai21Jamba15Mini;
+        }
+
+        public static partial class BlackForestLabs
+        {
+            public static readonly AIFoundryModel Flux11Pro;
+            public static readonly AIFoundryModel Flux1KontextPro;
+        }
+
+        public static partial class Cohere
+        {
+            public static readonly AIFoundryModel CohereCommandA;
+            public static readonly AIFoundryModel CohereCommandR;
+            public static readonly AIFoundryModel CohereCommandR082024;
+            public static readonly AIFoundryModel CohereCommandRPlus;
+            public static readonly AIFoundryModel CohereCommandRPlus082024;
+            public static readonly AIFoundryModel CohereEmbedV3English;
+            public static readonly AIFoundryModel CohereEmbedV3Multilingual;
+            public static readonly AIFoundryModel EmbedV40;
+        }
+
+        public static partial class Core42
+        {
+            public static readonly AIFoundryModel Jais30bChat;
+        }
+
+        public static partial class DeepSeek
+        {
+            public static readonly AIFoundryModel DeepseekR1;
+            public static readonly AIFoundryModel DeepseekR10528;
+            public static readonly AIFoundryModel DeepseekV3;
+            public static readonly AIFoundryModel DeepseekV30324;
+        }
+
+        public static partial class Meta
+        {
+            public static readonly AIFoundryModel Llama3211BVisionInstruct;
+            public static readonly AIFoundryModel Llama3290BVisionInstruct;
+            public static readonly AIFoundryModel Llama3370BInstruct;
+            public static readonly AIFoundryModel Llama4Maverick17B128EInstructFp8;
+            public static readonly AIFoundryModel Llama4Scout17B16EInstruct;
+            public static readonly AIFoundryModel MetaLlama31405BInstruct;
+            public static readonly AIFoundryModel MetaLlama3170BInstruct;
+            public static readonly AIFoundryModel MetaLlama318BInstruct;
+            public static readonly AIFoundryModel MetaLlama370BInstruct;
+            public static readonly AIFoundryModel MetaLlama38BInstruct;
+        }
+
+        public static partial class Microsoft
+        {
+            public static readonly AIFoundryModel AzureAiContentSafety;
+            public static readonly AIFoundryModel AzureAiContentUnderstanding;
+            public static readonly AIFoundryModel AzureAiDocumentIntelligence;
+            public static readonly AIFoundryModel AzureAiLanguage;
+            public static readonly AIFoundryModel AzureAiSpeech;
+            public static readonly AIFoundryModel AzureAiTranslator;
+            public static readonly AIFoundryModel AzureAiVision;
+            public static readonly AIFoundryModel MaiDsR1;
+            public static readonly AIFoundryModel ModelRouter;
+            public static readonly AIFoundryModel Phi4;
+            public static readonly AIFoundryModel Phi4MiniInstruct;
+            public static readonly AIFoundryModel Phi4MiniReasoning;
+            public static readonly AIFoundryModel Phi4Reasoning;
+        }
+
+        public static partial class MistralAi
+        {
+            public static readonly AIFoundryModel Codestral2501;
+            public static readonly AIFoundryModel Ministral3B;
+            public static readonly AIFoundryModel MistralDocumentAi2505;
+            public static readonly AIFoundryModel MistralLarge2407;
+            public static readonly AIFoundryModel MistralLarge2411;
+            public static readonly AIFoundryModel MistralMedium2505;
+            public static readonly AIFoundryModel MistralNemo;
+            public static readonly AIFoundryModel MistralSmall;
+            public static readonly AIFoundryModel MistralSmall2503;
+        }
+
+        public static partial class OpenAI
+        {
+            public static readonly AIFoundryModel CodexMini;
+            public static readonly AIFoundryModel DallE3;
+            public static readonly AIFoundryModel Davinci002;
+            public static readonly AIFoundryModel Gpt35Turbo;
+            public static readonly AIFoundryModel Gpt35Turbo16k;
+            public static readonly AIFoundryModel Gpt35TurboInstruct;
+            public static readonly AIFoundryModel Gpt4;
+            public static readonly AIFoundryModel Gpt41;
+            public static readonly AIFoundryModel Gpt41Mini;
+            public static readonly AIFoundryModel Gpt41Nano;
+            public static readonly AIFoundryModel Gpt432k;
+            public static readonly AIFoundryModel Gpt4o;
+            public static readonly AIFoundryModel Gpt4oAudioPreview;
+            public static readonly AIFoundryModel Gpt4oMini;
+            public static readonly AIFoundryModel Gpt4oMiniAudioPreview;
+            public static readonly AIFoundryModel Gpt4oMiniRealtimePreview;
+            public static readonly AIFoundryModel Gpt4oMiniTranscribe;
+            public static readonly AIFoundryModel Gpt4oMiniTts;
+            public static readonly AIFoundryModel Gpt4oRealtimePreview;
+            public static readonly AIFoundryModel Gpt4oTranscribe;
+            public static readonly AIFoundryModel Gpt5Chat;
+            public static readonly AIFoundryModel Gpt5Mini;
+            public static readonly AIFoundryModel Gpt5Nano;
+            public static readonly AIFoundryModel GptOss120b;
+            public static readonly AIFoundryModel O1;
+            public static readonly AIFoundryModel O1Mini;
+            public static readonly AIFoundryModel O3Mini;
+            public static readonly AIFoundryModel O4Mini;
+            public static readonly AIFoundryModel Sora;
+            public static readonly AIFoundryModel TextEmbedding3Large;
+            public static readonly AIFoundryModel TextEmbedding3Small;
+            public static readonly AIFoundryModel TextEmbeddingAda002;
+            public static readonly AIFoundryModel Tts;
+            public static readonly AIFoundryModel TtsHd;
+            public static readonly AIFoundryModel Whisper;
+        }
+
+        public static partial class XAI
+        {
+            public static readonly AIFoundryModel Grok3;
+            public static readonly AIFoundryModel Grok3Mini;
+        }
+    }
+
     public partial class AzureAIFoundryDeploymentResource : ApplicationModel.Resource, ApplicationModel.IResourceWithParent<AzureAIFoundryResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureAIFoundryDeploymentResource(string name, string modelName, string modelVersion, string format, AzureAIFoundryResource parent) : base(default!) { }
@@ -46,7 +183,7 @@ namespace Aspire.Hosting.Azure
         public string SkuName { get { throw null; } set { } }
     }
 
-    public partial class AzureAIFoundryResource : AzureProvisioningResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IResource, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
+    public partial class AzureAIFoundryResource : AzureProvisioningResource, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource, ApplicationModel.IResourceWithConnectionString, ApplicationModel.IManifestExpressionProvider, ApplicationModel.IValueProvider, ApplicationModel.IValueWithReferences
     {
         public AzureAIFoundryResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure) : base(default!, default!) { }
 

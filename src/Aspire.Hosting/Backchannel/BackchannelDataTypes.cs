@@ -161,6 +161,11 @@ internal sealed class PublishingPromptInput
     /// Gets the validation errors for the input.
     /// </summary>
     public IReadOnlyList<string>? ValidationErrors { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a custom choice is allowed.
+    /// </summary>
+    public bool AllowCustomChoice { get; init; }
 }
 
 /// <summary>

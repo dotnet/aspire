@@ -43,4 +43,25 @@ public class AzureLogAnalyticsWorkspaceExtensionsTests
         // Assert - Both calls should return the same resource instance, not duplicates
         Assert.Same(firstResult, secondResult);
     }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureLogAnalyticsWorkspaceResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-logworkspace-name");
+        var existingResourceGroup = builder.AddParameter("existing-logworkspace-rg");
+
+        var logAnalyticsWorkspace = builder.AddAzureLogAnalyticsWorkspace("test-log-workspace")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = logAnalyticsWorkspace.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }

@@ -79,7 +79,15 @@ public sealed class AzureUserAssignedIdentityResource(string name)
         
         // Create and add new resource if it doesn't exist
         var store = UserAssignedIdentity.FromExisting(bicepIdentifier);
-        store.Name = PrincipalName.AsProvisioningParameter(infra);
+
+        if (!TryApplyExistingResourceAnnotation(
+            this,
+            infra,
+            store))
+        {
+            store.Name = PrincipalName.AsProvisioningParameter(infra);
+        }
+
         infra.Add(store);
         return store;
     }

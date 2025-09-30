@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Components.Controls.Chart
 @using Aspire.Dashboard.Model
+@using Aspire.Dashboard.Model.Interaction
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Otlp.Model
 @using Aspire.Dashboard.Resources
@@ -10,8 +11,6 @@
 @using Aspire.DashboardService.Proto.V1
 @using Dialogs = Aspire.Dashboard.Resources.Dialogs
 @implements IDialogContentComponent<InteractionsInputsDialogViewModel>
-
-@inject IStringLocalizer<Dialogs> Loc
 
 <FluentDialogHeader ShowDismiss="@Dialog.Instance.Parameters.ShowDismiss">
     <FluentStack VerticalAlignment="VerticalAlignment.Center">
@@ -74,19 +73,54 @@
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
                         case InputType.Choice:
-                            <FluentSelect TOption="SelectViewModel<string>"
-                                          @ref="@_elementRefs[localItem]"
-                                          @bind-Value="localItem.Value"
-                                          Label="@localItem.Input.Label"
-                                          Placeholder="@localItem.Input.Placeholder"
-                                          AriaLabel="@localItem.Input.Description"
-                                          Required="localItem.Input.Required"
-                                          Items="localItem.SelectOptions"
-                                          OptionValue="@(vm => vm.Id)"
-                                          OptionText="@(vm => vm.Name)"
-                                          Height="250px"
-                                          Position="SelectPosition.Below"
-                                          aria-describedby="@descriptionId" />
+                            if (!localItem.Input.AllowCustomChoice)
+                            {
+                                <FluentSelect TOption="SelectViewModel<string>"
+                                              @ref="@_elementRefs[localItem]"
+                                              @bind-Value="localItem.Value"
+                                              Label="@localItem.Input.Label"
+                                              Placeholder="@localItem.Input.Placeholder"
+                                              AriaLabel="@localItem.Input.Description"
+                                              Required="localItem.Input.Required"
+                                              Items="localItem.SelectOptions"
+                                              OptionValue="@(vm => vm.Id)"
+                                              OptionText="@(vm => vm.Name)"
+                                              Height="250px"
+                                              Position="SelectPosition.Below"
+                                              aria-describedby="@descriptionId">
+                                    <OptionTemplate Context="optionContext">
+                                        @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+                                        @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+                                        <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
+                                            @optionContext.Name
+                                        </span>
+                                    </OptionTemplate>
+                                </FluentSelect>
+                            }
+                            else
+                            {
+                                <FluentCombobox TOption="SelectViewModel<string>"
+                                                @ref="@_elementRefs[localItem]"
+                                                @bind-Value="localItem.Value"
+                                                Label="@localItem.Input.Label"
+                                                Placeholder="@localItem.Input.Placeholder"
+                                                AriaLabel="@localItem.Input.Description"
+                                                Required="localItem.Input.Required"
+                                                Items="localItem.SelectOptions"
+                                                OptionValue="@(vm => vm.Id)"
+                                                OptionText="@(vm => vm.Name)"
+                                                Height="250px"
+                                                Position="SelectPosition.Below"
+                                                aria-describedby="@descriptionId">
+                                    <OptionTemplate Context="optionContext">
+                                        @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
+                                        @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
+                                        <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
+                                            @optionContext.Name
+                                        </span>
+                                    </OptionTemplate>
+                                </FluentCombobox>
+                            }
                             @GetDescriptionContent(localItem.Input, descriptionId)
                             <ValidationMessage For="@(() => localItem.Value)" />
                             break;
@@ -138,7 +172,7 @@
 </FluentDialogFooter>
 
 @code {
-    private static RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
+    private RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
     {
         @if (!string.IsNullOrEmpty(vm.Description))
         {
@@ -146,7 +180,7 @@
             @<div class="input-description" id="@id">
                 @if (vm.EnableDescriptionMarkdown)
                 {
-                    @InteractionMarkdownHelper.ToMarkupString(vm.Description)
+                    <MarkdownRenderer MarkdownProcessor="@_markdownProcessor" Markdown="@vm.Description" SuppressParagraphOnNewLines="true" />
                 }
                 else
                 {

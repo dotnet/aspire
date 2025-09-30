@@ -13,12 +13,11 @@ namespace Aspire.Hosting.Yarp;
 public class YarpCluster
 {
     // Testing only
-    internal YarpCluster(ClusterConfig config, object target)
+    internal YarpCluster(ClusterConfig config, params object[] targets)
     {
         ClusterConfig = config;
-        Target = target;
+        Targets = targets;
     }
-
     /// <summary>
     /// Construct a new YarpCluster targeting the endpoint in parameter.
     /// </summary>
@@ -46,19 +45,24 @@ public class YarpCluster
     {
     }
 
-    private YarpCluster(string resourceName, object target)
+    /// <summary>
+    /// Creates a new instance of <see cref="YarpCluster"/> with a specified list of addresses.
+    /// </summary>
+    /// <param name="resourceName">The name of the resource.</param>
+    /// <param name="targets">The target objects for the cluster (e.g., addresses, URIs, or other endpoint representations).</param>
+    internal YarpCluster(string resourceName, params object[] targets)
     {
         ClusterConfig = new()
         {
             ClusterId = $"cluster_{resourceName}",
             Destinations = new Dictionary<string, DestinationConfig>(StringComparer.OrdinalIgnoreCase)
         };
-        Target = target;
+        Targets = targets;
     }
 
     internal ClusterConfig ClusterConfig { get; private set; }
 
-    internal object Target { get; private set; }
+    internal object[] Targets { get; private set; }
 
     internal void Configure(Func<ClusterConfig, ClusterConfig> configure)
     {

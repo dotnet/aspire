@@ -247,17 +247,6 @@ public class ExternalServiceTests
     }
 
     [Fact]
-    public void ExternalServiceResourceImplementsExpectedInterfaces()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-
-        var externalService = builder.AddExternalService("nuget", "https://nuget.org/");
-
-        // Verify the resource implements the expected interfaces
-        Assert.IsAssignableFrom<IResourceWithoutLifetime>(externalService.Resource);
-    }
-
-    [Fact]
     public void ExternalServiceResourceIsExcludedFromPublishingManifest()
     {
         //ManifestPublishingCallbackAnnotation

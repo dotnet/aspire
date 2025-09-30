@@ -18,6 +18,12 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
         return new DefaultArmClient(armClient);
     }
 
+    public IArmClient GetArmClient(TokenCredential credential)
+    {
+        var armClient = new ArmClient(credential);
+        return new DefaultArmClient(armClient);
+    }
+
     private sealed class DefaultArmClient(ArmClient armClient) : IArmClient
     {
         public async Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default)
@@ -42,6 +48,31 @@ internal sealed class DefaultArmClientProvider : IArmClientProvider
             }
 
             return (subscriptionResource, tenantResource);
+        }
+
+        public async Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
+        {
+            var subscriptions = new List<ISubscriptionResource>();
+
+            await foreach (var subscription in armClient.GetSubscriptions().GetAllAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+            {
+                subscriptions.Add(new DefaultSubscriptionResource(subscription));
+            }
+
+            return subscriptions;
+        }
+
+        public async Task<IEnumerable<(string Name, string DisplayName)>> GetAvailableLocationsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+        {
+            var subscription = await armClient.GetSubscriptions().GetAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+            var locations = new List<(string Name, string DisplayName)>();
+
+            foreach (var location in subscription.Value.GetLocations(cancellationToken: cancellationToken))
+            {
+                locations.Add((location.Name, location.DisplayName ?? location.Name));
+            }
+
+            return locations.OrderBy(l => l.DisplayName);
         }
 
         private sealed class DefaultTenantResource(TenantResource tenantResource) : ITenantResource

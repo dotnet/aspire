@@ -20,7 +20,7 @@ public class OtlpResource
     public const string PROCESS_EXECUTABLE_NAME = "process.executable.name";
 
     public string ResourceName { get; }
-    public string InstanceId { get; }
+    public string? InstanceId { get; }
     public OtlpContext Context { get; }
     // This flag indicates whether the app was created for an uninstrumented peer.
     // It's used to hide the app on pages that don't use uninstrumented peers.
@@ -34,7 +34,7 @@ public class OtlpResource
     private readonly Dictionary<OtlpInstrumentKey, OtlpInstrument> _instruments = new();
     private readonly ConcurrentDictionary<KeyValuePair<string, string>[], OtlpResourceView> _resourceViews = new(ResourceViewKeyComparer.Instance);
 
-    public OtlpResource(string name, string instanceId, bool uninstrumentedPeer, OtlpContext context)
+    public OtlpResource(string name, string? instanceId, bool uninstrumentedPeer, OtlpContext context)
     {
         ResourceName = name;
         InstanceId = instanceId;
@@ -272,13 +272,18 @@ public class OtlpResource
                     // Convert long GUID into a shorter, more human friendly format.
                     // Before: aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
                     // After:  aaaaaaaa
-                    if (Guid.TryParse(instanceId, out var guid))
+                    if (instanceId != null && Guid.TryParse(instanceId, out var guid))
                     {
                         Span<char> chars = stackalloc char[32];
                         var result = guid.TryFormat(chars, charsWritten: out _, format: "N");
                         Debug.Assert(result, "Guid.TryFormat not successful.");
 
                         instanceId = chars.Slice(0, 8).ToString();
+                    }
+
+                    if (instanceId == null)
+                    {
+                        return item.ResourceName;
                     }
 
                     return $"{item.ResourceName}-{instanceId}";

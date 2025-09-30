@@ -18,16 +18,28 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Commands;
 
-internal sealed class NewCommand : BaseCommand
+internal sealed class NewCommand : BaseCommand, IPackageMetaPrefetchingCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly INuGetPackageCache _nuGetPackageCache;
     private readonly ICertificateService _certificateService;
     private readonly INewCommandPrompter _prompter;
-    private readonly IInteractionService _interactionService;
     private readonly IEnumerable<ITemplate> _templates;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly IFeatures _features;
+    private readonly ICliUpdateNotifier _updateNotifier;
+    private readonly CliExecutionContext _executionContext;
+
+    /// <summary>
+    /// NewCommand prefetches both template and CLI package metadata.
+    /// </summary>
+    public bool PrefetchesTemplatePackageMetadata => true;
+    
+    /// <summary>
+    /// NewCommand prefetches CLI package metadata for update notifications.
+    /// </summary>
+    public bool PrefetchesCliPackageMetadata => true;
 
     public NewCommand(
         IDotNetCliRunner runner,
@@ -39,14 +51,14 @@ internal sealed class NewCommand : BaseCommand
         AspireCliTelemetry telemetry,
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
-        ICliUpdateNotifier updateNotifier)
-        : base("new", NewCommandStrings.Description, features, updateNotifier)
+        ICliUpdateNotifier updateNotifier,
+        CliExecutionContext executionContext)
+        : base("new", NewCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(nuGetPackageCache);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(prompter);
-        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(templateProvider);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
@@ -55,9 +67,11 @@ internal sealed class NewCommand : BaseCommand
         _nuGetPackageCache = nuGetPackageCache;
         _certificateService = certificateService;
         _prompter = prompter;
-        _interactionService = interactionService;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _features = features;
+        _updateNotifier = updateNotifier;
+        _executionContext = executionContext;
 
         var nameOption = new Option<string>("--name", "-n");
         nameOption.Description = NewCommandStrings.NameArgumentDescription;
@@ -83,7 +97,7 @@ internal sealed class NewCommand : BaseCommand
 
         foreach (var template in _templates)
         {
-            var templateCommand = new TemplateCommand(template, ExecuteAsync, features, updateNotifier);
+            var templateCommand = new TemplateCommand(template, ExecuteAsync, _features, _updateNotifier, _executionContext, InteractionService);
             Subcommands.Add(templateCommand);
         }
     }
@@ -107,7 +121,7 @@ internal sealed class NewCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -116,9 +130,9 @@ internal sealed class NewCommand : BaseCommand
 
         var template = await GetProjectTemplateAsync(parseResult, cancellationToken);
         var templateResult = await template.ApplyTemplateAsync(parseResult, cancellationToken);
-        if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(_interactionService, out var extensionInteractionService, out _))
+        if (templateResult.OutputPath is not null && ExtensionHelper.IsExtensionHost(InteractionService, out var extensionInteractionService, out _))
         {
-            extensionInteractionService.OpenNewProject(templateResult.OutputPath);
+            extensionInteractionService.OpenEditor(templateResult.OutputPath);
         }
 
         return templateResult.ExitCode;
