@@ -172,6 +172,9 @@
 
 ::deep .resource-name {
     margin-left: 16px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
 ::deep .trace-header {
