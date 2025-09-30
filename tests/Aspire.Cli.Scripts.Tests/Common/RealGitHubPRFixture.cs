@@ -103,12 +103,15 @@ public class RealGitHubPRFixture : IAsyncLifetime
                 .WithTimeout(TimeSpan.FromSeconds(30));
 
             // Get workflow runs for this PR
+            // Wrap jq filter in single quotes to preserve internal quotes
+            var jqFilter = $"'[.[]|select(.displayTitle|contains(\"#{prNumber}\"))|select(.conclusion==\"success\")]|.[0].databaseId'";
+            
             var result = await command.ExecuteAsync(
                 "run", "list",
                 "--repo", Repository,
                 "--json", "databaseId,conclusion,displayTitle",
                 "--limit", "20",
-                "--jq", $"[.[]|select(.displayTitle|contains(\"#{prNumber}\"))|select(.conclusion==\"success\")]|.[0].databaseId"
+                "--jq", jqFilter
             );
 
             if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(result.Output))
