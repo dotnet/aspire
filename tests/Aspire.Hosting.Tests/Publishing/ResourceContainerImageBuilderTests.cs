@@ -44,8 +44,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
     }
 
+    // Quarantined on Azure DevOps build machines due to Docker buildx infrastructure issue.
+    // Tests pass on GitHub Actions and local development machines.
+    // Issue tracked at: https://github.com/dotnet/dnceng/issues/6232
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -184,8 +188,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Contains(logs, log => log.Message.Contains(".NET CLI completed with exit code: 0"));
     }
 
+    // Quarantined on Azure DevOps build machines due to Docker buildx infrastructure issue.
+    // Tests pass on GitHub Actions and local development machines.
+    // Issue tracked at: https://github.com/dotnet/dnceng/issues/6232
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -223,8 +231,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
             log.Message.Contains("Failed to build container image"));
     }
 
+    // Quarantined on Azure DevOps build machines due to Docker buildx infrastructure issue.
+    // Tests pass on GitHub Actions and local development machines.
+    // Issue tracked at: https://github.com/dotnet/dnceng/issues/6232
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -382,8 +394,12 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         Assert.Equal(ContainerTargetPlatform.LinuxArm64, options.TargetPlatform);
     }
 
+    // Quarantined on Azure DevOps build machines due to Docker buildx infrastructure issue.
+    // Tests pass on GitHub Actions and local development machines.
+    // Issue tracked at: https://github.com/dotnet/dnceng/issues/6232
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
