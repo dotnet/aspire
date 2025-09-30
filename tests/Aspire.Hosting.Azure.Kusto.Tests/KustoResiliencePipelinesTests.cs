@@ -42,7 +42,7 @@ public class KustoResiliencePipelinesTests
         {
             await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
-        Assert.True(attemptCount == 1, "Operation should not have been retried");
+        Assert.Equal(1, attemptCount);
     }
 
     [Fact]
@@ -61,6 +61,6 @@ public class KustoResiliencePipelinesTests
         {
             await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(work, TestContext.Current.CancellationToken);
         });
-        Assert.True(attemptCount == 1, "Operation should not have been retried");
+        Assert.Equal(1, attemptCount);
     }
 }
