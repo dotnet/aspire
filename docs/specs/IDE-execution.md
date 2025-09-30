@@ -266,7 +266,6 @@ Properties specific to session message notification are:
 | `code` | The error code. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `string` (required for error messages) |
 | `details` | Error details. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `ErrorDetail[]` (optional) |
 
-
 ## Error reporting
 
 When the IDE encounters an error during request processing, the request response should include a body in JSON format, with a single property named "error", for example:
