@@ -216,6 +216,30 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (projectFile is not null)
         {
+            // Check if the provided path is actually a directory
+            if (Directory.Exists(projectFile.FullName))
+            {
+                logger.LogDebug("Provided path {Path} is a directory, searching for project files", projectFile.FullName);
+                var directory = new DirectoryInfo(projectFile.FullName);
+                var projectFiles = directory.GetFiles("*.csproj", SearchOption.TopDirectoryOnly);
+
+                if (projectFiles.Length == 0)
+                {
+                    logger.LogError("No project files found in directory {Directory}", directory.FullName);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                }
+                else if (projectFiles.Length == 1)
+                {
+                    logger.LogDebug("Found single project file {ProjectFile} in directory {Directory}", projectFiles[0].FullName, directory.FullName);
+                    projectFile = projectFiles[0];
+                }
+                else
+                {
+                    logger.LogError("Multiple project files found in directory {Directory}", directory.FullName);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                }
+            }
+
             // If the project file is passed, validate it.
             if (!projectFile.Exists)
             {

@@ -785,4 +785,84 @@ builder.Build().Run();");
         await Assert.ThrowsAsync<ProjectLocatorException>(() =>
             projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile));
     }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithSingleProject()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a subdirectory with a single project file
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MyAppHost");
+        var projectFile = new FileInfo(Path.Combine(projectDirectory.FullName, "MyAppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        // Pass directory as FileInfo (this is how System.CommandLine would parse it)
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
+
+        Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileThrowsWhenDirectoryHasNoProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create an empty subdirectory
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("EmptyDir");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        // Pass directory as FileInfo
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
+        {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
+        });
+
+        Assert.Equal("Project file does not exist.", ex.Message);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileThrowsWhenDirectoryHasMultipleProjects()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a subdirectory with multiple project files
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MultiProject");
+        var projectFile1 = new FileInfo(Path.Combine(projectDirectory.FullName, "Project1.csproj"));
+        await File.WriteAllTextAsync(projectFile1.FullName, "Not a real project file.");
+        var projectFile2 = new FileInfo(Path.Combine(projectDirectory.FullName, "Project2.csproj"));
+        await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        // Pass directory as FileInfo
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
+        {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
+        });
+
+        Assert.Equal("Project file does not exist.", ex.Message);
+    }
 }
