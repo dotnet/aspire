@@ -425,14 +425,23 @@ function Expand-AspireCliArchive {
                     Set-Location $currentLocation
                 }
                 
-                # Move the aspire binary from aspire/ subdirectory to the final destination
-                $expectedBinary = Join-Path $tempExtractDir "aspire" "aspire"
+                # Check for new structure (aspire/aspire) first, then fall back to old structure (aspire in root)
+                $newStructureBinary = Join-Path $tempExtractDir "aspire" "aspire"
+                $oldStructureBinary = Join-Path $tempExtractDir "aspire"
                 $targetBinary = Join-Path $DestinationPath "aspire"
-                if (Test-Path $expectedBinary) {
-                    Move-Item -Path $expectedBinary -Destination $targetBinary -Force
+                
+                if (Test-Path $newStructureBinary) {
+                    # New structure: binary is in aspire/ subdirectory
+                    Write-Message "Detected new archive structure (aspire/aspire)" -Level Verbose
+                    Move-Item -Path $newStructureBinary -Destination $targetBinary -Force
+                }
+                elseif (Test-Path $oldStructureBinary) {
+                    # Old structure: binary is in root
+                    Write-Message "Detected old archive structure (aspire in root)" -Level Verbose
+                    Move-Item -Path $oldStructureBinary -Destination $targetBinary -Force
                 }
                 else {
-                    throw "Expected aspire binary not found in archive at aspire/aspire"
+                    throw "Expected aspire binary not found in archive (checked aspire/aspire and aspire)"
                 }
             }
             finally {

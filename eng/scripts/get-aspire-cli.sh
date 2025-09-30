@@ -430,7 +430,7 @@ install_archive() {
             return 1
         fi
 
-        # For Linux archives, the structure is different - binary is in aspire/ subdirectory
+        # For Linux archives, detect structure (new: aspire/aspire, old: aspire in root)
         if [[ "$os" == "linux" || "$os" == "linux-musl" ]]; then
             # Create a temporary directory for extraction
             local temp_extract_dir
@@ -443,15 +443,25 @@ install_archive() {
                 return 1
             fi
             
-            # Move the aspire binary from aspire/ subdirectory to the final destination
+            # Check for new structure (aspire/aspire) first, then fall back to old structure (aspire in root)
             if [[ -f "$temp_extract_dir/aspire/aspire" ]]; then
+                # New structure: binary is in aspire/ subdirectory
+                say_verbose "Detected new archive structure (aspire/aspire)"
                 if ! mv "$temp_extract_dir/aspire/aspire" "$destination_path/aspire"; then
                     say_error "Failed to move aspire binary to destination"
                     rm -rf "$temp_extract_dir" || true
                     return 1
                 fi
+            elif [[ -f "$temp_extract_dir/aspire" ]]; then
+                # Old structure: binary is in root
+                say_verbose "Detected old archive structure (aspire in root)"
+                if ! mv "$temp_extract_dir/aspire" "$destination_path/aspire"; then
+                    say_error "Failed to move aspire binary to destination"
+                    rm -rf "$temp_extract_dir" || true
+                    return 1
+                fi
             else
-                say_error "Expected aspire binary not found in archive at aspire/aspire"
+                say_error "Expected aspire binary not found in archive (checked aspire/aspire and aspire)"
                 rm -rf "$temp_extract_dir" || true
                 return 1
             fi
