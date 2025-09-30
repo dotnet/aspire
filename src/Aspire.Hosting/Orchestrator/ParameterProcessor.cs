@@ -96,10 +96,30 @@ public sealed class ParameterProcessor(
 
     private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        var publishExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var publishExecutionContextOptions = new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish);
+        
+        // Try to get the ServiceProvider from the existing execution context if available
+        if (executionContext.Operation == DistributedApplicationOperation.Run)
+        {
+            try
+            {
+                publishExecutionContextOptions.ServiceProvider = executionContext.ServiceProvider;
+            }
+            catch (InvalidOperationException)
+            {
+                // ServiceProvider might not be available yet, which is fine for parameter collection
+            }
+        }
+
+        var publishExecutionContext = new DistributedApplicationExecutionContext(publishExecutionContextOptions);
 
         foreach (var resource in model.Resources)
         {
+            if (resource.IsExcludedFromPublish())
+            {
+                continue;
+            }
+
             await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
         }
 
