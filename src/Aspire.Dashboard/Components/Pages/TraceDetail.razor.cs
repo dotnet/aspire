@@ -521,6 +521,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             span,
             selectedLogEntryId: null,
             TelemetryRepository,
+            Logger,
             _resources,
             () =>
             {

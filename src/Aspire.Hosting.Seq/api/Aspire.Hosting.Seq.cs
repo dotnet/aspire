@@ -10,6 +10,8 @@ namespace Aspire.Hosting
 {
     public static partial class SeqBuilderExtensions
     {
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.SeqResource> AddSeq(this IDistributedApplicationBuilder builder, string name, ApplicationModel.IResourceBuilder<ApplicationModel.ParameterResource>? adminPassword, int? port = null) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SeqResource> AddSeq(this IDistributedApplicationBuilder builder, string name, int? port = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.SeqResource> WithDataBindMount(this ApplicationModel.IResourceBuilder<ApplicationModel.SeqResource> builder, string source, bool isReadOnly = false) { throw null; }

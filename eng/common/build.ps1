@@ -30,7 +30,6 @@ Param(
   [string] $runtimeSourceFeedKey = '',
   [switch] $excludePrereleaseVS,
   [switch] $nativeToolsOnMachine,
-  [switch] $buildExtension,
   [switch] $help,
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -38,7 +37,7 @@ Param(
 # Unset 'Platform' environment variable to avoid unwanted collision in InstallDotNetCore.targets file
 # some computer has this env var defined (e.g. Some HP)
 if($env:Platform) {
-  $env:Platform=""
+  $env:Platform=""  
 }
 function Print-Usage() {
   Write-Host "Common settings:"
@@ -77,7 +76,6 @@ function Print-Usage() {
   Write-Host "  -nodeReuse <value>      Sets nodereuse msbuild parameter ('true' or 'false')"
   Write-Host "  -buildCheck             Sets /check msbuild parameter"
   Write-Host "  -fromVMR                Set when building from within the VMR"
-  Write-Host "  -buildExtension         Build the VS Code extension"
   Write-Host ""
 
   Write-Host "Command line arguments not listed above are passed thru to msbuild."
@@ -98,8 +96,6 @@ function InitializeCustomToolset {
   }
 }
 
-
-
 function Build {
   $toolsetBuildProj = InitializeToolset
   InitializeCustomToolset
@@ -112,10 +108,10 @@ function Build {
     # Re-assign properties to a new variable because PowerShell doesn't let us append properties directly for unclear reasons.
     # Explicitly set the type as string[] because otherwise PowerShell would make this char[] if $properties is empty.
     [string[]] $msbuildArgs = $properties
-
-    # Resolve relative project paths into full paths
+    
+    # Resolve relative project paths into full paths 
     $projects = ($projects.Split(';').ForEach({Resolve-Path $_}) -join ';')
-
+    
     $msbuildArgs += "/p:Projects=$projects"
     $properties = $msbuildArgs
   }
@@ -140,7 +136,6 @@ function Build {
     /p:Sign=$sign `
     /p:Publish=$publish `
     /p:RestoreStaticGraphEnableBinaryLogger=$binaryLog `
-    /p:BuildExtension=$buildExtension `
     @properties
 }
 
