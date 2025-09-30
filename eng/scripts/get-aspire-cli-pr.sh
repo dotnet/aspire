@@ -395,9 +395,41 @@ install_archive() {
             say_error "tar command not found. Please install tar to extract tar.gz files."
             return 1
         fi
-        if ! tar -xzf "$archive_file" -C "$destination_path"; then
-            say_error "Failed to extract tar.gz archive: $archive_file"
-            return 1
+        
+        # For Linux archives, the structure is different - binary is in aspire/ subdirectory
+        if [[ "$HOST_OS" == "linux" || "$HOST_OS" == "linux-musl" ]]; then
+            # Create a temporary directory for extraction
+            local temp_extract_dir
+            temp_extract_dir=$(mktemp -d -t aspire-extract-XXXXXXXX)
+            
+            # Extract to temporary directory
+            if ! tar -xzf "$archive_file" -C "$temp_extract_dir"; then
+                say_error "Failed to extract tar.gz archive: $archive_file"
+                rm -rf "$temp_extract_dir" || true
+                return 1
+            fi
+            
+            # Move the aspire binary from aspire/ subdirectory to the final destination
+            if [[ -f "$temp_extract_dir/aspire/aspire" ]]; then
+                if ! mv "$temp_extract_dir/aspire/aspire" "$destination_path/aspire"; then
+                    say_error "Failed to move aspire binary to destination"
+                    rm -rf "$temp_extract_dir" || true
+                    return 1
+                fi
+            else
+                say_error "Expected aspire binary not found in archive at aspire/aspire"
+                rm -rf "$temp_extract_dir" || true
+                return 1
+            fi
+            
+            # Clean up temporary directory
+            rm -rf "$temp_extract_dir" || true
+        else
+            # For other Unix systems (macOS) and Windows, extract directly as before
+            if ! tar -xzf "$archive_file" -C "$destination_path"; then
+                say_error "Failed to extract tar.gz archive: $archive_file"
+                return 1
+            fi
         fi
     else
         say_error "Unsupported archive format: $archive_file. Only .zip and .tar.gz files are supported."

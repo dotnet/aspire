@@ -108,7 +108,7 @@
       <OtherFiles Include="$(OutputPath)*.*" />
     </ItemGroup>
     <Move SourceFiles="@(OtherFiles)" DestinationFolder="$(_AspireSubdirectory)" ContinueOnError="true" />
-  </Target?
+  </Target>
 
   <Target Name="_CheckMaxFileSize">
     <PropertyGroup>
