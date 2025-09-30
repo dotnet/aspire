@@ -247,7 +247,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
             true => ["run", projectFile.FullName, "--", ..args]
         };
-        
+
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
@@ -540,7 +540,6 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
             startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
-            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
 
             if (backchannelCompletionSource is not null
                 && projectFile is not null

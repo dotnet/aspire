@@ -282,7 +282,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
+                      .WithExtensionDebugSupport("project", projectPath, "coreclr", "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 

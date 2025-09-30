@@ -965,19 +965,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetDebugSupportedResourceTypes()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetExtensionCapabilities()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.Type = supportsDebuggingAnnotation.DebugAdapterId;
-                projectLaunchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
+                var launchConfiguration = supportsDebuggingAnnotation.LaunchConfiguration ?? new ExecutableLaunchConfiguration(supportsDebuggingAnnotation.DebugAdapterId);
+                launchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
 
-                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
-                {
-                    projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
-                }
-
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchConfiguration);
             }
             else
             {
@@ -1027,14 +1021,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var projectArgs = new List<string>();
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains("project") is not false)
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetExtensionCapabilities()?.Contains("project") is not false)
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-
-                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
-                    {
-                        projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
-                    }
 
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
 
@@ -2022,7 +2011,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Returns a list of resource types that are supported for IDE launch. Always contains project
     /// </summary>
-    private List<string>? GetDebugSupportedResourceTypes()
+    private List<string>? GetExtensionCapabilities()
     {
         return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
             ? null

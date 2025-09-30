@@ -13,10 +13,12 @@ When IDE execution is enabled for an `Executable` object, DCP will go through no
 
 ## Enabling IDE execution
 
+### Base requirements
+
 For IDE execution to work, two conditions need to be fulfilled:
 
 1. DCP needs to be told how to contact the IDE (what is the **IDE session endpoint**, specifically).
-1. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
+2. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
 
 Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE session endpoint is configured via environment variables:
 
@@ -27,6 +29,23 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 | `DEBUG_SESSION_SERVER_CERTIFICATE` | If present, provides base64-encoded server certificate used for authenticating IDE endpoint and securing the communication via TLS. <br/> The certificate can be self-signed, but it must include subject alternative name, set to "localhost". Setting canonical name (`cn`) is not sufficient. <br/> If the certificate is provided, all communication with the IDE will occur via `https` and `wss` (the latter for the session change notifications). There will be NO fallback to `http` or `ws` or un-authenticated mode. Using `https` and `wss` is optional but strongly recommended. |
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
+
+### Requirements for non-project resources
+
+The above setup is sufficient for running `project` resources. However, an IDE may indicate that IDE execution of non-project resources is supported. Three conditions need to be fulfilled:
+
+1. The resource type must be annotated with `SupportsDebuggingAnnotation`, which has five properties:
+
+   - `ResourceType` is the resource type name (e.g. `project`, `python`).
+   - `ProjectPath` is an absolute path to the file which will serve as an entrypoint for the resource, if provided.
+   - `DebugAdapterId` is an identifier of the debug adapter that should be used to run the resource.
+   - `RequiredExtensionId` is an identifier of the IDE extension that provides the debug adapter. If not null, the apphost will check whether its capabilities include the extension with this identifier. If not provided, the resource will be run using process execution.
+   - `DebuggerProperties` is a dictionary of additional properties that should be passed to the IDE when creating a run session for the resource, if provided.
+2. The apphost environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
+   - the `DebugAdapterId`
+   - if `RequiredExtensionId` is not null, the `RequiredExtensionId`
+
+For example, if the resource type is `python`, with the `python` debug adapter and the `ms-python.python` required extension, to run a `python` resource with IDE execution, the apphost environment must contain `ASPIRE_EXTENSION_CAPABILITIES=python,ms-python.python`.
 
 ### Using multiple execution types in the same workload
 
@@ -67,13 +86,13 @@ The payload is best explained using an example:
 {
     "launch_configurations": [
         {
-            // Indicates the type of the launch configuration. 
+            // Indicates the type of the launch configuration.
             // This is a required property for all kinds of launch configurations.
             // The value "project" indicates this is a service that has an associated Visual Studio project file.
             "type": "project",
 
             "project_path": "(Path to Visual Studio project file for the program)",
-            
+
             // ... other launch configuration properties
         }
 
@@ -138,7 +157,7 @@ If successful, the connection should be upgraded to a WebSocket connection, whic
 
 ### IDE endpoint information request
 
-Used by DCP to get information about capabilities of the IDE run session endpoint. 
+Used by DCP to get information about capabilities of the IDE run session endpoint.
 
 **HTTP verb and path** <br/>
 `GET /info`
@@ -188,7 +207,7 @@ Launch profiles should be applied to service run sessions according to the follo
 2. Environment variable values (`env` property) and invocation arguments (`args` property) specified by the run session request always take precedence over settings present in the launch profile. Specifically:
 
     a. Environment variable values **override** (are applied on top of) the environment variable values from the base profile.
-    
+
     b. **If present**, invocation arguments from the run session request **completely replace** invocation arguments from the base profile. In particular, an empty array (`[]`) specified in the request means no invocation arguments should be used at all, even if base profile is present and has some invocation arguments specified. On the other hand, if the `args` run session request property is absent, or set to `null`, it means the run session request does not specify any invocation arguments for the service, and thus if the base profile exists and contains invocation arguments, those from the base profile should be used.
 
 3. The base profile is determined according to following rules:
@@ -201,7 +220,20 @@ Launch profiles should be applied to service run sessions according to the follo
 
 **Working folder for project execution**
 
-Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory). 
+Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory).
+
+### Python launch configuration (type: `python`)
+
+Python launch configuration contains details for launching python projects.
+
+**Python launch configuration properties**
+
+| Property       | Description                                                                                                                                              | Required?                      |
+|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `type`         | Launch configuration type indicator; must be `python`.                                                                                                   | Required                       |
+| `project_path` | Path to the project file for the program that is being launched, or module name if launching a module.                                                   | Required                       |
+| `mode`         | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
+| `is_module`    | If set to `true`, the `project_path` property is treated as a module name, otherwise as a file path.                                                     | Optional, defaults to `false`. |
 
 ## Run session change notifications
 
@@ -277,7 +309,7 @@ The value of the `error` property is an `ErrorDetail` object with the following 
 
 ## Protocol versioning
 
-When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example: 
+When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example:
 
 `PUT /run_session?api-version=2024-03-03`
 
