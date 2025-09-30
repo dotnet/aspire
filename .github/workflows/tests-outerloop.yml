@@ -21,10 +21,11 @@ on:
     paths:
       - '.github/actions/**'
       - '.github/workflows/**'
-      - 'eng/*TestRunsheetBuilder/**'
-      - 'eng/AfterSolutionBuild.targets'
-      - 'eng/Xunit3/**'
-      - 'eng/testing/**'
+      - 'eng/**'
+    paths-ignore:
+      - 'eng/pipelines/**'
+      - 'eng/scripts/**'
+      - 'eng/*pack/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
