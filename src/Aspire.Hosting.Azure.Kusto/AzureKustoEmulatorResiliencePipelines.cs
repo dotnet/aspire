@@ -24,5 +24,12 @@ internal static class AzureKustoEmulatorResiliencePipelines
         })
         .Build();
 
+    /// <summary>
+    /// Determines whether the specified exception represents a transient error that may succeed if retried.
+    /// </summary>
+    /// <remarks>
+    /// There's no common base exception type between exceptions in the Kusto.Data and Kusto.Ingest libraries, however
+    /// they do share a common interface, <see cref="ICloudPlatformException"/>, which has the <c>IsPermanent</c> property.
+    /// </remarks>
     private static bool IsTransient(Exception ex) => ex is ICloudPlatformException cpe && !cpe.IsPermanent;
 }
