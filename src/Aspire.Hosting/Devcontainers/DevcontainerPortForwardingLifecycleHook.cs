@@ -28,7 +28,7 @@ internal sealed class DevcontainerPortForwardingLifecycleHook : IDistributedAppl
         _settingsWriter = settingsWriter;
     }
 
-    public async Task OnResourceEndpointsAllocatedAsync(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
+    public Task OnResourceEndpointsAllocatedAsync(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         foreach (var endpoint in @event.Resource.Annotations.OfType<EndpointAnnotation>())
         {
