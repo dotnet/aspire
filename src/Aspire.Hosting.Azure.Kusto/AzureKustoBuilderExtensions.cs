@@ -5,7 +5,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.Kusto;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
