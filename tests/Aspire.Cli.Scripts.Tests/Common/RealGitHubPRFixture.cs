@@ -45,6 +45,9 @@ public class RealGitHubPRFixture : IAsyncLifetime
     {
         try
         {
+            // Calculate date 3 days ago for the search filter (cross-platform)
+            var threeDaysAgo = DateTime.UtcNow.AddDays(-3).ToString("yyyy-MM-dd");
+            
             // Query for recent merged PRs using gh cli
             var command = new ToolCommand("gh", _testOutput)
                 .WithTimeout(TimeSpan.FromSeconds(30));
@@ -52,10 +55,11 @@ public class RealGitHubPRFixture : IAsyncLifetime
             var result = await command.ExecuteAsync(
                 "pr", "list",
                 "--repo", Repository,
-                "--state", "all",
-                "--limit", "50",
-                "--json", "number,state,mergedAt,headRefOid",
-                "--jq", "\"[.[]|select(.mergedAt!=null)]|.[0:10]|.[].number\""
+                "--state", "merged",
+                "--search", $"merged:>={threeDaysAgo}",
+                "--limit", "100",
+                "--json", "number",
+                "--jq", ".[].number"
             );
 
             if (result.ExitCode != 0)
@@ -104,7 +108,7 @@ public class RealGitHubPRFixture : IAsyncLifetime
                 "--repo", Repository,
                 "--json", "databaseId,conclusion,displayTitle",
                 "--limit", "20",
-                "--jq", $"\"[.[]|select(.displayTitle|contains(\\\"#{prNumber}\\\"))|select(.conclusion==\\\"success\\\")]|.[0].databaseId\""
+                "--jq", $"[.[]|select(.displayTitle|contains(\"#{prNumber}\"))|select(.conclusion==\"success\")]|.[0].databaseId"
             );
 
             if (result.ExitCode != 0 || string.IsNullOrWhiteSpace(result.Output))
@@ -123,7 +127,7 @@ public class RealGitHubPRFixture : IAsyncLifetime
                 "run", "view", runId,
                 "--repo", Repository,
                 "--json", "artifacts",
-                "--jq", "\".artifacts[].name\""
+                "--jq", ".artifacts[].name"
             );
 
             if (artifactsResult.ExitCode != 0)
