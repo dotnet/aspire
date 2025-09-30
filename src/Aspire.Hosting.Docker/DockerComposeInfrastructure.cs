@@ -3,6 +3,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Logging;
 
@@ -10,13 +11,13 @@ namespace Aspire.Hosting.Docker;
 
 /// <summary>
 /// Represents the infrastructure for Docker Compose within the Aspire Hosting environment.
-/// Implements the <see cref="IDistributedApplicationLifecycleHook"/> interface to provide lifecycle hooks for distributed applications.
+/// Implements <see cref="IDistributedApplicationEventingSubscriber"/> and subscribes to <see cref="BeforeStartEvent"/> to configure Docker Compose resources before publish.
 /// </summary>
 internal sealed class DockerComposeInfrastructure(
     ILogger<DockerComposeInfrastructure> logger,
-    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationLifecycleHook
+    DistributedApplicationExecutionContext executionContext) : IDistributedApplicationEventingSubscriber
 {
-    public async Task BeforeStartAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
+    private async Task OnBeforeStartAsync(BeforeStartEvent @event, CancellationToken cancellationToken = default)
     {
         if (executionContext.IsRunMode)
         {
@@ -24,11 +25,11 @@ internal sealed class DockerComposeInfrastructure(
         }
 
         // Find Docker Compose environment resources
-        var dockerComposeEnvironments = appModel.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
+        var dockerComposeEnvironments = @event.Model.Resources.OfType<DockerComposeEnvironmentResource>().ToArray();
 
         if (dockerComposeEnvironments.Length == 0)
         {
-            EnsureNoPublishAsDockerComposeServiceAnnotations(appModel);
+            EnsureNoPublishAsDockerComposeServiceAnnotations(@event.Model);
             return;
         }
 
@@ -47,7 +48,7 @@ internal sealed class DockerComposeInfrastructure(
                 });
             }
 
-            foreach (var r in appModel.GetComputeResources())
+            foreach (var r in @event.Model.GetComputeResources())
             {
                 // Configure OTLP for resources if dashboard is enabled (before creating the service resource)
                 if (environment.DashboardEnabled && environment.Dashboard?.Resource.OtlpGrpcEndpoint is EndpointReference otlpGrpcEndpoint)
@@ -92,5 +93,11 @@ internal sealed class DockerComposeInfrastructure(
                 return Task.CompletedTask;
             }));
         }
+    }
+
+    public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+    {
+        eventing.Subscribe<BeforeStartEvent>(OnBeforeStartAsync);
+        return Task.CompletedTask;
     }
 }
