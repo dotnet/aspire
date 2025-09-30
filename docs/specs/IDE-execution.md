@@ -254,7 +254,7 @@ The log notification is emitted when the service program writes something to sta
 
 ### Session message notification
 
-The session message notification is emitted when the IDE needs to notify the client (and the Aspire developer) about asynchronous event related to a debug session. Session messages have 3 levels: error, info, and debug. By default errors and info messages are displayed to the developer; debug messages are suppressed unless the client was started in debug mode.
+The session message notification is emitted when the IDE needs to notify the client (and the Aspire developer) about asynchronous events related to a debug session. Session messages have 3 levels: error, info, and debug. By default errors and info messages are displayed to the developer; debug messages are suppressed unless the client was started in debug mode.
 
 Properties specific to session message notification are:
 
@@ -263,8 +263,8 @@ Properties specific to session message notification are:
 | `notification_type` | Must be `sessionMessage` | `string` |
 | `level` | Must be `error`, `info`, or `debug` | `string` |
 | `message` | The content of the message. | `string` |
-| `code` | For messages with `level == error`: the error code. See [error reporting](#error-reporting) for more information. | `string` (required for error messages) |
-| `details` | For messages with `level == error`: error details. See [error reporting](#error-reporting) for more information. | `ErrorDetail[]` (optional) |
+| `code` | The error code. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `string` (required for error messages) |
+| `details` | Error details. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `ErrorDetail[]` (optional) |
 
 
 ## Error reporting
