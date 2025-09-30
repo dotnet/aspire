@@ -62,6 +62,29 @@ internal static class IDistributedApplicationBuilderExtensions
                             new KeyValuePair<string, string>("self-signed", "Self-Signed Certificate"),
                             new KeyValuePair<string, string>("lets-encrypt", "Let's Encrypt Certificate")
                         ]
+                    },
+                    new InteractionInput
+                    {
+                        Name = "SSLCertificateTypeMoreDetails",
+                        Label = "More certificate details",
+                        InputType = InputType.Choice,
+                        Required = true,
+                        OptionsProvider = new InteractionOptionsProvider
+                        {
+                            DependsOnInputs = ["SSLCertificateType"],
+                            LoadOptions = async (c) =>
+                            {
+                                System.Diagnostics.Debugger.Launch();
+                                await Task.Delay(1000);
+                                var dependsOnInput = c.Inputs["SSLCertificateType"];
+                                var options = new List<KeyValuePair<string, string>>();
+                                for (var i = 0; i < 5; i++)
+                                {
+                                    options.Add(new KeyValuePair<string, string>($"{dependsOnInput.Value}-{i}", $"{dependsOnInput.Value}-{i}"));
+                                }
+                                return options;
+                            }
+                        }
                     }
                 ],
                 new InputsDialogInteractionOptions

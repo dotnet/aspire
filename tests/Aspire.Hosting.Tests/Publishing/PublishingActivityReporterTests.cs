@@ -484,7 +484,7 @@ public class PublishingActivityReporterTests
         var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
-        await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None).DefaultTimeout();
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The prompt task should complete with the user's response
         var promptResult = await promptTask.DefaultTimeout();
@@ -524,7 +524,7 @@ public class PublishingActivityReporterTests
 
         // Act - Complete the notification with a true response
         PublishingPromptInputAnswer[] responses = [new() { Value = "true" }];
-        await reporter.CompleteInteractionAsync(notificationId, responses, CancellationToken.None).DefaultTimeout();
+        await reporter.CompleteInteractionAsync(notificationId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The notification task should complete with the user's response
         var notificationResult = await notificationTask.DefaultTimeout();

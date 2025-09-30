@@ -21,7 +21,7 @@ internal interface IAppHostBackchannel
     Task ConnectAsync(string socketPath, CancellationToken cancellationToken);
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
-    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse = false, CancellationToken cancellationToken);
+    Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
