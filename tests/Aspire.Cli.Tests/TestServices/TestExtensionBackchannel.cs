@@ -51,7 +51,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
 
     public TaskCompletionSource? PromptForSecretStringAsyncCalled { get; set; }
-    public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForSecretStringAsyncCallback { get; set; }
+    public Func<string, Func<string, ValidationResult>?, bool, Task<string>>? PromptForSecretStringAsyncCallback { get; set; }
 
     public TaskCompletionSource? OpenEditorAsyncCalled { get; set; }
     public Func<string, Task>? OpenEditorAsyncCallback { get; set; }
@@ -171,12 +171,12 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(defaultValue ?? string.Empty);
     }
 
-    public Task<string> PromptForSecretStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
+    public Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
     {
         PromptForSecretStringAsyncCalled?.SetResult();
         return PromptForSecretStringAsyncCallback != null
-            ? PromptForSecretStringAsyncCallback.Invoke(promptText, defaultValue, validator, required)
-            : Task.FromResult(defaultValue ?? string.Empty);
+            ? PromptForSecretStringAsyncCallback.Invoke(promptText, validator, required)
+            : Task.FromResult(string.Empty);
     }
 
     public Task OpenEditorAsync(string projectPath, CancellationToken cancellationToken)

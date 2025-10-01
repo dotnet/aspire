@@ -100,8 +100,8 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                         
                         if (hasSecretPromptsCapability)
                         {
-                            // Use the new dedicated secret prompt method
-                            result = await Backchannel.PromptForSecretStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                            // Use the new dedicated secret prompt method (no default value for secrets)
+                            result = await Backchannel.PromptForSecretStringAsync(promptText.RemoveSpectreFormatting(), validator, required, _cancellationToken).ConfigureAwait(false);
                         }
                         else
                         {

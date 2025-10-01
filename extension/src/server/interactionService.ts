@@ -13,7 +13,7 @@ import { AspireDebugSession } from '../debugger/AspireDebugSession';
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
     promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
-    promptForSecretString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForSecretString: (promptText: string, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
@@ -92,17 +92,16 @@ export class InteractionService implements IInteractionService {
         return input || null;
     }
 
-    async promptForSecretString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
+    async promptForSecretString(promptText: string, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
             extensionLogOutputChannel.error(failedToShowPromptEmpty);
             return null;
         }
 
-        extensionLogOutputChannel.info(`Prompting for secret string: ${promptText} with default value: ${defaultValue ?? 'null'}`);
+        extensionLogOutputChannel.info(`Prompting for secret string: ${promptText}`);
         const input = await vscode.window.showInputBox({
             prompt: formatText(promptText),
-            value: formatText(defaultValue ?? ''),
             password: true, // This is the key difference - render as password field
             validateInput: async (value: string) => {
                 // Check required field validation first
@@ -387,7 +386,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
 
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
     connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
-    connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForSecretString(promptText, defaultValue, required, rpcClient)));
+    connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, required: boolean) => interactionService.promptForSecretString(promptText, required, rpcClient)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", middleware('displayIncompatibleVersionError', (requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));

@@ -34,7 +34,7 @@ internal interface IExtensionBackchannel
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
-    Task<string> PromptForSecretStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -487,7 +487,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         return result;
     }
 
-    public async Task<string> PromptForSecretStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
+    public async Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
     {
         await ConnectAsync(cancellationToken);
 
@@ -497,11 +497,11 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Prompting for secret string with text: {PromptText}, default value: {DefaultValue}, required: {Required}", promptText, defaultValue, required);
+        _logger.LogDebug("Prompting for secret string with text: {PromptText}, required: {Required}", promptText, required);
 
         var result = await rpc.InvokeWithCancellationAsync<string?>(
             "promptForSecretString",
-            [_token, promptText, defaultValue, required],
+            [_token, promptText, required],
             cancellationToken);
 
         if (result is null)

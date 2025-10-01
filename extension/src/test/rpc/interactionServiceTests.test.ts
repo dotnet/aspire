@@ -72,7 +72,7 @@ suite('InteractionService endpoints', () => {
 			return 'secret-value';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForSecretString('Enter password:', null, true, rpcClient);
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', true, rpcClient);
 		assert.strictEqual(result, 'secret-value');
 		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
 		showInputBoxStub.restore();
