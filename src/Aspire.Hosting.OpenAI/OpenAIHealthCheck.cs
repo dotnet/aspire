@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Data.Common;
+using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Aspire.Hosting.OpenAI;
@@ -28,17 +31,20 @@ internal sealed class OpenAIHealthCheck(IHttpClientFactory httpClientFactory, Op
 
         try
         {
-            // Case 1: Default endpoint - use StatusPageHealthCheck
+            // Case 1: Default endpoint - use StatusPage check
             if (resource.Endpoint == DefaultEndpoint)
             {
                 return await CheckStatusPageAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            // Case 2: Custom endpoint without model health check - return healthy
-            // We can't check the endpoint without a model, so we just return healthy
-            // The model-level health check will do the actual verification if WithHealthCheck is called
-            _result = HealthCheckResult.Healthy("Custom OpenAI endpoint configured");
-            return _result.Value;
+            // Case 2: Custom endpoint with model health check - use model health check
+            if (resource.UseModelHealthCheck && resource.ModelConnectionString is not null)
+            {
+                return await CheckModelHealthAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            // Case 3: Custom endpoint without model health check - return healthy
+            return await CheckEndpointHealthAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -47,6 +53,9 @@ internal sealed class OpenAIHealthCheck(IHttpClientFactory httpClientFactory, Op
         }
     }
 
+    /// <summary>
+    /// Checks the StatusPage endpoint for the default OpenAI service.
+    /// </summary>
     private async Task<HealthCheckResult> CheckStatusPageAsync(CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient("OpenAIHealthCheck");
@@ -86,6 +95,11 @@ internal sealed class OpenAIHealthCheck(IHttpClientFactory httpClientFactory, Op
             using var stream = await resp.Content.ReadAsStreamAsync(cts.Token).ConfigureAwait(false);
             using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cts.Token).ConfigureAwait(false);
 
+            // Expected shape:
+            // {
+            //   "page": { ... },
+            //   "status": { "indicator": "none|minor|major|critical", "description": "..." }
+            // }
             if (!doc.RootElement.TryGetProperty("status", out var statusEl))
             {
                 _result = HealthCheckResult.Unhealthy("Missing 'status' object in StatusPage response.");
@@ -107,6 +121,7 @@ internal sealed class OpenAIHealthCheck(IHttpClientFactory httpClientFactory, Op
                 ["endpoint"] = statusEndpoint.ToString()
             };
 
+            // Map indicator -> HealthStatus
             _result = indicator switch
             {
                 "none" => HealthCheckResult.Healthy(description.Length > 0 ? description : "All systems operational."),
@@ -123,5 +138,106 @@ internal sealed class OpenAIHealthCheck(IHttpClientFactory httpClientFactory, Op
             _result = HealthCheckResult.Unhealthy("Failed to parse StatusPage JSON.", jex);
             return _result.Value;
         }
+    }
+
+    /// <summary>
+    /// Returns healthy for custom endpoints when no model health check is configured.
+    /// </summary>
+    private Task<HealthCheckResult> CheckEndpointHealthAsync()
+    {
+        _result = HealthCheckResult.Healthy("Custom OpenAI endpoint configured");
+        return Task.FromResult(_result.Value);
+    }
+
+    /// <summary>
+    /// Checks the health of the OpenAI endpoint by sending a test request to the model endpoint.
+    /// </summary>
+    private async Task<HealthCheckResult> CheckModelHealthAsync(CancellationToken cancellationToken)
+    {
+        var httpClient = httpClientFactory.CreateClient("OpenAIHealthCheck");
+        var connectionString = resource.ModelConnectionString;
+
+        if (connectionString is null)
+        {
+            _result = HealthCheckResult.Unhealthy("Model connection string not available");
+            return _result.Value;
+        }
+
+        try
+        {
+            var builder = new DbConnectionStringBuilder() { ConnectionString = await connectionString().ConfigureAwait(false) };
+            var endpoint = builder["Endpoint"];
+            var model = builder["Model"];
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, new Uri($"{endpoint}/models/{model}"));
+
+            // Add required headers
+            request.Headers.Add("Authorization", $"Bearer {builder["Key"]}");
+
+            using var response = await httpClient.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+            _result = response.StatusCode switch
+            {
+                HttpStatusCode.OK => HealthCheckResult.Healthy(),
+                HttpStatusCode.Unauthorized => HealthCheckResult.Unhealthy("OpenAI API key is invalid"),
+                HttpStatusCode.NotFound => await HandleNotFound(response, cancellationToken).ConfigureAwait(false),
+                HttpStatusCode.TooManyRequests => HealthCheckResult.Unhealthy("OpenAI API rate limit exceeded"),
+                _ => HealthCheckResult.Unhealthy($"OpenAI endpoint returned unexpected status code: {response.StatusCode}")
+            };
+        }
+        catch (Exception ex)
+        {
+            _result = HealthCheckResult.Unhealthy($"Failed to check OpenAI endpoint: {ex.Message}", ex);
+        }
+
+        return _result.Value;
+    }
+
+    private static async Task<HealthCheckResult> HandleNotFound(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        OpenAIErrorResponse? errorResponse = null;
+
+        try
+        {
+            var content = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            errorResponse = JsonSerializer.Deserialize<OpenAIErrorResponse>(content);
+
+            if (errorResponse?.Error?.Code == "model_not_found")
+            {
+                var message = !string.IsNullOrEmpty(errorResponse.Error.Message)
+                    ? errorResponse.Error.Message
+                    : "Model not found";
+                return HealthCheckResult.Unhealthy($"OpenAI: {message}");
+            }
+        }
+        catch
+        {
+        }
+
+        return HealthCheckResult.Unhealthy($"OpenAI returned an unsupported response: ({response.StatusCode}) {errorResponse?.Error?.Message}");
+    }
+
+    /// <summary>
+    /// Represents the error response from OpenAI API.
+    /// </summary>
+    private sealed class OpenAIErrorResponse
+    {
+        [JsonPropertyName("error")]
+        public OpenAIError? Error { get; set; }
+    }
+
+    /// <summary>
+    /// Represents an error from OpenAI API.
+    /// </summary>
+    private sealed class OpenAIError
+    {
+        [JsonPropertyName("code")]
+        public string? Code { get; set; }
+
+        [JsonPropertyName("message")]
+        public string? Message { get; set; }
+
+        [JsonPropertyName("type")]
+        public string? Type { get; set; }
     }
 }
