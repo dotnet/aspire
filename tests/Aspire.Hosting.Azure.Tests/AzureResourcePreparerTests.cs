@@ -235,6 +235,38 @@ public class AzureResourcePreparerTests
         Assert.True(true);
     }
 
+    [Fact]
+    public async Task CommandLineArgsCallbackContextHasCorrectExecutionContextDuringPublish()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        builder.AddAzureContainerAppEnvironment("env");
+
+        // Create a project with a WithArgs callback that checks IsRunMode before accessing ServiceProvider
+        // This simulates what WithVSCodeDebugSupport does
+        var api = builder.AddProject<Project>("api", launchProfileName: null)
+            .WithArgs(context =>
+            {
+                // This simulates WithVSCodeDebugSupport behavior - checking IsRunMode before accessing ServiceProvider
+                if (!context.ExecutionContext.IsRunMode)
+                {
+                    return;
+                }
+
+                // This should not be reached during publish mode, but if the ExecutionContext is not set correctly,
+                // it will default to Run mode and then try to access ServiceProvider which will throw
+                _ = context.ExecutionContext.ServiceProvider;
+            });
+
+        using var app = builder.Build();
+        
+        // This should not throw because ExecutionContext should be set to Publish mode
+        // and the IsRunMode check should prevent accessing ServiceProvider
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Test passes if we reach this point without exceptions
+        Assert.True(true);
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
