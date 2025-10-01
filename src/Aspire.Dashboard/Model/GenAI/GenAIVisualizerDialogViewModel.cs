@@ -21,9 +21,8 @@ public sealed class GenAIVisualizerDialogViewModel
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
     public required long? SelectedLogEntryId { get; init; }
     public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
-
-    public string? PeerName { get; set; }
-    public string? SourceName { get; set; }
+    public required string PeerName { get; set; }
+    public required string SourceName { get; set; }
 
     public FluentTreeItem? SelectedTreeItem { get; set; }
     public List<GenAIItemViewModel> Items { get; } = new List<GenAIItemViewModel>();
@@ -46,26 +45,20 @@ public sealed class GenAIVisualizerDialogViewModel
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
+        var resources = telemetryRepository.GetResources();
+
         var viewModel = new GenAIVisualizerDialogViewModel
         {
             Span = spanDetailsViewModel.Span,
             Title = SpanWaterfallViewModel.GetTitle(spanDetailsViewModel.Span, spanDetailsViewModel.Resources),
             SpanDetailsViewModel = spanDetailsViewModel,
             SelectedLogEntryId = selectedLogEntryId,
-            GetContextGenAISpans = getContextGenAISpans
+            GetContextGenAISpans = getContextGenAISpans,
+            SourceName = OtlpResource.GetResourceName(spanDetailsViewModel.Span.Source, resources),
+            PeerName = telemetryRepository.GetPeerResource(spanDetailsViewModel.Span) is { } peerResource
+                ? OtlpResource.GetResourceName(peerResource, resources)
+                : OtlpHelpers.GetPeerAddress(spanDetailsViewModel.Span.Attributes) ?? "unknown"
         };
-
-        var resources = telemetryRepository.GetResources();
-        viewModel.SourceName = OtlpResource.GetResourceName(viewModel.Span.Source, resources);
-
-        if (telemetryRepository.GetPeerResource(viewModel.Span) is { } peerResource)
-        {
-            viewModel.PeerName = OtlpResource.GetResourceName(peerResource, resources);
-        }
-        else
-        {
-            viewModel.PeerName = OtlpHelpers.GetPeerAddress(viewModel.Span.Attributes)!;
-        }
 
         viewModel.ModelName = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIResponseModel);
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
