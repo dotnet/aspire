@@ -254,7 +254,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 else
                 {
                     logger.LogError("Multiple project files found in directory {Directory}", directory.FullName);
-                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound);
                 }
             }
 
