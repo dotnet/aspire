@@ -13,7 +13,6 @@ using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Polly;
 
 namespace Aspire.Hosting.Azure.Kusto;
 
@@ -22,15 +21,6 @@ namespace Aspire.Hosting.Azure.Kusto;
 /// </summary>
 public static class AzureKustoBuilderExtensions
 {
-    private static readonly ResiliencePipeline s_pipeline = new ResiliencePipelineBuilder()
-        .AddRetry(new()
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            ShouldHandle = new PredicateBuilder().Handle<KustoRequestThrottledException>(),
-        })
-        .Build();
-
     /// <summary>
     /// Adds an Azure Data Explorer (Kusto) cluster resource to the application model.
     /// </summary>
@@ -293,7 +283,7 @@ public static class AzureKustoBuilderExtensions
 
         try
         {
-            await s_pipeline.ExecuteAsync(async cancellationToken => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(async ct => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Database '{DatabaseName}' created successfully", databaseResource.DatabaseName);
         }
         catch (KustoBadRequestException e) when (e.Message.Contains("EntityNameAlreadyExistsException"))
