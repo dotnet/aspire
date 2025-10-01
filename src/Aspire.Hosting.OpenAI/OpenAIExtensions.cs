@@ -135,6 +135,16 @@ public static class OpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
 
         builder.Resource.Endpoint = endpoint;
+
+        // Remove the StatusPage health check annotation since it's only relevant for the default OpenAI endpoint
+        var healthCheckKey = $"{builder.Resource.Name}_check";
+        var healthCheckAnnotation = builder.Resource.Annotations.OfType<HealthCheckAnnotation>()
+            .FirstOrDefault(a => a.Key == healthCheckKey);
+        if (healthCheckAnnotation is not null)
+        {
+            builder.Resource.Annotations.Remove(healthCheckAnnotation);
+        }
+
         return builder;
     }
 
