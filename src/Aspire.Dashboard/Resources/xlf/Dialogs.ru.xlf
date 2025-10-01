@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="GenAIDisplayErrorMessageText">
         <source>Error displaying GenAI content:</source>
-        <target state="new">Error displaying GenAI content:</target>
+        <target state="translated">Ошибка при отображении содержимого генеративного ИИ:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
