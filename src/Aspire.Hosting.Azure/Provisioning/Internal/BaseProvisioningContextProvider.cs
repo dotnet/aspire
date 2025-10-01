@@ -1,10 +1,11 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.DeploymentState;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -25,6 +26,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateProvider deploymentStateProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
@@ -38,6 +40,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     protected readonly IArmClientProvider _armClientProvider = armClientProvider;
     protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
     protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
+    protected readonly IDeploymentStateProvider _deploymentStateProvider = deploymentStateProvider;
     protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
 
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
@@ -72,7 +75,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -108,7 +111,9 @@ internal abstract partial class BaseProvisioningContextProvider(
 
             createIfAbsent = true;
 
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+            state.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -135,8 +140,6 @@ internal abstract partial class BaseProvisioningContextProvider(
                 throw;
             }
 
-            // REVIEW: Is it possible to do this without an exception?
-
             _logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
 
             var rgData = new ResourceGroupData(location);
@@ -157,7 +160,7 @@ internal abstract partial class BaseProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets,
+                    _deploymentStateProvider,
                     _distributedApplicationExecutionContext);
     }
 

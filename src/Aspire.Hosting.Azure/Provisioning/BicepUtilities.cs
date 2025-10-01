@@ -3,9 +3,9 @@
 
 using System.IO.Hashing;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -99,20 +99,20 @@ internal static class BicepUtilities
     }
 
     /// <summary>
-    /// Gets the current checksum for a Bicep resource from configuration.
+    /// Gets the current checksum for a Bicep resource from a JSON object section.
     /// </summary>
-    public static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, IConfiguration section, CancellationToken cancellationToken = default)
+    public static async ValueTask<string?> GetCurrentChecksumAsync(AzureBicepResource resource, JsonObject section, CancellationToken cancellationToken = default)
     {
-        // Fill in parameters from configuration
-        if (section["Parameters"] is not string jsonString)
+        if (section["Parameters"]?.GetValueKind() is not JsonValueKind.String)
         {
             return null;
         }
 
         try
         {
+            var jsonString = section["Parameters"]!.GetValue<string>();
             var parameters = JsonNode.Parse(jsonString)?.AsObject();
-            var scope = section["Scope"] is string scopeString
+            var scope = section["Scope"]?.ToString() is string scopeString
                 ? JsonNode.Parse(scopeString)?.AsObject()
                 : null;
 
@@ -130,12 +130,10 @@ internal static class BicepUtilities
                 await SetScopeAsync(scope, resource, cancellationToken).ConfigureAwait(false);
             }
 
-            // Get the checksum of the new values
             return GetChecksum(resource, parameters, scope);
         }
         catch
         {
-            // Unable to parse the JSON, to treat it as not existing
             return null;
         }
     }

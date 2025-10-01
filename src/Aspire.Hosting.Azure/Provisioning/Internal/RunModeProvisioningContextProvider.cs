@@ -1,11 +1,12 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text.Json.Nodes;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Azure.Core;
@@ -26,6 +27,7 @@ internal sealed class RunModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateProvider deploymentStateProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
@@ -34,6 +36,7 @@ internal sealed class RunModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateProvider,
         distributedApplicationExecutionContext)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -61,23 +64,20 @@ internal sealed class RunModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 
-    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    private void EnsureProvisioningOptions()
     {
         if (!_interactionService.IsAvailable ||
             (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
         {
-            // If the interaction service is not available, or
-            // if both options are already set, we can skip the prompt
             _provisioningOptionsAvailable.TrySetResult();
             return;
         }
 
-        // Start the loop that will allow the user to specify the Azure provisioning options
         _ = Task.Run(async () =>
         {
             try
             {
-                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+                await RetrieveAzureProvisioningOptions().ConfigureAwait(false);
 
                 _logger.LogDebug("Azure provisioning options have been handled successfully.");
             }
@@ -89,16 +89,16 @@ internal sealed class RunModeProvisioningContextProvider(
         });
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
-        EnsureProvisioningOptions(userSecrets);
+        EnsureProvisioningOptions();
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
                             .Where(p => p.PropertyType == typeof(AzureLocation))
@@ -166,12 +166,12 @@ internal sealed class RunModeProvisioningContextProvider(
                     _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                     _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
 
-                    var azureSection = userSecrets.Prop("Azure");
-
-                    // Persist the parameter value to user secrets so they can be reused in the future
+                    var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+                    var azureSection = state.Prop("Azure");
                     azureSection["Location"] = _options.Location;
                     azureSection["SubscriptionId"] = _options.SubscriptionId;
                     azureSection["ResourceGroup"] = _options.ResourceGroup;
+                    await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
 
                     _provisioningOptionsAvailable.SetResult();
                 }

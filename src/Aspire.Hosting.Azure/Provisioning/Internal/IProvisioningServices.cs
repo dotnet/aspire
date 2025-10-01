@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -50,22 +49,6 @@ internal interface IBicepCompiler
 }
 
 /// <summary>
-/// Provides user secrets management functionality.
-/// </summary>
-internal interface IUserSecretsManager
-{
-    /// <summary>
-    /// Loads user secrets from the current application.
-    /// </summary>
-    Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Saves user secrets to the current application.
-    /// </summary>
-    Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
 /// Provides provisioning context creation functionality.
 /// </summary>
 internal interface IProvisioningContextProvider
@@ -73,7 +56,7 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>

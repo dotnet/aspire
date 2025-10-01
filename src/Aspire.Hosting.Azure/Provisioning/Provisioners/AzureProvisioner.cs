@@ -1,27 +1,27 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure;
 
 // Provisions azure resources for development purposes
 internal sealed class AzureProvisioner(
-    IConfiguration configuration,
     IServiceProvider serviceProvider,
     IBicepProvisioner bicepProvisioner,
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
-    IUserSecretsManager userSecretsManager
-    ) : IDistributedApplicationEventingSubscriber
+    IDeploymentStateProvider deploymentStateProvider) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
 
@@ -151,45 +151,36 @@ internal sealed class AzureProvisioner(
 
         // This is fully async so we can just fire and forget
         _ = Task.Run(() => ProvisionAzureResources(
-            configuration,
             azureResources,
             cancellationToken), cancellationToken);
     }
 
     private async Task ProvisionAzureResources(
-        IConfiguration configuration,
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Load user secrets first so they can be passed to the provisioning context
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
+        await deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
 
-        // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(cancellationToken));
 
         var tasks = new List<Task>();
 
         foreach (var resource in azureResources)
         {
-            tasks.Add(ProcessResourceAsync(configuration, provisioningContextLazy, resource, cancellationToken));
+            tasks.Add(ProcessResourceAsync(provisioningContextLazy, deploymentStateProvider, resource, cancellationToken));
         }
 
         var task = Task.WhenAll(tasks);
 
-        // Suppress throwing so that we can save the user secrets even if the task fails
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-        // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
-
-        // Set the completion source for all resources
         foreach (var resource in azureResources)
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
         }
     }
 
-    private async Task ProcessResourceAsync(IConfiguration configuration, Lazy<Task<ProvisioningContext>> provisioningContextLazy, (IResource Resource, IAzureResource AzureResource) resource, CancellationToken cancellationToken)
+    private async Task ProcessResourceAsync(Lazy<Task<ProvisioningContext>> provisioningContextLazy, IDeploymentStateProvider deploymentStateProvider, (IResource Resource, IAzureResource AzureResource) resource, CancellationToken cancellationToken)
     {
         var beforeResourceStartedEvent = new BeforeResourceStartedEvent(resource.Resource, serviceProvider);
         await eventing.PublishAsync(beforeResourceStartedEvent, cancellationToken).ConfigureAwait(false);
@@ -209,7 +200,7 @@ internal sealed class AzureProvisioner(
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Skipping {resourceName} because it is not configured to be provisioned.", resource.AzureResource.Name);
         }
-        else if (await bicepProvisioner.ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
+        else if (await bicepProvisioner.ConfigureResourceAsync(deploymentStateProvider, bicepResource, cancellationToken).ConfigureAwait(false))
         {
             resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetResult();
             resourceLogger.LogInformation("Using connection information stored in user secrets for {resourceName}.", resource.AzureResource.Name);

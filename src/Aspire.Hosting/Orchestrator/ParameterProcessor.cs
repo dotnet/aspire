@@ -1,4 +1,5 @@
 #pragma warning disable ASPIREINTERACTION001
+#pragma warning disable ASPIREPUBLISHERS001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
@@ -6,6 +7,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
@@ -22,7 +24,8 @@ public sealed class ParameterProcessor(
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
     DistributedApplicationOptions options,
-    DistributedApplicationExecutionContext executionContext)
+    DistributedApplicationExecutionContext executionContext,
+    IDeploymentStateProvider? deploymentStateProvider = null)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -162,11 +165,6 @@ public sealed class ParameterProcessor(
         try
         {
             var value = parameterResource.ValueInternal ?? "";
-
-            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
-            {
-                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
-            }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
@@ -330,13 +328,22 @@ public sealed class ParameterProcessor(
                         loggerService.GetLogger(parameter)
                             .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
-                        // Persist the parameter value to user secrets if requested.
-                        if (showSaveToSecrets &&
-                            saveParameters != null &&
+                        // Persist the parameter value to user secrets if requested or if we are in deploy mode.
+                        if (showSaveToSecrets == false ||
+                            (saveParameters != null &&
                             bool.TryParse(saveParameters.Value, out var saveToSecrets) &&
-                            saveToSecrets)
+                            saveToSecrets))
                         {
-                            SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
+                            if (deploymentStateProvider is not null)
+                            {
+                                var state = await deploymentStateProvider.LoadAsync().ConfigureAwait(false);
+                                state[parameter.ConfigurationKey] = inputValue;
+                                await deploymentStateProvider.SaveAsync(state).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
+                            }
                         }
 
                         // Remove the parameter from unresolved parameters list.

@@ -5,7 +5,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -163,11 +162,13 @@ public class BicepUtilitiesTests
         await BicepUtilities.SetParametersAsync(parameters0, bicep0.Resource);
         var checkSum0 = BicepUtilities.GetChecksum(bicep0.Resource, parameters0, null);
 
-        // Save the old version of this resource's parameters to config
-        var config = new ConfigurationManager();
-        config["Parameters"] = parameters0.ToJsonString();
+        // Save the old version of this resource's parameters to JsonObject
+        var deploymentSection = new JsonObject
+        {
+            ["Parameters"] = parameters0.ToJsonString()
+        };
 
-        var checkSum1 = await BicepUtilities.GetCurrentChecksumAsync(bicep1.Resource, config);
+        var checkSum1 = await BicepUtilities.GetCurrentChecksumAsync(bicep1.Resource, deploymentSection);
 
         Assert.Equal(checkSum0, checkSum1);
     }
@@ -235,7 +236,7 @@ public class BicepUtilitiesTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep1 = builder.AddBicepTemplateString("test1", "param name string").Resource;
         var bicep2 = builder.AddBicepTemplateString("test2", "param name string").Resource;
-        
+
         var parameters = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = "value1" }
@@ -255,12 +256,12 @@ public class BicepUtilitiesTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        
+
         var parameters1 = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = "value1" }
         };
-        
+
         var parameters2 = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = "value2" }
@@ -280,12 +281,12 @@ public class BicepUtilitiesTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        
+
         var parameters = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = "value1" }
         };
-        
+
         var scope1 = new JsonObject { ["resourceGroup"] = "rg1" };
         var scope2 = new JsonObject { ["resourceGroup"] = "rg2" };
 
@@ -308,12 +309,12 @@ public class BicepUtilitiesTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        
+
         var parameters1 = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = value1 }
         };
-        
+
         var parameters2 = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = value2 }
@@ -343,7 +344,7 @@ public class BicepUtilitiesTests
         bicep.Parameters["normalParam"] = "normalValue";
         bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = "someId";
         bicep.Parameters[AzureBicepResource.KnownParameters.Location] = "someLocation";
-        
+
         var parameters = new JsonObject();
 
         // Act
@@ -365,7 +366,7 @@ public class BicepUtilitiesTests
         bicep.Parameters["normalParam"] = "normalValue";
         bicep.Parameters[AzureBicepResource.KnownParameters.PrincipalId] = "someId";
         bicep.Parameters[AzureBicepResource.KnownParameters.Location] = "someLocation";
-        
+
         var parameters = new JsonObject();
 
         // Act
@@ -385,7 +386,7 @@ public class BicepUtilitiesTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
         bicep.Scope = new("test-rg");
-        
+
         var scope = new JsonObject();
 
         // Act
@@ -403,7 +404,7 @@ public class BicepUtilitiesTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
         // No scope set
-        
+
         var scope = new JsonObject();
 
         // Act
@@ -420,10 +421,10 @@ public class BicepUtilitiesTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        var config = new ConfigurationBuilder().Build();
+        var deploymentSection = new JsonObject(); // Empty JsonObject without Parameters
 
         // Act
-        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, deploymentSection);
 
         // Assert
         Assert.Null(result);
@@ -435,16 +436,14 @@ public class BicepUtilitiesTests
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
-        
-        var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+
+        var deploymentSection = new JsonObject
         {
             ["Parameters"] = "invalid-json"
-        });
-        var config = configurationBuilder.Build();
+        };
 
         // Act
-        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, deploymentSection);
 
         // Assert
         Assert.Null(result);
@@ -457,21 +456,19 @@ public class BicepUtilitiesTests
         using var builder = TestDistributedApplicationBuilder.Create();
         var bicep = builder.AddBicepTemplateString("test", "param name string").Resource;
         bicep.Parameters["param1"] = "value1";
-        
+
         var parameters = new JsonObject
         {
             ["param1"] = new JsonObject { ["value"] = "value1" }
         };
-        
-        var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+
+        var deploymentSection = new JsonObject
         {
             ["Parameters"] = parameters.ToJsonString()
-        });
-        var config = configurationBuilder.Build();
+        };
 
         // Act
-        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, config);
+        var result = await BicepUtilities.GetCurrentChecksumAsync(bicep, deploymentSection);
 
         // Assert
         Assert.NotNull(result);

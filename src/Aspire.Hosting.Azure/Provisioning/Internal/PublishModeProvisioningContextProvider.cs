@@ -5,7 +5,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Reflection;
-using System.Text.Json.Nodes;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
@@ -28,6 +28,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateProvider deploymentStateProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
     IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
@@ -37,6 +38,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateProvider,
         distributedApplicationExecutionContext)
 {
     protected override string GetDefaultResourceGroupName()
@@ -60,8 +62,14 @@ internal sealed class PublishModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}";
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
+        var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+
+        _options.SubscriptionId ??= state["Azure"]?["SubscriptionId"]?.GetValue<string>();
+        _options.Location ??= state["Azure"]?["Location"]?.GetValue<string>();
+        _options.ResourceGroup ??= state["Azure"]?["ResourceGroup"]?.GetValue<string>();
+
         try
         {
             await RetrieveAzureProvisioningOptions(cancellationToken).ConfigureAwait(false);
@@ -72,7 +80,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
         }
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
@@ -178,6 +186,9 @@ internal sealed class PublishModeProvisioningContextProvider(
             if (!result.Canceled)
             {
                 _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+                state.Prop("Azure")["SubscriptionId"] = _options.SubscriptionId;
+                await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
                 return;
             }
         }
@@ -213,6 +224,9 @@ internal sealed class PublishModeProvisioningContextProvider(
         if (!manualResult.Canceled)
         {
             _options.SubscriptionId = manualResult.Data[SubscriptionIdName].Value;
+            var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+            state.Prop("Azure")["SubscriptionId"] = _options.SubscriptionId;
+            await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -313,6 +327,13 @@ internal sealed class PublishModeProvisioningContextProvider(
                 _options.Location = result.Data[LocationName].Value;
                 _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                 _options.AllowResourceGroupCreation = true;
+
+                var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+                var azureSection = state.Prop("Azure");
+                azureSection["Location"] = _options.Location;
+                azureSection["ResourceGroup"] = _options.ResourceGroup;
+                await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
+
                 return;
             }
         }
@@ -364,6 +385,12 @@ internal sealed class PublishModeProvisioningContextProvider(
             _options.Location = manualResult.Data[LocationName].Value;
             _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
             _options.AllowResourceGroupCreation = true;
+
+            var state = await _deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+            var azureSection = state.Prop("Azure");
+            azureSection["Location"] = _options.Location;
+            azureSection["ResourceGroup"] = _options.ResourceGroup;
+            await _deploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
         }
     }
 }

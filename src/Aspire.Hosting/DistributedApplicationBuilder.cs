@@ -12,6 +12,7 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
@@ -254,6 +255,26 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IInteractionService>(sp => sp.GetRequiredService<InteractionService>());
         _innerBuilder.Services.AddSingleton<ParameterProcessor>();
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        if (ExecutionContext.IsPublishMode)
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateProvider, FileSystemDeploymentStateProvider>();
+
+            // Load file-system deployment state into IConfiguration to support resolving parameters
+            // saved from previous deployments which only support resolution from IConfiguration.
+            var outputPath = _innerBuilder.Configuration["Publishing:OutputPath"];
+            var stateDirectory = !string.IsNullOrEmpty(outputPath)
+                ? Path.Combine(outputPath, ".aspire")
+                : Path.Combine(Directory.GetCurrentDirectory(), ".aspire");
+            var stateFilePath = Path.Combine(stateDirectory, "deployment-state.json");
+            _innerBuilder.Configuration.AddJsonFile(stateFilePath, optional: true, reloadOnChange: false);
+        }
+        else
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateProvider>(sp =>
+                new UserSecretsDeploymentStateProvider(AppHostAssembly, sp.GetRequiredService<ILogger<UserSecretsDeploymentStateProvider>>()));
+        }
+
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
@@ -284,7 +305,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Aspire CLI support
         _innerBuilder.Services.AddHostedService<CliOrphanDetector>();
         _innerBuilder.Services.AddSingleton<BackchannelService>();
-        _innerBuilder.Services.AddHostedService<BackchannelService>(sp => sp.GetRequiredService<BackchannelService>());
+        _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<BackchannelService>());
         _innerBuilder.Services.AddSingleton<AppHostRpcTarget>();
 
         ConfigureHealthChecks();
@@ -458,7 +479,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         if (ExecutionContext.IsRunMode)
         {
             _innerBuilder.Services.AddSingleton<ResourceHealthCheckService>();
-            _innerBuilder.Services.AddHostedService<ResourceHealthCheckService>(sp => sp.GetRequiredService<ResourceHealthCheckService>());
+            _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<ResourceHealthCheckService>());
         }
     }
 

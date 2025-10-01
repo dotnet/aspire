@@ -3,10 +3,12 @@
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
@@ -72,7 +74,7 @@ public sealed class AzureEnvironmentResource : Resource
     private Task DeployAsync(DeployingContext context)
     {
         var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
-        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+        var deploymentStateProvider = context.Services.GetRequiredService<IDeploymentStateProvider>();
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
@@ -83,7 +85,7 @@ public sealed class AzureEnvironmentResource : Resource
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
-            userSecretsManager,
+            deploymentStateProvider,
             bicepProvisioner,
             activityPublisher,
             containerImageBuilder,

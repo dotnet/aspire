@@ -11,13 +11,12 @@ using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Testing;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
+using Aspire.Hosting.DeploymentState;
 using Microsoft.Extensions.Hosting;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -629,47 +628,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task DeployAsync_WithGeneratedParameters_PromptsForParameterValues()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var testInteractionService = new TestInteractionService();
-        ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
-
-        // Add a parameter with GenerateParameterDefault (like Redis password)
-        var redis = builder.AddRedis("cache");
-        builder.AddAzureEnvironment();
-
-        // Act
-        using var app = builder.Build();
-        var runTask = Task.Run(app.Run);
-
-        // Wait for the parameter inputs interaction (no notification in publish mode)
-        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
-
-        // Verify the generated parameter is prompted for (should not include save to secrets option in publish mode)
-        Assert.Collection(parameterInputs.Inputs,
-            input =>
-            {
-                Assert.Equal("cache-password", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
-                Assert.Equal("Enter value for cache-password", input.Placeholder);
-                Assert.False(input.Required);
-            });
-
-        // Complete the parameter inputs interaction with a password value
-        parameterInputs.Inputs[0].Value = "test-generated-password";
-        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
-
-        // Wait for the run task to complete (or timeout)
-        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
-
-        var setValue = await redis.Resource.PasswordParameter!.GetValueAsync(default);
-        Assert.Equal("test-generated-password", setValue);
-    }
-
-    [Fact]
     public async Task DeployAsync_WithParametersInEnvironmentVariables_DiscoversAndPromptsForParameters()
     {
         // Arrange
@@ -887,7 +845,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
             builder.Services.AddSingleton(activityReporter);
         }
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         if (bicepProvisioner is not null)
         {
             builder.Services.AddSingleton(bicepProvisioner);
@@ -896,16 +853,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
     }
 
-    private sealed class NoOpUserSecretsManager : IUserSecretsManager
-    {
-        public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
-
-        public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
-    }
-
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
     {
-        public Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+        public Task<bool> ConfigureResourceAsync(IDeploymentStateProvider deploymentStateProvider, AzureBicepResource resource, CancellationToken cancellationToken)
         {
             return Task.FromResult(true);
         }

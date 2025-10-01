@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Dcp.Process;
 using Azure;
@@ -44,6 +45,7 @@ internal static class ProvisioningTestHelpers
         JsonObject? userSecrets = null,
         DistributedApplicationExecutionContext? executionContext = null)
     {
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets ?? []);
         return new ProvisioningContext(
             credential ?? new TestTokenCredential(),
             armClient ?? new TestArmClient(),
@@ -52,7 +54,7 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
-            userSecrets ?? [],
+            deploymentStateProvider,
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
@@ -63,7 +65,6 @@ internal static class ProvisioningTestHelpers
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 
@@ -571,22 +572,6 @@ internal sealed class TestBicepCompiler : IBicepCompiler
     }
 }
 
-internal sealed class TestUserSecretsManager : IUserSecretsManager
-{
-    private JsonObject _userSecrets = [];
-
-    public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
-    {
-        return Task.FromResult(_userSecrets);
-    }
-
-    public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
-    {
-        _userSecrets = userSecrets;
-        return Task.CompletedTask;
-    }
-}
-
 internal sealed class TestUserPrincipalProvider : IUserPrincipalProvider
 {
     public Task<UserPrincipal> GetUserPrincipalAsync(CancellationToken cancellationToken = default)
@@ -695,4 +680,10 @@ internal sealed class MockImageBuilder : IResourceContainerImageBuilder
         PushImageCalls.Add(imageName);
         return Task.CompletedTask;
     }
+}
+
+internal sealed class TestDeploymentStateProvider(JsonObject state) : IDeploymentStateProvider
+{
+    public Task<JsonObject> LoadAsync(CancellationToken cancellationToken = default) => Task.FromResult(state);
+    public Task SaveAsync(JsonObject state, CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

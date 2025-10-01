@@ -6,8 +6,8 @@
 
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +29,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -37,10 +39,11 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context);
@@ -51,7 +54,6 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
         Assert.Equal("westus2", context.Location.Name);
     }
 
@@ -67,6 +69,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -75,11 +79,12 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
-            () => provider.CreateProvisioningContextAsync(userSecrets));
+            () => provider.CreateProvisioningContextAsync());
         Assert.Contains("Azure subscription id is required", exception.Message);
     }
 
@@ -95,6 +100,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             new TestInteractionService() { IsAvailable = false },
             options,
@@ -103,11 +110,12 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<MissingConfigurationException>(
-            () => provider.CreateProvisioningContextAsync(userSecrets));
+            () => provider.CreateProvisioningContextAsync());
         Assert.Contains("azure location/region is required", exception.Message);
     }
 
@@ -123,6 +131,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -131,17 +141,19 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context.ResourceGroup);
         Assert.NotNull(context.ResourceGroup.Name);
 
-        // Verify that the resource group name was saved to user secrets
-        var azureSettings = userSecrets["Azure"] as JsonObject;
+        // Verify that the resource group name was saved to deployment state
+        var deploymentState = await deploymentStateProvider.LoadAsync();
+        var azureSettings = deploymentState["Azure"] as JsonObject;
         Assert.NotNull(azureSettings);
         Assert.NotNull(azureSettings["ResourceGroup"]);
     }
@@ -159,6 +171,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -167,10 +181,11 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context.ResourceGroup);
@@ -189,6 +204,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -197,10 +214,11 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context.Principal);
@@ -220,6 +238,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -228,10 +248,11 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context.Tenant);
@@ -252,6 +273,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             testInteractionService,
             options,
@@ -260,9 +283,10 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
         // Act
-        var createTask = provider.CreateProvisioningContextAsync(userSecrets);
+        var createTask = provider.CreateProvisioningContextAsync();
 
         // Assert - Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -329,6 +353,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new RunModeProvisioningContextProvider(
             testInteractionService,
             options,
@@ -337,9 +363,10 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
 
-        var createTask = provider.CreateProvisioningContextAsync(userSecrets);
+        var createTask = provider.CreateProvisioningContextAsync();
 
         // Wait for the first interaction (message bar)
         var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -378,6 +405,8 @@ public class ProvisioningContextProviderTests
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
         var userSecrets = new JsonObject();
 
+        var deploymentStateProvider = new TestDeploymentStateProvider(userSecrets);
+
         var provider = new PublishModeProvisioningContextProvider(
             _defaultInteractionService,
             options,
@@ -386,11 +415,12 @@ public class ProvisioningContextProviderTests
             armClientProvider,
             userPrincipalProvider,
             tokenCredentialProvider,
+            deploymentStateProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
             new NullPublishingActivityReporter());
 
         // Act
-        var context = await provider.CreateProvisioningContextAsync(userSecrets);
+        var context = await provider.CreateProvisioningContextAsync();
 
         // Assert
         Assert.NotNull(context);
@@ -401,7 +431,6 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
         Assert.Equal("westus2", context.Location.Name);
     }
 }

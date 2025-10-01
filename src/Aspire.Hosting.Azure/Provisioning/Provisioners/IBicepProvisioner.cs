@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Extensions.Configuration;
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+using Aspire.Hosting.DeploymentState;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
@@ -11,13 +13,13 @@ namespace Aspire.Hosting.Azure.Provisioning;
 internal interface IBicepProvisioner
 {
     /// <summary>
-    /// Configures an Azure Bicep resource from configuration settings.
+    /// Configures an Azure Bicep resource from deployment state.
     /// </summary>
-    /// <param name="configuration">The configuration containing Azure deployment settings.</param>
+    /// <param name="deploymentStateProvider">The deployment state provider containing Azure deployment settings.</param>
     /// <param name="resource">The Azure Bicep resource to configure.</param>
     /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains a value indicating whether the resource was successfully configured.</returns>
-    Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken);
+    Task<bool> ConfigureResourceAsync(IDeploymentStateProvider deploymentStateProvider, AzureBicepResource resource, CancellationToken cancellationToken);
 
     /// <summary>
     /// Gets an existing resource or creates a new Azure Bicep resource.

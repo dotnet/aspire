@@ -1,14 +1,17 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.DeploymentState;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
@@ -21,24 +24,25 @@ internal sealed class BicepProvisioner(
     DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
     /// <inheritdoc />
-    public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
+    public async Task<bool> ConfigureResourceAsync(IDeploymentStateProvider deploymentStateProvider, AzureBicepResource resource, CancellationToken cancellationToken)
     {
-        var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
+        var state = await deploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var deploymentSection = state["Azure"]?["Deployments"]?[resource.Name]?.AsObject();
 
-        if (!section.Exists())
+        if (deploymentSection is null)
         {
             return false;
         }
 
-        var currentCheckSum = await BicepUtilities.GetCurrentChecksumAsync(resource, section, cancellationToken).ConfigureAwait(false);
-        var configCheckSum = section["CheckSum"];
+        var currentCheckSum = await BicepUtilities.GetCurrentChecksumAsync(resource, deploymentSection, cancellationToken).ConfigureAwait(false);
+        var configCheckSum = deploymentSection["CheckSum"]?.ToString();
 
         if (currentCheckSum != configCheckSum)
         {
             return false;
         }
 
-        if (section["Outputs"] is string outputJson)
+        if (deploymentSection["Outputs"]?.ToString() is string outputJson)
         {
             JsonNode? outputObj = null;
             try
@@ -71,25 +75,24 @@ internal sealed class BicepProvisioner(
 
         var portalUrls = new List<UrlSnapshot>();
 
-        if (section["Id"] is string deploymentId &&
+        if (deploymentSection["Id"]?.ToString() is string deploymentId &&
             ResourceIdentifier.TryParse(deploymentId, out var id) &&
             id is not null)
         {
             portalUrls.Add(new(Name: "deployment", Url: GetDeploymentUrl(id), IsInternal: false));
         }
 
-        await notificationService.PublishUpdateAsync(resource, state =>
+        await notificationService.PublishUpdateAsync(resource, s =>
         {
             ImmutableArray<ResourcePropertySnapshot> props = [
-                .. state.Properties,
-                    new("azure.subscription.id", configuration["Azure:SubscriptionId"]),
-                    // new("azure.resource.group", configuration["Azure:ResourceGroup"]!),
-                    new("azure.tenant.domain", configuration["Azure:Tenant"]),
-                    new("azure.location", configuration["Azure:Location"]),
-                    new(CustomResourceKnownProperties.Source, section["Id"])
+                .. s.Properties,
+                    new("azure.subscription.id", state["Azure"]?["SubscriptionId"]?.ToString()),
+                    new("azure.tenant.domain", state["Azure"]?["Tenant"]?.ToString()),
+                    new("azure.location", state["Azure"]?["Location"]?.ToString()),
+                    new(CustomResourceKnownProperties.Source, deploymentSection["Id"]?.ToString())
             ];
 
-            return state with
+            return s with
             {
                 State = new("Provisioned", KnownResourceStateStyles.Success),
                 Urls = [.. portalUrls],
@@ -218,41 +221,32 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into user-secrets during run mode
-        if (context.ExecutionContext.IsRunMode)
+        var state = await context.DeploymentStateProvider.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var az = state.Prop("Azure");
+        az["Tenant"] = context.Tenant.DefaultDomain;
+
+        var resourceConfig = state
+            .Prop("Azure")
+            .Prop("Deployments")
+            .Prop(resource.Name);
+
+        resourceConfig.AsObject().Clear();
+
+        resourceConfig["Id"] = deployment.Id.ToString();
+
+        resourceConfig["Parameters"] = parameters.ToJsonString();
+
+        if (outputObj is not null)
         {
-            var az = context.UserSecrets.Prop("Azure");
-            az["Tenant"] = context.Tenant.DefaultDomain;
-
-            var resourceConfig = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name);
-
-            // Clear the entire section
-            resourceConfig.AsObject().Clear();
-
-            // Save the deployment id to the configuration
-            resourceConfig["Id"] = deployment.Id.ToString();
-
-            // Stash all parameters as a single JSON string
-            resourceConfig["Parameters"] = parameters.ToJsonString();
-
-            if (outputObj is not null)
-            {
-                // Same for outputs
-                resourceConfig["Outputs"] = outputObj.ToJsonString();
-            }
-
-            // Write resource scope to config for consistent checksums
-            if (scope is not null)
-            {
-                resourceConfig["Scope"] = scope.ToJsonString();
-            }
-
-            // Save the checksum to the configuration
-            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+            resourceConfig["Outputs"] = outputObj.ToJsonString();
         }
+
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
+        }
+
+        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -285,6 +279,8 @@ internal sealed class BicepProvisioner(
             };
         })
         .ConfigureAwait(false);
+
+        await context.DeploymentStateProvider.SaveAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
     private void ConfigureSecretResolver(IAzureKeyVaultResource kvr)
