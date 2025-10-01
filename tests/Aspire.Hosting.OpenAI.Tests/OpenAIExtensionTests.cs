@@ -368,48 +368,33 @@ public class OpenAIExtensionTests
     }
 
     [Fact]
-    public void WithEndpointRemovesStatusPageHealthCheckAnnotation()
+    public void HealthCheckIsAlwaysPresent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
         var parent = builder.AddOpenAI("openai");
 
-        // Verify that the StatusPage health check annotation is added by AddOpenAI
+        // Verify that the health check annotation is always added by AddOpenAI
         var healthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
         Assert.Single(healthCheckAnnotations);
         Assert.Equal("openai_check", healthCheckAnnotations[0].Key);
-
-        // Call WithEndpoint with a custom endpoint
-        parent.WithEndpoint("http://localhost:12434/engines/v1");
-
-        // Verify that the StatusPage health check annotation is removed
-        healthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
-        Assert.Empty(healthCheckAnnotations);
     }
 
     [Fact]
-    public void WithEndpointDoesNotAffectModelHealthCheck()
+    public void HealthCheckRemainsAfterWithEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
 
         var parent = builder.AddOpenAI("openai");
-        var model = parent.AddModel("chat", "gpt-4o-mini");
 
         // Call WithEndpoint with a custom endpoint
         parent.WithEndpoint("http://localhost:12434/engines/v1");
 
-        // Add a model health check
-        model.WithHealthCheck();
-
-        // Verify that the model health check annotation is still present
-        var modelHealthCheckAnnotations = model.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
-        Assert.Single(modelHealthCheckAnnotations);
-        Assert.Equal("chat_check", modelHealthCheckAnnotations[0].Key);
-
-        // Verify that the parent's StatusPage health check annotation is removed
-        var parentHealthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
-        Assert.Empty(parentHealthCheckAnnotations);
+        // Verify that the health check annotation is still present (adaptive health check)
+        var healthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
+        Assert.Single(healthCheckAnnotations);
+        Assert.Equal("openai_check", healthCheckAnnotations[0].Key);
     }
 }

@@ -39,16 +39,21 @@ public static class OpenAIExtensions
 
         defaultApiKeyParameter.WithParentRelationship(resource);
 
-        // Register the health check
+        // Register the adaptive health check
         var healthCheckKey = $"{name}_check";
 
-        builder.AddStatusPageCheck(
-            healthCheckKey,
-            statusJsonUrl: "https://status.openai.com/api/v2/status.json",
-            httpClientName: "OpenAIHealthCheck",
-            timeout: TimeSpan.FromSeconds(5),
+        // Ensure IHttpClientFactory is available by registering HTTP client services
+        builder.Services.AddHttpClient();
+
+        builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            name: healthCheckKey,
+            factory: sp =>
+            {
+                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                return new OpenAIHealthCheck(httpFactory, resource);
+            },
             failureStatus: HealthStatus.Unhealthy,
-            tags: ["openai", "healthcheck"]);
+            tags: ["openai", "healthcheck"]));
 
         return builder.AddResource(resource)
             .WithInitialState(new()
@@ -135,16 +140,6 @@ public static class OpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(endpoint);
 
         builder.Resource.Endpoint = endpoint;
-
-        // Remove the StatusPage health check annotation since it's only relevant for the default OpenAI endpoint
-        var healthCheckKey = $"{builder.Resource.Name}_check";
-        var healthCheckAnnotation = builder.Resource.Annotations.OfType<HealthCheckAnnotation>()
-            .FirstOrDefault(a => a.Key == healthCheckKey);
-        if (healthCheckAnnotation is not null)
-        {
-            builder.Resource.Annotations.Remove(healthCheckAnnotation);
-        }
-
         return builder;
     }
 
