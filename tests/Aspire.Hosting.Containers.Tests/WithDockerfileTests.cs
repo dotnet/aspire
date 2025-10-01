@@ -17,7 +17,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithBuildSecretPopulatesSecretFilesCorrectly()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -48,7 +48,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task ContainerBuildLogsAreStreamedToAppHost()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -165,7 +165,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -200,7 +200,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task AddDockerfileLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -419,7 +419,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
@@ -491,7 +491,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task AddDockerfileWithParameterLaunchesContainerSuccessfully()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

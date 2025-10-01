@@ -46,7 +46,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -187,7 +187,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -227,7 +227,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -387,7 +387,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
