@@ -251,7 +251,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             // Verify that the custom runtime config has been updated with current framework versions
             var customConfigContent = File.ReadAllText((string)args[2]);
             var customConfig = JsonSerializer.Deserialize<JsonElement>(customConfigContent);
-            
+
             var frameworks = customConfig.GetProperty("runtimeOptions").GetProperty("frameworks").EnumerateArray().ToArray();
             var netCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.NETCore.App");
             var aspNetCoreFramework = frameworks.First(f => f.GetProperty("name").GetString() == "Microsoft.AspNetCore.App");
