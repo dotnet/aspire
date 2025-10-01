@@ -24,8 +24,8 @@ public sealed class GenAIVisualizerDialogViewModel
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
     public required long? SelectedLogEntryId { get; init; }
     public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
-    public required string PeerName { get; set; }
-    public required string SourceName { get; set; }
+    public required string PeerName { get; init; }
+    public required string SourceName { get; init; }
 
     public FluentTreeItem? SelectedTreeItem { get; set; }
     public List<GenAIItemViewModel> Items { get; } = new List<GenAIItemViewModel>();
