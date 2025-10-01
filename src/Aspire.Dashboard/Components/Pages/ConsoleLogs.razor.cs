@@ -127,9 +127,11 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     [Parameter]
     public string? ResourceName { get; set; }
 
+    private record struct LogEntryToWrite(LogEntry LogEntry, int? LineNumber);
+
     private readonly CancellationTokenSource _resourceSubscriptionCts = new();
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
-    private readonly Channel<LogEntry> _logEntryChannel = Channel.CreateUnbounded<LogEntry>(new UnboundedChannelOptions
+    private readonly Channel<LogEntryToWrite> _logEntryChannel = Channel.CreateUnbounded<LogEntryToWrite>(new UnboundedChannelOptions
     {
         SingleReader = true,
         SingleWriter = false
@@ -302,8 +304,13 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 // Console logs are filtered in the UI by the timestamp of the log entry.
                 var timestampFilterDate = GetFilteredDateFromRemove();
 
-                foreach (var logEntry in batch)
+                foreach (var (logEntry, lineNumber) in batch)
                 {
+                    if (lineNumber != null)
+                    {
+                        _logEntries.BaseLineNumber ??= lineNumber;
+                    }
+
                     // Check if log entry is not displayed because of remove.
                     if (logEntry.Timestamp is not null && timestampFilterDate is not null && !(logEntry.Timestamp > timestampFilterDate))
                     {
@@ -373,7 +380,10 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
             // Clear log entries for new subscription
             Logger.LogDebug("Creating new log entries collection.");
-            _logEntries.Clear(keepActivePauseEntries: false);
+            lock (_updateLogsLock)
+            {
+                _logEntries.Clear(keepActivePauseEntries: false);
+            }
 
             await InvokeAsync(_logViewerRef.SafeRefreshDataAsync);
 
@@ -751,7 +761,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                     foreach (var priorPause in pauseIntervals)
                     {
-                        _logEntryChannel.Writer.TryWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), priorPause.Start, priorPause.End), LineNumber: null));
                     }
                 }
 
@@ -769,12 +779,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
                     foreach (var (lineNumber, content, isErrorOutput) in batch)
                     {
-                        // Set the base line number using the reported line number of the first log line.
-                        _logEntries.BaseLineNumber ??= lineNumber;
-
                         var logEntry = logParser.CreateLogEntry(content, isErrorOutput, resourcePrefix);
 
-                        _logEntryChannel.Writer.TryWrite(logEntry);
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(logEntry, lineNumber));
                     }
                 }
             }
@@ -961,7 +968,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                     foreach (var subscription in _consoleLogsSubscriptions.Values)
                     {
                         Logger.LogDebug("Inserting new pause log entry for {Resource} starting at {StartTimestamp}.", subscription.Resource.Name, timestamp);
-                        _logEntryChannel.Writer.TryWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp));
+                        _logEntryChannel.Writer.TryWrite(new LogEntryToWrite(LogEntry.CreatePause(GetResourceName(subscription.Resource), timestamp), LineNumber: null));
                     }
                 }
                 else
