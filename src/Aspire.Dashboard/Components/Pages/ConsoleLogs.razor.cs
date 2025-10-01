@@ -308,6 +308,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 {
                     if (lineNumber != null)
                     {
+                        // Set the base line number using the reported line number of the first log line.
                         _logEntries.BaseLineNumber ??= lineNumber;
                     }
 
