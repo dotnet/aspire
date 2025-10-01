@@ -225,8 +225,26 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
                 if (projectFiles.Length == 0)
                 {
-                    logger.LogError("No project files found in directory {Directory}", directory.FullName);
-                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    // If no .csproj files found and single-file apphost is enabled, check for apphost.cs
+                    if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+                    {
+                        var appHostFile = new FileInfo(Path.Combine(directory.FullName, "apphost.cs"));
+                        if (appHostFile.Exists && await IsValidSingleFileAppHostAsync(appHostFile, cancellationToken))
+                        {
+                            logger.LogDebug("Found single-file apphost {AppHostFile} in directory {Directory}", appHostFile.FullName, directory.FullName);
+                            projectFile = appHostFile;
+                        }
+                        else
+                        {
+                            logger.LogError("No project files found in directory {Directory}", directory.FullName);
+                            throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogError("No project files found in directory {Directory}", directory.FullName);
+                        throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                    }
                 }
                 else if (projectFiles.Length == 1)
                 {
