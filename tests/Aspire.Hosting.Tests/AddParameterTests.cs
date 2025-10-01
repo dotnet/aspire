@@ -500,4 +500,102 @@ public class AddParameterTests
         Assert.False(input.EnableDescriptionMarkdown);
     }
 #pragma warning restore ASPIREINTERACTION001
+
+    [Fact]
+    public void ParameterWithDashInName_CanBeResolvedWithNormalizedName()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Simulate command line configuration with normalized name (dash replaced with underscore)
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage_account_name"] = "my-storage-account"
+        });
+
+        // Add parameter with dash in name
+        appBuilder.AddParameter("storage-account-name");
+
+        // Act
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("my-storage-account", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public void ParameterWithDashInName_OriginalNameTakesPrecedence()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Add both the original and normalized names
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage-account-name"] = "original-value",
+            ["Parameters:storage_account_name"] = "normalized-value"
+        });
+
+        // Add parameter with dash in name
+        appBuilder.AddParameter("storage-account-name");
+
+        // Act
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - original name should take precedence
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("original-value", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public void ParameterWithDashInName_ThrowsWhenNeitherNameFound()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        // Add parameter with dash in name but no configuration value
+        appBuilder.AddParameter("storage-account-name");
+
+        // Act & Assert
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+#pragma warning disable CS0618 // Type or member is obsolete
+        var exception = Assert.Throws<MissingParameterValueException>(() => parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+        Assert.Contains("Parameters:storage-account-name", exception.Message);
+    }
+
+    [Fact]
+    public void ParameterWithoutDashInName_NotAffectedByNormalization()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storageAccountName"] = "my-storage"
+        });
+
+        // Add parameter without dash in name
+        appBuilder.AddParameter("storageAccountName");
+
+        // Act
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("my-storage", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
 }

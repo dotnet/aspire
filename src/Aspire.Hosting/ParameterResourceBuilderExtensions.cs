@@ -204,7 +204,17 @@ public static class ParameterResourceBuilderExtensions
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
-        return configuration[configurationKey]
+        var value = configuration[configurationKey];
+        
+        // If the value is not found and the name contains dashes, try the normalized version (dashes replaced with underscores)
+        if (value is null && name.Contains('-', StringComparison.Ordinal))
+        {
+            var normalizedName = name.Replace("-", "_", StringComparison.Ordinal);
+            var normalizedKey = $"Parameters:{normalizedName}";
+            value = configuration[normalizedKey];
+        }
+        
+        return value
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new MissingParameterValueException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
