@@ -419,6 +419,27 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             });
         }
 
+        dashboardResource.Annotations.Add(new ResourceUrlsCallbackAnnotation(c =>
+        {
+            foreach (var url in c.Urls)
+            {
+                if (url.Endpoint is { } endpoint)
+                {
+                    if (endpoint.EndpointName is "http" or "https")
+                    {
+                        // Other endpoints are for the dashboard UI. There are typically dashboard UI endpoints for http and https.
+                        // Order these before non-browser usable endpoints.
+                        url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
+                        url.DisplayOrder = 1;
+                    }
+                    else
+                    {
+                        url.DisplayText = endpoint.EndpointName;
+                    }
+                }
+            }
+        }));
+
         var showDashboardResources = configuration.GetBool(KnownConfigNames.ShowDashboardResources, KnownConfigNames.Legacy.ShowDashboardResources);
         var hideDashboard = !(showDashboardResources ?? false);
 
