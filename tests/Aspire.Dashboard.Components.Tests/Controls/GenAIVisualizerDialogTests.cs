@@ -51,7 +51,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         Assert.Null(instance.Content.DisplayErrorMessage);
         Assert.Empty(instance.Content.Items);
         Assert.Equal("app", instance.Content.SourceName);
-        Assert.Equal("unknown", instance.Content.PeerName);
+        Assert.Equal("unknown-peer", instance.Content.PeerName);
     }
 
     [Fact]
