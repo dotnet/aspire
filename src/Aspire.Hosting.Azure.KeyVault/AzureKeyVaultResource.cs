@@ -39,10 +39,35 @@ public class AzureKeyVaultResource(string name, Action<AzureResourceInfrastructu
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure Key Vault resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        IsEmulator
-            ? ReferenceExpression.Create($"{EmulatorEndpoint}")
-            : ReferenceExpression.Create($"{VaultUri}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+            {
+                return connectionStringAnnotation.Resource.ConnectionStringExpression;
+            }
+
+            return IsEmulator
+                ? ReferenceExpression.Create($"{EmulatorEndpoint}")
+                : ReferenceExpression.Create($"{VaultUri}");
+        }
+    }
+
+    /// <summary>
+    /// Gets the connection string for the Azure Key Vault resource.
+    /// </summary>
+    /// <param name="cancellationToken"> A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+    /// <returns>The connection string for the Azure Key Vault resource.</returns>
+    public ValueTask<string?> GetConnectionStringAsync(CancellationToken cancellationToken = default)
+    {
+        if (this.TryGetLastAnnotation<ConnectionStringRedirectAnnotation>(out var connectionStringAnnotation))
+        {
+            return connectionStringAnnotation.Resource.GetConnectionStringAsync(cancellationToken);
+        }
+
+        return ConnectionStringExpression.GetValueAsync(cancellationToken);
+    }
 
     BicepOutputReference IAzureKeyVaultResource.VaultUriOutputReference => VaultUri;
 
