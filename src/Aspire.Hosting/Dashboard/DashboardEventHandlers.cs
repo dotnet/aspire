@@ -425,20 +425,16 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
             {
                 if (url.Endpoint is { } endpoint)
                 {
-                    switch (endpoint.EndpointName)
+                    if (endpoint.EndpointName is "http" or "https")
                     {
-                        case OtlpGrpcEndpointName:
-                            url.DisplayText = OtlpGrpcEndpointName;
-                            break;
-                        case OtlpHttpEndpointName:
-                            url.DisplayText = OtlpHttpEndpointName;
-                            break;
-                        default:
-                            // Other endpoints are for the dashboard UI. There are typically dashboard UI endpoints for http and https.
-                            // Order these before non-browser usable endpoints.
-                            url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
-                            url.DisplayOrder = 1;
-                            break;
+                        // Other endpoints are for the dashboard UI. There are typically dashboard UI endpoints for http and https.
+                        // Order these before non-browser usable endpoints.
+                        url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
+                        url.DisplayOrder = 1;
+                    }
+                    else
+                    {
+                        url.DisplayText = endpoint.EndpointName;
                     }
                 }
             }
