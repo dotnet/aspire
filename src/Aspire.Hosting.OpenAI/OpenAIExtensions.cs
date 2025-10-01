@@ -39,7 +39,7 @@ public static class OpenAIExtensions
 
         defaultApiKeyParameter.WithParentRelationship(resource);
 
-        // Register the adaptive health check
+        // Register the health check
         var healthCheckKey = $"{name}_check";
 
         // Ensure IHttpClientFactory is available by registering HTTP client services
@@ -50,7 +50,7 @@ public static class OpenAIExtensions
             factory: sp =>
             {
                 var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-                return new OpenAIHealthCheck(httpFactory, resource);
+                return new OpenAIHealthCheck(httpFactory, resource, "OpenAIHealthCheck", TimeSpan.FromSeconds(5));
             },
             failureStatus: HealthStatus.Unhealthy,
             tags: ["openai", "healthcheck"]));
@@ -197,11 +197,6 @@ public static class OpenAIExtensions
 
         // Ensure IHttpClientFactory is available by registering HTTP client services
         builder.ApplicationBuilder.Services.AddHttpClient();
-
-        // Configure the parent OpenAI resource to use model health check
-        var parentResource = builder.Resource.Parent;
-        parentResource.UseModelHealthCheck = true;
-        parentResource.ModelConnectionString = async () => await builder.Resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false);
 
         // Register the health check
         builder.ApplicationBuilder.Services.AddHealthChecks()
