@@ -16,7 +16,8 @@ namespace Aspire.Dashboard.Model.GenAI;
 [DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Items = {Items.Count}")]
 public sealed class GenAIVisualizerDialogViewModel
 {
-    private const string UnknownPeerName = "unknown";
+    // The exact name doesn't matter. A value is required when resolving color for peer.
+    private const string UnknownPeerName = "unknown-peer";
 
     public required OtlpSpan Span { get; init; }
     public required string Title { get; init; }
