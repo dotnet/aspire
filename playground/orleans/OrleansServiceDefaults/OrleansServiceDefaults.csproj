@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

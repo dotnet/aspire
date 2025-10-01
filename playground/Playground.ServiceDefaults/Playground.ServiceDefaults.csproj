@@ -19,8 +19,8 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <PackageReference Include="AspNetCore.HealthChecks.ApplicationStatus" />
 
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
 
   </ItemGroup>
 
