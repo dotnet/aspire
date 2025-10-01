@@ -11,6 +11,7 @@ public class DockerSocketBindMountTests(ITestOutputHelper testOutputHelper)
 {
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/TBD", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task WithDockerSocketBindMountAllowsDockerCliInContainer()
     {
         var dockerfile = """
