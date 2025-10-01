@@ -48,7 +48,7 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
         }
 
         // Case 2: Custom endpoint - return healthy
-        return await CheckEndpointHealthAsync().ConfigureAwait(false);
+        return HealthCheckResult.Healthy("Custom OpenAI endpoint configured");
     }
 
     /// <summary>
@@ -129,13 +129,5 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
         {
             return HealthCheckResult.Unhealthy("Failed to parse StatusPage JSON.", jex);
         }
-    }
-
-    /// <summary>
-    /// Returns healthy for custom endpoints.
-    /// </summary>
-    private static Task<HealthCheckResult> CheckEndpointHealthAsync()
-    {
-        return Task.FromResult(HealthCheckResult.Healthy("Custom OpenAI endpoint configured"));
     }
 }
