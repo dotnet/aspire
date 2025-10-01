@@ -19,12 +19,11 @@ internal sealed class SolutionLocator(ILogger<SolutionLocator> logger, IInteract
         logger.LogDebug("Searching for solution files starting from {StartDirectory}", startDirectory.FullName);
 
         var currentDirectory = startDirectory;
-        var allSolutionFiles = new List<FileInfo>();
 
         // Walk up the directory tree looking for solution files
         while (currentDirectory is not null)
         {
-            var solutionFiles = GetSolutionFilesInDirectory(currentDirectory);
+            var solutionFiles = await GetSolutionFilesInDirectoryAndSubfoldersAsync(currentDirectory, cancellationToken);
             if (solutionFiles.Any())
             {
                 logger.LogDebug("Found {Count} solution file(s) in {Directory}", solutionFiles.Count, currentDirectory.FullName);
@@ -54,14 +53,45 @@ internal sealed class SolutionLocator(ILogger<SolutionLocator> logger, IInteract
         return null;
     }
 
-    private static List<FileInfo> GetSolutionFilesInDirectory(DirectoryInfo directory)
+    private static async Task<List<FileInfo>> GetSolutionFilesInDirectoryAndSubfoldersAsync(DirectoryInfo directory, CancellationToken cancellationToken)
     {
+        // Search for .sln and .slnx files in parallel
+        var slnTask = Task.Run(() => 
+        {
+            try
+            {
+                return directory.GetFiles("*.sln", SearchOption.AllDirectories).ToList();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Skip directories we don't have access to
+                return new List<FileInfo>();
+            }
+        }, cancellationToken);
+
+        var slnxTask = Task.Run(() => 
+        {
+            try
+            {
+                return directory.GetFiles("*.slnx", SearchOption.AllDirectories).ToList();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Skip directories we don't have access to
+                return new List<FileInfo>();
+            }
+        }, cancellationToken);
+
+        await Task.WhenAll(slnTask, slnxTask);
+
         var solutionFiles = new List<FileInfo>();
-        
-        // Look for .sln files first, then .slnx files
-        solutionFiles.AddRange(directory.GetFiles("*.sln", SearchOption.TopDirectoryOnly));
-        solutionFiles.AddRange(directory.GetFiles("*.slnx", SearchOption.TopDirectoryOnly));
-        
-        return solutionFiles;
+        solutionFiles.AddRange(slnTask.Result);
+        solutionFiles.AddRange(slnxTask.Result);
+
+        // Sort by directory depth (closest first) then by name
+        return solutionFiles
+            .OrderBy(f => f.Directory?.FullName.Count(c => c == Path.DirectorySeparatorChar) ?? 0)
+            .ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
     }
 }
