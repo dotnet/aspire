@@ -11,7 +11,9 @@ namespace Aspire.Hosting.OpenAI;
 /// </summary>
 internal sealed class OpenAIHealthCheck : IHealthCheck
 {
-    private const string DefaultEndpoint = "https://api.openai.com/v1";
+    private static readonly Uri s_defaultEndpointUri = new("https://api.openai.com/v1");
+    private static readonly Uri s_statusPageUri = new("https://status.openai.com/api/v2/status.json");
+    
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenAIResource _resource;
     private readonly string? _httpClientName;
@@ -40,8 +42,7 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
     {
         // Case 1: Default endpoint - check StatusPage
         if (Uri.TryCreate(_resource.Endpoint, UriKind.Absolute, out var endpointUri) &&
-            Uri.TryCreate(DefaultEndpoint, UriKind.Absolute, out var defaultUri) &&
-            Uri.Compare(endpointUri, defaultUri, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
+            Uri.Compare(endpointUri, s_defaultEndpointUri, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
         {
             return await CheckStatusPageAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -59,12 +60,10 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
             ? _httpClientFactory.CreateClient()
             : _httpClientFactory.CreateClient(_httpClientName);
 
-        var statusEndpoint = new Uri("https://status.openai.com/api/v2/status.json");
-
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(_timeout);
 
-        using var req = new HttpRequestMessage(HttpMethod.Get, statusEndpoint);
+        using var req = new HttpRequestMessage(HttpMethod.Get, s_statusPageUri);
         req.Headers.Accept.ParseAdd("application/json");
 
         HttpResponseMessage resp;
@@ -113,7 +112,7 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
             {
                 ["indicator"] = indicator,
                 ["description"] = description,
-                ["endpoint"] = statusEndpoint.ToString()
+                ["endpoint"] = s_statusPageUri.ToString()
             };
 
             // Map indicator -> HealthStatus
