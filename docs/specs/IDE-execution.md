@@ -219,7 +219,7 @@ Every run change notification has the following properties:
 
 | Property | Description | Type |
 | --- | --------- | --- |
-| `notification_type` | One of `processRestarted`, `sessionTerminated`, or `serviceLogs`: indicates the type of notification. | `string` (limited set of values) |
+| `notification_type` | One of `processRestarted`, `sessionTerminated`, `serviceLogs`, or `sessionMessage`: indicates the type of notification. | `string` (limited set of values) |
 | `session_id` | The ID of the run session that the notification is related to. | `string` |
 
 ### Process restarted notification
@@ -240,7 +240,7 @@ Session terminated notification is emitted when the session is terminated (the p
 | Property | Description | Type |
 | --- | --------- | --- |
 | `notification_type` | Must be `sessionTerminated` | `string` |
-| `exit_code` | The exit code of the process associated with the run session. | `number` (representing unsigned 32-bit integer) |
+| `exit_code` | The exit code of the process associated with the run session. <br/><br/> Can be omitted, indicating exit code could not be captured, or is not applicable, e.g. when a debug session ended for a reason other than program exit. | `number` (representing unsigned 32-bit integer) |
 
 ### Log notification
 
@@ -251,6 +251,20 @@ The log notification is emitted when the service program writes something to sta
 | `notification_type` | Must be `serviceLogs` | `string` |
 | `is_std_err` | True if the output comes from standard error stream, otherwise false (implying standard output stream). | `boolean` |
 | `log_message` | The text written by the service program. | `string` |
+
+### Session message notification
+
+The session message notification is emitted when the IDE needs to notify the client (and the Aspire developer) about asynchronous events related to a debug session. Session messages have 3 levels: error, info, and debug. By default errors and info messages are displayed to the developer; debug messages are suppressed unless the client was started in debug mode.
+
+Properties specific to session message notification are:
+
+| Property | Description | Type |
+| --- | --------- | --- |
+| `notification_type` | Must be `sessionMessage` | `string` |
+| `level` | Must be `error`, `info`, or `debug` | `string` |
+| `message` | The content of the message. | `string` |
+| `code` | The error code. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `string` (required for error messages) |
+| `details` | Error details. See [error reporting](#error-reporting) for more information. Only valid for error messages (`level == error`). | `ErrorDetail[]` (optional) |
 
 ## Error reporting
 
@@ -269,11 +283,11 @@ When the IDE encounters an error during request processing, the request response
 
 The value of the `error` property is an `ErrorDetail` object with the following properties:
 
-| Property | Description | Required? |
+| Property | Description | Type, required? |
 | --- | --------- | --- |
-| `code` | A machine-readable code that corresponds to distinctive error condition. If the cause of an error can be narrowed down reliably (e.g. file referenced by launch configuration was not found, or the request body does not parse as valid JSON), the corresponding error should be unique. <br/><br/> There will be cases when the cause for the error cannot be pinpointed, and in these cases it is OK to return a catch-all error code e.g. `UnexpectedError`. | Required |
-| `message` | A human-readable message explaining the nature of the error, and providing suggestions for resolution. DCP will display this message as part of the Aspire application host execution log. | Required |
-| `details` | An array of `ErrorDetail` objects providing additional information about the error. | Optional |
+| `code` | A machine-readable code that corresponds to distinctive error condition. If the cause of an error can be narrowed down reliably (e.g. file referenced by launch configuration was not found, or the request body does not parse as valid JSON), the corresponding error should be unique. <br/><br/> There will be cases when the cause for the error cannot be pinpointed, and in these cases it is OK to return a catch-all error code e.g. `UnexpectedError`. | `string` (required) |
+| `message` | A human-readable message explaining the nature of the error, and providing suggestions for resolution. DCP will display this message as part of the Aspire application host execution log. | `string` (required) |
+| `details` | An array of `ErrorDetail` objects providing additional information about the error. | `ErrorDetail[]` (optional) |
 
 ## Protocol versioning
 
