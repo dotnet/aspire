@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.Build.NoTargets">
 
-  <Import Project="$(SharedDir)SdkPack.targets" />
+  <Import Project="$(SharedDir)SdkAndDashboardPack.targets" />
 
   <PropertyGroup>
+    <PackageType>DotNetPlatform</PackageType>
     <PackageTags>aspire apphost sdk</PackageTags>
     <Description>.NET Aspire AppHost SDK. Must be referenced by .NET Aspire AppHost projects.</Description>
     <TargetsForTfmSpecificContentInPackage>_PublishAndPackRIDTool;$(TargetsForTfmSpecificContentInPackage)</TargetsForTfmSpecificContentInPackage>
@@ -28,12 +29,12 @@
   </ItemGroup>
 
   <Target Name="_PublishAndPackRIDTool">
-    <MSBuild Projects="$(MSBuildThisFileDirectory)Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj" 
-             Targets="Publish" 
+    <MSBuild Projects="$(MSBuildThisFileDirectory)Aspire.RuntimeIdentifier.Tool\Aspire.RuntimeIdentifier.Tool.csproj"
+             Targets="Publish"
              Properties="Configuration=$(Configuration);Platform=$(Platform)" />
 
     <ItemGroup>
-      <_publishContentToPackage Include="$(DotNetOutputPath)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(DefaultTargetFramework)/publish/**/*" />
+      <_publishContentToPackage Include="$(ArtifactsBinDir)Aspire.RuntimeIdentifier.Tool/$(Configuration)/$(DefaultTargetFramework)/publish/**/*" />
     </ItemGroup>
 
     <ItemGroup>
