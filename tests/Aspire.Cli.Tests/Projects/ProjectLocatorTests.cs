@@ -798,6 +798,15 @@ builder.Build().Run();");
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            if (file.FullName == projectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+        
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -850,6 +859,16 @@ builder.Build().Run();");
         await File.WriteAllTextAsync(projectFile2.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            // Both projects are AppHost projects
+            if (file.FullName == projectFile1.FullName || file.FullName == projectFile2.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+        
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -931,5 +950,39 @@ builder.Build().Run();");
         });
 
         Assert.Equal("Project file does not exist.", ex.Message);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithRecursiveSearch()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a directory structure with a project in a subdirectory
+        var topDirectory = workspace.WorkspaceRoot.CreateSubdirectory("playground");
+        var subDirectory = topDirectory.CreateSubdirectory("mongo");
+        var projectFile = new FileInfo(Path.Combine(subDirectory.FullName, "Mongo.AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var runner = new TestDotNetCliRunner();
+        runner.GetAppHostInformationAsyncCallback = (file, options, cancellationToken) =>
+        {
+            if (file.FullName == projectFile.FullName)
+            {
+                return (0, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            return (0, false, null);
+        };
+        
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        // Pass top directory as FileInfo - should find project in subdirectory
+        var directoryAsFileInfo = new FileInfo(topDirectory.FullName);
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
+
+        Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
     }
 }
