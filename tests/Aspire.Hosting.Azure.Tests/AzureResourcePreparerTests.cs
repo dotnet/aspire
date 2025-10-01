@@ -241,30 +241,25 @@ public class AzureResourcePreparerTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
 
-        // Create a project with a WithArgs callback that checks IsRunMode before accessing ServiceProvider
-        // This simulates what WithVSCodeDebugSupport does
+        DistributedApplicationExecutionContext? capturedExecutionContext = null;
+
+        // Create a project with a WithArgs callback that captures the ExecutionContext
         var api = builder.AddProject<Project>("api", launchProfileName: null)
             .WithArgs(context =>
             {
-                // This simulates WithVSCodeDebugSupport behavior - checking IsRunMode before accessing ServiceProvider
-                if (!context.ExecutionContext.IsRunMode)
-                {
-                    return;
-                }
-
-                // This should not be reached during publish mode, but if the ExecutionContext is not set correctly,
-                // it will default to Run mode and then try to access ServiceProvider which will throw
-                _ = context.ExecutionContext.ServiceProvider;
+                // Capture the ExecutionContext to verify it's set correctly
+                capturedExecutionContext = context.ExecutionContext;
             });
 
         using var app = builder.Build();
         
-        // This should not throw because ExecutionContext should be set to Publish mode
-        // and the IsRunMode check should prevent accessing ServiceProvider
+        // This should not throw - the ExecutionContext should be set correctly
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        // Test passes if we reach this point without exceptions
-        Assert.True(true);
+        // Verify the ExecutionContext was captured and is in Publish mode
+        Assert.NotNull(capturedExecutionContext);
+        Assert.True(capturedExecutionContext.IsPublishMode);
+        Assert.False(capturedExecutionContext.IsRunMode);
     }
 
     private sealed class Project : IProjectMetadata
