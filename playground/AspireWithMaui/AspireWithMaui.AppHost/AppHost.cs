@@ -9,7 +9,7 @@ var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
 builder.AddMauiProject("mauiclient", @"../AspireWithMaui.MauiClient/AspireWithMaui.MauiClient.csproj")
     .WithWindows()
     .WithAndroid()
-    .WithIOS()
+    .WithiOS()
     .WithOtlpDevTunnel()
     .WithReference(weatherApi, publicDevTunnel); // for service discovery of other services if needed
 

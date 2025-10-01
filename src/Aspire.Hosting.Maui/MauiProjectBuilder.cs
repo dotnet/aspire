@@ -60,11 +60,11 @@ public sealed class MauiProjectBuilder
                 var detected = EnsureAutoDetection();
                 if (detected.Count == 0)
                 {
-                    logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
+                    logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
                 }
                 else
                 {
-                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() in the AppHost.", string.Join(",", detected), _mauiLogicalResource.Name);
+                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() in the AppHost.", string.Join(",", detected), _mauiLogicalResource.Name);
                 }
             }
             else if (_platformResources.Any(p => p.Resource.Annotations.OfType<MauiAutoDetectedPlatformAnnotation>().Any()))
@@ -72,7 +72,7 @@ public sealed class MauiProjectBuilder
                 var auto = GetAutoDetectedPlatformNames();
                 if (auto.Count > 0)
                 {
-                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithIOS()/WithMacCatalyst() in the AppHost.", string.Join(",", auto), _mauiLogicalResource.Name);
+                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() in the AppHost.", string.Join(",", auto), _mauiLogicalResource.Name);
                 }
             }
 
@@ -111,10 +111,10 @@ public sealed class MauiProjectBuilder
     /// <summary>
     /// Adds an iOS platform resource if the MAUI project targets iOS.
     /// </summary>
-    /// <param name="deviceUdid">Optional _DeviceName UDID (simulator or device) passed as -p:_DeviceName=:v2:udid=...</param>
-    public MauiProjectBuilder WithIOS(string? deviceUdid = null)
+    /// <param name="deviceUdid">Optional _DeviceName UDID (simulator or device) passed as -p:_DeviceName=&lt;UDID&gt;</param>
+    public MauiProjectBuilder WithiOS(string? deviceUdid = null)
     {
-        AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : $"_DeviceName=:v2:udid={deviceUdid}");
+        AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : $"_DeviceName={deviceUdid}");
         return this;
     }
 
