@@ -198,6 +198,11 @@ public static class OpenAIExtensions
         // Ensure IHttpClientFactory is available by registering HTTP client services
         builder.ApplicationBuilder.Services.AddHttpClient();
 
+        // Configure the parent OpenAI resource to use model health check
+        var parentResource = builder.Resource.Parent;
+        parentResource.UseModelHealthCheck = true;
+        parentResource.ModelConnectionString = async () => await builder.Resource.ConnectionStringExpression.GetValueAsync(default).ConfigureAwait(false);
+
         // Register the health check
         builder.ApplicationBuilder.Services.AddHealthChecks()
             .Add(new HealthCheckRegistration(
