@@ -16,6 +16,8 @@ namespace Aspire.Dashboard.Model.GenAI;
 [DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Items = {Items.Count}")]
 public sealed class GenAIVisualizerDialogViewModel
 {
+    private const string UnknownPeerName = "unknown";
+
     public required OtlpSpan Span { get; init; }
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
@@ -57,7 +59,7 @@ public sealed class GenAIVisualizerDialogViewModel
             SourceName = OtlpResource.GetResourceName(spanDetailsViewModel.Span.Source, resources),
             PeerName = telemetryRepository.GetPeerResource(spanDetailsViewModel.Span) is { } peerResource
                 ? OtlpResource.GetResourceName(peerResource, resources)
-                : OtlpHelpers.GetPeerAddress(spanDetailsViewModel.Span.Attributes) ?? "unknown"
+                : OtlpHelpers.GetPeerAddress(spanDetailsViewModel.Span.Attributes) ?? UnknownPeerName
         };
 
         viewModel.ModelName = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIResponseModel);
