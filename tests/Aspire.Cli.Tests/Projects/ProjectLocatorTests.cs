@@ -837,7 +837,7 @@ builder.Build().Run();");
     }
 
     [Fact]
-    public async Task UseOrFindAppHostProjectFileThrowsWhenDirectoryHasMultipleProjects()
+    public async Task UseOrFindAppHostProjectFilePromptsWhenDirectoryHasMultipleProjects()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -858,12 +858,10 @@ builder.Build().Run();");
         // Pass directory as FileInfo
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
 
-        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
-        {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
-        });
+        var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo);
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        // Should return the first project file (TestConsoleInteractionService returns the first choice)
+        Assert.Equal(projectFile1.FullName, returnedProjectFile!.FullName);
     }
 
     [Fact]

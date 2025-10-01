@@ -253,8 +253,13 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
                 else
                 {
-                    logger.LogError("Multiple project files found in directory {Directory}", directory.FullName);
-                    throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound);
+                    logger.LogDebug("Multiple project files found in directory {Directory}, prompting user to select", directory.FullName);
+                    projectFile = await interactionService.PromptForSelectionAsync(
+                        InteractionServiceStrings.SelectAppHostToUse,
+                        projectFiles,
+                        file => $"{file.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName)})",
+                        cancellationToken
+                        );
                 }
             }
 
