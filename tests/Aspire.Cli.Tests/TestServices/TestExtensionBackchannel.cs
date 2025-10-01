@@ -48,7 +48,10 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
     public Func<string, bool, Task<bool>>? ConfirmAsyncCallback { get; set; }
 
     public TaskCompletionSource? PromptForStringAsyncCalled { get; set; }
-    public Func<string, string?, Func<string, ValidationResult>?, bool, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
+    public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForStringAsyncCallback { get; set; }
+
+    public TaskCompletionSource? PromptForSecretStringAsyncCalled { get; set; }
+    public Func<string, string?, Func<string, ValidationResult>?, bool, Task<string>>? PromptForSecretStringAsyncCallback { get; set; }
 
     public TaskCompletionSource? OpenEditorAsyncCalled { get; set; }
     public Func<string, Task>? OpenEditorAsyncCallback { get; set; }
@@ -160,11 +163,19 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
             : Task.FromResult(true);
     }
 
-    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
+    public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
     {
         PromptForStringAsyncCalled?.SetResult();
         return PromptForStringAsyncCallback != null
-            ? PromptForStringAsyncCallback.Invoke(promptText, defaultValue, validator, isSecret, required)
+            ? PromptForStringAsyncCallback.Invoke(promptText, defaultValue, validator, required)
+            : Task.FromResult(defaultValue ?? string.Empty);
+    }
+
+    public Task<string> PromptForSecretStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool required = false, CancellationToken cancellationToken = default)
+    {
+        PromptForSecretStringAsyncCalled?.SetResult();
+        return PromptForSecretStringAsyncCallback != null
+            ? PromptForSecretStringAsyncCallback.Invoke(promptText, defaultValue, validator, required)
             : Task.FromResult(defaultValue ?? string.Empty);
     }
 
@@ -197,7 +208,7 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         HasCapabilityAsyncCalled?.SetResult();
         return HasCapabilityAsyncCallback != null
             ? HasCapabilityAsyncCallback.Invoke(capability, cancellationToken)
-            : Task.FromResult(false);
+            : Task.FromResult(capability == "secret-prompts.v1"); // Default to supporting the new capability in tests
     }
 
     public Task LaunchAppHostAsync(string projectPath, List<string> arguments, List<EnvVar> envVars, bool debug, CancellationToken cancellationToken)

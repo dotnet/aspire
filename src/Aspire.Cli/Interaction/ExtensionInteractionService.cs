@@ -92,7 +92,28 @@ internal class ExtensionInteractionService : IExtensionInteractionService
             {
                 try
                 {
-                    var result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, isSecret, required, _cancellationToken).ConfigureAwait(false);
+                    string result;
+                    if (isSecret)
+                    {
+                        // Check if extension supports the new secret prompts capability
+                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.SecretPromptsCapability, _cancellationToken).ConfigureAwait(false);
+                        
+                        if (hasSecretPromptsCapability)
+                        {
+                            // Use the new dedicated secret prompt method
+                            result = await Backchannel.PromptForSecretStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Fallback to regular prompt for older extension versions
+                            result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                    }
+                    
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)

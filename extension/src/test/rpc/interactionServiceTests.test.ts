@@ -36,7 +36,7 @@ suite('InteractionService endpoints', () => {
 			return 'valid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, false, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'valid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();
@@ -55,13 +55,14 @@ suite('InteractionService endpoints', () => {
 			return 'invalid';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, false, rpcClient);
+		const result = await testInfo.interactionService.promptForString('Enter valid input:', null, false, rpcClient);
 		assert.strictEqual(result, 'invalid');
 		assert.ok(validateInputCalled, 'validateInput should be called');
 		showInputBoxStub.restore();
 	});
 
-	test('promptForString sets password option when isSecret is true', async () => {
+	// promptForSecretString
+	test('promptForSecretString sets password option to true', async () => {
 		const testInfo = await createTestRpcServer();
 		let passwordOptionSet = false;
 		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
@@ -71,9 +72,9 @@ suite('InteractionService endpoints', () => {
 			return 'secret-value';
 		});
 		const rpcClient = testInfo.rpcClient;
-		const result = await testInfo.interactionService.promptForString('Enter password:', null, true, true, rpcClient);
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', null, true, rpcClient);
 		assert.strictEqual(result, 'secret-value');
-		assert.ok(passwordOptionSet, 'password option should be set to true when isSecret is true');
+		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
 		showInputBoxStub.restore();
 	});
 
