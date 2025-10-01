@@ -500,4 +500,83 @@ public class AddParameterTests
         Assert.False(input.EnableDescriptionMarkdown);
     }
 #pragma warning restore ASPIREINTERACTION001
+
+    [Fact]
+    public void ParameterWithDashInName_CanBeResolvedWithUnderscoreInConfiguration()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Configuration using underscore instead of dash (as would come from environment variables or command line)
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage_account_name"] = "test-storage-account"
+        });
+
+        // Act - parameter defined with dash
+        appBuilder.AddParameter("storage-account-name");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should resolve to the value set with underscore
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("test-storage-account", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public void ParameterWithDashInName_PrefersDashConfigurationOverUnderscore()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set both versions, dash version should take precedence
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage-account-name"] = "dash-value",
+            ["Parameters:storage_account_name"] = "underscore-value"
+        });
+
+        // Act
+        appBuilder.AddParameter("storage-account-name");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should prefer the exact match (with dash)
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("dash-value", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public void ParameterWithoutDash_DoesNotFallbackToUnderscore()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set only underscore version for a parameter without dash
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Parameters:storage_name"] = "underscore-value"
+        });
+
+        // Act
+        appBuilder.AddParameter("storagename");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should not find the value because names don't match
+        Assert.Throws<MissingParameterValueException>(() =>
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            _ = parameterResource.Value;
+#pragma warning restore CS0618 // Type or member is obsolete
+        });
+    }
 }
