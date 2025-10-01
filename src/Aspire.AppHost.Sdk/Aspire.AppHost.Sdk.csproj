@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.Build.NoTargets">
 
-  <Import Project="$(SharedDir)SdkAndDashboardPack.targets" />
+  <Import Project="$(SharedDir)SdkDashboardAndDcpPack.targets" />
 
   <PropertyGroup>
-    <PackageType>DotNetPlatform</PackageType>
+    <PackageType>DotnetPlatform</PackageType>
     <PackageTags>aspire apphost sdk</PackageTags>
     <Description>.NET Aspire AppHost SDK. Must be referenced by .NET Aspire AppHost projects.</Description>
     <TargetsForTfmSpecificContentInPackage>_PublishAndPackRIDTool;$(TargetsForTfmSpecificContentInPackage)</TargetsForTfmSpecificContentInPackage>

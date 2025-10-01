@@ -1,10 +1,9 @@
 <Project>
   <Import Sdk="Microsoft.NET.Sdk" Project="Sdk.props" />
 
-  <Import Project="$(SharedDir)SdkAndDashboardPack.targets" />
+  <Import Project="$(SharedDir)SdkDashboardAndDcpPack.targets" />
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
     <IncludeBuildOutput>false</IncludeBuildOutput>

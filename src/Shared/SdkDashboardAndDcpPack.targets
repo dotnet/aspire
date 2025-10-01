@@ -1,6 +1,10 @@
+<!--
+  This targets file is shared by the AppHost SDK pack, Dashboard pack, and DCP pack projects.
+-->
 <Project>
 
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>$(MSBuildProjectName)</PackageId>
     <IsPackable>true</IsPackable>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
