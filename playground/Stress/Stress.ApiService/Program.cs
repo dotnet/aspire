@@ -400,6 +400,15 @@ app.MapGet("/genai-trace", async () =>
                 ]
               },
               {
+                "role": "assistant",
+                "parts": [
+                  {
+                    "type": "text",
+                    "content": "Assistant content"
+                  }
+                ]
+              },
+              {
                 "role": "user",
                 "parts": [
                   {
