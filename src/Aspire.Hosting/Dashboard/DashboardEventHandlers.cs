@@ -423,23 +423,23 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         {
             foreach (var url in c.Urls)
             {
-                switch (url.Endpoint?.EndpointName)
+                if (url.Endpoint is { } endpoint)
                 {
-                    case OtlpGrpcEndpointName:
-                        url.DisplayText = OtlpGrpcEndpointName;
-                        break;
-                    case OtlpHttpEndpointName:
-                        url.DisplayText = OtlpHttpEndpointName;
-                        break;
-                    default:
-                        // Other endpoints are for the dashboard UI. There are typically dashboard UI endpoints for http and https.
-                        // Order these before non-browser usable endpoints.
-                        if (Uri.TryCreate(url.Url, UriKind.Absolute, out var result))
-                        {
-                            url.DisplayText = $"Dashboard ({result.Scheme})";
+                    switch (endpoint.EndpointName)
+                    {
+                        case OtlpGrpcEndpointName:
+                            url.DisplayText = OtlpGrpcEndpointName;
+                            break;
+                        case OtlpHttpEndpointName:
+                            url.DisplayText = OtlpHttpEndpointName;
+                            break;
+                        default:
+                            // Other endpoints are for the dashboard UI. There are typically dashboard UI endpoints for http and https.
+                            // Order these before non-browser usable endpoints.
+                            url.DisplayText = $"Dashboard ({endpoint.EndpointName})";
                             url.DisplayOrder = 1;
-                        }
-                        break;
+                            break;
+                    }
                 }
             }
         }));
