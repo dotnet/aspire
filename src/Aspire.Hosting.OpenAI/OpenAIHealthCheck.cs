@@ -39,7 +39,9 @@ internal sealed class OpenAIHealthCheck : IHealthCheck
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         // Case 1: Default endpoint - check StatusPage
-        if (_resource.Endpoint == DefaultEndpoint)
+        if (Uri.TryCreate(_resource.Endpoint, UriKind.Absolute, out var endpointUri) &&
+            Uri.TryCreate(DefaultEndpoint, UriKind.Absolute, out var defaultUri) &&
+            Uri.Compare(endpointUri, defaultUri, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
         {
             return await CheckStatusPageAsync(cancellationToken).ConfigureAwait(false);
         }
