@@ -3,13 +3,14 @@
 
 using System.Globalization;
 using System.Text.Json.Nodes;
+using System.Threading.Channels;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Devcontainers;
 
-internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions, IOptions<SshRemoteOptions> sshRemoteOptions)
+internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> logger, IOptions<CodespacesOptions> codespaceOptions, IOptions<DevcontainersOptions> devcontainerOptions, IOptions<SshRemoteOptions> sshRemoteOptions) : IDisposable
 {
     // Define path segments that will be combined with the user's home directory
     // These path segments are relative to the user's home directory
@@ -20,14 +21,22 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
     private const string LocalDevcontainerSettingsPath = "data/Machine/settings.json";
     private const string PortAttributesFieldName = "remote.portsAttributes";
     private const int WriteLockTimeoutMs = 2000;
+    private static readonly TimeSpan s_portForwardLogDelay = TimeSpan.FromSeconds(5);
+
     private readonly SemaphoreSlim _writeLock = new SemaphoreSlim(1);
-    
+    private readonly Channel<PortForwardEntry> _portUpdates = Channel.CreateUnbounded<PortForwardEntry>(new UnboundedChannelOptions
+    {
+        SingleReader = true,
+        SingleWriter = false
+    });
+    private readonly object _processingLock = new();
+    private Task? _processingTask;
+    private readonly CancellationTokenSource _processingCancellation = new();
+
     // Get the user's home directory using the Environment API
     // This ensures we work with any username in devcontainers/codespaces
-    private static string GetUserHomeDirectory() => 
+    private static string GetUserHomeDirectory() =>
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-    private readonly List<(string Url, string Port, string Protocol, string Label, bool OpenBrowser)> _pendingPorts = [];
 
     public void AddPortForward(string url, int port, string protocol, string label, bool openBrowser = false)
     {
@@ -35,32 +44,66 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
         ArgumentException.ThrowIfNullOrEmpty(protocol);
         ArgumentException.ThrowIfNullOrEmpty(label);
 
-        _pendingPorts.Add((url, port.ToString(CultureInfo.InvariantCulture), protocol, label, openBrowser));
+        // Ensure the background processor is running.
+        StartProcessingLoop();
+
+        // Enqueue the new port forward entry.
+        _portUpdates.Writer.TryWrite(new PortForwardEntry(url, port, protocol, label, openBrowser));
     }
 
-    public virtual async Task FlushAsync(CancellationToken cancellationToken = default)
+    private void StartProcessingLoop()
     {
-        await WriteSettingsAsync(cancellationToken).ConfigureAwait(false);
-
-        // Don't block the caller on this task, we just want to log the port forwards after a delay.
-        _ = Task.Run(async () =>
+        lock (_processingLock)
         {
-            // HACK: VS code needs to read an updated settings file before it will pick up the port forwards
-            // we're logging here. This is a hack to give it time to do that.
-            await Task.Delay(5000, cancellationToken).ConfigureAwait(false);
-
-            // This is how VS code finds out about the port forwards in hybrid mode (output + proccess).
-            foreach (var (url, _, _, label, _) in _pendingPorts)
+            if (_processingTask is not null)
             {
-                logger.LogInformation("Port forwarding ({label}): {Url}", label, url);
+                return;
             }
 
-        }, cancellationToken);
+            _processingTask = Task.Run(ProcessPortUpdatesAsync, _processingCancellation.Token);
+        }
     }
 
-    private async Task WriteSettingsAsync(CancellationToken cancellationToken = default)
+    private async Task ProcessPortUpdatesAsync()
+    {
+        var reader = _portUpdates.Reader;
+        try
+        {
+            while (await reader.WaitToReadAsync(_processingCancellation.Token).ConfigureAwait(false))
+            {
+                // Drain all currently available updates to batch writes and avoid excessive file I/O.
+                List<PortForwardEntry> batch = [];
+                while (reader.TryRead(out var entry))
+                {
+                    batch.Add(entry);
+                }
+
+                try
+                {
+                    await WriteSettingsAsync(batch, _processingCancellation.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (_processingCancellation.IsCancellationRequested)
+                {
+                    // Shutting down.
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error writing Devcontainer port forwarding settings batch");
+                }
+            }
+        }
+        catch (OperationCanceledException) when (_processingCancellation.IsCancellationRequested)
+        {
+            // Normal shutdown.
+        }
+    }
+
+    private async Task WriteSettingsAsync(IReadOnlyList<PortForwardEntry> newPorts, CancellationToken cancellationToken)
     {
         var settingsPaths = GetSettingsPaths();
+        // Collect ports we actually wrote so we can log them AFTER the file save completes.
+        List<(string Label, string Url)> portsToLog = [];
 
         foreach (var settingsPath in settingsPaths)
         {
@@ -107,8 +150,13 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                                 select new { Label = l, Port = forwardedPort })
                                 .ToLookup(p => p.Label, p => p.Port);
 
-            foreach (var (url, port, protocol, label, openBrowser) in _pendingPorts)
+            foreach (var portEntry in newPorts)
             {
+                var port = portEntry.Port.ToString(CultureInfo.InvariantCulture);
+                var label = portEntry.Label;
+                var protocol = portEntry.Protocol;
+                var openBrowser = portEntry.OpenBrowser;
+                var url = portEntry.Url;
                 // Remove any existing ports with the same label
                 foreach (var oldPort in portsByLabel[label])
                 {
@@ -129,6 +177,8 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 portAttributes["label"] = label;
                 portAttributes["protocol"] = protocol;
                 portAttributes["onAutoForward"] = openBrowser ? "openBrowser" : "silent";
+
+                portsToLog.Add((label, url));
             }
 
             settingsContent = settings.ToString();
@@ -137,12 +187,32 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             _writeLock.Release();
         }
 
+        if (portsToLog.Count > 0)
+        {
+            // Delay logging until after the settings file(s) have been updated for at least s_portForwardLogDelay.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(s_portForwardLogDelay, cancellationToken).ConfigureAwait(false);
+                    foreach (var (label, url) in portsToLog)
+                    {
+                        logger.LogInformation("Port forwarding ({label}): {Url}", label, url);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // Ignore cancellation
+                }
+            }, cancellationToken);
+        }
+
         IEnumerable<string> GetSettingsPaths()
         {
             // Get the current user's home directory
             // This ensures we work with any username in the container, not just "vscode"
             var userHomeDir = GetUserHomeDirectory();
-            
+
             // For some reason the machine settings path is different between Codespaces and local Devcontainers
             // so we decide which one to use here based on the options.
             if (codespaceOptions.Value.IsCodespace)
@@ -153,7 +223,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             {
                 var vscodeServerPath = Path.Combine(userHomeDir, VscodeServerPathSegment);
                 var vscodeInsidersServerPath = Path.Combine(userHomeDir, VscodeInsidersServerPathSegment);
-                
+
                 if (Directory.Exists(vscodeServerPath))
                 {
                     yield return Path.Combine(vscodeServerPath, LocalDevcontainerSettingsPath);
@@ -178,7 +248,7 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
                 {
                     // Ensure the parent directory exists before attempting to create the file
                     Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                    
+
                     // The extra ceremony here is to avoid accidentally overwriting the file if it was
                     // created after we checked for its existence. If the file exists when we go to write
                     // it then we will throw and log a warning, but otherwise continue executing.
@@ -196,4 +266,12 @@ internal class DevcontainerSettingsWriter(ILogger<DevcontainerSettingsWriter> lo
             }
         }
     }
+
+    public void Dispose()
+    {
+        _processingCancellation.Cancel();
+        _portUpdates.Writer.TryComplete();
+    }
+
+    private sealed record PortForwardEntry(string Url, int Port, string Protocol, string Label, bool OpenBrowser);
 }
