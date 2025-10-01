@@ -72,7 +72,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="exceptionMessageTemplate">Exception message template (must include {ExitCode} placeholder).</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <param name="logArguments">Arguments to pass to the log templates.</param>
-    protected virtual async Task ExecuteContainerCommandAsync(
+    private async Task ExecuteContainerCommandAsync(
         string arguments, 
         string errorLogTemplate,
         string successLogTemplate,
@@ -112,7 +112,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="logArguments">Arguments to pass to the log templates.</param>
     /// <param name="environmentVariables">Optional environment variables to set for the process.</param>
     /// <returns>The exit code of the process.</returns>
-    protected virtual async Task<int> ExecuteContainerCommandWithExitCodeAsync(
+    protected async Task<int> ExecuteContainerCommandWithExitCodeAsync(
         string arguments, 
         string errorLogTemplate,
         string successLogTemplate,
@@ -157,7 +157,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// </summary>
     /// <param name="buildArguments">The build arguments to include.</param>
     /// <returns>A string containing the formatted build arguments.</returns>
-    protected virtual string BuildArgumentsString(Dictionary<string, string?> buildArguments)
+    protected static string BuildArgumentsString(Dictionary<string, string?> buildArguments)
     {
         var result = string.Empty;
         foreach (var buildArg in buildArguments)
@@ -175,7 +175,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// <param name="buildSecrets">The build secrets to include.</param>
     /// <param name="requireValue">Whether to require a non-null value for secrets (default: false).</param>
     /// <returns>A string containing the formatted build secrets.</returns>
-    protected virtual string BuildSecretsString(Dictionary<string, string?> buildSecrets, bool requireValue = false)
+    protected static string BuildSecretsString(Dictionary<string, string?> buildSecrets, bool requireValue = false)
     {
         var result = string.Empty;
         foreach (var buildSecret in buildSecrets)
@@ -197,7 +197,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// </summary>
     /// <param name="stage">The target stage to include.</param>
     /// <returns>A string containing the formatted target stage, or empty string if stage is null or empty.</returns>
-    protected virtual string BuildStageString(string? stage)
+    protected static string BuildStageString(string? stage)
     {
         return !string.IsNullOrEmpty(stage) ? $" --target \"{stage}\"" : string.Empty;
     }
@@ -207,7 +207,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
     /// </summary>
     /// <param name="arguments">The command arguments.</param>
     /// <returns>A configured ProcessSpec instance.</returns>
-    protected virtual ProcessSpec CreateProcessSpec(string arguments)
+    private ProcessSpec CreateProcessSpec(string arguments)
     {
         return new ProcessSpec(RuntimeExecutable)
         {
