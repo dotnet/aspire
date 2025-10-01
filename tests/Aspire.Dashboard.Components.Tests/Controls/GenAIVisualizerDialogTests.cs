@@ -41,14 +41,12 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: CreateOtlpSpan(resource, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime),
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
             resources: [],
             getContextGenAISpans: () => []
             );
 
         var instance = cut.FindComponent<GenAIVisualizerDialog>().Instance;
 
-        Assert.Null(instance.Content.DisplayErrorMessage);
         Assert.Empty(instance.Content.Items);
         Assert.Equal("app", instance.Content.SourceName);
         Assert.Equal("unknown-peer", instance.Content.PeerName);
@@ -109,7 +107,6 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: span,
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
             resources: [],
             getContextGenAISpans: () => []
             );
