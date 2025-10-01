@@ -366,35 +366,4 @@ public class OpenAIExtensionTests
         var connectionString = openai.Resource.ConnectionStringExpression.ValueExpression;
         Assert.Contains($"Model={modelName}", connectionString);
     }
-
-    [Fact]
-    public void HealthCheckIsAlwaysPresent()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
-
-        var parent = builder.AddOpenAI("openai");
-
-        // Verify that the health check annotation is always added by AddOpenAI
-        var healthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
-        Assert.Single(healthCheckAnnotations);
-        Assert.Equal("openai_check", healthCheckAnnotations[0].Key);
-    }
-
-    [Fact]
-    public void HealthCheckRemainsAfterWithEndpoint()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        builder.Configuration["Parameters:openai-openai-apikey"] = "test-api-key";
-
-        var parent = builder.AddOpenAI("openai");
-
-        // Call WithEndpoint with a custom endpoint
-        parent.WithEndpoint("http://localhost:12434/engines/v1");
-
-        // Verify that the health check annotation is still present (adaptive health check)
-        var healthCheckAnnotations = parent.Resource.Annotations.OfType<HealthCheckAnnotation>().ToList();
-        Assert.Single(healthCheckAnnotations);
-        Assert.Equal("openai_check", healthCheckAnnotations[0].Key);
-    }
 }

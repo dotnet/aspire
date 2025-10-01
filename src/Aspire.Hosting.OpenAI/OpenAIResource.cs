@@ -20,16 +20,6 @@ public sealed class OpenAIResource : Resource, IResourceWithConnectionString
     public string Endpoint { get; internal set; } = DefaultEndpoint;
 
     /// <summary>
-    /// Gets or sets whether a model health check is enabled for this resource.
-    /// </summary>
-    internal bool UseModelHealthCheck { get; set; }
-
-    /// <summary>
-    /// Gets or sets the connection string provider for model health check.
-    /// </summary>
-    internal Func<ValueTask<string?>>? ModelConnectionString { get; set; }
-
-    /// <summary>
     /// Creates a new <see cref="OpenAIResource"/>.
     /// </summary>
     /// <param name="name">Resource name.</param>
