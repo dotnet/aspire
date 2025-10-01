@@ -12,7 +12,7 @@ import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
-    promptForString: (promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
+    promptForString: (promptText: string, defaultValue: string | null, isSecret: boolean, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
@@ -61,17 +61,18 @@ export class InteractionService implements IInteractionService {
         this._progressNotifier.show(statusText);
     }
 
-    async promptForString(promptText: string, defaultValue: string | null, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
+    async promptForString(promptText: string, defaultValue: string | null, isSecret: boolean, required: boolean, rpcClient: ICliRpcClient): Promise<string | null> {
         if (!promptText) {
             vscode.window.showErrorMessage(failedToShowPromptEmpty);
             extensionLogOutputChannel.error(failedToShowPromptEmpty);
             return null;
         }
 
-        extensionLogOutputChannel.info(`Prompting for string: ${promptText} with default value: ${defaultValue ?? 'null'}`);
+        extensionLogOutputChannel.info(`Prompting for string: ${promptText} with default value: ${defaultValue ?? 'null'}, isSecret: ${isSecret}`);
         const input = await vscode.window.showInputBox({
             prompt: formatText(promptText),
             value: formatText(defaultValue ?? ''),
+            password: isSecret,
             validateInput: async (value: string) => {
                 // Check required field validation first
                 if (required && (!value || value.trim() === '')) {
@@ -354,7 +355,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     const middleware = tryExecuteEndpoint(interactionService, withAuthentication);
 
     connection.onRequest("showStatus", middleware('showStatus', interactionService.showStatus.bind(interactionService)));
-    connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, required: boolean) => interactionService.promptForString(promptText, defaultValue, required, rpcClient)));
+    connection.onRequest("promptForString", middleware('promptForString', async (promptText: string, defaultValue: string | null, isSecret: boolean, required: boolean) => interactionService.promptForString(promptText, defaultValue, isSecret, required, rpcClient)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", middleware('displayIncompatibleVersionError', (requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));

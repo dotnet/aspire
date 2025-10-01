@@ -92,7 +92,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
             {
                 try
                 {
-                    var result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                    var result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, isSecret, required, _cancellationToken).ConfigureAwait(false);
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
