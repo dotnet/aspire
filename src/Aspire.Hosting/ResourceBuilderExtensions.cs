@@ -2327,9 +2327,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId));
-        
-        return builder;
+        return builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId));
     }
 
     /// <summary>
