@@ -42,9 +42,16 @@ public static class OpenAIExtensions
         // Register the health check
         var healthCheckKey = $"{name}_check";
 
+        // Ensure IHttpClientFactory is available by registering HTTP client services
+        builder.Services.AddHttpClient();
+
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             name: healthCheckKey,
-            factory: sp => new OpenAIHealthCheck(),
+            factory: sp =>
+            {
+                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                return new OpenAIHealthCheck(httpFactory, resource, "OpenAIHealthCheck", TimeSpan.FromSeconds(5));
+            },
             failureStatus: HealthStatus.Unhealthy,
             tags: ["openai", "healthcheck"]));
 
