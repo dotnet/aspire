@@ -2310,7 +2310,12 @@ public static class ResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(debugAdapterId);
 
-        if (builder.ApplicationBuilder.ExecutionContext.IsRunMode && builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
+        if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
             resourceWithArgs.WithArgs(ctx =>
             {
