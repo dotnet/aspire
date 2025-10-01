@@ -261,6 +261,7 @@ public class YarpConfigGeneratorTests()
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task GenerateEnvVariablesConfigurationDockerCompose()
     {
         using var tempDir = new TempDirectory();
