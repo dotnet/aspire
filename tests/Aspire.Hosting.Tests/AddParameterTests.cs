@@ -579,4 +579,29 @@ public class AddParameterTests
 #pragma warning restore CS0618 // Type or member is obsolete
         });
     }
+
+    [Fact]
+    public void ParameterWithCustomConfigurationKey_DoesNotUseFallback()
+    {
+        // Arrange
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        // Set configuration with custom key that has underscore
+        appBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["CustomSection:my_key"] = "custom-value"
+        });
+
+        // Act - use custom configuration key
+        appBuilder.AddParameterFromConfiguration("my-param", "CustomSection:my-key");
+
+        using var app = appBuilder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
+
+        // Assert - should find the value using the custom key without any fallback logic
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal("custom-value", parameterResource.Value);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
 }
