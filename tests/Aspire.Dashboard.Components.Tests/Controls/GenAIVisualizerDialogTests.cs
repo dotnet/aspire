@@ -41,7 +41,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: CreateOtlpSpan(resource, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime),
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
@@ -109,7 +109,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: span,
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
