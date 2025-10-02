@@ -18,39 +18,32 @@ internal sealed class SolutionLocator(ILogger<SolutionLocator> logger, IInteract
     {
         logger.LogDebug("Searching for solution files starting from {StartDirectory}", startDirectory.FullName);
 
-        var currentDirectory = startDirectory;
-
-        // Walk up the directory tree looking for solution files
-        while (currentDirectory is not null)
+        var solutionFiles = await GetSolutionFilesInDirectoryAndSubfoldersAsync(startDirectory, cancellationToken);
+        
+        if (!solutionFiles.Any())
         {
-            var solutionFiles = await GetSolutionFilesInDirectoryAndSubfoldersAsync(currentDirectory, cancellationToken);
-            if (solutionFiles.Any())
-            {
-                logger.LogDebug("Found {Count} solution file(s) in {Directory}", solutionFiles.Count, currentDirectory.FullName);
-                
-                if (solutionFiles.Count == 1)
-                {
-                    // Single solution found, use it
-                    return solutionFiles[0];
-                }
-                else
-                {
-                    // Multiple solutions found, prompt user to choose
-                    var selectedSolution = await interactionService.PromptForSelectionAsync(
-                        InitCommandStrings.MultipleSolutionsFound,
-                        solutionFiles,
-                        solutionFile => $"{solutionFile.Name} ({Path.GetRelativePath(startDirectory.FullName, solutionFile.FullName)})",
-                        cancellationToken);
-                    
-                    return selectedSolution;
-                }
-            }
-
-            currentDirectory = currentDirectory.Parent;
+            logger.LogDebug("No solution files found in {Directory} or subdirectories", startDirectory.FullName);
+            return null;
         }
 
-        logger.LogDebug("No solution files found in directory hierarchy");
-        return null;
+        logger.LogDebug("Found {Count} solution file(s) in {Directory}", solutionFiles.Count, startDirectory.FullName);
+        
+        if (solutionFiles.Count == 1)
+        {
+            // Single solution found, use it
+            return solutionFiles[0];
+        }
+        else
+        {
+            // Multiple solutions found, prompt user to choose
+            var selectedSolution = await interactionService.PromptForSelectionAsync(
+                InitCommandStrings.MultipleSolutionsFound,
+                solutionFiles,
+                solutionFile => $"{solutionFile.Name} ({Path.GetRelativePath(startDirectory.FullName, solutionFile.FullName)})",
+                cancellationToken);
+            
+            return selectedSolution;
+        }
     }
 
     private static async Task<List<FileInfo>> GetSolutionFilesInDirectoryAndSubfoldersAsync(DirectoryInfo directory, CancellationToken cancellationToken)
