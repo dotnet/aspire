@@ -325,13 +325,16 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
             
+            // Round duration to seconds to avoid sub-second precision issues
+            var roundedDuration = TimeSpan.FromSeconds(Math.Round(duration.TotalSeconds));
+            
             // Display "just now" for health checks that ran in the last 10 seconds
-            if (duration.TotalSeconds < 10)
+            if (roundedDuration.TotalSeconds < 10)
             {
                 return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
             
-            var formattedDuration = DurationFormatter.FormatDuration(duration);
+            var formattedDuration = DurationFormatter.FormatDuration(roundedDuration);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
         

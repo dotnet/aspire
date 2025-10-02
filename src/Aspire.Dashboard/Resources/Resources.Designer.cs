@@ -196,15 +196,6 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to just now.
-        /// </summary>
-        public static string HealthCheckJustNowText {
-            get {
-                return ResourceManager.GetString("HealthCheckJustNowText", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} (just now).
         /// </summary>
         public static string HealthCheckStatusJustNowFormat {

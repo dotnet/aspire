@@ -251,10 +251,6 @@
     <value>{0} ({1} ago)</value>
     <comment>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</comment>
   </data>
-  <data name="HealthCheckJustNowText" xml:space="preserve">
-    <value>just now</value>
-    <comment>Text displayed when a health check ran very recently (within the last 10 seconds)</comment>
-  </data>
   <data name="HealthCheckStatusJustNowFormat" xml:space="preserve">
     <value>{0} (just now)</value>
     <comment>{0} is the health status like "Unhealthy"</comment>
