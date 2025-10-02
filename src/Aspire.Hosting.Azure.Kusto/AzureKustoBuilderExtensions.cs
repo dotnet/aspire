@@ -184,8 +184,7 @@ public static class AzureKustoBuilderExtensions
     /// </summary>
     /// <remarks>
     /// This script will only be executed when the Kusto resource is running in emulator mode. In production scenarios, the database creation should be handled as part of the provisioning process.
-    /// The default script is <code>.create database DATABASE_NAME persist (PERSISTENCE_PATH, PERSISTENCE_PATH) ifnotexists</code> where DATABASE_NAME is the database name and PERSISTENCE_PATH
-    /// is <inheritdoc cref="AzureKustoEmulatorContainerDefaults.DefaultPersistencePath"/>.
+    /// <inheritdoc cref="AzureKustoReadWriteDatabaseResourceExtensions.GetDatabaseCreationScript(AzureKustoReadWriteDatabaseResource)"/>
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
@@ -273,8 +272,7 @@ public static class AzureKustoBuilderExtensions
         };
         crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
 
-        var scriptAnnotation = databaseResource.Annotations.OfType<AzureKustoCreateDatabaseScriptAnnotation>().LastOrDefault();
-        var script = scriptAnnotation?.Script ?? AzureKustoEmulatorContainerDefaults.DefaultCreateDatabaseCommand(databaseResource.DatabaseName);
+        var script = databaseResource.GetDatabaseCreationScript();
 
         var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource);
         var rns = serviceProvider.GetRequiredService<ResourceNotificationService>();
