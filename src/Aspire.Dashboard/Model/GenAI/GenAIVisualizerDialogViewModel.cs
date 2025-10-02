@@ -77,8 +77,8 @@ public sealed class GenAIVisualizerDialogViewModel
         }
         catch (Exception ex)
         {
-            // Record errors from reading message telemetry.
-            // Once we have confidence that we're handling popular content well this will change to just be logged.
+            // We're catching errors here to avoid it going to Blazor global error handling. But we still want to record errors from reading messages to telemetry.
+            // This can be changed to just using logging once we have confidence that we're handling popular content well.
             errorRecorder.RecordError($"Error reading GenAI telemetry messages for span {viewModel.Span.SpanId}", ex, writeToLogging: true);
 
             // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
