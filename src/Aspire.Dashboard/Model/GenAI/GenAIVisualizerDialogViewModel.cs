@@ -339,6 +339,7 @@ public sealed class GenAIVisualizerDialogViewModel
             throw new InvalidOperationException(
                 $"""
                 Error deserializing GenAI message content.
+                Error message: {ex.Message}
                 Content description: {description}
                 JSON: {json}
                 """, ex);
