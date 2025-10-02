@@ -502,7 +502,7 @@ public class AddParameterTests
 #pragma warning restore ASPIREINTERACTION001
 
     [Fact]
-    public void ParameterWithDashInName_CanBeResolvedWithUnderscoreInConfiguration()
+    public async Task ParameterWithDashInName_CanBeResolvedWithUnderscoreInConfiguration()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -521,13 +521,11 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
 
         // Assert - should resolve to the value set with underscore
-#pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal("test-storage-account", parameterResource.Value);
-#pragma warning restore CS0618 // Type or member is obsolete
+        Assert.Equal("test-storage-account", await parameterResource.GetValueAsync(default));
     }
 
     [Fact]
-    public void ParameterWithDashInName_PrefersDashConfigurationOverUnderscore()
+    public async Task ParameterWithDashInName_PrefersDashConfigurationOverUnderscore()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -547,13 +545,11 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
 
         // Assert - should prefer the exact match (with dash)
-#pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal("dash-value", parameterResource.Value);
-#pragma warning restore CS0618 // Type or member is obsolete
+        Assert.Equal("dash-value", await parameterResource.GetValueAsync(default));
     }
 
     [Fact]
-    public void ParameterWithoutDash_DoesNotFallbackToUnderscore()
+    public async Task ParameterWithoutDash_DoesNotFallbackToUnderscore()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -572,16 +568,14 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
 
         // Assert - should not find the value because names don't match
-        Assert.Throws<MissingParameterValueException>(() =>
+        await Assert.ThrowsAsync<MissingParameterValueException>(async () =>
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            _ = parameterResource.Value;
-#pragma warning restore CS0618 // Type or member is obsolete
+            _ = await parameterResource.GetValueAsync(default);
         });
     }
 
     [Fact]
-    public void ParameterWithCustomConfigurationKey_UsesFallback()
+    public async Task ParameterWithCustomConfigurationKey_UsesFallback()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -600,8 +594,6 @@ public class AddParameterTests
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
 
         // Assert - should find the value using the normalized key (dash -> underscore)
-#pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal("custom-value", parameterResource.Value);
-#pragma warning restore CS0618 // Type or member is obsolete
+        Assert.Equal("custom-value", await parameterResource.GetValueAsync(default));
     }
 }
