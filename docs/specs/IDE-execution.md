@@ -41,6 +41,7 @@ Two conditions need to be fulfilled for a resource to be eligible for IDE execut
 
    - the `DebugAdapterId`
    - if `RequiredExtensionId` is not null, the `RequiredExtensionId`
+3. If `project` is not a supported resource type, the `ASPIRE_EXTENSION_DEBUG_RUN_MODE` environment variable may be set to `Debug` to allow resource debugging.
 
 For example, if the resource type is `python`, with the `debugpy` debug adapter and the `ms-python.python` required extension, to run a `python` resource with IDE execution, the apphost environment must contain `ASPIRE_EXTENSION_CAPABILITIES=python,ms-python.python`.
 

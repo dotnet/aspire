@@ -976,6 +976,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     launchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
                 }
 
+                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is { } runMode)
+                {
+                    launchConfiguration.Mode = runMode;
+                }
+
                 exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchConfiguration);
             }
             else
