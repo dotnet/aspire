@@ -49,7 +49,6 @@
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.9.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.9.0</MicrosoftExtensionsTimeProviderTestingVersion>
     <MicrosoftExtensionsServiceDiscoveryVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryVersion>
-    <MicrosoftExtensionsServiceDiscoveryDnsVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryDnsVersion>
     <MicrosoftExtensionsServiceDiscoveryYarpVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.9</MicrosoftAspNetCorePackageVersionForNet9>
