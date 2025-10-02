@@ -172,7 +172,7 @@ public sealed class ParameterProcessor(
             {
                 // Try to get a configured value (without using the default) to see if the parameter was actually specified
                 var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
+                value = ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
             }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
