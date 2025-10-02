@@ -34,7 +34,7 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 
 The above setup is sufficient for running `project` resources. However, an IDE may indicate that IDE execution of non-project resources is supported, or that `project` execution is in fact not supported.
 
-Two conditions need to be fulfilled for a resource to be eligible for IDE execution:
+Three conditions need to be fulfilled for a resource to be eligible for IDE execution:
 
 1. The resource type must be annotated with `SupportsDebuggingAnnotation`
 2. The environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
