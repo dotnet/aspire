@@ -2013,7 +2013,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     /// <summary>
-    /// Returns a list of resource types that are supported for IDE launch. Always contains project
+    /// Returns a list of capabilities that the Aspire Extension supports, including whether debugging is supported and which extensions are present.
     /// </summary>
     private List<string>? GetExtensionCapabilities()
     {
