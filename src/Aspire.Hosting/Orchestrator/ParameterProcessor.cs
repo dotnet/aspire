@@ -170,7 +170,7 @@ public sealed class ParameterProcessor(
             // because ValueInternal might contain a generated value even if no configuration was provided.
             if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
-                // Try to get a configured value (without using the default) to see if the parameter was actually specified
+                // Try to get a configured value (without using the default) to see if the parameter was actually specified. This will throw if the value is missing.
                 var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
                 value = ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
             }
