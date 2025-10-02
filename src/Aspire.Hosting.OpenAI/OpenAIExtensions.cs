@@ -25,7 +25,7 @@ public static class OpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-openai-apikey", () =>
-            builder.Configuration[$"Parameters:{name}-openai-apikey"] ??
+            ParameterResourceBuilderExtensions.GetParameterValue(builder.Configuration, $"{name}-openai-apikey", null) ??
             Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
             throw new MissingParameterValueException($"OpenAI API key parameter '{name}-openai-apikey' is missing and OPENAI_API_KEY environment variable is not set."),
             secret: true);

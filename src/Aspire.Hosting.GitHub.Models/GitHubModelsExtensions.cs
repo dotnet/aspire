@@ -29,7 +29,7 @@ public static class GitHubModelsExtensions
         ArgumentException.ThrowIfNullOrEmpty(model);
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-gh-apikey", () =>
-            builder.Configuration[$"Parameters:{name}-gh-apikey"] ??
+            ParameterResourceBuilderExtensions.GetParameterValue(builder.Configuration, $"{name}-gh-apikey", null) ??
             Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
             throw new MissingParameterValueException($"GitHub API key parameter '{name}-gh-apikey' is missing and GITHUB_TOKEN environment variable is not set."),
             secret: true);
