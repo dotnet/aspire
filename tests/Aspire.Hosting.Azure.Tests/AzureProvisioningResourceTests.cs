@@ -64,7 +64,7 @@ public class AzureProvisioningResourceTests
 
         IResourceBuilder<ProjectResource>? apiProjectBuilder = null;
         var apiProject = builder.AddProject<Project>("api", launchProfileName: null)
-            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints()
             .PublishAsAzureAppServiceWebsite((infrastructure, website) =>
             {
                 // This callback should have access to the original resource
