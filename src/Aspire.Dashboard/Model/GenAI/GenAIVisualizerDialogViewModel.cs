@@ -336,12 +336,12 @@ public sealed class GenAIVisualizerDialogViewModel
         }
         catch (Exception ex)
         {
+            // Don't include JSON in exception message because it could contain sensitive data.
             throw new InvalidOperationException(
                 $"""
                 Error deserializing GenAI message content.
                 Error message: {ex.Message}
                 Content description: {description}
-                JSON: {json}
                 """, ex);
         }
     }
