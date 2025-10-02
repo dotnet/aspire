@@ -7,6 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
@@ -163,9 +165,31 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
-            if (string.IsNullOrEmpty(value) && parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
+            // Check if we need to validate GenerateParameterDefault in publish mode
+            // We use GetParameterValue to distinguish between configured values and generated values
+            // because ValueInternal might contain a generated value even if no configuration was provided.
+            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
-                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+                // Try to get a configured value (without using the default) to see if the parameter was actually specified
+                var hasConfiguredValue = false;
+                try
+                {
+                    var configuration = executionContext.ServiceProvider.GetRequiredService<ConfigurationManager>();
+                    // Call GetParameterValue with null default to check if there's a configured value
+                    // This will throw if no configured value exists
+                    ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
+                    hasConfiguredValue = true;
+                }
+                catch (MissingParameterValueException)
+                {
+                    // No configured value exists
+                }
+
+                // Only throw if there's no configured value
+                if (!hasConfiguredValue)
+                {
+                    throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+                }
             }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
