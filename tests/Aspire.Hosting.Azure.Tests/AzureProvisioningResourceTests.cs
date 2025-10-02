@@ -4,8 +4,8 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -208,16 +208,8 @@ public class AzureProvisioningResourceTests
         Assert.IsAssignableFrom<AzureProvisioningResource>(webSiteResource);
     }
 
-    private static async Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken)
-    {
-        var hooks = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        
-        foreach (var hook in hooks)
-        {
-            await hook.BeforeStartAsync(appModel, cancellationToken).ConfigureAwait(false);
-        }
-    }
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 
     // Test helper classes
     private sealed class CustomTestAnnotation(string value) : IResourceAnnotation
