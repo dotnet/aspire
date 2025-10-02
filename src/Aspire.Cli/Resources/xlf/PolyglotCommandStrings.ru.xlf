@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="PackageOptionDescription">
-        <source>The package name, e.g. Redis</source>
-        <target state="new">The package name, e.g. Redis</target>
+        <source>The package name, e.g. Redis, Aspire.Hosting.Redis</source>
+        <target state="new">The package name, e.g. Redis, Aspire.Hosting.Redis</target>
         <note />
       </trans-unit>
       <trans-unit id="RunCommand_Description">

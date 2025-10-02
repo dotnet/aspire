@@ -1,7 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-namespace Rosetta.Generators;
+namespace Aspire.Cli.Rosetta.Generators;
 
 public interface ICodeGenerator
 {

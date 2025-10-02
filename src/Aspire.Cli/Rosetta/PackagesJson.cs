@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Rosetta.Models;
+using Aspire.Cli.Rosetta.Models;
 
-namespace Rosetta;
+namespace Aspire.Cli.Rosetta;
 
 /// <summary>
 /// Represents the aspire.json file used by the tool.

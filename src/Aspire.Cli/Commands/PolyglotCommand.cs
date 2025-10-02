@@ -9,7 +9,6 @@ using Aspire.Cli.Interaction;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Rosetta;
 using Aspire.Cli.Utils;
-using Rosetta;
 
 namespace Aspire.Cli.Commands;
 
@@ -77,7 +76,7 @@ internal sealed class PolyglotCommand : BaseCommand
 
                 var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
-                var codegen = RosettaServices.CreateCodegenerator(appModel, language);
+                var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService, language);
 
                 codegen.GenerateDistributedApplication();
 
@@ -189,7 +188,7 @@ internal sealed class PolyglotCommand : BaseCommand
                 var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 // Detect language from existing app
-                var codegen = RosettaServices.CreateCodegenerator(appModel);
+                var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService);
 
                 codegen.GenerateDistributedApplication();
 
@@ -230,7 +229,7 @@ internal sealed class PolyglotCommand : BaseCommand
                 var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 // Detect language
-                var codegen = RosettaServices.CreateCodegenerator(appModel);
+                var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService);
 
                 codegen.ExecuteAppHost(output);
 

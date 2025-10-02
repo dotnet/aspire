@@ -124,7 +124,7 @@ namespace Aspire.Cli.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The package name, e.g. Redis.
+        ///   Looks up a localized string similar to The package name, e.g. Redis, Aspire.Hosting.Redis.
         /// </summary>
         public static string PackageOptionDescription {
             get {

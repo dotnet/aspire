@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Cli.Rosetta;
 
-namespace Rosetta.Models;
+namespace Aspire.Cli.Rosetta.Models;
 
 /// <summary>
 /// This class provides access to ReflectionOnly well-known types from the Aspire.Hosting assembly and other loaded assemblies.

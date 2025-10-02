@@ -10,7 +10,7 @@ using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Aspire.Cli.Interaction;
 
-namespace Rosetta;
+namespace Aspire.Cli.Rosetta;
 
 /// <summary>
 /// Represents the dotnet project that is used to generate the AppHost.
@@ -22,11 +22,12 @@ internal class ProjectModel
     const string ProjectHashFileName = ".projecthash";
     const string FolderPrefix = ".aspire";
     const string AppsFolder = "hosts";
-    internal const string ProjectFileName = "GenericAppHost.csproj";
+    public const string ProjectFileName = "GenericAppHost.csproj";
     const string ProjectDllName = "GenericAppHost.dll";
     const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     const string TargetFramework = "net9.0";
     public const string AspireHostVersion = "9.5.0";
+    public const string BuildFolder = "build";
     const string AssemblyName = "GenericAppHost";
     private readonly string _projectModelPath;
     private readonly string _appPath;
@@ -166,6 +167,9 @@ internal class ProjectModel
                     <OutputType>exe</OutputType>
                     <TargetFramework>{TargetFramework}</TargetFramework>
                     <AssemblyName>{AssemblyName}</AssemblyName>
+                    <OutputPath>build</OutputPath>
+                    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+                    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
                     <IsAspireHost>true</IsAspireHost>
                     <IsPublishable>true</IsPublishable>
                     <SelfContained>true</SelfContained>
@@ -215,10 +219,7 @@ internal class ProjectModel
         }
     }
 
-    public string GetArtifactsPath()
-    {
-        return Path.Combine(_projectModelPath, "./artifacts");
-    }
+    public string BuildPath => Path.Combine(_projectModelPath, BuildFolder);
 
     /// <summary>
     /// Restores the project dependencies.
@@ -226,15 +227,12 @@ internal class ProjectModel
     public async Task<bool> Restore(IInteractionService interactionService)
     {
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
-        var artifactsPath = GetArtifactsPath();
 
         var startInfo = new ProcessStartInfo(dotnetExe);
         startInfo.WorkingDirectory = _projectModelPath;
         startInfo.WindowStyle = ProcessWindowStyle.Minimized;
-        startInfo.ArgumentList.Add("publish");
+        startInfo.ArgumentList.Add("build");
         startInfo.ArgumentList.Add(ProjectFileName);
-        startInfo.ArgumentList.Add("-o");
-        startInfo.ArgumentList.Add(artifactsPath);
         startInfo.UseShellExecute = false;
         startInfo.CreateNoWindow = true;
 
@@ -255,12 +253,12 @@ internal class ProjectModel
     /// <returns></returns>
     public IDependencyContext CreateDependencyContext()
     {
-        return new DepsFileDependencyContext(GetArtifactsPath());
+        return new DepsFileDependencyContext(BuildPath);
     }
 
     public Process Run()
     {
-        var assemblyPath = Path.Combine(_projectModelPath, "artifacts", ProjectDllName);
+        var assemblyPath = Path.Combine(BuildPath, ProjectDllName);
 
         var dotnetExe = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
 
@@ -287,12 +285,14 @@ internal class ProjectModel
     private class DepsFileDependencyContext : IDependencyContext
     {
         private readonly JsonObject _libraries; // parsed target libraries
-        private readonly string _artifactsPath;
+        private readonly string _buildPath;
 
-        public DepsFileDependencyContext(string artifactsPath)
+        public string ArtifactsPath => _buildPath;
+
+        public DepsFileDependencyContext(string buildPath)
         {
-            _artifactsPath = artifactsPath;
-            var depsPath = Path.Combine(artifactsPath, $"{AssemblyName}.deps.json");
+            _buildPath = buildPath;
+            var depsPath = Path.Combine(buildPath, $"{AssemblyName}.deps.json");
             var depsObj = JsonNode.Parse(File.ReadAllText(depsPath));
 
             if (depsObj == null)
@@ -313,8 +313,6 @@ internal class ProjectModel
             _libraries = targets[runtimeTarget]?.AsObject() ?? throw new InvalidOperationException("Invalid target structure.");
         }
 
-        public string ArtifactsPath => _artifactsPath;
-
         public IEnumerable<string> GetAssemblyPaths(string name, string version)
         {
             var key = $"{name}/{version}";
@@ -330,7 +328,7 @@ internal class ProjectModel
             foreach (var (assemblyPath, _) in runtime)
             {
                 var assemblyName = Path.GetFileName(assemblyPath);
-                var fullPath = Path.Combine(_artifactsPath, assemblyName);
+                var fullPath = Path.Combine(_buildPath, assemblyName);
 
                 if (File.Exists(fullPath))
                 {

@@ -6,12 +6,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
-using Rosetta.Models;
+using Aspire.Cli.Interaction;
+using Aspire.Cli.Rosetta.Models;
 
-namespace Rosetta.Generators;
+namespace Aspire.Cli.Rosetta.Generators;
 
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
-public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
+internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionService interactionService) : ICodeGenerator
 {
     private const string ModulePath = "./.modules";
 
@@ -206,7 +207,7 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             process.on("SIGINT", () => {
               console.log("\nStopping application...");
                 client.disconnect();
-                console.log(`👋 Disconnected from ${pipeName}`);
+                console.log(`👋 Disconnected from Generic App Host`);
   
               process.exit(0); // Exit the process if needed
             });
@@ -848,30 +849,40 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         // Toolchain requires Node.js and TypeScript
         // npm install -g typescript
 
-        var startInfo = new ProcessStartInfo("npm");
-        startInfo.WorkingDirectory = appPath;
-        startInfo.ArgumentList.Add("install");
-        // startInfo.WindowStyle = ProcessWindowStyle.Minimized;
-        startInfo.UseShellExecute = true;
-        //startInfo.CreateNoWindow = true;
+        interactionService.ShowStatus(
+            $":package:  Installing npm packages...",
+            () =>
+            {
+                var startInfo = new ProcessStartInfo("npm");
+                startInfo.WorkingDirectory = appPath;
+                startInfo.ArgumentList.Add("install");
+                startInfo.WindowStyle = ProcessWindowStyle.Minimized;
+                startInfo.UseShellExecute = true;
+                startInfo.CreateNoWindow = true;
 
-        using var npmProcess = Process.Start(startInfo);
-        npmProcess!.WaitForExit();
+                using var npmProcess = Process.Start(startInfo);
+                npmProcess!.WaitForExit();
+            });
 
         // tsc --project tsconfig.json
 
-        startInfo = new ProcessStartInfo("tsc");
-        startInfo.WorkingDirectory = appPath;
-        // startInfo.WindowStyle = ProcessWindowStyle.Minimized;
-        startInfo.UseShellExecute = true;
-        //startInfo.CreateNoWindow = true;
+        interactionService.ShowStatus(
+            $":floppy_disk:  Building typescript...",
+            () =>
+            {
+                var startInfo = new ProcessStartInfo("tsc");
+                startInfo.WorkingDirectory = appPath;
+                startInfo.WindowStyle = ProcessWindowStyle.Minimized;
+                startInfo.UseShellExecute = true;
+                startInfo.CreateNoWindow = true;
 
-        using var tscProcess = Process.Start(startInfo);
-        tscProcess!.WaitForExit();
+                using var tscProcess = Process.Start(startInfo);
+                tscProcess!.WaitForExit();
+            });
 
         var resultFileName = Path.GetTempFileName();
 
-        startInfo = new ProcessStartInfo("node");
+        var startInfo = new ProcessStartInfo("node");
         startInfo.ArgumentList.Add("dist/apphost.js");
         startInfo.WorkingDirectory = appPath;
         // startInfo.WindowStyle = ProcessWindowStyle.Minimized;

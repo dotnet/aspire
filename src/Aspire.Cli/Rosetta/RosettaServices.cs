@@ -3,9 +3,8 @@
 
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
-using Rosetta;
-using Rosetta.Generators;
-using Rosetta.Models;
+using Aspire.Cli.Rosetta.Generators;
+using Aspire.Cli.Rosetta.Models;
 
 namespace Aspire.Cli.Rosetta;
 
@@ -55,7 +54,7 @@ internal class RosettaServices
         }
     }
 
-    public static ICodeGenerator CreateCodegenerator(ApplicationModel appModel, PolyglotCommand.Languages? lang = null)
+    public static ICodeGenerator CreateCodegenerator(ApplicationModel appModel, IInteractionService interactionService, PolyglotCommand.Languages? lang = null)
     {
         var appPath = appModel.AppPath;
 
@@ -67,7 +66,7 @@ internal class RosettaServices
 
         return lang switch
         {
-            PolyglotCommand.Languages.TypeScript => new JavaScriptCodeGenerator(appModel),
+            PolyglotCommand.Languages.TypeScript => new JavaScriptCodeGenerator(appModel, interactionService),
             PolyglotCommand.Languages.Python => new PythonCodeGenerator(appModel),
             _ => throw new ArgumentException($"Unsupported language: {lang}"),
         };

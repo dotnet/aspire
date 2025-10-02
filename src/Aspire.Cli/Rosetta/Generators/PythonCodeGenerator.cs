@@ -6,9 +6,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
-using Rosetta.Models;
+using Aspire.Cli.Rosetta.Models;
 
-namespace Rosetta.Generators;
+namespace Aspire.Cli.Rosetta.Generators;
 
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator

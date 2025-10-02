@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Rosetta.Models;
+namespace Aspire.Cli.Rosetta.Models;
 
 public class ApplicationModel
 {

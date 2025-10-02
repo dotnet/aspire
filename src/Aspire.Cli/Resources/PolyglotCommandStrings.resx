@@ -148,7 +148,7 @@
     <value>The version of the package, e.g. 9.5.0</value>
   </data>
   <data name="PackageOptionDescription" xml:space="preserve">
-    <value>The package name, e.g. Redis</value>
+    <value>The package name, e.g. Redis, Aspire.Hosting.Redis</value>
   </data>
   <data name="AddCommand_Failed" xml:space="preserve">
     <value>Failed to add a package.</value>
