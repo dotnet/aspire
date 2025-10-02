@@ -171,25 +171,8 @@ public sealed class ParameterProcessor(
             if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
                 // Try to get a configured value (without using the default) to see if the parameter was actually specified
-                var hasConfiguredValue = false;
-                try
-                {
-                    var configuration = executionContext.ServiceProvider.GetRequiredService<ConfigurationManager>();
-                    // Call GetParameterValue with null default to check if there's a configured value
-                    // This will throw if no configured value exists
-                    ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
-                    hasConfiguredValue = true;
-                }
-                catch (MissingParameterValueException)
-                {
-                    // No configured value exists
-                }
-
-                // Only throw if there's no configured value
-                if (!hasConfiguredValue)
-                {
-                    throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
-                }
+                var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+                ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
             }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>

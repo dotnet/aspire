@@ -203,7 +203,7 @@ public static class ParameterResourceBuilderExtensions
 
     // Internal to allow ParameterProcessor to check for configured values
     // without triggering default value generation
-    internal static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    internal static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
         
