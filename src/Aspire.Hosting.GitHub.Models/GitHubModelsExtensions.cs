@@ -31,7 +31,7 @@ public static class GitHubModelsExtensions
         var defaultApiKeyParameter = builder.AddParameter($"{name}-gh-apikey", () =>
         {
             var configKey = $"Parameters:{name}-gh-apikey";
-            var value = global::Aspire.IConfigurationExtensions.GetValueWithNormalizedKey(builder.Configuration, configKey);
+            var value = builder.Configuration.GetValueWithNormalizedKey(configKey);
             
             return value ??
                 Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
