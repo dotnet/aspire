@@ -210,7 +210,7 @@ public static class ParameterResourceBuilderExtensions
         
         // If not found and the name contains dashes, try with underscores as a fallback
         // This supports command-line arguments and environment variables where dashes are replaced with underscores
-        if (value is null)
+        if (string.IsNullOrEmpty(value))
         {
             var normalizedKey = configurationKey.Replace("-", "_", StringComparison.Ordinal);
             value = configuration[normalizedKey];
