@@ -203,17 +203,16 @@ public static class ParameterResourceBuilderExtensions
 
     private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
-        var useDefaultKey = configurationKey is null;
         configurationKey ??= $"Parameters:{name}";
         
         // First try to get the value with the exact configuration key
         var value = configuration[configurationKey];
         
-        // If not found, the default key was used, and the name contains dashes, try with underscores as a fallback
+        // If not found and the name contains dashes, try with underscores as a fallback
         // This supports command-line arguments and environment variables where dashes are replaced with underscores
-        if (value is null && useDefaultKey && name.Contains('-', StringComparison.Ordinal))
+        if (value is null)
         {
-            var normalizedKey = $"Parameters:{name.Replace("-", "_", StringComparison.Ordinal)}";
+            var normalizedKey = configurationKey.Replace("-", "_", StringComparison.Ordinal);
             value = configuration[normalizedKey];
         }
         
