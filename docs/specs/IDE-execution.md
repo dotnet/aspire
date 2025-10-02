@@ -151,7 +151,8 @@ Used by DCP to get information about capabilities of the IDE run session endpoin
 A JSON document describing the capabilities of the IDE run session endpoint. For example:
 ```jsonc
 {
-    "protocols_supported": [ "2024-03-03" ]
+    "protocols_supported": [ "2024-03-03", "2025-10-01" ]
+    "supported_launch_configurations": [ "project", "blazor_webapp" ]
 }
 ```
 
@@ -160,6 +161,7 @@ The properties of the IDE endpoint information document are:
 | Property | Description | Type |
 | --- | --------- | --- |
 | `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
+| `supported_launch_configurations` | List of launch configurations supported by the IDE endpoint. This property is optional; if omitted, DCP will assume that only `project` launch configuration is supported. | `string[]` |
 
 ## Launch configurations (run session requests)
 
@@ -302,3 +304,15 @@ If the protocol version is old (no longer supported by the IDE), the IDE should 
 If the protocol version is newer than the latest the IDE supports, the IDE should make an attempt to parse the request according to its latest supported version. If that fails, the IDE should return `400 Bad Request` error.
 
 > The `api-version` parameter will be attached to all requests except the `/info` request (which is designed to facilitate protocol version negotiation).
+
+### Well-known protocol versions
+
+**`2024-03-03`** <br/>
+Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
+Changes: none (baseline version)
+
+**`2025-10-01`** <br/>
+Applicable Aspire versions: `9.6` and above (DCP will downgrade to `2024-03-03` if necessary). <br/>
+Changes:
+- Adds [session message notification](#session-message-notification) as one of the run session change notification types.
+- Adds `supported_launch_configurations` property to [IDE endpoint information request](#ide-endpoint-information-request)
