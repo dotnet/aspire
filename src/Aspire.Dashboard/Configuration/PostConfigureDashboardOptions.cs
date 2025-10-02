@@ -72,5 +72,7 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             _configuration[DashboardConfigNames.DashboardFrontendBrowserTokenName.ConfigKey] = token;
             options.Frontend.BrowserToken = token;
         }
+
+        options.AI.Disabled = _configuration.GetBool(DashboardConfigNames.DashboardAIDisabledName.ConfigKey);
     }
 }

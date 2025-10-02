@@ -7,7 +7,7 @@ using System.Threading.Channels;
 using Aspire.Dashboard.Model;
 using Aspire.DashboardService.Proto.V1;
 
-namespace Aspire.Dashboard.Components.Tests.Shared;
+namespace Aspire.Dashboard.Tests.Shared;
 
 public class TestDashboardClient : IDashboardClient
 {
@@ -72,9 +72,19 @@ public class TestDashboardClient : IDashboardClient
         }
     }
 
-    public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (_consoleLogsChannelProvider == null)
+        {
+            throw new InvalidOperationException("No channel provider set.");
+        }
+
+        var channel = _consoleLogsChannelProvider(resourceName);
+
+        await foreach (var item in channel.Reader.ReadAllAsync(cancellationToken))
+        {
+            yield return item;
+        }
     }
 
     public Task<ResourceViewModelSubscription> SubscribeResourcesAsync(CancellationToken cancellationToken)
@@ -127,8 +137,7 @@ public class TestDashboardClient : IDashboardClient
         await _sendInteractionUpdateChannel.Writer.WriteAsync(request, cancellationToken);
     }
 
-    public ResourceViewModel? GetResource(string resourceName)
-    {
-        return null;
-    }
+    public ResourceViewModel? GetResource(string resourceName) => null;
+
+    public IReadOnlyList<ResourceViewModel> GetResources() => _initialResources?.ToList() ?? [];
 }

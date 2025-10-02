@@ -18,6 +18,7 @@ public sealed class DashboardOptions
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
+    public AIOptions AI { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -311,6 +312,11 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class AIOptions
+{
+    public bool? Disabled { get; set; }
 }
 
 public sealed class DebugSessionOptions

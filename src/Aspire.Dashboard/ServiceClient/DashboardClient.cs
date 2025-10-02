@@ -787,6 +787,14 @@ internal sealed class DashboardClient : IDashboardClient
         _initialDataReceivedTcs.TrySetResult();
     }
 
+    public IReadOnlyList<ResourceViewModel> GetResources()
+    {
+        lock (_lock)
+        {
+            return _resourceByName.Values.ToList();
+        }
+    }
+
     private class InteractionCollection : KeyedCollection<int, WatchInteractionsResponseUpdate>
     {
         protected override int GetKeyForItem(WatchInteractionsResponseUpdate item) => item.InteractionId;

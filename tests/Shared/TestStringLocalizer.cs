@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Localization;
 
-namespace Aspire.Dashboard.Tests.Model;
+namespace Aspire.Dashboard.Tests;
 
 public sealed class TestStringLocalizer<T> : IStringLocalizer<T>
 {
