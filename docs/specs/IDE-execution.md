@@ -315,4 +315,4 @@ Changes: none (baseline version)
 Applicable Aspire versions: `9.6` and above (DCP will downgrade to `2024-03-03` if necessary). <br/>
 Changes:
 - Adds [session message notification](#session-message-notification) as one of the run session change notification types.
-- Adds `supported_launch_configurations` property to [IDE endpoint information request](#ide-endpoint-information-request)
+- Adds `supported_launch_configurations` property to [IDE endpoint information request](#ide-endpoint-information-request).
