@@ -48,8 +48,9 @@
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>9.9.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.9.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.9.0</MicrosoftExtensionsTimeProviderTestingVersion>
-    <!-- ServiceDiscovery was moved to dotnet/extensions, using latest stable version -->
+    <MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>
     <MicrosoftExtensionsServiceDiscoveryVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryVersion>
+    <MicrosoftExtensionsServiceDiscoveryYarpVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
     <!-- dotnet/runtime BCL compat packages for netfx -->
     <MicrosoftBclMemoryVersion>9.0.9</MicrosoftBclMemoryVersion>
     <MicrosoftBclTimeProviderVersion>9.0.9</MicrosoftBclTimeProviderVersion>

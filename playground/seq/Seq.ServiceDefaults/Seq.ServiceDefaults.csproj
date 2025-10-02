@@ -20,7 +20,6 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
     <AspireProjectOrPackageReference Include="Aspire.Seq" />
 
-    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
