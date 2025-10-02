@@ -803,13 +803,22 @@ public class ParameterProcessorTests
     public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_ThrowsWhenValueIsEmpty()
     {
         // Arrange
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
         var interactionService = CreateInteractionService();
         var parameterProcessor = CreateParameterProcessor(
             interactionService: interactionService,
             executionContext: executionContext);
 
-        var configuration = new ConfigurationBuilder().Build();
         var parameterWithGenerateDefault = new ParameterResource(
             "generatedParam",
             parameterDefault => parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
@@ -830,12 +839,21 @@ public class ParameterProcessorTests
     public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_DoesNotThrowWhenValueExists()
     {
         // Arrange
-        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-        var parameterProcessor = CreateParameterProcessor(executionContext: executionContext);
-
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Parameters:generatedParam"] = "existingValue" })
             .Build();
+        
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
+        var parameterProcessor = CreateParameterProcessor(executionContext: executionContext);
 
         var parameterWithGenerateDefault = new ParameterResource(
             "generatedParam",
