@@ -48,7 +48,6 @@
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>9.9.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.9.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.9.0</MicrosoftExtensionsTimeProviderTestingVersion>
-    <MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>
     <MicrosoftExtensionsServiceDiscoveryVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryVersion>
     <MicrosoftExtensionsServiceDiscoveryYarpVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
     <!-- for templates -->
