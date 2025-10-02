@@ -255,6 +255,10 @@
     <value>just now</value>
     <comment>Text displayed when a health check ran very recently (within the last 10 seconds)</comment>
   </data>
+  <data name="HealthCheckStatusJustNowFormat" xml:space="preserve">
+    <value>{0} (just now)</value>
+    <comment>{0} is the health status like "Unhealthy"</comment>
+  </data>
   <data name="HealthCheckStatusWithTimeTooltipFormat" xml:space="preserve">
     <value>{0} (last run at {1})</value>
     <comment>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</comment>

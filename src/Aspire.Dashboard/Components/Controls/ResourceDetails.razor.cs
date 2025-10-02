@@ -328,8 +328,7 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
             // Display "just now" for health checks that ran in the last 10 seconds
             if (duration.TotalSeconds < 10)
             {
-                var justNowText = Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckJustNowText)];
-                return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, justNowText];
+                return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusJustNowFormat), statusText];
             }
             
             var formattedDuration = DurationFormatter.FormatDuration(duration);
