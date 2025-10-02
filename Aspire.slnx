@@ -339,7 +339,6 @@
     <Project Path="playground/yarp/Yarp.Backend/Yarp.Backend.csproj" Id="1a96af46-9332-4e00-9202-fb00bd7d37b3" />
     <Project Path="playground/yarp/Yarp.Frontend/Yarp.Frontend.csproj" Id="a5c7276a-9ac5-4b89-9c1a-34efd457c7a4" />
   </Folder>
-
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
@@ -441,7 +440,6 @@
     <Project Path="tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Yarp.Tests/Aspire.Hosting.Yarp.Tests.csproj" />
   </Folder>
-
   <Folder Name="/tests/TestingAppHost1/">
     <Project Path="tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj" />
     <Project Path="tests/TestingAppHost1/TestingAppHost1.MyWebApp/TestingAppHost1.MyWebApp.csproj" />
