@@ -22,12 +22,12 @@ internal class ProjectModel
     const string ProjectHashFileName = ".projecthash";
     const string FolderPrefix = ".aspire";
     const string AppsFolder = "hosts";
-    const string ProjectFileName = "RosettaHost.csproj";
-    const string ProjectDllName = "RosettaHost.dll";
+    internal const string ProjectFileName = "GenericAppHost.csproj";
+    const string ProjectDllName = "GenericAppHost.dll";
     const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     const string TargetFramework = "net9.0";
     public const string AspireHostVersion = "9.5.0";
-    const string AssemblyName = "rosettahost";
+    const string AssemblyName = "GenericAppHost";
     private readonly string _projectModelPath;
     private readonly string _appPath;
 
@@ -78,7 +78,7 @@ internal class ProjectModel
     {
         var assembly = Assembly.GetExecutingAssembly();
 
-        foreach (var csFile in new string[] { "InstructionModels.cs", "InstructionProcessor.cs", "JsonRpcServer.cs", "Program.cs" })
+        foreach (var csFile in new string[] { "InstructionModels.cs", "InstructionProcessor.cs", "JsonRpcServer.cs", "Program.cs", "OrphanDetector.cs" })
         {
             // Extract InstructionModels.cs
             using var stream = assembly.GetManifestResourceStream($"Aspire.Cli.Rosetta.Shared.RemoteAppHost.{csFile}")

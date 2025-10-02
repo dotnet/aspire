@@ -2,7 +2,7 @@
   "name": "aspire-host",
   "type": "module",
   "scripts": {
-    "start": "rosetta run",
+    "start": "aspire polyglot run",
     "build": "tsc",
     "dev": "tsc --watch"
   },

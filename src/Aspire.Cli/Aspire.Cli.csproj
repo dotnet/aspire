@@ -43,6 +43,7 @@
     <Compile Remove="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
     <Compile Remove="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
     <Compile Remove="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
+    <Compile Remove="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
     <Compile Remove="Rosetta\Shared\RemoteAppHost\Program.cs" />
   </ItemGroup>
 
@@ -79,6 +80,7 @@
     <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
     <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
     <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
     <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\Program.cs" />
 
     <EmbeddedResource Include="Rosetta\Shared\python\remote_app_host_client.py" />

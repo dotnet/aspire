@@ -2,6 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using RemoteAppHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+_ = new OrphanDetector().StartAsync(default);
 
 var pipeName = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PIPE_NAME") ?? "RemoteAppHost";
 
@@ -29,3 +34,5 @@ catch (Exception ex)
     Console.WriteLine($"❌ Server error: {ex.Message}");
     Environment.Exit(1);
 }
+
+Console.WriteLine("👋 Goodbye!");

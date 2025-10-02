@@ -126,7 +126,7 @@ internal sealed class PolyglotCommand : BaseCommand
 
                 InteractionService.DisplaySubtleMessage($"Generic App Host: '{projectModel.ProjectModelPath}' served from '{output}'");
 
-                var appHostProjectFile = new FileInfo(Path.Combine(projectModel.ProjectModelPath, "RosettaHost.csproj"));
+                var appHostProjectFile = new FileInfo(Path.Combine(projectModel.ProjectModelPath, ProjectModel.ProjectFileName));
 
                 return await _runCommand.ExecuteInternalAsync(appHostProjectFile, false, false, debug, [], cancellationToken);
             }

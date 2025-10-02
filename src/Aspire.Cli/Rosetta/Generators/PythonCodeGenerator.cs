@@ -135,8 +135,8 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                     # Disconnect client if it exists
                     if client:
                         try:
-                            print("Disconnecting client...")
                             client.disconnect()
+                            print("👋 Disconnected from Generic App Host")
                         except Exception as e:
                             print(f"Error disconnecting client: {e}")
                     # Terminate aspire process if it exists
@@ -153,6 +153,14 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
 
                 # Register signal handler for CTRL+C
                 signal.signal(signal.SIGINT, signal_handler)
+
+                # Block the process until CTRL+C is sent
+                try:
+                    while True:
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    # This will be caught by the signal handler
+                    pass
 
         class DistributedApplicationBuilderBase:
             _index = 1
@@ -181,12 +189,13 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             if args is None:
                 args = [] 
 
-            print("🚀 Starting generic app host...")
+            print("🚀 Starting Generic App Host...")
             global rosetta_process
 
             pipeName = hashlib.md5(os.getcwd().encode()).hexdigest()
             env = os.environ.copy()
             env["REMOTE_APP_HOST_PIPE_NAME"] = pipeName
+            env["REMOTE_APP_HOST_PID"] = str(os.getpid())
 
             # This process inherits the current console directly
             rosetta_process = subprocess.Popen(
@@ -205,6 +214,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                 try:
                     client.connect()
                     client.ping()
+                    print("✅ Connected to Generic App Host")
                     break  # Connection successful, exit loop
                 except Exception as e:
                     time.sleep(1)

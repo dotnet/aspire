@@ -146,7 +146,7 @@ public class JavaScriptCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             const rosettaProcess: ChildProcess = spawn('aspire', ['polyglot', 'serve', '-o', process.cwd()], {
               stdio: 'inherit',
               shell: false,
-              env: { ...process.env, 'REMOTE_APP_HOST_PIPE_NAME': pipeName }
+              env: { ...process.env, 'REMOTE_APP_HOST_PIPE_NAME': pipeName, 'REMOTE_APP_HOST_PID': process.pid.toString() }
             });
 
             // Give the process more time to start up and establish the named pipe
