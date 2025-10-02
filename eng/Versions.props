@@ -51,9 +51,6 @@
     <MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryAbstractionsVersion>
     <MicrosoftExtensionsServiceDiscoveryVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryVersion>
     <MicrosoftExtensionsServiceDiscoveryYarpVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
-    <!-- dotnet/runtime BCL compat packages for netfx -->
-    <MicrosoftBclMemoryVersion>9.0.9</MicrosoftBclMemoryVersion>
-    <MicrosoftBclTimeProviderVersion>9.0.9</MicrosoftBclTimeProviderVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.9</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-rc.1.25451.107</MicrosoftAspNetCorePackageVersionForNet10>
@@ -93,7 +90,6 @@
     <MicrosoftExtensionsHttpVersion>9.0.9</MicrosoftExtensionsHttpVersion>
     <SystemFormatsAsn1Version>9.0.9</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.9</SystemTextJsonVersion>
-    <SystemThreadingChannelsVersion>9.0.9</SystemThreadingChannelsVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryInstrumentationAspNetCoreVersion>1.12.0</OpenTelemetryInstrumentationAspNetCoreVersion>
     <OpenTelemetryInstrumentationHttpVersion>1.12.0</OpenTelemetryInstrumentationHttpVersion>
@@ -133,7 +129,6 @@
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
     <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.6</SystemTextJsonLTSVersion>
-    <SystemThreadingChannelsLTSVersion>8.0.0</SystemThreadingChannelsLTSVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryNet8Version>1.9.0</OpenTelemetryNet8Version>
     <OpenTelemetryInstrumentationGrpcNetClientNet8Version>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientNet8Version>
