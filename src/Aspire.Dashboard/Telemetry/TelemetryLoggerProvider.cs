@@ -48,7 +48,7 @@ public sealed class TelemetryLoggerProvider : ILoggerProvider
                 try
                 {
                     // Get the telemetry service lazily to avoid a circular reference between resolving telemetry service and logging.
-                    var errorRecorder = _serviceProvider.GetRequiredService<TelemetryErrorRecorder>();
+                    var errorRecorder = _serviceProvider.GetRequiredService<ITelemetryErrorRecorder>();
 
                     errorRecorder.RecordError("Blazor global error", exception);
                 }

@@ -243,6 +243,7 @@ public partial class StructuredLogsTests : DashboardTestContext
         Services.AddSingleton<StructuredLogsViewModel>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
