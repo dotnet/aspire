@@ -317,9 +317,6 @@ internal abstract class PublishCommandBase : BaseCommand
         var renderer = new PublishingOutputRenderer();
         PublishingActivity? publishingActivity = null;
 
-        AnsiConsole.Clear();
-        AnsiConsole.WriteLine();
-
         renderer.StartSpinner();
 
         try
@@ -346,7 +343,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
                         steps[activity.Data.Id] = stepInfo;
 
-                        renderer.WriteStepMessage(
+                        await renderer.WriteStepMessageAsync(
                             stepInfo.Id,
                             stepInfo.Title,
                             $"Starting {stepInfo.Title}...");
@@ -360,7 +357,7 @@ internal abstract class PublishCommandBase : BaseCommand
                                        !IsCompletionStateWarning(stepInfo.CompletionState);
                         var isFailure = IsCompletionStateError(stepInfo.CompletionState);
 
-                        renderer.WriteStepMessage(
+                        await renderer.WriteStepMessageAsync(
                             stepInfo.Id,
                             stepInfo.Title,
                             stepInfo.CompletionText,
@@ -370,7 +367,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
                 else if (activity.Type == PublishingActivityTypes.Prompt)
                 {
-                    renderer.StopSpinner();
+                    await renderer.StopSpinnerAsync();
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
                     renderer.StartSpinner();
                 }
@@ -398,7 +395,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
                         tasks[activity.Data.Id] = task;
 
-                        renderer.WriteStepMessage(
+                        await renderer.WriteStepMessageAsync(
                             stepInfo.Id,
                             stepInfo.Title,
                             activity.Data.StatusText);
@@ -428,7 +425,7 @@ internal abstract class PublishCommandBase : BaseCommand
                             message = $"{task.StatusText} {durationStr}";
                         }
 
-                        renderer.WriteStepMessage(
+                        await renderer.WriteStepMessageAsync(
                             stepInfo.Id,
                             stepInfo.Title,
                             message,
@@ -460,7 +457,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
-            renderer.StopSpinner();
+            await renderer.StopSpinnerAsync();
         }
     }
 
@@ -675,6 +672,9 @@ internal abstract class PublishCommandBase : BaseCommand
     private class PublishingOutputRenderer
     {
         private readonly HashSet<string> _seenSteps = [];
+        private readonly Dictionary<string, string> _stepColors = [];
+        private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
+        private int _colorIndex;
         private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
         private volatile bool _isSpinning;
         private Task? _spinnerTask;
@@ -693,30 +693,37 @@ internal abstract class PublishCommandBase : BaseCommand
 
                 while (_isSpinning)
                 {
-                    Console.Write(_spinnerChars[spinnerIndex]);
-                    Console.Write("\b");
+                    AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[spinnerIndex]);
+                    AnsiConsole.Write("\b");
                     spinnerIndex = (spinnerIndex + 1) % _spinnerChars.Length;
                     await Task.Delay(150);
                 }
 
-                Console.Write(" \b");
+                AnsiConsole.Write(" \b");
             });
         }
 
-        public void StopSpinner()
+        public async Task StopSpinnerAsync()
         {
             _isSpinning = false;
-            _spinnerTask?.Wait(1000);
+            if (_spinnerTask is not null)
+            {
+                await _spinnerTask.ConfigureAwait(false);
+            }
             _spinnerTask = null;
         }
 
-        public void WriteStepMessage(string stepId, string stepTitle, string message,
+        public async Task WriteStepMessageAsync(string stepId, string stepTitle, string message,
             bool isSuccess = false, bool isFailure = false)
         {
             var wasSpinning = _isSpinning;
             if (wasSpinning)
             {
-                StopSpinner();
+                _isSpinning = false;
+                if (_spinnerTask is not null)
+                {
+                    await _spinnerTask.ConfigureAwait(false);
+                }
             }
 
             if (!_seenSteps.Contains(stepId))
@@ -746,11 +753,15 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        private static string GetStepColor(string stepId)
+        private string GetStepColor(string stepId)
         {
-            var hash = stepId.GetHashCode();
-            var colors = new[] { "blue", "cyan", "yellow", "magenta", "purple", "orange3" };
-            return colors[Math.Abs(hash) % colors.Length];
+            if (!_stepColors.TryGetValue(stepId, out var color))
+            {
+                color = _availableColors[_colorIndex % _availableColors.Length];
+                _stepColors[stepId] = color;
+                _colorIndex++;
+            }
+            return color;
         }
     }
 }
