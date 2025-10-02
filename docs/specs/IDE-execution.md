@@ -30,22 +30,21 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
 
-### Requirements for non-project resources
+### Requirements for individual resource types
 
-The above setup is sufficient for running `project` resources. However, an IDE may indicate that IDE execution of non-project resources is supported. Three conditions need to be fulfilled:
+The above setup is sufficient for running `project` resources. However, an IDE may indicate that IDE execution of non-project resources is supported, or that `project` execution is in fact not supported.
 
-1. The resource type must be annotated with `SupportsDebuggingAnnotation`, which has five properties:
+Two conditions need to be fulfilled for a resource to be eligible for IDE execution:
 
-   - `ResourceType` is the resource type name (e.g. `project`, `python`).
-   - `ProjectPath` is an absolute path to the file which will serve as an entrypoint for the resource, if provided.
-   - `DebugAdapterId` is an identifier of the debug adapter that should be used to run the resource.
-   - `RequiredExtensionId` is an identifier of the IDE extension that provides the debug adapter. If not null, the apphost will check whether its capabilities include the extension with this identifier. If not provided, the resource will be run using process execution.
-2. The apphost environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
+1. The resource type must be annotated with `SupportsDebuggingAnnotation`
+2. The environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
 
    - the `DebugAdapterId`
    - if `RequiredExtensionId` is not null, the `RequiredExtensionId`
 
-For example, if the resource type is `python`, with the `python` debug adapter and the `ms-python.python` required extension, to run a `python` resource with IDE execution, the apphost environment must contain `ASPIRE_EXTENSION_CAPABILITIES=python,ms-python.python`.
+For example, if the resource type is `python`, with the `debugpy` debug adapter and the `ms-python.python` required extension, to run a `python` resource with IDE execution, the apphost environment must contain `ASPIRE_EXTENSION_CAPABILITIES=python,ms-python.python`.
+
+> Note: if `ASPIRE_EXTENSION_CAPABILITIES` is not present in the environment, `project` resources will continue to launch as expected, but non-`project` resources will fall back to process execution.
 
 ### Using multiple execution types in the same workload
 
@@ -230,7 +229,7 @@ Python launch configuration contains details for launching python projects.
 
 | Property       | Description                                                                                                                                              | Required?                      |
 |----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| `type`         | Launch configuration type indicator; must be `python`.                                                                                                   | Required                       |
+| `type`         | Launch configuration type indicator; must be `debugpy` or `python`.                                                                                      | Required                       |
 | `project_path` | Path to the project file for the program that is being launched.                                                                                         | Required                       |
 | `mode`         | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 
