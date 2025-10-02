@@ -35,6 +35,7 @@ internal interface IDotNetCliRunner
     Task<int> NewProjectAsync(string templateName, string name, string outputPath, string[] extraArgs, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
@@ -796,6 +797,35 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         else
         {
             logger.LogInformation("Package {PackageName} with version {PackageVersion} added to project {ProjectFilePath}", packageName, packageVersion, projectFilePath.FullName);
+        }
+
+        return result;
+    }
+
+    public async Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["sln", solutionFile.FullName, "add", projectFile.FullName];
+
+        logger.LogInformation("Adding project {ProjectFilePath} to solution {SolutionFilePath}", projectFile.FullName, solutionFile.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: solutionFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to add project {ProjectFilePath} to solution {SolutionFilePath}. See debug logs for more details.", projectFile.FullName, solutionFile.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Project {ProjectFilePath} added to solution {SolutionFilePath}", projectFile.FullName, solutionFile.FullName);
         }
 
         return result;

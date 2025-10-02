@@ -29,9 +29,14 @@ public static class GitHubModelsExtensions
         ArgumentException.ThrowIfNullOrEmpty(model);
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-gh-apikey", () =>
-            builder.Configuration[$"Parameters:{name}-gh-apikey"] ??
-            Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
-            throw new MissingParameterValueException($"GitHub API key parameter '{name}-gh-apikey' is missing and GITHUB_TOKEN environment variable is not set."),
+        {
+            var configKey = $"Parameters:{name}-gh-apikey";
+            var value = builder.Configuration.GetValueWithNormalizedKey(configKey);
+            
+            return value ??
+                Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
+                throw new MissingParameterValueException($"GitHub API key parameter '{name}-gh-apikey' is missing and GITHUB_TOKEN environment variable is not set.");
+        },
             secret: true);
         defaultApiKeyParameter.Resource.Description = """
             The API key used to authenticate requests to the GitHub Models API.

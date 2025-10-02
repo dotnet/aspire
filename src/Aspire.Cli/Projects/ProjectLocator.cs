@@ -216,6 +216,107 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (projectFile is not null)
         {
+            // Check if the provided path is actually a directory
+            if (Directory.Exists(projectFile.FullName))
+            {
+                logger.LogDebug("Provided path {Path} is a directory, searching for project files recursively", projectFile.FullName);
+                var directory = new DirectoryInfo(projectFile.FullName);
+                
+                // Search recursively for .csproj files and validate they are AppHost projects
+                // Use ShowStatusAsync and parallel processing similar to FindAppHostProjectFilesAsync
+                var appHostProjects = await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
+                {
+                    var enumerationOptions = new EnumerationOptions
+                    {
+                        RecurseSubdirectories = true,
+                        IgnoreInaccessible = true
+                    };
+                    
+                    interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
+                    
+                    var allProjectFiles = directory.GetFiles("*.csproj", enumerationOptions);
+                    logger.LogDebug("Found {ProjectFileCount} project files in {Directory}", allProjectFiles.Length, directory.FullName);
+                    
+                    var foundProjects = new List<FileInfo>();
+                    var lockObject = new object();
+                    
+                    var parallelOptions = new ParallelOptions
+                    {
+                        CancellationToken = cancellationToken,
+                        MaxDegreeOfParallelism = Environment.ProcessorCount
+                    };
+                    
+                    // Validate each project to see if it's an AppHost in parallel
+                    await Parallel.ForEachAsync(allProjectFiles, parallelOptions, async (candidateProject, ct) =>
+                    {
+                        logger.LogDebug("Checking project file {ProjectFile}", candidateProject.FullName);
+                        var information = await runner.GetAppHostInformationAsync(candidateProject, new DotNetCliRunnerInvocationOptions(), ct);
+                        
+                        if (information.ExitCode == 0 && information.IsAspireHost)
+                        {
+                            logger.LogDebug("Found AppHost project file {ProjectFile}", candidateProject.FullName);
+                            var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateProject.FullName);
+                            interactionService.DisplaySubtleMessage(relativePath);
+                            lock (lockObject)
+                            {
+                                foundProjects.Add(candidateProject);
+                            }
+                        }
+                    });
+                    
+                    // If no .csproj AppHost files found and single-file apphost is enabled, check for apphost.cs
+                    if (foundProjects.Count == 0 && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+                    {
+                        var appHostFiles = directory.GetFiles("apphost.cs", enumerationOptions);
+                        logger.LogDebug("Found {CandidateFileCount} single-file apphost candidates", appHostFiles.Length);
+                        
+                        await Parallel.ForEachAsync(appHostFiles, parallelOptions, async (candidateFile, ct) =>
+                        {
+                            logger.LogDebug("Checking single-file apphost candidate {CandidateFile}", candidateFile.FullName);
+                            
+                            if (await IsValidSingleFileAppHostAsync(candidateFile, ct))
+                            {
+                                logger.LogDebug("Found valid single-file apphost {AppHostFile}", candidateFile.FullName);
+                                var relativePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, candidateFile.FullName);
+                                interactionService.DisplaySubtleMessage(relativePath);
+                                lock (lockObject)
+                                {
+                                    foundProjects.Add(candidateFile);
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Sort for deterministic results
+                    foundProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
+                    
+                    return foundProjects;
+                });
+
+                interactionService.DisplayEmptyLine();
+
+                if (appHostProjects.Count == 0)
+                {
+                    logger.LogError("No AppHost project files found in directory {Directory}", directory.FullName);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                }
+                else if (appHostProjects.Count == 1)
+                {
+                    logger.LogDebug("Found single AppHost project file {ProjectFile} in directory {Directory}", appHostProjects[0].FullName, directory.FullName);
+                    projectFile = appHostProjects[0];
+                }
+                else
+                {
+                    logger.LogDebug("Multiple AppHost project files found in directory {Directory}, prompting user to select", directory.FullName);
+                    projectFile = await interactionService.PromptForSelectionAsync(
+                        InteractionServiceStrings.SelectAppHostToUse,
+                        appHostProjects,
+                        file => $"{file.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName)})",
+                        cancellationToken
+                        );
+                }
+            }
+
             // If the project file is passed, validate it.
             if (!projectFile.Exists)
             {

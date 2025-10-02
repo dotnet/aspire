@@ -7,6 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
@@ -163,9 +165,14 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
+            // Check if we need to validate GenerateParameterDefault in publish mode
+            // We use GetParameterValue to distinguish between configured values and generated values
+            // because ValueInternal might contain a generated value even if no configuration was provided.
             if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
-                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+                // Try to get a configured value (without using the default) to see if the parameter was actually specified. This will throw if the value is missing.
+                var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+                value = ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
             }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
