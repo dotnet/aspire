@@ -25,9 +25,24 @@ public static class OpenAIExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-openai-apikey", () =>
-            ParameterResourceBuilderExtensions.GetParameterValue(builder.Configuration, $"{name}-openai-apikey", null) ??
-            Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
-            throw new MissingParameterValueException($"OpenAI API key parameter '{name}-openai-apikey' is missing and OPENAI_API_KEY environment variable is not set."),
+        {
+            // Try to get the value with the exact configuration key
+            var configKey = $"Parameters:{name}-openai-apikey";
+            var value = builder.Configuration[configKey];
+            
+            // If not found, try with underscores as a fallback to support environment variables
+            // This supports command-line arguments and environment variables where dashes are replaced with underscores
+            // TODO: Refactor to use a shared utility method in the next major version
+            if (string.IsNullOrEmpty(value))
+            {
+                var normalizedKey = configKey.Replace("-", "_", StringComparison.Ordinal);
+                value = builder.Configuration[normalizedKey];
+            }
+            
+            return value ??
+                Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
+                throw new MissingParameterValueException($"OpenAI API key parameter '{name}-openai-apikey' is missing and OPENAI_API_KEY environment variable is not set.");
+        },
             secret: true);
         defaultApiKeyParameter.Resource.Description = """
             The API key used to authenticate requests to the OpenAI API.

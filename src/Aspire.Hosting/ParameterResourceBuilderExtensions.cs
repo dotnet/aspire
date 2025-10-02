@@ -201,16 +201,7 @@ public static class ParameterResourceBuilderExtensions
         return builder;
     }
 
-    /// <summary>
-    /// Gets a parameter value from configuration with normalization support for dashes to underscores.
-    /// </summary>
-    /// <param name="configuration">The configuration manager.</param>
-    /// <param name="name">The parameter name.</param>
-    /// <param name="parameterDefault">Optional parameter default value provider.</param>
-    /// <param name="configurationKey">Optional custom configuration key. If null, uses "Parameters:{name}".</param>
-    /// <returns>The parameter value.</returns>
-    /// <exception cref="MissingParameterValueException">Thrown when the parameter value cannot be found.</exception>
-    public static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
         
