@@ -156,6 +156,8 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
                     report = new HealthReport(registrationKeysToCheck.ToDictionary(k => k, k => new HealthReportEntry(HealthStatus.Unhealthy, "Error calling HealthCheckService.", TimeSpan.Zero, ex, data: null)), TimeSpan.Zero);
                 }
 
+                var lastRunAt = timeProvider.GetUtcNow().UtcDateTime;
+
                 logger.LogTrace("Health report status for '{ResourceName}' is {HealthReportStatus}.", resource.Name, report.Status);
 
                 if (report.Status == HealthStatus.Healthy)
@@ -176,19 +178,20 @@ internal class ResourceHealthCheckService(ILogger<ResourceHealthCheckService> lo
 
                 if (ContainsAnyHealthReportChange(report, currentEvent.Snapshot.HealthReports))
                 {
-                    logger.LogTrace("Health reports for '{ResourceName}' have changed. Publishing updated reports.", resource.Name);
-
-                    await resourceNotificationService.PublishUpdateAsync(resource, s =>
-                    {
-                        var healthReports = MergeHealthReports(s.HealthReports, report, timeProvider.GetUtcNow().UtcDateTime);
-
-                        return s with
-                        {
-                            // HealthStatus is automatically re-computed after health reports change.
-                            HealthReports = healthReports
-                        };
-                    }).ConfigureAwait(false);
+                    logger.LogTrace("Health reports for '{ResourceName}' have changed.", resource.Name);
                 }
+
+                // Publish updated health reports every time because the last run time has changed.
+                await resourceNotificationService.PublishUpdateAsync(resource, s =>
+                {
+                    var healthReports = MergeHealthReports(s.HealthReports, report, lastRunAt);
+
+                    return s with
+                    {
+                        // HealthStatus is automatically re-computed after health reports change.
+                        HealthReports = healthReports
+                    };
+                }).ConfigureAwait(false);
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
