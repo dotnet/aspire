@@ -34,6 +34,7 @@ internal interface IExtensionBackchannel
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
+    Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task OpenEditorAsync(string path, CancellationToken cancellationToken);
     Task LogMessageAsync(LogLevel logLevel, string message, CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
@@ -48,6 +49,7 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 {
     private const string Name = "Aspire Extension";
     private const string BaselineCapability = "baseline.v1";
+    internal const string SecretPromptsCapability = "secret-prompts.v1";
 
     private readonly ActivitySource _activitySource = new(nameof(ExtensionBackchannel));
     private readonly TaskCompletionSource<JsonRpc> _rpcTaskCompletionSource = new();
@@ -474,6 +476,32 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         var result = await rpc.InvokeWithCancellationAsync<string?>(
             "promptForString",
             [_token, promptText, defaultValue, required],
+            cancellationToken);
+
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result;
+    }
+
+    public async Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken)
+    {
+        await ConnectAsync(cancellationToken);
+
+        _target.ValidationFunction = validator;
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for secret string with text: {PromptText}, required: {Required}", promptText, required);
+
+        var result = await rpc.InvokeWithCancellationAsync<string?>(
+            "promptForSecretString",
+            [_token, promptText, required],
             cancellationToken);
 
         if (result is null)
