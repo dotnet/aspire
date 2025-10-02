@@ -581,7 +581,7 @@ public class AddParameterTests
     }
 
     [Fact]
-    public void ParameterWithCustomConfigurationKey_DoesNotUseFallback()
+    public void ParameterWithCustomConfigurationKey_UsesFallback()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -592,14 +592,14 @@ public class AddParameterTests
             ["CustomSection:my_key"] = "custom-value"
         });
 
-        // Act - use custom configuration key
+        // Act - use custom configuration key with dash
         appBuilder.AddParameterFromConfiguration("my-param", "CustomSection:my-key");
 
         using var app = appBuilder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var parameterResource = Assert.Single(appModel.Resources.OfType<ParameterResource>());
 
-        // Assert - should find the value using the custom key without any fallback logic
+        // Assert - should find the value using the normalized key (dash -> underscore)
 #pragma warning disable CS0618 // Type or member is obsolete
         Assert.Equal("custom-value", parameterResource.Value);
 #pragma warning restore CS0618 // Type or member is obsolete
