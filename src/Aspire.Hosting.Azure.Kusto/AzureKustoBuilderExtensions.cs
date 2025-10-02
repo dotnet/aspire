@@ -274,7 +274,7 @@ public static class AzureKustoBuilderExtensions
         crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
 
         var scriptAnnotation = databaseResource.Annotations.OfType<AzureKustoCreateDatabaseScriptAnnotation>().LastOrDefault();
-        var script = scriptAnnotation?.Script ?? CslCommandGenerator.GenerateDatabaseCreateCommand(databaseResource.DatabaseName, AzureKustoEmulatorContainerDefaults.DefaultPersistencePath, ifNotExists: true);
+        var script = scriptAnnotation?.Script ?? AzureKustoEmulatorContainerDefaults.DefaultCreateDatabaseCommand(databaseResource.DatabaseName);
 
         var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource);
         var rns = serviceProvider.GetRequiredService<ResourceNotificationService>();

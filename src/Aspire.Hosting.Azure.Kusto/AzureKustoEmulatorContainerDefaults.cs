@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Kusto.Data.Common;
+
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
@@ -20,4 +22,15 @@ internal static class AzureKustoEmulatorContainerDefaults
     /// </summary>
     /// <remarks>/kustodata/dbs/</remarks>
     public const string DefaultPersistencePath = "/kustodata/dbs/";
+
+    public static string DefaultCreateDatabaseCommand(string dbName, string persistencePathRoot = DefaultPersistencePath)
+    {
+        var root = persistencePathRoot.AsSpan().TrimEnd('/');
+
+        return CslCommandGenerator.GenerateDatabaseCreateCommand(
+            dbName,
+            metadataPersistentPath: $"{root}/{dbName}/md",
+            dataPersistentPath: $"{root}/{dbName}/data",
+            ifNotExists: true);
+    }
 }
