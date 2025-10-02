@@ -1552,6 +1552,7 @@ public class DcpExecutorTests
             [DcpExecutor.DebugSessionPortVar] = "12345",
             [KnownConfigNames.ExtensionCapabilities] = "test_executable",
             [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
+            [KnownConfigNames.ExtensionDebugRunMode] = "Debug"
         };
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
