@@ -163,7 +163,7 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
-            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
+            if (string.IsNullOrEmpty(value) && parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
                 throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
             }
