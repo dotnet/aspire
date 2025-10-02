@@ -27,7 +27,7 @@ public static class OpenAIExtensions
         var defaultApiKeyParameter = builder.AddParameter($"{name}-openai-apikey", () =>
         {
             var configKey = $"Parameters:{name}-openai-apikey";
-            var value = global::Aspire.IConfigurationExtensions.GetValueWithNormalizedKey(builder.Configuration, configKey);
+            var value = builder.Configuration.GetValueWithNormalizedKey(configKey);
             
             return value ??
                 Environment.GetEnvironmentVariable("OPENAI_API_KEY") ??
