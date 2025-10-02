@@ -340,7 +340,7 @@ public sealed class GenAIVisualizerDialogViewModel
             throw new InvalidOperationException(
                 $"""
                 Error deserializing GenAI message content.
-                Error message: {ex.Message}
+                Error description: {ex.GetType().FullName}: {ex.Message}
                 Content description: {description}
                 """, ex);
         }
