@@ -444,15 +444,18 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        var redirectTarget = builder.AddConnectionString("redirect-target", "https://redirected-vault.vault.azure.net");
+        
+        // Create a connection string resource to redirect to
+        var redirectTarget = new ConnectionStringResource("redirect-target",
+            ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
 
         // Add ConnectionStringRedirectAnnotation to redirect to another resource
-        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget.Resource));
+        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget));
 
         var connectionString = keyVault.Resource.ConnectionStringExpression;
         var connectionStringValue = await keyVault.Resource.GetConnectionStringAsync(default);
 
-        Assert.Equal(redirectTarget.Resource.ConnectionStringExpression.ValueExpression, connectionString.ValueExpression);
+        Assert.Equal(redirectTarget.ConnectionStringExpression.ValueExpression, connectionString.ValueExpression);
         Assert.Equal("https://redirected-vault.vault.azure.net", connectionStringValue);
     }
 
@@ -462,7 +465,10 @@ public class AzureKeyVaultTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var keyVault = builder.AddAzureKeyVault("kv");
-        var redirectTarget = builder.AddConnectionString("redirect-target", "https://redirected-vault.vault.azure.net");
+        
+        // Create a connection string resource to redirect to
+        var redirectTarget = new ConnectionStringResource("redirect-target",
+            ReferenceExpression.Create($"https://redirected-vault.vault.azure.net"));
 
         // Simulate emulator by adding container annotation
         keyVault.Resource.Annotations.Add(new ContainerImageAnnotation
@@ -474,7 +480,7 @@ public class AzureKeyVaultTests
         keyVault.WithEndpoint("https", endpoint => endpoint.AllocatedEndpoint = new(endpoint, "localhost", 8443));
 
         // Add ConnectionStringRedirectAnnotation - this should take precedence
-        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget.Resource));
+        keyVault.Resource.Annotations.Add(new ConnectionStringRedirectAnnotation(redirectTarget));
 
         var connectionStringValue = await keyVault.Resource.GetConnectionStringAsync(default);
 
