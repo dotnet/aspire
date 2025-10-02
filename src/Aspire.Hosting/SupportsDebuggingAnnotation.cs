@@ -14,44 +14,39 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="projectPath">The entrypoint of the resource.</param>
 /// <param name="debugAdapterId">The debug adapter ID to use for debugging.</param>
 /// <param name="requiredExtensionId">The ID of the required extension that provides the debug adapter.</param>
-/// <param name="launchConfiguration">The launch configuration for the executable, if applicable.</param>
+/// <param name="launchConfigurationProducer">The launch configuration for the executable, if applicable.</param>
 /// </summary>
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}, Type = {Type}")]
-[Experimental("ASPIREEXTENSION001")]
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class SupportsDebuggingAnnotation(
     string resourceType,
     string projectPath,
     string debugAdapterId,
     string? requiredExtensionId,
-    ExecutableLaunchConfiguration? launchConfiguration) : IResourceAnnotation
+    Func<ExecutableLaunchConfiguration>? launchConfigurationProducer) : IResourceAnnotation
 {
-    private readonly string _resourceType = resourceType ?? throw new ArgumentNullException(nameof(resourceType));
-    private readonly string _projectPath = projectPath ?? throw new ArgumentNullException(nameof(projectPath));
-    private readonly string _debugAdapterId = debugAdapterId ?? throw new ArgumentNullException(nameof(debugAdapterId));
-    private readonly string _requiredExtensionId = requiredExtensionId ?? string.Empty;
-
     /// <summary>
     /// Gets the type of resource that can be debugged (e.g., "python", "project").
     /// </summary>
-    public string ResourceType => _resourceType;
+    public string ResourceType { get; } = resourceType ?? throw new ArgumentNullException(nameof(resourceType));
 
     /// <summary>
     /// Gets the project path.
     /// </summary>
-    public string ProjectPath => _projectPath;
+    public string ProjectPath { get; } = projectPath ?? throw new ArgumentNullException(nameof(projectPath));
 
     /// <summary>
     /// Gets the debug adapter ID.
     /// </summary>
-    public string DebugAdapterId => _debugAdapterId;
+    public string DebugAdapterId { get; } = debugAdapterId ?? throw new ArgumentNullException(nameof(debugAdapterId));
 
     /// <summary>
     /// Gets the required extension ID.
     /// </summary>
-    public string? RequiredExtensionId => _requiredExtensionId;
+    public string? RequiredExtensionId { get; } = requiredExtensionId;
 
     /// <summary>
-    /// Gets the launch configuration for the executable.
+    /// Gets the base launch configuration for the executable.
     /// </summary>
-    public ExecutableLaunchConfiguration? LaunchConfiguration { get; } = launchConfiguration;
+    public Func<ExecutableLaunchConfiguration>? LaunchConfigurationProducer { get; } = launchConfigurationProducer;
 }

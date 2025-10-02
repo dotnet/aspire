@@ -277,7 +277,6 @@ internal static class ExecutableLaunchMode
 /// Base properties for all executable launch configurations.
 /// </summary>
 /// <param name="type">Launch configuration type indicator.</param>
-///
 public class ExecutableLaunchConfiguration(string type)
 {
     /// <summary>
@@ -299,8 +298,6 @@ public class ExecutableLaunchConfiguration(string type)
     public string ProjectPath { get; set; } = string.Empty;
 }
 
-/* Project launch configurations */
-
 internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
 {
     [JsonPropertyName("launch_profile")]
@@ -309,30 +306,3 @@ internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("pro
     [JsonPropertyName("disable_launch_profile")]
     public bool DisableLaunchProfile { get; set; } = false;
 }
-
-internal sealed class VSCodeProjectLaunchConfiguration : ProjectLaunchConfiguration
-{
-    [JsonPropertyName("vscode")]
-    public bool VsCode { get; set; } = true;
-
-    [JsonPropertyName("debugger_properties")]
-    public Dictionary<string, object> DebuggerProperties { get; set; } = [];
-}
-
-/* Python launch configurations */
-
-internal class PythonLaunchConfiguration() : ExecutableLaunchConfiguration("python")
-{
-    [JsonPropertyName("module")]
-    public bool IsModule { get; set; } = false;
-}
-
-internal sealed class VSCodePythonLaunchConfiguration : PythonLaunchConfiguration
-{
-    [JsonPropertyName("vscode")]
-    public bool VsCode { get; set; } = true;
-
-    [JsonPropertyName("debugger_properties")]
-    public Dictionary<string, object> DebuggerProperties { get; set; } = [];
-}
-

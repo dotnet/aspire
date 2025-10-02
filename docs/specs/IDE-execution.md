@@ -231,9 +231,8 @@ Python launch configuration contains details for launching python projects.
 | Property       | Description                                                                                                                                              | Required?                      |
 |----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | `type`         | Launch configuration type indicator; must be `python`.                                                                                                   | Required                       |
-| `project_path` | Path to the project file for the program that is being launched, or module name if launching a module.                                                   | Required                       |
+| `project_path` | Path to the project file for the program that is being launched.                                                                                         | Required                       |
 | `mode`         | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
-| `is_module`    | If set to `true`, the `project_path` property is treated as a module name, otherwise as a file path.                                                     | Optional, defaults to `false`. |
 
 ## Run session change notifications
 

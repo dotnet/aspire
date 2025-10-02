@@ -10,15 +10,30 @@ export interface ErrorDetails {
     details: ErrorDetails[];
 };
 
-type LaunchConfigurationType = "project" | "node" | "python";
 type LaunchConfigurationMode = "Debug" | "NoDebug";
 
-export interface LaunchConfiguration {
-    type: LaunchConfigurationType;
+export interface ExecutableLaunchConfiguration {
+    type: string;
     project_path: string;
     mode?: LaunchConfigurationMode | undefined;
+}
+
+export interface ProjectLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "project";
     launch_profile?: string;
     disable_launch_profile?: boolean;
+}
+
+export function isProjectLaunchConfiguration(obj: any): obj is ProjectLaunchConfiguration {
+    return obj && obj.type === 'project';
+}
+
+export interface PythonLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "python";
+}
+
+export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfiguration {
+    return obj && obj.type === 'python';
 }
 
 export interface EnvVar {
@@ -27,7 +42,7 @@ export interface EnvVar {
 }
 
 export interface RunSessionPayload {
-    launch_configurations: LaunchConfiguration[];
+    launch_configurations: ExecutableLaunchConfiguration[];
     env?: EnvVar[];
     args?: string[];
 }
@@ -65,6 +80,7 @@ export interface LaunchOptions {
     forceBuild?: boolean;
     runId: string;
     debugSessionId: string;
+    isApphost: boolean;
 };
 
 export interface AspireResourceDebugSession {
@@ -80,5 +96,9 @@ export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugCo
 
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {
     program: string;
-    cliStart?: boolean
+    debuggers?: AspireDebuggersConfiguration;
+}
+
+interface AspireDebuggersConfiguration {
+    [key: string]: Map<string, any>;
 }

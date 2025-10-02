@@ -104,42 +104,40 @@ export default class AspireDcpServer {
                     return;
                 }
 
-                for (const launchConfig of payload.launch_configurations) {
-                    const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
+                const launchConfig = payload.launch_configurations[0];
+                const foundDebuggerExtension = debuggerExtensions.find(ext => ext.resourceType === launchConfig.type) ?? null;
 
-                    const aspireDebugSession = getDebugSession(debugSessionId);
-                    if (!aspireDebugSession) {
-                        const error: ErrorDetails = {
-                            code: 'DebugSessionNotFound',
-                            message: `No Aspire debug session found for Debug Session ID ${debugSessionId}`,
-                            details: []
-                        };
+                const aspireDebugSession = getDebugSession(debugSessionId);
+                if (!aspireDebugSession) {
+                    const error: ErrorDetails = {
+                        code: 'DebugSessionNotFound',
+                        message: `No Aspire debug session found for Debug Session ID ${debugSessionId}`,
+                        details: []
+                    };
 
-                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
-                        const response: ErrorResponse = { error };
-                        res.status(400).json(response).end();
-                        return;
-                    }
-
-                    const config = await createDebugSessionConfiguration(launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId }, foundDebuggerExtension);
-                    const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
-
-                    if (!resourceDebugSession) {
-                        const error: ErrorDetails = {
-                            code: 'DebugSessionFailed',
-                            message: `Failed to start debug session for run ID ${runId}`,
-                            details: []
-                        };
-
-                        extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
-                        const response: ErrorResponse = { error };
-                        res.status(400).json(response).end();
-                        return;
-                    }
-
-                    processes.push(resourceDebugSession);
+                    extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                    const response: ErrorResponse = { error };
+                    res.status(400).json(response).end();
+                    return;
                 }
 
+                const config = await createDebugSessionConfiguration(aspireDebugSession.configuration, launchConfig, payload.args ?? [], payload.env ?? [], { debug: launchConfig.mode === "Debug", runId, debugSessionId: dcpId, isApphost: false }, foundDebuggerExtension);
+                const resourceDebugSession = await aspireDebugSession.startAndGetDebugSession(config);
+
+                if (!resourceDebugSession) {
+                    const error: ErrorDetails = {
+                        code: 'DebugSessionFailed',
+                        message: `Failed to start debug session for run ID ${runId}`,
+                        details: []
+                    };
+
+                    extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
+                    const response: ErrorResponse = { error };
+                    res.status(400).json(response).end();
+                    return;
+                }
+
+                processes.push(resourceDebugSession);
                 extensionLogOutputChannel.info(`Debugging session created with ID: ${runId}`);
 
 
