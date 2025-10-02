@@ -30,18 +30,8 @@ public static class GitHubModelsExtensions
 
         var defaultApiKeyParameter = builder.AddParameter($"{name}-gh-apikey", () =>
         {
-            // Try to get the value with the exact configuration key
             var configKey = $"Parameters:{name}-gh-apikey";
-            var value = builder.Configuration[configKey];
-            
-            // If not found, try with underscores as a fallback to support environment variables
-            // This supports command-line arguments and environment variables where dashes are replaced with underscores
-            // TODO: Refactor to use a shared utility method in the next major version
-            if (string.IsNullOrEmpty(value))
-            {
-                var normalizedKey = configKey.Replace("-", "_", StringComparison.Ordinal);
-                value = builder.Configuration[normalizedKey];
-            }
+            var value = global::Aspire.IConfigurationExtensions.GetValueWithNormalizedKey(builder.Configuration, configKey);
             
             return value ??
                 Environment.GetEnvironmentVariable("GITHUB_TOKEN") ??
