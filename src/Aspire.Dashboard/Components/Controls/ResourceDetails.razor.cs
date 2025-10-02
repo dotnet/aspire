@@ -324,11 +324,32 @@ public partial class ResourceDetails : IComponentWithTelemetry, IDisposable
         if (context.LastRunAtTimeStamp.HasValue)
         {
             var duration = DateTime.UtcNow.Subtract(context.LastRunAtTimeStamp.Value);
+            
+            // Display "just now" for health checks that ran in the last 10 seconds
+            if (duration.TotalSeconds < 10)
+            {
+                var justNowText = Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckJustNowText)];
+                return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, justNowText];
+            }
+            
             var formattedDuration = DurationFormatter.FormatDuration(duration);
             return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeFormat), statusText, formattedDuration];
         }
         
         return statusText;
+    }
+
+    private string? GetHealthStatusTooltip(HealthReportViewModel context)
+    {
+        var statusText = context.HealthStatus?.Humanize() ?? Loc[nameof(Aspire.Dashboard.Resources.Resources.WaitingHealthDataStatusMessage)];
+        
+        if (context.LastRunAtTimeStamp.HasValue)
+        {
+            var localTime = FormatHelpers.FormatTimeWithOptionalDate(TimeProvider, context.LastRunAtTimeStamp.Value);
+            return Loc[nameof(Aspire.Dashboard.Resources.Resources.HealthCheckStatusWithTimeTooltipFormat), statusText, localTime];
+        }
+        
+        return null;
     }
 
     public void Dispose()

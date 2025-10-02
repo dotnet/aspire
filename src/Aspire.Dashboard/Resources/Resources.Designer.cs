@@ -196,6 +196,24 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to just now.
+        /// </summary>
+        public static string HealthCheckJustNowText {
+            get {
+                return ResourceManager.GetString("HealthCheckJustNowText", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} (last run at {1}).
+        /// </summary>
+        public static string HealthCheckStatusWithTimeTooltipFormat {
+            get {
+                return ResourceManager.GetString("HealthCheckStatusWithTimeTooltipFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Actions.
         /// </summary>
         public static string ResourcesActionsColumnHeader {
