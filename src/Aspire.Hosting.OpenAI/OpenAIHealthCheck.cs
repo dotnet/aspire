@@ -3,40 +3,58 @@
 
 using System.Text.Json;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.OpenAI;
 
 /// <summary>
-/// Checks a StatusPage "status.json" endpoint and maps indicator to ASP.NET Core health status.
+/// Health check for OpenAI resources that adapts based on endpoint configuration.
 /// </summary>
-internal sealed class StatusPageHealthCheck : IHealthCheck
+internal sealed class OpenAIHealthCheck : IHealthCheck
 {
+    private static readonly Uri s_defaultEndpointUri = new("https://api.openai.com/v1");
+    private static readonly Uri s_statusPageUri = new("https://status.openai.com/api/v2/status.json");
+    
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly Uri _statusEndpoint;
+    private readonly OpenAIResource _resource;
     private readonly string? _httpClientName;
     private readonly TimeSpan _timeout;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="StatusPageHealthCheck"/> class.
+    /// Initializes a new instance of the <see cref="OpenAIHealthCheck"/> class.
     /// </summary>
     /// <param name="httpClientFactory">The factory to create HTTP clients.</param>
-    /// <param name="statusEndpoint">The URI of the status.json endpoint.</param>
+    /// <param name="resource">The OpenAI resource.</param>
     /// <param name="httpClientName">The optional name of the HTTP client to use.</param>
     /// <param name="timeout">The optional timeout for the HTTP request.</param>
-    public StatusPageHealthCheck(
+    public OpenAIHealthCheck(
         IHttpClientFactory httpClientFactory,
-        Uri statusEndpoint,
+        OpenAIResource resource,
         string? httpClientName = null,
         TimeSpan? timeout = null)
     {
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
-        _statusEndpoint = statusEndpoint ?? throw new ArgumentNullException(nameof(statusEndpoint));
+        _resource = resource ?? throw new ArgumentNullException(nameof(resource));
         _httpClientName = httpClientName;
         _timeout = timeout ?? TimeSpan.FromSeconds(5);
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    {
+        // Case 1: Default endpoint - check StatusPage
+        if (Uri.TryCreate(_resource.Endpoint, UriKind.Absolute, out var endpointUri) &&
+            Uri.Compare(endpointUri, s_defaultEndpointUri, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0)
+        {
+            return await CheckStatusPageAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        // Case 2: Custom endpoint - return healthy
+        return HealthCheckResult.Healthy("Custom OpenAI endpoint configured");
+    }
+
+    /// <summary>
+    /// Checks the StatusPage endpoint for the default OpenAI service.
+    /// </summary>
+    private async Task<HealthCheckResult> CheckStatusPageAsync(CancellationToken cancellationToken)
     {
         var client = string.IsNullOrWhiteSpace(_httpClientName)
             ? _httpClientFactory.CreateClient()
@@ -45,7 +63,7 @@ internal sealed class StatusPageHealthCheck : IHealthCheck
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         cts.CancelAfter(_timeout);
 
-        using var req = new HttpRequestMessage(HttpMethod.Get, _statusEndpoint);
+        using var req = new HttpRequestMessage(HttpMethod.Get, s_statusPageUri);
         req.Headers.Accept.ParseAdd("application/json");
 
         HttpResponseMessage resp;
@@ -94,7 +112,7 @@ internal sealed class StatusPageHealthCheck : IHealthCheck
             {
                 ["indicator"] = indicator,
                 ["description"] = description,
-                ["endpoint"] = _statusEndpoint.ToString()
+                ["endpoint"] = s_statusPageUri.ToString()
             };
 
             // Map indicator -> HealthStatus
@@ -111,40 +129,5 @@ internal sealed class StatusPageHealthCheck : IHealthCheck
         {
             return HealthCheckResult.Unhealthy("Failed to parse StatusPage JSON.", jex);
         }
-    }
-}
-
-internal static class StatuspageHealthCheckExtensions
-{
-    /// <summary>
-    /// Registers a StatusPage health check for a given status.json URL.
-    /// </summary>
-    public static IDistributedApplicationBuilder AddStatusPageCheck(
-        this IDistributedApplicationBuilder builder,
-        string name,
-        string statusJsonUrl,
-        string? httpClientName = null,
-        TimeSpan? timeout = null,
-        HealthStatus? failureStatus = null,
-        IEnumerable<string>? tags = null)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentException.ThrowIfNullOrWhiteSpace(statusJsonUrl);
-
-        // Ensure IHttpClientFactory is available by registering HTTP client services
-        builder.Services.AddHttpClient();
-
-        builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
-            name: name,
-            factory: sp =>
-            {
-                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
-                return new StatusPageHealthCheck(httpFactory, new Uri(statusJsonUrl), httpClientName, timeout);
-            },
-            failureStatus: failureStatus,
-            tags: tags));
-
-        return builder;
     }
 }
