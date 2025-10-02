@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -126,6 +127,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         Services.AddFluentUIComponents();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         Services.AddSingleton<PauseManager>();
         Services.AddSingleton(new ThemeManager(new TestThemeResolver()));
 

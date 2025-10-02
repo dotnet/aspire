@@ -33,10 +33,24 @@ public sealed class CallbackThrottler
 
     private async Task<bool> TryQueueAsync(CancellationToken cancellationToken)
     {
-        var success = _lock.Wait(0, cancellationToken);
-        if (!success)
+        if (cancellationToken.IsCancellationRequested)
         {
-            _logger.LogTrace("Callback '{Name}' update already queued.", Name);
+            _logger.LogTrace("Callback '{Name}' has been disposed.", Name);
+            return false;
+        }
+
+        try
+        {
+            var success = _lock.Wait(0, cancellationToken);
+            if (!success)
+            {
+                _logger.LogTrace("Callback '{Name}' update already queued.", Name);
+                return false;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogTrace("Callback '{Name}' has been disposed.", Name);
             return false;
         }
 
@@ -104,6 +118,6 @@ public sealed class CallbackThrottler
     public void Dispose()
     {
         _cts.Cancel();
-        _lock.Dispose();
+        // It's safe to not dispose SemaphoreSlim because we're not using AvailableWaitHandle.
     }
 }
