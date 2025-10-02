@@ -151,7 +151,7 @@ Used by DCP to get information about capabilities of the IDE run session endpoin
 A JSON document describing the capabilities of the IDE run session endpoint. For example:
 ```jsonc
 {
-    "protocols_supported": [ "2024-03-03", "2025-10-01" ]
+    "protocols_supported": [ "2024-03-03", "2025-10-01" ],
     "supported_launch_configurations": [ "project", "blazor_webapp" ]
 }
 ```
