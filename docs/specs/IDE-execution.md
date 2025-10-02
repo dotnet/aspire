@@ -40,8 +40,8 @@ The above setup is sufficient for running `project` resources. However, an IDE m
    - `ProjectPath` is an absolute path to the file which will serve as an entrypoint for the resource, if provided.
    - `DebugAdapterId` is an identifier of the debug adapter that should be used to run the resource.
    - `RequiredExtensionId` is an identifier of the IDE extension that provides the debug adapter. If not null, the apphost will check whether its capabilities include the extension with this identifier. If not provided, the resource will be run using process execution.
-   - `DebuggerProperties` is a dictionary of additional properties that should be passed to the IDE when creating a run session for the resource, if provided.
 2. The apphost environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
+
    - the `DebugAdapterId`
    - if `RequiredExtensionId` is not null, the `RequiredExtensionId`
 

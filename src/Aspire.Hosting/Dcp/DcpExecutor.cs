@@ -970,6 +970,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 var launchConfiguration = supportsDebuggingAnnotation.LaunchConfigurationProducer?.Invoke() ?? new ExecutableLaunchConfiguration(supportsDebuggingAnnotation.DebugAdapterId);
 
+                // If the launch configuration has provided the project path already, do not change.
                 if (string.IsNullOrEmpty(launchConfiguration.ProjectPath))
                 {
                     launchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
@@ -1019,29 +1020,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 SetInitialResourceState(project, exeSpec);
 
-                ProjectLaunchConfiguration projectLaunchConfiguration;
+                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
+                projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
+
                 var projectArgs = new List<string>();
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                var extensionCapabilities = GetExtensionCapabilities();
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (extensionCapabilities is null || extensionCapabilities.Contains("project")))
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetExtensionCapabilities()?.Contains("project") is not false)
                 {
-                    if (project.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
-                        && supportsDebuggingAnnotation.LaunchConfigurationProducer is not null
-                        && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                        && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetExtensionCapabilities()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
-                    {
-                        projectLaunchConfiguration = (ProjectLaunchConfiguration)supportsDebuggingAnnotation.LaunchConfigurationProducer();
-                    }
-                    else
-                    {
-                        projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                    }
-
-                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
 
                     // Use the effective launch profile which has fallback logic
@@ -1052,9 +1039,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
                 else
                 {
-                    projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                    projectLaunchConfiguration.ProjectPath = projectMetadata.ProjectPath;
-
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
                     if (_configuration.GetBool("DOTNET_WATCH") is not true)

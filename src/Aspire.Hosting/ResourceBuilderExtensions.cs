@@ -2306,9 +2306,8 @@ public static class ResourceBuilderExtensions
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     /// <param name="launchConfiguration">Optional custom launch configuration.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, string resourceType, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null, Func<ExecutableLaunchConfiguration>? launchConfiguration = null)
-        where T : IResourceWithDebugSupport
-        where TLaunchConfiguration : ExecutableLaunchConfiguration
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, string resourceType, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null, Func<ExecutableLaunchConfiguration>? launchConfiguration = null)
+        where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
