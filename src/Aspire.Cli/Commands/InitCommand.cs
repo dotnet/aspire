@@ -236,6 +236,95 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 return addResult;
             }
 
+            // Get list of projects in solution
+            var (getSolutionExitCode, solutionProjects) = await _runner.GetSolutionProjectsAsync(
+                solutionFile,
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (getSolutionExitCode != 0)
+            {
+                InteractionService.DisplayError("Failed to get projects from solution.");
+                return getSolutionExitCode;
+            }
+
+            // Find the appHost project we just added
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            
+            // Find executable projects (excluding the appHost we just added)
+            var executableProjects = new List<FileInfo>();
+            foreach (var project in solutionProjects)
+            {
+                // Skip the appHost project we just added
+                if (project.FullName.Equals(appHostProjectFile.FullName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // Get OutputType property
+                var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
+                    project,
+                    [],
+                    ["OutputType"],
+                    new DotNetCliRunnerInvocationOptions(),
+                    cancellationToken);
+
+                if (exitCode == 0 && jsonDoc != null)
+                {
+                    var rootElement = jsonDoc.RootElement;
+                    if (rootElement.TryGetProperty("Properties", out var properties))
+                    {
+                        if (properties.TryGetProperty("OutputType", out var outputTypeElement))
+                        {
+                            var outputType = outputTypeElement.GetString();
+                            if (outputType == "Exe" || outputType == "WinExe")
+                            {
+                                executableProjects.Add(project);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If there are executable projects, prompt user to select which ones to add to appHost
+            if (executableProjects.Count > 0)
+            {
+                InteractionService.DisplayMessage("information", "Found executable projects in solution:");
+                foreach (var project in executableProjects)
+                {
+                    InteractionService.DisplaySubtleMessage($"  - {Path.GetFileNameWithoutExtension(project.Name)}");
+                }
+
+                var selectedProjects = await InteractionService.PromptForSelectionsAsync(
+                    "Select projects to add to the AppHost:",
+                    executableProjects,
+                    project => Path.GetFileNameWithoutExtension(project.Name),
+                    cancellationToken);
+
+                // Add selected projects to appHost
+                if (selectedProjects.Count > 0)
+                {
+                    InteractionService.DisplayMessage("construction", "Adding project references to AppHost...");
+                    
+                    foreach (var project in selectedProjects)
+                    {
+                        var addRefResult = await _runner.AddProjectReferenceAsync(
+                            appHostProjectFile,
+                            project,
+                            new DotNetCliRunnerInvocationOptions(),
+                            cancellationToken);
+
+                        if (addRefResult != 0)
+                        {
+                            InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                            return addRefResult;
+                        }
+
+                        InteractionService.DisplaySubtleMessage($"  Added reference to {Path.GetFileNameWithoutExtension(project.Name)}");
+                    }
+                }
+            }
+
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
