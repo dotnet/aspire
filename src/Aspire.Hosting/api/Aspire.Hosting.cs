@@ -567,16 +567,6 @@ namespace Aspire.Hosting
         HttpProtobuf = 1
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public sealed partial class ParameterProcessor
-    {
-        public ParameterProcessor(ApplicationModel.ResourceNotificationService notificationService, ApplicationModel.ResourceLoggerService loggerService, IInteractionService interactionService, Microsoft.Extensions.Logging.ILogger<ParameterProcessor> logger, DistributedApplicationOptions options, DistributedApplicationExecutionContext executionContext) { }
-
-        public System.Threading.Tasks.Task InitializeParametersAsync(ApplicationModel.DistributedApplicationModel model, bool waitForResolution = false, System.Threading.CancellationToken cancellationToken = default) { throw null; }
-
-        public System.Threading.Tasks.Task InitializeParametersAsync(System.Collections.Generic.IEnumerable<ApplicationModel.ParameterResource> parameterResources, bool waitForResolution = false) { throw null; }
-    }
-
     public static partial class ParameterResourceBuilderExtensions
     {
         public static ApplicationModel.IResourceBuilder<ApplicationModel.IResourceWithConnectionString> AddConnectionString(this IDistributedApplicationBuilder builder, string name, string? environmentVariableName = null) { throw null; }
