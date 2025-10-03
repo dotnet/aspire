@@ -113,12 +113,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = plan.Id
             });
 
-            if (resource.EnableDashboard)
-            {
-                // Add aspire dashboard website
-                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
-            }
-
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
                 Value = containerRegistry.Name
@@ -145,10 +139,16 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = identity.Name
             });
 
-            infra.Add(new ProvisioningOutput("DASHBOARD_URI", typeof(string))
+            if (resource.EnableDashboard)
             {
-                Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.DashboardHostName}.azurewebsites.net")
-            });
+                // Add aspire dashboard website
+                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+
+                infra.Add(new ProvisioningOutput("DASHBOARD_URI", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.DashboardHostName}.azurewebsites.net")
+                });
+            }
         });
 
         if (!builder.ExecutionContext.IsPublishMode)
