@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Dashboard.Model.Assistant.Markdown;
+using Aspire.Dashboard.Model.Markdown;
 using Markdig.Renderers.Normalize;
 using Markdig.Syntax;
 

@@ -11,6 +11,7 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Model.Assistant.Ghcp;
 using Aspire.Dashboard.Model.Assistant.Markdown;
 using Aspire.Dashboard.Model.Assistant.Prompts;
+using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Aspire.Dashboard.Telemetry;
@@ -133,7 +134,10 @@ public sealed class AssistantChatViewModel : IDisposable
         _logger = loggerFactory.CreateLogger<AssistantChatViewModel>();
         _aiContextProvider = aiContextProvider;
         _chatClientFactory = chatClientFactory;
-        _markdownProcessor = new MarkdownProcessor(dataContext, controlLoc);
+        _markdownProcessor = new MarkdownProcessor(controlLoc, safeUrlSchemes: Aspire.Dashboard.Model.Markdown.MarkdownHelpers.SafeUrlSchemes, [new AspireEnrichmentExtension(new AspireEnrichmentOptions
+        {
+            DataContext = dataContext
+        })]);
         _dataContext = dataContext;
         _serviceProvider = serviceProvider;
         _loc = loc;

@@ -1,11 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model.Assistant.Markdown;
+using Aspire.Dashboard.Model.Markdown;
 using Markdig;
 using Xunit;
 
-namespace Aspire.Dashboard.Tests.Model.AIAssistant;
+namespace Aspire.Dashboard.Tests.Markdown;
 
 public class MarkdownHelperTests
 {
@@ -20,7 +20,7 @@ public class MarkdownHelperTests
             """;
 
         // Act
-        var html = MarkdownHelpers.ToHtml(markdown, new MarkdownPipelineBuilder().Build(), inCompleteDocument: true);
+        var html = ToHtml(markdown);
 
         // Assert
         Assert.Equal(
@@ -41,7 +41,7 @@ public class MarkdownHelperTests
             """;
 
         // Act
-        var html = MarkdownHelpers.ToHtml(markdown, new MarkdownPipelineBuilder().Build(), inCompleteDocument: true);
+        var html = ToHtml(markdown);
 
         // Assert
         Assert.Equal(
@@ -62,7 +62,7 @@ public class MarkdownHelperTests
             """;
 
         // Act
-        var html = MarkdownHelpers.ToHtml(markdown, new MarkdownPipelineBuilder().Build(), inCompleteDocument: true);
+        var html = ToHtml(markdown);
 
         // Assert
         Assert.Equal(
@@ -81,7 +81,7 @@ public class MarkdownHelperTests
     public void ToHtml_InCompleteDocumentAndLinkInProgress_NoLink(string markdown)
     {
         // Arrange & Act
-        var html = MarkdownHelpers.ToHtml(markdown, new MarkdownPipelineBuilder().Build(), inCompleteDocument: true);
+        var html = ToHtml(markdown);
 
         // Assert
         Assert.Equal(
@@ -97,12 +97,23 @@ public class MarkdownHelperTests
         var markdown = "before [link](http://example.com)";
 
         // Act
-        var html = MarkdownHelpers.ToHtml(markdown, new MarkdownPipelineBuilder().Build(), inCompleteDocument: true);
+        var html = ToHtml(markdown);
 
         // Assert
         Assert.Equal(
             """
             <p>before <a href="http://example.com" target="_blank" rel="noopener noreferrer nofollow">link</a></p>
             """, html.Trim(), ignoreLineEndingDifferences: true);
+    }
+
+    private static string ToHtml(string markdown)
+    {
+        return MarkdownHelpers.ToHtml(markdown, new MarkdownOptions
+        {
+            Pipeline = new MarkdownPipelineBuilder().Build(),
+            IncompleteDocument = true,
+            AllowedUrlSchemes = null,
+            SuppressSurroundingParagraph = false
+        });
     }
 }

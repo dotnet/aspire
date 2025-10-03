@@ -3,7 +3,6 @@
 
 using Markdig;
 using Markdig.Renderers;
-using Markdig.Renderers.Html;
 
 namespace Aspire.Dashboard.Model.Assistant.Markdown;
 
@@ -29,14 +28,6 @@ public class AspireEnrichmentExtension : IMarkdownExtension
     {
         if (renderer is HtmlRenderer htmlRenderer)
         {
-            // Must remove the built-in renderer so the new one runs.
-            var originalCodeBlockRenderer = htmlRenderer.ObjectRenderers.FindExact<CodeBlockRenderer>();
-            if (originalCodeBlockRenderer != null)
-            {
-                htmlRenderer.ObjectRenderers.Remove(originalCodeBlockRenderer);
-            }
-
-            htmlRenderer.ObjectRenderers.Add(new HighlightedCodeBlockRenderer(_options.Loc));
             htmlRenderer.ObjectRenderers.Add(new ResourceInlineRenderer());
             htmlRenderer.ObjectRenderers.Add(new LogEntryInlineRenderer());
         }

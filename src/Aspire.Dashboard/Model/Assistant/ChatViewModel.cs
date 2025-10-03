@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Web;
-using Aspire.Dashboard.Model.Assistant.Markdown;
+using Aspire.Dashboard.Model.Markdown;
 using Microsoft.Extensions.AI;
 
 namespace Aspire.Dashboard.Model.Assistant;
