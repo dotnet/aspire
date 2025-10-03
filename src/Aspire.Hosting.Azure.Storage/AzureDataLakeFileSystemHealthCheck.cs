@@ -4,7 +4,7 @@
 using Azure.Storage.Files.DataLake;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Azure.Storage.Files.DataLake;
+namespace Aspire.Hosting.Azure.Storage;
 
 /// <summary>
 /// Represents the health check for Azure Data Lake Storage file system.

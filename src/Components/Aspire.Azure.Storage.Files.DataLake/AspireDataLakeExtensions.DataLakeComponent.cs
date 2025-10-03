@@ -63,6 +63,6 @@ public static partial class AspireDataLakeExtensions
 #pragma warning restore IDE0200
 
         protected override IHealthCheck CreateHealthCheck(DataLakeServiceClient client, AzureDataLakeSettings settings)
-            => new AzureDataLakeHealthCheck(client);
+            => new AzureDataLakeStorageHealthCheck(client);
     }
 }

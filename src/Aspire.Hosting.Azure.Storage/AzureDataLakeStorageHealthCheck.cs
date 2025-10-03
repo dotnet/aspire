@@ -4,13 +4,13 @@
 using Azure.Storage.Files.DataLake;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Azure.Storage.Files.DataLake;
+namespace Aspire.Hosting.Azure.Storage;
 
 /// <summary>
 /// Represents the health check for Azure Data Lake Storage.
 /// </summary>
 /// <param name="dataLakeServiceClient">The <see cref="DataLakeServiceClient" /> used to perform Azure Data Lake Storage operations.</param>
-public sealed class AzureDataLakeHealthCheck(DataLakeServiceClient dataLakeServiceClient) : IHealthCheck
+internal sealed class AzureDataLakeStorageHealthCheck(DataLakeServiceClient dataLakeServiceClient) : IHealthCheck
 {
     private readonly DataLakeServiceClient _dataLakeServiceClient =
         dataLakeServiceClient ?? throw new ArgumentNullException(nameof(dataLakeServiceClient));

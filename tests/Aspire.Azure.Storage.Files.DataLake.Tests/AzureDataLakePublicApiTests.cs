@@ -123,7 +123,7 @@ public sealed class AzureDataLakePublicApiTests
     [Fact]
     public void AzureDataLakeHealthCheckConstructorShouldThrowWhenClientIsNull()
     {
-        var action = () => new AzureDataLakeHealthCheck(null!);
+        var action = () => new AzureDataLakeStorageHealthCheck(null!);
         var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal("dataLakeServiceClient", exception.ParamName);
     }
