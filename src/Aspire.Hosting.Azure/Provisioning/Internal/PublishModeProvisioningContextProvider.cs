@@ -117,7 +117,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         {
             if (_options.SubscriptionId == null)
             {
-                await PromptForSubscriptionAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+                await PromptForSubscriptionAsync(cancellationToken).ConfigureAwait(false);
                 if (_options.SubscriptionId == null)
                 {
                     continue;
@@ -126,16 +126,31 @@ internal sealed class PublishModeProvisioningContextProvider(
 
             if (_options.Location == null)
             {
-                await PromptForLocationAndResourceGroupAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+                await PromptForLocationAndResourceGroupAsync(cancellationToken).ConfigureAwait(false);
                 if (_options.Location == null)
                 {
                     continue;
                 }
             }
         }
+
+        if (_options.SubscriptionId != existingSubscriptionId)
+        {
+            userSecrets[subscriptionKey] = _options.SubscriptionId;
+        }
+
+        if (_options.Location != existingLocation)
+        {
+            userSecrets[locationKey] = _options.Location;
+        }
+
+        if (_options.ResourceGroup != existingResourceGroup)
+        {
+            userSecrets[resourceGroupKey] = _options.ResourceGroup;
+        }
     }
 
-    private async Task PromptForSubscriptionAsync(JsonObject userSecrets, CancellationToken cancellationToken)
+    private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
         bool fetchSucceeded = false;
@@ -214,8 +229,6 @@ internal sealed class PublishModeProvisioningContextProvider(
             if (!result.Canceled)
             {
                 _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
-                var subscriptionKey = $"Azure:{_deploymentKey}:SubscriptionId";
-                userSecrets[subscriptionKey] = _options.SubscriptionId;
                 return;
             }
         }
@@ -251,12 +264,10 @@ internal sealed class PublishModeProvisioningContextProvider(
         if (!manualResult.Canceled)
         {
             _options.SubscriptionId = manualResult.Data[SubscriptionIdName].Value;
-            var subscriptionKey = $"Azure:{_deploymentKey}:SubscriptionId";
-            userSecrets[subscriptionKey] = _options.SubscriptionId;
         }
     }
 
-    private async Task PromptForLocationAndResourceGroupAsync(JsonObject userSecrets, CancellationToken cancellationToken)
+    private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
         bool fetchSucceeded = false;
@@ -352,11 +363,6 @@ internal sealed class PublishModeProvisioningContextProvider(
                 _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                 _options.AllowResourceGroupCreation = true;
 
-                var locationKey = $"Azure:{_deploymentKey}:Location";
-                var resourceGroupKey = $"Azure:{_deploymentKey}:ResourceGroup";
-                userSecrets[locationKey] = _options.Location;
-                userSecrets[resourceGroupKey] = _options.ResourceGroup;
-
                 return;
             }
         }
@@ -408,11 +414,6 @@ internal sealed class PublishModeProvisioningContextProvider(
             _options.Location = manualResult.Data[LocationName].Value;
             _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
             _options.AllowResourceGroupCreation = true;
-
-            var locationKey = $"Azure:{_deploymentKey}:Location";
-            var resourceGroupKey = $"Azure:{_deploymentKey}:ResourceGroup";
-            userSecrets[locationKey] = _options.Location;
-            userSecrets[resourceGroupKey] = _options.ResourceGroup;
         }
     }
 }

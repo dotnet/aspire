@@ -140,12 +140,7 @@ internal sealed class AzureDeployingContext(
                                     else
                                     {
                                         await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
-
-                                        // Save provisioning state after each successful resource deployment to user secrets
-                                        await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
-
                                         bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
                                         await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
                                     }
                                 }
@@ -168,6 +163,8 @@ internal sealed class AzureDeployingContext(
                 }
 
                 await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
+                // Save provisioning state after successful resource deployments
+                await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception)
             {
