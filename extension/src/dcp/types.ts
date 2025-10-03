@@ -100,5 +100,5 @@ export interface AspireExtendedDebugConfiguration extends vscode.DebugConfigurat
 }
 
 interface AspireDebuggersConfiguration {
-    [key: string]: Map<string, any>;
+    [key: string]: Record<string, any>;
 }
