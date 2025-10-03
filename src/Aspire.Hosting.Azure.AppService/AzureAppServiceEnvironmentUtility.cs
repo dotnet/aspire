@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure.AppService;
 
 internal static class AzureAppServiceEnvironmentUtility
 {
-    internal static readonly string ResourceName = "dashboard";
+    internal const string ResourceName = "dashboard";
 
     public static BicepValue<string> DashboardHostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
@@ -22,13 +22,13 @@ internal static class AzureAppServiceEnvironmentUtility
         UserAssignedIdentity otelIdentity,
         BicepValue<ResourceIdentifier> appServicePlanId)
     {
-        var acrClientIdParameter = otelIdentity.ClientId;
+        // This ACR identity is used by the dashboard to authorize the telemetry data
+        // coming from the dotnet web apps. This identity is being assigned to every web app
+        // in the aspire project and can be safely reused for authorization in the dashboard. 
+        var otelClientId = otelIdentity.ClientId;
         var prefix = infra.AspireResource.Name;
         var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"));
-
-        var contributorMidParameter = contributorIdentity.Id;
-        var contributorClientIdParameter = contributorIdentity.ClientId;
-
+        
         infra.Add(contributorIdentity);
 
         // Add Website Contributor role assignment
@@ -72,7 +72,7 @@ internal static class AzureAppServiceEnvironmentUtility
             SiteConfig = new SiteConfigProperties()
             {
                 LinuxFxVersion = "ASPIREDASHBOARD|1.0",
-                AcrUserManagedIdentityId = acrClientIdParameter,
+                AcrUserManagedIdentityId = otelClientId,
                 UseManagedIdentityCreds = true,
                 IsHttp20Enabled = true,
                 Http20ProxyFlag = 1,
@@ -89,7 +89,7 @@ internal static class AzureAppServiceEnvironmentUtility
             }
         };
 
-        var contributorMid = BicepFunction.Interpolate($"{contributorMidParameter}").Compile().ToString();
+        var contributorMid = BicepFunction.Interpolate($"{contributorIdentity.Id}").Compile().ToString();
         webSite.Identity.UserAssignedIdentities[contributorMid] = new UserAssignedIdentityDetails();
 
         // Security is handled by app service platform
@@ -103,8 +103,8 @@ internal static class AzureAppServiceEnvironmentUtility
         // Enable SCM preloading to ensure dashboard is always available
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_START_SCM_WITH_PRELOAD", Value = "true" });
         // Appsettings related to managed identity for auth
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorClientIdParameter });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = acrClientIdParameter });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorIdentity.ClientId });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
         infra.Add(webSite);
 
         return webSite;

@@ -11,7 +11,7 @@ param env_outputs_azure_container_registry_managed_identity_client_id string
 
 param api_containerimage string
 
-param env_outputs_dashboard_uri string
+param env_outputs_azure_app_service_dashboard_uri string
 
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
@@ -73,7 +73,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'OTEL_COLLECTOR_URL'
-          value: env_outputs_dashboard_uri
+          value: env_outputs_azure_app_service_dashboard_uri
         }
         {
           name: 'OTEL_CLIENT_ID'

@@ -15,7 +15,7 @@ param myidentity_outputs_id string
 
 param myidentity_outputs_clientid string
 
-param appservice_outputs_dashboard_uri string
+param appservice_outputs_azure_app_service_dashboard_uri string
 
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
@@ -74,7 +74,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'OTEL_COLLECTOR_URL'
-          value: appservice_outputs_dashboard_uri
+          value: appservice_outputs_azure_app_service_dashboard_uri
         }
         {
           name: 'OTEL_CLIENT_ID'

@@ -12,6 +12,6 @@
     "sharedRg": "{sharedRg.value}",
     "api_identity_outputs_id": "{api-identity.outputs.id}",
     "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
-    "env_outputs_dashboard_uri": "{env.outputs.DASHBOARD_URI}"
+    "env_outputs_azure_app_service_dashboard_uri": "{env.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}"
   }
 }

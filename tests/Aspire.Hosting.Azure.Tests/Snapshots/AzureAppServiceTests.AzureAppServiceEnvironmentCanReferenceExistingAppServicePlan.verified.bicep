@@ -141,6 +141,4 @@ output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env_mi.id
 
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID string = env_mi.properties.clientId
 
-output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_NAME string = env_mi.name
-
-output DASHBOARD_URI string = 'https://${take('${toLower('dashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('dashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'

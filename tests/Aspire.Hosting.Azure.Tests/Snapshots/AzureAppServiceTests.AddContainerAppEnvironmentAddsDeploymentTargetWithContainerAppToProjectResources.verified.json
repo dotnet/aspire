@@ -8,6 +8,6 @@
     "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
     "api_containerimage": "{api.containerImage}",
     "api_containerport": "{api.containerPort}",
-    "env_outputs_dashboard_uri": "{env.outputs.DASHBOARD_URI}"
+    "env_outputs_azure_app_service_dashboard_uri": "{env.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}"
   }
 }

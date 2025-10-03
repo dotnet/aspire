@@ -134,17 +134,12 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = identity.ClientId
             });
 
-            infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_NAME", typeof(string))
-            {
-                Value = identity.Name
-            });
-
             if (resource.EnableDashboard)
             {
                 // Add aspire dashboard website
                 var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
 
-                infra.Add(new ProvisioningOutput("DASHBOARD_URI", typeof(string))
+                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
                     Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.DashboardHostName}.azurewebsites.net")
                 });
