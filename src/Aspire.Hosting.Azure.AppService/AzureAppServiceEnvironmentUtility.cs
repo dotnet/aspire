@@ -76,7 +76,7 @@ internal static class AzureAppServiceEnvironmentUtility
                 UseManagedIdentityCreds = true,
                 IsHttp20Enabled = true,
                 Http20ProxyFlag = 1,
-                // Setting NumberOfWorkers to 1 to ensure dashboard runs of 1 instance
+                // Setting NumberOfWorkers to 1 to ensure dashboard runs on 1 instance
                 NumberOfWorkers = 1,
                 // IsAlwaysOn set to true ensures the app is always running
                 IsAlwaysOn = true,
