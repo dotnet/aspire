@@ -100,13 +100,16 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
-        // Use SolutionLocator to find solution files, walking up the directory tree
-        var solutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
+        // Create the init context to build up a model of the operation
+        var initContext = new InitContext();
 
-        if (solutionFile is not null)
+        // Use SolutionLocator to find solution files, walking up the directory tree
+        initContext.SelectedSolutionFile = await _solutionLocator.FindSolutionFileAsync(_executionContext.WorkingDirectory, cancellationToken);
+
+        if (initContext.SelectedSolutionFile is not null)
         {
-            InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, solutionFile.Name));
-            return await InitializeExistingSolutionAsync(solutionFile, parseResult, cancellationToken);
+            InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
+            return await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
         }
         else
         {
@@ -115,8 +118,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
     }
 
-    private async Task<int> InitializeExistingSolutionAsync(FileInfo solutionFile, ParseResult parseResult, CancellationToken cancellationToken)
+    private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)
     {
+        var solutionFile = initContext.SelectedSolutionFile!;
+        
         // Get the solution name (without extension) to use for project names
         var solutionName = Path.GetFileNameWithoutExtension(solutionFile.Name);
         var solutionDir = solutionFile.Directory!;
@@ -420,4 +425,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         var selectedPackageFromChannel = await _prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
         return selectedPackageFromChannel;
     }
+}
+
+/// <summary>
+/// Context class for building up a model of the init operation before executing changes.
+/// </summary>
+internal sealed class InitContext
+{
+    /// <summary>
+    /// The solution file selected for initialization, or null if no solution was found.
+    /// </summary>
+    public FileInfo? SelectedSolutionFile { get; set; }
 }
