@@ -59,7 +59,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         // Single-file AppHost template (gated by feature flag). This template only exists in the pack
         // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             yield return new CallbackTemplate(
                 "aspire-apphost-singlefile",
