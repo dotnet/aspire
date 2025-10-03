@@ -20,6 +20,8 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
+        var hideNonStarterTemplates = features.IsFeatureEnabled(KnownFeatures.HideNonStarterTemplates, false);
+
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
@@ -36,25 +38,28 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        yield return new CallbackTemplate(
-            "aspire-apphost",
-            TemplatingStrings.AspireAppHost_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
+        if (!hideNonStarterTemplates)
+        {
+            yield return new CallbackTemplate(
+                "aspire-apphost",
+                TemplatingStrings.AspireAppHost_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
 
-        yield return new CallbackTemplate(
-            "aspire-servicedefaults",
-            TemplatingStrings.AspireServiceDefaults_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
+            yield return new CallbackTemplate(
+                "aspire-servicedefaults",
+                TemplatingStrings.AspireServiceDefaults_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+        }
 
         // Single-file AppHost template (gated by feature flag). This template only exists in the pack
         // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        if (!hideNonStarterTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             yield return new CallbackTemplate(
                 "aspire-apphost-singlefile",
@@ -94,21 +99,24 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         // Prepends a test framework selection step then calls the
         // underlying test template.
-        yield return new CallbackTemplate(
-            "aspire-test",
-            TemplatingStrings.IntegrationTestsTemplate_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            async (template, parseResult, ct) =>
-            {
-                var testTemplate = await prompter.PromptForTemplateAsync(
-                    [msTestTemplate, xunitTemplate, nunitTemplate],
-                    ct
-                );
+        if (!hideNonStarterTemplates)
+        {
+            yield return new CallbackTemplate(
+                "aspire-test",
+                TemplatingStrings.IntegrationTestsTemplate_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                async (template, parseResult, ct) =>
+                {
+                    var testTemplate = await prompter.PromptForTemplateAsync(
+                        [msTestTemplate, xunitTemplate, nunitTemplate],
+                        ct
+                    );
 
-                var testCallbackTemplate = (CallbackTemplate)testTemplate;
-                return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
-            });
+                    var testCallbackTemplate = (CallbackTemplate)testTemplate;
+                    return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
+                });
+        }
     }
 
     private async Task<string[]> PromptForExtraAspireStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
