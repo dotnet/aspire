@@ -226,6 +226,9 @@ internal sealed class AzureAppServiceWebsiteContext(
                 UseManagedIdentityCreds = true,
                 // Setting NumberOfWorkers to maximum allowed value for Premium SKU
                 // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
+                // This is required due to use of feature PerSiteScaling for the App Service plan
+                // We want the web apps to scale normally as defined for the app service plan
+                // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
                 NumberOfWorkers = 30,
                 AppSettings = []
             },
