@@ -594,14 +594,9 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             File.WriteAllText(appHostPath, content);
         }
 
-        var assembly = Assembly.GetExecutingAssembly();
-
-        // Extract remote_app_host_client.py
+        // Write embedded remote_app_host_client.py (provided by FileEmbedderGenerator)
         var remoteAppHostClientPath = Path.Combine(appPath, "modules", "remote_app_host_client.py");
-        using var stream = assembly.GetManifestResourceStream("Aspire.Cli.Rosetta.Shared.python.remote_app_host_client.py")
-            ?? throw new InvalidOperationException("Embedded resource 'remote_app_host_client.py' not found."); ;
-        using var reader = new StreamReader(stream);
-        File.WriteAllText(remoteAppHostClientPath, reader.ReadToEnd());
+        File.WriteAllText(remoteAppHostClientPath, Embedded.EmbeddedFiles.RemoteAppHostClientPy);
     }
 
     public string ExecuteAppHost(string appPath)

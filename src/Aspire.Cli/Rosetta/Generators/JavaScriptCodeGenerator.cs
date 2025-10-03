@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using Aspire.Cli.Embedded;
 using System.Reflection;
 using System.Text.Json;
 using Aspire.Cli.Interaction;
@@ -765,22 +766,9 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         var modulesPath = Path.Combine(appPath, ModulePath);
         Directory.CreateDirectory(modulesPath);
 
-        // Extract and write embedded TypeScript client files
-        var assembly = Assembly.GetExecutingAssembly();
-
-        // Extract types.ts
-        var typesPath = Path.Combine(modulesPath, "types.ts");
-        using var stream1 = assembly.GetManifestResourceStream("Aspire.Cli.Rosetta.Shared.typescript.types.ts")
-            ?? throw new InvalidOperationException("Embedded resource 'types.ts' not found.");
-        using var reader1 = new StreamReader(stream1);
-        File.WriteAllText(typesPath, reader1.ReadToEnd());
-
-        // Extract RemoteAppHostClient.ts
-        var remoteAppHostClientPath = Path.Combine(modulesPath, "RemoteAppHostClient.ts");
-        using var stream2 = assembly.GetManifestResourceStream("Aspire.Cli.Rosetta.Shared.typescript.RemoteAppHostClient.ts")
-            ?? throw new InvalidOperationException("Embedded resource 'RemoteAppHostClient.ts' not found.");
-        using var reader2 = new StreamReader(stream2);
-        File.WriteAllText(remoteAppHostClientPath, reader2.ReadToEnd());
+        // Write embedded TypeScript client files from generated source (FileEmbedderGenerator)
+        File.WriteAllText(Path.Combine(modulesPath, "types.ts"), EmbeddedFiles.TypesTs);
+        File.WriteAllText(Path.Combine(modulesPath, "RemoteAppHostClient.ts"), EmbeddedFiles.RemoteAppHostClientTs);
 
         var content = """
             import { createBuilder } from "./.modules/distributed-application.js";
@@ -826,11 +814,8 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
 
         if (!File.Exists(packageJsonPath))
         {
-            // Extract package.json
-            using var stream3 = assembly.GetManifestResourceStream("Aspire.Cli.Rosetta.Shared.typescript.package.json")
-                ?? throw new InvalidOperationException("Embedded resource 'package.json' not found.");
-            using var reader3 = new StreamReader(stream3);
-            File.WriteAllText(packageJsonPath, reader3.ReadToEnd());
+            // Write embedded package.json
+            File.WriteAllText(packageJsonPath, EmbeddedFiles.TsPackageJson);
         }
         else
         {
