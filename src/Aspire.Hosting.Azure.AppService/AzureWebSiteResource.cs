@@ -6,16 +6,16 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Azure;
 
 /// <summary>
-/// An Azure Container App provisioning resource that maintains a reference to the target resource.
+/// Represents an Azure App Service Web Site resource.
 /// </summary>
 /// <param name="name">The name of the resource in the Aspire application model.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
-/// <param name="targetResource">The target resource that this Azure Container App is being created for.</param>
-public class AzureContainerAppResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, IResource targetResource)
+/// <param name="targetResource">The target resource that this Azure Web Site is being created for.</param>
+public class AzureWebSiteResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, IResource targetResource)
     : AzureProvisioningResource(name, configureInfrastructure)
 {
     /// <summary>
-    /// Gets the target resource that this Azure Container App is being created for.
+    /// Gets the target resource that this Azure Web Site is being created for.
     /// </summary>
     public IResource TargetResource { get; } = targetResource;
 }
