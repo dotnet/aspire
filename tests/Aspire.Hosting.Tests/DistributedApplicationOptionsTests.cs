@@ -17,11 +17,13 @@ public class DistributedApplicationOptionsTests
     }
 
     [Fact]
-    public void ProjectDirectory_DefaultsToNullWhenNotSet()
+    public void ProjectDirectory_DefaultsToAssemblyMetadataWhenNotSet()
     {
         var options = new DistributedApplicationOptions();
 
-        Assert.Null(options.ProjectDirectory);
+        // When not explicitly set, ProjectDirectory falls back to assembly metadata resolution
+        // In test context, this will resolve to a path (not null)
+        Assert.NotNull(options.ProjectDirectory);
     }
 
     [Fact]
@@ -37,7 +39,7 @@ public class DistributedApplicationOptionsTests
     }
 
     [Fact]
-    public void ProjectDirectory_CanBeSetToNull()
+    public void ProjectDirectory_ResetsToDefaultWhenSetToNull()
     {
         var options = new DistributedApplicationOptions
         {
@@ -46,7 +48,9 @@ public class DistributedApplicationOptionsTests
 
         options.ProjectDirectory = null;
 
-        Assert.Null(options.ProjectDirectory);
+        // Setting to null causes it to fall back to the assembly metadata path
+        Assert.NotNull(options.ProjectDirectory);
+        Assert.NotEqual("/some/path", options.ProjectDirectory);
     }
 
     [Fact]
