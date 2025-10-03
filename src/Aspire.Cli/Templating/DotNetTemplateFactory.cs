@@ -207,6 +207,24 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         extraArgs.Add(xunitVersion);
     }
 
+    private async Task<string?> PromptForFrameworkOptionsAsync(CancellationToken cancellationToken)
+    {
+        // Note: We don't check for --framework CLI option here because we're NOT adding that option
+        // This method is only for interactive prompting
+        var framework = await interactionService.PromptForSelectionAsync(
+            TemplatingStrings.PromptForFramework_Prompt,
+            ["net8.0", "net9.0", "net10.0"],
+            choice => choice,
+            cancellationToken);
+
+        if (!string.IsNullOrEmpty(framework))
+        {
+            interactionService.DisplayMessage("check_mark", string.Format(CultureInfo.CurrentCulture, TemplatingStrings.PromptForFramework_UsingFramework, framework));
+        }
+
+        return framework;
+    }
+
     private static void ApplyExtraAspireStarterOptions(Command command)
     {
         var useRedisCacheOption = new Option<bool?>("--use-redis-cache");
@@ -234,6 +252,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             var name = await GetProjectNameAsync(parseResult, cancellationToken);
             var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+            
+            // Only prompt for framework selection in interactive mode (when no specific template was specified)
+            // This happens when the user runs just "aspire new" without a template name
+            var isInteractiveMode = parseResult.CommandResult.Command.Name == "new";
+            var framework = isInteractiveMode ? await PromptForFrameworkOptionsAsync(cancellationToken) : null;
 
             var source = parseResult.GetValue<string?>("--source");
             var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
@@ -295,6 +318,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                                 template.Name,
                                 name,
                                 outputPath,
+                                framework,
                                 extraArgs,
                                 options,
                                 cancellationToken);
