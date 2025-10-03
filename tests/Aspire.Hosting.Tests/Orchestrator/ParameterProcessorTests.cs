@@ -798,4 +798,77 @@ public class ParameterProcessorTests
     {
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
     }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_ThrowsWhenValueIsEmpty()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: interactionService,
+            executionContext: executionContext);
+
+        var parameterWithGenerateDefault = new ParameterResource(
+            "generatedParam",
+            parameterDefault => parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
+            secret: false)
+        {
+            Default = new GenerateParameterDefault()
+        };
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
+
+        // Assert - Should be added to unresolved parameters because GenerateParameterDefault is not supported in publish mode
+        Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
+        Assert.False(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_DoesNotThrowWhenValueExists()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Parameters:generatedParam"] = "existingValue" })
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
+        var parameterProcessor = CreateParameterProcessor(executionContext: executionContext);
+
+        var parameterWithGenerateDefault = new ParameterResource(
+            "generatedParam",
+            parameterDefault => configuration["Parameters:generatedParam"] ?? parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
+            secret: false)
+        {
+            Default = new GenerateParameterDefault()
+        };
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
+
+        // Assert - Should succeed because value exists in configuration
+        Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
+        Assert.True(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task);
+    }
 }
