@@ -302,7 +302,7 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11815", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task PublishAsAzureAppServiceWebsite_ThrowsIfNoEnvironment()
     {
         static async Task RunTest(Action<IDistributedApplicationBuilder> action)
@@ -334,7 +334,7 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11815", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task MultipleAzureAppServiceEnvironmentsSupported()
     {
         using var tempDir = new TempDirectory();
