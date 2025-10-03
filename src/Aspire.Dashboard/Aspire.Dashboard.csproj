@@ -43,6 +43,9 @@
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Humanizer.Core" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="OpenAI" />
     <PackageReference Include="Markdig" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Certificate" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
@@ -62,6 +65,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Update="Resources\AIPrompts.Designer.cs">
+      <DependentUpon>AIPrompts.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Compile>
     <Compile Update="Resources\Columns.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
@@ -86,6 +94,11 @@
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Dialogs.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\AIAssistant.Designer.cs">
+      <DependentUpon>AIAssistant.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
     </Compile>
     <Compile Update="Resources\Layout.Designer.cs">
       <DesignTime>True</DesignTime>
@@ -140,6 +153,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Update="Resources\AIPrompts.resx">
+      <SubType>Designer</SubType>
+      <LastGenOutput>AIPrompts.Designer.cs</LastGenOutput>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
     <EmbeddedResource Update="Resources\ControlsStrings.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
       <XlfOutputItem>EmbeddedResource</XlfOutputItem>
@@ -160,6 +178,13 @@
       <SubType>Designer</SubType>
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Dialogs.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\AIAssistant.resx">
+      <XlfSourceFormat>Resx</XlfSourceFormat>
+      <XlfOutputItem>EmbeddedResource</XlfOutputItem>
+      <SubType>Designer</SubType>
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>AIAssistant.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Update="Resources\Layout.resx">
       <XlfSourceFormat>Resx</XlfSourceFormat>
@@ -256,6 +281,7 @@
     <Compile Include="$(SharedDir)TaskHelpers.cs" Link="Utils\TaskHelpers.cs" />
     <Compile Include="$(SharedDir)Model\KnownProperties.cs" Link="Utils\KnownProperties.cs" />
     <Compile Include="$(SharedDir)Model\KnownResourceTypes.cs" Link="Utils\KnownResourceTypes.cs" />
+    <Compile Include="$(SharedDir)Model\KnownRelationshipTypes.cs" Link="Utils\KnownRelationshipTypes.cs" />
     <Compile Include="$(SharedDir)CircularBuffer.cs" Link="Otlp\Storage\CircularBuffer.cs" />
     <Compile Include="$(SharedDir)DashboardConfigNames.cs" Link="Utils\DashboardConfigNames.cs" />
     <Compile Include="$(SharedDir)TokenGenerator.cs" Link="Utils\TokenGenerator.cs" />

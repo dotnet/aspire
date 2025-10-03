@@ -60,6 +60,22 @@ app.MapGet("/write-console", () =>
     return "Console written";
 });
 
+app.MapGet("/write-console-large", () =>
+{
+    var random = new Random();
+
+    for (var i = 0; i < 5000; i++)
+    {
+        var data = new byte[i];
+        random.NextBytes(data);
+        var payload = Convert.ToHexString(data);
+
+        Console.Out.WriteLine($"{i} Out. Payload: {payload}");
+    }
+
+    return "Console written";
+});
+
 app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
     metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
@@ -161,6 +177,43 @@ app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) 
     }
 
     return $"Created {LogCount} logs.";
+});
+
+app.MapGet("/log-message-limit-large", async ([FromServices] ILogger<Program> logger) =>
+{
+    const int LogCount = 10_000;
+    const int BatchSize = 100;
+
+    var random = new Random();
+
+    for (var i = 0; i < LogCount / BatchSize; i++)
+    {
+        for (var j = 0; j < BatchSize; j++)
+        {
+            var size = (i + 1) * (j + 1) / 10;
+            var data = new byte[size];
+            random.NextBytes(data);
+            var payload = Convert.ToHexString(data);
+
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}: {Payload}", i, j, payload);
+        }
+
+        await Task.Delay(50);
+    }
+
+    return $"Created {LogCount} logs.";
+
+    static async Task RecurseToError(int current, int depth)
+    {
+        await Task.Yield();
+
+        if (current == depth)
+        {
+            throw new InvalidOperationException($"Recursed to depth {depth}");
+        }
+
+        await RecurseToError(++current, depth);
+    }
 });
 
 app.MapGet("/log-message", ([FromServices] ILogger<Program> logger) =>

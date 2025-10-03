@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ResourceCollapseAllChildren">
         <source>Collapse child resources</source>
-        <target state="translated">Recolher recursos filho</target>
+        <target state="translated">Recolher o recursos filho</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceCommandFailed">
@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
-        <target state="translated">Expandir recursos filho</target>
+        <target state="translated">Expandir o recursos filho</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
@@ -199,7 +199,7 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="translated">Tem filtros</target>
+        <target state="translated">Tem filtros</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphResetButton">
