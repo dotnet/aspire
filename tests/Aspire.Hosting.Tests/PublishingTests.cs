@@ -259,4 +259,31 @@ public class PublishingTests
 
         Assert.True(activityReporterAccessed, "ActivityReporter property was not tested.");
     }
+
+    [Fact]
+    public void DeployingCallback_ParametersAreResolvedBeforeCallbacks()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+
+        // Explicitly set Deploy to true
+        builder.Configuration["Publishing:Deploy"] = "true";
+        builder.Configuration["Parameters:test-param"] = "test-value";
+
+        // Add a parameter that should be resolved before the callback runs
+        var param = builder.AddParameter("test-param");
+
+        var parameterValueInCallback = string.Empty;
+
+        builder.AddContainer("cache", "redis")
+               .WithAnnotation(new DeployingCallbackAnnotation(async context =>
+                {
+                    // At this point, the parameter should already be resolved
+                    parameterValueInCallback = await param.Resource.GetValueAsync(default);
+                }));
+
+        using var app = builder.Build();
+        app.Run();
+
+        Assert.Equal("test-value", parameterValueInCallback);
+    }
 }
