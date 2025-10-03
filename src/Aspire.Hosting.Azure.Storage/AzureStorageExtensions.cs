@@ -44,6 +44,8 @@ public static class AzureStorageExtensions
 
         var configureInfrastructure = (AzureResourceInfrastructure infrastructure) =>
         {
+            var azureResource = (AzureStorageResource)infrastructure.AspireResource;
+
             var storageAccount = AzureProvisioningResource.CreateExistingOrNewProvisionableResource(infrastructure,
                 (identifier, name) =>
                 {
@@ -56,6 +58,7 @@ public static class AzureStorageExtensions
                     Kind = StorageKind.StorageV2,
                     AccessTier = StorageAccountAccessTier.Hot,
                     Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                    IsHnsEnabled = azureResource.IsHnsEnabled,
                     NetworkRuleSet = new StorageAccountNetworkRuleSet()
                     {
                         // Unfortunately Azure Storage does not list ACA as one of the resource types in which
@@ -72,9 +75,7 @@ public static class AzureStorageExtensions
                     Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
                 });
 
-            var azureResource = (AzureStorageResource)infrastructure.AspireResource;
-
-            if (azureResource.BlobContainers.Count > 0)
+            if (azureResource.BlobContainers.Count > 0 || azureResource.DataLakeFileSystems.Count > 0)
             {
                 // The provisioned resource uses "blobs" as the name for backward compatibility.
                 var blobService = new BlobService("blobs")
@@ -87,6 +88,13 @@ public static class AzureStorageExtensions
                 foreach (var blobContainer in azureResource.BlobContainers)
                 {
                     var cdkBlobContainer = blobContainer.ToProvisioningEntity();
+                    cdkBlobContainer.Parent = blobService;
+                    infrastructure.Add(cdkBlobContainer);
+                }
+
+                foreach (var dataLakeFileSystem in azureResource.DataLakeFileSystems)
+                {
+                    var cdkBlobContainer = dataLakeFileSystem.ToProvisioningEntity();
                     cdkBlobContainer.Parent = blobService;
                     infrastructure.Add(cdkBlobContainer);
                 }
@@ -121,6 +129,7 @@ public static class AzureStorageExtensions
             }
 
             infrastructure.Add(new ProvisioningOutput("blobEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.BlobUri });
+            infrastructure.Add(new ProvisioningOutput("dataLakeEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.DfsUri });
             infrastructure.Add(new ProvisioningOutput("queueEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.QueueUri });
             infrastructure.Add(new ProvisioningOutput("tableEndpoint", typeof(string)) { Value = storageAccount.PrimaryEndpoints.TableUri });
 
@@ -327,6 +336,7 @@ public static class AzureStorageExtensions
             return Task.CompletedTask;
         });
     }
+
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageResource"/> which can be referenced to get the Azure Storage blob endpoint for the storage account.
     /// </summary>
@@ -346,6 +356,28 @@ public static class AzureStorageExtensions
         }
 
         return CreateBlobService(builder, name);
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureDataLakeStorageResource"/> which can be referenced to get the Azure Data Lake endpoint for the storage account.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureDataLakeStorageResource"/>.</returns>
+    public static IResourceBuilder<AzureDataLakeStorageResource> AddDataLake(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        builder.Resource.IsHnsEnabled = true;
+
+        if (string.Equals(name, builder.Resource.Name + "-data-lake", StringComparisons.ResourceName))
+        {
+            // If the name is the default name, use the GetBlobService method instead so we keep
+            // track of the default resource.
+            return GetDataLakeService(builder);
+        }
+
+        return CreateDataLakeService(builder, name);
     }
 
     /// <summary>
@@ -380,6 +412,15 @@ public static class AzureStorageExtensions
         return builder.Resource.BlobStorageBuilder ??= CreateBlobService(builder, name);
     }
 
+    private static IResourceBuilder<AzureDataLakeStorageResource> GetDataLakeService(this IResourceBuilder<AzureStorageResource> builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var name = builder.Resource.Name + "-data-lake";
+
+        return builder.Resource.DataLakeStorageBuilder ??= CreateDataLakeService(builder, name);
+    }
+
     /// <summary>
     /// Creates a builder for the <see cref="AzureBlobStorageContainerResource"/> which can be referenced to get the Azure Storage blob container endpoint for the storage account.
     /// </summary>
@@ -410,6 +451,37 @@ public static class AzureStorageExtensions
         return builder.ApplicationBuilder
             .AddResource(resource)
             .WithHealthCheck(healthCheckKey)
+            .OnConnectionStringAvailable(async (containerResource, @event, ct) =>
+            {
+                connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
+    }
+
+    /// <summary>
+    /// Creates a builder for the <see cref="AzureDataLakeStorageFileSystemResource"/> which can be referenced to get the Azure DataLake file system connection string.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{T}"/> for <see cref="AzureStorageResource"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="dataLakeFileSystemName">The name of the data lake file system.</param>
+    /// <returns>An <see cref="IResourceBuilder{T}"/> for the <see cref="AzureDataLakeStorageFileSystemResource"/>.</returns>
+    public static IResourceBuilder<AzureDataLakeStorageFileSystemResource> AddDataLakeFileSystem(this IResourceBuilder<AzureStorageResource> builder, [ResourceName] string name, string? dataLakeFileSystemName = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        builder.Resource.IsHnsEnabled = true;
+
+        dataLakeFileSystemName ??= name;
+
+        AzureDataLakeStorageFileSystemResource resource = new(name, dataLakeFileSystemName, GetDataLakeService(builder).Resource);
+        builder.Resource.DataLakeFileSystems.Add(resource);
+
+        string? connectionString = null;
+
+        var healthCheckKey = $"{resource.Name}_check";
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
             .OnConnectionStringAvailable(async (containerResource, @event, ct) =>
             {
                 connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
@@ -613,6 +685,20 @@ public static class AzureStorageExtensions
             .AddResource(resource)
             .WithHealthCheck(healthCheckKey)
             .OnConnectionStringAvailable(async (blobs, @event, ct) =>
+            {
+                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
+            });
+    }
+
+    private static IResourceBuilder<AzureDataLakeStorageResource> CreateDataLakeService(IResourceBuilder<AzureStorageResource> builder, string name)
+    {
+        var resource = new AzureDataLakeStorageResource(name, builder.Resource);
+
+        string? connectionString = null;
+
+        return builder.ApplicationBuilder
+            .AddResource(resource)
+            .OnConnectionStringAvailable(async (dataLake, @event, ct) =>
             {
                 connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
             });

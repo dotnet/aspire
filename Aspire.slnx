@@ -116,6 +116,10 @@
     <Project Path="playground/AzureContainerApps/AzureContainerApps.ApiService/AzureContainerApps.ApiService.csproj" />
     <Project Path="playground/AzureContainerApps/AzureContainerApps.AppHost/AzureContainerApps.AppHost.csproj" />
   </Folder>
+  <Folder Name="/playground/AzureDataLakeEndToEnd/">
+    <Project Path="playground/AzureDataLakeEndToEnd/AzureDataLakeEndToEnd.AppHost/AzureDataLakeEndToEnd.AppHost.csproj" />
+    <Project Path="playground/AzureDataLakeEndToEnd/AzureDataLakeEndToEnd.WebApi/AzureDataLakeEndToEnd.WebApi.csproj" />
+  </Folder>
   <Folder Name="/playground/AzureFunctionsEndToEnd/">
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.ApiService/AzureFunctionsEndToEnd.ApiService.csproj" />
     <Project Path="playground/AzureFunctionsEndToEnd/AzureFunctionsEndToEnd.AppHost/AzureFunctionsEndToEnd.AppHost.csproj" />
