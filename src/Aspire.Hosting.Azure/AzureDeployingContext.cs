@@ -44,6 +44,9 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
+        // Save provisioning context values to user secrets
+        await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
+
         // Step 1: Initialize parameters by collecting dependencies and resolving values
         await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
@@ -129,11 +132,22 @@ internal sealed class AzureDeployingContext(
                                 {
                                     bicepResource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                                    await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
+                                    if (await bicepProvisioner.ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
+                                    {
+                                        bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+                                        await resourceTask.CompleteAsync($"Using existing deployment for {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
 
-                                    bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+                                        // Save provisioning state after each successful resource deployment to user secrets
+                                        await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
 
-                                    await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                        bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+
+                                        await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

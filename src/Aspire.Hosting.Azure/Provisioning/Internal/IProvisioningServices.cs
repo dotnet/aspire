@@ -63,6 +63,12 @@ internal interface IUserSecretsManager
     /// Saves user secrets to the current application.
     /// </summary>
     Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a deployment key to identify user secrets for the current deployment. Returns
+    /// null to store values at the top-level.
+    /// </summary>
+    string? GetDeploymentKey();
 }
 
 /// <summary>

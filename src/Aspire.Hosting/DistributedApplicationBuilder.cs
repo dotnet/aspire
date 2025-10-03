@@ -275,6 +275,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+        // Add configuration values from UserSecrets even in PublishMode which is
+        // typically invoked via the CLI which doesn't set the correct environment
+        // value to load up UserSecrets. We do this because for local deploy, we want
+        // to be able to use UserSecrets as storage for deployment state.
+        if (AppHostAssembly is not null && ExecutionContext.IsPublishMode)
+        {
+            _innerBuilder.Configuration.AddUserSecrets(AppHostAssembly);
+        }
 
         // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
         // we still honour the DCP options around container runtime selection.

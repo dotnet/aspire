@@ -26,7 +26,8 @@ internal sealed class RunModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
+    IUserSecretsManager userSecretsManager) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
@@ -34,7 +35,8 @@ internal sealed class RunModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
-        distributedApplicationExecutionContext)
+        distributedApplicationExecutionContext,
+        userSecretsManager)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

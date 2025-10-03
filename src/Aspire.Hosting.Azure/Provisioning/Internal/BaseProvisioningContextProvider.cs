@@ -25,7 +25,8 @@ internal abstract partial class BaseProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
-    DistributedApplicationExecutionContext distributedApplicationExecutionContext) : IProvisioningContextProvider
+    DistributedApplicationExecutionContext distributedApplicationExecutionContext,
+    IUserSecretsManager userSecretsManager) : IProvisioningContextProvider
 {
     internal const string LocationName = "Location";
     internal const string SubscriptionIdName = "SubscriptionId";
@@ -39,6 +40,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
     protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
     protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
+    protected readonly IUserSecretsManager _userSecretsManager = userSecretsManager;
 
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
@@ -107,8 +109,11 @@ internal abstract partial class BaseProvisioningContextProvider(
             resourceGroupName = GetDefaultResourceGroupName();
 
             createIfAbsent = true;
-
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            var deploymentKey = _userSecretsManager.GetDeploymentKey();
+            var azureSection = deploymentKey is null
+                ? userSecrets.Prop("Azure")
+                : userSecrets.Prop("Azure").Prop(deploymentKey);
+            azureSection["ResourceGroup"] = resourceGroupName;
         }
         else
         {

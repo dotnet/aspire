@@ -18,12 +18,15 @@ internal sealed class BicepProvisioner(
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
     ISecretClientProvider secretClientProvider,
-    DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
+    DistributedApplicationExecutionContext executionContext,
+    IUserSecretsManager userSecretsManager) : IBicepProvisioner
 {
     /// <inheritdoc />
     public async Task<bool> ConfigureResourceAsync(IConfiguration configuration, AzureBicepResource resource, CancellationToken cancellationToken)
     {
-        var section = configuration.GetSection($"Azure:Deployments:{resource.Name}");
+        var deploymentKey = userSecretsManager.GetDeploymentKey();
+        var sectionKey = deploymentKey is null ? $"Azure:Deployments:{resource.Name}" : $"Azure:{deploymentKey}:Deployments:{resource.Name}";
+        var section = configuration.GetSection(sectionKey);
 
         if (!section.Exists())
         {
@@ -218,41 +221,47 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into user-secrets during run mode
-        if (context.ExecutionContext.IsRunMode)
-        {
-            var az = context.UserSecrets.Prop("Azure");
-            az["Tenant"] = context.Tenant.DefaultDomain;
+        var deploymentKey = userSecretsManager.GetDeploymentKey();
 
-            var resourceConfig = context.UserSecrets
+        var az = deploymentKey is null
+            ? context.UserSecrets.Prop("Azure")
+            : context.UserSecrets.Prop("Azure").Prop(deploymentKey);
+        az["Tenant"] = context.Tenant.DefaultDomain;
+
+        var resourceConfig = deploymentKey is null
+            ? context.UserSecrets
                 .Prop("Azure")
+                .Prop("Deployments")
+                .Prop(resource.Name)
+            : context.UserSecrets
+                .Prop("Azure")
+                .Prop(deploymentKey)
                 .Prop("Deployments")
                 .Prop(resource.Name);
 
-            // Clear the entire section
-            resourceConfig.AsObject().Clear();
+        // Clear the entire section
+        resourceConfig.AsObject().Clear();
 
-            // Save the deployment id to the configuration
-            resourceConfig["Id"] = deployment.Id.ToString();
+        // Save the deployment id to the configuration
+        resourceConfig["Id"] = deployment.Id.ToString();
 
-            // Stash all parameters as a single JSON string
-            resourceConfig["Parameters"] = parameters.ToJsonString();
+        // Stash all parameters as a single JSON string
+        resourceConfig["Parameters"] = parameters.ToJsonString();
 
-            if (outputObj is not null)
-            {
-                // Same for outputs
-                resourceConfig["Outputs"] = outputObj.ToJsonString();
-            }
-
-            // Write resource scope to config for consistent checksums
-            if (scope is not null)
-            {
-                resourceConfig["Scope"] = scope.ToJsonString();
-            }
-
-            // Save the checksum to the configuration
-            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+        if (outputObj is not null)
+        {
+            // Same for outputs
+            resourceConfig["Outputs"] = outputObj.ToJsonString();
         }
+
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
+        }
+
+        // Save the checksum to the configuration
+        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {

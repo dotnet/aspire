@@ -93,7 +93,8 @@ public class AzureBicepProvisionerTests
             services.GetRequiredService<ResourceLoggerService>(),
             bicepExecutor,
             secretClientProvider,
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            ProvisioningTestHelpers.CreateUserSecretsManager());
 
         // Assert
         Assert.NotNull(provisioner);

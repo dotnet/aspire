@@ -63,7 +63,7 @@ internal static class ProvisioningTestHelpers
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public static IUserSecretsManager CreateUserSecretsManager(string? deploymentKey = null) => new TestUserSecretsManager(deploymentKey);
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 
@@ -574,6 +574,14 @@ internal sealed class TestBicepCompiler : IBicepCompiler
 internal sealed class TestUserSecretsManager : IUserSecretsManager
 {
     private JsonObject _userSecrets = [];
+    private readonly string _deploymentKey;
+
+    public TestUserSecretsManager(string? deploymentKey = null)
+    {
+        _deploymentKey = deploymentKey ?? "runMode";
+    }
+
+    public string GetDeploymentKey() => _deploymentKey;
 
     public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
     {

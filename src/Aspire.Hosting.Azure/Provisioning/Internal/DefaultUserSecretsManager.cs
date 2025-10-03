@@ -4,7 +4,9 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
@@ -12,7 +14,11 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// <summary>
 /// Default implementation of <see cref="IUserSecretsManager"/>.
 /// </summary>
-internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManager> logger) : IUserSecretsManager
+internal sealed class DefaultUserSecretsManager(
+    ILogger<DefaultUserSecretsManager> logger,
+    DistributedApplicationExecutionContext executionContext,
+    IConfiguration configuration,
+    IHostEnvironment hostEnvironment) : IUserSecretsManager
 {
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
     {
@@ -27,10 +33,22 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         };
     }
 
+    public string? GetDeploymentKey()
+    {
+        if (executionContext.IsPublishMode)
+        {
+            var appHostSha = configuration["AppHost:Sha256"]?.ToLowerInvariant() ?? throw new InvalidOperationException("AppHost:Sha256 is not set in configuration.");
+            var environmentName = hostEnvironment.EnvironmentName.ToLowerInvariant();
+            return $"{appHostSha}-{environmentName}";
+        }
+
+        return null;
+    }
+
     public async Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
     {
         var userSecretsPath = GetUserSecretsPath();
-        
+
         var jsonDocumentOptions = new JsonDocumentOptions
         {
             CommentHandling = JsonCommentHandling.Skip,
@@ -53,10 +71,10 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
             {
                 throw new InvalidOperationException("User secrets path could not be determined.");
             }
-            
+
             // Normalize to flat configuration format with colon separators
             var flattenedSecrets = FlattenJsonObject(userSecrets);
-            
+
             // Ensure directory exists before attempting to create secrets file
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
             await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
@@ -89,7 +107,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         foreach (var kvp in source)
         {
             var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
-            
+
             if (kvp.Value is JsonObject nestedObject)
             {
                 FlattenJsonObjectRecursive(nestedObject, key, result);
