@@ -4,7 +4,6 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,7 +16,6 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class DefaultUserSecretsManager(
     ILogger<DefaultUserSecretsManager> logger,
     DistributedApplicationExecutionContext executionContext,
-    IConfiguration configuration,
     IHostEnvironment hostEnvironment) : IUserSecretsManager
 {
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
@@ -33,17 +31,10 @@ internal sealed class DefaultUserSecretsManager(
         };
     }
 
-    public string? GetDeploymentKey()
-    {
-        if (executionContext.IsPublishMode)
-        {
-            var appHostSha = configuration["AppHost:Sha256"]?.ToLowerInvariant() ?? throw new InvalidOperationException("AppHost:Sha256 is not set in configuration.");
-            var environmentName = hostEnvironment.EnvironmentName.ToLowerInvariant();
-            return $"{appHostSha}-{environmentName}";
-        }
-
-        return null;
-    }
+    public string? GetDeploymentKey() =>
+        executionContext.IsPublishMode
+            ? hostEnvironment.EnvironmentName.ToLowerInvariant()
+            : null;
 
     public async Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
     {
