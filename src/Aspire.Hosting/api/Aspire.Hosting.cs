@@ -567,7 +567,6 @@ namespace Aspire.Hosting
         HttpProtobuf = 1
     }
 
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class ParameterProcessor
     {
         public ParameterProcessor(ApplicationModel.ResourceNotificationService notificationService, ApplicationModel.ResourceLoggerService loggerService, IInteractionService interactionService, Microsoft.Extensions.Logging.ILogger<ParameterProcessor> logger, DistributedApplicationOptions options, DistributedApplicationExecutionContext executionContext) { }
