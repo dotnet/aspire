@@ -20,7 +20,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
-        var hideNonStarterTemplates = features.IsFeatureEnabled(KnownFeatures.HideNonStarterTemplates, false);
+        var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, true);
 
         yield return new CallbackTemplate(
             "aspire-starter",
@@ -38,7 +38,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        if (!hideNonStarterTemplates)
+        if (showAllTemplates)
         {
             yield return new CallbackTemplate(
                 "aspire-apphost",
@@ -59,7 +59,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         // Single-file AppHost template (gated by feature flag). This template only exists in the pack
         // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (!hideNonStarterTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             yield return new CallbackTemplate(
                 "aspire-apphost-singlefile",
@@ -99,7 +99,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         // Prepends a test framework selection step then calls the
         // underlying test template.
-        if (!hideNonStarterTemplates)
+        if (showAllTemplates)
         {
             yield return new CallbackTemplate(
                 "aspire-test",

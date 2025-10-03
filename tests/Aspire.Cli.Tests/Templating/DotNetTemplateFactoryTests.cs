@@ -269,10 +269,10 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenHideNonStarterTemplatesIsDisabled_ReturnsAllTemplates()
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_ReturnsAllTemplates()
     {
         // Arrange
-        var features = new TestFeatures(hideNonStarterTemplates: false);
+        var features = new TestFeatures(showAllTemplates: true);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -288,10 +288,10 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenHideNonStarterTemplatesIsEnabled_ReturnsOnlyStarterTemplates()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_ReturnsOnlyStarterTemplates()
     {
         // Arrange
-        var features = new TestFeatures(hideNonStarterTemplates: true);
+        var features = new TestFeatures(showAllTemplates: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -307,10 +307,10 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenHideNonStarterTemplatesIsEnabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
     {
-        // Arrange - enable both hideNonStarterTemplates and singleFileAppHost
-        var features = new TestFeatures(hideNonStarterTemplates: true, singleFileAppHostEnabled: true);
+        // Arrange - disable showAllTemplates but enable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -322,10 +322,10 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenHideNonStarterTemplatesIsDisabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
     {
-        // Arrange - disable hideNonStarterTemplates but enable singleFileAppHost
-        var features = new TestFeatures(hideNonStarterTemplates: false, singleFileAppHostEnabled: true);
+        // Arrange - enable showAllTemplates and enable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: true);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -360,12 +360,12 @@ public class DotNetTemplateFactoryTests
 
     private sealed class TestFeatures : IFeatures
     {
-        private readonly bool _hideNonStarterTemplates;
+        private readonly bool _showAllTemplates;
         private readonly bool _singleFileAppHostEnabled;
 
-        public TestFeatures(bool hideNonStarterTemplates = false, bool singleFileAppHostEnabled = false)
+        public TestFeatures(bool showAllTemplates = true, bool singleFileAppHostEnabled = false)
         {
-            _hideNonStarterTemplates = hideNonStarterTemplates;
+            _showAllTemplates = showAllTemplates;
             _singleFileAppHostEnabled = singleFileAppHostEnabled;
         }
 
@@ -373,7 +373,7 @@ public class DotNetTemplateFactoryTests
         {
             return featureFlag switch
             {
-                "hideNonStarterTemplates" => _hideNonStarterTemplates,
+                "showAllTemplates" => _showAllTemplates,
                 "singlefileAppHostEnabled" => _singleFileAppHostEnabled,
                 _ => defaultValue
             };
