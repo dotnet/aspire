@@ -13,7 +13,7 @@ namespace Aspire.Hosting.Azure.AppService;
 
 internal static class AzureAppServiceEnvironmentUtility
 {
-    const string ResourceName = "dashboard";
+    internal static readonly string ResourceName = "dashboard";
 
     public static BicepValue<string> DashboardHostName => BicepFunction.Take(
         BicepFunction.Interpolate($"{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
