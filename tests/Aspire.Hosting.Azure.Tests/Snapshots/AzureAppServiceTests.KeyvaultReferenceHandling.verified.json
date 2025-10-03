@@ -7,11 +7,11 @@
     "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
     "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
     "api_containerimage": "{api.containerImage}",
-    "env_outputs_dashboard_uri": "{env.outputs.DASHBOARD_URI}",
     "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
     "kvName": "{kvName.value}",
     "sharedRg": "{sharedRg.value}",
     "api_identity_outputs_id": "{api-identity.outputs.id}",
-    "api_identity_outputs_clientid": "{api-identity.outputs.clientId}"
+    "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
+    "env_outputs_dashboard_uri": "{env.outputs.DASHBOARD_URI}"
   }
 }

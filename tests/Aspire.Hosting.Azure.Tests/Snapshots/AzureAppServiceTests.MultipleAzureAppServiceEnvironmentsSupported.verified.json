@@ -26,8 +26,8 @@
           "env1_outputs_azure_container_registry_managed_identity_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "env1_outputs_azure_container_registry_managed_identity_client_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
           "servicea_containerimage": "{ServiceA.containerImage}",
-          "env1_outputs_dashboard_uri": "{env1.outputs.DASHBOARD_URI}",
-          "servicea_containerport": "{ServiceA.containerPort}"
+          "servicea_containerport": "{ServiceA.containerPort}",
+          "env1_outputs_dashboard_uri": "{env1.outputs.DASHBOARD_URI}"
         }
       },
       "env": {
@@ -63,8 +63,8 @@
           "env2_outputs_azure_container_registry_managed_identity_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "env2_outputs_azure_container_registry_managed_identity_client_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
           "serviceb_containerimage": "{ServiceB.containerImage}",
-          "env2_outputs_dashboard_uri": "{env2.outputs.DASHBOARD_URI}",
-          "serviceb_containerport": "{ServiceB.containerPort}"
+          "serviceb_containerport": "{ServiceB.containerPort}",
+          "env2_outputs_dashboard_uri": "{env2.outputs.DASHBOARD_URI}"
         }
       },
       "env": {

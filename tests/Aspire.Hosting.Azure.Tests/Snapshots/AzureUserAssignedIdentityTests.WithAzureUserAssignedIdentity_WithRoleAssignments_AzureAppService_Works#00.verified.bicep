@@ -11,11 +11,11 @@ param appservice_outputs_azure_container_registry_managed_identity_client_id str
 
 param myapp_containerimage string
 
-param appservice_outputs_dashboard_uri string
-
 param myidentity_outputs_id string
 
 param myidentity_outputs_clientid string
+
+param appservice_outputs_dashboard_uri string
 
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'

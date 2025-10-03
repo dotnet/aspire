@@ -212,8 +212,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(infra);
-
+        
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
@@ -329,6 +328,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (environmentContext.Environment.EnableDashboard)
         {
+            var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(infra);
             AddDashboardSettings(webSite, acrClientIdParameter, dashboardUri);
         }
 

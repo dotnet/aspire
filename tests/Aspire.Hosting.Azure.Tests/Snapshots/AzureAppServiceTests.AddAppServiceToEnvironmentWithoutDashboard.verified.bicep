@@ -11,8 +11,6 @@ param env_outputs_azure_container_registry_managed_identity_client_id string
 
 param project2_containerimage string
 
-param env_outputs_dashboard_uri string
-
 param project2_containerport string
 
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
