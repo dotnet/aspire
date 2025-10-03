@@ -27,6 +27,25 @@ public static class SeqBuilderExtensions
         string name,
         int? port = null)
     {
+        return AddSeq(builder, name, adminPassword: null, port: port);
+    }
+
+    /// <summary>
+    /// Adds a Seq server resource to the application model with authentication enabled. A container is used for local development.
+    /// </summary>
+    /// <remarks>
+    /// This version of the package defaults to the <inheritdoc cref="SeqContainerImageTags.Tag"/> tag of the <inheritdoc cref="SeqContainerImageTags.Image"/> container image.
+    /// </remarks>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name to give the resource.</param>
+    /// <param name="adminPassword">The admin password for Seq. If not provided, authentication will be disabled.</param>
+    /// <param name="port">The host port for the Seq server.</param>
+    public static IResourceBuilder<SeqResource> AddSeq(
+        this IDistributedApplicationBuilder builder,
+        string name,
+        IResourceBuilder<ParameterResource>? adminPassword,
+        int? port = null)
+    {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
 
@@ -37,6 +56,15 @@ public static class SeqBuilderExtensions
             .WithImageRegistry(SeqContainerImageTags.Registry)
             .WithEnvironment("ACCEPT_EULA", "Y")
             .WithHttpHealthCheck("/health"); // Add health check for Seq's /health endpoint
+
+        if (adminPassword != null)
+        {
+            resourceBuilder.WithEnvironment("SEQ_FIRSTRUN_ADMINPASSWORD", adminPassword);
+        }
+        else
+        {
+            resourceBuilder.WithEnvironment("SEQ_FIRSTRUN_NOAUTHENTICATION", "True");
+        }
 
         return resourceBuilder;
     }

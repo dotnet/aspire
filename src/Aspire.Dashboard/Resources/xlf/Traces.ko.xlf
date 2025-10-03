@@ -17,6 +17,16 @@
         <target state="translated">추적 캡처가 {0}에 일시 중지됨</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">유형</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">범위 유형 선택</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
         <target state="translated">&lt;strong&gt;{0}개의 추적을 표시하는 중&lt;/strong&gt;</target>

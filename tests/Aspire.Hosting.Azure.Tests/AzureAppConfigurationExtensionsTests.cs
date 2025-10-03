@@ -105,4 +105,25 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
         // Assert - Both calls should return the same resource instance, not duplicates
         Assert.Same(firstResult, secondResult);
     }
+
+    [Fact]
+    public async Task AddAsExistingResource_RespectsExistingAzureResourceAnnotation_ForAzureAppConfigurationResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var existingName = builder.AddParameter("existing-appconfig-name");
+        var existingResourceGroup = builder.AddParameter("existing-appconfig-rg");
+
+        var appConfig = builder.AddAzureAppConfiguration("test-app-config")
+            .AsExisting(existingName, existingResourceGroup);
+
+        var module = builder.AddAzureInfrastructure("mymodule", infra =>
+        {
+            _ = appConfig.Resource.AddAsExistingResource(infra);
+        });
+
+        var (manifest, bicep) = await AzureManifestUtils.GetManifestWithBicep(module.Resource, skipPreparer: true);
+
+        await Verify(manifest.ToString(), "json")
+             .AppendContentAsFile(bicep, "bicep");
+    }
 }

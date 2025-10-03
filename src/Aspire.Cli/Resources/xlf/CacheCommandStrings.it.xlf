@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="it" original="../CacheCommandStrings.resx">
+    <body>
+      <trans-unit id="CacheAlreadyEmpty">
+        <source>Cache is already empty.</source>
+        <target state="translated">La cache è già vuota.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheClearFailed">
+        <source>Failed to clear cache: {0}</source>
+        <target state="translated">Non è possibile cancellare la cache: {0}</target>
+        <note>{0} is the error message</note>
+      </trans-unit>
+      <trans-unit id="CacheCleared">
+        <source>Cache cleared successfully.</source>
+        <target state="translated">La cache è stata cancellata.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearCommand_Description">
+        <source>Clear all cache entries.</source>
+        <target state="translated">Cancella tutte le voci della cache.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage disk cache for CLI operations.</source>
+        <target state="translated">Gestisci la cache del disco per le operazioni dell'interfaccia della riga di comando.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

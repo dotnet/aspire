@@ -1,8 +1,12 @@
 import { MessageConnection } from 'vscode-jsonrpc';
 import { extensionLogOutputChannel, logAsyncOperation } from '../utils/logging';
-import { getAspireTerminal } from '../utils/terminal';
+import { IInteractionService, InteractionService } from './interactionService';
+import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
+import { AspireDebugSession } from '../debugger/AspireDebugSession';
 
 export interface ICliRpcClient {
+    debugSessionId: string | null;
+    interactionService: IInteractionService;
     getCliVersion(): Promise<string>;
     validatePromptInputString(input: string): Promise<ValidationResult | null>;
     stopCli(): Promise<void>;
@@ -15,13 +19,18 @@ export type ValidationResult = {
 
 export class RpcClient implements ICliRpcClient {
     private _messageConnection: MessageConnection;
-    private _token: string;
     private _connectionClosed: boolean;
+    private _terminalProvider: AspireTerminalProvider;
 
-    constructor(messageConnection: MessageConnection, token: string) {
+    public debugSessionId: string | null;
+    public interactionService: IInteractionService;
+
+    constructor(terminalProvider: AspireTerminalProvider, messageConnection: MessageConnection, debugSessionId: string | null, getAspireDebugSession: () => AspireDebugSession | null) {
+        this._terminalProvider = terminalProvider;
         this._messageConnection = messageConnection;
-        this._token = token;
         this._connectionClosed = false;
+        this.debugSessionId = debugSessionId;
+        this.interactionService = new InteractionService(getAspireDebugSession, this);
 
         this._messageConnection.onClose(() => {
             this._connectionClosed = true;
@@ -34,7 +43,7 @@ export class RpcClient implements ICliRpcClient {
             `Requesting CLI version from CLI`,
             (version: string) => `Received CLI version: ${version}`,
             async () => {
-                return await this._messageConnection.sendRequest<string>('getCliVersion', this._token);
+                return await this._messageConnection.sendRequest<string>('getCliVersion');
             }
         );
     }
@@ -45,7 +54,6 @@ export class RpcClient implements ICliRpcClient {
             (result: ValidationResult | null) => `Received validation result: ${JSON.stringify(result)}`,
             async () => {
                 return await this._messageConnection.sendRequest<ValidationResult | null>('validatePromptInputString', {
-                    token: this._token,
                     input
                 });
             }
@@ -53,12 +61,8 @@ export class RpcClient implements ICliRpcClient {
     }
 
     async stopCli() {
-        if (this._connectionClosed) {
-            // If connection is already closed for some reason, we cannot send a request
-            // Instead, dispose of the terminal directly. 
-            getAspireTerminal().dispose();
-        } else {
-            await this._messageConnection.sendRequest('stopCli', this._token);
+        if (!this._connectionClosed) {
+            await this._messageConnection.sendRequest('stopCli');
         }
     }
 }

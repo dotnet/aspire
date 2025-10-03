@@ -153,4 +153,9 @@ internal static partial class FormatHelpers
 
         return string.Concat(text.AsSpan(0, maxLength - Ellipsis.Length), Ellipsis);
     }
+
+    public static string CombineWithSeparator(string separator, params string?[] parts)
+    {
+        return string.Join(separator, parts.Where(p => !string.IsNullOrEmpty(p)));
+    }
 }

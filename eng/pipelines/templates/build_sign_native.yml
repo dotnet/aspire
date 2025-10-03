@@ -73,6 +73,8 @@ jobs:
               ${{ parameters.extraBuildArgs }}
               /bl:$(Build.Arcade.LogsPath)Build.binlog
             displayName: 🟣Build native packages
+            env:
+              SYSTEM_ACCESSTOKEN: $(System.AccessToken) # Needed for the signing task
 
           - task: 1ES.PublishBuildArtifacts@1
             displayName: 🟣Publish Artifacts

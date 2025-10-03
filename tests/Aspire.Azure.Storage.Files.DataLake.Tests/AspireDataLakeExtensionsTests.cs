@@ -78,7 +78,7 @@ public sealed class AspireDataLakeExtensionsTests
     {
         var builder = Host.CreateEmptyApplicationBuilder(null);
 
-        var key = useKeyed ? "blob" : null;
+        var key = useKeyed ? ConnectionName : null;
         builder.Configuration.AddInMemoryCollection(
         [
             new KeyValuePair<string, string?>(
@@ -153,7 +153,7 @@ public sealed class AspireDataLakeExtensionsTests
         using var host = builder.Build();
 
         // Unkeyed services don't work with keyed services. See https://github.com/dotnet/aspire/issues/3890
-        //var client1 = host.Services.GetRequiredService<BlobServiceClient>();
+        //var client1 = host.Services.GetRequiredService<DataLakeServiceClient>();
         var client2 = host.Services.GetRequiredKeyedService<DataLakeServiceClient>($"{ConnectionName}2");
         var client3 = host.Services.GetRequiredKeyedService<DataLakeServiceClient>($"{ConnectionName}3");
 

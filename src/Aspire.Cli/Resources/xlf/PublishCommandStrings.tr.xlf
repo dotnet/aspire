@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="tr" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
-        <target state="translated">Bir Aspire uygulama ana işlemi projesi için dağıtım yapıtları oluşturur. (Önizleme)</target>
+        <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
+        <target state="translated">Bir Aspire AppHost için dağıtım yapıtları oluşturur. (Önizleme)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">Oluşturulan yapıtların çıkış yolu.</target>
+        <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
+        <target state="translated">Oluşturulan yapıtların çıkış yolu. Belirtilmezse varsayılan olarak './aspire-output' olur.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Aspire uygulama ana işlemi projesi dosyasının yolu.</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Aspire AppHost proje dosyasının yolu.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

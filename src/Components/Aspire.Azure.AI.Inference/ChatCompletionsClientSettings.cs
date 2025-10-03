@@ -4,29 +4,26 @@
 using System.Data.Common;
 using Aspire.Azure.Common;
 using Azure.Core;
-using Microsoft.Identity.Client.Platforms.Features.DesktopOs.Kerberos;
 
-namespace Microsoft.Extensions.Hosting;
+namespace Aspire.Azure.AI.Inference;
 
 /// <summary>
 /// Represents configuration settings for Azure AI Chat Completions client.
 /// </summary>
 public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
 {
-    private bool? _disableTracing;
-
     /// <summary>
     /// Gets or sets the connection string used to connect to the AI Foundry account.
     /// </summary>
     /// <remarks>
-    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentId"/> and <see cref="Credential"/>.
+    /// If <see cref="ConnectionString"/> is set, it overrides <see cref="Endpoint"/>, <see cref="DeploymentName"/> and <see cref="TokenCredential"/>.
     /// </remarks>
     public string? ConnectionString { get; set; }
 
     /// <summary>
-    /// Gets or sets the ID of the AI model deployment to use for chat completions.
+    /// Gets or sets the name of the AI model deployment to use for chat completions.
     /// </summary>
-    public string? DeploymentId { get; set; }
+    public string? DeploymentName { get; set; }
 
     /// <summary>
     /// Gets or sets the endpoint URI for the Azure AI service.
@@ -47,44 +44,40 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry metrics are enabled or not.
     /// </summary>
     /// <remarks>
-    /// /// Azure AI Inference telemetry follows the pattern of Azure SDKs Diagnostics.
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
+    /// <value>
+    /// The default value is <see langword="false"/>.
+    /// </value>
     public bool DisableMetrics { get; set; }
 
     /// <summary>
     /// Gets or sets a boolean value that indicates whether the OpenTelemetry tracing is disabled or not.
     /// </summary>
     /// <remarks>
-    /// Azure AI Inference client library ActivitySource support in Azure SDK is experimental, the shape of Activities may change in the future without notice.
-    /// It can be enabled by setting "Azure.Experimental.EnableActivitySource" <see cref="AppContext"/> switch to true.
-    /// Or by setting "AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE" environment variable to "true".
+    /// Telemetry is recorded by Microsoft.Extensions.AI.
     /// </remarks>
     /// <value>
     /// The default value is <see langword="false"/>.
     /// </value>
-    public bool DisableTracing
-    {
-        get { return _disableTracing ??= !GetTracingDefaultValue(); }
-        set { _disableTracing = value; }
-    }
+    public bool DisableTracing { get; set; }
 
-    // Defaults DisableTracing to false if the experimental switch is set
-    // TODO: remove this when ActivitySource support is no longer experimental
-    private static bool GetTracingDefaultValue()
-    {
-        if (AppContext.TryGetSwitch("Azure.Experimental.EnableActivitySource", out var enabled))
-        {
-            return enabled;
-        }
-
-        var envVar = Environment.GetEnvironmentVariable("AZURE_EXPERIMENTAL_ENABLE_ACTIVITY_SOURCE");
-        if (envVar is not null && (envVar.Equals("true", StringComparison.OrdinalIgnoreCase) || envVar.Equals("1")))
-        {
-            return true;
-        }
-
-        return false;
-    }
+    /// <summary>
+    /// Gets or sets a boolean value indicating whether potentially sensitive information should be included in telemetry.
+    /// </summary>
+    /// <value>
+    /// <see langword="true"/> if potentially sensitive information should be included in telemetry;
+    /// <see langword="false"/> if telemetry shouldn't include raw inputs and outputs.
+    /// The default value is <see langword="false"/>, unless the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable is set to "true" (case-insensitive).
+    /// </value>
+    /// <remarks>
+    /// By default, telemetry includes metadata, such as token counts, but not raw inputs
+    /// and outputs, such as message content, function call arguments, and function call results.
+    /// The default value can be overridden by setting the <c>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</c>
+    /// environment variable to "true". Explicitly setting this property will override the environment variable.
+    /// </remarks>
+    public bool EnableSensitiveTelemetryData { get; set; } = TelemetryHelpers.EnableSensitiveDataDefault;
 
     /// <summary>
     /// Parses a connection string and populates the settings properties.
@@ -92,9 +85,12 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
     /// <param name="connectionString">The connection string containing configuration values.</param>
     /// <remarks>
     /// The connection string can contain the following keys:
-    /// - DeploymentId: The ID of the AI model
+    /// - Deployment: The deployment name (preferred)
+    /// - DeploymentId: The deployment ID (legacy, for backward compatibility)
+    /// - Model: The model name (used by GitHub Models)
     /// - Endpoint: The service endpoint URI
     /// - Key: The API key for authentication
+    /// Note: Only one of Deployment, DeploymentId, or Model should be specified.
     /// </remarks>
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
@@ -103,9 +99,37 @@ public sealed class ChatCompletionsClientSettings : IConnectionStringSettings
             ConnectionString = connectionString
         };
 
-        if (connectionBuilder.TryGetValue("DeploymentId", out var modelId))
+        // Check for deployment/model keys and ensure only one is provided
+        var deploymentKeys = new List<string>();
+        if (connectionBuilder.ContainsKey("Deployment"))
         {
-            DeploymentId = modelId.ToString();
+            deploymentKeys.Add("Deployment");
+        }
+        if (connectionBuilder.ContainsKey("DeploymentId"))
+        {
+            deploymentKeys.Add("DeploymentId");
+        }
+        if (connectionBuilder.ContainsKey("Model"))
+        {
+            deploymentKeys.Add("Model");
+        }
+
+        if (deploymentKeys.Count > 1)
+        {
+            throw new ArgumentException($"The connection string contains multiple deployment/model keys: {string.Join(", ", deploymentKeys)}. Only one of 'Deployment', 'DeploymentId', or 'Model' should be specified.");
+        }
+
+        if (connectionBuilder.TryGetValue("Deployment", out var deployment))
+        {
+            DeploymentName = deployment.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("DeploymentId", out var deploymentId))
+        {
+            DeploymentName = deploymentId.ToString();
+        }
+        else if (connectionBuilder.TryGetValue("Model", out var model))
+        {
+            DeploymentName = model.ToString();
         }
 
         // Use the EndpointAIInference key if available, otherwise fallback to Endpoint.

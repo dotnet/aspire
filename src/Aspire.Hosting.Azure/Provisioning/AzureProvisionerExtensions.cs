@@ -6,6 +6,7 @@ using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Aspire.Hosting;
 
@@ -34,18 +35,26 @@ public static class AzureProvisionerExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        builder.Services.AddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
+        builder.Services.TryAddSingleton<ITokenCredentialProvider, DefaultTokenCredentialProvider>();
 
         // Register BicepProvisioner via interface
-        builder.Services.AddSingleton<IBicepProvisioner, BicepProvisioner>();
+        builder.Services.TryAddSingleton<IBicepProvisioner, BicepProvisioner>();
 
         // Register the new internal services for testability
-        builder.Services.AddSingleton<IArmClientProvider, DefaultArmClientProvider>();
-        builder.Services.AddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
-        builder.Services.AddSingleton<IBicepCompiler, BicepCliCompiler>();
-        builder.Services.AddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
-        builder.Services.AddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
-        builder.Services.AddSingleton<IProvisioningContextProvider, DefaultProvisioningContextProvider>();
+        builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
+        builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
+        builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
+        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
+        builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
+        }
+        else
+        {
+            builder.Services.AddSingleton<IProvisioningContextProvider, RunModeProvisioningContextProvider>();
+        }
+        builder.Services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();
 
         return builder;
     }

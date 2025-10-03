@@ -5,6 +5,7 @@ using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.DotNet.RemoteExecutor;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -207,18 +208,24 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("Disabled due to Verify, needs investigation.")]
     public async Task AppHostExitsWhenCliProcessPidDies()
     {
         using var fakeCliProcess = RemoteExecutor.Invoke(
-        static () => Thread.Sleep(Timeout.Infinite),
-        new RemoteInvokeOptions { CheckExitCode = false }
+            static () => Thread.Sleep(Timeout.Infinite),
+            new RemoteInvokeOptions
+            {
+                CheckExitCode = false,
+
+            }
         );
-        
+
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(testOutputHelper);
         builder.Configuration["ASPIRE_CLI_PID"] = fakeCliProcess.Process.Id.ToString();
-        
+
         var resourcesCreatedTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) => {
+        builder.Eventing.Subscribe<AfterResourcesCreatedEvent>((e, ct) =>
+        {
             resourcesCreatedTcs.SetResult();
             return Task.CompletedTask;
         });
@@ -230,7 +237,7 @@ public class CliOrphanDetectorTests(ITestOutputHelper testOutputHelper)
         // process so everything is torn down.
         await resourcesCreatedTcs.Task.WaitAsync(TimeSpan.FromSeconds(60));
         fakeCliProcess.Process.Kill();
-        
+
         await pendingRun.WaitAsync(TimeSpan.FromSeconds(60));
     }
 }

@@ -74,7 +74,7 @@ public static class AzureProvisioningResourceExtensions
         {
             kv = KeyVaultService.FromExisting(kvName);
 
-            if (!AzureProvisioningResource.TryApplyExistingResourceNameAndScope(
+            if (!AzureProvisioningResource.TryApplyExistingResourceAnnotation(
                 secretReference.Resource,
                 infrastructure,
                 kv))

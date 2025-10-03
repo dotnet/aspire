@@ -75,3 +75,5 @@ resource pgsqldb_connectionString 'Microsoft.KeyVault/vaults/secrets@2024-11-01'
 }
 
 output name string = pgsql.name
+
+output hostName string = pgsql.properties.fullyQualifiedDomainName

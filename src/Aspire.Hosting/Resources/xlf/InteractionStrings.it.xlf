@@ -2,6 +2,46 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="it" original="../InteractionStrings.resx">
     <body>
+      <trans-unit id="ContainerRuntimeDockerAdvice">
+        <source>Ensure that Docker is running and that the Docker daemon is accessible. If Resource Saver mode is enabled, containers may not run.</source>
+        <target state="translated">Assicurati che Docker sia in esecuzione e che il demone Docker sia accessibile. Se la modalità Risparmio risorse è abilitata, i contenitori potrebbero non funzionare.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeGenericAdvice">
+        <source>Ensure that the container runtime is running.</source>
+        <target state="translated">Assicurati che il runtime del contenitore sia in esecuzione.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeLinkText">
+        <source>Learn more</source>
+        <target state="translated">Altre informazioni</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledMessage">
+        <source>Container runtime could not be found. See https://aka.ms/dotnet/aspire/containers for more details on supported container runtimes.</source>
+        <target state="translated">Non è possibile trovare il runtime del contenitore. Vedi https://aka.ms/dotnet/aspire/containers per altri dettagli sui runtime del contenitore supportati.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeNotInstalledTitle">
+        <source>Container runtime not installed</source>
+        <target state="translated">Runtime del contenitore non installato</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimePodmanAdvice">
+        <source>Ensure that Podman is running.</source>
+        <target state="translated">Assicurati che Podman sia in esecuzione...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyMessage">
+        <source>Container runtime '{0}' was found but appears to be unhealthy. </source>
+        <target state="translated">Il runtime del contenitore '{0}' è stato trovato ma non è integro. </target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ContainerRuntimeUnhealthyTitle">
+        <source>Container runtime unhealthy</source>
+        <target state="translated">Runtime del contenitore non integro</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ParametersBarMessage">
         <source>There are unresolved parameters that need to be set. Please provide values for them.</source>
         <target state="translated">Sono presenti parametri non risolti che devono essere impostati. Specifica i valori per questi parametri.</target>

@@ -27,7 +27,7 @@
     },
     "cs": {
       "type": "value.v0",
-      "connectionString": "sql={db.connectionString};rows={insertionrows.value}"
+      "connectionString": "sql={sql.bindings.tcp.url};rows={insertionrows.value}"
     },
     "parameterFromConnectionStringConfig": {
       "type": "parameter.v0",

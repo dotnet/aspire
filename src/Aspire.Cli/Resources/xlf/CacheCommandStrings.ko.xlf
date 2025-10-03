@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="ko" original="../CacheCommandStrings.resx">
+    <body>
+      <trans-unit id="CacheAlreadyEmpty">
+        <source>Cache is already empty.</source>
+        <target state="translated">캐시가 이미 비어 있습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CacheClearFailed">
+        <source>Failed to clear cache: {0}</source>
+        <target state="translated">캐시를 지우지 못했습니다. {0}</target>
+        <note>{0} is the error message</note>
+      </trans-unit>
+      <trans-unit id="CacheCleared">
+        <source>Cache cleared successfully.</source>
+        <target state="translated">캐시를 지웠습니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ClearCommand_Description">
+        <source>Clear all cache entries.</source>
+        <target state="translated">모든 캐시 항목을 지웁니다.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Manage disk cache for CLI operations.</source>
+        <target state="translated">CLI 작업용 디스크 캐시를 관리합니다.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

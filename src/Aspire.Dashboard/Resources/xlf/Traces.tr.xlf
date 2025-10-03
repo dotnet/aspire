@@ -17,6 +17,16 @@
         <target state="translated">İzleme yakalama işlemi {0}’da duraklatıldı</target>
         <note />
       </trans-unit>
+      <trans-unit id="SpanTypeLabel">
+        <source>Type</source>
+        <target state="translated">Tür</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SpanTypeSelectSpanType">
+        <source>Select span type</source>
+        <target state="translated">Aralık türünü seçin</target>
+        <note />
+      </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">
         <source>Showing &lt;strong&gt;{0} traces&lt;/strong&gt;</source>
         <target state="translated">&lt;strong&gt;{0} izleme&lt;/strong&gt; gösteriliyor</target>

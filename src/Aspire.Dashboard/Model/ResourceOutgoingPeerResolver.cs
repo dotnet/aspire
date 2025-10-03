@@ -5,13 +5,19 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Utils;
 
 namespace Aspire.Dashboard.Model;
 
-public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
+public sealed partial class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsyncDisposable
 {
+    // Some libraries use "127.0.0.1" instead of "localhost".
+    // Also handle container to host addresses.
+    [GeneratedRegex(@"^(?:127\.0\.0\.1|host\.docker\.internal|host\.containers\.internal):", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex HostRegex();
+
     private readonly ConcurrentDictionary<string, ResourceViewModel> _resourceByName = new(StringComparers.ResourceName);
     private readonly CancellationTokenSource _watchContainersTokenSource = new();
     private readonly List<ModelSubscription> _subscriptions = [];
@@ -236,8 +242,9 @@ public sealed class ResourceOutgoingPeerResolver : IOutgoingPeerResolver, IAsync
         },
         s =>
         {
-            // Some libraries use "127.0.0.1" instead of "localhost".
-            return s.Replace("127.0.0.1:", "localhost:");
+            // Normalize localhost and container hostnames to "localhost".
+            const string localhost = "localhost:";
+            return HostRegex().Replace(s, localhost);
         }];
 
     public IDisposable OnPeerChanges(Func<Task> callback)

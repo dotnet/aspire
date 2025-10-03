@@ -26,11 +26,11 @@ function getFluentMenuItemForTarget(element) {
 
     // in between the svg and fluent-menu-item is a span for the icon slot
     const possibleMenuItem = element.parentElement?.parentElement;
-    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+    if (possibleMenuItem && (isElementTagName(possibleMenuItem, "fluent-menu-item") || isElementTagName(possibleMenuItem, "button"))) {
         return element.parentElement.parentElement;
     }
 
-    if (isElementTagName(element, "fluent-menu-item")) {
+    if (isElementTagName(element, "fluent-menu-item") || isElementTagName(element, "button")) {
         return element;
     }
 
@@ -172,7 +172,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             }
             if (copyIcon && checkmarkIcon) {
                 copyIcon.style.display = 'none';
-                checkmarkIcon.style.display = 'inline';
+                checkmarkIcon.style.display = '';
             }
         })
         .catch(() => {
@@ -187,17 +187,19 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         }
 
         if (copyIcon && checkmarkIcon) {
-            copyIcon.style.display = 'inline';
+            copyIcon.style.display = '';
             checkmarkIcon.style.display = 'none';
         }
         delete button.dataset.copyTimeout;
-   }, 1500);
+    }, 1500);
 };
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
+    const tagName = currentElement.tagName.toLowerCase();
+
     // fluent components may have shadow roots that contain inputs
-    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+    return tagName === "input" || tagName === "textarea" || tagName.startsWith("fluent") ? isInputElement(currentElement, false) : false;
 }
 
 function isInputElement(element, isRoot, isShadowRoot) {

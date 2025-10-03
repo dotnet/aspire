@@ -54,4 +54,72 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         Assert.DoesNotContain("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", env);
     }
+
+    [Fact]
+    public async Task VerifyWithStaticFilesAddsEnvironmentVariable()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        var yarp = builder.AddYarp("yarp").WithStaticFiles();
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+    }
+
+    [Fact]
+    public async Task VerifyWithStaticFilesWorksInPublishOperation()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var yarp = builder.AddYarp("yarp").WithStaticFiles();
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+    }
+
+    [Fact]
+    public async Task VerifyWithStaticFilesBindMountAddsEnvironmentVariable()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        using var tempDir = new TempDirectory();
+        
+        var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+    }
+
+    [Fact]
+    public async Task VerifyWithStaticFilesBindMountWorksInPublishOperation()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        using var tempDir = new TempDirectory();
+        
+        var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
+
+        var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        var value = Assert.Contains("YARP_ENABLE_STATIC_FILES", env);
+        Assert.Equal("true", value);
+    }
+
+    [Fact]
+    public void VerifyWithStaticFilesBindMountAddsContainerFileSystemAnnotation()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        using var tempDir = new TempDirectory();
+        
+        var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
+
+        var annotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>());
+        Assert.Equal("/wwwroot", annotation.DestinationPath);
+    }
 }
