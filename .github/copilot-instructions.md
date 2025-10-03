@@ -123,7 +123,6 @@ Valid test filter switches include: --filter-class, --filter-not-class, --filter
   - `Aspire.Dashboard/`: Web dashboard UI (Blazor application)
   - `Components/`: 40+ integration packages for databases, messaging, cloud services
   - `Aspire.Cli/`: Command-line interface tools
-  - `Microsoft.Extensions.ServiceDiscovery/`: Service discovery infrastructure
 - **`/tests`**: Comprehensive test suites mirroring src structure
 - **`/playground`**: Sample applications including TestShop for verification
 - **`/docs`**: Documentation including contributing guides and area ownership
