@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Azure;
 /// <param name="name">The name of the resource in the Aspire application model.</param>
 /// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
 /// <param name="targetResource">The target resource that this Azure Web Site is being created for.</param>
-public class AzureWebSiteResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, IResource targetResource)
+public class AzureAppServiceWebSiteResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, IResource targetResource)
     : AzureProvisioningResource(name, configureInfrastructure)
 {
     /// <summary>

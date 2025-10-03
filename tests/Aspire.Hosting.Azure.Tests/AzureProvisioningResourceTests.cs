@@ -56,9 +56,9 @@ public class AzureProvisioningResourceTests
         apiProject.PublishAsAzureAppServiceWebsite((infrastructure, website) =>
         {
             // This callback should have access to the original resource
-            // via the AzureWebSiteResource.TargetResource property
-            Assert.IsType<AzureWebSiteResource>(infrastructure.AspireResource);
-            var webSiteResource = (AzureWebSiteResource)infrastructure.AspireResource;
+            // via the AzureAppServiceWebSiteResource.TargetResource property
+            Assert.IsType<AzureAppServiceWebSiteResource>(infrastructure.AspireResource);
+            var webSiteResource = (AzureAppServiceWebSiteResource)infrastructure.AspireResource;
 
             Assert.Same(apiProject.Resource, webSiteResource.TargetResource);
         });
@@ -72,7 +72,7 @@ public class AzureProvisioningResourceTests
 
         // Verify the deployment target was created
         project.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
-        var provisioningResource = target?.DeploymentTarget as AzureWebSiteResource;
+        var provisioningResource = target?.DeploymentTarget as AzureAppServiceWebSiteResource;
         Assert.NotNull(provisioningResource);
 
         // Verify the target resource is accessible
