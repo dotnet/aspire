@@ -314,7 +314,7 @@ Changes: none (baseline version)
 **`2024-04-23`** <br/>
 Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
 Changes:
-- Expects the IDE endpoint to be able to respond to WebSocket `ping` messages with a proper `pong` message. Used for detecting notofication connection failures.
+- Expects the IDE endpoint to be able to respond to WebSocket `ping` messages with a proper `pong` message. Used for detecting notification connection failures.
 
 **`2025-10-01`** <br/>
 Applicable Aspire versions: `9.6` and above (DCP will downgrade to `2024-03-03` or `2024-04-23` if necessary). <br/>
