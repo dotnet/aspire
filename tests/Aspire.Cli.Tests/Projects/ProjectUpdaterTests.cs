@@ -261,13 +261,6 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                 Assert.Equal("9.5.0-preview.1", item.PackageVersion);
                 Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
                 Assert.Equal(webAppProjectFile.FullName, item.ProjectFile.FullName);
-            },
-            item =>
-            {
-                Assert.Equal("Microsoft.Extensions.ServiceDiscovery", item.PackageId);
-                Assert.Equal("9.5.0-preview.1", item.PackageVersion);
-                Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
-                Assert.Equal(serviceDefaultsProjectFile.FullName, item.ProjectFile.FullName);
             }
         );
     }
@@ -420,13 +413,6 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                 Assert.Equal("9.4.1", item.PackageVersion);
                 Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
                 Assert.Equal(webAppProjectFile.FullName, item.ProjectFile.FullName);
-            },
-            item =>
-            {
-                Assert.Equal("Microsoft.Extensions.ServiceDiscovery", item.PackageId);
-                Assert.Equal("9.4.1", item.PackageVersion);
-                Assert.Null(item.PackageSource); // Should be null because of --no-restore behavior.
-                Assert.Equal(serviceDefaultsProjectFile.FullName, item.ProjectFile.FullName);
             }
         );
     }
@@ -477,7 +463,6 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         {
                             "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
                             "Aspire.Hosting.AppHost" => new NuGetPackageCli { Id = "Aspire.Hosting.AppHost", Version = "9.5.0", Source = "nuget.org" },
-                            "Microsoft.Extensions.ServiceDiscovery" => new NuGetPackageCli { Id = "Microsoft.Extensions.ServiceDiscovery", Version = "9.5.0", Source = "nuget.org" },
                             _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
                         });
 
@@ -513,7 +498,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
                         else if (projectFile.FullName == sharedProjectFile.FullName)
                         {
                             // SharedProject has an updatable package
-                            itemsAndProperties.WithPackageReference("Microsoft.Extensions.ServiceDiscovery", "9.4.1");
+                            itemsAndProperties.WithPackageReference("Aspire.Hosting.AppHost", "9.4.1");
                         }
                         else
                         {
@@ -561,7 +546,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         Assert.Single(sharedProjectUpdates);
         
         var sharedProjectUpdate = sharedProjectUpdates.Single();
-        Assert.Equal("Microsoft.Extensions.ServiceDiscovery", sharedProjectUpdate.PackageId);
+        Assert.Equal("Aspire.Hosting.AppHost", sharedProjectUpdate.PackageId);
         Assert.Equal("9.5.0", sharedProjectUpdate.PackageVersion);
         
         // Should also have the AppHost package update
