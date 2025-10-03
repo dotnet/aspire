@@ -44,6 +44,8 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
 
     public TaskCompletionSource? PromptForSelectionAsyncCalled { get; set; }
 
+    public TaskCompletionSource? PromptForSelectionsAsyncCalled { get; set; }
+
     public TaskCompletionSource? ConfirmAsyncCalled { get; set; }
     public Func<string, bool, Task<bool>>? ConfirmAsyncCallback { get; set; }
 
@@ -153,6 +155,18 @@ internal sealed class TestExtensionBackchannel : IExtensionBackchannel
         }
 
         return Task.FromResult(choices.First());
+    }
+
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull
+    {
+        PromptForSelectionsAsyncCalled?.SetResult();
+
+        if (!choices.Any())
+        {
+            throw new InvalidOperationException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
