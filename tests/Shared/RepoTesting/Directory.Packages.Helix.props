@@ -78,11 +78,6 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="$(PackageVersion)" />
     <PackageVersion Include="Aspire.StackExchange.Redis.OutputCaching" Version="$(PackageVersion)" />
-
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Dns" Version="$(PackageVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="$(PackageVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="For tests">

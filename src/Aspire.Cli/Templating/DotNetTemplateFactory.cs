@@ -61,7 +61,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 TemplatingStrings.AspireAppHostSingleFile_Description,
                 projectName => $"./{projectName}",
                 _ => { },
-                ApplyTemplateWithNoExtraArgsAsync
+                ApplySingleFileTemplate
                 );
         }
 
@@ -228,13 +228,42 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (parseResult.CommandResult.Command is InitCommand)
+        {
+            return await ApplyTemplateAsync(
+                template,
+                executionContext.WorkingDirectory.Name,
+                executionContext.WorkingDirectory.FullName,
+                parseResult,
+                (_, _) => Task.FromResult(Array.Empty<string>()),
+                cancellationToken
+                );
+        }
+        else
+        {
+            return await ApplyTemplateAsync(
+                template,
+                parseResult,
+                (_, _) => Task.FromResult(Array.Empty<string>()),
+                cancellationToken
+                );
+        }
+    }
+
     private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    {
+        var name = await GetProjectNameAsync(parseResult, cancellationToken);
+        var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+
+        return await ApplyTemplateAsync(template, name, outputPath, parseResult, extraArgsCallback, cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, string name, string outputPath, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         try
         {
-            var name = await GetProjectNameAsync(parseResult, cancellationToken);
-            var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
-
             var source = parseResult.GetValue<string?>("--source");
             var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
 
