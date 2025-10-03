@@ -243,11 +243,11 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var tempOutputPath = Path.GetTempPath();
+        using var tempDir = new TempDirectory();
         var options = new ContainerBuildOptions
         {
             ImageFormat = ContainerImageFormat.Oci,
-            OutputPath = tempOutputPath,
+            OutputPath = Path.Combine(tempDir.Path, "NewFolder"), // tests that the folder is created if it doesn't exist
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
