@@ -372,7 +372,7 @@ public static class AzureStorageExtensions
 
         if (string.Equals(name, builder.Resource.Name + "-data-lake", StringComparisons.ResourceName))
         {
-            // If the name is the default name, use the GetBlobService method instead so we keep
+            // If the name is the default name, use the GetDataLakeService method instead so we keep
             // track of the default resource.
             return GetDataLakeService(builder);
         }
