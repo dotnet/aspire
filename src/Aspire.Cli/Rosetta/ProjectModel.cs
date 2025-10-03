@@ -167,9 +167,7 @@ internal class ProjectModel
                     <OutputType>exe</OutputType>
                     <TargetFramework>{TargetFramework}</TargetFramework>
                     <AssemblyName>{AssemblyName}</AssemblyName>
-                    <OutputPath>build</OutputPath>
-                    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-                    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+                    <OutDir>{BuildFolder}</OutDir>
                     <IsAspireHost>true</IsAspireHost>
                     <IsPublishable>true</IsPublishable>
                     <SelfContained>true</SelfContained>

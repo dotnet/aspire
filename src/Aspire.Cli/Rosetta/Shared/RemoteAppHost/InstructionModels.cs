@@ -18,6 +18,9 @@ public record CreateBuilderInstruction : Instruction
 
     [JsonPropertyName("args")]
     public string[] Args { get; init; } = Array.Empty<string>();
+
+    [JsonPropertyName("projectDirectory")]
+    public string? ProjectDirectory { get; init; }
 }
 
 public record RunBuilderInstruction : Instruction

@@ -6,6 +6,7 @@ export interface CreateBuilderInstruction extends Instruction {
   name: 'CREATE_BUILDER';
   builderName: string;
   args: string[];
+  projectDirectory: string;
 }
 
 export interface RunBuilderInstruction extends Instruction {

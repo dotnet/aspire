@@ -222,7 +222,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             global distributedApplicationBuilder
             distributedApplicationBuilder = DistributedApplicationBuilder(args)
 
-            create = make_instruction("CREATE_BUILDER", builderName=distributedApplicationBuilder._name, args=[])
+            create = make_instruction("CREATE_BUILDER", builderName=distributedApplicationBuilder._name, projectDirectory=os.getcwd(), args=[])
             send_instruction(create)
 
             return distributedApplicationBuilder

@@ -169,6 +169,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
             const createBuilderInstruction: CreateBuilderInstruction = {
               name: 'CREATE_BUILDER',
               builderName: distributedApplicationBuilder[_name],
+              projectDirectory: process.cwd(),
               args: args
             };
 
