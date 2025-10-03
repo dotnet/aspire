@@ -25,6 +25,11 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
 
     internal ReferenceExpression GetConnectionString(string? fileSystemName)
     {
+        if (Parent.IsEmulator)
+        {
+            throw new InvalidOperationException("Emulator currently does not support data lake.");
+        }
+
         if (string.IsNullOrEmpty(fileSystemName))
         {
             return ConnectionStringExpression;
@@ -32,14 +37,7 @@ public class AzureDataLakeStorageResource(string name, AzureStorageResource stor
 
         ReferenceExpressionBuilder builder = new();
 
-        if (Parent.IsEmulator)
-        {
-            throw new InvalidOperationException("Emulator currently does not support data lake.");
-        }
-        else
-        {
-            builder.Append($"Endpoint={ConnectionStringExpression}");
-        }
+        builder.Append($"Endpoint={ConnectionStringExpression}");
 
         builder.Append($";FileSystemName={fileSystemName}");
 

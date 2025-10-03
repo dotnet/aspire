@@ -482,46 +482,8 @@ public static class AzureStorageExtensions
         AzureDataLakeStorageFileSystemResource resource = new(name, dataLakeFileSystemName, GetDataLakeService(builder).Resource);
         builder.Resource.DataLakeFileSystems.Add(resource);
 
-        string? connectionString = null;
-
-        var healthCheckKey = $"{resource.Name}_check";
-
-        DataLakeFileSystemClient? dataLakeFileSystemClient = null;
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
-           healthCheckKey,
-           sp =>
-           {
-               if (dataLakeFileSystemClient is not null)
-               {
-                   return new AzureDataLakeFileSystemHealthCheck(dataLakeFileSystemClient);
-               }
-
-               if (connectionString is null)
-               {
-                   throw new InvalidOperationException("Connection string is not initialized.");
-               }
-
-               if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-               {
-                   var dataLakeServiceClient = new DataLakeServiceClient(uri, new DefaultAzureCredential());
-                   dataLakeFileSystemClient = dataLakeServiceClient.GetFileSystemClient(resource.DataLakeFileSystemName);
-               }
-               else
-               {
-                   var dataLakeServiceClient = new DataLakeServiceClient(connectionString);
-                   dataLakeFileSystemClient = dataLakeServiceClient.GetFileSystemClient(resource.DataLakeFileSystemName);
-               }
-
-               return new AzureDataLakeFileSystemHealthCheck(dataLakeFileSystemClient);
-           }, null, null));
-
         return builder.ApplicationBuilder
-            .AddResource(resource)
-            .WithHealthCheck(healthCheckKey)
-            .OnConnectionStringAvailable(async (containerResource, @event, ct) =>
-            {
-                connectionString = await resource.Parent.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            });
+            .AddResource(resource);
     }
 
     /// <summary>
@@ -730,43 +692,8 @@ public static class AzureStorageExtensions
     {
         var resource = new AzureDataLakeStorageResource(name, builder.Resource);
 
-        string? connectionString = null;
-
-        var healthCheckKey = $"{resource.Name}_check";
-
-        DataLakeServiceClient? dataLakeServiceClient = null;
-        builder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
-            healthCheckKey,
-            sp =>
-            {
-                if (dataLakeServiceClient is not null)
-                {
-                    return new AzureDataLakeStorageHealthCheck(dataLakeServiceClient);
-                }
-
-                if (connectionString is null)
-                {
-                    throw new InvalidOperationException("Connection string is not initialized.");
-                }
-
-                if (Uri.TryCreate(connectionString, UriKind.Absolute, out var uri))
-                {
-                    dataLakeServiceClient = new DataLakeServiceClient(uri, new DefaultAzureCredential());
-                }
-                else
-                {
-                    dataLakeServiceClient = new DataLakeServiceClient(connectionString);
-                }
-
-                return new AzureDataLakeStorageHealthCheck(dataLakeServiceClient);
-            }, null, null));
-
         return builder.ApplicationBuilder
-            .AddResource(resource)
-            .OnConnectionStringAvailable(async (dataLake, @event, ct) =>
-            {
-                connectionString = await resource.ConnectionStringExpression.GetValueAsync(ct).ConfigureAwait(false);
-            });
+            .AddResource(resource);
     }
 
     private static IResourceBuilder<AzureTableStorageResource> CreateTableService(IResourceBuilder<AzureStorageResource> builder, string name)
