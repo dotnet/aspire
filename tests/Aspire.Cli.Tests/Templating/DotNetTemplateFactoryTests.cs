@@ -363,7 +363,7 @@ public class DotNetTemplateFactoryTests
         private readonly bool _showAllTemplates;
         private readonly bool _singleFileAppHostEnabled;
 
-        public TestFeatures(bool showAllTemplates = true, bool singleFileAppHostEnabled = false)
+        public TestFeatures(bool showAllTemplates = false, bool singleFileAppHostEnabled = false)
         {
             _showAllTemplates = showAllTemplates;
             _singleFileAppHostEnabled = singleFileAppHostEnabled;
