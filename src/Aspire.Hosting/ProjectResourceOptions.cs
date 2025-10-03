@@ -22,3 +22,10 @@ public class ProjectResourceOptions
     public bool ExcludeKestrelEndpoints { get; set; }
 }
 
+/// <summary>
+/// 
+/// </summary>
+public class FileBasedAppResourceOptions : ProjectResourceOptions
+{
+
+}
