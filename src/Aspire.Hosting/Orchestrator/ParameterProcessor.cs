@@ -18,7 +18,7 @@ namespace Aspire.Hosting;
 /// Handles processing of parameter resources during application orchestration.
 /// </summary>
 [Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class ParameterProcessor(
+public sealed class ParameterProcessor(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
