@@ -350,10 +350,10 @@ public class ApplicationOrchestratorTests
 
         var parentResource = builder.AddResource(new ParentResourceWithConnectionString("parent"));
         var childResource = builder.AddResource(
-            new ChildResourceWithConnectionString("child", new Dictionary<string, string> { {"Namespace", "ns"} }, parentResource.Resource)
+            new ChildResourceWithConnectionString("child", new Dictionary<string, string> { { "Namespace", "ns" } }, parentResource.Resource)
         );
         var grandChildResource = builder.AddResource(
-            new ChildResourceWithConnectionString("grand-child", new Dictionary<string, string> { {"Database", "db"} }, childResource.Resource)
+            new ChildResourceWithConnectionString("grand-child", new Dictionary<string, string> { { "Database", "db" } }, childResource.Resource)
         );
 
         await using var app = builder.Build();
@@ -589,10 +589,10 @@ public class ApplicationOrchestratorTests
 
         // Parent should have the new state
         Assert.Equal(KnownResourceStates.FailedToStart, parentState);
-        
+
         // Child container (has own lifetime) should NOT receive parent state
         Assert.NotEqual(KnownResourceStates.Running, childContainerState);
-        
+
         // Custom child (does not have own lifetime) SHOULD receive parent state
         Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
     }
@@ -635,11 +635,171 @@ public class ApplicationOrchestratorTests
 
         // Parent should have the new state
         Assert.Equal(KnownResourceStates.FailedToStart, parentState);
-        
+
         // Child project (has own lifetime) should NOT receive parent state
         Assert.NotEqual(KnownResourceStates.Running, childProjectState);
-        
+
         // Custom child (does not have own lifetime) SHOULD receive parent state
         Assert.Equal(KnownResourceStates.FailedToStart, customChildState);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipUsingResourceBuilderSetsParentPropertyCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parent = builder.AddContainer("parent", "image");
+        var child = builder.AddContainer("child", "image");
+        var child2 = builder.AddContainer("child2", "image");
+
+        parent.WithChildRelationship(child)
+              .WithChildRelationship(child2);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        string? child2ParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parent.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == child.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+                else if (item.Resource == child2.Resource)
+                {
+                    child2ParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null && child2ParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+        Assert.Equal(parentResourceId, child2ParentResourceId);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipUsingResourceSetsParentPropertyCorrectly()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parent = builder.AddContainer("parent", "image");
+        var child = builder.AddContainer("child", "image");
+        var child2 = builder.AddContainer("child2", "image");
+
+        parent.WithChildRelationship(child.Resource)
+              .WithChildRelationship(child2.Resource);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentResourceId = null;
+        string? childParentResourceId = null;
+        string? child2ParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parent.Resource)
+                {
+                    parentResourceId = item.ResourceId;
+                }
+                else if (item.Resource == child.Resource)
+                {
+                    childParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+                else if (item.Resource == child2.Resource)
+                {
+                    child2ParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentResourceId != null && childParentResourceId != null && child2ParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentResourceId, childParentResourceId);
+        Assert.Equal(parentResourceId, child2ParentResourceId);
+    }
+
+    [Fact]
+    public async Task WithChildRelationshipWorksWithProjects()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentProject = builder.AddProject<ProjectA>("parent-project");
+        var childProject = builder.AddProject<ProjectB>("child-project");
+
+        parentProject.WithChildRelationship(childProject);
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var events = new DcpExecutorEvents();
+        var resourceNotificationService = ResourceNotificationServiceTestHelpers.Create();
+
+        var appOrchestrator = CreateOrchestrator(distributedAppModel, notificationService: resourceNotificationService, dcpEvents: events);
+        await appOrchestrator.RunApplicationAsync();
+
+        string? parentProjectResourceId = null;
+        string? childProjectParentResourceId = null;
+        var watchResourceTask = Task.Run(async () =>
+        {
+            await foreach (var item in resourceNotificationService.WatchAsync())
+            {
+                if (item.Resource == parentProject.Resource)
+                {
+                    parentProjectResourceId = item.ResourceId;
+                }
+                else if (item.Resource == childProject.Resource)
+                {
+                    childProjectParentResourceId = item.Snapshot.Properties.SingleOrDefault(p => p.Name == KnownProperties.Resource.ParentName)?.Value?.ToString();
+                }
+
+                if (parentProjectResourceId != null && childProjectParentResourceId != null)
+                {
+                    return;
+                }
+            }
+        });
+
+        await events.PublishAsync(new OnResourcesPreparedContext(CancellationToken.None));
+
+        await watchResourceTask.DefaultTimeout();
+
+        Assert.Equal(parentProjectResourceId, childProjectParentResourceId);
     }
 }
