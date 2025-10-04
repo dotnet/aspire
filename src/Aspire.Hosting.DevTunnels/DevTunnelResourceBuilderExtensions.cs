@@ -146,7 +146,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 }
 
                 // Wait for target resource endpoints to be allocated
-                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpoint.EndpointAnnotation.AllocatedEndpointSnapshot.GetValueAsync(ct))).ConfigureAwait(false);
+                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpoint.GetValueAsync(ct).AsTask())).ConfigureAwait(false);
 
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
