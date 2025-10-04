@@ -62,7 +62,7 @@ internal static class AzureAppServiceEnvironmentUtility
 
         infra.Add(rgRa2);
 
-        var webSite = new WebSite("webapp")
+        var webSite = new WebSite("dashboard")
         {
             // Use the host name as the name of the web app
             Name = DashboardHostName,
