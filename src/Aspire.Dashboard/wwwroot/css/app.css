@@ -317,6 +317,7 @@ h1 {
     padding: calc(var(--design-unit) * 4px);
     padding-top: calc(var(--design-unit) * 2px);
     padding-bottom: 0 !important;
+    width: 100%;
 }
 
 .fluent-messagebar.intent-success {
