@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
+        <source>Container runtime not installed</source>
         <target state="translated">Nie zainstalowano środowiska uruchomieniowego kontenera</target>
         <note />
       </trans-unit>
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
-        <target state="translated">Środowisko uruchomieniowe kontenera jest w złej kondycji</target>
+        <source>Container runtime unhealthy</source>
+        <target state="translated">Nieprawidłowa kondycja środowiska uruchomieniowego kontenera</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -61,6 +61,11 @@
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
         <target state="translated">Podaj wartości dla nierozpoznanych parametrów. Parametry można zapisać we [wpisach tajnych użytkownika](https://learn.microsoft.com/aspnet/core/security/app-secrets) do przyszłego użytku.</target>
         <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="new">Please provide values for the unresolved parameters.</target>
+        <note />
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>

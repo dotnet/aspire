@@ -188,7 +188,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         AppHostDirectory = options.ProjectDirectory ?? _innerBuilder.Environment.ContentRootPath;
         var appHostName = options.ProjectName ?? _innerBuilder.Environment.ApplicationName;
-        AppHostPath = Path.Join(AppHostDirectory, appHostName);
+        var appHostPath = Path.Join(AppHostDirectory, appHostName);
+
+        // Normalize the AppHost path for consistent behavior across platforms and execution contexts
+        AppHostPath = Path.GetFullPath(appHostPath);
 
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
@@ -219,7 +222,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
         else
         {
-            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath));
+            // Normalize the casing of AppHostPath
+            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
             appHostSha = Convert.ToHexString(appHostShaBytes);
         }
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -345,7 +349,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 _innerBuilder.Services.AddSingleton<DashboardServiceHost>();
                 _innerBuilder.Services.AddHostedService(sp => sp.GetRequiredService<DashboardServiceHost>());
                 _innerBuilder.Services.AddSingleton<IDashboardEndpointProvider, HostDashboardEndpointProvider>();
-                _innerBuilder.Services.AddLifecycleHook<DashboardLifecycleHook>();
+                _innerBuilder.Services.AddEventingSubscriber<DashboardEventHandlers>();
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DashboardOptions>, ConfigureDefaultDashboardOptions>());
                 _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<DashboardOptions>, ValidateDashboardOptions>());
             }
@@ -363,7 +367,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<DevcontainersOptions>, ConfigureDevcontainersOptions>());
             _innerBuilder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IConfigureOptions<SshRemoteOptions>, ConfigureSshRemoteOptions>());
             _innerBuilder.Services.AddSingleton<DevcontainerSettingsWriter>();
-            _innerBuilder.Services.TryAddLifecycleHook<DevcontainerPortForwardingLifecycleHook>();
+            _innerBuilder.Services.TryAddEventingSubscriber<DevcontainerPortForwardingLifecycleHook>();
         }
 
         if (ExecutionContext.IsRunMode)

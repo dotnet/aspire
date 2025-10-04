@@ -56,11 +56,11 @@ internal static class IDistributedApplicationBuilderExtensions
                         Label = "SSL Certificate Type",
                         InputType = InputType.Choice,
                         Required = true,
+                        AllowCustomChoice = true,
                         Options =
                         [
                             new KeyValuePair<string, string>("self-signed", "Self-Signed Certificate"),
-                            new KeyValuePair<string, string>("lets-encrypt", "Let's Encrypt Certificate"),
-                            new KeyValuePair<string, string>("custom", "Custom Certificate")
+                            new KeyValuePair<string, string>("lets-encrypt", "Let's Encrypt Certificate")
                         ]
                     }
                 ],

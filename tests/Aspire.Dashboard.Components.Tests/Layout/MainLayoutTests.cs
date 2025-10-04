@@ -7,11 +7,14 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Bunit;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.FluentUI.AspNetCore.Components.Components.Tooltip;
@@ -72,13 +75,13 @@ public partial class MainLayoutTests : DashboardTestContext
         });
 
         // Assert
-        await messageShownTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await messageShownTcs.Task.DefaultTimeout();
 
         Assert.NotNull(message);
 
         message.Close();
 
-        Assert.True(await dismissedSettingSetTcs.Task.WaitAsync(TimeSpan.FromSeconds(5)));
+        Assert.True(await dismissedSettingSetTcs.Task.DefaultTimeout());
     }
 
     [Fact]
@@ -117,7 +120,7 @@ public partial class MainLayoutTests : DashboardTestContext
 
         // Assert
         var timeoutTask = Task.Delay(100);
-        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).WaitAsync(TimeSpan.FromSeconds(5));
+        var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).DefaultTimeout();
 
         // It's hard to test something not happening.
         // In this case of checking for a message, apply a small display and then double check that no message was displayed.
@@ -125,10 +128,65 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.Empty(messageService.AllMessages);
     }
 
-    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null)
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar(bool suppressUnsecuredMessage)
+    {
+        // Arrange
+        var testLocalStorage = new TestLocalStorage();
+        var messageService = new MessageService();
+
+        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, suppressUnsecuredMessage: suppressUnsecuredMessage);
+
+        var messageShownTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        messageService.OnMessageItemsUpdatedAsync += () =>
+        {
+            messageShownTcs.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        testLocalStorage.OnGetUnprotectedAsync = key =>
+        {
+            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            {
+                return (false, false); // Message not dismissed, but should be suppressed by config if suppressUnsecuredMessage is true
+            }
+            else
+            {
+                throw new InvalidOperationException("Unexpected key.");
+            }
+        };
+
+        // Act
+        var cut = RenderComponent<MainLayout>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
+
+        // Assert
+        if (suppressUnsecuredMessage)
+        {
+            var timeoutTask = Task.Delay(100);
+            var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).DefaultTimeout();
+
+            // When suppressed, no message should be displayed
+            Assert.True(completedTask != messageShownTcs.Task, "No message bar should be displayed when suppressed by configuration.");
+            Assert.Empty(messageService.AllMessages);
+        }
+        else
+        {
+            // When not suppressed, message should be displayed since it wasn't dismissed
+            await messageShownTcs.Task.DefaultTimeout();
+            Assert.NotEmpty(messageService.AllMessages);
+        }
+    }
+
+    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, bool suppressUnsecuredMessage = false)
     {
         Services.AddLocalization();
         Services.AddOptions();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
         Services.AddSingleton<ThemeManager>();
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<IDashboardClient, TestDashboardClient>();
@@ -144,7 +202,11 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.Configure<DashboardOptions>(o => o.Otlp.AuthMode = OtlpAuthMode.Unsecured);
+        Services.Configure<DashboardOptions>(o =>
+        {
+            o.Otlp.AuthMode = OtlpAuthMode.Unsecured;
+            o.Otlp.SuppressUnsecuredTelemetryMessage = suppressUnsecuredMessage;
+        });
 
         var version = typeof(FluentMain).Assembly.GetName().Version!;
 

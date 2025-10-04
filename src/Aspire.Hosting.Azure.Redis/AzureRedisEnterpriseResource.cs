@@ -123,7 +123,7 @@ public class AzureRedisEnterpriseResource(string name, Action<AzureResourceInfra
         // Create and add new resource if it doesn't exist
         var cluster = RedisEnterpriseCluster.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             cluster))

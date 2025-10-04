@@ -682,16 +682,9 @@ internal sealed class DashboardClient : IDashboardClient
             }
         }, combinedTokens.Token);
 
-        await foreach (var batch in channel.GetBatchesAsync(TimeSpan.FromMilliseconds(100), combinedTokens.Token).ConfigureAwait(false))
+        await foreach (var batch in channel.Reader.ReadAllAsync(combinedTokens.Token).ConfigureAwait(false))
         {
-            if (batch.Count == 1)
-            {
-                yield return batch[0];
-            }
-            else
-            {
-                yield return batch.SelectMany(batch => batch).ToList();
-            }
+            yield return batch;
         }
 
         await readTask.ConfigureAwait(false);
@@ -792,6 +785,14 @@ internal sealed class DashboardClient : IDashboardClient
         }
 
         _initialDataReceivedTcs.TrySetResult();
+    }
+
+    public IReadOnlyList<ResourceViewModel> GetResources()
+    {
+        lock (_lock)
+        {
+            return _resourceByName.Values.ToList();
+        }
     }
 
     private class InteractionCollection : KeyedCollection<int, WatchInteractionsResponseUpdate>

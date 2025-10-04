@@ -13,7 +13,7 @@ public class ConsoleInteractionServiceTests
     public async Task PromptForSelectionAsync_EmptyChoices_ThrowsEmptyChoicesException()
     {
         // Arrange
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
         var choices = Array.Empty<string>();
 
@@ -34,7 +34,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
         
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var errorMessage = "The JSON value could not be converted to <Type>. Path: $.values[0].Type | LineNumber: 0 | BytePositionInLine: 121.";
 
@@ -59,7 +59,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
         
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var message = "Path with <brackets> and [markup] characters";
 
@@ -84,7 +84,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
         
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var lines = new[] 
         {
@@ -115,7 +115,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
         
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var markdown = "# Header\nThis is **bold** and *italic* text with `code`.";
 
@@ -142,7 +142,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
         
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var plainText = "This is just plain text without any markdown.";
 
@@ -167,7 +167,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
 
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var statusText = "Processing request...";
         var result = "test result";
@@ -194,7 +194,7 @@ public class ConsoleInteractionServiceTests
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
 
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
         var interactionService = new ConsoleInteractionService(console, executionContext);
         var statusText = "Processing synchronous request...";
         var actionCalled = false;

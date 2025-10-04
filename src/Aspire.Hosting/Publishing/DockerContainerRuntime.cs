@@ -8,10 +8,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : IContainerRuntime
+internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContainerRuntime>
 {
-    public string Name => "Docker";
-    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public DockerContainerRuntime(ILogger<DockerContainerRuntime> logger) : base(logger)
+    {
+    }
+
+    protected override string RuntimeExecutable => "docker";
+    public override string Name => "Docker";
+    private async Task<int> RunDockerBuildAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
         string? builderName = null;
         var resourceName = imageName.Replace('/', '-').Replace(':', '-');
@@ -30,7 +35,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
             if (createBuilderResult != 0)
             {
-                logger.LogError("Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, createBuilderResult);
+                Logger.LogError("Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, createBuilderResult);
                 return createBuilderResult;
             }
         }
@@ -70,6 +75,15 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 arguments += $" --output \"{outputType}\"";
             }
 
+            // Add build arguments if specified
+            arguments += BuildArgumentsString(buildArguments);
+
+            // Add build secrets if specified
+            arguments += BuildSecretsString(buildSecrets);
+
+            // Add stage if specified
+            arguments += BuildStageString(stage);
+
             arguments += $" \"{contextPath}\"";
 
             var spec = new ProcessSpec("docker")
@@ -77,17 +91,26 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
                 Arguments = arguments,
                 OnOutputData = output =>
                 {
-                    logger.LogInformation("docker buildx (stdout): {Output}", output);
+                    Logger.LogInformation("docker buildx (stdout): {Output}", output);
                 },
                 OnErrorData = error =>
                 {
-                    logger.LogInformation("docker buildx (stderr): {Error}", error);
+                    Logger.LogInformation("docker buildx (stderr): {Error}", error);
                 },
                 ThrowOnNonZeroReturnCode = false,
-                InheritEnv = true
+                InheritEnv = true,
             };
 
-            logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
+            // Add build secrets as environment variables
+            foreach (var buildSecret in buildSecrets)
+            {
+                if (buildSecret.Value is not null)
+                {
+                    spec.EnvironmentVariables[buildSecret.Key.ToUpperInvariant()] = buildSecret.Value;
+                }
+            }
+
+            Logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
             await using (processDisposable)
@@ -98,11 +121,11 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
                 if (processResult.ExitCode != 0)
                 {
-                    logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
+                    Logger.LogError("docker buildx for {ImageName} failed with exit code {ExitCode}.", imageName, processResult.ExitCode);
                     return processResult.ExitCode;
                 }
 
-                logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
+                Logger.LogInformation("docker buildx for {ImageName} succeeded.", imageName);
                 return processResult.ExitCode;
             }
         }
@@ -116,13 +139,19 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    public override async Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken)
     {
+        // Normalize the context path to handle trailing slashes and relative paths
+        var normalizedContextPath = Path.GetFullPath(contextPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
         var exitCode = await RunDockerBuildAsync(
-            contextPath,
+            normalizedContextPath,
             dockerfilePath,
             imageName,
             options,
+            buildArguments,
+            buildSecrets,
+            stage,
             cancellationToken).ConfigureAwait(false);
 
         if (exitCode != 0)
@@ -131,7 +160,7 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
         }
     }
 
-    public async Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
+    public override async Task<bool> CheckIfRunningAsync(CancellationToken cancellationToken)
     {
         // First check if Docker daemon is running using the same check that DCP uses
         if (!await CheckDockerDaemonAsync(cancellationToken).ConfigureAwait(false))
@@ -145,71 +174,39 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
 
     private async Task<bool> CheckDockerDaemonAsync(CancellationToken cancellationToken)
     {
-        var dockerRunningSpec = new ProcessSpec("docker")
+        try
         {
-            Arguments = "container ls -n 1",
-            OnOutputData = output =>
-            {
-                logger.LogInformation("docker container ls (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("docker container ls (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Checking if Docker daemon is running with arguments: {ArgumentList}", dockerRunningSpec.Arguments);
-        var (pendingDockerResult, dockerDisposable) = ProcessUtil.Run(dockerRunningSpec);
-
-        await using (dockerDisposable)
+            var exitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                "container ls -n 1",
+                "Docker daemon is not running. Exit code: {ExitCode}.",
+                "Docker daemon is running.",
+                cancellationToken,
+                Array.Empty<object>()).ConfigureAwait(false);
+            
+            return exitCode == 0;
+        }
+        catch
         {
-            var dockerResult = await pendingDockerResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-            if (dockerResult.ExitCode != 0)
-            {
-                logger.LogError("Docker daemon is not running. Exit code: {ExitCode}.", dockerResult.ExitCode);
-                return false;
-            }
-
-            logger.LogInformation("Docker daemon is running.");
-            return true;
+            return false;
         }
     }
 
     private async Task<bool> CheckDockerBuildxAsync(CancellationToken cancellationToken)
     {
-        var buildxSpec = new ProcessSpec("docker")
+        try
         {
-            Arguments = "buildx version",
-            OnOutputData = output =>
-            {
-                logger.LogInformation("docker buildx version (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("docker buildx version (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Checking Docker buildx with arguments: {ArgumentList}", buildxSpec.Arguments);
-        var (pendingBuildxResult, buildxDisposable) = ProcessUtil.Run(buildxSpec);
-
-        await using (buildxDisposable)
+            var exitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                "buildx version",
+                "Docker buildx version failed with exit code {ExitCode}.",
+                "Docker buildx is available and running.",
+                cancellationToken,
+                Array.Empty<object>()).ConfigureAwait(false);
+            
+            return exitCode == 0;
+        }
+        catch
         {
-            var buildxResult = await pendingBuildxResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-            if (buildxResult.ExitCode != 0)
-            {
-                logger.LogError("Docker buildx version failed with exit code {ExitCode}.", buildxResult.ExitCode);
-                return false;
-            }
-
-            logger.LogInformation("Docker buildx is available and running.");
-            return true;
+            return false;
         }
     }
 
@@ -217,81 +214,23 @@ internal sealed class DockerContainerRuntime(ILogger<DockerContainerRuntime> log
     {
         var arguments = $"buildx create --name \"{builderName}\" --driver docker-container";
 
-        var spec = new ProcessSpec("docker")
-        {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("docker buildx create (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("docker buildx create (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Creating buildkit instance with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogError("Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, processResult.ExitCode);
-            }
-            else
-            {
-                logger.LogInformation("Successfully created buildkit instance {BuilderName}.", builderName);
-            }
-
-            return processResult.ExitCode;
-        }
+        return await ExecuteContainerCommandWithExitCodeAsync(
+            arguments,
+            "Failed to create buildkit instance {BuilderName} with exit code {ExitCode}.",
+            "Successfully created buildkit instance {BuilderName}.",
+            cancellationToken,
+            new object[] { builderName }).ConfigureAwait(false);
     }
 
     private async Task<int> RemoveBuildkitInstanceAsync(string builderName, CancellationToken cancellationToken)
     {
         var arguments = $"buildx rm \"{builderName}\"";
 
-        var spec = new ProcessSpec("docker")
-        {
-            Arguments = arguments,
-            OnOutputData = output =>
-            {
-                logger.LogInformation("docker buildx rm (stdout): {Output}", output);
-            },
-            OnErrorData = error =>
-            {
-                logger.LogInformation("docker buildx rm (stderr): {Error}", error);
-            },
-            ThrowOnNonZeroReturnCode = false,
-            InheritEnv = true
-        };
-
-        logger.LogInformation("Removing buildkit instance with arguments: {ArgumentList}", spec.Arguments);
-        var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
-
-        await using (processDisposable)
-        {
-            var processResult = await pendingProcessResult
-                .WaitAsync(cancellationToken)
-                .ConfigureAwait(false);
-
-            if (processResult.ExitCode != 0)
-            {
-                logger.LogWarning("Failed to remove buildkit instance {BuilderName} with exit code {ExitCode}.", builderName, processResult.ExitCode);
-            }
-            else
-            {
-                logger.LogInformation("Successfully removed buildkit instance {BuilderName}.", builderName);
-            }
-
-            return processResult.ExitCode;
-        }
+        return await ExecuteContainerCommandWithExitCodeAsync(
+            arguments,
+            "Failed to remove buildkit instance {BuilderName} with exit code {ExitCode}.",
+            "Successfully removed buildkit instance {BuilderName}.",
+            cancellationToken,
+            new object[] { builderName }).ConfigureAwait(false);
     }
 }

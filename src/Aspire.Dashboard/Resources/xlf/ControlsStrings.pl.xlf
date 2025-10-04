@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">Graf</target>
+        <target state="translated">Graph</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -217,6 +217,11 @@
         <target state="translated">Ustaw szerokości kolumn</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="translated">Szczegóły usługi GenAI</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Skopiowano!</target>
@@ -259,7 +264,7 @@
       </trans-unit>
       <trans-unit id="LabelOther">
         <source>(Other)</source>
-        <target state="new">(Other)</target>
+        <target state="translated">(Inne)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -517,29 +522,34 @@
         <target state="translated">Czas rozpoczęcia: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="translated">Chmura</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
-        <target state="new">Database</target>
+        <target state="translated">Baza danych</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeGenAI">
         <source>Gen AI</source>
-        <target state="new">Gen AI</target>
+        <target state="translated">Generatywna AI</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeHttp">
         <source>HTTP</source>
-        <target state="new">HTTP</target>
+        <target state="translated">HTTP</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeMessaging">
         <source>Messaging</source>
-        <target state="new">Messaging</target>
+        <target state="translated">Obsługa wiadomości</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeRpc">
         <source>RPC</source>
-        <target state="new">RPC</target>
+        <target state="translated">Zdalne wywołanie procedury</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">

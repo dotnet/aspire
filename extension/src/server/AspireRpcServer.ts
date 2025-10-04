@@ -8,6 +8,7 @@ import * as tls from 'tls';
 import { createSelfSignedCert, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
+import { timingSafeEqual } from 'crypto';
 
 export type RpcServerConnectionInfo = {
     address: string;
@@ -18,7 +19,7 @@ export type RpcServerConnectionInfo = {
 export default class AspireRpcServer {
     public server: tls.Server;
     public connectionInfo: RpcServerConnectionInfo;
-    private _connections: ICliRpcClient[] = [];
+    public connections: ICliRpcClient[] = [];
 
     private _onNewConnection = new vscode.EventEmitter<ICliRpcClient>();
     public readonly onNewConnection = this._onNewConnection.event;
@@ -29,18 +30,18 @@ export default class AspireRpcServer {
     }
 
     public getConnection(debugSessionId: string): ICliRpcClient | null {
-        return this._connections.find(connection => connection.debugSessionId === debugSessionId) || null;
+        return this.connections.find(connection => connection.debugSessionId === debugSessionId) || null;
     }
 
     public addConnection(connection: ICliRpcClient) {
-        this._connections.push(connection);
+        this.connections.push(connection);
         this._onNewConnection.fire(connection);
     }
 
     public removeConnection(connection: ICliRpcClient) {
-        const index = this._connections.indexOf(connection);
+        const index = this.connections.indexOf(connection);
         if (index !== -1) {
-            this._connections.splice(index, 1);
+            this.connections.splice(index, 1);
         }
     }
 
@@ -56,7 +57,8 @@ export default class AspireRpcServer {
 
         function withAuthentication(callback: (...params: any[]) => any) {
             return (...params: any[]) => {
-                if (!params || params[0] !== token) {
+                // timingSafeEqual is used to verify that the tokens are equivalent in a way that mitigates timing attacks
+                if (!params || params.length === 0 || Buffer.from(params[0]).length !== Buffer.from(token).length || timingSafeEqual(Buffer.from(params[0]), Buffer.from(token)) === false) {
                     throw new Error(invalidTokenProvided);
                 }
 
@@ -108,10 +110,10 @@ export default class AspireRpcServer {
 
                         connection.listen();
 
-                        const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId', token);
+                        const clientDebugSessionId = await connection.sendRequest<string | null>('getDebugSessionId');
 
                         const rpcClient = rpcClientFactory(connectionInfo, connection, token, clientDebugSessionId);
-                        addInteractionServiceEndpoints(connection,rpcClient.interactionService, rpcClient, withAuthentication);
+                        addInteractionServiceEndpoints(connection, rpcClient.interactionService, rpcClient, withAuthentication);
 
                         rpcServer.addConnection(rpcClient);
 

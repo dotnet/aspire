@@ -58,7 +58,7 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
         // Create and add new resource if it doesn't exist
         var plan = AppServicePlan.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             plan))

@@ -59,12 +59,12 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="translated">OpenTelemetry SDK によって、メトリックの一部のディメンションが削除されました。</target>
+        <target state="translated">メトリックの一部のディメンションが、OpenTelemetry SDK によって削除されました。</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="translated">詳細については、「&lt;a href="{0}" target="_blank"&gt;OpenTelemetry 仕様のカーディナリティ制限&lt;/a&gt;」を参照してください。</target>
+        <target state="translated">詳細情報については、「&lt;a href="{0}" target="_blank"&gt;OpenTelemetry 仕様のカーディナリティ制限&lt;/a&gt;」を参照してください。</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">
@@ -217,6 +217,11 @@
         <target state="translated">列の幅を設定</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="translated">GenAI の詳細</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">コピーしました。</target>
@@ -259,7 +264,7 @@
       </trans-unit>
       <trans-unit id="LabelOther">
         <source>(Other)</source>
-        <target state="new">(Other)</target>
+        <target state="translated">(その他)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -517,29 +522,34 @@
         <target state="translated">開始時刻 &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="translated">クラウド</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
-        <target state="new">Database</target>
+        <target state="translated">データベース</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeGenAI">
         <source>Gen AI</source>
-        <target state="new">Gen AI</target>
+        <target state="translated">生成 AI</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeHttp">
         <source>HTTP</source>
-        <target state="new">HTTP</target>
+        <target state="translated">HTTP</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeMessaging">
         <source>Messaging</source>
-        <target state="new">Messaging</target>
+        <target state="translated">メッセージング</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeRpc">
         <source>RPC</source>
-        <target state="new">RPC</target>
+        <target state="translated">RPC</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">

@@ -41,7 +41,7 @@ public class AzureLogAnalyticsWorkspaceResource(string name, Action<AzureResourc
         // Create and add new resource if it doesn't exist
         var store = OperationalInsightsWorkspace.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

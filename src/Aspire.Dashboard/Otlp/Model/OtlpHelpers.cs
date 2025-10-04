@@ -61,7 +61,7 @@ public static class OtlpHelpers
         }
 
         // service.instance.id is recommended but not required.
-        return new ResourceKey(serviceName, serviceInstanceId ?? serviceName);
+        return new ResourceKey(serviceName, serviceInstanceId);
     }
 
     public static string ToShortenedId(string id) => TruncateString(id, maxLength: ShortenedIdLength);
@@ -330,6 +330,32 @@ public static class OtlpHelpers
         }
 
         return null;
+    }
+
+    public static string? GetValueWithFallback(this KeyValuePair<string, string>[] values, params ReadOnlySpan<string> names)
+    {
+        // Attempt each name in order and return the first match.
+        foreach (var name in names)
+        {
+            if (values.GetValue(name) is { } value)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    public static int? GetValueAsInteger(this KeyValuePair<string, string>[] values, string name)
+    {
+        var value = values.GetValue(name);
+        if (string.IsNullOrEmpty(value))
+        {
+            return null;
+        }
+
+        int.TryParse(value, CultureInfo.InvariantCulture, out var result);
+        return result;
     }
 
     public static int GetIndex(this KeyValuePair<string, string>[] values, string name)

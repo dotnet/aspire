@@ -129,7 +129,7 @@ public class AzureSqlServerResource : AzureProvisioningResource, IResourceWithCo
         // Create and add new resource if it doesn't exist
         var store = SqlServer.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

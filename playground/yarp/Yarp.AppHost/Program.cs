@@ -17,6 +17,14 @@ var gateway = builder.AddYarp("gateway")
                              .WithTransformPathRemovePrefix("/api");
                      });
 
+var staticGateway = builder.AddYarp("static-gateway")
+                           .WithStaticFiles(Path.Combine("..", "static-content"))
+                           .WithConfiguration(yarp =>
+                           {
+                               yarp.AddRoute("/api/{**catch-all}", backendService)
+                                   .WithTransformPathRemovePrefix("/api");
+                           });
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -21,11 +21,13 @@ internal sealed class RootCommand : BaseRootCommand
 
     public RootCommand(
         NewCommand newCommand,
+        InitCommand initCommand,
         RunCommand runCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
         DeployCommand deployCommand,
         ConfigCommand configCommand,
+        CacheCommand cacheCommand,
         ExecCommand execCommand,
         UpdateCommand updateCommand,
         ExtensionInternalCommand extensionInternalCommand,
@@ -34,10 +36,12 @@ internal sealed class RootCommand : BaseRootCommand
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(initCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
         ArgumentNullException.ThrowIfNull(configCommand);
+        ArgumentNullException.ThrowIfNull(cacheCommand);
         ArgumentNullException.ThrowIfNull(deployCommand);
         ArgumentNullException.ThrowIfNull(updateCommand);
         ArgumentNullException.ThrowIfNull(execCommand);
@@ -88,10 +92,12 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
+        Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
         Subcommands.Add(configCommand);
+        Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(updateCommand);
         Subcommands.Add(extensionInternalCommand);

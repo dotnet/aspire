@@ -2,11 +2,11 @@
     scrollbar-color: var(--scrollbar-color) transparent;
 }
 
-.visualizer-title-grid {
+.dialog-title-grid {
     display: grid;
     grid-template-columns: auto 1fr auto;
     grid-template-areas: "dialog-icon dialog-title dialog-format";
-    grid-column-gap: 8px;
+    grid-column-gap: 10px;
 }
 
 fluent-toolbar fluent-divider {
@@ -78,6 +78,11 @@ fluent-toolbar::part(end) {
     --messagebar-warning-border-color: #f4bfab;
     --messagebar-info-background-color: #f5f5f5;
     --messagebar-info-border-color: #d1d1d1;
+    --chat-background-color: var(--neutral-layer-floating);
+    --chat-user-background-color: #f7f7f7;
+    --chat-codeblock-background-color: var(--neutral-fill-hover);
+    --table-header-border-color: var(--neutral-stroke-rest);
+    --table-body-border-color: #f2f2f2;
     --layout-toolbar-padding: calc(var(--design-unit) * 1.5px);
     --layout-left-padding: calc(var(--design-unit) * 4.5px);
     --layout-right-padding: calc(var(--design-unit) * 2px);
@@ -97,6 +102,38 @@ fluent-toolbar::part(end) {
     --hljs-string: green;
     --hljs-section: #007faa;
     --hljs-keyword: #7928a1;
+    /* geni visualizer */
+    --main-container-background-color: #f7f7f7;
+    --main-sidebar-background-color: #f7f7f7;
+    --llm-background-color: #a6e9ed;
+    --llm-color: #00666d;
+    --message-background-color: #ebf3fc;
+    --message-color: #115ea3;
+    --tool-calls-background-color: #f2fbf2;
+    --tool-calls-color: #11910d;
+    --output-background-color: #f4bfab;
+    --output-color: #7a2101;
+    /* accent variables */
+    --accent-teal: #14959B;
+    --accent-marigold: #E9C877;
+    --accent-brass: #9F724F;
+    --accent-peach: #F39E67;
+    --accent-coral: #E1694E;
+    --accent-royal-blue: #5F79DE;
+    --accent-orchid: #C764BA;
+    --accent-brand-blue: #0E62AD;
+    --accent-seafoam: #55BFA9;
+    --accent-mink: #9C9587;
+    --accent-cyan: #0E858B;
+    --accent-gold: #D7A763;
+    --accent-bronze: #7B4F2E;
+    --accent-orange: #F57D1A;
+    --accent-rust: #E0522A;
+    --accent-navy: #1B3A70;
+    --accent-berry: #C239B3;
+    --accent-ocean: #0E5E77;
+    --accent-jade: #3BAB8E;
+    --accent-olive: #6F6652;
 }
 
 [data-theme="dark"] {
@@ -122,6 +159,11 @@ fluent-toolbar::part(end) {
     --messagebar-warning-border-color: #DA3B01;
     --messagebar-info-background-color: #141414;
     --messagebar-info-border-color: #666;
+    --chat-background-color: #212121;
+    --chat-user-background-color: #333;
+    --chat-codeblock-background-color: var(--neutral-layer-4);
+    --table-header-border-color: var(--neutral-stroke-rest);
+    --table-body-border-color: #474747;
     /* overrides of default fluentui-blazor styling */
     --error: #E10B11 !important;
     color-scheme: dark;
@@ -134,6 +176,39 @@ fluent-toolbar::part(end) {
     --hljs-string: #abe338;
     --hljs-section: #00e0e0;
     --hljs-keyword: #dcc6e0;
+    /* geni visualizer */
+    --main-container-background-color: #333333;
+    --main-sidebar-background-color: #272727;
+    --events-background-color: var(--neutral-fill-layer-rest);
+    --llm-background-color: #00666d;
+    --llm-color: #a6e9ed;
+    --message-background-color: #063004;
+    --message-color: #5ec75a;
+    --tool-calls-background-color: #082338;
+    --tool-calls-color: #62abf5;
+    --output-background-color: #7a2101;
+    --output-color: #f4bfab;
+    /* accent variables */
+    --accent-teal: #2CB7BD;
+    --accent-marigold: #F3D58E;
+    --accent-brass: #BF8B64;
+    --accent-peach: #FFC18F;
+    --accent-coral: #F89170;
+    --accent-royal-blue: #88A1F0;
+    --accent-orchid: #E19AD4;
+    --accent-brand-blue: #1A7ECF;
+    --accent-seafoam: #74D6C6;
+    --accent-mink: #B9B2A4;
+    --accent-cyan: #17A0A6;
+    --accent-gold: #E3BA7A;
+    --accent-bronze: #8E6038;
+    --accent-orange: #FFA44A;
+    --accent-rust: #EA6A3E;
+    --accent-navy: #2A4C8A;
+    --accent-berry: #D150C3;
+    --accent-ocean: #16728F;
+    --accent-jade: #51C0A5;
+    --accent-olive: #847B63;
 }
 
 .fluent-data-grid-row.hover:not([row-type='header'],[row-type='sticky-header']):hover td {
@@ -313,15 +388,15 @@ td .long-inner-content {
 }
 
 .version {
+    color: var(--foreground-subtext-rest);
     text-align: end;
     font-size: small;
     width: 100%;
-    flex-grow: 1;
-
-    /* right/bottom align the inner version text */
     display: flex;
-    flex-direction: row-reverse;
+    flex-direction: column;
     align-items: flex-end;
+    row-gap: 4px;
+    margin-top: auto;
 }
 
 .anchor-no-padding::part(control) {
@@ -669,11 +744,11 @@ fluent-switch.table-switch::part(label) {
     user-select: none;
     cursor: default;
     height: 100%;
+    margin-right: 20px;
 }
 
 .log-content {
     word-break: break-all;
-    margin-left: 20px;
     position: relative;
     margin-right: 6px;
     user-select: text;
@@ -862,4 +937,13 @@ fluent-tooltip[anchor="dialog_close"] > div {
 .filter-group > legend {
     font-size: var(--type-ramp-plus-2-font-size);
     font-weight: 500;
+}
+
+#chat-modal-dialog::part(control) {
+    background-color: var(--chat-background-color);
+    border: 1px solid var(--neutral-stroke-divider-rest);
+}
+
+fluent-dialog#chat-modal-dialog fluent-button[appearance=stealth]:not(:hover)::part(control) {
+    background: var(--chat-background-color);
 }

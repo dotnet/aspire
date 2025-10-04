@@ -1,10 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Interaction;
+using Aspire.Dashboard.Model.Markdown;
+using Aspire.Dashboard.Resources;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Dialogs;
@@ -17,11 +20,18 @@ public partial class InteractionsInputDialog
     [CascadingParameter]
     public FluentDialog Dialog { get; set; } = default!;
 
+    [Inject]
+    public required IStringLocalizer<ControlsStrings> ControlsStringsLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.Dialogs> Loc { get; init; }
+
     private InteractionsInputsDialogViewModel? _content;
     private EditContext _editContext = default!;
     private ValidationMessageStore _validationMessages = default!;
     private List<InputViewModel> _inputDialogInputViewModels = default!;
     private Dictionary<InputViewModel, FluentComponentBase?> _elementRefs = default!;
+    private MarkdownProcessor _markdownProcessor = default!;
 
     protected override void OnInitialized()
     {
@@ -32,6 +42,7 @@ public partial class InteractionsInputDialog
         _editContext.OnFieldChanged += (s, e) => ValidateField(e.FieldIdentifier);
 
         _elementRefs = new();
+        _markdownProcessor = InteractionMarkdownHelper.CreateProcessor(ControlsStringsLoc);
     }
 
     protected override void OnParametersSet()

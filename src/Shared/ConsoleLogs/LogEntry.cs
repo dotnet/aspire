@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.ConsoleLogs;
 
-[DebuggerDisplay("LineNumber = {LineNumber}, Timestamp = {Timestamp}, Content = {Content}, Type = {Type}")]
+[DebuggerDisplay("LineNumber = {LineNumber}, Timestamp = {Timestamp}, ResourcePrefix = {ResourcePrefix}, Content = {Content}, Type = {Type}")]
 #if ASPIRE_DASHBOARD
 public sealed class LogEntry
 #else

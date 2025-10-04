@@ -19,12 +19,12 @@
       </trans-unit>
       <trans-unit id="SpanTypeLabel">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Tür</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeSelectSpanType">
         <source>Select span type</source>
-        <target state="new">Select span type</target>
+        <target state="translated">Aralık türünü seçin</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">

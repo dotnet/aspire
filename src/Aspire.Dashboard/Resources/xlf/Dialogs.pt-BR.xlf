@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">Um comprimento máximo de {1} caracteres é permitido.</target>
+        <target state="translated">É permitido um comprimento máximo de {1} caracteres.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -95,6 +95,141 @@
       <trans-unit id="FilterDialogTextValuePlaceholder">
         <source>Value</source>
         <target state="translated">Valor</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDetailsTabText">
+        <source>Details</source>
+        <target state="translated">Detalhes</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDurationLabel">
+        <source>Duration</source>
+        <target state="translated">Duração</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIErrorHeaderText">
+        <source>Error</source>
+        <target state="translated">Erro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputHeaderText">
+        <source>Input</source>
+        <target state="translated">Entrada</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputOutputTabText">
+        <source>Input &amp; output</source>
+        <target state="translated">Entrada e saída</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIInputTokensText">
+        <source>Input tokens: {0}</source>
+        <target state="translated">Tokens de entrada: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryMessage">
+        <source>Message</source>
+        <target state="translated">Mensagem</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryOutput">
+        <source>Output</source>
+        <target state="translated">Saída</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryStatus">
+        <source>Status</source>
+        <target state="translated">Status</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageCategoryToolCalls">
+        <source>Tool calls</source>
+        <target state="translated">Chamadas de ferramenta</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleAssistant">
+        <source>Assistant</source>
+        <target state="translated">Assistente</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleError">
+        <source>Error</source>
+        <target state="translated">Erro</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleSystem">
+        <source>System</source>
+        <target state="translated">Sistema</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleTool">
+        <source>Tool</source>
+        <target state="translated">Ferramenta</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIMessageTitleUser">
+        <source>User</source>
+        <target state="translated">Usuário</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINAText">
+        <source>n/a</source>
+        <target state="translated">n/a</target>
+        <note>Abbreviation for Not Available</note>
+      </trans-unit>
+      <trans-unit id="GenAINextButtonText">
+        <source>Next</source>
+        <target state="translated">Próximo</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContent">
+        <source>No message content.</source>
+        <target state="translated">Nenhum conteúdo de mensagem.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAINoMessageContentMoreInformationMessage">
+        <source>No message content was recorded to telemetry. Additional configuration may be required to view sensitive content. For more information, see &lt;a href="{0}" target="_blank"&gt;AI telemetry configuration&lt;/a&gt;.</source>
+        <target state="translated">Nenhum conteúdo de mensagem foi registrado na telemetria. Configuração adicional pode ser necessária para visualizar conteúdo sensível. Para obter mais informações, consulte &lt;a href="{0}" target="_blank"&gt;configuração de telemetria de IA&lt;/a&gt;.</target>
+        <note>{0} is a URL</note>
+      </trans-unit>
+      <trans-unit id="GenAINoMessages">
+        <source>No messages found.</source>
+        <target state="translated">Nenhuma mensagem encontrada.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputHeaderText">
+        <source>Output</source>
+        <target state="translated">Saída</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIOutputTokensText">
+        <source>Output tokens: {0}</source>
+        <target state="translated">Tokens de saída: {0}</target>
+        <note>{0} is the number of tokens</note>
+      </trans-unit>
+      <trans-unit id="GenAIPreviewTabText">
+        <source>Preview</source>
+        <target state="translated">Visualizar</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIPreviousButtonText">
+        <source>Previous</source>
+        <target state="translated">Anterior</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIRawTabText">
+        <source>Raw</source>
+        <target state="translated">Bruto</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAITokensLabel">
+        <source>Tokens</source>
+        <target state="translated">Tokens</target>
         <note />
       </trans-unit>
       <trans-unit id="HelpDialogCategoryNavigation">
@@ -222,6 +357,11 @@
         <target state="translated">Logs e telemetria do recurso</target>
         <note />
       </trans-unit>
+      <trans-unit id="SettingsDialogDotNetRuntimeVersion">
+        <source>Runtime: {0}</source>
+        <target state="translated">Tempo de execução: {0}</target>
+        <note>{0} is the .NET runtime version</note>
+      </trans-unit>
       <trans-unit id="SettingsDialogLanguage">
         <source>Language</source>
         <target state="translated">Idioma</target>
@@ -229,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">A página será recarregado com a alteração de idioma.</target>
+        <target state="translated">A página será recarregada ao alterar o idioma.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -294,7 +434,7 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="translated">Confirme se você deseja mostrar o valor. No futuro, a abertura do visualizador de texto exibirá automaticamente todos os valores</target>
+        <target state="translated">Confirme se você deseja exibir o valor. No futuro, abrir o visualizador de texto exibirá automaticamente todos os valores</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">

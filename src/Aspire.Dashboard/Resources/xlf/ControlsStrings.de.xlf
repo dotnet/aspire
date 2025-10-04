@@ -217,6 +217,11 @@
         <target state="translated">Spaltenbreiten festlegen</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="translated">GenAI-Details</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Kopiert!</target>
@@ -259,7 +264,7 @@
       </trans-unit>
       <trans-unit id="LabelOther">
         <source>(Other)</source>
-        <target state="new">(Other)</target>
+        <target state="translated">(Sonstige)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -339,7 +344,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Aufzeichnung angehalten</target>
+        <target state="translated">Erfassung angehalten</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -517,29 +522,34 @@
         <target state="translated">Startzeit &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="translated">Cloud</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
-        <target state="new">Database</target>
+        <target state="translated">Datenbank</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeGenAI">
         <source>Gen AI</source>
-        <target state="new">Gen AI</target>
+        <target state="translated">Generative KI</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeHttp">
         <source>HTTP</source>
-        <target state="new">HTTP</target>
+        <target state="translated">HTTP</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeMessaging">
         <source>Messaging</source>
-        <target state="new">Messaging</target>
+        <target state="translated">Messaging</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeRpc">
         <source>RPC</source>
-        <target state="new">RPC</target>
+        <target state="translated">RPC</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">

@@ -5,6 +5,7 @@
 using System.Runtime.CompilerServices;
 using Aspire.Hosting;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 
 public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
 {
@@ -35,6 +36,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task PublishAsKubernetesService_ThrowsIfNoEnvironment()
     {
         static async Task RunTest(Action<IDistributedApplicationBuilder> action)
@@ -66,6 +68,7 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11818", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task MultipleKubernetesEnvironmentsSupported()
     {
         using var tempDir = new TempDirectory();

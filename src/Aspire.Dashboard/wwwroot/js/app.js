@@ -26,11 +26,11 @@ function getFluentMenuItemForTarget(element) {
 
     // in between the svg and fluent-menu-item is a span for the icon slot
     const possibleMenuItem = element.parentElement?.parentElement;
-    if (isElementTagName(element, "svg") && possibleMenuItem && isElementTagName(possibleMenuItem, "fluent-menu-item")) {
+    if (possibleMenuItem && (isElementTagName(possibleMenuItem, "fluent-menu-item") || isElementTagName(possibleMenuItem, "button"))) {
         return element.parentElement.parentElement;
     }
 
-    if (isElementTagName(element, "fluent-menu-item")) {
+    if (isElementTagName(element, "fluent-menu-item") || isElementTagName(element, "button")) {
         return element;
     }
 
@@ -172,7 +172,7 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
             }
             if (copyIcon && checkmarkIcon) {
                 copyIcon.style.display = 'none';
-                checkmarkIcon.style.display = 'inline';
+                checkmarkIcon.style.display = '';
             }
         })
         .catch(() => {
@@ -187,17 +187,19 @@ window.copyTextToClipboard = function (id, text, precopy, postcopy) {
         }
 
         if (copyIcon && checkmarkIcon) {
-            copyIcon.style.display = 'inline';
+            copyIcon.style.display = '';
             checkmarkIcon.style.display = 'none';
         }
         delete button.dataset.copyTimeout;
-   }, 1500);
+    }, 1500);
 };
 
 function isActiveElementInput() {
     const currentElement = document.activeElement;
+    const tagName = currentElement.tagName.toLowerCase();
+
     // fluent components may have shadow roots that contain inputs
-    return currentElement.tagName.toLowerCase() === "input" || currentElement.tagName.toLowerCase().startsWith("fluent") ? isInputElement(currentElement, false) : false;
+    return tagName === "input" || tagName === "textarea" || tagName.startsWith("fluent") ? isInputElement(currentElement, false) : false;
 }
 
 function isInputElement(element, isRoot, isShadowRoot) {
@@ -391,3 +393,23 @@ window.downloadStreamAsFile = async function (fileName, contentStreamReference) 
     anchorElement.remove();
     URL.revokeObjectURL(url);
 };
+
+window.attachChatClickEvent = function (containerId, interop) {
+    var container = document.getElementById(containerId);
+    if (!container) {
+        console.log(`Couldn't find container '${containerId}'.`);
+        return;
+    }
+
+    container.addEventListener('click', function (event) {
+        let anchorElement = event.target.closest('a');
+        if (anchorElement) {
+            // Only intercept if the link's host matches the current window's host (same domain)
+            if (anchorElement.host === window.location.host) {
+                event.preventDefault();
+                console.log('Link click intercepted:', anchorElement.href);
+                interop.invokeMethodAsync('NavigateUrl', anchorElement.href);
+            }
+        }
+    });
+}

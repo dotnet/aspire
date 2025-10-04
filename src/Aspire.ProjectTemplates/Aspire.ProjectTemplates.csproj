@@ -24,10 +24,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Template project files: *.csproj -->
     <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\**\*.csproj">
       <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
       <DestinationFile>$(IntermediateOutputPath)content\templates\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
     </TemplateProjectFiles>
+
+    <!-- Template project files: apphost.cs (singlefile only) -->
+    <TemplateProjectFiles Include="$(MSBuildThisFileDirectory)templates\aspire-apphost-singlefile\**\apphost.cs">
+      <PackagePath>content/templates/%(RecursiveDir)</PackagePath>
+      <DestinationFile>$(IntermediateOutputPath)content\templates\aspire-apphost-singlefile\%(RecursiveDir)%(Filename)%(Extension)</DestinationFile>
+    </TemplateProjectFiles>
+
     <TemplateProjectFilesObj Include="@(TemplateProjectFiles->'%(DestinationFile)')" />
 
     <TemplateFiles Include="$(MSBuildThisFileDirectory)templates\**\*"
@@ -58,6 +66,7 @@
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_9_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet9)')
                                                  .Replace('!!REPLACE_WITH_ASPNETCORE_10_VERSION!!', '$(MicrosoftAspNetCorePackageVersionForNet10)')
                                                  .Replace('!!REPLACE_WITH_DOTNET_EXTENSIONS_VERSION!!', '$(MicrosoftExtensionsHttpResilienceVersion)')
+                                                 .Replace('!!REPLACE_WITH_SERVICE_DISCOVERY_VERSION!!', '$(MicrosoftExtensionsServiceDiscoveryVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_NET8_VERSION!!', '$(OpenTelemetryNet8Version)')
                                                  .Replace('!!REPLACE_WITH_OTEL_EXPORTER_VERSION!!', '$(OpenTelemetryExporterOpenTelemetryProtocolVersion)')
                                                  .Replace('!!REPLACE_WITH_OTEL_HOSTING_VERSION!!', '$(OpenTelemetryInstrumentationExtensionsHostingVersion)')

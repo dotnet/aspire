@@ -53,5 +53,5 @@ public sealed class HttpGetActionV1
     /// Gets or sets the port number on which the HTTP request will be sent.
     /// </summary>
     [YamlMember(Alias = "port")]
-    public int Port { get; set; }
+    public Int32OrStringV1? Port { get; set; }
 }

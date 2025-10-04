@@ -2,6 +2,11 @@
 <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
   <file datatype="xml" source-language="en" target-language="cs" original="../UpdateCommandStrings.resx">
     <body>
+      <trans-unit id="AddedFeedFormat">
+        <source>Added: {0}</source>
+        <target state="translated">Přidáno: {0}</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AnalyzeAppHost">
         <source>Analyze App Host</source>
         <target state="translated">Analyzovat hostitele aplikací</target>
@@ -22,6 +27,11 @@
         <target state="translated">Analyzuje se projekt…</target>
         <note />
       </trans-unit>
+      <trans-unit id="ApplyChangesToNuGetConfig">
+        <source>Apply these changes to NuGet.config?</source>
+        <target state="translated">Chcete tyto změny použít v souboru NuGet.config?</target>
+        <note />
+      </trans-unit>
       <trans-unit id="CentralPackageManagementNotSupported">
         <source>Central package management is currently not supported by 'aspire update'.</source>
         <target state="translated">Centrální správa balíčků není v současné době přes aspire update podporována.</target>
@@ -29,7 +39,7 @@
       </trans-unit>
       <trans-unit id="CouldNotFindPackageVersionInDirectoryPackagesProps">
         <source>Could not find PackageVersion element for '{0}' in {1}</source>
-        <target state="new">Could not find PackageVersion element for '{0}' in {1}</target>
+        <target state="translated">Nepovedlo se najít element PackageVersion pro: {0} v: {1}</target>
         <note />
       </trans-unit>
       <trans-unit id="CouldNotFindRootProjectElementFormat">
@@ -67,6 +77,26 @@
         <target state="translated">Nepodařilo se aktualizovat odkaz na balíček pro {0} v projektu {1}.</target>
         <note />
       </trans-unit>
+      <trans-unit id="MappingAddedFormat">
+        <source>   Mapping: {0} (added)</source>
+        <target state="translated">   Mapování: {0} (přidáno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRemovedFormat">
+        <source>   Mapping: {0} (removed)</source>
+        <target state="translated">   Mapování: {0} (odebráno)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MappingRetainedFormat">
+        <source>   Mapping: {0}</source>
+        <target state="translated">   Mapování: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoChangesDetectedInNuGetConfig">
+        <source>No changes detected in NuGet.config</source>
+        <target state="translated">V souboru NuGet.config se nezjistily žádné změny.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="NoPackageFoundFormat">
         <source>No package found with ID '{0}' in channel '{1}'.</source>
         <target state="translated">V kanálu {1} nebyl nalezen žádný balíček s ID {0}.</target>
@@ -87,6 +117,11 @@
         <target state="translated">Provést aktualizace?</target>
         <note />
       </trans-unit>
+      <trans-unit id="ProjectArgumentDescription">
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ProjectReferenceNoFullPath">
         <source>Project reference does not have FullPath.</source>
         <target state="translated">Odkaz na projekt nemá FullPath.</target>
@@ -95,6 +130,16 @@
       <trans-unit id="ProjectUpToDateMessage">
         <source>Project is up to date! (no updates necessary)</source>
         <target state="translated">Projekt je aktuální! (nejsou potřeba žádné aktualizace)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RemovedFeedFormat">
+        <source>Removed: {0}</source>
+        <target state="translated">Odebráno: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="RetainedFeedFormat">
+        <source>Retained: {0}</source>
+        <target state="translated">Zachováno: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectChannelPrompt">

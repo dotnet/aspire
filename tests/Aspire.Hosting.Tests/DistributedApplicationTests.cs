@@ -47,6 +47,7 @@ public class DistributedApplicationTests
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
         using var testProgram = CreateTestProgram("lifecycle-hook-executed-async");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -56,6 +57,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
@@ -77,6 +79,7 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("multiple-lifecycle-hooks");
 
         // Lifecycle hook 1
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
@@ -85,8 +88,10 @@ public class DistributedApplicationTests
                 return Task.CompletedTask;
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         // Lifecycle hook 2
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((app, cancellationToken) =>
@@ -97,6 +102,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
         {
@@ -390,6 +396,7 @@ public class DistributedApplicationTests
         var exceptionMessage = "Exception from lifecycle hook to prove it ran!";
 
         using var testProgram = CreateTestProgram("lifecycle-hook-executed-sync");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook((sp) =>
         {
             return new CallbackLifecycleHook((appModel, cancellationToken) =>
@@ -399,6 +406,7 @@ public class DistributedApplicationTests
                 throw new DistributedApplicationException(exceptionMessage);
             });
         });
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var ex = Assert.Throws<AggregateException>(testProgram.Run);
         Assert.IsType<DistributedApplicationException>(ex.InnerExceptions.First());
@@ -411,12 +419,18 @@ public class DistributedApplicationTests
         using var testProgram = CreateTestProgram("lifecycle-hook-duplicates");
 
         var callback1 = (IServiceProvider sp) => new DummyLifecycleHook();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback1);
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         var callback2 = (IServiceProvider sp) => new DummyLifecycleHook();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.TryAddLifecycleHook(callback2);
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var lifecycleHookDescriptors = testProgram.AppBuilder.Services.Where(sd => sd.ServiceType == typeof(IDistributedApplicationLifecycleHook));
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         Assert.Single(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback1);
         Assert.DoesNotContain(lifecycleHookDescriptors, sd => sd.ImplementationFactory == callback2);
@@ -427,7 +441,9 @@ public class DistributedApplicationTests
     {
         using var testProgram = CreateTestProgram("ports-assigned-after-hook-runs");
         var tcs = new TaskCompletionSource<DistributedApplicationModel>(TaskCreationOptions.RunContinuationsAsynchronously);
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         testProgram.AppBuilder.Services.AddLifecycleHook(sp => new CheckAllocatedEndpointsLifecycleHook(tcs));
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         await using var app = testProgram.Build();
 
@@ -444,7 +460,9 @@ public class DistributedApplicationTests
         }
     }
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     private sealed class CheckAllocatedEndpointsLifecycleHook(TaskCompletionSource<DistributedApplicationModel> tcs) : IDistributedApplicationLifecycleHook
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     {
         public Task AfterEndpointsAllocatedAsync(DistributedApplicationModel appModel, CancellationToken cancellationToken = default)
         {
@@ -748,6 +766,36 @@ public class DistributedApplicationTests
             Assert.NotNull(envVars);
             return Assert.Single(envVars, e => e.Name == name).Value;
         }
+    }
+
+    [Fact]
+    public async Task StartAsync_DashboardUrls_DisplayPropertiesSet()
+    {
+        const string testName = "dashboard-urls-display";
+        var args = new string[] {
+            $"{KnownConfigNames.AspNetCoreUrls}=https://localhost:0;http://localhost:0",
+            $"{KnownConfigNames.DashboardOtlpGrpcEndpointUrl}=http://localhost:0"
+        };
+        using var testProgram = CreateTestProgram(testName, args: args, disableDashboard: false);
+
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        await using var app = testProgram.Build();
+
+        var kubernetes = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var aspireDashboard = model.Resources.Single(r => r.Name == KnownResourceNames.AspireDashboard);
+
+        var dashboardUrls = aspireDashboard.Annotations.OfType<ResourceUrlAnnotation>().ToList();
+        Assert.Collection(dashboardUrls,
+            u => Assert.Equal("Dashboard (https)", u.DisplayText),
+            u => Assert.Equal("Dashboard (http)", u.DisplayText),
+            u => Assert.Equal("otlp-grpc", u.DisplayText));
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
 
     [Theory]
@@ -1320,12 +1368,16 @@ public class DistributedApplicationTests
         using var builder = TestDistributedApplicationBuilder.Create();
 
         builder.AddRedis($"{testName}-redis");
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         builder.Services.TryAddLifecycleHook<KubernetesTestLifecycleHook>();
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
 
         using var app = builder.Build();
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var lifecycles = app.Services.GetServices<IDistributedApplicationLifecycleHook>();
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
         var kubernetesLifecycle = (KubernetesTestLifecycleHook)lifecycles.Where(l => l.GetType() == typeof(KubernetesTestLifecycleHook)).First();
         kubernetesLifecycle.KubernetesService = s;
 
@@ -1349,7 +1401,9 @@ public class DistributedApplicationTests
         });
     }
 
+#pragma warning disable CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     private sealed class KubernetesTestLifecycleHook : IDistributedApplicationLifecycleHook
+#pragma warning restore CS0618 // Lifecycle hooks are obsolete, but still need to be tested until removed.
     {
         private readonly TaskCompletionSource _tcs = new();
 

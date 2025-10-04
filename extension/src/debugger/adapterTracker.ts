@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireExtendedDebugConfiguration } from "../dcp/types";
+import { ServiceLogsNotification, ProcessRestartedNotification, SessionTerminatedNotification, AspireResourceExtendedDebugConfiguration } from "../dcp/types";
 import { extensionLogOutputChannel } from "../utils/logging";
 import AspireDcpServer from '../dcp/AspireDcpServer';
 import { removeTrailingNewline } from '../utils/strings';
@@ -76,6 +76,6 @@ export function createDebugAdapterTracker(dcpServer: AspireDcpServer, debugAdapt
     });
 }
 
-function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is AspireExtendedDebugConfiguration {
-    return (session as AspireExtendedDebugConfiguration).runId !== undefined;
+function isDebugConfigurationWithId(session: vscode.DebugConfiguration): session is AspireResourceExtendedDebugConfiguration {
+    return (session as AspireResourceExtendedDebugConfiguration).runId !== undefined;
 }

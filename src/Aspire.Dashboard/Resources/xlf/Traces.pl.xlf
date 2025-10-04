@@ -14,17 +14,17 @@
       </trans-unit>
       <trans-unit id="PauseInProgressText">
         <source>Traces capture paused at {0}</source>
-        <target state="translated">Przechwytywanie śladów zostało wstrzymane w {0}</target>
+        <target state="translated">Przechwytywanie śladów zostało wstrzymane o {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeLabel">
         <source>Type</source>
-        <target state="new">Type</target>
+        <target state="translated">Typ</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeSelectSpanType">
         <source>Select span type</source>
-        <target state="new">Select span type</target>
+        <target state="translated">Wybierz typ zakresu</target>
         <note />
       </trans-unit>
       <trans-unit id="TotalItemsFooterPluralText">

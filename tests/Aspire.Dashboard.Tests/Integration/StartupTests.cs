@@ -5,6 +5,7 @@ using System.Net;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Http;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
@@ -283,6 +284,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 initialData[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
             });
 
+        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
+
         // Act
         await app.StartAsync().DefaultTimeout();
 
@@ -295,6 +298,8 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         Assert.Equal("token!", app.DashboardOptionsMonitor.CurrentValue.DebugSession.Token);
         Assert.Equal(true, app.DashboardOptionsMonitor.CurrentValue.DebugSession.TelemetryOptOut);
+
+        Assert.True(aiContextProvider.Enabled, "AI enabled because debug session is present.");
     }
 
     [Fact]
@@ -844,6 +849,34 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         // Assert
         Assert.Contains(typeof(TelemetryLoggerProvider), loggerProviderTypes);
         Assert.Contains(typeof(ConsoleLoggerProvider), loggerProviderTypes);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Configuration_DisableAI_EnsureValueSetOnOptions(bool? value)
+    {
+        // Arrange & Act
+        var testCert = TelemetryTestHelpers.GenerateDummyCertificate();
+
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+            additionalConfiguration: data =>
+            {
+                data[DashboardConfigNames.DashboardAIDisabledName.ConfigKey] = value?.ToString().ToLower();
+
+                // Set debug session values so that AIContextProvider.Enabled has those values.
+                data[DashboardConfigNames.DebugSessionPortName.ConfigKey] = "8080";
+                data[DashboardConfigNames.DebugSessionServerCertificateName.ConfigKey] = Convert.ToBase64String(testCert.Export(X509ContentType.Cert));
+                data[DashboardConfigNames.DebugSessionTokenName.ConfigKey] = "token!";
+                data[DashboardConfigNames.DebugSessionTelemetryOptOutName.ConfigKey] = "true";
+            });
+
+        var aiContextProvider = app.Services.GetRequiredService<IAIContextProvider>();
+
+        // Assert
+        Assert.Equal(value, app.DashboardOptionsMonitor.CurrentValue.AI.Disabled);
+        Assert.Equal(!(value ?? false), aiContextProvider.Enabled);
     }
 
     private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)

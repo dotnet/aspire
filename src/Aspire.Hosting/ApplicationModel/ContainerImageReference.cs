@@ -11,12 +11,21 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Represents the fully‑qualified container image reference that should be deployed.
 /// </summary>
 [DebuggerDisplay("{ValueExpression}")]
-public class ContainerImageReference(IResource resource) : IManifestExpressionProvider, IValueWithReferences, IValueProvider
+public class ContainerImageReference : IManifestExpressionProvider, IValueWithReferences, IValueProvider
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ContainerImageReference"/> class.
+    /// </summary>
+    /// <param name="resource">The resource that this container image is associated with.</param>
+    public ContainerImageReference(IResource resource)
+    {
+        Resource = resource;
+    }
+
     /// <summary>
     /// Gets the resource that this container image is associated with.
     /// </summary>
-    public IResource Resource { get; } = resource;
+    public IResource Resource { get; }
 
     /// <inheritdoc/>
     public string ValueExpression => $"{{{Resource.Name}.containerImage}}";
@@ -30,6 +39,26 @@ public class ContainerImageReference(IResource resource) : IManifestExpressionPr
         var deploymentTarget = Resource.GetDeploymentTargetAnnotation() ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a deployment target.");
         var containerRegistry = deploymentTarget.ContainerRegistry ?? throw new InvalidOperationException($"Resource '{Resource.Name}' does not have a container registry.");
         var registryEndpoint = await containerRegistry.Endpoint.GetValueAsync(cancellationToken).ConfigureAwait(false);
-        return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:latest";
+
+        string tag;
+        if (Resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var deploymentTag))
+        {
+            var context = new DeploymentImageTagCallbackAnnotationContext
+            {
+                Resource = Resource,
+                CancellationToken = cancellationToken,
+            };
+            tag = await deploymentTag.Callback(context).ConfigureAwait(false);
+        }
+        else if (Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var annotation))
+        {
+            tag = annotation.Tag ?? "latest";
+        }
+        else
+        {
+            tag = "latest";
+        }
+        
+        return $"{registryEndpoint}/{Resource.Name.ToLowerInvariant()}:{tag}";
     }
 }

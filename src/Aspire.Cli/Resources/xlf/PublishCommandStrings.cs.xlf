@@ -3,8 +3,8 @@
   <file datatype="xml" source-language="en" target-language="cs" original="../PublishCommandStrings.resx">
     <body>
       <trans-unit id="Description">
-        <source>Generates deployment artifacts for an Aspire app host project. (Preview)</source>
-        <target state="translated">Generuje artefakty nasazení pro projekt hostitele aplikací Aspire. (Preview)</target>
+        <source>Generates deployment artifacts for an Aspire apphost. (Preview)</source>
+        <target state="translated">Generuje artefakty nasazení pro hostitele aplikací Aspire. (Preview)</target>
         <note />
       </trans-unit>
       <trans-unit id="GeneratingArtifacts">
@@ -23,13 +23,13 @@
         <note />
       </trans-unit>
       <trans-unit id="OutputPathArgumentDescription">
-        <source>The output path for the generated artifacts.</source>
-        <target state="translated">Výstupní cesta pro vygenerované artefakty</target>
+        <source>The output path for the generated artifacts. Defaults to './aspire-output' if not specified.</source>
+        <target state="translated">Výstupní cesta pro vygenerované artefakty. Pokud není zadaná, použije se výchozí hodnota ./aspire-output.</target>
         <note />
       </trans-unit>
       <trans-unit id="ProjectArgumentDescription">
-        <source>The path to the Aspire app host project file.</source>
-        <target state="translated">Cesta k souboru projektu hostitele aplikací Aspire</target>
+        <source>The path to the Aspire AppHost project file.</source>
+        <target state="translated">Cesta k souboru projektu Aspire AppHost.</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectAPublisher">

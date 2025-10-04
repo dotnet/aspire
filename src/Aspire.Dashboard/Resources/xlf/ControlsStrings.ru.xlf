@@ -217,6 +217,11 @@
         <target state="translated">Настроить ширину столбцов</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDetailsTitle">
+        <source>GenAI details</source>
+        <target state="translated">Сведения о генеративном ИИ</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GridValueCopied">
         <source>Copied!</source>
         <target state="translated">Скопировано!</target>
@@ -259,7 +264,7 @@
       </trans-unit>
       <trans-unit id="LabelOther">
         <source>(Other)</source>
-        <target state="new">(Other)</target>
+        <target state="translated">(Другое)</target>
         <note />
       </trans-unit>
       <trans-unit id="LabelValueUnset">
@@ -279,7 +284,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="translated">Идет загрузка...</target>
+        <target state="translated">Загрузка...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -339,7 +344,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Запись приостановлена</target>
+        <target state="translated">Захват приостановлен</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -474,7 +479,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Длительность: &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Длительность &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsEventsHeader">
@@ -514,32 +519,37 @@
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">&lt;strong&gt;Время начала: &lt;/strong&gt; {0}</target>
+        <target state="translated">Время начала &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
+      </trans-unit>
+      <trans-unit id="SpanTypeCloud">
+        <source>Cloud</source>
+        <target state="translated">Облако</target>
+        <note />
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">
         <source>Database</source>
-        <target state="new">Database</target>
+        <target state="translated">База данных</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeGenAI">
         <source>Gen AI</source>
-        <target state="new">Gen AI</target>
+        <target state="translated">Генеративный ИИ</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeHttp">
         <source>HTTP</source>
-        <target state="new">HTTP</target>
+        <target state="translated">HTTP</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeMessaging">
         <source>Messaging</source>
-        <target state="new">Messaging</target>
+        <target state="translated">Обмен сообщениями</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeRpc">
         <source>RPC</source>
-        <target state="new">RPC</target>
+        <target state="translated">RPC</target>
         <note />
       </trans-unit>
       <trans-unit id="StateColumnHeader">

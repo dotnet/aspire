@@ -76,8 +76,13 @@ public class ResourceOutgoingPeerResolverTests
         Assert.Equal("test", value);
     }
 
-    [Fact]
-    public void NumberAddressValueAttribute_Match()
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("host.docker.internal")]
+    [InlineData("host.containers.internal")]
+    [InlineData("HOST.DOCKER.INTERNAL")]
+    [InlineData("HOST.CONTAINERS.INTERNAL")]
+    public void NonLocalhostAttribute_Match(string host)
     {
         // Arrange
         var resources = new Dictionary<string, ResourceViewModel>
@@ -86,7 +91,7 @@ public class ResourceOutgoingPeerResolverTests
         };
 
         // Act & Assert
-        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", "127.0.0.1:5000")], out var value));
+        Assert.True(TryResolvePeerName(resources, [KeyValuePair.Create("peer.service", $"{host}:5000")], out var value));
         Assert.Equal("test", value);
     }
 
@@ -411,8 +416,9 @@ public class ResourceOutgoingPeerResolverTests
         public string ApplicationName => "ApplicationName";
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
         public Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public ResourceViewModel? GetResource(string resourceName) => null;
+        public IReadOnlyList<ResourceViewModel> GetResources() => [];
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public ResourceViewModel? GetResource(string resourceName) => throw new NotImplementedException();
         public Task SendInteractionRequestAsync(WatchInteractionsRequestUpdate request, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> SubscribeConsoleLogs(string resourceName, CancellationToken cancellationToken) => throw new NotImplementedException();
         public IAsyncEnumerable<WatchInteractionsResponseUpdate> SubscribeInteractionsAsync(CancellationToken cancellationToken) => throw new NotImplementedException();

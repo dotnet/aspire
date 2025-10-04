@@ -20,14 +20,13 @@ internal sealed class AddCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
     private readonly IPackagingService _packagingService;
-    private readonly IInteractionService _interactionService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
 
     public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext)
+        : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(packagingService);
@@ -39,7 +38,6 @@ internal sealed class AddCommand : BaseCommand
 
         _runner = runner;
         _packagingService = packagingService;
-        _interactionService = interactionService;
         _projectLocator = projectLocator;
         _prompter = prompter;
         _telemetry = telemetry;
@@ -66,7 +64,7 @@ internal sealed class AddCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, _interactionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -89,7 +87,7 @@ internal sealed class AddCommand : BaseCommand
 
             var source = parseResult.GetValue<string?>("--source");
 
-            var packagesWithChannels = await _interactionService.ShowStatusAsync(
+            var packagesWithChannels = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.SearchingForAspirePackages,
                 async () =>
                 {
@@ -125,7 +123,7 @@ internal sealed class AddCommand : BaseCommand
 
             if (!packagesWithShortName.Any())
             {
-                _interactionService.DisplayError(AddCommandStrings.NoPackagesFound);
+                InteractionService.DisplayError(AddCommandStrings.NoPackagesFound);
                 return ExitCodeConstants.FailedToAddPackage;
             }
 
@@ -153,7 +151,7 @@ internal sealed class AddCommand : BaseCommand
                 _ => throw new InvalidOperationException(AddCommandStrings.UnexpectedNumberOfPackagesFound)
             };
 
-            var addPackageResult = await _interactionService.ShowStatusAsync(
+            var addPackageResult = await InteractionService.ShowStatusAsync(
                 AddCommandStrings.AddingAspireIntegration,
                 async () => {
 
@@ -176,34 +174,34 @@ internal sealed class AddCommand : BaseCommand
 
             if (addPackageResult != 0)
             {
-                _interactionService.DisplayLines(outputCollector.GetLines());
-                _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addPackageResult));
+                InteractionService.DisplayLines(outputCollector.GetLines());
+                InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageInstallationFailed, addPackageResult));
                 return ExitCodeConstants.FailedToAddPackage;
             }
             else
             {
-                _interactionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
+                InteractionService.DisplaySuccess(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.PackageAddedSuccessfully, selectedNuGetPackage.Package.Id, selectedNuGetPackage.Package.Version));
                 return ExitCodeConstants.Success;
             }
         }
         catch (ProjectLocatorException ex)
         {
-            return HandleProjectLocatorException(ex, _interactionService);
+            return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (OperationCanceledException)
         {
-            _interactionService.DisplayCancellationMessage();
+            InteractionService.DisplayCancellationMessage();
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (EmptyChoicesException ex)
         {
-            _interactionService.DisplayError(ex.Message);
+            InteractionService.DisplayError(ex.Message);
             return ExitCodeConstants.FailedToAddPackage;
         }
         catch (Exception ex)
         {
-            _interactionService.DisplayLines(outputCollector.GetLines());
-            _interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
+            InteractionService.DisplayLines(outputCollector.GetLines());
+            InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.ErrorOccurredWhileAddingPackage, ex.Message));
             return ExitCodeConstants.FailedToAddPackage;
         }
     }
@@ -241,7 +239,7 @@ internal sealed class AddCommand : BaseCommand
     {
         if (searchTerm is not null)
         {
-            _interactionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
+            InteractionService.DisplaySubtleMessage(string.Format(CultureInfo.CurrentCulture, AddCommandStrings.NoPackagesMatchedSearchTerm, searchTerm));
         }
 
         return await GetPackageByInteractiveFlow(possiblePackages, null, cancellationToken);

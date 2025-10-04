@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
-        <target state="translated">Runtime do Contêiner Não Instalado</target>
+        <source>Container runtime not installed</source>
+        <target state="translated">Tempo de execução do contêiner não instalado</target>
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimePodmanAdvice">
@@ -38,8 +38,8 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
-        <target state="translated">Runtime do Contêiner Não Íntegro</target>
+        <source>Container runtime unhealthy</source>
+        <target state="translated">Tempo de execução do contêiner não íntegro</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersBarMessage">
@@ -61,6 +61,11 @@
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
         <target state="translated">Insira valores para os parâmetros não resolvidos. Os parâmetros podem ser salvos em [segredos do usuário](https://learn.microsoft.com/aspnet/core/security/app-secrets) para uso futuro.</target>
         <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="new">Please provide values for the unresolved parameters.</target>
+        <note />
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>

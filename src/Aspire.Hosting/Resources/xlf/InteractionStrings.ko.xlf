@@ -23,7 +23,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeNotInstalledTitle">
-        <source>Container Runtime Not Installed</source>
+        <source>Container runtime not installed</source>
         <target state="translated">컨테이너 런타임이 설치되지 않음</target>
         <note />
       </trans-unit>
@@ -38,7 +38,7 @@
         <note />
       </trans-unit>
       <trans-unit id="ContainerRuntimeUnhealthyTitle">
-        <source>Container Runtime Unhealthy</source>
+        <source>Container runtime unhealthy</source>
         <target state="translated">컨테이너 런타임 비정상</target>
         <note />
       </trans-unit>
@@ -61,6 +61,11 @@
         <source>Please provide values for the unresolved parameters. Parameters can be saved to [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) for future use.</source>
         <target state="translated">해결되지 않은 매개 변수에 대한 값을 제공하세요. 나중에 사용할 수 있도록 매개 변수를 [사용자 비밀](https://learn.microsoft.com/aspnet/core/security/app-secrets)에 저장할 수 있습니다.</target>
         <note>Contains markdown</note>
+      </trans-unit>
+      <trans-unit id="ParametersInputsMessagePublishMode">
+        <source>Please provide values for the unresolved parameters.</source>
+        <target state="new">Please provide values for the unresolved parameters.</target>
+        <note />
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
         <source>Enter value for {0}</source>
