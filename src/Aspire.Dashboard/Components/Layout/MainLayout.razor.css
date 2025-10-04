@@ -49,6 +49,7 @@
         grid-area: messagebar;
         border-top: 1px solid var(--neutral-stroke-rest);
         border-left: 1px solid var(--neutral-stroke-rest);
+        display: flex;
     }
 
     ::deep .header-right {
@@ -126,6 +127,7 @@
         grid-area: messagebar;
         border-top: 1px solid var(--neutral-stroke-rest);
         border-left: 1px solid var(--neutral-stroke-rest);
+        display: flex;
     }
 
     ::deep .header-right {
