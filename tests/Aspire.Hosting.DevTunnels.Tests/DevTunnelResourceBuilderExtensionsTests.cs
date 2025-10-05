@@ -24,7 +24,6 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.NotNull(tunnelPort);
 
         tunnelPort.TunnelEndpointAnnotation.AllocatedEndpoint = new(tunnelPort.TunnelEndpointAnnotation, "test123.devtunnels.ms", 443);
-        tunnelPort.TunnelEndpointAllocatedTcs.SetResult();
 
         var values = await consumer.Resource.GetEnvironmentVariableValuesAsync();
 

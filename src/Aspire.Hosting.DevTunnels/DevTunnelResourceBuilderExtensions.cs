@@ -140,13 +140,13 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     var exception = new DistributedApplicationException($"Error trying to create the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
-                        portResource.TunnelEndpointAllocatedTcs.SetException(exception);
+                        portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(exception);
                     }
                     throw;
                 }
 
                 // Wait for target resource endpoints to be allocated
-                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpointAllocatedTask)).ConfigureAwait(false);
+                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpoint.GetValueAsync(ct).AsTask())).ConfigureAwait(false);
 
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
@@ -195,7 +195,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     catch (Exception ex)
                     {
                         portLogger.LogError(ex, "Error trying to create dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
-                        portResource.TunnelEndpointAllocatedTcs.SetException(ex);
+                        portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(ex);
                         throw;
                     }
 
@@ -346,13 +346,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         builder
             .WithReferenceRelationship(tunnelResource)
-            .WithEnvironment(async context =>
+            .WithEnvironment(context =>
             {
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
                 foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
                 {
-                    await port.TunnelEndpointAllocatedTask.ConfigureAwait(false);
-
                     var serviceName = targetResource.Resource.Name;
                     var endpointName = port.TargetEndpoint.EndpointName;
                     context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
@@ -501,36 +499,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 ]
             });
 
-        // When the target endpoint is allocated, validate it and mark the TCS accordingly
-        var targetResourceBuilder = tunnelBuilder.ApplicationBuilder.CreateResourceBuilder(targetResource);
-        targetResourceBuilder.OnResourceEndpointsAllocated((resource, e, ct) =>
-        {
-            var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-
-            if (!portResource.TargetEndpoint.IsAllocated)
-            {
-                // Target endpoint is not allocated, ignore
-                portLogger.LogWarning("Target resource endpoints allocated event was fired but target endpoint was not allocated.");
-                return Task.CompletedTask;
-            }
-
-            portLogger.LogDebug("Target resource endpoints allocated");
-
-            // We do this check now so that we're verifying the allocated endpoint's address
-            if (!string.Equals(portResource.TargetEndpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
-                !portResource.TargetEndpoint.Host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
-            {
-                // Target endpoint is not localhost so can't be tunneled
-                portLogger.LogError("Cannot tunnel endpoint '{Endpoint}' with host '{Host}' on resource '{Resource}' because it is not a localhost endpoint.", portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Host, portResource.TargetEndpoint.Resource.Name);
-                portResource.TargetEndpointAllocatedTcs.SetException(new DistributedApplicationException($"Cannot tunnel endpoint '{portResource.TargetEndpoint.EndpointName}' with host '{portResource.TargetEndpoint.Host}' on resource '{portResource.TargetEndpoint.Resource.Name}' because it is not a localhost endpoint."));
-                return Task.CompletedTask;
-            }
-
-            // Signal the target endpoint created
-            portResource.TargetEndpointAllocatedTcs.SetResult();
-            return Task.CompletedTask;
-        });
-
         // Lifecycle from the tunnel
         tunnelBuilder
             .OnResourceReady(async (tunnelResource, e, ct) =>
@@ -567,7 +535,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 if (raiseEndpointsAllocatedEvent)
                 {
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
-                    portResource.TunnelEndpointAllocatedTcs.SetResult();
                 }
 
                 // Mark the port as running
