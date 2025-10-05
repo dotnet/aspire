@@ -258,7 +258,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             // Use single-file AppHost template if feature is enabled
-            var singleFileTemplate = _templateFactory.GetTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
             if (singleFileTemplate is null)
             {
                 InteractionService.DisplayError("Single-file AppHost template not found.");
@@ -269,7 +269,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         else
         {
             // Use regular AppHost template if single-file feature is not enabled
-            var appHostTemplate = _templateFactory.GetTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
+            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
             if (appHostTemplate is null)
             {
                 InteractionService.DisplayError("AppHost template not found.");

@@ -21,7 +21,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
     public IEnumerable<ITemplate> GetTemplates()
     {
         var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
+        return GetTemplatesCore(showAllTemplates);
+    }
 
+    public IEnumerable<ITemplate> GetAllTemplates()
+    {
+        return GetTemplatesCore(showAllTemplates: true);
+    }
+
+    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates)
+    {
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
