@@ -64,10 +64,10 @@ internal class YarpConfigurationBuilder(IResourceBuilder<YarpResource> parent) :
         // Validate that each destination is a supported type
         foreach (var dest in destinations)
         {
-            if (dest is not (string or Uri or ReferenceExpression))
+            if (dest is not (IValueProvider or string or Uri))
             {
                 throw new ArgumentException(
-                    $"Destination must be a string, Uri, or ReferenceExpression. Got: {dest?.GetType().FullName ?? "null"}",
+                    $"Destination must be an IValueProvider, string, or Uri. Got: {dest?.GetType().FullName ?? "null"}",
                     nameof(destinations));
             }
         }

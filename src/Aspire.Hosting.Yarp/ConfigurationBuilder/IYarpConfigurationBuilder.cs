@@ -41,70 +41,21 @@ public interface IYarpConfigurationBuilder
     public YarpCluster AddCluster(IResourceBuilder<ExternalServiceResource> externalService);
 
     /// <summary>
-    /// Add a new cluster to YARP based on a single URL string.
+    /// Add a new cluster to YARP based on a collection of urls.
     /// </summary>
     /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destination">The destination URL for this cluster.</param>
-    /// <returns></returns>
-    public YarpCluster AddCluster(string clusterName, string destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        return AddCluster(clusterName, new object[] { destination });
-    }
-
-    /// <summary>
-    /// Add a new cluster to YARP based on a single URI.
-    /// </summary>
-    /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destination">The destination URI for this cluster.</param>
-    /// <returns></returns>
-    public YarpCluster AddCluster(string clusterName, Uri destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        return AddCluster(clusterName, new object[] { destination });
-    }
-
-    /// <summary>
-    /// Add a new cluster to YARP based on a collection of URL strings.
-    /// </summary>
-    /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destinations">The destination URLs for this cluster.</param>
-    /// <returns></returns>
-    public YarpCluster AddCluster(string clusterName, string[] destinations)
-    {
-        ArgumentNullException.ThrowIfNull(destinations);
-        return AddCluster(clusterName, destinations.Cast<object>().ToArray());
-    }
-
-    /// <summary>
-    /// Add a new cluster to YARP based on a collection of URIs.
-    /// </summary>
-    /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destinations">The destination URIs for this cluster.</param>
-    /// <returns></returns>
-    public YarpCluster AddCluster(string clusterName, Uri[] destinations)
-    {
-        ArgumentNullException.ThrowIfNull(destinations);
-        return AddCluster(clusterName, destinations.Cast<object>().ToArray());
-    }
-
-    /// <summary>
-    /// Add a new cluster to YARP based on a collection of destinations.
-    /// </summary>
-    /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destinations">The destinations used by this cluster (strings, URIs, or ReferenceExpressions).</param>
+    /// <param name="destinations">The destinations used by this cluster.</param>
     /// <returns></returns>
     public YarpCluster AddCluster(string clusterName, object[] destinations);
 
     /// <summary>
-    /// Add a new cluster to YARP based on a destination.
+    /// Add a new cluster to YARP based on a collection of urls.
     /// </summary>
     /// <param name="clusterName">The name of the cluster.</param>
-    /// <param name="destination">The destination used by this cluster (string, URI, or ReferenceExpression).</param>
+    /// <param name="destination">The destinations used by this cluster.</param>
     /// <returns></returns>
     public YarpCluster AddCluster(string clusterName, object destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
         return AddCluster(clusterName, [destination]);
     }
 }
