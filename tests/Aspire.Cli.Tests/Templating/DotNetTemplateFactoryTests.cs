@@ -307,7 +307,7 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenSingleFileAppHostIsEnabled_SingleFileAppHostIsVisible()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
     {
         // Arrange - disable showAllTemplates but enable singleFileAppHost
         var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
@@ -318,14 +318,14 @@ public class DotNetTemplateFactoryTests
 
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
-        Assert.Contains("aspire-apphost-singlefile", templateNames);
+        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
     }
 
     [Fact]
-    public void GetTemplates_WhenSingleFileAppHostIsDisabled_SingleFileAppHostIsHidden()
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
     {
-        // Arrange - enable showAllTemplates but disable singleFileAppHost
-        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: false);
+        // Arrange - enable showAllTemplates and enable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: true);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -333,7 +333,7 @@ public class DotNetTemplateFactoryTests
 
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
-        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
+        Assert.Contains("aspire-apphost-singlefile", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
