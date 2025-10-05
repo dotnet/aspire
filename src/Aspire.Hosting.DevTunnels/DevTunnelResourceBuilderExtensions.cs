@@ -322,6 +322,25 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <summary>
     /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
     /// </summary>
+    /// <typeparam name="TResource">The type of the target resource.</typeparam>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="resourceBuilder">The target resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint on the target resource.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
+    public static EndpointReference GetEndpoint<TResource>(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResourceBuilder<TResource> resourceBuilder, string endpointName)
+        where TResource : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
+        return tunnelBuilder.GetEndpoint(resourceBuilder.Resource, endpointName);
+    }
+
+    /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
+    /// </summary>
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="resource">The target resource.</param>
     /// <param name="endpointName">The name of the endpoint on the target resource.</param>

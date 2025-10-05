@@ -88,6 +88,23 @@ public class DevTunnelResourceBuilderExtensionsTests
     }
 
     [Fact]
+    public void GetEndpoint_WithResourceBuilderAndEndpointName_ReturnsTunnelEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var tunnelEndpoint = tunnel.GetEndpoint(target, "https");
+
+        Assert.NotNull(tunnelEndpoint);
+        Assert.Equal(target.Resource, tunnelEndpoint.Resource);
+        Assert.Equal(DevTunnelPortResource.TunnelEndpointName, tunnelEndpoint.EndpointName);
+    }
+
+    [Fact]
     public void GetEndpoint_WithEndpointReference_ReturnsTunnelEndpoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
