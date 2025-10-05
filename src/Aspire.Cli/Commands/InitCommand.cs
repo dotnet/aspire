@@ -122,15 +122,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var solutionFile = initContext.SelectedSolutionFile!;
         
-        // Get the solution name (without extension) to use for project names
-        var solutionName = Path.GetFileNameWithoutExtension(solutionFile.Name);
-        var solutionDir = solutionFile.Directory!;
-        
         // Check if AppHost and ServiceDefaults projects already exist
-        var expectedAppHostDir = Path.Combine(solutionDir.FullName, $"{solutionName}.AppHost");
-        var expectedServiceDefaultsDir = Path.Combine(solutionDir.FullName, $"{solutionName}.ServiceDefaults");
-        
-        if (Directory.Exists(expectedAppHostDir) || Directory.Exists(expectedServiceDefaultsDir))
+        if (Directory.Exists(initContext.ExpectedAppHostDirectory) || Directory.Exists(initContext.ExpectedServiceDefaultsDirectory))
         {
             InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
             return ExitCodeConstants.Success;
@@ -176,7 +169,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Apply the aspire template directly using the CLI runner with solution name
             var createResult = await _runner.NewProjectAsync(
                 "aspire", 
-                solutionName, 
+                initContext.SolutionName, 
                 tempProjectDir, 
                 [], // No extra args needed for aspire template
                 new DotNetCliRunnerInvocationOptions(), 
@@ -202,8 +195,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
 
             // Move the projects to the solution directory
-            var finalAppHostDir = Path.Combine(solutionDir.FullName, appHostProjectDir.Name);
-            var finalServiceDefaultsDir = Path.Combine(solutionDir.FullName, serviceDefaultsProjectDir.Name);
+            var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
+            var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
             Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
             Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
@@ -436,4 +429,24 @@ internal sealed class InitContext
     /// The solution file selected for initialization, or null if no solution was found.
     /// </summary>
     public FileInfo? SelectedSolutionFile { get; set; }
+
+    /// <summary>
+    /// Gets the solution name (without extension) derived from the selected solution file.
+    /// </summary>
+    public string SolutionName => Path.GetFileNameWithoutExtension(SelectedSolutionFile!.Name);
+
+    /// <summary>
+    /// Gets the directory containing the solution file.
+    /// </summary>
+    public DirectoryInfo SolutionDirectory => SelectedSolutionFile!.Directory!;
+
+    /// <summary>
+    /// Gets the expected directory path for the AppHost project.
+    /// </summary>
+    public string ExpectedAppHostDirectory => Path.Combine(SolutionDirectory.FullName, $"{SolutionName}.AppHost");
+
+    /// <summary>
+    /// Gets the expected directory path for the ServiceDefaults project.
+    /// </summary>
+    public string ExpectedServiceDefaultsDirectory => Path.Combine(SolutionDirectory.FullName, $"{SolutionName}.ServiceDefaults");
 }
