@@ -15,6 +15,10 @@ namespace Aspire.Hosting
         Yarp.YarpCluster AddCluster(ApplicationModel.IResourceBuilder<IResourceWithServiceDiscovery> resource);
         Yarp.YarpCluster AddCluster(string clusterName, object destination);
         Yarp.YarpCluster AddCluster(string clusterName, object[] destinations);
+        Yarp.YarpCluster AddCluster(string clusterName, string destination);
+        Yarp.YarpCluster AddCluster(string clusterName, string[] destinations);
+        Yarp.YarpCluster AddCluster(string clusterName, System.Uri destination);
+        Yarp.YarpCluster AddCluster(string clusterName, System.Uri[] destinations);
         Yarp.YarpRoute AddRoute(string path, Yarp.YarpCluster cluster);
     }
 
