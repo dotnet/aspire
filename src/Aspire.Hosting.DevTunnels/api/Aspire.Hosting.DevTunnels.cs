@@ -12,10 +12,6 @@ namespace Aspire.Hosting
     {
         public static ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> AddDevTunnel(this IDistributedApplicationBuilder builder, string name, string? tunnelId = null, DevTunnels.DevTunnelOptions? options = null) { throw null; }
 
-        public static ApplicationModel.EndpointReference GetEndpoint(this ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> tunnelBuilder, ApplicationModel.IResource resource, string endpointName) { throw null; }
-
-        public static ApplicationModel.EndpointReference GetEndpoint(this ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> tunnelBuilder, ApplicationModel.EndpointReference targetEndpointReference) { throw null; }
-
         public static ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> WithAnonymousAccess(this ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> tunnelBuilder) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> WithReference(this ApplicationModel.IResourceBuilder<DevTunnels.DevTunnelResource> tunnelBuilder, ApplicationModel.EndpointReference targetEndpoint, DevTunnels.DevTunnelPortOptions? portOptions) { throw null; }
