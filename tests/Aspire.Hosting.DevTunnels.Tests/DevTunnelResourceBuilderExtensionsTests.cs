@@ -123,7 +123,7 @@ public class DevTunnelResourceBuilderExtensionsTests
     }
 
     [Fact]
-    public void GetEndpoint_WithResourceAndEndpointName_ThrowsWhenEndpointNotFound()
+    public void GetEndpoint_WithResourceAndEndpointName_ReturnsEndpointWithErrorWhenEndpointNotFound()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -132,12 +132,18 @@ public class DevTunnelResourceBuilderExtensionsTests
         var tunnel = builder.AddDevTunnel("tunnel")
             .WithReference(target);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target.Resource, "nonexistent"));
+        var endpointRef = tunnel.GetEndpoint(target.Resource, "nonexistent");
+        
+        Assert.NotNull(endpointRef);
+        Assert.False(endpointRef.Exists);
+        
+        var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Contains("does not expose endpoint 'nonexistent'", ex.Message);
+        Assert.Contains("WithReference", ex.Message);
     }
 
     [Fact]
-    public void GetEndpoint_WithEndpointReference_ThrowsWhenEndpointNotFound()
+    public void GetEndpoint_WithEndpointReference_ReturnsEndpointWithErrorWhenEndpointNotFound()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -149,12 +155,18 @@ public class DevTunnelResourceBuilderExtensionsTests
             .WithReference(target);
 
         var target2Endpoint = target2.GetEndpoint("https");
-        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target2Endpoint));
+        var endpointRef = tunnel.GetEndpoint(target2Endpoint);
+        
+        Assert.NotNull(endpointRef);
+        Assert.False(endpointRef.Exists);
+        
+        var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Contains("does not expose endpoint 'https' on resource 'target2'", ex.Message);
+        Assert.Contains("WithReference", ex.Message);
     }
 
     [Fact]
-    public void GetEndpoint_WithResourceAndEndpointName_ThrowsWhenResourceNotReferenced()
+    public void GetEndpoint_WithResourceAndEndpointName_ReturnsEndpointWithErrorWhenResourceNotReferenced()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -162,8 +174,14 @@ public class DevTunnelResourceBuilderExtensionsTests
             .WithHttpsEndpoint(name: "https");
         var tunnel = builder.AddDevTunnel("tunnel");
 
-        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target.Resource, "https"));
+        var endpointRef = tunnel.GetEndpoint(target.Resource, "https");
+        
+        Assert.NotNull(endpointRef);
+        Assert.False(endpointRef.Exists);
+        
+        var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
         Assert.Contains("does not expose endpoint 'https'", ex.Message);
+        Assert.Contains("WithReference", ex.Message);
     }
 
     [Fact]

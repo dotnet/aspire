@@ -345,7 +345,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="resource">The target resource.</param>
     /// <param name="endpointName">The name of the endpoint on the target resource.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResource resource, string endpointName)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
@@ -357,7 +356,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         if (portResource is null)
         {
-            throw new InvalidOperationException($"The dev tunnel '{tunnelBuilder.Resource.Name}' does not expose endpoint '{endpointName}' on resource '{resource.Name}'.");
+            return new EndpointReference(tunnelBuilder.Resource, endpointName)
+            {
+                ErrorMessage = $"The dev tunnel '{tunnelBuilder.Resource.Name}' does not expose endpoint '{endpointName}' on resource '{resource.Name}'. " +
+                               $"Use '.WithReference({resource.Name}.GetEndpoint(\"{endpointName}\"))' on the dev tunnel to expose this endpoint."
+            };
         }
 
         return portResource.TunnelEndpoint;
@@ -369,7 +372,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
     /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
     /// <param name="targetEndpointReference">The target endpoint reference.</param>
     /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
     public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, EndpointReference targetEndpointReference)
     {
         ArgumentNullException.ThrowIfNull(tunnelBuilder);
@@ -381,7 +383,11 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         if (portResource is null)
         {
-            throw new InvalidOperationException($"The dev tunnel '{tunnelBuilder.Resource.Name}' does not expose endpoint '{targetEndpointReference.EndpointName}' on resource '{targetEndpointReference.Resource.Name}'.");
+            return new EndpointReference(tunnelBuilder.Resource, targetEndpointReference.EndpointName)
+            {
+                ErrorMessage = $"The dev tunnel '{tunnelBuilder.Resource.Name}' does not expose endpoint '{targetEndpointReference.EndpointName}' on resource '{targetEndpointReference.Resource.Name}'. " +
+                               $"Use '.WithReference({targetEndpointReference.Resource.Name})' on the dev tunnel to expose all endpoints, or use '.WithReference({targetEndpointReference.Resource.Name}.GetEndpoint(\"{targetEndpointReference.EndpointName}\"))' to expose this specific endpoint."
+            };
         }
 
         return portResource.TunnelEndpoint;
