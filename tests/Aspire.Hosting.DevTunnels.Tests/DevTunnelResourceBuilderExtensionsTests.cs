@@ -70,6 +70,108 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.True(port.Options.AllowAnonymous);
     }
 
+    [Fact]
+    public void GetEndpoint_WithResourceAndEndpointName_ReturnsTunnelEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var tunnelEndpoint = tunnel.GetEndpoint(target.Resource, "https");
+
+        Assert.NotNull(tunnelEndpoint);
+        Assert.Equal(target.Resource, tunnelEndpoint.Resource);
+        Assert.Equal(DevTunnelPortResource.TunnelEndpointName, tunnelEndpoint.EndpointName);
+    }
+
+    [Fact]
+    public void GetEndpoint_WithEndpointReference_ReturnsTunnelEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var targetEndpoint = target.GetEndpoint("https");
+        var tunnelEndpoint = tunnel.GetEndpoint(targetEndpoint);
+
+        Assert.NotNull(tunnelEndpoint);
+        Assert.Equal(target.Resource, tunnelEndpoint.Resource);
+        Assert.Equal(DevTunnelPortResource.TunnelEndpointName, tunnelEndpoint.EndpointName);
+    }
+
+    [Fact]
+    public void GetEndpoint_WithResourceAndEndpointName_ThrowsWhenEndpointNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target.Resource, "nonexistent"));
+        Assert.Contains("does not expose endpoint 'nonexistent'", ex.Message);
+    }
+
+    [Fact]
+    public void GetEndpoint_WithEndpointReference_ThrowsWhenEndpointNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var target2 = builder.AddProject<ProjectA>("target2")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var target2Endpoint = target2.GetEndpoint("https");
+        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target2Endpoint));
+        Assert.Contains("does not expose endpoint 'https' on resource 'target2'", ex.Message);
+    }
+
+    [Fact]
+    public void GetEndpoint_WithResourceAndEndpointName_ThrowsWhenResourceNotReferenced()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel");
+
+        var ex = Assert.Throws<InvalidOperationException>(() => tunnel.GetEndpoint(target.Resource, "https"));
+        Assert.Contains("does not expose endpoint 'https'", ex.Message);
+    }
+
+    [Fact]
+    public void GetEndpoint_WithMultipleEndpoints_ReturnsCorrectTunnelEndpoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var target = builder.AddProject<ProjectA>("target")
+            .WithHttpEndpoint(name: "http")
+            .WithHttpsEndpoint(name: "https");
+        var tunnel = builder.AddDevTunnel("tunnel")
+            .WithReference(target);
+
+        var httpTunnelEndpoint = tunnel.GetEndpoint(target.Resource, "http");
+        var httpsTunnelEndpoint = tunnel.GetEndpoint(target.Resource, "https");
+
+        Assert.NotNull(httpTunnelEndpoint);
+        Assert.NotNull(httpsTunnelEndpoint);
+        Assert.Equal(DevTunnelPortResource.TunnelEndpointName, httpTunnelEndpoint.EndpointName);
+        Assert.Equal(DevTunnelPortResource.TunnelEndpointName, httpsTunnelEndpoint.EndpointName);
+        
+        // Verify they reference different ports (implicitly through the annotation)
+        Assert.NotSame(httpTunnelEndpoint.EndpointAnnotation, httpsTunnelEndpoint.EndpointAnnotation);
+    }
+
     private sealed class ProjectA : IProjectMetadata
     {
         public string ProjectPath => "projectA";
