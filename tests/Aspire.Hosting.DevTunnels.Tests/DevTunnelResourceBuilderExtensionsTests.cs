@@ -138,8 +138,7 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.False(endpointRef.Exists);
         
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
-        Assert.Contains("does not expose endpoint 'nonexistent'", ex.Message);
-        Assert.Contains("WithReference", ex.Message);
+        Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'nonexistent' on resource 'target'. Use 'WithReference(target)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
 
     [Fact]
@@ -161,8 +160,7 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.False(endpointRef.Exists);
         
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
-        Assert.Contains("does not expose endpoint 'https' on resource 'target2'", ex.Message);
-        Assert.Contains("WithReference", ex.Message);
+        Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'https' on resource 'target2'. Use 'WithReference(target2)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
 
     [Fact]
@@ -180,8 +178,7 @@ public class DevTunnelResourceBuilderExtensionsTests
         Assert.False(endpointRef.Exists);
         
         var ex = Assert.Throws<InvalidOperationException>(() => _ = endpointRef.EndpointAnnotation);
-        Assert.Contains("does not expose endpoint 'https'", ex.Message);
-        Assert.Contains("WithReference", ex.Message);
+        Assert.Equal("The dev tunnel 'tunnel' has not been associated with 'https' on resource 'target'. Use 'WithReference(target)' on the dev tunnel to expose this endpoint.", ex.Message);
     }
 
     [Fact]
