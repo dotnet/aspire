@@ -183,4 +183,23 @@
   <data name="DeleteCommand_PromptForGlobal" xml:space="preserve">
     <value>Delete the configuration value from the global $HOME/.aspire/settings.json instead of the local settings file?</value>
   </data>
+  <data name="FeatureCommand_Description" xml:space="preserve">
+    <value>Manage feature flags.</value>
+  </data>
+  <data name="FeatureCommand_PromptForFeatures" xml:space="preserve">
+    <value>Select the features you want to configure (use Space to select/deselect, Enter to confirm)</value>
+  </data>
+  <data name="FeatureCommand_PromptForScope" xml:space="preserve">
+    <value>Where do you want to apply these feature flags?</value>
+  </data>
+  <data name="FeatureCommand_NoFeaturesSelected" xml:space="preserve">
+    <value>No features selected.</value>
+  </data>
+  <data name="FeatureCommand_FeaturesConfigured" xml:space="preserve">
+    <value>Feature flags configured successfully.</value>
+  </data>
+  <data name="FeatureCommand_PromptForValue" xml:space="preserve">
+    <value>Enable '{0}'?</value>
+    <comment>{0} is the feature name</comment>
+  </data>
 </root>

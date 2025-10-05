@@ -35,11 +35,13 @@ internal sealed class ConfigCommand : BaseCommand
         var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var featureCommand = new FeatureCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
+        Subcommands.Add(featureCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -316,6 +318,66 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
+        }
+    }
+
+    private sealed class FeatureCommand : BaseConfigSubCommand
+    {
+        public FeatureCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("feature", ConfigCommandStrings.FeatureCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        {
+        }
+
+        protected override bool UpdateNotificationsEnabled => false;
+
+        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            return InteractiveExecuteAsync(cancellationToken);
+        }
+
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            // Prompt user to select features
+            var selectedFeatures = await InteractionService.PromptForMultiSelectionAsync(
+                ConfigCommandStrings.FeatureCommand_PromptForFeatures,
+                FeatureInfo.KnownFeatureInfos,
+                f => $"{f.Name} - {f.Description}",
+                cancellationToken);
+
+            if (selectedFeatures.Count == 0)
+            {
+                InteractionService.DisplayMessage("information", ConfigCommandStrings.FeatureCommand_NoFeaturesSelected);
+                return ExitCodeConstants.Success;
+            }
+
+            // Ask if global or local
+            var isGlobal = await InteractionService.PromptForSelectionAsync(
+                ConfigCommandStrings.FeatureCommand_PromptForScope,
+                [false, true],
+                g => g ? ConfigCommandStrings.SetCommand_PromptForGlobal_GlobalOption : ConfigCommandStrings.SetCommand_PromptForGlobal_LocalOption,
+                cancellationToken);
+
+            // For each selected feature, ask if they want to enable or disable it
+            foreach (var feature in selectedFeatures)
+            {
+                var enable = await InteractionService.ConfirmAsync(
+                    string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.FeatureCommand_PromptForValue, feature.Name),
+                    defaultValue: true,
+                    cancellationToken);
+
+                try
+                {
+                    await ConfigurationService.SetConfigurationAsync(feature.Key, enable.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                    return ExitCodeConstants.InvalidCommand;
+                }
+            }
+
+            InteractionService.DisplaySuccess(ConfigCommandStrings.FeatureCommand_FeaturesConfigured);
+            return ExitCodeConstants.Success;
         }
     }
 }

@@ -187,6 +187,13 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
+    public async Task<IReadOnlyList<T>> PromptForMultiSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        // For now, extension doesn't support multi-select, so fall back to console
+        // In the future, this could be extended to support multi-select in the extension
+        return await _consoleInteractionService.PromptForMultiSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
+    }
+
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplayIncompatibleVersionErrorAsync(ex.RequiredCapability, appHostHostingSdkVersion, _cancellationToken));

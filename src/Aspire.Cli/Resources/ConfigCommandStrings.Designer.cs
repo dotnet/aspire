@@ -283,5 +283,59 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SetCommand_ValueArgumentDescription", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Manage feature flags..
+        /// </summary>
+        public static string FeatureCommand_Description {
+            get {
+                return ResourceManager.GetString("FeatureCommand_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select the features you want to configure (use Space to select/deselect, Enter to confirm).
+        /// </summary>
+        public static string FeatureCommand_PromptForFeatures {
+            get {
+                return ResourceManager.GetString("FeatureCommand_PromptForFeatures", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Where do you want to apply these feature flags?.
+        /// </summary>
+        public static string FeatureCommand_PromptForScope {
+            get {
+                return ResourceManager.GetString("FeatureCommand_PromptForScope", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No features selected..
+        /// </summary>
+        public static string FeatureCommand_NoFeaturesSelected {
+            get {
+                return ResourceManager.GetString("FeatureCommand_NoFeaturesSelected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Feature flags configured successfully..
+        /// </summary>
+        public static string FeatureCommand_FeaturesConfigured {
+            get {
+                return ResourceManager.GetString("FeatureCommand_FeaturesConfigured", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enable '{0}'?.
+        /// </summary>
+        public static string FeatureCommand_PromptForValue {
+            get {
+                return ResourceManager.GetString("FeatureCommand_PromptForValue", resourceCulture);
+            }
+        }
     }
 }

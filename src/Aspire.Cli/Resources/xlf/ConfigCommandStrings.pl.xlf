@@ -57,6 +57,36 @@
         <target state="translated">Co chcesz zrobić?</target>
         <note />
       </trans-unit>
+      <trans-unit id="FeatureCommand_Description">
+        <source>Manage feature flags.</source>
+        <target state="new">Manage feature flags.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FeatureCommand_FeaturesConfigured">
+        <source>Feature flags configured successfully.</source>
+        <target state="new">Feature flags configured successfully.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FeatureCommand_NoFeaturesSelected">
+        <source>No features selected.</source>
+        <target state="new">No features selected.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FeatureCommand_PromptForFeatures">
+        <source>Select the features you want to configure (use Space to select/deselect, Enter to confirm)</source>
+        <target state="new">Select the features you want to configure (use Space to select/deselect, Enter to confirm)</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FeatureCommand_PromptForScope">
+        <source>Where do you want to apply these feature flags?</source>
+        <target state="new">Where do you want to apply these feature flags?</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="FeatureCommand_PromptForValue">
+        <source>Enable '{0}'?</source>
+        <target state="new">Enable '{0}'?</target>
+        <note>{0} is the feature name</note>
+      </trans-unit>
       <trans-unit id="GetCommand_Description">
         <source>Get a configuration value.</source>
         <target state="translated">Pobierz wartość konfiguracji.</target>
