@@ -99,6 +99,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
+
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
+        }
     }
 
     [Fact]
@@ -152,6 +157,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
+
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
+        }
     }
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
@@ -164,6 +174,15 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             return Task.FromResult(new List<FileInfo>
+            {
+                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
+                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
+            });
+        }
+
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
             {
                 new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
                 new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
@@ -1129,6 +1148,11 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             return Task.FromResult(new List<FileInfo> { new("/tmp/apphost.cs") });
+        }
+
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo> { new("/tmp/apphost.cs") });
         }
     }
 }

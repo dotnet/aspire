@@ -61,6 +61,23 @@ suite('InteractionService endpoints', () => {
 		showInputBoxStub.restore();
 	});
 
+	// promptForSecretString
+	test('promptForSecretString sets password option to true', async () => {
+		const testInfo = await createTestRpcServer();
+		let passwordOptionSet = false;
+		const showInputBoxStub = sinon.stub(vscode.window, 'showInputBox').callsFake(async (options: any) => {
+			if (options && options.password === true) {
+				passwordOptionSet = true;
+			}
+			return 'secret-value';
+		});
+		const rpcClient = testInfo.rpcClient;
+		const result = await testInfo.interactionService.promptForSecretString('Enter password:', true, rpcClient);
+		assert.strictEqual(result, 'secret-value');
+		assert.ok(passwordOptionSet, 'password option should be set to true for secret prompts');
+		showInputBoxStub.restore();
+	});
+
 	test('displayError endpoint', async () => {
 		const testInfo = await createTestRpcServer();
 		const showErrorMessageSpy = sinon.spy(vscode.window, 'showErrorMessage');

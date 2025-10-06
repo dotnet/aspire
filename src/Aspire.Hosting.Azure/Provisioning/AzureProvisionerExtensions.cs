@@ -26,8 +26,8 @@ public static class AzureProvisionerExtensions
         builder.AddAzureEnvironment();
 #pragma warning restore ASPIREAZURE001
 
-        builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
-        builder.Services.TryAddLifecycleHook<AzureProvisioner>();
+        builder.Services.TryAddEventingSubscriber<AzureResourcePreparer>();
+        builder.Services.TryAddEventingSubscriber<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()

@@ -12,12 +12,12 @@ internal static class ResourceIconHelpers
     /// <summary>
     /// Maps a resource to an icon, checking for custom icons first, then falling back to default icons.
     /// </summary>
-    public static Icon GetIconForResource(ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
+    public static Icon GetIconForResource(IconResolver iconResolver, ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
     {
         // Check if the resource has a custom icon specified
         if (!string.IsNullOrWhiteSpace(resource.IconName))
         {
-            var customIcon = IconResolver.ResolveIconName(resource.IconName, desiredSize, resource.IconVariant ?? IconVariant.Filled);
+            var customIcon = iconResolver.ResolveIconName(resource.IconName, desiredSize, resource.IconVariant ?? IconVariant.Filled);
             if (customIcon != null)
             {
                 return customIcon;
@@ -27,14 +27,14 @@ internal static class ResourceIconHelpers
         // Fall back to default icons based on resource type
         var icon = resource.ResourceType switch
         {
-            KnownResourceTypes.Executable => IconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
-            KnownResourceTypes.Project => IconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
-            KnownResourceTypes.Container => IconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
-            KnownResourceTypes.Parameter => IconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
-            KnownResourceTypes.ConnectionString => IconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
-            KnownResourceTypes.ExternalService => IconResolver.ResolveIconName("GlobeArrowForward", desiredSize, desiredVariant),
-            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => IconResolver.ResolveIconName("Database", desiredSize, desiredVariant),
-            _ => IconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
+            KnownResourceTypes.Executable => iconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
+            KnownResourceTypes.Project => iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
+            KnownResourceTypes.Container => iconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
+            KnownResourceTypes.Parameter => iconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
+            KnownResourceTypes.ConnectionString => iconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
+            KnownResourceTypes.ExternalService => iconResolver.ResolveIconName("GlobeArrowForward", desiredSize, desiredVariant),
+            string t when t.Contains("database", StringComparison.OrdinalIgnoreCase) => iconResolver.ResolveIconName("Database", desiredSize, desiredVariant),
+            _ => iconResolver.ResolveIconName("SettingsCogMultiple", desiredSize, desiredVariant),
         };
 
         if (icon == null)

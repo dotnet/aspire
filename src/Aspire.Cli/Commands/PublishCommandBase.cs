@@ -477,6 +477,31 @@ internal abstract class PublishCommandBase : BaseCommand
         return !hasErrors;
     }
 
+    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
+    {
+        if (inputCount > 1)
+        {
+            // Multi-input: just show the label with markdown conversion
+            var labelText = MarkdownToSpectreConverter.ConvertToSpectre($"{input.Label}: ");
+            return labelText;
+        }
+
+        // Single-input: show both StatusText and Label
+        var header = statusText ?? string.Empty;
+        var label = input.Label ?? string.Empty;
+
+        // If StatusText equals Label (case-insensitive), show only the label once
+        if (header.Equals(label, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(label)}[/]";
+        }
+
+        // Show StatusText as header (converted from markdown), then Label on new line
+        var convertedHeader = MarkdownToSpectreConverter.ConvertToSpectre(header);
+        var convertedLabel = MarkdownToSpectreConverter.ConvertToSpectre(label);
+        return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
+    }
+
     private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
@@ -514,15 +539,8 @@ internal abstract class PublishCommandBase : BaseCommand
             // or there are validation errors and this input has an error.
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
-                // For multiple inputs, use the input label as the prompt
-                // For single input, use the activity status text as the prompt
-                var basePromptText = inputs.Count > 1
-                    ? $"{input.Label}: "
-                    : activity.Data.StatusText;
-
-                var promptText = inputs.Count > 1
-                    ? MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)
-                    : $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)}[/]";
+                // Build the prompt text based on number of inputs
+                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
