@@ -16,6 +16,7 @@ using Aspire.Cli.Templating;
 using Aspire.Cli.Utils;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using Semver;
+using Spectre.Console;
 
 namespace Aspire.Cli.Commands;
 
@@ -108,12 +109,16 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         if (initContext.SelectedSolutionFile is not null)
         {
+            InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage("information", string.Format(CultureInfo.CurrentCulture, InitCommandStrings.SolutionDetected, initContext.SelectedSolutionFile.Name));
+            InteractionService.DisplayEmptyLine();
             return await InitializeExistingSolutionAsync(initContext, parseResult, cancellationToken);
         }
         else
         {
+            InteractionService.DisplayEmptyLine();
             InteractionService.DisplayMessage("information", InitCommandStrings.NoSolutionFoundCreatingSingleFileAppHost);
+            InteractionService.DisplayEmptyLine();
             return await CreateEmptyAppHostAsync(parseResult, cancellationToken);
         }
     }
@@ -122,7 +127,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var solutionFile = initContext.SelectedSolutionFile!;
 
-        var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Loading solution projects...", async () =>
+        var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Reading solution...", async () =>
         {
             return await _runner.GetSolutionProjectsAsync(
                 solutionFile,
@@ -138,8 +143,13 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         initContext.SolutionProjects = solutionProjects;
 
-        // Evaluate solution projects to check for existing AppHost and find executable projects
-        await EvaluateSolutionProjectsAsync(initContext, cancellationToken);
+        _ = await InteractionService.ShowStatusAsync("Evaluating existing projects...", async () =>
+        {
+            await EvaluateSolutionProjectsAsync(initContext, cancellationToken);
+
+            // HACK: Need to fix up InteractionService to support Task return from status operations.
+            return 0;
+        });
 
         if (initContext.AlreadyHasAppHost)
         {
@@ -150,11 +160,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         // If there are executable projects, prompt user to select which ones to add to appHost
         if (initContext.ExecutableProjects.Count > 0)
         {
-            InteractionService.DisplayMessage("information", "Found executable projects in solution:");
-            foreach (var project in initContext.ExecutableProjects)
-            {
-                InteractionService.DisplaySubtleMessage($"  - {Path.GetFileNameWithoutExtension(project.Name)}");
-            }
+            var addExecutableProjectsMessage = """
+                                               # Add existing projects to AppHost?
+
+                                               The following projects were found in the solution that can be
+                                               hosted in Aspire. Select the ones that you would like to be
+                                               added to the AppHost project. You can add or remove them
+                                               later as needed.
+                                               """;
+
+            InteractionService.DisplayEmptyLine();
+            InteractionService.DisplayMarkdown(addExecutableProjectsMessage);
+            InteractionService.DisplayEmptyLine();
 
             var selectedProjects = await InteractionService.PromptForSelectionsAsync(
                 "Select projects to add to the AppHost:",
@@ -167,21 +184,63 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // If projects were selected, prompt for which should have ServiceDefaults added
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
-                var projectsForServiceDefaults = await InteractionService.PromptForSelectionsAsync(
-                    "Select projects to add ServiceDefaults reference to:",
-                    initContext.ExecutableProjectsToAddToAppHost,
-                    project => Path.GetFileNameWithoutExtension(project.Name),
-                    cancellationToken);
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMessage("information", "The following projects will be added to the AppHost:");
+                InteractionService.DisplayEmptyLine();
 
-                initContext.ProjectsToAddServiceDefaultsTo = projectsForServiceDefaults;
+                foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
+                {
+                    InteractionService.DisplayMessage("check_box_with_check", project.Name);
+                }
+
+                var addServiceDefaultsMessage = """
+                                # Add ServiceDefaults reference to selected projects?
+
+                                Do you want to add a reference to the ServiceDefaults project to
+                                the executable projects that will be added to the AppHost? The 
+                                ServiceDefaults project contains helper code to make it easier
+                                for you to configure telemetry and service discovery in Aspire.
+                                """;
+
+                InteractionService.DisplayEmptyLine();
+                InteractionService.DisplayMarkdown(addServiceDefaultsMessage);
+                InteractionService.DisplayEmptyLine();
+
+                var serviceDefaultsActions = new Dictionary<string, string>
+                {
+                    { "all", "Add to all previously added projects" },
+                    { "choose", "Let me choose" },
+                    { "none", "Do not add to any projects" }
+                };
+
+                var selection = await InteractionService.PromptForSelectionAsync(
+                    "Add ServiceDefaults reference?",
+                    serviceDefaultsActions,
+                    (action) => action.Value,
+                    cancellationToken
+                );
+
+                switch (selection.Key)
+                {
+                    case "all":
+                        initContext.ProjectsToAddServiceDefaultsTo = initContext.ExecutableProjectsToAddToAppHost;
+                        break;
+                    case "choose":
+                        initContext.ProjectsToAddServiceDefaultsTo = await InteractionService.PromptForSelectionsAsync(
+                            "Select projects to add ServiceDefaults reference to:",
+                            initContext.ExecutableProjectsToAddToAppHost,
+                            project => Path.GetFileNameWithoutExtension(project.Name),
+                            cancellationToken);
+                        break;
+                    case "none":
+                        initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<FileInfo>();
+                        break;
+                }
             }
         }
-        
+     
         // Get template version/channel selection using the same logic as NewCommand
         var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
-        
-        // Use the dotnet CLI runner to create the aspire template directly
-        InteractionService.DisplayMessage("construction", "Creating Aspire projects...");
         
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
@@ -214,14 +273,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 return ExitCodeConstants.FailedToCreateNewProject;
             }
             
-            // Apply the aspire template directly using the CLI runner with solution name
-            var createResult = await _runner.NewProjectAsync(
-                "aspire", 
-                initContext.SolutionName, 
-                tempProjectDir, 
-                [], // No extra args needed for aspire template
-                new DotNetCliRunnerInvocationOptions(), 
-                cancellationToken);
+            var createResult = await InteractionService.ShowStatusAsync(
+                "Creating Aspire projects from template...",
+                async () =>
+                {
+                    return await _runner.NewProjectAsync(
+                        "aspire", 
+                        initContext.SolutionName, 
+                        tempProjectDir, 
+                        [], // No extra args needed for aspire template
+                        new DotNetCliRunnerInvocationOptions(), 
+                        cancellationToken);
+                });
             
             if (createResult != 0)
             {
@@ -288,46 +351,46 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Add selected projects to appHost
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
-                InteractionService.DisplayMessage("construction", "Adding project references to AppHost...");
-                
-                foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
+                foreach(var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
-                    var addRefResult = await _runner.AddProjectReferenceAsync(
-                        appHostProjectFile,
-                        project,
-                        new DotNetCliRunnerInvocationOptions(),
-                        cancellationToken);
+                    var addRefResult = await InteractionService.ShowStatusAsync(
+                        $"Adding {project.Name} to AppHost...", async () =>
+                        {
+                            return await _runner.AddProjectReferenceAsync(
+                                appHostProjectFile,
+                                project,
+                                new DotNetCliRunnerInvocationOptions(),
+                                cancellationToken);
+                        });
 
                     if (addRefResult != 0)
                     {
                         InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
                         return addRefResult;
                     }
-
-                    InteractionService.DisplaySubtleMessage($"  Added reference to {Path.GetFileNameWithoutExtension(project.Name)}");
                 }
             }
 
             // Add ServiceDefaults references to selected projects
             if (initContext.ProjectsToAddServiceDefaultsTo.Count > 0)
             {
-                InteractionService.DisplayMessage("construction", "Adding ServiceDefaults references...");
-                
                 foreach (var project in initContext.ProjectsToAddServiceDefaultsTo)
                 {
-                    var addRefResult = await _runner.AddProjectReferenceAsync(
-                        project,
-                        serviceDefaultsProjectFile,
-                        new DotNetCliRunnerInvocationOptions(),
-                        cancellationToken);
+                    var addRefResult = await InteractionService.ShowStatusAsync(
+                        $"Adding ServiceDefaults reference to {project.Name}...", async () =>
+                        {
+                            return await _runner.AddProjectReferenceAsync(
+                                project,
+                                serviceDefaultsProjectFile,
+                                new DotNetCliRunnerInvocationOptions(),
+                                cancellationToken);
+                        });
 
                     if (addRefResult != 0)
                     {
                         InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
                         return addRefResult;
                     }
-
-                    InteractionService.DisplaySubtleMessage($"  Added ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}");
                 }
             }
 
@@ -467,6 +530,19 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 return explicitPackageFromChannel;
             }
         }
+
+        var latestStable = orderedPackagesFromChannels.FirstOrDefault(p => !SemVersion.Parse(p.Package.Version).IsPrerelease);
+
+        var templateSelectionMessage = $$"""
+                                       # Which version of Aspire do you want to use?
+
+                                       Multiple versions of Aspire are available. If you want to use
+                                       the latest stable version choose ***{{latestStable.Package.Version}}***.
+                                       """;
+
+        InteractionService.DisplayEmptyLine();
+        InteractionService.DisplayMarkdown(templateSelectionMessage);
+        InteractionService.DisplayEmptyLine();
 
         // Prompt user to select from available versions/channels
         var selectedPackageFromChannel = await _prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
