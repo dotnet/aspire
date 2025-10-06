@@ -257,7 +257,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             Writer.WriteString("type", "container.v1");
             WriteConnectionString(container);
-            WriteBuildContext(container);
+            await WriteBuildContextAsync(container).ConfigureAwait(false);
         }
         else
         {
@@ -299,10 +299,17 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         WriteBindings(container);
     }
 
-    private void WriteBuildContext(ContainerResource container)
+    private async Task WriteBuildContextAsync(ContainerResource container)
     {
         if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
         {
+            // If there's a factory, generate the Dockerfile content and write it to the specified path
+            if (annotation.DockerfileFactory is not null)
+            {
+                var dockerfileContent = await annotation.DockerfileFactory(CancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+            }
+
             Writer.WriteStartObject("build");
             Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
             Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));

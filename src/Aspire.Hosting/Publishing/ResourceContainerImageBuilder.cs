@@ -344,6 +344,13 @@ internal sealed class ResourceContainerImageBuilder(
             cancellationToken
             ).ConfigureAwait(false);
 
+        // If there's a factory, generate the Dockerfile content and write it to the specified path
+        if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+        {
+            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+        }
+
         // Resolve build arguments
         var resolvedBuildArguments = new Dictionary<string, string?>();
         foreach (var buildArg in dockerfileBuildAnnotation.BuildArguments)

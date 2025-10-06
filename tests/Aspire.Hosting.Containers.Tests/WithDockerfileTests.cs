@@ -739,4 +739,96 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
     private const string DefaultMessage = "aspire!";
 
+    [Fact]
+    public async Task WithDockerfileSyncFactoryCreatesAnnotationWithFactory()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from factory'";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath, () => dockerfileContent);
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.NotNull(annotation.DockerfileFactory);
+        
+        // Verify the factory produces the expected content
+        var generatedContent = await annotation.DockerfileFactory(CancellationToken.None);
+        Assert.Equal(dockerfileContent, generatedContent);
+    }
+
+    [Fact]
+    public async Task WithDockerfileAsyncFactoryCreatesAnnotationWithFactory()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from async factory'";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath, async (ct) =>
+                               {
+                                   await Task.Delay(1, ct);
+                                   return dockerfileContent;
+                               });
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.NotNull(annotation.DockerfileFactory);
+        
+        // Verify the factory produces the expected content
+        var generatedContent = await annotation.DockerfileFactory(CancellationToken.None);
+        Assert.Equal(dockerfileContent, generatedContent);
+    }
+
+    [Fact]
+    public async Task WithDockerfileFactoryGeneratesFileAtBuildTime()
+    {
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
+        });
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated at build time'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithHttpEndpoint(targetPort: 80)
+                               .WithDockerfile(tempContextPath, () => dockerfileContent);
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
+        
+        // Verify the manifest contains the build context
+        var manifestJson = manifest.ToString();
+        Assert.Contains("\"type\": \"container.v1\"", manifestJson);
+        Assert.Contains("\"context\"", manifestJson);
+        Assert.Contains("\"dockerfile\"", manifestJson);
+    }
+
+    [Fact]
+    public async Task WithDockerfileFactoryWithStageAndBuildArgs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest AS builder\nFROM alpine:latest AS runner";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfile(tempContextPath, () => dockerfileContent, "runner")
+                               .WithBuildArg("VERSION", "1.0");
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.Equal("runner", annotation.Stage);
+        Assert.NotNull(annotation.DockerfileFactory);
+        Assert.Single(annotation.BuildArguments);
+        Assert.Equal("1.0", annotation.BuildArguments["VERSION"]);
+    }
+
 }

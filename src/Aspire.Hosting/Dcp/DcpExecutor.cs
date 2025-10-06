@@ -1527,6 +1527,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     {
         if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
         {
+            // If there's a factory, generate the Dockerfile content and write it to the specified path
+            if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+            {
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(cancellationToken).ConfigureAwait(false);
+                await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            }
+
             var dcpBuildArgs = new List<EnvVar>();
 
             foreach (var buildArgument in dockerfileBuildAnnotation.BuildArguments)
