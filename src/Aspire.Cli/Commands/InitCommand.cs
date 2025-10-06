@@ -176,7 +176,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var selectedProjects = await InteractionService.PromptForSelectionsAsync(
                 "Select projects to add to the AppHost:",
                 initContext.ExecutableProjects,
-                project => Path.GetFileNameWithoutExtension(project.Name),
+                project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
                 cancellationToken);
 
             initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
@@ -190,7 +190,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                 foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
-                    InteractionService.DisplayMessage("check_box_with_check", project.Name);
+                    InteractionService.DisplayMessage("check_box_with_check", project.ProjectFile.Name);
                 }
 
                 var addServiceDefaultsMessage = """
@@ -229,11 +229,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         initContext.ProjectsToAddServiceDefaultsTo = await InteractionService.PromptForSelectionsAsync(
                             "Select projects to add ServiceDefaults reference to:",
                             initContext.ExecutableProjectsToAddToAppHost,
-                            project => Path.GetFileNameWithoutExtension(project.Name),
+                            project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
                             cancellationToken);
                         break;
                     case "none":
-                        initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<FileInfo>();
+                        initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<ExecutableProjectInfo>();
                         break;
                 }
             }
@@ -354,18 +354,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 foreach(var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
                     var addRefResult = await InteractionService.ShowStatusAsync(
-                        $"Adding {project.Name} to AppHost...", async () =>
+                        $"Adding {project.ProjectFile.Name} to AppHost...", async () =>
                         {
                             return await _runner.AddProjectReferenceAsync(
                                 appHostProjectFile,
-                                project,
+                                project.ProjectFile,
                                 new DotNetCliRunnerInvocationOptions(),
                                 cancellationToken);
                         });
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
                 }
@@ -377,10 +377,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 foreach (var project in initContext.ProjectsToAddServiceDefaultsTo)
                 {
                     var addRefResult = await InteractionService.ShowStatusAsync(
-                        $"Adding ServiceDefaults reference to {project.Name}...", async () =>
+                        $"Adding ServiceDefaults reference to {project.ProjectFile.Name}...", async () =>
                         {
                             return await _runner.AddProjectReferenceAsync(
-                                project,
+                                project.ProjectFile,
                                 serviceDefaultsProjectFile,
                                 new DotNetCliRunnerInvocationOptions(),
                                 cancellationToken);
@@ -388,7 +388,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
                 }
@@ -449,15 +449,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task EvaluateSolutionProjectsAsync(InitContext initContext, CancellationToken cancellationToken)
     {
-        var executableProjects = new List<FileInfo>();
+        var executableProjects = new List<ExecutableProjectInfo>();
         
         foreach (var project in initContext.SolutionProjects)
         {
-            // Get both IsAspireHost and OutputType properties in a single call
+            // Get IsAspireHost, OutputType, and TargetFramework properties in a single call
             var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
                 project,
                 [],
-                ["IsAspireHost", "OutputType"],
+                ["IsAspireHost", "OutputType", "TargetFramework"],
                 new DotNetCliRunnerInvocationOptions(),
                 cancellationToken);
 
@@ -483,7 +483,18 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         var outputType = outputTypeElement.GetString();
                         if (outputType == "Exe" || outputType == "WinExe")
                         {
-                            executableProjects.Add(project);
+                            // Get the target framework
+                            var targetFramework = "net9.0"; // Default if not found
+                            if (properties.TryGetProperty("TargetFramework", out var targetFrameworkElement))
+                            {
+                                targetFramework = targetFrameworkElement.GetString() ?? "net9.0";
+                            }
+
+                            executableProjects.Add(new ExecutableProjectInfo
+                            {
+                                ProjectFile = project,
+                                TargetFramework = targetFramework
+                            });
                         }
                     }
                 }
@@ -551,6 +562,22 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 }
 
 /// <summary>
+/// Represents information about an executable project including its file and target framework.
+/// </summary>
+internal sealed class ExecutableProjectInfo
+{
+    /// <summary>
+    /// Gets the project file.
+    /// </summary>
+    public required FileInfo ProjectFile { get; init; }
+
+    /// <summary>
+    /// Gets the target framework moniker (e.g., "net9.0", "net10.0").
+    /// </summary>
+    public required string TargetFramework { get; init; }
+}
+
+/// <summary>
 /// Context class for building up a model of the init operation before executing changes.
 /// </summary>
 internal sealed class InitContext
@@ -593,15 +620,52 @@ internal sealed class InitContext
     /// <summary>
     /// List of executable projects found in the solution (excluding the AppHost).
     /// </summary>
-    public IReadOnlyList<FileInfo> ExecutableProjects { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ExecutableProjects { get; set; } = Array.Empty<ExecutableProjectInfo>();
 
     /// <summary>
     /// Executable projects selected by the user to add to the AppHost.
     /// </summary>
-    public IReadOnlyList<FileInfo> ExecutableProjectsToAddToAppHost { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ExecutableProjectsToAddToAppHost { get; set; } = Array.Empty<ExecutableProjectInfo>();
 
     /// <summary>
     /// Projects selected by the user to add ServiceDefaults reference to.
     /// </summary>
-    public IReadOnlyList<FileInfo> ProjectsToAddServiceDefaultsTo { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ProjectsToAddServiceDefaultsTo { get; set; } = Array.Empty<ExecutableProjectInfo>();
+
+    /// <summary>
+    /// Gets the required AppHost framework based on the highest TFM of all selected executable projects.
+    /// </summary>
+    public string RequiredAppHostFramework
+    {
+        get
+        {
+            if (ExecutableProjectsToAddToAppHost.Count == 0)
+            {
+                return "net9.0"; // Default framework if no projects selected
+            }
+
+            // Parse and compare TFMs to find the highest one
+            var highestVersion = 0.0;
+            var highestTfm = "net9.0";
+
+            foreach (var project in ExecutableProjectsToAddToAppHost)
+            {
+                var tfm = project.TargetFramework;
+                if (tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+                {
+                    var versionString = tfm.Substring(3);
+                    if (double.TryParse(versionString, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var version))
+                    {
+                        if (version > highestVersion)
+                        {
+                            highestVersion = version;
+                            highestTfm = tfm;
+                        }
+                    }
+                }
+            }
+
+            return highestTfm;
+        }
+    }
 }

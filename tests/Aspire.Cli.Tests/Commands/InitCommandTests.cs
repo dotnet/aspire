@@ -14,6 +14,49 @@ namespace Aspire.Cli.Tests.Commands;
 public class InitCommandTests(ITestOutputHelper outputHelper)
 {
     [Fact]
+    public void InitContext_RequiredAppHostFramework_ReturnsHighestTfm()
+    {
+        // Arrange
+        var initContext = new InitContext();
+        
+        // Act & Assert - No projects selected returns default
+        Assert.Equal("net9.0", initContext.RequiredAppHostFramework);
+        
+        // Set up projects with different TFMs
+        initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
+        {
+            new() { ProjectFile = new FileInfo("/test/project1.csproj"), TargetFramework = "net8.0" },
+            new() { ProjectFile = new FileInfo("/test/project2.csproj"), TargetFramework = "net9.0" },
+            new() { ProjectFile = new FileInfo("/test/project3.csproj"), TargetFramework = "net10.0" }
+        };
+        
+        // Act
+        var result = initContext.RequiredAppHostFramework;
+        
+        // Assert
+        Assert.Equal("net10.0", result);
+        
+        // Test with only lower versions
+        initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
+        {
+            new() { ProjectFile = new FileInfo("/test/project1.csproj"), TargetFramework = "net8.0" },
+            new() { ProjectFile = new FileInfo("/test/project2.csproj"), TargetFramework = "net9.0" }
+        };
+        
+        result = initContext.RequiredAppHostFramework;
+        Assert.Equal("net9.0", result);
+        
+        // Test with only net8.0
+        initContext.ExecutableProjectsToAddToAppHost = new List<ExecutableProjectInfo>
+        {
+            new() { ProjectFile = new FileInfo("/test/project1.csproj"), TargetFramework = "net8.0" }
+        };
+        
+        result = initContext.RequiredAppHostFramework;
+        Assert.Equal("net8.0", result);
+    }
+
+    [Fact]
     public async Task InitCommand_WithSingleFileAppHost_DoesNotPromptForProjectNameOrOutputPath()
     {
         // Arrange
