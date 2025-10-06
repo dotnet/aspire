@@ -273,21 +273,11 @@ internal static class ExecutableLaunchMode
     public const string NoDebug = "NoDebug";
 }
 
-/// <summary>
-/// Base properties for all executable launch configurations.
-/// </summary>
-/// <param name="type">Launch configuration type indicator.</param>
-public class ExecutableLaunchConfiguration(string type)
+internal class ExecutableLaunchConfiguration(string type)
 {
-    /// <summary>
-    /// The launch configuration type indicator.
-    /// </summary>
     [JsonPropertyName("type")]
     public string Type { get; set; } = type;
 
-    /// <summary>
-    /// Specifies the launch mode. Currently supported modes are Debug (run the project under the debugger) and NoDebug (run the project without debugging).
-    /// </summary>
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug;
 }
@@ -300,9 +290,6 @@ internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("pro
     [JsonPropertyName("disable_launch_profile")]
     public bool DisableLaunchProfile { get; set; } = false;
 
-    /// <summary>
-    /// Path to the project file for the program that is being launched.
-    /// </summary>
     [JsonPropertyName("project_path")]
     public string ProjectPath { get; set; } = string.Empty;
 }
