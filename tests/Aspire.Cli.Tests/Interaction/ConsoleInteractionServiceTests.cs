@@ -23,6 +23,19 @@ public class ConsoleInteractionServiceTests
     }
 
     [Fact]
+    public async Task PromptForSelectionsAsync_EmptyChoices_ThrowsEmptyChoicesException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
+        var choices = Array.Empty<string>();
+
+        // Act & Assert
+        await Assert.ThrowsAsync<EmptyChoicesException>(() => 
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+    }
+
+    [Fact]
     public void DisplayError_WithMarkupCharacters_DoesNotCauseMarkupParsingError()
     {
         // Arrange

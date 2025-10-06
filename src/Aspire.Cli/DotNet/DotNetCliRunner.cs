@@ -38,6 +38,8 @@ internal interface IDotNetCliRunner
     Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, NuGetPackage[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
     Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
+    Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken);
 }
 
 internal sealed class DotNetCliRunnerInvocationOptions
@@ -1069,5 +1071,100 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         {
             return (exitCode, stdoutLines.ToArray());
         }
+    }
+
+    public async Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["sln", solutionFile.FullName, "list"];
+
+        var stdoutLines = new List<string>();
+        var existingStandardOutputCallback = options.StandardOutputCallback;
+        options.StandardOutputCallback = (line) => {
+            stdoutLines.Add(line);
+            existingStandardOutputCallback?.Invoke(line);
+        };
+
+        var stderrLines = new List<string>();
+        var existingStandardErrorCallback = options.StandardErrorCallback;
+        options.StandardErrorCallback = (line) => {
+            stderrLines.Add(line);
+            existingStandardErrorCallback?.Invoke(line);
+        };
+
+        var exitCode = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: null,
+            workingDirectory: solutionFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (exitCode != 0)
+        {
+            logger.LogError("Failed to list solution projects. Exit code was: {ExitCode}.", exitCode);
+            return (exitCode, Array.Empty<FileInfo>());
+        }
+
+        // Parse output - skip header lines (Project(s) and ----------)
+        var projects = new List<FileInfo>();
+        var startParsing = false;
+        
+        foreach (var line in stdoutLines)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                continue;
+            }
+
+            // Skip header lines
+            if (line.StartsWith("Project(s)", StringComparison.OrdinalIgnoreCase) ||
+                line.StartsWith("----------", StringComparison.Ordinal))
+            {
+                startParsing = true;
+                continue;
+            }
+
+            if (startParsing && line.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+            {
+                var projectPath = Path.IsPathRooted(line)
+                    ? line
+                    : Path.Combine(solutionFile.Directory!.FullName, line);
+                projects.Add(new FileInfo(projectPath));
+            }
+        }
+
+        return (exitCode, projects);
+    }
+
+    public async Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+
+        string[] cliArgs = ["add", projectFile.FullName, "reference", referencedProject.FullName];
+
+        logger.LogInformation("Adding project reference from {ProjectFile} to {ReferencedProject}", projectFile.FullName, referencedProject.FullName);
+
+        var result = await ExecuteAsync(
+            args: cliArgs,
+            env: null,
+            projectFile: projectFile,
+            workingDirectory: projectFile.Directory!,
+            backchannelCompletionSource: null,
+            options: options,
+            cancellationToken: cancellationToken);
+
+        if (result != 0)
+        {
+            logger.LogError("Failed to add project reference from {ProjectFile} to {ReferencedProject}. See debug logs for more details.", projectFile.FullName, referencedProject.FullName);
+        }
+        else
+        {
+            logger.LogInformation("Project reference added from {ProjectFile} to {ReferencedProject}", projectFile.FullName, referencedProject.FullName);
+        }
+
+        return result;
     }
 }
