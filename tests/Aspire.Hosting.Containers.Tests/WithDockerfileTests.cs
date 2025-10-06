@@ -833,4 +833,40 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.Equal("1.0", annotation.BuildArguments["VERSION"]);
     }
 
+    [Fact]
+    public async Task ManifestPublishingWritesDockerfileToResourceSpecificPath()
+    {
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var manifestPath = Path.Combine(tempDir.FullName, "manifest.json");
+            var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+            {
+                Args = ["--publisher", "manifest", "--output-path", manifestPath],
+            });
+            builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+            var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for manifest'";
+            var container = builder.AddContainer("testcontainer", "testimage")
+                                   .WithDockerfile(".", context => dockerfileContent);
+
+            var app = builder.Build();
+            await app.RunAsync();
+
+            // Verify Dockerfile was written to resource-specific path
+            var dockerfilePath = Path.Combine(tempDir.FullName, "testcontainer.Dockerfile");
+            Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+            var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+            Assert.Equal(dockerfileContent, actualContent);
+
+            // Verify manifest references the Dockerfile
+            var manifestContent = await File.ReadAllTextAsync(manifestPath);
+            Assert.Contains("testcontainer.Dockerfile", manifestContent);
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
+
 }
