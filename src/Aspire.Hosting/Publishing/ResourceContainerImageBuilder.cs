@@ -347,7 +347,12 @@ internal sealed class ResourceContainerImageBuilder(
         // If there's a factory, generate the Dockerfile content and write it to the specified path
         if (dockerfileBuildAnnotation.DockerfileFactory is not null)
         {
-            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(cancellationToken).ConfigureAwait(false);
+            var context = new DockerfileFactoryContext
+            {
+                Services = serviceProvider,
+                CancellationToken = cancellationToken
+            };
+            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
             await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
         }
 

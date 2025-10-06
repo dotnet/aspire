@@ -611,7 +611,7 @@ public static class ContainerResourceBuilderExtensions
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, tempDockerfilePath, stage)
         {
-            DockerfileFactory = dockerfileFactory
+            DockerfileFactory = context => dockerfileFactory(context.CancellationToken)
         };
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)

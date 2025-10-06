@@ -25,12 +25,15 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
+    IServiceProvider serviceProvider,
     ILogger logger,
     IPublishingActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
     private IPublishingActivityReporter ActivityReporter => activityReporter;
+
+    private IServiceProvider ServiceProvider => serviceProvider;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -121,6 +124,25 @@ public sealed class AzurePublishingContext(
         if (!outputDirectory.Exists)
         {
             outputDirectory.Create();
+        }
+
+        // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+        foreach (var resource in model.Resources)
+        {
+            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                dockerfileBuildAnnotation.DockerfileFactory is not null)
+            {
+                var context = new DockerfileFactoryContext
+                {
+                    Services = ServiceProvider,
+                    CancellationToken = cancellationToken
+                };
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                // Write to a resource-specific path in the output folder
+                var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
+                await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>()

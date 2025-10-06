@@ -41,5 +41,5 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// When set, this factory will be invoked to generate the Dockerfile content at build time,
     /// and the content will be written to a generated file path.
     /// </summary>
-    public Func<CancellationToken, Task<string>>? DockerfileFactory { get; init; }
+    public Func<DockerfileFactoryContext, Task<string>>? DockerfileFactory { get; init; }
 }

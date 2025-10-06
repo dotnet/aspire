@@ -67,6 +67,25 @@ internal sealed class KubernetesPublishingContext(
 
     private async Task WriteKubernetesOutputAsync(DistributedApplicationModel model, KubernetesEnvironmentResource environment)
     {
+        // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+        foreach (var resource in model.Resources)
+        {
+            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                dockerfileBuildAnnotation.DockerfileFactory is not null)
+            {
+                var context = new DockerfileFactoryContext
+                {
+                    Services = executionContext.ServiceProvider,
+                    CancellationToken = cancellationToken
+                };
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                // Write to a resource-specific path in the output folder
+                var resourceDockerfilePath = Path.Combine(OutputPath, $"{resource.Name}.Dockerfile");
+                await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         foreach (var resource in model.Resources)
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)

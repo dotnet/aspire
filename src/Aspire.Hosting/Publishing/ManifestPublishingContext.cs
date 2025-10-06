@@ -303,16 +303,30 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
     {
         if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
         {
-            // If there's a factory, generate the Dockerfile content and write it to the specified path
+            string dockerfilePath = annotation.DockerfilePath;
+
+            // If there's a factory, generate the Dockerfile content and write it to a resource-specific path in the output folder
             if (annotation.DockerfileFactory is not null)
             {
-                var dockerfileContent = await annotation.DockerfileFactory(CancellationToken).ConfigureAwait(false);
-                await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+                var context = new DockerfileFactoryContext
+                {
+                    Services = ExecutionContext.ServiceProvider,
+                    CancellationToken = CancellationToken
+                };
+                var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);
+                
+                // Write to a resource-specific path in the manifest output directory
+                var manifestDirectory = Path.GetDirectoryName(ManifestPath)!;
+                var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
+                await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+                
+                // Update the dockerfile path to use the generated file
+                dockerfilePath = resourceDockerfilePath;
             }
 
             Writer.WriteStartObject("build");
             Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
-            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(dockerfilePath));
 
             if (annotation.Stage is { } stage)
             {

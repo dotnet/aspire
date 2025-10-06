@@ -1484,7 +1484,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
-        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, _executionContext.ServiceProvider, cancellationToken).ConfigureAwait(false);
 
         var spec = dcpContainerResource.Spec;
 
@@ -1523,14 +1523,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
+    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
         {
             // If there's a factory, generate the Dockerfile content and write it to the specified path
             if (dockerfileBuildAnnotation.DockerfileFactory is not null)
             {
-                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(cancellationToken).ConfigureAwait(false);
+                var context = new DockerfileFactoryContext
+                {
+                    Services = serviceProvider,
+                    CancellationToken = cancellationToken
+                };
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
                 await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
             }
 
