@@ -108,19 +108,17 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
-        // Check if the choices collection is empty - return empty list instead of throwing
+        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
-            DisplayMessage("information", InteractionServiceStrings.NoItemsAvailableForSelection);
-            return Array.Empty<T>();
+            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
         }
 
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
             .UseConverter(choiceFormatter)
             .AddChoices(choices)
-            .PageSize(10)
-            .NotRequired();
+            .PageSize(10);
 
         var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
         return result;

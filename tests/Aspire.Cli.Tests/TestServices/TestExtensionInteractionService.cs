@@ -48,8 +48,12 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
 
     public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
-        // For testing, return an empty list by default
-        return Task.FromResult<IReadOnlyList<T>>(new List<T>());
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)

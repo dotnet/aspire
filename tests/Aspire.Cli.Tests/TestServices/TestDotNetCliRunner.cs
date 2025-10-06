@@ -23,6 +23,8 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
     public Func<FileInfo, bool, bool, string[], IDictionary<string, string>?, TaskCompletionSource<IAppHostBackchannel>?, DotNetCliRunnerInvocationOptions, CancellationToken, Task<int>>? RunAsyncCallback { get; set; }
     public Func<DirectoryInfo, string, bool, int, int, FileInfo?, bool, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, NuGetPackage[]? Packages)>? SearchPackagesAsyncCallback { get; set; }
     public Func<DotNetCliRunnerInvocationOptions, CancellationToken, int>? TrustHttpCertificateAsyncCallback { get; set; }
+    public Func<FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, (int ExitCode, IReadOnlyList<FileInfo> Projects)>? GetSolutionProjectsAsyncCallback { get; set; }
+    public Func<FileInfo, FileInfo, DotNetCliRunnerInvocationOptions, CancellationToken, int>? AddProjectReferenceAsyncCallback { get; set; }
 
     public Task<int> AddPackageAsync(FileInfo projectFilePath, string packageName, string packageVersion, string? nugetSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
@@ -117,5 +119,19 @@ internal sealed class TestDotNetCliRunner : IDotNetCliRunner
         return TrustHttpCertificateAsyncCallback != null
             ? Task.FromResult(TrustHttpCertificateAsyncCallback(options, cancellationToken))
             : throw new NotImplementedException();
+    }
+
+    public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return GetSolutionProjectsAsyncCallback != null
+            ? Task.FromResult(GetSolutionProjectsAsyncCallback(solutionFile, options, cancellationToken))
+            : Task.FromResult<(int, IReadOnlyList<FileInfo>)>((0, Array.Empty<FileInfo>()));
+    }
+
+    public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+    {
+        return AddProjectReferenceAsyncCallback != null
+            ? Task.FromResult(AddProjectReferenceAsyncCallback(projectFile, referencedProject, options, cancellationToken))
+            : Task.FromResult(0);
     }
 }

@@ -1,8 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.DevTunnels;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.DevTunnels_ApiService>("api");
@@ -16,10 +14,8 @@ var privateDevTunnel = builder.AddDevTunnel("devtunnel")
     .WithReference(frontend.GetEndpoint("https"))
     .WithReference(api.GetEndpoint("https"));
 
-// No public API to get the tunnel endpoint directly
-var portResourceName = $"{privateDevTunnel.Resource.Name}-{api.Resource.Name}-https";
-var devTunnelPortEndpoint = builder.CreateResourceBuilder<DevTunnelPortResource>(portResourceName)
-                                   .GetEndpoint("tunnel");
+// Use the GetEndpoint API to get the tunnel endpoint for the API service
+var devTunnelPortEndpoint = privateDevTunnel.GetEndpoint(api, "https");
 
 // Inject the private dev tunnel endpoint for API into the frontend service
 frontend.WithEnvironment("TUNNEL_URL", devTunnelPortEndpoint);

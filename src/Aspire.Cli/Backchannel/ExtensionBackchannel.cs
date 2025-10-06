@@ -32,6 +32,7 @@ internal interface IExtensionBackchannel
     Task DisplayDashboardUrlsAsync(DashboardUrlsState dashboardUrls, CancellationToken cancellationToken);
     Task ShowStatusAsync(string? status, CancellationToken cancellationToken);
     Task<T> PromptForSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
+    Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken) where T : notnull;
     Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken);
     Task<string> PromptForStringAsync(string promptText, string? defaultValue, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
     Task<string> PromptForSecretStringAsync(string promptText, Func<string, ValidationResult>? validator, bool required, CancellationToken cancellationToken);
@@ -435,6 +436,36 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
         }
 
         return choicesByFormattedValue[result];
+    }
+
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+        CancellationToken cancellationToken) where T : notnull
+    {
+        await ConnectAsync(cancellationToken);
+
+        var choicesList = choices.ToList();
+        // this will throw if formatting results in non-distinct values. that should happen because we cannot send the formatter over the wire.
+        var choicesByFormattedValue = choicesList.ToDictionary(choice => choiceFormatter(choice).RemoveSpectreFormatting(), choice => choice);
+
+        using var activity = _activitySource.StartActivity();
+
+        var rpc = await _rpcTaskCompletionSource.Task;
+
+        _logger.LogDebug("Prompting for multiple selections with text: {PromptText}, choices: {Choices}", promptText, choicesByFormattedValue.Keys);
+
+        var choicesArray = choicesByFormattedValue.Keys.ToArray();
+        var result = await rpc.InvokeWithCancellationAsync<string[]?>(
+            "promptForSelections",
+            [_token, promptText, choicesArray],
+            cancellationToken);
+
+        if (result is null)
+        {
+            await ShowStatusAsync(null, cancellationToken);
+            throw new ExtensionOperationCanceledException(string.Format(CultureInfo.CurrentCulture, ErrorStrings.NoSelectionMade, promptText));
+        }
+
+        return result.Select(r => choicesByFormattedValue[r]).ToList();
     }
 
     public async Task<bool> ConfirmAsync(string promptText, bool defaultValue, CancellationToken cancellationToken)

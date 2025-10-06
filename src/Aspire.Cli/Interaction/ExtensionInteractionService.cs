@@ -187,11 +187,33 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
     }
 
-    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+        CancellationToken cancellationToken = default) where T : notnull
     {
-        // For now, extension doesn't support multi-select, so fall back to console
-        // In the future, this could be extended to support multi-select in the extension
-        return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+        if (_extensionPromptEnabled)
+        {
+            var tcs = new TaskCompletionSource<IReadOnlyList<T>>();
+
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
+            {
+                try
+                {
+                    var result = await Backchannel.PromptForSelectionsAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                    DisplayError(ex.Message);
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+        else
+        {
+            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+        }
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingSdkVersion)

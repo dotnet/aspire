@@ -19,7 +19,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the endpoint annotation associated with the endpoint reference.
     /// </summary>
-    public EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
+    public EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException(ErrorMessage ?? $"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
 
     /// <summary>
     /// Gets the resource owner of the endpoint reference.
@@ -32,6 +32,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// Gets the name of the endpoint associated with the endpoint reference.
     /// </summary>
     public string EndpointName { get; }
+
+    /// <summary>
+    /// Gets or sets a custom error message to be thrown when the endpoint annotation is not found.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.

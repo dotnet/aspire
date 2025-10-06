@@ -940,6 +940,18 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
         return Task.FromResult(choices.First());
     }
 
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        _ = _responses.TryDequeue(out _);
+        // For simplicity, return all choices in the test
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
+    }
+
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
         BooleanPromptCalls.Add(new BooleanPromptCall(promptText, defaultValue));

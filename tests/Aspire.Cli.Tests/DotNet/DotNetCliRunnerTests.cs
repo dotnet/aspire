@@ -763,6 +763,106 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task GetSolutionProjectsAsync_ParsesOutputCorrectly()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a fake solution file
+        var solutionFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Test.sln"));
+        await File.WriteAllTextAsync(solutionFile.FullName, "Not a real solution file.");
+
+        // Create project files
+        var project1Dir = workspace.WorkspaceRoot.CreateSubdirectory("Project1");
+        var project1File = new FileInfo(Path.Combine(project1Dir.FullName, "Project1.csproj"));
+        await File.WriteAllTextAsync(project1File.FullName, "Not a real project file.");
+
+        var project2Dir = workspace.WorkspaceRoot.CreateSubdirectory("Project2");
+        var project2File = new FileInfo(Path.Combine(project2Dir.FullName, "Project2.csproj"));
+        await File.WriteAllTextAsync(project2File.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions
+        {
+            StandardOutputCallback = (line) => outputHelper.WriteLine($"stdout: {line}")
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, invocationOptions) =>
+            {
+                // Simulate dotnet sln list output
+                invocationOptions.StandardOutputCallback?.Invoke("Project(s)");
+                invocationOptions.StandardOutputCallback?.Invoke("----------");
+                invocationOptions.StandardOutputCallback?.Invoke($"Project1{Path.DirectorySeparatorChar}Project1.csproj");
+                invocationOptions.StandardOutputCallback?.Invoke($"Project2{Path.DirectorySeparatorChar}Project2.csproj");
+            },
+            0
+        );
+
+        var (exitCode, projects) = await runner.GetSolutionProjectsAsync(solutionFile, options, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+        Assert.Equal(2, projects.Count);
+        Assert.Contains(projects, p => p.Name == "Project1.csproj");
+        Assert.Contains(projects, p => p.Name == "Project2.csproj");
+    }
+
+    [Fact]
+    public async Task AddProjectReferenceAsync_ExecutesCorrectCommand()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var referencedProject = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Service.csproj"));
+        await File.WriteAllTextAsync(referencedProject.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                Assert.Contains("add", args);
+                Assert.Contains(projectFile.FullName, args);
+                Assert.Contains("reference", args);
+                Assert.Contains(referencedProject.FullName, args);
+            },
+            0
+        );
+
+        var exitCode = await runner.AddProjectReferenceAsync(projectFile, referencedProject, options, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
