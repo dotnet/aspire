@@ -116,7 +116,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(400).json(response).end();
+                    res.status(500).json(response).end();
                     return;
                 }
 
@@ -132,7 +132,7 @@ export default class AspireDcpServer {
 
                     extensionLogOutputChannel.error(`Error creating debug session ${runId}: ${error.message}`);
                     const response: ErrorResponse = { error };
-                    res.status(400).json(response).end();
+                    res.status(500).json(response).end();
                     return;
                 }
 
