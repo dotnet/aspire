@@ -281,8 +281,11 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _resources = TelemetryRepository.GetResources();
 
-        Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
-        _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        if (_trace == null || _trace.TraceId != TraceId || TelemetryRepository.HasUpdatedTrace(_trace))
+        {
+            Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
+            _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        }
 
         if (_trace == null)
         {
