@@ -14,7 +14,6 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
-using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -337,9 +336,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var currentStepProgress = new ProgressContextInfo();
         PromptState? promptState = null;
 
-        var p = new PublishingActivityProcessor(publishingActivities, NullLogger.Instance, cancellationToken);
-
-        await p.ProcessPublishingActivities(async (activity, cancellationToken) =>
+        await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
             // PublishComplete is emitted at the end of the publishing process
             // by the DistributedApplicationRunner. Display the final status and
@@ -348,7 +345,7 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 publishingActivity = activity;
 
-                //break;
+                break;
             }
             else if (activity.Type == PublishingActivityTypes.Step)
             {
@@ -483,7 +480,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     task.ProgressTask.Description = $"  {task.StatusText.EscapeMarkup()}";
                 }
             }
-        });
+        }
 
         var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
         var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
@@ -541,6 +538,7 @@ internal abstract class PublishCommandBase : BaseCommand
             throw new InvalidOperationException("Prompt provided without input data.");
         }
 
+        // If any inputs are still loading then display a loading status until they're available.
         if (inputs.Any(input => input.IsOptionsLoading))
         {
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -561,12 +559,9 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        // Check for validation errors. If there are errors then this isn't the first time the user has been prompted.
-        var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
-
         // For multiple inputs, display the activity status text as a header.
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
-        if (!hasValidationErrors && !promptState.DisplayedStatusText && inputs.Count > 1)
+        if (!promptState.DisplayedStatusText && inputs.Count > 1)
         {
             var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
@@ -585,6 +580,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
             // Get prompt for input if there are no validation errors (first time we've asked)
             // or there are validation errors and this input has an error.
+            var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
                 // Build the prompt text based on number of inputs
