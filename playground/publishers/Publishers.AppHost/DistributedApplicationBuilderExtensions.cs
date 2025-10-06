@@ -34,22 +34,22 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Application Configuration",
                 "Configure additional application settings:",
                 [
-                    new InteractionInput
-                    {
-                        Name = "ApplicationName",
-                        Label = "Application Name",
-                        InputType = InputType.Text,
-                        Required = true,
-                        Placeholder = "my-app"
-                    },
-                    new InteractionInput
-                    {
-                        Name = "ApplicationVersion",
-                        Label = "Application Version",
-                        InputType = InputType.Text,
-                        Required = false,
-                        Placeholder = "1.0.0"
-                    },
+                    //new InteractionInput
+                    //{
+                    //    Name = "ApplicationName",
+                    //    Label = "Application Name",
+                    //    InputType = InputType.Text,
+                    //    Required = true,
+                    //    Placeholder = "my-app"
+                    //},
+                    //new InteractionInput
+                    //{
+                    //    Name = "ApplicationVersion",
+                    //    Label = "Application Version",
+                    //    InputType = InputType.Text,
+                    //    Required = false,
+                    //    Placeholder = "1.0.0"
+                    //},
                     new InteractionInput
                     {
                         Name = "SSLCertificateType",
@@ -74,7 +74,6 @@ internal static class IDistributedApplicationBuilderExtensions
                             DependsOnInputs = ["SSLCertificateType"],
                             LoadOptions = async (c) =>
                             {
-                                System.Diagnostics.Debugger.Launch();
                                 await Task.Delay(1000);
                                 var dependsOnInput = c.Inputs["SSLCertificateType"];
                                 var options = new List<KeyValuePair<string, string>>();

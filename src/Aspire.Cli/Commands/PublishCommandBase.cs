@@ -250,6 +250,10 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         public required string ActivityId { get; init; }
         public int InputIndex { get; internal set; }
+        public bool DisplayedStatusText { get; set; }
+        public Status? Status { get; internal set; }
+        public TaskCompletionSource? CompleteStatusTcs { get; internal set; }
+        public Task? LoadingTask { get; internal set; }
     }
 
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
@@ -290,7 +294,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     promptState = new PromptState { ActivityId = activity.Data.Id };
                 }
 
-                _ = HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
+                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
             }
             else
             {
@@ -537,15 +541,37 @@ internal abstract class PublishCommandBase : BaseCommand
             throw new InvalidOperationException("Prompt provided without input data.");
         }
 
+        if (inputs.Any(input => input.IsOptionsLoading))
+        {
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            promptState.Status = AnsiConsole.Status();
+            promptState.CompleteStatusTcs = tcs;
+            promptState.LoadingTask = promptState.Status.StartAsync("Loading", c => tcs.Task);
+            return;
+        }
+        else
+        {
+            promptState.CompleteStatusTcs?.TrySetResult();
+            promptState.CompleteStatusTcs = null;
+
+            if (promptState.LoadingTask is { } task)
+            {
+                await task;
+                promptState.LoadingTask = null;
+            }
+        }
+
         // Check for validation errors. If there are errors then this isn't the first time the user has been prompted.
         var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
 
         // For multiple inputs, display the activity status text as a header.
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
-        if (!hasValidationErrors && inputs.Count > 1)
+        if (!hasValidationErrors && !promptState.DisplayedStatusText && inputs.Count > 1)
         {
             var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
+
+            promptState.DisplayedStatusText = true;
         }
 
         // Handle multiple inputs
