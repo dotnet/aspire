@@ -13,7 +13,7 @@ public static class InteractionMarkdownHelper
     public static MarkdownProcessor CreateProcessor(IStringLocalizer<ControlsStrings> loc)
     {
         // Interaction Markdown comes from the app host so there aren't restrictions on URL schemes.
-        return new MarkdownProcessor(loc, safeUrlSchemes: null);
+        return new MarkdownProcessor(loc, safeUrlSchemes: null, extensions: []);
     }
 
     public static MarkupString ToMarkupString(MarkdownProcessor markdownProcessor, string markdown)

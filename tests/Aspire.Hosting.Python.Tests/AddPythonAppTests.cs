@@ -9,7 +9,6 @@ using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
-using System.Runtime.CompilerServices;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -25,7 +24,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         using var builder = TestDistributedApplicationBuilder.Create(options =>
         {
-            GetProjectDirectoryRef(options) = Path.GetFullPath(projectDirectory);
+            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         }, outputHelper);
 
@@ -57,7 +56,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         using var builder = TestDistributedApplicationBuilder.Create(options =>
         {
-            GetProjectDirectoryRef(options) = Path.GetFullPath(projectDirectory);
+            options.ProjectDirectory = Path.GetFullPath(projectDirectory);
             options.Args = ["--publisher", "manifest", "--output-path", manifestPath];
         }, outputHelper);
 
@@ -82,9 +81,6 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
     }
-
-    [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "_projectDirectory")]
-    static extern ref string? GetProjectDirectoryRef(DistributedApplicationOptions? @this);
 
     [Fact]
     [RequiresTools(["python"])]

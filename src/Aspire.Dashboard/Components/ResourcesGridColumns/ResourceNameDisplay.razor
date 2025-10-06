@@ -5,6 +5,7 @@
 @using Aspire.Dashboard.Resources
 
 @inject IStringLocalizer<Columns> Loc
+@inject IconResolver IconResolver
 
 <span class="resource-name-container">
     @* Do this to trim significant whitespace so there isn't a space added between icon and text *@
@@ -13,7 +14,7 @@
                     Class="resource-icon"
                     Color="Color.Custom"
                     CustomColor="@ColorGenerator.Instance.GetColorVariableByKey(FormatName(Resource))"
-                    Value="@ResourceIconHelpers.GetIconForResource(Resource, IconSize.Size16)" />
+                    Value="@ResourceIconHelpers.GetIconForResource(IconResolver, Resource, IconSize.Size16)" />
     }
     @{
         <span class="resource-name-text"><FluentHighlighter HighlightedText="@FilterText" Text="@FormatName(Resource)" /></span>

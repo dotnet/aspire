@@ -91,6 +91,11 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.init",
+        "title": "%command.init%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.publish",
         "title": "%command.publish%",
         "category": "Aspire"

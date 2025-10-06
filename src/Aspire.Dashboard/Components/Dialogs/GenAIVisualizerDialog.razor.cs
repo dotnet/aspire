@@ -8,6 +8,7 @@ using Aspire.Dashboard.Model.Markdown;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
+using Aspire.Dashboard.Telemetry;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -49,6 +50,9 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     [Inject]
     public required ILogger<GenAIVisualizerDialog> Logger { get; init; }
+
+    [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
 
     protected override void OnInitialized()
     {
@@ -154,7 +158,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
         var selectedIndex = SelectedItem?.Index;
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(newSpan, TelemetryRepository, TelemetryRepository.GetResources());
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, Logger, TelemetryRepository, Content.GetContextGenAISpans);
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId: null, ErrorRecorder, TelemetryRepository, Content.GetContextGenAISpans);
 
         if (selectedIndex != null)
         {
@@ -216,7 +220,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
     public static async Task OpenDialogAsync(ViewportInformation viewportInformation, IDialogService dialogService,
         IStringLocalizer<Resources.Dialogs> dialogsLoc, OtlpSpan span, long? selectedLogEntryId,
-        TelemetryRepository telemetryRepository, ILogger logger, List<OtlpResource> resources, Func<List<OtlpSpan>> getContextGenAISpans)
+        TelemetryRepository telemetryRepository, ITelemetryErrorRecorder errorRecorder, List<OtlpResource> resources, Func<List<OtlpSpan>> getContextGenAISpans)
     {
         var title = span.Name;
         var width = viewportInformation.IsDesktop ? "75vw" : "100vw";
@@ -232,7 +236,7 @@ public partial class GenAIVisualizerDialog : ComponentBase, IDisposable
 
         var spanDetailsViewModel = SpanDetailsViewModel.Create(span, telemetryRepository, resources);
 
-        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, logger, telemetryRepository, getContextGenAISpans);
+        var dialogViewModel = GenAIVisualizerDialogViewModel.Create(spanDetailsViewModel, selectedLogEntryId, errorRecorder, telemetryRepository, getContextGenAISpans);
 
         await dialogService.ShowDialogAsync<GenAIVisualizerDialog>(dialogViewModel, parameters);
     }

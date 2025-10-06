@@ -37,6 +37,14 @@
       <Uri>https://github.com/dotnet/extensions</Uri>
       <Sha>06390edc297ba13a599edd140764b5a02bcf4e40</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.Extensions.ServiceDiscovery" Version="9.5.0">
+      <Uri>https://github.com/dotnet/extensions</Uri>
+      <Sha>6218df0ffff86df912bd2035854c80480476e803</Sha>
+    </Dependency>
+    <Dependency Name="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="9.5.0">
+      <Uri>https://github.com/dotnet/extensions</Uri>
+      <Sha>6218df0ffff86df912bd2035854c80480476e803</Sha>
+    </Dependency>
     <Dependency Name="Microsoft.Extensions.TimeProvider.Testing" Version="9.9.0">
       <Uri>https://github.com/dotnet/extensions</Uri>
       <Sha>06390edc297ba13a599edd140764b5a02bcf4e40</Sha>
@@ -143,18 +151,6 @@
     </Dependency>
     <Dependency Name="Microsoft.Extensions.Caching.Memory" Version="9.0.9">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-runtime</Uri>
-      <Sha>893c2ebbd49952ca49e93298148af2d95a61a0a4</Sha>
-    </Dependency>
-    <Dependency Name="System.Threading.Channels" Version="9.0.9">
-      <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>893c2ebbd49952ca49e93298148af2d95a61a0a4</Sha>
-    </Dependency>
-    <Dependency Name="Microsoft.Bcl.Memory" Version="9.0.9">
-      <Uri>https://github.com/dotnet/runtime</Uri>
-      <Sha>893c2ebbd49952ca49e93298148af2d95a61a0a4</Sha>
-    </Dependency>
-    <Dependency Name="Microsoft.Bcl.TimeProvider" Version="9.0.9">
-      <Uri>https://github.com/dotnet/runtime</Uri>
       <Sha>893c2ebbd49952ca49e93298148af2d95a61a0a4</Sha>
     </Dependency>
   </ProductDependencies>

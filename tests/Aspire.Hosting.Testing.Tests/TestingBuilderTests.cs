@@ -20,6 +20,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     private static readonly TimeSpan s_appAliveCheckTimeout = TimeSpan.FromMinutes(1);
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public void TestingBuilderHasAllPropertiesFromRealBuilder()
     {
         var realBuilderProperties = typeof(IDistributedApplicationBuilder).GetProperties().Select(p => p.Name).ToList();
@@ -30,6 +31,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task CanLoadFromDirectoryOutsideOfAppContextBaseDirectory()
     {
         // This test depends on the TestProject.AppHost not being in `AppContext.BaseDirectory` for the tests assembly.
@@ -67,6 +69,7 @@ public class TestingBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningOnAzdoBuildMachine))]
     public async Task ThrowsForAssemblyWithoutAnEntrypoint()
     {
         var ioe = await Assert.ThrowsAsync<InvalidOperationException>(() => DistributedApplicationTestingBuilder.CreateAsync(typeof(Microsoft.Extensions.Logging.ConsoleLoggerExtensions)));

@@ -2240,6 +2240,70 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="child">The child of <paramref name="builder"/>.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithChildRelationship</c> method is used to add child relationships to the resource. Relationships are used to link
+    /// resources together in UI.
+    /// </para>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var parameter = builder.AddParameter("parameter");
+    ///
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    ///                      .WithChildRelationship(parameter);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithChildRelationship<T>(
+        this IResourceBuilder<T> builder,
+        IResourceBuilder<IResource> child) where T : IResource
+    {
+        child.WithRelationship(builder.Resource, KnownRelationshipTypes.Parent);
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ResourceRelationshipAnnotation"/> to the resource annotations to add a parent-child relationship.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="child">The child of <paramref name="builder"/>.</param>
+    /// <returns>A resource builder.</returns>
+    /// <remarks>
+    /// <para>
+    /// The <c>WithChildRelationship</c> method is used to add child relationships to the resource. Relationships are used to link
+    /// resources together in UI.
+    /// </para>
+    /// <example>
+    /// This example shows adding a relationship between two resources.
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var parameter = builder.AddParameter("parameter");
+    ///
+    /// var backend = builder.AddProject&lt;Projects.Backend&gt;("backend");
+    ///                     .WithChildRelationship(parameter.Resource);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithChildRelationship<T>(
+         this IResourceBuilder<T> builder,
+         IResource child) where T : IResource
+    {
+        var childBuilder = builder.ApplicationBuilder.CreateResourceBuilder(child);
+        return builder.WithChildRelationship(childBuilder);
+    }
+
+    /// <summary>
     /// Specifies the icon to use when displaying the resource in the dashboard.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -2309,15 +2373,15 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(launchConfiguration);
 
+        if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+        {
+            return builder;
+        }
+
         if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
             resourceWithArgs.WithArgs(ctx =>
             {
-                if (!ctx.ExecutionContext.IsRunMode)
-                {
-                    return;
-                }
-
                 var config = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IConfiguration>();
                 if (ExtensionUtils.IsExtensionHost(config) && argsCallback is not null)
                 {

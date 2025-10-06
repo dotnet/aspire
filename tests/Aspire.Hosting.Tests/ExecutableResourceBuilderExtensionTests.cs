@@ -1,5 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable IDE0005 // Using directive is unnecessary.
+
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests;
@@ -64,5 +69,30 @@ public class ExecutableResourceBuilderExtensionTests
 
         var annotation = executable.Resource.Annotations.OfType<ExecutableAnnotation>().Single();
         Assert.Equal(builder.AppHostDirectory, annotation.WorkingDirectory);
+    }
+
+    [Fact]
+    public void WithVSCodeDebugSupportAddsAnnotationInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
+            .WithVSCodeDebugSupport("project.py", "python", "ms-python.python");
+
+        var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.NotNull(annotation);
+        Assert.Equal("project.py", annotation.ProjectPath);
+        Assert.Equal("python", annotation.DebugAdapterId);
+        Assert.Equal("ms-python.python", annotation.RequiredExtensionId);
+    }
+
+    [Fact]
+    public void WithVSCodeDebugSupportDoesNotAddAnnotationInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
+            .WithVSCodeDebugSupport("project.py", "python", "ms-python.python");
+
+        var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
+        Assert.Null(annotation);
     }
 }

@@ -7,7 +7,7 @@ namespace Aspire.Templates.Tests;
 
 public abstract class NewUpAndBuildSupportProjectTemplatesBase(ITestOutputHelper testOutput) : TemplateTestsBase(testOutput)
 {
-    public const string AspireVersionNext = "9.5";
+    public const string AspireVersionNext = "13.0";
 
     [Trait("category", "basic-build")]
     protected async Task CanNewAndBuildActual(string templateName, string extraTestCreationArgs, TestSdk sdk, TestTargetFramework tfm, string? error)

@@ -201,10 +201,16 @@ public static class ParameterResourceBuilderExtensions
         return builder;
     }
 
-    private static string GetParameterValue(ConfigurationManager configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
+    // Internal to allow ParameterProcessor to check for configured values
+    // without triggering default value generation
+    internal static string GetParameterValue(IConfiguration configuration, string name, ParameterDefault? parameterDefault, string? configurationKey = null)
     {
         configurationKey ??= $"Parameters:{name}";
-        return configuration[configurationKey]
+        
+        // Use the shared helper to get the value with normalization support
+        var value = configuration.GetValueWithNormalizedKey(configurationKey);
+        
+        return value
             ?? parameterDefault?.GetDefaultValue()
             ?? throw new MissingParameterValueException($"Parameter resource could not be used because configuration key '{configurationKey}' is missing and the Parameter has no default value.");
     }
