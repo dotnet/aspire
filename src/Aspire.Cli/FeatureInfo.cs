@@ -57,7 +57,7 @@ internal sealed class FeatureInfo
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.StagingChannelEnabled}",
             Name = "Staging Channel",
-            Description = "Enable access to staging/pre-release packages and templates"
+            Description = "Enable access to staging packages and templates"
         },
         new()
         {
