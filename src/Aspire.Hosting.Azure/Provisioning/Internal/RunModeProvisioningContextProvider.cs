@@ -29,7 +29,6 @@ internal sealed class RunModeProvisioningContextProvider(
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
     IUserSecretsManager userSecretsManager) : BaseProvisioningContextProvider(
         interactionService,
-        options,
         environment,
         logger,
         armClientProvider,
@@ -39,14 +38,24 @@ internal sealed class RunModeProvisioningContextProvider(
         userSecretsManager)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly AzureProvisionerOptions _options = options.Value;
+
+    private void InitializeFromAzureProvisionerOptions()
+    {
+        SubscriptionId = _options.SubscriptionId;
+        ResourceGroup = _options.ResourceGroup;
+        ResourceGroupPrefix = _options.ResourceGroupPrefix;
+        AllowResourceGroupCreation = _options.AllowResourceGroupCreation ?? false;
+        Location = _options.Location;
+    }
 
     protected override string GetDefaultResourceGroupName()
     {
         var prefix = "rg-aspire";
 
-        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+        if (!string.IsNullOrWhiteSpace(ResourceGroupPrefix))
         {
-            prefix = _options.ResourceGroupPrefix;
+            prefix = ResourceGroupPrefix;
         }
 
         var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
@@ -65,8 +74,11 @@ internal sealed class RunModeProvisioningContextProvider(
 
     private void EnsureProvisioningOptions(JsonObject userSecrets)
     {
+        // Initialize the base properties from the original options
+        InitializeFromAzureProvisionerOptions();
+
         if (!_interactionService.IsAvailable ||
-            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
+            (!string.IsNullOrEmpty(Location) && !string.IsNullOrEmpty(SubscriptionId)))
         {
             // If the interaction service is not available, or
             // if both options are already set, we can skip the prompt
@@ -109,7 +121,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             .OrderBy(kvp => kvp.Value)
                             .ToList();
 
-        while (_options.Location == null || _options.SubscriptionId == null)
+        while (Location == null || SubscriptionId == null)
         {
             var messageBarResult = await _interactionService.PromptNotificationAsync(
                  AzureProvisioningStrings.NotificationTitle,
@@ -163,17 +175,17 @@ internal sealed class RunModeProvisioningContextProvider(
 
                 if (!result.Canceled)
                 {
-                    _options.Location = result.Data[LocationName].Value;
-                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
-                    _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                    _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
+                    Location = result.Data[LocationName].Value;
+                    SubscriptionId = result.Data[SubscriptionIdName].Value;
+                    ResourceGroup = result.Data[ResourceGroupName].Value;
+                    AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
 
                     var azureSection = userSecrets.Prop("Azure");
 
                     // Persist the parameter value to user secrets so they can be reused in the future
-                    azureSection["Location"] = _options.Location;
-                    azureSection["SubscriptionId"] = _options.SubscriptionId;
-                    azureSection["ResourceGroup"] = _options.ResourceGroup;
+                    azureSection["Location"] = Location;
+                    azureSection["SubscriptionId"] = SubscriptionId;
+                    azureSection["ResourceGroup"] = ResourceGroup;
 
                     _provisioningOptionsAvailable.SetResult();
                 }

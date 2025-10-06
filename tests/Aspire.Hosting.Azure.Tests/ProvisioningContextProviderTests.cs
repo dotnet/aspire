@@ -379,7 +379,6 @@ public class ProvisioningContextProviderTests
     public async Task PublishMode_CreateProvisioningContextAsync_ReturnsValidContext()
     {
         // Arrange
-        var options = ProvisioningTestHelpers.CreateOptions();
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -389,7 +388,6 @@ public class ProvisioningContextProviderTests
 
         var provider = new PublishModeProvisioningContextProvider(
             _defaultInteractionService,
-            options,
             environment,
             logger,
             armClientProvider,
@@ -461,7 +459,6 @@ public class ProvisioningContextProviderTests
     public async Task PublishMode_CreateProvisioningContextAsync_SavesSecretsUnderPublishModeKey()
     {
         // Arrange
-        var options = ProvisioningTestHelpers.CreateOptions(resourceGroup: null); // Force resource group generation
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger<PublishModeProvisioningContextProvider>();
         var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
@@ -475,7 +472,6 @@ public class ProvisioningContextProviderTests
 
         var provider = new PublishModeProvisioningContextProvider(
             _defaultInteractionService,
-            options,
             environment,
             logger,
             armClientProvider,

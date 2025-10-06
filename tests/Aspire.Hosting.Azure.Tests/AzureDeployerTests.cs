@@ -966,18 +966,42 @@ public class AzureDeployerTests(ITestOutputHelper output)
         IPublishingActivityReporter? activityReporter = null,
         bool setDefaultProvisioningOptions = true)
     {
-        var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
         var environment = ProvisioningTestHelpers.CreateEnvironment();
         var logger = ProvisioningTestHelpers.CreateLogger();
         armClientProvider ??= ProvisioningTestHelpers.CreateArmClientProvider();
         var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
         var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+
+        // Set default Azure provisioning options in user secrets
+        // under the target environment for publish mode
+        IUserSecretsManager userSecretsManager;
+        if (setDefaultProvisioningOptions)
+        {
+            var testUserSecretsManager = new TestUserSecretsManager("test");
+            var userSecrets = new JsonObject();
+
+            userSecrets["Azure:test:SubscriptionId"] = "12345678-1234-1234-1234-123456789012";
+            userSecrets["Azure:test:Location"] = "westus2";
+            userSecrets["Azure:test:ResourceGroup"] = "test-rg";
+
+            testUserSecretsManager.SetLoadedSecrets(userSecrets);
+            userSecretsManager = testUserSecretsManager;
+        }
+        else
+        {
+            userSecretsManager = new NoOpUserSecretsManager();
+        }
+
         builder.Services.AddSingleton(armClientProvider);
         builder.Services.AddSingleton(userPrincipalProvider);
         builder.Services.AddSingleton(tokenCredentialProvider);
         builder.Services.AddSingleton(environment);
         builder.Services.AddSingleton(logger);
-        builder.Services.AddSingleton(options);
+
+        // Register empty options for back-compat
+        var emptyOptions = ProvisioningTestHelpers.CreateOptions(null, null, null);
+        builder.Services.AddSingleton(emptyOptions);
+
         if (interactionService is not null)
         {
             builder.Services.AddSingleton(interactionService);
@@ -987,7 +1011,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             builder.Services.AddSingleton(activityReporter);
         }
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
+        builder.Services.AddSingleton(userSecretsManager);
         if (bicepProvisioner is not null)
         {
             builder.Services.AddSingleton(bicepProvisioner);

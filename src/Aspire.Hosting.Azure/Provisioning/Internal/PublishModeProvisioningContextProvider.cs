@@ -12,7 +12,6 @@ using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
@@ -22,7 +21,6 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal sealed class PublishModeProvisioningContextProvider(
     IInteractionService interactionService,
-    IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
     ILogger<PublishModeProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
@@ -32,7 +30,6 @@ internal sealed class PublishModeProvisioningContextProvider(
     IPublishingActivityReporter activityReporter,
     IUserSecretsManager userSecretsManager) : BaseProvisioningContextProvider(
         interactionService,
-        options,
         environment,
         logger,
         armClientProvider,
@@ -47,9 +44,9 @@ internal sealed class PublishModeProvisioningContextProvider(
     {
         var prefix = "rg-aspire";
 
-        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
+        if (!string.IsNullOrWhiteSpace(ResourceGroupPrefix))
         {
-            prefix = _options.ResourceGroupPrefix;
+            prefix = ResourceGroupPrefix;
         }
 
         var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - 1; // extra '-'
@@ -81,13 +78,6 @@ internal sealed class PublishModeProvisioningContextProvider(
 
     private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        // Clear any options that might have been loaded from top-level configuration
-        // so we can read from values user secrets
-        _options.SubscriptionId = null;
-        _options.Location = null;
-        _options.ResourceGroup = null;
-        _options.AllowResourceGroupCreation = false;
-
         var subscriptionKey = $"Azure:{_deploymentKey}:SubscriptionId";
         var locationKey = $"Azure:{_deploymentKey}:Location";
         var resourceGroupKey = $"Azure:{_deploymentKey}:ResourceGroup";
@@ -99,61 +89,61 @@ internal sealed class PublishModeProvisioningContextProvider(
         // Set options only from user secrets values
         if (!string.IsNullOrEmpty(existingSubscriptionId))
         {
-            _options.SubscriptionId = existingSubscriptionId;
+            SubscriptionId = existingSubscriptionId;
         }
 
         if (!string.IsNullOrEmpty(existingLocation))
         {
-            _options.Location = existingLocation;
+            Location = existingLocation;
         }
 
         if (!string.IsNullOrEmpty(existingResourceGroup))
         {
-            _options.ResourceGroup = existingResourceGroup;
-            _options.AllowResourceGroupCreation = true;
+            ResourceGroup = existingResourceGroup;
+            AllowResourceGroupCreation = true;
         }
 
-        while (_options.Location == null || _options.SubscriptionId == null)
+        while (Location == null || SubscriptionId == null)
         {
-            if (_options.SubscriptionId == null)
+            if (SubscriptionId == null)
             {
                 await PromptForSubscriptionAsync(cancellationToken).ConfigureAwait(false);
-                if (_options.SubscriptionId == null)
+                if (SubscriptionId == null)
                 {
                     continue;
                 }
             }
 
-            if (_options.Location == null)
+            if (Location == null)
             {
                 await PromptForLocationAndResourceGroupAsync(cancellationToken).ConfigureAwait(false);
-                if (_options.Location == null)
+                if (Location == null)
                 {
                     continue;
                 }
             }
         }
 
-        if (_options.SubscriptionId != existingSubscriptionId)
+        if (SubscriptionId != existingSubscriptionId)
         {
-            userSecrets[subscriptionKey] = _options.SubscriptionId;
+            userSecrets[subscriptionKey] = SubscriptionId;
         }
 
-        if (_options.Location != existingLocation)
+        if (Location != existingLocation)
         {
-            userSecrets[locationKey] = _options.Location;
+            userSecrets[locationKey] = Location;
         }
 
-        if (_options.ResourceGroup != existingResourceGroup)
+        if (ResourceGroup != existingResourceGroup)
         {
-            userSecrets[resourceGroupKey] = _options.ResourceGroup;
+            userSecrets[resourceGroupKey] = ResourceGroup;
         }
     }
 
     private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "Retrieving Azure subscription information",
@@ -228,7 +218,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
             if (!result.Canceled)
             {
-                _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                SubscriptionId = result.Data[SubscriptionIdName].Value;
                 return;
             }
         }
@@ -263,14 +253,14 @@ internal sealed class PublishModeProvisioningContextProvider(
 
         if (!manualResult.Canceled)
         {
-            _options.SubscriptionId = manualResult.Data[SubscriptionIdName].Value;
+            SubscriptionId = manualResult.Data[SubscriptionIdName].Value;
         }
     }
 
     private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "Retrieving Azure region information",
@@ -288,7 +278,7 @@ internal sealed class PublishModeProvisioningContextProvider(
                     {
                         var credential = _tokenCredentialProvider.TokenCredential;
                         var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableLocations = await armClient.GetAvailableLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
+                        var availableLocations = await armClient.GetAvailableLocationsAsync(SubscriptionId!, cancellationToken).ConfigureAwait(false);
                         var locationList = availableLocations.ToList();
 
                         if (locationList.Count > 0)
@@ -359,9 +349,9 @@ internal sealed class PublishModeProvisioningContextProvider(
 
             if (!result.Canceled)
             {
-                _options.Location = result.Data[LocationName].Value;
-                _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                _options.AllowResourceGroupCreation = true;
+                Location = result.Data[LocationName].Value;
+                ResourceGroup = result.Data[ResourceGroupName].Value;
+                AllowResourceGroupCreation = true;
 
                 return;
             }
@@ -411,9 +401,9 @@ internal sealed class PublishModeProvisioningContextProvider(
 
         if (!manualResult.Canceled)
         {
-            _options.Location = manualResult.Data[LocationName].Value;
-            _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
-            _options.AllowResourceGroupCreation = true;
+            Location = manualResult.Data[LocationName].Value;
+            ResourceGroup = manualResult.Data[ResourceGroupName].Value;
+            AllowResourceGroupCreation = true;
         }
     }
 }

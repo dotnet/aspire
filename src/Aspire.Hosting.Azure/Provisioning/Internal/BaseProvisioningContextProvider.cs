@@ -10,7 +10,6 @@ using Azure.Core;
 using Azure.ResourceManager.Resources;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
@@ -19,7 +18,6 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 /// </summary>
 internal abstract partial class BaseProvisioningContextProvider(
     IInteractionService interactionService,
-    IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
     ILogger logger,
     IArmClientProvider armClientProvider,
@@ -33,7 +31,6 @@ internal abstract partial class BaseProvisioningContextProvider(
     internal const string ResourceGroupName = "ResourceGroup";
 
     protected readonly IInteractionService _interactionService = interactionService;
-    protected readonly AzureProvisionerOptions _options = options.Value;
     protected readonly IHostEnvironment _environment = environment;
     protected readonly ILogger _logger = logger;
     protected readonly IArmClientProvider _armClientProvider = armClientProvider;
@@ -41,6 +38,12 @@ internal abstract partial class BaseProvisioningContextProvider(
     protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
     protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
     protected readonly IUserSecretsManager _userSecretsManager = userSecretsManager;
+
+    protected string? SubscriptionId { get; set; }
+    protected string? ResourceGroup { get; set; }
+    protected string? ResourceGroupPrefix { get; set; }
+    protected bool AllowResourceGroupCreation { get; set; }
+    protected string? Location { get; set; }
 
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
@@ -76,7 +79,7 @@ internal abstract partial class BaseProvisioningContextProvider(
 
     public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var subscriptionId = SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
         var credential = _tokenCredentialProvider.TokenCredential;
 
@@ -94,7 +97,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
         _logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
 
-        if (string.IsNullOrEmpty(_options.Location))
+        if (string.IsNullOrEmpty(Location))
         {
             throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
         }
@@ -102,7 +105,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         string resourceGroupName;
         bool createIfAbsent;
 
-        if (string.IsNullOrEmpty(_options.ResourceGroup))
+        if (string.IsNullOrEmpty(ResourceGroup))
         {
             // Generate an resource group name since none was provided
             // Create a unique resource group name and save it in user secrets
@@ -113,19 +116,19 @@ internal abstract partial class BaseProvisioningContextProvider(
             var azureSection = deploymentKey is null
                 ? userSecrets.Prop("Azure")
                 : userSecrets.Prop("Azure").Prop(deploymentKey);
-            azureSection["ResourceGroup"] = resourceGroupName;
+            azureSection[nameof(ResourceGroup)] = resourceGroupName;
         }
         else
         {
-            resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+            resourceGroupName = ResourceGroup;
+            createIfAbsent = AllowResourceGroupCreation;
         }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
         IResourceGroupResource? resourceGroup;
 
-        var location = new AzureLocation(_options.Location);
+        var location = new AzureLocation(Location!);
         try
         {
             var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
