@@ -11,12 +11,13 @@ export interface SpawnProcessOptions {
     errorCallback?: (error: Error) => void;
     env?: EnvVar[];
     workingDirectory?: string;
-    debugSessionId: string | null
+    debugSessionId?: string,
+    noDebug?: boolean;
 }
 
 export function spawnCliProcess(terminalProvider: AspireTerminalProvider, command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
     const envVars = mergeEnvs(process.env, options?.env);
-    const additionalEnv = terminalProvider.createEnvironment(options?.debugSessionId ?? null);
+    const additionalEnv = terminalProvider.createEnvironment(options?.debugSessionId, options?.noDebug);
     const workingDirectory = options?.workingDirectory ?? process.cwd();
 
     extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);
