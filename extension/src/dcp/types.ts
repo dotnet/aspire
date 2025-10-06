@@ -14,7 +14,6 @@ type LaunchConfigurationMode = "Debug" | "NoDebug";
 
 export interface ExecutableLaunchConfiguration {
     type: string;
-    project_path: string;
     mode?: LaunchConfigurationMode | undefined;
 }
 
@@ -22,10 +21,20 @@ export interface ProjectLaunchConfiguration extends ExecutableLaunchConfiguratio
     type: "project";
     launch_profile?: string;
     disable_launch_profile?: boolean;
+    project_path: string;
 }
 
 export function isProjectLaunchConfiguration(obj: any): obj is ProjectLaunchConfiguration {
     return obj && obj.type === 'project';
+}
+
+export interface PythonLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "python";
+    program_path: string;
+}
+
+export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfiguration {
+    return obj && obj.type === 'python';
 }
 
 export interface EnvVar {
@@ -84,6 +93,7 @@ export interface AspireResourceDebugSession {
 export interface AspireResourceExtendedDebugConfiguration extends vscode.DebugConfiguration {
     runId: string;
     debugSessionId: string | null;
+    projectFile?: string;
 }
 
 export interface AspireExtendedDebugConfiguration extends vscode.DebugConfiguration {

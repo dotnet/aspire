@@ -13,21 +13,24 @@ export interface ResourceDebuggerExtension {
     debugAdapter: string;
     extensionId: string | null;
     displayName: string;
+    getProjectFile: (launchConfig: ExecutableLaunchConfiguration) => string;
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
 
-export async function createDebugSessionConfiguration(debugSessionConfig: AspireExtendedDebugConfiguration, launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension | null): Promise<AspireResourceExtendedDebugConfiguration> {
+export async function createDebugSessionConfiguration(debugSessionConfig: AspireExtendedDebugConfiguration, launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debuggerExtension: ResourceDebuggerExtension): Promise<AspireResourceExtendedDebugConfiguration> {
     if (debuggerExtension === null) {
         extensionLogOutputChannel.warn(`Unknown type: ${launchConfig.type}.`);
     }
 
+    const projectPath = debuggerExtension.getProjectFile(launchConfig);
+
     const configuration: AspireResourceExtendedDebugConfiguration = {
-        type: debuggerExtension?.debugAdapter || launchConfig.type,
+        type: debuggerExtension.debugAdapter || launchConfig.type,
         request: 'launch',
-        name: debugProject(`${debuggerExtension?.displayName ?? launchConfig.type}: ${path.basename(launchConfig.project_path)}`),
-        program: launchConfig.project_path,
+        name: debugProject(`${debuggerExtension.displayName ?? launchConfig.type}: ${path.basename(projectPath)}`),
+        program: projectPath,
         args: args,
-        cwd: path.dirname(launchConfig.project_path),
+        cwd: path.dirname(projectPath),
         env: mergeEnvs(process.env, env),
         justMyCode: false,
         stopAtEntry: false,
@@ -50,7 +53,7 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
 
-    if (debuggerExtension?.createDebugSessionConfigurationCallback) {
+    if (debuggerExtension.createDebugSessionConfigurationCallback) {
         await debuggerExtension.createDebugSessionConfigurationCallback(launchConfig, args, env, launchOptions, configuration);
     }
 

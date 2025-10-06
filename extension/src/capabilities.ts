@@ -24,13 +24,18 @@ export function getSupportedCapabilities(): string[] {
 
     if (isCsDevKitInstalled()) {
         capabilities.push("devkit");
+        capabilities.push("ms-dotnettools.csdevkit");
     }
 
     if (isCsharpInstalled()) {
         capabilities.push("project");
+        capabilities.push("ms-dotnettools.csharp");
     }
 
-    vscode.extensions.all.forEach(ext => capabilities.push(ext.id));
+    if (isPythonInstalled()) {
+        capabilities.push("python");
+        capabilities.push("ms-python.python");
+    }
 
     return capabilities;
 }

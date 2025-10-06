@@ -51,7 +51,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, false);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: ExecutableLaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -76,7 +76,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, false, false);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: ExecutableLaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -100,7 +100,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: ExecutableLaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };

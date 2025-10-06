@@ -120,7 +120,19 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
         debugAdapter: 'coreclr',
         extensionId: 'ms-dotnettools.csharp',
         displayName: 'C#',
+        getProjectFile: (launchConfig) => {
+            if (isProjectLaunchConfiguration(launchConfig)) {
+                return launchConfig.project_path;
+            }
+
+            throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+        },
         createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
+            if (!isProjectLaunchConfiguration(launchConfig)) {
+                extensionLogOutputChannel.info(`The resource type was not project for ${JSON.stringify(launchConfig)}`);
+                throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+            }
+
             const projectPath = launchConfig.project_path;
 
             // Apply launch profile settings if available
