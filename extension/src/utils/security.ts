@@ -53,7 +53,7 @@ export async function createSelfSignedCertAsync(commonName: string = 'localhost'
 }
 
 export function generateToken(): string {
-    // 4096 bits is used to provide sufficient entropy
-    const key = randomBytes(512);
+    // 32 bytes is used to provide sufficient entropy for security (2^256 possibilities)
+    const key = randomBytes(32);
     return key.toString('base64');
 }
