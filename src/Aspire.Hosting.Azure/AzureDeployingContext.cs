@@ -28,7 +28,6 @@ internal sealed class AzureDeployingContext(
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
-    ParameterProcessor parameterProcessor,
     IConfiguration configuration,
     ITokenCredentialProvider tokenCredentialProvider)
 {
@@ -44,10 +43,7 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Step 1: Initialize parameters by collecting dependencies and resolving values
-        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
-
-        // Step 2: Provision Azure Bicep resources from the distributed application model
+        // Step 1: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
@@ -57,13 +53,13 @@ internal sealed class AzureDeployingContext(
             return;
         }
 
-        // Step 3: Build and push container images to ACR
+        // Step 2: Build and push container images to ACR
         if (!await TryDeployContainerImages(model, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
 
-        // Step 4: Deploy compute resources to compute environment with images from step 2
+        // Step 3: Deploy compute resources to compute environment with images from step 2
         if (!await TryDeployComputeResources(model, provisioningContext, cancellationToken).ConfigureAwait(false))
         {
             return;

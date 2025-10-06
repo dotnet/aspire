@@ -77,7 +77,6 @@ public sealed class AzureEnvironmentResource : Resource
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
-        var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
@@ -88,7 +87,6 @@ public sealed class AzureEnvironmentResource : Resource
             activityPublisher,
             containerImageBuilder,
             processRunner,
-            parameterProcessor,
             configuration,
             tokenCredentialProvider);
 
