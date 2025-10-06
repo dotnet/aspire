@@ -16,7 +16,7 @@ builder.AddDockerfile("mycontainer", "qots")
 
 // Example: Dynamic Dockerfile generation with sync factory
 builder.AddContainer("dynamic-sync", "dynamic-sync-image")
-       .WithDockerfile("qots", () =>
+       .WithDockerfile("qots", context =>
        {
            var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
            return $"""
@@ -35,10 +35,10 @@ builder.AddContainer("dynamic-sync", "dynamic-sync-image")
 
 // Example: Dynamic Dockerfile generation with async factory
 builder.AddContainer("dynamic-async", "dynamic-async-image")
-       .WithDockerfile("qots", async (ct) =>
+       .WithDockerfile("qots", async context =>
        {
            // Simulate reading from a template or external source
-           await Task.Delay(1, ct);
+           await Task.Delay(1, context.CancellationToken);
            var baseImage = Environment.GetEnvironmentVariable("BASE_IMAGE") ?? "golang:1.22-alpine";
            return $"""
                FROM {baseImage} AS builder

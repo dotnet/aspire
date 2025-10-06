@@ -91,7 +91,8 @@ public sealed class AzureEnvironmentResource : Resource
             processRunner,
             parameterProcessor,
             configuration,
-            tokenCredentialProvider);
+            tokenCredentialProvider,
+            context.Services);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }

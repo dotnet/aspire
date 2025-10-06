@@ -126,25 +126,6 @@ public sealed class AzurePublishingContext(
             outputDirectory.Create();
         }
 
-        // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
-        foreach (var resource in model.Resources)
-        {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
-                dockerfileBuildAnnotation.DockerfileFactory is not null)
-            {
-                var context = new DockerfileFactoryContext
-                {
-                    Services = ServiceProvider,
-                    CancellationToken = cancellationToken
-                };
-                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
-
-                // Write to a resource-specific path in the output folder
-                var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
-                await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
-            }
-        }
-
         var bicepResourcesToPublish = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
@@ -332,6 +313,22 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
+                // Materialize Dockerfile factory if present
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = ServiceProvider,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Write to a resource-specific path in the output folder
+                    var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
+                    await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+                }
+
                 var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default

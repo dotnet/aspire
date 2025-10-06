@@ -749,7 +749,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from factory'";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, () => dockerfileContent);
+                               .WithDockerfile(tempContextPath, context => dockerfileContent);
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
@@ -771,9 +771,9 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from async factory'";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, async (ct) =>
+                               .WithDockerfile(tempContextPath, async context =>
                                {
-                                   await Task.Delay(1, ct);
+                                   await Task.Delay(1, context.CancellationToken);
                                    return dockerfileContent;
                                });
 
@@ -801,7 +801,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated at build time'";
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
-                               .WithDockerfile(tempContextPath, () => dockerfileContent);
+                               .WithDockerfile(tempContextPath, context => dockerfileContent);
 
         var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
         
@@ -822,7 +822,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest AS builder\nFROM alpine:latest AS runner";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, () => dockerfileContent, "runner")
+                               .WithDockerfile(tempContextPath, context => dockerfileContent, "runner")
                                .WithBuildArg("VERSION", "1.0");
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());

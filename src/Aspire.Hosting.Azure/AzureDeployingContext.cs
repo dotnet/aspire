@@ -30,7 +30,8 @@ internal sealed class AzureDeployingContext(
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
     IConfiguration configuration,
-    ITokenCredentialProvider tokenCredentialProvider)
+    ITokenCredentialProvider tokenCredentialProvider,
+    IServiceProvider serviceProvider)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
@@ -171,6 +172,24 @@ internal sealed class AzureDeployingContext(
         if (!computeResources.Any())
         {
             return true;
+        }
+
+        // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+        foreach (var resource in computeResources)
+        {
+            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                dockerfileBuildAnnotation.DockerfileFactory is not null)
+            {
+                var context = new DockerfileFactoryContext
+                {
+                    Services = serviceProvider,
+                    CancellationToken = cancellationToken
+                };
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                // Write to the specified Dockerfile path (already set by WithDockerfile)
+                await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            }
         }
 
         // Generate a deployment-scoped timestamp tag for all resources
