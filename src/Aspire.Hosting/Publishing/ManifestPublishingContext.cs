@@ -318,10 +318,11 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 // Always write to the original DockerfilePath so code looking at that path still works
                 await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
                 
-                // Also write to a resource-specific path in the manifest output directory for publishing
+                // Copy to a resource-specific path in the manifest output directory for publishing
                 var manifestDirectory = Path.GetDirectoryName(ManifestPath)!;
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
-                await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+                Directory.CreateDirectory(manifestDirectory);
+                File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
                 
                 // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;

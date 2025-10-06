@@ -101,9 +101,10 @@ internal sealed class DockerComposePublishingContext(
                     // Always write to the original DockerfilePath so code looking at that path still works
                     await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
 
-                    // Also write to a resource-specific path in the output folder for publishing
+                    // Copy to a resource-specific path in the output folder for publishing
                     var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
-                    await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
                 }
 
                 var composeService = serviceResource.BuildComposeService();

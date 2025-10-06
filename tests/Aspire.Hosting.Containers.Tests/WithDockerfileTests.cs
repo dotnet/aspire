@@ -758,7 +758,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         // Verify the factory produces the expected content
         var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
         var generatedContent = await annotation.DockerfileFactory(context);
-        Assert.Equal(dockerfileContent, generatedContent);
+        
+        await Verify(generatedContent);
     }
 
     [Fact]
@@ -784,7 +785,8 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         // Verify the factory produces the expected content
         var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
         var generatedContent = await annotation.DockerfileFactory(context);
-        Assert.Equal(dockerfileContent, generatedContent);
+        
+        await Verify(generatedContent);
     }
 
     [Fact]
@@ -805,11 +807,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
         
-        // Verify the manifest contains the build context
-        var manifestJson = manifest.ToString();
-        Assert.Contains("\"type\": \"container.v1\"", manifestJson);
-        Assert.Contains("\"context\"", manifestJson);
-        Assert.Contains("\"dockerfile\"", manifestJson);
+        await Verify(manifest.ToString());
     }
 
     [Fact]
@@ -857,11 +855,13 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
             var dockerfilePath = Path.Combine(tempDir.FullName, "testcontainer.Dockerfile");
             Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
             var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-            Assert.Equal(dockerfileContent, actualContent);
 
             // Verify manifest references the Dockerfile
             var manifestContent = await File.ReadAllTextAsync(manifestPath);
-            Assert.Contains("testcontainer.Dockerfile", manifestContent);
+            
+            await Verify(actualContent)
+                  .UseFileName("ManifestPublishingWritesDockerfileToResourceSpecificPath_Dockerfile")
+                  .AppendContentAsFile(manifestContent, "json");
         }
         finally
         {

@@ -238,7 +238,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
         Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
         var actualContent = await File.ReadAllTextAsync(dockerfilePath);
-        Assert.Equal(dockerfileContent, actualContent);
+        
+        await Verify(actualContent);
     }
 
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
