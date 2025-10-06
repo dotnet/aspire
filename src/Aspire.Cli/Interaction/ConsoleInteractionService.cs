@@ -102,7 +102,7 @@ internal class ConsoleInteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, Func<T, bool>? defaultSelector = null, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
@@ -117,8 +117,19 @@ internal class ConsoleInteractionService : IInteractionService
         var prompt = new MultiSelectionPrompt<T>()
             .Title(promptText)
             .UseConverter(choiceFormatter)
-            .AddChoices(choices)
             .PageSize(10);
+
+        // Add choices with default selection if provided
+        foreach (var choice in choices)
+        {
+            prompt.AddChoices(choice, item =>
+            {
+                if (defaultSelector?.Invoke(choice) == true)
+                {
+                    item.Select();
+                }
+            });
+        }
 
         var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
         return result;

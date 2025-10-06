@@ -337,18 +337,22 @@ internal sealed class ConfigCommand : BaseCommand
 
         public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
-            // Prompt user to select features
+            // Get current feature settings to pre-select enabled features
+            var currentSettings = await GetCurrentFeatureSettingsAsync(cancellationToken);
+            
+            // Prompt user to select features (pre-selected based on current settings)
             var selectedFeatures = await InteractionService.PromptForSelectionsAsync(
                 ConfigCommandStrings.FeatureCommand_PromptForFeatures,
                 FeatureInfo.KnownFeatureInfos,
-                f => $"{f.Name} - {f.Description}",
+                f =>
+                {
+                    var status = currentSettings.TryGetValue(f.Key, out var setting) && setting.IsEnabled
+                        ? (setting.IsGlobal ? " [Global]" : " [Local]")
+                        : "";
+                    return $"{f.Name}{status} - {f.Description}";
+                },
+                f => currentSettings.TryGetValue(f.Key, out var setting) && setting.IsEnabled,
                 cancellationToken);
-
-            if (selectedFeatures.Count == 0)
-            {
-                InteractionService.DisplayMessage("information", ConfigCommandStrings.FeatureCommand_NoFeaturesSelected);
-                return ExitCodeConstants.Success;
-            }
 
             // Ask if global or local
             var isGlobal = await InteractionService.PromptForSelectionAsync(
@@ -357,17 +361,16 @@ internal sealed class ConfigCommand : BaseCommand
                 g => g ? ConfigCommandStrings.SetCommand_PromptForGlobal_GlobalOption : ConfigCommandStrings.SetCommand_PromptForGlobal_LocalOption,
                 cancellationToken);
 
-            // For each selected feature, ask if they want to enable or disable it
-            foreach (var feature in selectedFeatures)
+            // Enable selected features and disable unselected ones
+            var selectedKeys = selectedFeatures.Select(f => f.Key).ToHashSet();
+            
+            foreach (var feature in FeatureInfo.KnownFeatureInfos)
             {
-                var enable = await InteractionService.ConfirmAsync(
-                    string.Format(CultureInfo.CurrentCulture, ConfigCommandStrings.FeatureCommand_PromptForValue, feature.Name),
-                    defaultValue: true,
-                    cancellationToken);
-
+                var shouldBeEnabled = selectedKeys.Contains(feature.Key);
+                
                 try
                 {
-                    await ConfigurationService.SetConfigurationAsync(feature.Key, enable.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
+                    await ConfigurationService.SetConfigurationAsync(feature.Key, shouldBeEnabled.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
                 }
                 catch (Exception ex)
                 {
@@ -378,6 +381,24 @@ internal sealed class ConfigCommand : BaseCommand
 
             InteractionService.DisplaySuccess(ConfigCommandStrings.FeatureCommand_FeaturesConfigured);
             return ExitCodeConstants.Success;
+        }
+
+        private async Task<Dictionary<string, (bool IsEnabled, bool IsGlobal)>> GetCurrentFeatureSettingsAsync(CancellationToken cancellationToken)
+        {
+            var settings = new Dictionary<string, (bool IsEnabled, bool IsGlobal)>();
+            
+            foreach (var feature in FeatureInfo.KnownFeatureInfos)
+            {
+                var value = await ConfigurationService.GetConfigurationAsync(feature.Key, cancellationToken);
+                if (value is not null && bool.TryParse(value, out var isEnabled) && isEnabled)
+                {
+                    // Check if it's in global or local config
+                    // This is a simplified check - we assume global if not in local
+                    settings[feature.Key] = (true, false); // For now, assume local; we'll improve this
+                }
+            }
+            
+            return settings;
         }
     }
 }

@@ -188,7 +188,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     }
 
     public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
-        CancellationToken cancellationToken = default) where T : notnull
+        Func<T, bool>? defaultSelector = null, CancellationToken cancellationToken = default) where T : notnull
     {
         if (_extensionPromptEnabled)
         {
@@ -212,7 +212,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         }
         else
         {
-            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
+            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, defaultSelector, cancellationToken);
         }
     }
 

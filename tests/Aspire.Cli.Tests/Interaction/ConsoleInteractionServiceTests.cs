@@ -32,7 +32,7 @@ public class ConsoleInteractionServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<EmptyChoicesException>(() => 
-            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, defaultSelector: null, CancellationToken.None));
     }
 
     [Fact]
