@@ -136,48 +136,16 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return getSolutionExitCode;
         }
 
-        // Check if any project is already an AppHost and find executable projects
-        var executableProjects = new List<FileInfo>();
-        foreach (var project in solutionProjects)
+        initContext.SolutionProjects = solutionProjects;
+
+        // Evaluate solution projects to check for existing AppHost and find executable projects
+        await EvaluateSolutionProjectsAsync(initContext, cancellationToken);
+
+        if (initContext.AlreadyHasAppHost)
         {
-            // Get both IsAspireHost and OutputType properties in a single call
-            var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
-                project,
-                [],
-                ["IsAspireHost", "OutputType"],
-                new DotNetCliRunnerInvocationOptions(),
-                cancellationToken);
-
-            if (exitCode == 0 && jsonDoc != null)
-            {
-                var rootElement = jsonDoc.RootElement;
-                if (rootElement.TryGetProperty("Properties", out var properties))
-                {
-                    // Check if this project is an AppHost
-                    if (properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
-                    {
-                        var isAspireHost = isAspireHostElement.GetString();
-                        if (isAspireHost?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
-                        {
-                            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
-                            return ExitCodeConstants.Success;
-                        }
-                    }
-
-                    // Check if this project is executable
-                    if (properties.TryGetProperty("OutputType", out var outputTypeElement))
-                    {
-                        var outputType = outputTypeElement.GetString();
-                        if (outputType == "Exe" || outputType == "WinExe")
-                        {
-                            executableProjects.Add(project);
-                        }
-                    }
-                }
-            }
+            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
+            return ExitCodeConstants.Success;
         }
-
-        initContext.ExecutableProjects = executableProjects;
 
         // If there are executable projects, prompt user to select which ones to add to appHost
         if (initContext.ExecutableProjects.Count > 0)
@@ -416,6 +384,52 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         return result.ExitCode;
     }
 
+    private async Task EvaluateSolutionProjectsAsync(InitContext initContext, CancellationToken cancellationToken)
+    {
+        var executableProjects = new List<FileInfo>();
+        
+        foreach (var project in initContext.SolutionProjects)
+        {
+            // Get both IsAspireHost and OutputType properties in a single call
+            var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
+                project,
+                [],
+                ["IsAspireHost", "OutputType"],
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (exitCode == 0 && jsonDoc != null)
+            {
+                var rootElement = jsonDoc.RootElement;
+                if (rootElement.TryGetProperty("Properties", out var properties))
+                {
+                    // Check if this project is an AppHost
+                    if (properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
+                    {
+                        var isAspireHost = isAspireHostElement.GetString();
+                        if (isAspireHost?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            initContext.AlreadyHasAppHost = true;
+                            return;
+                        }
+                    }
+
+                    // Check if this project is executable
+                    if (properties.TryGetProperty("OutputType", out var outputTypeElement))
+                    {
+                        var outputType = outputTypeElement.GetString();
+                        if (outputType == "Exe" || outputType == "WinExe")
+                        {
+                            executableProjects.Add(project);
+                        }
+                    }
+                }
+            }
+        }
+
+        initContext.ExecutableProjects = executableProjects;
+    }
+
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var channels = await _packagingService.GetChannelsAsync(cancellationToken);
@@ -489,6 +503,16 @@ internal sealed class InitContext
     /// Gets the expected directory path for the ServiceDefaults project.
     /// </summary>
     public string ExpectedServiceDefaultsDirectory => Path.Combine(SolutionDirectory.FullName, $"{SolutionName}.ServiceDefaults");
+
+    /// <summary>
+    /// All projects in the solution.
+    /// </summary>
+    public IReadOnlyList<FileInfo> SolutionProjects { get; set; } = Array.Empty<FileInfo>();
+
+    /// <summary>
+    /// Indicates whether the solution already has an AppHost project.
+    /// </summary>
+    public bool AlreadyHasAppHost { get; set; }
 
     /// <summary>
     /// List of executable projects found in the solution (excluding the AppHost).
