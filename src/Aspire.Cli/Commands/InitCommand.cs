@@ -122,14 +122,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var solutionFile = initContext.SelectedSolutionFile!;
         
-        // Check if AppHost and ServiceDefaults projects already exist
-        if (Directory.Exists(initContext.ExpectedAppHostDirectory) || Directory.Exists(initContext.ExpectedServiceDefaultsDirectory))
-        {
-            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
-            return ExitCodeConstants.Success;
-        }
-
-        // Get list of projects in solution before creating AppHost
+        // Get list of projects in solution to check if AppHost already exists
         var (getSolutionExitCode, solutionProjects) = await _runner.GetSolutionProjectsAsync(
             solutionFile,
             new DotNetCliRunnerInvocationOptions(),
@@ -139,6 +132,34 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         {
             InteractionService.DisplayError("Failed to get projects from solution.");
             return getSolutionExitCode;
+        }
+
+        // Check if any project in the solution is already an AppHost
+        foreach (var project in solutionProjects)
+        {
+            var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
+                project,
+                [],
+                ["IsAspireHost"],
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (exitCode == 0 && jsonDoc != null)
+            {
+                var rootElement = jsonDoc.RootElement;
+                if (rootElement.TryGetProperty("Properties", out var properties))
+                {
+                    if (properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
+                    {
+                        var isAspireHost = isAspireHostElement.GetString();
+                        if (isAspireHost?.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
+                            return ExitCodeConstants.Success;
+                        }
+                    }
+                }
+            }
         }
 
         // Find executable projects in the solution
