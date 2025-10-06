@@ -347,7 +347,7 @@ internal sealed class ConfigCommand : BaseCommand
                 f =>
                 {
                     var status = currentSettings.TryGetValue(f.Key, out var setting) && setting.IsEnabled
-                        ? (setting.IsGlobal ? " [Global]" : " [Local]")
+                        ? (setting.IsGlobal ? " [[Global]]" : " [[Local]]")
                         : "";
                     return $"{f.Name}{status} - {f.Description}";
                 },
