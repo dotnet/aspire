@@ -4,6 +4,7 @@
 using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -32,6 +33,22 @@ internal static class AzureAppServiceEnvironmentUtility
         var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"));
 
         infra.Add(contributorIdentity);
+
+        // Add Reader role assignment
+        var rgReaderRaId = BicepFunction.GetSubscriptionResourceId(
+            "Microsoft.Authorization/roleDefinitions",
+            "acdd72a7-3385-48ef-bd42-f606fba81ae7");
+        var rgReaderRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgReaderRaId);
+
+        var rgReaderRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_reader_ra"))
+        {
+            Name = rgReaderRaName,
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorIdentity.PrincipalId,
+            RoleDefinitionId = rgReaderRaId
+        };
+
+        infra.Add(rgReaderRa);
 
         var webSite = new WebSite("webapp")
         {
