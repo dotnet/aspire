@@ -505,6 +505,45 @@ app.MapGet("/genai-trace-display-error", async () =>
     return "Created GenAI trace";
 });
 
+async Task SimulateWorkAsync(ActivitySource source, int index, int millisecondsDelay = 2)
+{
+    using var activity = source.StartActivity($"WorkIteration{index + 1}");
+    // Simulate some work in each iteration.
+    await Task.Delay(millisecondsDelay);
+}
+
+app.MapGet("/big-nested-trace", async (HttpContext context) =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    // Start activity as before.
+    using var activity = source.StartActivity("HereActivity");
+
+    // Prepare response for simple streaming text.
+    context.Response.Headers["Content-Type"] = "text/plain; charset=utf-8";
+    context.Response.Headers["Cache-Control"] = "no-cache";
+
+    // Try to disable buffering if the server/proxy supports it.
+    context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>()?.DisableBuffering();
+
+    for (var i = 0; i < 10000; i++)
+    {
+        await SimulateWorkAsync(source, i);
+
+        // Every 100 iterations, write a progress chunk and flush so the client receives it incrementally.
+        if ((i + 1) % 100 == 0)
+        {
+            var msg = $"Progress: completed {i + 1} iterations\n";
+            await context.Response.WriteAsync(msg);
+            await context.Response.Body.FlushAsync();
+        }
+    }
+
+    // Final message
+    await context.Response.WriteAsync("Done\n");
+    await context.Response.Body.FlushAsync();
+});
+
 app.Run();
 
 public record WeatherForecast(DateOnly Date, int TemperatureC, string Summary);
