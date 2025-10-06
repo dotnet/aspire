@@ -364,21 +364,25 @@ internal sealed class ConfigCommand : BaseCommand
                 g => g ? ConfigCommandStrings.SetCommand_PromptForGlobal_GlobalOption : ConfigCommandStrings.SetCommand_PromptForGlobal_LocalOption,
                 cancellationToken);
 
-            // Enable selected features and disable unselected ones
+            // Only set values that differ from the default to avoid writing everything every time
             var selectedKeys = selectedFeatures.Select(f => f.Key).ToHashSet();
             
             foreach (var feature in FeatureInfo.KnownFeatureInfos)
             {
                 var shouldBeEnabled = selectedKeys.Contains(feature.Key);
                 
-                try
+                // Only write config if the value differs from the default
+                if (shouldBeEnabled != feature.DefaultValue)
                 {
-                    await ConfigurationService.SetConfigurationAsync(feature.Key, shouldBeEnabled.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
-                    return ExitCodeConstants.InvalidCommand;
+                    try
+                    {
+                        await ConfigurationService.SetConfigurationAsync(feature.Key, shouldBeEnabled.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                        return ExitCodeConstants.InvalidCommand;
+                    }
                 }
             }
 
