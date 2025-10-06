@@ -305,7 +305,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             string dockerfilePath = annotation.DockerfilePath;
 
-            // If there's a factory, generate the Dockerfile content and write it to a resource-specific path in the output folder
+            // If there's a factory, generate the Dockerfile content and write it to both the original path and a resource-specific path
             if (annotation.DockerfileFactory is not null)
             {
                 var context = new DockerfileFactoryContext
@@ -315,12 +315,15 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 };
                 var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);
                 
-                // Write to a resource-specific path in the manifest output directory
+                // Always write to the original DockerfilePath so code looking at that path still works
+                await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+                
+                // Also write to a resource-specific path in the manifest output directory for publishing
                 var manifestDirectory = Path.GetDirectoryName(ManifestPath)!;
                 var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
                 await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
                 
-                // Update the dockerfile path to use the generated file
+                // Update the dockerfile path to use the generated file for the manifest
                 dockerfilePath = resourceDockerfilePath;
             }
 

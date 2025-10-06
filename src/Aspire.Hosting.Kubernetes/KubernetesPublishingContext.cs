@@ -82,7 +82,10 @@ internal sealed class KubernetesPublishingContext(
                     };
                     var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
 
-                    // Write to a resource-specific path in the output folder
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Also write to a resource-specific path in the output folder for publishing
                     var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
                     await File.WriteAllTextAsync(resourceDockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
                 }
