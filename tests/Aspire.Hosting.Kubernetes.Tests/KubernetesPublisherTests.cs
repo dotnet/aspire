@@ -336,4 +336,26 @@ public class KubernetesPublisherTests()
 
         public LaunchSettings? LaunchSettings { get; set; }
     }
+
+    [Fact]
+    public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for kubernetes'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithDockerfile(".", context => dockerfileContent);
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify Dockerfile was written to resource-specific path
+        var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+        var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+        Assert.Equal(dockerfileContent, actualContent);
+    }
 }
