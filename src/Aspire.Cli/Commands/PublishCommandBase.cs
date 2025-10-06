@@ -14,6 +14,7 @@ using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -289,7 +290,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     promptState = new PromptState { ActivityId = activity.Data.Id };
                 }
 
-                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
+                _ = HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
             }
             else
             {
@@ -332,7 +333,9 @@ internal abstract class PublishCommandBase : BaseCommand
         var currentStepProgress = new ProgressContextInfo();
         PromptState? promptState = null;
 
-        await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
+        var p = new PublishingActivityProcessor(publishingActivities, NullLogger.Instance, cancellationToken);
+
+        await p.ProcessPublishingActivities(async (activity, cancellationToken) =>
         {
             // PublishComplete is emitted at the end of the publishing process
             // by the DistributedApplicationRunner. Display the final status and
@@ -341,7 +344,7 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 publishingActivity = activity;
 
-                break;
+                //break;
             }
             else if (activity.Type == PublishingActivityTypes.Step)
             {
@@ -476,7 +479,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     task.ProgressTask.Description = $"  {task.StatusText.EscapeMarkup()}";
                 }
             }
-        }
+        });
 
         var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
         var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);

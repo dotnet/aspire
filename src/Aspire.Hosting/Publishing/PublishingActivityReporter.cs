@@ -9,7 +9,6 @@ using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dashboard;
-using StreamJsonRpc;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Publishing;
@@ -294,6 +293,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
+                    Name = input.Name,
                     Label = input.EffectiveLabel,
                     InputType = input.InputType.ToString(),
                     Required = input.Required,
@@ -326,6 +326,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 {
                     new PublishingPromptInput
                     {
+                        Name = "confirm",
                         Label = "Confirm",
                         InputType = "Boolean",
                         Required = true,
@@ -367,22 +368,11 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         if (responses is not null)
                         {
                             var dtos = new List<InputDto>();
-
                             foreach (var responseAnswer in responses)
                             {
                                 if (responseAnswer.Name != null && inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out var matchingInput))
                                 {
-
-                                }
-
-                                inputsInfo.Inputs[i].Value = responseAnswer.Value ?? "";
-                            }
-
-                            for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
-                            {
-                                responses[i].
-                                if (responses[i] is { } responseAnswer)
-                                {
+                                    dtos.Add(new InputDto(matchingInput.Name, responseAnswer.Value ?? "", matchingInput.InputType));
                                 }
                             }
 
@@ -390,7 +380,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                                 serviceProvider,
                                 logger,
                                 inputsInfo,
-                                request.InputsDialog,
+                                dtos,
                                 dependencyChange: updateResponse,
                                 interaction.CancellationToken);
                         }
