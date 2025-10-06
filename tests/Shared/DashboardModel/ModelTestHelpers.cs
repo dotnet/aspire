@@ -25,7 +25,8 @@ public static class ModelTestHelpers
         ImmutableArray<RelationshipViewModel>? relationships = null,
         bool hidden = false,
         string? iconName = null,
-        IconVariant? iconVariant = null)
+        IconVariant? iconVariant = null,
+        string? customIconData = null)
     {
         return new ResourceViewModel
         {
@@ -48,7 +49,8 @@ public static class ModelTestHelpers
             Relationships = relationships ?? [],
             IsHidden = hidden,
             IconName = iconName,
-            IconVariant = iconVariant
+            IconVariant = iconVariant,
+            CustomIconData = customIconData
         };
     }
 }

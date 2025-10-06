@@ -102,4 +102,50 @@ public sealed class ResourceIconHelpersTests
         // Should match the database special case
     }
 
+    [Fact]
+    public void GetIconForResource_WithCustomIconData_ReturnsCustomDataIcon()
+    {
+        // Arrange
+        var svgContent = "<svg><circle cx='50' cy='50' r='40'/></svg>";
+        var resource = ModelTestHelpers.CreateResource(customIconData: svgContent);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.IsType<CustomDataIcon>(icon);
+    }
+
+    [Fact]
+    public void GetIconForResource_WithCustomIconDataAndIconName_PrioritizesCustomData()
+    {
+        // Arrange
+        var svgContent = "<svg><rect width='24' height='24'/></svg>";
+        var resource = ModelTestHelpers.CreateResource(iconName: "Database", customIconData: svgContent);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size20);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.IsType<CustomDataIcon>(icon);
+        // Custom data takes precedence over icon name
+    }
+
+    [Fact]
+    public void GetIconForResource_WithDataUriCustomIconData_ReturnsCustomDataIcon()
+    {
+        // Arrange
+        var dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA";
+        var resource = ModelTestHelpers.CreateResource(customIconData: dataUri);
+
+        // Act
+        var icon = ResourceIconHelpers.GetIconForResource(_iconResolver, resource, IconSize.Size16);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.IsType<CustomDataIcon>(icon);
+    }
+
 }
