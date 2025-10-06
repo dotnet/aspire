@@ -860,7 +860,6 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
             var manifestContent = await File.ReadAllTextAsync(manifestPath);
             
             await Verify(actualContent)
-                  .UseFileName("ManifestPublishingWritesDockerfileToResourceSpecificPath_Dockerfile")
                   .AppendContentAsFile(manifestContent, "json");
         }
         finally
