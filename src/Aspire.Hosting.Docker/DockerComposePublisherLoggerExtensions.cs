@@ -36,4 +36,10 @@ internal static partial class DockerComposePublisherLoggerExtensions
 
     [LoggerMessage(LogLevel.Error, "Failed to copy referenced file '{FilePath}' to '{OutputPath}'")]
     internal static partial void FailedToCopyFile(this ILogger logger, string filePath, string outputPath);
+
+    [LoggerMessage(LogLevel.Warning, "Bind mount source '{Source}' does not exist and will not be copied.")]
+    internal static partial void BindMountSourceDoesNotExist(this ILogger logger, string source);
+
+    [LoggerMessage(LogLevel.Error, "Failed to copy bind mount source '{Source}' to output folder.")]
+    internal static partial void FailedToCopyBindMountSource(this ILogger logger, Exception exception, string source);
 }
