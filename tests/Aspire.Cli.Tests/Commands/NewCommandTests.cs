@@ -659,6 +659,12 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         return Task.FromResult(choices.First());
     }
 
+    public Task<IReadOnlyList<T>> PromptForMultiSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        // For testing, return an empty list by default
+        return Task.FromResult<IReadOnlyList<T>>(new List<T>());
+    }
+
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
     public void DisplayError(string errorMessage) { }
     public void DisplayMessage(string emoji, string message) { }

@@ -957,6 +957,12 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
         return Task.FromResult(defaultValue);
     }
 
+    public Task<IReadOnlyList<T>> PromptForMultiSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        // For testing, return an empty list by default
+        return Task.FromResult<IReadOnlyList<T>>(new List<T>());
+    }
+
     // Default implementations for other interface methods
     public Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action) => action();
     public void ShowStatus(string statusText, Action action) => action();
