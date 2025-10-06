@@ -94,6 +94,7 @@ internal sealed class DockerComposePublishingContext(
                     var context = new DockerfileFactoryContext
                     {
                         Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
                         CancellationToken = cancellationToken
                     };
                     var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);

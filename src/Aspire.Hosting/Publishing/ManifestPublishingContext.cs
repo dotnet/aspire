@@ -311,6 +311,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 var context = new DockerfileFactoryContext
                 {
                     Services = ExecutionContext.ServiceProvider,
+                    Resource = container,
                     CancellationToken = CancellationToken
                 };
                 var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);

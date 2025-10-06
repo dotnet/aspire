@@ -1533,6 +1533,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var context = new DockerfileFactoryContext
                 {
                     Services = serviceProvider,
+                    Resource = modelContainerResource,
                     CancellationToken = cancellationToken
                 };
                 var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);

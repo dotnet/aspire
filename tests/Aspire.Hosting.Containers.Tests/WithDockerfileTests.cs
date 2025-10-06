@@ -756,7 +756,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(annotation.DockerfileFactory);
 
         // Verify the factory produces the expected content
-        var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
+        var context = new DockerfileFactoryContext 
+        { 
+            Services = builder.Services.BuildServiceProvider(), 
+            Resource = container.Resource,
+            CancellationToken = CancellationToken.None 
+        };
         var generatedContent = await annotation.DockerfileFactory(context);
 
         await Verify(generatedContent);
@@ -783,7 +788,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(annotation.DockerfileFactory);
 
         // Verify the factory produces the expected content
-        var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
+        var context = new DockerfileFactoryContext 
+        { 
+            Services = builder.Services.BuildServiceProvider(), 
+            Resource = container.Resource,
+            CancellationToken = CancellationToken.None 
+        };
         var generatedContent = await annotation.DockerfileFactory(context);
 
         await Verify(generatedContent);

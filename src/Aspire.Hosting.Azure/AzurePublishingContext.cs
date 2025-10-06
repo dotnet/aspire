@@ -320,6 +320,7 @@ public sealed class AzurePublishingContext(
                     var context = new DockerfileFactoryContext
                     {
                         Services = ServiceProvider,
+                        Resource = resource,
                         CancellationToken = cancellationToken
                     };
                     var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);

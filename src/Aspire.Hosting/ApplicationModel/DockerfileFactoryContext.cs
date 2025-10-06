@@ -23,6 +23,20 @@ public sealed class DockerfileFactoryContext
     public required IServiceProvider Services { get; init; }
 
     /// <summary>
+    /// Gets the resource for which the Dockerfile is being generated.
+    /// <para>
+    /// This allows factory functions to query resource annotations and properties to customize the generated Dockerfile.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var containerAnnotation = context.Resource.Annotations.OfType&lt;ContainerImageAnnotation&gt;().FirstOrDefault();
+    /// var baseImage = containerAnnotation?.Image ?? "alpine:latest";
+    /// </code>
+    /// </example>
+    /// </summary>
+    public required IResource Resource { get; init; }
+
+    /// <summary>
     /// Gets the cancellation token for the operation.
     /// </summary>
     public CancellationToken CancellationToken { get; init; }
