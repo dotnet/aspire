@@ -11,12 +11,12 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <remarks>
 /// Initializes a new instance of the <see cref="DeployingCallbackAnnotation"/> class.
 /// </remarks>
-/// <param name="callback">The deploying callback.</param>
+/// <param name="callback">The deploying callback that returns a deployment step.</param>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class DeployingCallbackAnnotation(Func<DeployingContext, Task> callback) : IResourceAnnotation
+public sealed class DeployingCallbackAnnotation(Func<DeployingContext, PipelineStep> callback) : IResourceAnnotation
 {
     /// <summary>
-    /// The deploying callback.
+    /// The deploying callback that returns a deployment step.
     /// </summary>
-    public Func<DeployingContext, Task> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
+    public Func<DeployingContext, PipelineStep> Callback { get; } = callback ?? throw new ArgumentNullException(nameof(callback));
 }

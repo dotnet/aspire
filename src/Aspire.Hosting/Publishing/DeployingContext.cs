@@ -71,12 +71,18 @@ public sealed class DeployingContext(
     /// <returns>A task representing the asynchronous operation.</returns>
     internal async Task WriteModelAsync(DistributedApplicationModel model)
     {
+        var pipeline = new Pipeline();
+
         foreach (var resource in model.Resources)
         {
-            if (resource.TryGetLastAnnotation<DeployingCallbackAnnotation>(out var annotation))
+            var annotations = resource.Annotations.OfType<DeployingCallbackAnnotation>();
+            foreach (var annotation in annotations)
             {
-                await annotation.Callback(this).ConfigureAwait(false);
+                var step = annotation.Callback(this);
+                pipeline.AddStep(step);
             }
         }
+
+        await pipeline.ExecuteAsync(this, CancellationToken).ConfigureAwait(false);
     }
 }

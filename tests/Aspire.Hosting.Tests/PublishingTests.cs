@@ -58,7 +58,11 @@ public class PublishingTests
                .WithAnnotation(new DeployingCallbackAnnotation(context =>
                 {
                     deployingCalled = true;
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "TestDeployStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         using var app = builder.Build();
@@ -92,7 +96,11 @@ public class PublishingTests
                     Assert.Equal(DistributedApplicationOperation.Publish, context.ExecutionContext.Operation);
                     Assert.Equal("default", context.ExecutionContext.PublisherName);
                     deployingCalled = true;
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "TestDeployStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         using var app = builder.Build();
@@ -116,14 +124,22 @@ public class PublishingTests
                .WithAnnotation(new DeployingCallbackAnnotation(context =>
                 {
                     deployingCallbacks.Add("cache");
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "DeployCacheStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         builder.AddContainer("db", "postgres")
                .WithAnnotation(new DeployingCallbackAnnotation(context =>
                 {
                     deployingCallbacks.Add("db");
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "DeployDbStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         using var app = builder.Build();
@@ -161,7 +177,11 @@ public class PublishingTests
                     Assert.Equal("cache", context.Model.Resources.Single().Name);
 
                     contextValidated = true;
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "TestContextValidationStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         using var app = builder.Build();
@@ -208,24 +228,37 @@ public class PublishingTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
         builder.Configuration["Publishing:Deploy"] = "true";
         builder.AddContainer("cache", "redis")
-               .WithAnnotation(new DeployingCallbackAnnotation(_ => throw new InvalidOperationException("Deploy failed!")));
+               .WithAnnotation(new DeployingCallbackAnnotation(_ =>
+               {
+                   throw new InvalidOperationException("Deploy failed!");
+               }));
         using var app = builder.Build();
         var ex = await Assert.ThrowsAsync<DistributedApplicationException>(() => app.RunAsync());
         Assert.Contains("Deploy failed!", ex.Message);
     }
 
     [Fact]
-    public void DeployingCallback_OnlyLastAnnotationIsUsed()
+    public void DeployingCallback_AllAnnotationsAreUsed()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
         builder.Configuration["Publishing:Deploy"] = "true";
-        var called = string.Empty;
+        var calledSteps = new List<string>();
         builder.AddContainer("cache", "redis")
-               .WithAnnotation(new DeployingCallbackAnnotation(_ => { called = "first"; return Task.CompletedTask; }))
-               .WithAnnotation(new DeployingCallbackAnnotation(_ => { called = "second"; return Task.CompletedTask; }));
+               .WithAnnotation(new DeployingCallbackAnnotation(_ =>
+               {
+                   calledSteps.Add("first");
+                   return new PipelineStep { Name = "FirstStep", Action = _ => Task.CompletedTask };
+               }))
+               .WithAnnotation(new DeployingCallbackAnnotation(_ =>
+               {
+                   calledSteps.Add("second");
+                   return new PipelineStep { Name = "SecondStep", Action = _ => Task.CompletedTask };
+               }));
         using var app = builder.Build();
         app.Run();
-        Assert.Equal("second", called);
+        Assert.Equal(2, calledSteps.Count);
+        Assert.Equal("first", calledSteps[0]);
+        Assert.Equal("second", calledSteps[1]);
     }
 
     [Fact]
@@ -251,7 +284,11 @@ public class PublishingTests
                     Assert.Same(reporter1, reporter2);
 
                     activityReporterAccessed = true;
-                    return Task.CompletedTask;
+                    return new PipelineStep
+                    {
+                        Name = "TestActivityReporterStep",
+                        Action = _ => Task.CompletedTask
+                    };
                 }));
 
         using var app = builder.Build();

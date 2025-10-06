@@ -20,6 +20,7 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Redis" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.NodeJs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.EventHubs" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.ServiceBus" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.CosmosDB" />
