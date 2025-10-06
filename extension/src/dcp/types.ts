@@ -28,14 +28,6 @@ export function isProjectLaunchConfiguration(obj: any): obj is ProjectLaunchConf
     return obj && obj.type === 'project';
 }
 
-export interface PythonLaunchConfiguration extends ExecutableLaunchConfiguration {
-    type: "python";
-}
-
-export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfiguration {
-    return obj && obj.type === 'python';
-}
-
 export interface EnvVar {
     name: string;
     value: string;

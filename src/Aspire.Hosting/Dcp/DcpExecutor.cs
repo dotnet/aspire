@@ -967,17 +967,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || (extensionCapabilities is null || extensionCapabilities.Contains(supportsDebuggingAnnotation.RequiredExtensionId))))
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || extensionCapabilities is null || extensionCapabilities.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                var launchConfiguration = supportsDebuggingAnnotation.LaunchConfigurationProducer?.Invoke() ?? new ExecutableLaunchConfiguration(supportsDebuggingAnnotation.DebugAdapterId);
 
-                // If the launch configuration has provided the project path already, do not change.
-                if (string.IsNullOrEmpty(launchConfiguration.ProjectPath))
-                {
-                    launchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
-                }
-
+                var launchConfiguration = supportsDebuggingAnnotation.LaunchConfigurationProducer();
                 if (_configuration[KnownConfigNames.DebugSessionRunMode] is { } runMode)
                 {
                     launchConfiguration.Mode = runMode;

@@ -126,7 +126,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             // Apply launch profile settings if available
             const launchSettings = await readLaunchSettings(projectPath);
             if (!isProjectLaunchConfiguration(launchConfig)) {
-                extensionLogOutputChannel.info(`No launch profile configuration for project: ${projectPath}`);
+                extensionLogOutputChannel.info(`The resource type was not project for ${projectPath}`);
                 throw new Error(invalidLaunchConfiguration(projectPath));
             }
 

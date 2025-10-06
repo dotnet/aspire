@@ -2299,18 +2299,15 @@ public static class ResourceBuilderExtensions
     /// Adds support for debugging the resource in VS Code when running in an extension host.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="projectPath">The path to the project file.</param>
-    /// <param name="debugAdapterId">The debug adapter ID to use. Ie, coreclr</param>
+    /// <param name="launchConfiguration">Launch configuration for the resource.</param>
     /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
-    /// <param name="launchConfiguration">Optional custom launch configuration.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null, Func<ExecutableLaunchConfiguration>? launchConfiguration = null)
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, Func<ExecutableLaunchConfiguration> launchConfiguration, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(debugAdapterId);
+        ArgumentNullException.ThrowIfNull(launchConfiguration);
 
         if (builder is IResourceBuilder<IResourceWithArgs> resourceWithArgs)
         {
@@ -2329,7 +2326,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId, launchConfiguration));
+        return builder.WithAnnotation(new SupportsDebuggingAnnotation(requiredExtensionId, launchConfiguration));
     }
 
     /// <summary>
