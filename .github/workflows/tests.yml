@@ -242,8 +242,6 @@ jobs:
 
       - name: Generate test results summary
         if: always()
-        env:
-          CI: false
         run: >
           ${{ github.workspace }}/dotnet.sh
           run

@@ -66,7 +66,7 @@ public sealed class ResourceUrlHelpersTests
     }
 
     [Fact]
-    public void GetUrls_OnlyHttpAndHttpsEndpointsSetTheUrl()
+    public void GetUrls_AllEndpointsSetTheUrl()
     {
         var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
             new("Test", new("http://localhost:8080"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
@@ -89,6 +89,42 @@ public sealed class ResourceUrlHelpersTests
                 Assert.Null(e.Url);
                 Assert.Equal("localhost", e.Address);
                 Assert.Equal(8081, e.Port);
+            });
+    }
+
+    [Fact]
+    public void GetUrls_NonHttpUrlSchemesAreDisplayed()
+    {
+        var endpoints = GetUrls(ModelTestHelpers.CreateResource(urls: [
+            new("Email", new("mailto:test@example.com"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
+            new("FTP", new("ftp://files.example.com/path"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty),
+            new("Custom", new("myapp://resource/123"), isInternal: false, isInactive: false, displayProperties: UrlDisplayPropertiesViewModel.Empty)])
+        );
+
+        Assert.Collection(endpoints,
+            e =>
+            {
+                Assert.Equal("myapp://resource/123", e.Text);
+                Assert.Equal("Custom", e.Name);
+                Assert.Equal("myapp://resource/123", e.Url);
+                Assert.Equal("resource", e.Address);
+                Assert.Equal(-1, e.Port);
+            },
+            e =>
+            {
+                Assert.Equal("mailto:test@example.com", e.Text);
+                Assert.Equal("Email", e.Name);
+                Assert.Equal("mailto:test@example.com", e.Url);
+                Assert.Equal("example.com", e.Address);
+                Assert.Equal(25, e.Port);
+            },
+            e =>
+            {
+                Assert.Equal("ftp://files.example.com/path", e.Text);
+                Assert.Equal("FTP", e.Name);
+                Assert.Equal("ftp://files.example.com/path", e.Url);
+                Assert.Equal("files.example.com", e.Address);
+                Assert.Equal(21, e.Port);
             });
     }
 

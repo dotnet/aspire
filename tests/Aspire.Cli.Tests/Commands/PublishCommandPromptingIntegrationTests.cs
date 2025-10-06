@@ -562,9 +562,10 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         Assert.Single(promptCalls);
         var promptCall = promptCalls[0];
 
+        // For single-input prompts, both StatusText (as header) and Label (as prompt) should be shown
         // The markdown "**Enter** the `config` value for [Azure Portal](https://portal.azure.com):"
         // should be converted to Spectre markup preserving both link text and URL
-        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]";
+        var expectedSpectreMarkup = "[bold][bold]Enter[/] the [grey][bold]config[/][/] value for [cyan link=https://portal.azure.com]Azure Portal[/]:[/]\nConfig Value: ";
         Assert.Equal(expectedSpectreMarkup, promptCall.PromptText);
     }
 
@@ -634,6 +635,132 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         var completedPrompt = promptBackchannel.CompletedPrompts[0];
         Assert.Equal("debug-prompt-1", completedPrompt.PromptId);
         Assert.Equal("debug-env", completedPrompt.Answers[0].Value);
+    }
+
+    [Fact]
+    public async Task PublishCommand_SingleInputPrompt_ShowsBothStatusTextAndLabel()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up a single-input prompt where StatusText and Label are different
+        promptBackchannel.AddPrompt("status-label-prompt", "Target Region", InputTypes.Text, "Configure deployment target", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("us-west-2");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt text contains both StatusText (as header) and Label (as prompt)
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+
+        // Should show: [bold]Configure deployment target[/]\nTarget Region: 
+        Assert.Contains("[bold]Configure deployment target[/]", promptCall.PromptText);
+        Assert.Contains("Target Region: ", promptCall.PromptText);
+        Assert.Contains("\n", promptCall.PromptText);
+    }
+
+    [Fact]
+    public async Task PublishCommand_SingleInputPrompt_WhenStatusTextEqualsLabel_ShowsOnlyOnce()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up a single-input prompt where StatusText and Label are the same
+        promptBackchannel.AddPrompt("duplicate-prompt", "Environment Name", InputTypes.Text, "Environment Name", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("production");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify the prompt text shows the label only once (in bold, no duplication)
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+
+        // Should show: [bold]Environment Name[/]
+        Assert.Equal("[bold]Environment Name[/]", promptCall.PromptText);
+    }
+
+    [Fact]
+    public async Task PublishCommand_SingleInputPrompt_EscapesSpectreMarkupInLabels()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var promptBackchannel = new TestPromptBackchannel();
+        var consoleService = new TestConsoleInteractionServiceWithPromptTracking();
+
+        // Set up a single-input prompt with Spectre markup characters in both StatusText and Label
+        promptBackchannel.AddPrompt("markup-prompt", "Value [required]", InputTypes.Text, "Enter value [1-10]", isRequired: true);
+
+        // Set up the expected user response
+        consoleService.SetupStringPromptResponse("5");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+            options.DotNetCliRunnerFactory = (sp) => CreateTestRunnerWithPromptBackchannel(promptBackchannel);
+        });
+
+        services.AddSingleton<IInteractionService>(consoleService);
+
+        var serviceProvider = services.BuildServiceProvider();
+        var command = serviceProvider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("publish");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+
+        // Verify that square brackets are properly escaped
+        var promptCalls = consoleService.StringPromptCalls;
+        Assert.Single(promptCalls);
+        var promptCall = promptCalls[0];
+
+        // Square brackets should be escaped to [[bracket]]
+        Assert.Contains("[[1-10]]", promptCall.PromptText);
+        Assert.Contains("[[required]]", promptCall.PromptText);
     }
 }
 
@@ -811,6 +938,18 @@ internal sealed class TestConsoleInteractionServiceWithPromptTracking : IInterac
         }
 
         return Task.FromResult(choices.First());
+    }
+
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (_shouldCancel || cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException();
+        }
+
+        _ = _responses.TryDequeue(out _);
+        // For simplicity, return all choices in the test
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
     }
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)

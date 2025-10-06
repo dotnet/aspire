@@ -1666,7 +1666,7 @@ public class AzureContainerAppsTests
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
         builder.AddProject<Project>("job", launchProfileName: null)
-            .PublishAsAzureContainerAppJob((infra, job) => { });
+            .PublishAsAzureContainerAppJob();
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);
@@ -1690,7 +1690,7 @@ public class AzureContainerAppsTests
 
         builder.AddProject<Project>("job", launchProfileName: null)
             .PublishAsAzureContainerApp((infra, app) => { })
-            .PublishAsAzureContainerAppJob((infra, job) => { });
+            .PublishAsAzureContainerAppJob();
 
         using var app = builder.Build();
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await ExecuteBeforeStartHooksAsync(app, default));
@@ -1703,7 +1703,7 @@ public class AzureContainerAppsTests
         builder.AddAzureContainerAppEnvironment("env");
 
         builder.AddAzureFunctionsProject<TestFunctionsProject>("funcjob")
-            .PublishAsAzureContainerAppJob((infra, job) => { });
+            .PublishAsAzureContainerAppJob();
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);
@@ -1744,7 +1744,7 @@ public class AzureContainerAppsTests
             .PublishAsAzureContainerApp((infra, app) => { });
 
         builder.AddContainer("batch", "image:latest")
-            .PublishAsAzureContainerAppJob((infra, job) => { });
+            .PublishAsAzureContainerAppJob();
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);
@@ -1773,7 +1773,7 @@ public class AzureContainerAppsTests
     }
 
     [Fact]
-    public async Task PublishAsAzureContainerAppJobWithCronExpressionConfiguresScheduleTrigger()
+    public async Task PublishAsScheduledAzureContainerAppJobConfiguresScheduleTrigger()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.AddAzureContainerAppEnvironment("env");
@@ -1781,7 +1781,10 @@ public class AzureContainerAppsTests
         const string cronExpression = "0 0 * * *"; // Run every day at midnight
 
         builder.AddContainer("scheduled-job", "myimage")
-            .PublishAsAzureContainerAppJob(cronExpression);
+            .PublishAsScheduledAzureContainerAppJob(cronExpression, (_, j) =>
+            {
+                j.Tags["metadata"] = "metadata-value";
+            });
 
         using var app = builder.Build();
         await ExecuteBeforeStartHooksAsync(app, default);

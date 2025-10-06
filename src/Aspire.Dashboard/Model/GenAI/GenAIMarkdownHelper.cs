@@ -12,6 +12,6 @@ public static class GenAIMarkdownHelper
     public static MarkdownProcessor CreateProcessor(IStringLocalizer<ControlsStrings> loc)
     {
         // GenAI responses are untrusted, so only allow safe schemes.
-        return new MarkdownProcessor(loc, safeUrlSchemes: MarkdownHelpers.SafeUrlSchemes);
+        return new MarkdownProcessor(loc, safeUrlSchemes: MarkdownHelpers.SafeUrlSchemes, extensions: []);
     }
 }

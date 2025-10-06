@@ -305,7 +305,7 @@ internal static class TelemetryTestHelpers
 
     public static OtlpSpan CreateOtlpSpan(OtlpResource resource, OtlpTrace trace, OtlpScope scope, string spanId, string? parentSpanId, DateTime startDate,
         KeyValuePair<string, string>[]? attributes = null, OtlpSpanStatusCode? statusCode = null, string? statusMessage = null, OtlpSpanKind kind = OtlpSpanKind.Unspecified,
-        OtlpResource? uninstrumentedPeer = null, DateTime? endDate = null)
+        OtlpResource? uninstrumentedPeer = null, DateTime? endDate = null, string? spanName = null)
     {
         return new OtlpSpan(resource.GetView([]), trace, scope)
         {
@@ -315,7 +315,7 @@ internal static class TelemetryTestHelpers
             Events = [],
             Kind = kind,
             Links = [],
-            Name = "Test",
+            Name = spanName ?? "Test",
             ParentSpanId = parentSpanId,
             SpanId = spanId,
             StartTime = startDate,

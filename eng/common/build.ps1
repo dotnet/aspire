@@ -30,7 +30,6 @@ Param(
   [string] $runtimeSourceFeedKey = '',
   [switch] $excludePrereleaseVS,
   [switch] $nativeToolsOnMachine,
-  [switch] $buildExtension,
   [switch] $help,
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
 )
@@ -38,7 +37,7 @@ Param(
 # Unset 'Platform' environment variable to avoid unwanted collision in InstallDotNetCore.targets file
 # some computer has this env var defined (e.g. Some HP)
 if($env:Platform) {
-  $env:Platform=""
+  $env:Platform=""  
 }
 function Print-Usage() {
   Write-Host "Common settings:"
@@ -77,7 +76,6 @@ function Print-Usage() {
   Write-Host "  -nodeReuse <value>      Sets nodereuse msbuild parameter ('true' or 'false')"
   Write-Host "  -buildCheck             Sets /check msbuild parameter"
   Write-Host "  -fromVMR                Set when building from within the VMR"
-  Write-Host "  -buildExtension         Build the VS Code extension"
   Write-Host ""
 
   Write-Host "Command line arguments not listed above are passed thru to msbuild."
@@ -98,82 +96,6 @@ function InitializeCustomToolset {
   }
 }
 
-function Build-Extension {
-  $extensionDir = Join-Path $RepoRoot 'extension'
-  if (-not (Test-Path $extensionDir)) {
-    Write-Host "Extension directory not found at $extensionDir, skipping extension build"
-    return
-  }
-
-  Write-Host "Building VS Code extension..."
-
-  # Check if yarn is available
-  try {
-    $yarnVersion = & yarn --version 2>$null
-    if ($LASTEXITCODE -ne 0) {
-      throw "Yarn not found"
-    }
-    Write-Host "Found yarn version: $yarnVersion"
-  }
-  catch {
-    Write-Host "Warning: yarn is not installed or not available in PATH. Skipping extension build."
-    Write-Host "To build the extension, install yarn: https://yarnpkg.com/getting-started/install"
-    return
-  }
-
-  Push-Location $extensionDir
-  try {
-    Write-Host "Running yarn install..."
-    & yarn install
-    if ($LASTEXITCODE -ne 0) {
-      throw "yarn install failed with exit code $LASTEXITCODE"
-    }
-
-    Write-Host "Running yarn compile..."
-    & yarn compile
-    if ($LASTEXITCODE -ne 0) {
-      throw "yarn compile failed with exit code $LASTEXITCODE"
-    }
-
-    # Check if vsce is available and package the extension
-    try {
-      $vsceVersion = & vsce --version 2>$null
-      if ($LASTEXITCODE -eq 0) {
-        Write-Host "Found vsce version: $vsceVersion"
-
-        # Read version from package.json
-        $packageJsonPath = Join-Path $extensionDir 'package.json'
-        if (Test-Path $packageJsonPath) {
-          Write-Host "Packaging extension"
-          & vsce package --pre-release
-          if ($LASTEXITCODE -ne 0) {
-            throw "vsce package failed with exit code $LASTEXITCODE"
-          }
-
-          Write-Host "Extension packaged successfully"
-        } else {
-          Write-Host "Warning: package.json not found, skipping vsce package"
-        }
-      } else {
-        Write-Host "vsce not found, skipping package step"
-      }
-    }
-    catch {
-      Write-Host "Warning: Failed to package extension with vsce: $_"
-      # Don't throw here, just warn since this is optional
-    }
-
-    Write-Host "VS Code extension build completed successfully"
-  }
-  catch {
-    Write-Host "Error building VS Code extension: $_"
-    throw
-  }
-  finally {
-    Pop-Location
-  }
-}
-
 function Build {
   $toolsetBuildProj = InitializeToolset
   InitializeCustomToolset
@@ -186,10 +108,10 @@ function Build {
     # Re-assign properties to a new variable because PowerShell doesn't let us append properties directly for unclear reasons.
     # Explicitly set the type as string[] because otherwise PowerShell would make this char[] if $properties is empty.
     [string[]] $msbuildArgs = $properties
-
-    # Resolve relative project paths into full paths
+    
+    # Resolve relative project paths into full paths 
     $projects = ($projects.Split(';').ForEach({Resolve-Path $_}) -join ';')
-
+    
     $msbuildArgs += "/p:Projects=$projects"
     $properties = $msbuildArgs
   }
@@ -215,11 +137,6 @@ function Build {
     /p:Publish=$publish `
     /p:RestoreStaticGraphEnableBinaryLogger=$binaryLog `
     @properties
-
-  # Build VS Code extension if buildExtension parameter is specified
-  if ($buildExtension) {
-    Build-Extension
-  }
 }
 
 try {

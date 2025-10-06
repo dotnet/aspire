@@ -21,10 +21,14 @@ namespace Aspire.Cli.Commands;
 
 internal abstract class PublishCommandBase : BaseCommand
 {
+    private const string CustomChoiceValue = "__CUSTOM_CHOICE";
+
     protected readonly IDotNetCliRunner _runner;
     protected readonly IProjectLocator _projectLocator;
     protected readonly AspireCliTelemetry _telemetry;
     protected readonly IDotNetSdkInstaller _sdkInstaller;
+
+    private readonly IFeatures _features;
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -45,11 +49,13 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -91,17 +97,20 @@ internal abstract class PublishCommandBase : BaseCommand
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
 
-            if (effectiveAppHostProjectFile is null)
+            if (effectiveAppHostFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            if (string.Equals(effectiveAppHostProjectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+
+            // Validate that single file AppHost feature is enabled if we detected a .cs file
+            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
             {
-                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
-                return ExitCodeConstants.SingleFileAppHostNotSupported;
+                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
+                return ExitCodeConstants.FailedToFindProject;
             }
 
             var env = new Dictionary<string, string>();
@@ -112,7 +121,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostProjectFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            if (isSingleFileAppHost)
+            {
+                // TODO: Add logic to read SDK version from *.cs file.
+                appHostCompatibilityCheck = (true, true, VersionHelper.GetDefaultTemplateVersion());
+            }
+            else
+            {
+                appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
@@ -125,13 +142,16 @@ internal abstract class PublishCommandBase : BaseCommand
                 StandardErrorCallback = buildOutputCollector.AppendError,
             };
 
-            var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostProjectFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
-
-            if (buildExitCode != 0)
+            if (!isSingleFileAppHost)
             {
-                InteractionService.DisplayLines(buildOutputCollector.GetLines());
-                InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
-                return ExitCodeConstants.FailedToBuildArtifacts;
+                var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
+
+                if (buildExitCode != 0)
+                {
+                    InteractionService.DisplayLines(buildOutputCollector.GetLines());
+                    InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
+                    return ExitCodeConstants.FailedToBuildArtifacts;
+                }
             }
 
             var outputPath = parseResult.GetValue<string?>("--output-path");
@@ -150,7 +170,7 @@ internal abstract class PublishCommandBase : BaseCommand
             var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
 
             var pendingRun = _runner.RunAsync(
-                effectiveAppHostProjectFile,
+                effectiveAppHostFile,
                 false,
                 true,
                 GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens),
@@ -457,6 +477,31 @@ internal abstract class PublishCommandBase : BaseCommand
         return !hasErrors;
     }
 
+    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
+    {
+        if (inputCount > 1)
+        {
+            // Multi-input: just show the label with markdown conversion
+            var labelText = MarkdownToSpectreConverter.ConvertToSpectre($"{input.Label}: ");
+            return labelText;
+        }
+
+        // Single-input: show both StatusText and Label
+        var header = statusText ?? string.Empty;
+        var label = input.Label ?? string.Empty;
+
+        // If StatusText equals Label (case-insensitive), show only the label once
+        if (header.Equals(label, StringComparison.OrdinalIgnoreCase))
+        {
+            return $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(label)}[/]";
+        }
+
+        // Show StatusText as header (converted from markdown), then Label on new line
+        var convertedHeader = MarkdownToSpectreConverter.ConvertToSpectre(header);
+        var convertedLabel = MarkdownToSpectreConverter.ConvertToSpectre(label);
+        return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
+    }
+
     private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
@@ -494,15 +539,8 @@ internal abstract class PublishCommandBase : BaseCommand
             // or there are validation errors and this input has an error.
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
-                // For multiple inputs, use the input label as the prompt
-                // For single input, use the activity status text as the prompt
-                var basePromptText = inputs.Count > 1
-                    ? $"{input.Label}: "
-                    : activity.Data.StatusText;
-
-                var promptText = inputs.Count > 1
-                    ? MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)
-                    : $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(basePromptText)}[/]";
+                // Build the prompt text based on number of inputs
+                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
@@ -570,17 +608,31 @@ internal abstract class PublishCommandBase : BaseCommand
             return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
         }
 
+        // If AllowCustomChoice is enabled then add an "Other" option to the list.
+        // CLI doesn't support custom values directly in selection prompts. Instead an "Other" option is added.
+        // If "Other" is selected then the user is prompted to enter a custom value as text.
+        var options = input.Options.ToList();
+        if (input.AllowCustomChoice)
+        {
+            options.Add(KeyValuePair.Create(CustomChoiceValue, InteractionServiceStrings.CustomChoiceLabel));
+        }
+
         // For Choice inputs, we can't directly set a default in PromptForSelectionAsync,
         // but we can reorder the options to put the default first or use a different approach
-        var selectedChoice = await InteractionService.PromptForSelectionAsync(
+        var (value, displayText) = await InteractionService.PromptForSelectionAsync(
             promptText,
-            input.Options,
+            options,
             choice => choice.Value,
             cancellationToken);
 
-        AnsiConsole.MarkupLine($"{promptText} {selectedChoice.Value.EscapeMarkup()}");
+        if (value == CustomChoiceValue)
+        {
+            return await InteractionService.PromptForStringAsync(promptText, defaultValue: input.Value, required: input.Required, cancellationToken: cancellationToken);
+        }
 
-        return selectedChoice.Key;
+        AnsiConsole.MarkupLine($"{promptText} {displayText.EscapeMarkup()}");
+
+        return value;
     }
 
     private async Task<string?> HandleNumberInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

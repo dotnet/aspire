@@ -14,4 +14,7 @@ internal static class KnownFeatures
     public static string ShowDeprecatedPackages => "showDeprecatedPackages";
     public static string SingleFileAppHostEnabled => "singlefileAppHostEnabled";
     public static string PackageSearchDiskCachingEnabled => "packageSearchDiskCachingEnabled";
+    public static string StagingChannelEnabled => "stagingChannelEnabled";
+    public static string DefaultWatchEnabled => "defaultWatchEnabled";
+    public static string ShowAllTemplates => "showAllTemplates";
 }

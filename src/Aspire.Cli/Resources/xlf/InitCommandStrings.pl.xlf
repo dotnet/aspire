@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 xliff-core-1.2-transitional.xsd">
+  <file datatype="xml" source-language="en" target-language="pl" original="../InitCommandStrings.resx">
+    <body>
+      <trans-unit id="AddingProjectsToSolution">
+        <source>Adding projects to solution...</source>
+        <target state="new">Adding projects to solution...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="AspireInitializationComplete">
+        <source>Aspire initialization complete!</source>
+        <target state="new">Aspire initialization complete!</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingAppHostProject">
+        <source>Creating AppHost project...</source>
+        <target state="new">Creating AppHost project...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="CreatingServiceDefaultsProject">
+        <source>Creating ServiceDefaults project...</source>
+        <target state="new">Creating ServiceDefaults project...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="Description">
+        <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
+        <target state="new">Initialize Aspire support in an existing solution or create a single-file AppHost.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MultipleSolutionsFound">
+        <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
+        <target state="new">Multiple solution files found. Please select which one to add the Aspire projects to:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
+        <source>No solution file found. Creating single-file AppHost...</source>
+        <target state="new">No solution file found. Creating single-file AppHost...</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionDetected">
+        <source>Solution detected: {0}</source>
+        <target state="new">Solution detected: {0}</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="SolutionAlreadyInitialized">
+        <source>Solution has already been initialized with Aspire.</source>
+        <target state="new">Solution has already been initialized with Aspire.</target>
+        <note />
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

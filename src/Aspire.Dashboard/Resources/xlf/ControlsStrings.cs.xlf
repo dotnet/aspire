@@ -284,7 +284,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="translated">Načítání…</target>
+        <target state="translated">Načítání...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -524,7 +524,7 @@
       </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
-        <target state="new">Cloud</target>
+        <target state="translated">Cloud</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">

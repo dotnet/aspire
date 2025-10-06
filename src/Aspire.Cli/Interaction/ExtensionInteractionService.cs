@@ -92,7 +92,28 @@ internal class ExtensionInteractionService : IExtensionInteractionService
             {
                 try
                 {
-                    var result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                    string result;
+                    if (isSecret)
+                    {
+                        // Check if extension supports the new secret prompts capability
+                        var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.SecretPromptsCapability, _cancellationToken).ConfigureAwait(false);
+                        
+                        if (hasSecretPromptsCapability)
+                        {
+                            // Use the new dedicated secret prompt method (no default value for secrets)
+                            result = await Backchannel.PromptForSecretStringAsync(promptText.RemoveSpectreFormatting(), validator, required, _cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Fallback to regular prompt for older extension versions
+                            result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                    else
+                    {
+                        result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
+                    }
+                    
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -163,6 +184,35 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         else
         {
             return await _consoleInteractionService.PromptForSelectionAsync(promptText, choices, choiceFormatter, cancellationToken);
+        }
+    }
+
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter,
+        CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (_extensionPromptEnabled)
+        {
+            var tcs = new TaskCompletionSource<IReadOnlyList<T>>();
+
+            await _extensionTaskChannel.Writer.WriteAsync(async () =>
+            {
+                try
+                {
+                    var result = await Backchannel.PromptForSelectionsAsync(promptText.RemoveSpectreFormatting(), choices, choiceFormatter, _cancellationToken).ConfigureAwait(false);
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                    DisplayError(ex.Message);
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+        else
+        {
+            return await _consoleInteractionService.PromptForSelectionsAsync(promptText, choices, choiceFormatter, cancellationToken);
         }
     }
 

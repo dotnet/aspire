@@ -30,8 +30,6 @@ runs:
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
-      env:
-        CI: false
       shell: pwsh
       run: >
         dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
@@ -40,8 +38,6 @@ runs:
 
     - name: Generate list of template tests
       if: ${{ inputs.includeTemplates }}
-      env:
-        CI: false
       shell: pwsh
       run: >
           dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
@@ -56,8 +52,6 @@ runs:
       id: generate_integrations_matrix
       if: ${{ inputs.includeIntegrations }}
       shell: pwsh
-      env:
-        CI: false
       run: |
         $filePath = "${{ github.workspace }}/artifacts/TestsForGithubActions.list"
         $lines = Get-Content $filePath
@@ -72,8 +66,6 @@ runs:
       id: generate_templates_matrix
       if: ${{ inputs.includeTemplates }}
       shell: pwsh
-      env:
-        CI: false
       run: |
         $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
         $lines = Get-Content $inputFilePath

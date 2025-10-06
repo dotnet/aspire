@@ -1,9 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Components.CustomIcons;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp.Model;
+using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -15,6 +19,7 @@ public partial class StructuredLogActions : ComponentBase
 {
     private static readonly Icon s_viewDetailsIcon = new Icons.Regular.Size16.Info();
     private static readonly Icon s_messageOpenIcon = new Icons.Regular.Size16.Open();
+    private static readonly Icon s_gitHubCopilotIcon = new AspireIcons.Size16.GitHubCopilot();
 
     private AspireMenuButton? _menuButton;
 
@@ -28,7 +33,16 @@ public partial class StructuredLogActions : ComponentBase
     public required IStringLocalizer<Resources.Dialogs> DialogsLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Resources.AIAssistant> AIAssistantLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Resources.AIPrompts> AIPromptsLoc { get; init; }
+
+    [Inject]
     public required IDialogService DialogService { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; set; }
 
     [Parameter]
     public required EventCallback<string> OnViewDetails { get; set; }
@@ -61,5 +75,22 @@ public partial class StructuredLogActions : ComponentBase
                 await TextVisualizerDialog.OpenDialogAsync(ViewportInformation, DialogService, DialogsLoc, header, LogEntry.Message, containsSecret: false);
             }
         });
+
+        if (AIContextProvider.Enabled)
+        {
+            _menuItems.Add(new MenuButtonItem
+            {
+                Text = AIAssistantLoc[nameof(AIAssistant.MenuTextAskGitHubCopilot)],
+                Icon = s_gitHubCopilotIcon,
+                OnClick = async () =>
+                {
+                    await AIContextProvider.LaunchAssistantSidebarAsync(
+                        promptContext => PromptContextsBuilder.AnalyzeLogEntry(
+                            promptContext,
+                            AIPromptsLoc.GetString(nameof(AIPrompts.PromptAnalyzeLogEntry), LogEntry.InternalId),
+                            LogEntry));
+                }
+            });
+        }
     }
 }

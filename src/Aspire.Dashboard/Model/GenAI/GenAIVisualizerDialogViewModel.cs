@@ -16,20 +16,25 @@ namespace Aspire.Dashboard.Model.GenAI;
 [DebuggerDisplay("Span = {Span.SpanId}, Title = {Title}, Items = {Items.Count}")]
 public sealed class GenAIVisualizerDialogViewModel
 {
+    // The exact name doesn't matter. A value is required when resolving color for peer.
+    private const string UnknownPeerName = "unknown-peer";
+
     public required OtlpSpan Span { get; init; }
     public required string Title { get; init; }
     public required SpanDetailsViewModel SpanDetailsViewModel { get; init; }
     public required long? SelectedLogEntryId { get; init; }
     public required Func<List<OtlpSpan>> GetContextGenAISpans { get; init; }
-
-    public string? PeerName { get; set; }
-    public string? SourceName { get; set; }
+    public required string PeerName { get; init; }
+    public required string SourceName { get; init; }
 
     public FluentTreeItem? SelectedTreeItem { get; set; }
     public List<GenAIItemViewModel> Items { get; } = new List<GenAIItemViewModel>();
     public List<GenAIItemViewModel> InputMessages { get; private set; } = default!;
     public List<GenAIItemViewModel> OutputMessages { get; private set; } = default!;
     public GenAIItemViewModel? ErrorItem { get; private set; }
+
+    // Used for error message from the dashboard when displaying GenAI telemetry.
+    public string? DisplayErrorMessage { get; set; }
 
     public bool NoMessageContent { get; set; }
     public string? ModelName { get; set; }
@@ -39,35 +44,43 @@ public sealed class GenAIVisualizerDialogViewModel
     public static GenAIVisualizerDialogViewModel Create(
         SpanDetailsViewModel spanDetailsViewModel,
         long? selectedLogEntryId,
+        ILogger logger,
         TelemetryRepository telemetryRepository,
         Func<List<OtlpSpan>> getContextGenAISpans)
     {
+        var resources = telemetryRepository.GetResources();
+
         var viewModel = new GenAIVisualizerDialogViewModel
         {
             Span = spanDetailsViewModel.Span,
             Title = SpanWaterfallViewModel.GetTitle(spanDetailsViewModel.Span, spanDetailsViewModel.Resources),
             SpanDetailsViewModel = spanDetailsViewModel,
             SelectedLogEntryId = selectedLogEntryId,
-            GetContextGenAISpans = getContextGenAISpans
+            GetContextGenAISpans = getContextGenAISpans,
+            SourceName = OtlpResource.GetResourceName(spanDetailsViewModel.Span.Source, resources),
+            PeerName = telemetryRepository.GetPeerResource(spanDetailsViewModel.Span) is { } peerResource
+                ? OtlpResource.GetResourceName(peerResource, resources)
+                : OtlpHelpers.GetPeerAddress(spanDetailsViewModel.Span.Attributes) ?? UnknownPeerName
         };
-
-        var resources = telemetryRepository.GetResources();
-        viewModel.SourceName = OtlpResource.GetResourceName(viewModel.Span.Source, resources);
-
-        if (telemetryRepository.GetPeerResource(viewModel.Span) is { } peerResource)
-        {
-            viewModel.PeerName = OtlpResource.GetResourceName(peerResource, resources);
-        }
-        else
-        {
-            viewModel.PeerName = OtlpHelpers.GetPeerAddress(viewModel.Span.Attributes)!;
-        }
 
         viewModel.ModelName = viewModel.Span.Attributes.GetValue(GenAIHelpers.GenAIResponseModel);
         viewModel.InputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageInputTokens);
         viewModel.OutputTokens = viewModel.Span.Attributes.GetValueAsInteger(GenAIHelpers.GenAIUsageOutputTokens);
 
-        CreateMessages(viewModel, telemetryRepository);
+        try
+        {
+            CreateMessages(viewModel, telemetryRepository);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reading GenAI telemetry messages for span {SpanId}", viewModel.Span.SpanId);
+
+            // There could be invalid or unexpected message JSON that causes deserialization to fail. Display an error message.
+            viewModel.DisplayErrorMessage = $"{ex.GetType().FullName}: {ex.Message}";
+            viewModel.Items.Clear();
+
+            return viewModel;
+        }
 
         if (viewModel.Span.Status == OtlpSpanStatusCode.Error)
         {
@@ -91,7 +104,7 @@ public sealed class GenAIVisualizerDialogViewModel
         viewModel.InputMessages = viewModel.Items.Where(e => e.Type is GenAIItemType.SystemMessage or GenAIItemType.UserMessage or GenAIItemType.AssistantMessage or GenAIItemType.ToolMessage).ToList();
         viewModel.OutputMessages = viewModel.Items.Where(e => e.Type == GenAIItemType.OutputMessage).ToList();
 
-        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages);
+        viewModel.NoMessageContent = AllMessagesHaveNoContent(viewModel.InputMessages) && AllMessagesHaveNoContent(viewModel.OutputMessages) && viewModel.ErrorItem == null;
 
         return viewModel;
     }
@@ -100,7 +113,8 @@ public sealed class GenAIVisualizerDialogViewModel
     {
         if (messageViewModels.Count == 0)
         {
-            return false;
+            // Microsoft.Extensions.AI doesn't output any message telemetry when sensitive data isn't enabled.
+            return true;
         }
 
         foreach (var messageViewModel in messageViewModels)
@@ -190,8 +204,8 @@ public sealed class GenAIVisualizerDialogViewModel
         // Attempt get get messages from span events.
         foreach (var item in viewModel.Span.Events.OrderBy(i => i.Time))
         {
-            if (GenAIHelpers.IsGenAISpan(item.Attributes) &&
-                TryMapEventName(item.Name, out var type))
+            // Detect GenAI messages by event name. Don't check for the gen_ai.system attribute because it's optional on events.
+            if (TryMapEventName(item.Name, out var type))
             {
                 var content = item.Attributes.GetValue(GenAIHelpers.GenAIEventContent);
                 var parts = content != null ? DeserializeBody(type.Value, content) : [];

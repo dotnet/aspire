@@ -42,7 +42,7 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// <summary>
     /// The name of the endpoint within this resource that represents the public URL of the tunnel for this port.
     /// </summary>
-    public const string TunnelEndpointName = "tunnel";
+    internal const string TunnelEndpointName = "tunnel";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DevTunnelPortResource"/> class, representing a single forwarded endpoint/port on a dev tunnel.
@@ -78,22 +78,9 @@ public sealed class DevTunnelPortResource : Resource, IResourceWithServiceDiscov
     /// Options controlling how this port is exposed.
     /// </summary>
     public DevTunnelPortOptions Options { get; }
-
     internal EndpointReference TunnelEndpoint { get; }
-
     internal EndpointAnnotation TunnelEndpointAnnotation { get; }
-
-    internal TaskCompletionSource TunnelEndpointAllocatedTcs { get; } = new();
-
-    internal Task TunnelEndpointAllocatedTask => TunnelEndpointAllocatedTcs.Task;
-
     internal EndpointReference TargetEndpoint { get; init; }
-
-    internal TaskCompletionSource TargetEndpointAllocatedTcs { get; set; } = new();
-
-    internal Task TargetEndpointAllocatedTask => TargetEndpointAllocatedTcs.Task;
-
-    internal DevTunnelStatus.DevTunnelPort? LastKnownStatus { get; set; }
-
+    internal DevTunnelPort? LastKnownStatus { get; set; }
     internal DevTunnelAccessStatus? LastKnownAccessStatus { get; set; }
 }

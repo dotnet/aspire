@@ -76,6 +76,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add services
         builder.Services.TryAddSingleton<DevTunnelCliInstallationManager>();
         builder.Services.TryAddSingleton<DevTunnelLoginManager>();
+        builder.Services.TryAddSingleton<LoggedOutNotificationManager>();
         builder.Services.TryAddSingleton<IDevTunnelClient, DevTunnelCliClient>();
 
         var workingDirectory = builder.AppHostDirectory;
@@ -83,12 +84,18 @@ public static partial class DevTunnelsResourceBuilderExtensions
 
         // Health check
         var healtCheckKey = $"{name}-check";
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
             healtCheckKey,
-            services => new DevTunnelHealthCheck(services.GetRequiredService<IDevTunnelClient>(), tunnelResource, services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
+            services => new DevTunnelHealthCheck(
+                services.GetRequiredService<IDevTunnelClient>(),
+                services.GetRequiredService<LoggedOutNotificationManager>(),
+                tunnelResource,
+                services.GetRequiredService<ILogger<DevTunnelHealthCheck>>()),
             failureStatus: default,
             tags: default,
             timeout: default));
+#pragma warning restore ASPIREINTERACTION001
 
         var rb = builder.AddResource(tunnelResource)
             .WithArgs("host", tunnelId, "--nologo")
@@ -133,17 +140,33 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     var exception = new DistributedApplicationException($"Error trying to create the dev tunnel resource '{tunnelResource.TunnelId}' this port belongs to: {ex.Message}", ex);
                     foreach (var portResource in tunnelResource.Ports)
                     {
-                        portResource.TunnelEndpointAllocatedTcs.SetException(exception);
+                        portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(exception);
                     }
                     throw;
                 }
 
                 // Wait for target resource endpoints to be allocated
-                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpointAllocatedTask)).ConfigureAwait(false);
+                await Task.WhenAll(tunnelResource.Ports.Select(p => p.TargetEndpoint.GetValueAsync(ct).AsTask())).ConfigureAwait(false);
 
                 // Start the tunnel ports
                 var notifications = e.Services.GetRequiredService<ResourceNotificationService>();
-                await Task.WhenAll(tunnelResource.Ports.Select(StartPortAsync)).ConfigureAwait(false);
+
+                // Ensure any ports that aren't in the application model are deleted
+                var portTasks = new List<Task> { DeleteUnmodeledPortsAsync() };
+                portTasks.AddRange(tunnelResource.Ports.Select(StartPortAsync));
+                await Task.WhenAll(portTasks).ConfigureAwait(false);
+
+                async Task DeleteUnmodeledPortsAsync()
+                {
+                    var existingPorts = await devTunnelClient.GetPortListAsync(tunnelResource.TunnelId, logger, ct).ConfigureAwait(false);
+                    var modeledPortNumbers = tunnelResource.Ports.Select(p => p.TargetEndpoint.Port).ToHashSet();
+                    var unmodeledPorts = existingPorts.Ports.Where(p => !modeledPortNumbers.Contains(p.PortNumber)).ToList();
+                    if (unmodeledPorts.Count > 0)
+                    {
+                        logger.LogInformation("Deleting {Count} unmodeled ports from dev tunnel '{TunnelId}': {Ports}", unmodeledPorts.Count, tunnelResource.TunnelId, string.Join(", ", unmodeledPorts.Select(p => p.PortNumber)));
+                        await Task.WhenAll(unmodeledPorts.Select(p => devTunnelClient.DeletePortAsync(tunnelResource.TunnelId, p.PortNumber, logger, ct))).ConfigureAwait(false);
+                    }
+                }
 
                 async Task StartPortAsync(DevTunnelPortResource portResource)
                 {
@@ -172,7 +195,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     catch (Exception ex)
                     {
                         portLogger.LogError(ex, "Error trying to create dev tunnel port '{Port}' on tunnel '{Tunnel}': {Error}", portResource.TargetEndpoint.Port, portResource.DevTunnel.TunnelId, ex.Message);
-                        portResource.TunnelEndpointAllocatedTcs.SetException(ex);
+                        portResource.TunnelEndpointAnnotation.AllocatedEndpointSnapshot.SetException(ex);
                         throw;
                     }
 
@@ -297,6 +320,80 @@ public static partial class DevTunnelsResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the target resource.</typeparam>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="resourceBuilder">The target resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint on the target resource.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
+    public static EndpointReference GetEndpoint<TResource>(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResourceBuilder<TResource> resourceBuilder, string endpointName)
+        where TResource : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
+        return tunnelBuilder.GetEndpoint(resourceBuilder.Resource, endpointName);
+    }
+
+    /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
+    /// </summary>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="resource">The target resource.</param>
+    /// <param name="endpointName">The name of the endpoint on the target resource.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResource resource, string endpointName)
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
+        var portResource = tunnelBuilder.Resource.Ports
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, endpointName));
+
+        if (portResource is null)
+        {
+            return CreateEndpointReferenceWithError(tunnelBuilder.Resource, resource, endpointName);
+        }
+
+        return portResource.TunnelEndpoint;
+    }
+
+    /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target endpoint.
+    /// </summary>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="targetEndpointReference">The target endpoint reference.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, EndpointReference targetEndpointReference)
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(targetEndpointReference);
+
+        var portResource = tunnelBuilder.Resource.Ports
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource 
+                && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName));
+
+        if (portResource is null)
+        {
+            return CreateEndpointReferenceWithError(tunnelBuilder.Resource, targetEndpointReference.Resource, targetEndpointReference.EndpointName);
+        }
+
+        return portResource.TunnelEndpoint;
+    }
+
+    private static EndpointReference CreateEndpointReferenceWithError(DevTunnelResource tunnelResource, IResource targetResource, string endpointName)
+    {
+        return new EndpointReference(tunnelResource, endpointName)
+        {
+            ErrorMessage = $"The dev tunnel '{tunnelResource.Name}' has not been associated with '{endpointName}' on resource '{targetResource.Name}'. Use 'WithReference({targetResource.Name})' on the dev tunnel to expose this endpoint."
+        };
+    }
+
+    /// <summary>
     /// Injects service discovery information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
     /// Each endpoint defined on the target resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
@@ -315,15 +412,19 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(targetResource);
         ArgumentNullException.ThrowIfNull(tunnelResource);
 
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            // Skip DevTunnel operations during publish mode to avoid hanging
+            return builder;
+        }
+
         builder
             .WithReferenceRelationship(tunnelResource)
-            .WithEnvironment(async context =>
+            .WithEnvironment(context =>
             {
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
                 foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
                 {
-                    await port.TunnelEndpointAllocatedTask.ConfigureAwait(false);
-
                     var serviceName = targetResource.Resource.Name;
                     var endpointName = port.TargetEndpoint.EndpointName;
                     context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
@@ -392,11 +493,22 @@ public static partial class DevTunnelsResourceBuilderExtensions
         // Add the tunnel endpoint annotation
         portResource.Annotations.Add(portResource.TunnelEndpointAnnotation);
 
+        // Health check
+        var healtCheckKey = $"{portName}-check";
+        tunnelBuilder.ApplicationBuilder.Services.AddHealthChecks().Add(new HealthCheckRegistration(
+            healtCheckKey,
+            services => new DevTunnelPortHealthCheck(tunnel, targetEndpoint.Port),
+            failureStatus: default,
+            tags: default,
+            timeout: default));
+
         var portBuilder = tunnelBuilder.ApplicationBuilder.AddResource(portResource)
             // visual grouping beneath the tunnel
             .WithParentRelationship(tunnelBuilder)
             // indicate the target resource relationship
             .WithReferenceRelationship(targetResource)
+            .ExcludeFromManifest() // Dev tunnels do not get deployed
+            .WithHealthCheck(healtCheckKey)
             // NOTE:
             // The endpoint target full host is set by the dev tunnels service and is not known in advance, but the suffix is always devtunnels.ms
             // We might consider updating the central logic that creates endpoint URLs to allow setting a target host like *.devtunnels.ms & if the
@@ -443,6 +555,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     });
                 }
             })
+            .ExcludeFromManifest() // Dev tunnels do not get deployed
             .WithIconName("VirtualNetwork")
             .WithInitialState(new()
             {
@@ -459,36 +572,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                     new("Labels", portOptions.Labels is null ? "" : $"{string.Join(", ", portOptions.Labels)}"),
                 ]
             });
-
-        // When the target endpoint is allocated, validate it and mark the TCS accordingly
-        var targetResourceBuilder = tunnelBuilder.ApplicationBuilder.CreateResourceBuilder(targetResource);
-        targetResourceBuilder.OnResourceEndpointsAllocated((resource, e, ct) =>
-        {
-            var portLogger = e.Services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
-
-            if (!portResource.TargetEndpoint.IsAllocated)
-            {
-                // Target endpoint is not allocated, ignore
-                portLogger.LogWarning("Target resource endpoints allocated event was fired but target endpoint was not allocated.");
-                return Task.CompletedTask;
-            }
-
-            portLogger.LogDebug("Target resource endpoints allocated");
-
-            // We do this check now so that we're verifying the allocated endpoint's address
-            if (!string.Equals(portResource.TargetEndpoint.Host, "localhost", StringComparison.OrdinalIgnoreCase) &&
-                !portResource.TargetEndpoint.Host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase))
-            {
-                // Target endpoint is not localhost so can't be tunneled
-                portLogger.LogError("Cannot tunnel endpoint '{Endpoint}' with host '{Host}' on resource '{Resource}' because it is not a localhost endpoint.", portResource.TargetEndpoint.EndpointName, portResource.TargetEndpoint.Host, portResource.TargetEndpoint.Resource.Name);
-                portResource.TargetEndpointAllocatedTcs.SetException(new DistributedApplicationException($"Cannot tunnel endpoint '{portResource.TargetEndpoint.EndpointName}' with host '{portResource.TargetEndpoint.Host}' on resource '{portResource.TargetEndpoint.Resource.Name}' because it is not a localhost endpoint."));
-                return Task.CompletedTask;
-            }
-
-            // Signal the target endpoint created
-            portResource.TargetEndpointAllocatedTcs.SetResult();
-            return Task.CompletedTask;
-        });
 
         // Lifecycle from the tunnel
         tunnelBuilder
@@ -523,19 +606,27 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 portResource.TunnelEndpointAnnotation.AllocatedEndpoint = new(portResource.TunnelEndpointAnnotation, tunnelPortStatus.PortUri.Host, 443 /* Always 443 for public tunnel endpoint */);
 
                 // We can only raise the endpoints allocated event once as the central URL logic assumes it's a one-time event per resource.
-                // AFAIK the PortUri should not change between restarts of the same tunnel (with same tunnel ID) so we don't need to update the URLs for
-                // the resource every time the tunnel starts, just the first time.
                 if (raiseEndpointsAllocatedEvent)
                 {
                     await eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(portResource, services), ct).ConfigureAwait(false);
-                    portResource.TunnelEndpointAllocatedTcs.SetResult();
                 }
 
                 // Mark the port as running
                 await notifications.PublishUpdateAsync(portResource, snapshot => snapshot with
                 {
                     State = KnownResourceStates.Running,
-                    Urls = [.. snapshot.Urls.Select(u => u with { IsInactive = false /* All URLs active */ })]
+                    Urls = [.. snapshot.Urls.Select(u => u with
+                        {
+                            Url = raiseEndpointsAllocatedEvent
+                                  // The event was raised so the URL was already updated
+                                  ? u.Url
+                                  : string.Equals(u.Name, DevTunnelPortResource.TunnelEndpointName, StringComparisons.EndpointAnnotationName)
+                                      // Update the URL to use the allocated tunnel endpoint in case it changed since the last time it started
+                                      ? new UriBuilder(portResource.TunnelEndpoint.Url).Uri.ToString().TrimEnd('/')
+                                      // Not the tunnel endpoint URL so leave it as-is
+                                      : u.Url,
+                            IsInactive = false /* All URLs active */
+                        })]
                 }).ConfigureAwait(false);
 
                 var portLogger = services.GetRequiredService<ResourceLoggerService>().GetLogger(portResource);
@@ -565,7 +656,6 @@ public static partial class DevTunnelsResourceBuilderExtensions
                 {
                     portLogger.LogDebug(ex, "Failed to log anonymous access status for port");
                 }
-                
             })
             .OnResourceStopped(async (tunnelResource, e, ct) =>
             {
@@ -597,7 +687,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         return new ProductInfoHeaderValue("Aspire.DevTunnels", version).ToString();
     }
 
-    private static bool TryValidateLabels(IList<string>? labels, [NotNullWhen(false)] out string? errorMessage)
+    private static bool TryValidateLabels(List<string>? labels, [NotNullWhen(false)] out string? errorMessage)
     {
         if (labels is null || labels.Count == 0)
         {

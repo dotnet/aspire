@@ -3,8 +3,8 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject<Projects.ApiService>("api");
-var frontend = builder.AddProject<Projects.WebFrontEnd>("frontend");
+var api = builder.AddProject<Projects.DevTunnels_ApiService>("api");
+var frontend = builder.AddProject<Projects.DevTunnels_WebFrontEnd>("frontend");
 
 var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
     .WithAnonymousAccess() // All ports on this tunnel default to allowing anonymous access
@@ -13,6 +13,12 @@ var publicDevTunnel = builder.AddDevTunnel("devtunnel-public")
 var privateDevTunnel = builder.AddDevTunnel("devtunnel")
     .WithReference(frontend.GetEndpoint("https"))
     .WithReference(api.GetEndpoint("https"));
+
+// Use the GetEndpoint API to get the tunnel endpoint for the API service
+var devTunnelPortEndpoint = privateDevTunnel.GetEndpoint(api, "https");
+
+// Inject the private dev tunnel endpoint for API into the frontend service
+frontend.WithEnvironment("TUNNEL_URL", devTunnelPortEndpoint);
 
 // Inject the public dev tunnel endpoint for frontend into the API service
 api.WithReference(frontend, publicDevTunnel);

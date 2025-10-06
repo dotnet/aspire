@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="CommandNotSupportedWithSingleFileAppHost">
         <source>This command is not yet supported with single file AppHosts.</source>
-        <target state="new">This command is not yet supported with single file AppHosts.</target>
+        <target state="translated">Bu komut, tek dosya Uygulama Ana İşlemlerinde henüz desteklenmemektedir.</target>
         <note />
       </trans-unit>
       <trans-unit id="ConfigurationKeyNotFound">
@@ -164,7 +164,7 @@
       </trans-unit>
       <trans-unit id="SingleFileAppHostFeatureNotEnabled">
         <source>Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</source>
-        <target state="new">Single file AppHost feature is not enabled. To use .cs AppHost files, enable the feature using configuration.</target>
+        <target state="translated">Tek dosya Uygulama Ana İşlemi özelliği etkinleştirilmemiştir. .cs AppHost dosyalarını kullanmak için, yapılandırmaları kullanarak özelliği etkinleştirin.</target>
         <note />
       </trans-unit>
       <trans-unit id="UnableToRetrieveAssemblyVersion">

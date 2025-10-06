@@ -158,7 +158,7 @@ public class AzureProvisioningResource(string name, Action<AzureResourceInfrastr
     /// provisionable properties to correctly scope the existing resource in the generated Bicep.
     /// The caller is responsible for setting a generated name when the method returns <see langword="false"/>.
     /// </remarks>
-    public static bool TryApplyExistingResourceNameAndScope(IAzureResource aspireResource, AzureResourceInfrastructure infra, ProvisionableResource provisionableResource)
+    public static bool TryApplyExistingResourceAnnotation(IAzureResource aspireResource, AzureResourceInfrastructure infra, ProvisionableResource provisionableResource)
     {
         ArgumentNullException.ThrowIfNull(aspireResource);
         ArgumentNullException.ThrowIfNull(infra);

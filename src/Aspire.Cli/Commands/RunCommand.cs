@@ -22,6 +22,7 @@ namespace Aspire.Cli.Commands;
 internal sealed class RunCommand : BaseCommand
 {
     private readonly IDotNetCliRunner _runner;
+    private readonly IInteractionService _interactionService;
     private readonly ICertificateService _certificateService;
     private readonly IProjectLocator _projectLocator;
     private readonly IAnsiConsole _ansiConsole;
@@ -47,6 +48,7 @@ internal sealed class RunCommand : BaseCommand
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
+        ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(certificateService);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(ansiConsole);
@@ -55,6 +57,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
 
         _runner = runner;
+        _interactionService = interactionService;
         _certificateService = certificateService;
         _projectLocator = projectLocator;
         _ansiConsole = ansiConsole;
@@ -67,10 +70,6 @@ internal sealed class RunCommand : BaseCommand
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
         Options.Add(projectOption);
-
-        var watchOption = new Option<bool>("--watch", "-w");
-        watchOption.Description = RunCommandStrings.WatchArgumentDescription;
-        Options.Add(watchOption);
 
         if (ExtensionHelper.IsExtensionHost(InteractionService, out _, out _))
         {
@@ -141,7 +140,7 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
-            var watch = parseResult.GetValue<bool>("--watch") || (isExtensionHost && !startDebugSession);
+            var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession));
 
             if (!watch)
             {
@@ -165,7 +164,7 @@ internal sealed class RunCommand : BaseCommand
                             InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                             return ExitCodeConstants.FailedToBuildArtifacts;
                         }
-                    }                    
+                    }
                 }
             }
 
@@ -177,7 +176,7 @@ internal sealed class RunCommand : BaseCommand
             else
             {
                 appHostCompatibilityCheck = await AppHostHelper.CheckAppHostCompatibilityAsync(_runner, InteractionService, effectiveAppHostFile, _telemetry, ExecutionContext.WorkingDirectory, cancellationToken);
-            }         
+            }
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException(RunCommandStrings.IsCompatibleAppHostIsNull))
             {
@@ -188,7 +187,8 @@ internal sealed class RunCommand : BaseCommand
             {
                 StandardOutputCallback = runOutputCollector.AppendOutput,
                 StandardErrorCallback = runOutputCollector.AppendError,
-                StartDebugSession = startDebugSession
+                StartDebugSession = startDebugSession,
+                Debug = debug
             };
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
@@ -387,6 +387,10 @@ internal sealed class RunCommand : BaseCommand
 
     private void AppendCtrlCMessage(int longestLocalizedLength)
     {
+        if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
+        {
+            return;
+        }
 
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();

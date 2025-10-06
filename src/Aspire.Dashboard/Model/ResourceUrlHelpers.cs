@@ -8,6 +8,20 @@ namespace Aspire.Dashboard.Model;
 
 internal static class ResourceUrlHelpers
 {
+    // These are known URL schemes that browsers don't support opening. Don't attempt to display them as a link.
+    // Not displaying them as a link makes it clear what can be opened in a browser (http, https) vs what can't (tcp, ws).
+    // This is a deny list because custom schemes could hand off the link to an app registered with the OS. For example, vscode://.
+    private static readonly HashSet<string> s_browserUnsupportedSchemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "gopher",
+        "ws",
+        "wss",
+        "news",
+        "nntp",
+        "telnet",
+        "tcp"
+    };
+
     public static List<DisplayedUrl> GetUrls(ResourceViewModel resource, bool includeInternalUrls = false, bool includeNonEndpointUrls = false)
     {
         var urls = new List<DisplayedUrl>(resource.Urls.Length);
@@ -33,7 +47,7 @@ internal static class ResourceUrlHelpers
                     Name = url.EndpointName ?? "-",
                     Address = url.Url.Host,
                     Port = url.Url.Port,
-                    Url = url.Url.Scheme is "http" or "https" ? url.Url.OriginalString : null,
+                    Url = !s_browserUnsupportedSchemes.Contains(url.Url.Scheme) ? url.Url.OriginalString : null,
                     SortOrder = url.DisplayProperties.SortOrder,
                     DisplayName = string.IsNullOrEmpty(url.DisplayProperties.DisplayName) ? null : url.DisplayProperties.DisplayName,
                     OriginalUrlString = url.Url.OriginalString,

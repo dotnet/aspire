@@ -80,7 +80,7 @@ public sealed class AzureUserAssignedIdentityResource(string name)
         // Create and add new resource if it doesn't exist
         var store = UserAssignedIdentity.FromExisting(bicepIdentifier);
 
-        if (!TryApplyExistingResourceNameAndScope(
+        if (!TryApplyExistingResourceAnnotation(
             this,
             infra,
             store))

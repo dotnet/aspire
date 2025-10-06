@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">Se permite una longitud máxima de {1} caracteres.</target>
+        <target state="translated">Se permite una longitud máxima de {1} caracteres.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -100,6 +100,11 @@
       <trans-unit id="GenAIDetailsTabText">
         <source>Details</source>
         <target state="translated">Detalles</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">

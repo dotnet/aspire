@@ -166,6 +166,8 @@ message HealthReport {
     string description = 3;
     // Any exception details.
     string exception = 4;
+    // The timestamp when this health check was last executed.
+    optional google.protobuf.Timestamp last_run_at = 5;
 }
 
 enum HealthStatus {
@@ -384,6 +386,7 @@ message InteractionInput {
     string description = 8;
     bool enable_description_markdown = 9;
     int32 max_length = 10;
+    bool allow_custom_choice = 11;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;
