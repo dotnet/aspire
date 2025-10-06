@@ -102,16 +102,17 @@ internal class ConsoleInteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<T>> PromptForMultiSelectionAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
-        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
+        // Check if the choices collection is empty - return empty list instead of throwing
         if (!choices.Any())
         {
-            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
+            DisplayMessage("information", InteractionServiceStrings.NoItemsAvailableForSelection);
+            return Array.Empty<T>();
         }
 
         var prompt = new MultiSelectionPrompt<T>()
@@ -121,7 +122,8 @@ internal class ConsoleInteractionService : IInteractionService
             .PageSize(10)
             .NotRequired();
 
-        return await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        return result;
     }
 
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)

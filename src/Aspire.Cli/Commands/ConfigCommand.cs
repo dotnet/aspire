@@ -338,7 +338,7 @@ internal sealed class ConfigCommand : BaseCommand
         public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
         {
             // Prompt user to select features
-            var selectedFeatures = await InteractionService.PromptForMultiSelectionAsync(
+            var selectedFeatures = await InteractionService.PromptForSelectionsAsync(
                 ConfigCommandStrings.FeatureCommand_PromptForFeatures,
                 FeatureInfo.KnownFeatureInfos,
                 f => $"{f.Name} - {f.Description}",
