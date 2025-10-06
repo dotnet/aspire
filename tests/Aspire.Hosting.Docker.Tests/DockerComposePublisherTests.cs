@@ -567,6 +567,4 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
             }
         };
     }
-
-    [Fact]
 }
