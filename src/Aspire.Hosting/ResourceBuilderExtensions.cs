@@ -6,7 +6,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -2363,15 +2362,15 @@ public static class ResourceBuilderExtensions
     /// Adds support for debugging the resource in VS Code when running in an extension host.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="launchConfiguration">Launch configuration for the resource.</param>
+    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
     /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, Func<ExecutableLaunchConfiguration> launchConfiguration, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(launchConfiguration);
+        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
@@ -2390,7 +2389,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(new SupportsDebuggingAnnotation(requiredExtensionId, launchConfiguration));
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(requiredExtensionId, launchConfigurationProducer));
     }
 
     /// <summary>

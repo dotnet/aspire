@@ -77,12 +77,17 @@ public class ExecutableResourceBuilderExtensionTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         var launchConfig = new ExecutableLaunchConfiguration("python");
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
-            .WithVSCodeDebugSupport(() => launchConfig, "ms-python.python");
+            .WithVSCodeDebugSupport(_ => launchConfig, "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);
-        Assert.Equal(launchConfig, annotation.LaunchConfigurationProducer());
+        var exe = new Executable(new ExecutableSpec());
+        annotation.LaunchConfigurationAnnotator(exe, "NoDebug");
         Assert.Equal("ms-python.python", annotation.RequiredExtensionId);
+
+        Assert.True(exe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
+        Assert.Equal(launchConfig.Mode, annotations.Single().Mode);
+        Assert.Equal(launchConfig.Type, annotations.Single().Type);
     }
 
     [Fact]
@@ -90,7 +95,7 @@ public class ExecutableResourceBuilderExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
-            .WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("python"), "ms-python.python");
+            .WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("python"), "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.Null(annotation);

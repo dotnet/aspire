@@ -970,14 +970,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 && (supportsDebuggingAnnotation.RequiredExtensionId is null || supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-
-                var launchConfiguration = supportsDebuggingAnnotation.LaunchConfigurationProducer();
-                if (_configuration[KnownConfigNames.DebugSessionRunMode] is { } runMode)
-                {
-                    launchConfiguration.Mode = runMode;
-                }
-
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchConfiguration);
+                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
             }
             else
             {
