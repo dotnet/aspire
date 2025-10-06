@@ -1540,7 +1540,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test_executable_type") { ProjectPath = "project-file" }, "test_executable");
+        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test_executable_type"), "test_executable");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         // No SupportsDebuggingAnnotation for this one
@@ -1572,11 +1572,10 @@ public class DcpExecutorTests
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
-        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
+        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
         var config1 = Assert.Single(launchConfigs1);
         Assert.Equal(ExecutableLaunchMode.Debug, config1.Mode);
         Assert.Equal("test_executable_type", config1.Type);
-        Assert.Equal("project-file", config1.ProjectPath);
 
         var nonDebuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestOtherExecutable");
         Assert.Equal(ExecutionType.Process, nonDebuggableExe.Spec.ExecutionType);
@@ -1591,7 +1590,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var executable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(executable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test") { ProjectPath = "project-file" }, "test_executable");
+        builder.AddResource(executable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test"), "test_executable");
 
         // Simulate debug session port and extension endpoint (extension mode)
         var configDict = new Dictionary<string, string?>
@@ -1627,7 +1626,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test") { ProjectPath = "project-file" }, "test_executable");
+        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(() => new ExecutableLaunchConfiguration("test"), "test_executable");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         builder.AddResource(nonDebuggableExecutable);

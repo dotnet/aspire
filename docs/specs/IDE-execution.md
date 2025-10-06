@@ -212,11 +212,11 @@ Python launch configuration contains details for launching python scripts.
 
 **Python launch configuration properties**
 
-| Property       | Description                                                                                                                                            | Required?                      |
-|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| `type`         | Launch configuration type indicator; must be `python`.                                                                                                 | Required                       |
-| `project_path` | Path to the project file for the program that is being launched.                                                                                       | Required                       |
-| `mode`         | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
+| Property | Description | Required? |
+|----------------|--------|-------|
+| `type` | Launch configuration type indicator; must be `python`.  | Required |
+| `program_path` | Path to the python startup file. | Required |
+| `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 
 ## Run session change notifications
 

@@ -290,12 +290,6 @@ public class ExecutableLaunchConfiguration(string type)
     /// </summary>
     [JsonPropertyName("mode")]
     public string Mode { get; set; } = System.Diagnostics.Debugger.IsAttached ? ExecutableLaunchMode.Debug : ExecutableLaunchMode.NoDebug;
-
-    /// <summary>
-    /// Path to the project file for the program that is being launched.
-    /// </summary>
-    [JsonPropertyName("project_path")]
-    public string ProjectPath { get; set; } = string.Empty;
 }
 
 internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("project")
@@ -305,4 +299,10 @@ internal class ProjectLaunchConfiguration() : ExecutableLaunchConfiguration("pro
 
     [JsonPropertyName("disable_launch_profile")]
     public bool DisableLaunchProfile { get; set; } = false;
+
+    /// <summary>
+    /// Path to the project file for the program that is being launched.
+    /// </summary>
+    [JsonPropertyName("project_path")]
+    public string ProjectPath { get; set; } = string.Empty;
 }
