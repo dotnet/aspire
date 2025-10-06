@@ -761,9 +761,12 @@ public class ResourceNotificationService : IDisposable
         // Only update icon information if not already set
         var newIconName = string.IsNullOrEmpty(previousState.IconName) ? iconAnnotation.IconName : previousState.IconName;
         var newIconVariant = previousState.IconVariant ?? iconAnnotation.IconVariant;
+        var newCustomIconData = string.IsNullOrEmpty(previousState.CustomIconData) ? iconAnnotation.CustomIconData : previousState.CustomIconData;
 
         // Only create new snapshot if there are changes
-        if (previousState.IconName == newIconName && previousState.IconVariant == newIconVariant)
+        if (previousState.IconName == newIconName && 
+            previousState.IconVariant == newIconVariant && 
+            previousState.CustomIconData == newCustomIconData)
         {
             return previousState;
         }
@@ -771,7 +774,8 @@ public class ResourceNotificationService : IDisposable
         return previousState with 
         { 
             IconName = newIconName,
-            IconVariant = newIconVariant
+            IconVariant = newIconVariant,
+            CustomIconData = newCustomIconData
         };
     }
 

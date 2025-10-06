@@ -144,6 +144,12 @@ public sealed record CustomResourceSnapshot
     /// </summary>
     public IconVariant? IconVariant { get; init; }
 
+    /// <summary>
+    /// Custom icon data for the resource, which can be SVG content or a data URI.
+    /// When specified, this takes precedence over IconName for displaying the icon.
+    /// </summary>
+    public string? CustomIconData { get; init; }
+
     internal static HealthStatus? ComputeHealthStatus(ImmutableArray<HealthReportSnapshot> healthReports, string? state)
     {
         if (state != KnownResourceStates.Running)

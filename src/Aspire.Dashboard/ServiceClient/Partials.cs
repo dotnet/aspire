@@ -42,7 +42,8 @@ partial class Resource
                 IsHidden = IsHidden,
                 SupportsDetailedTelemetry = SupportsDetailedTelemetry,
                 IconName = HasIconName ? IconName : null,
-                IconVariant = HasIconVariant ? MapResourceIconVariant(IconVariant) : null
+                IconVariant = HasIconVariant ? MapResourceIconVariant(IconVariant) : null,
+                CustomIconData = HasCustomIconData ? CustomIconData : null
             };
         }
         catch (Exception ex)
