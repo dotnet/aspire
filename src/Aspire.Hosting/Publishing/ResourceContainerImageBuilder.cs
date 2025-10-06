@@ -358,6 +358,12 @@ internal sealed class ResourceContainerImageBuilder(
             resolvedBuildSecrets[buildSecret.Key] = await ResolveValue(buildSecret.Value, cancellationToken).ConfigureAwait(false);
         }
 
+        // ensure outputPath is created if specified since docker/podman won't create it for us
+        if (options?.OutputPath is { } outputPath)
+        {
+            Directory.CreateDirectory(outputPath);
+        }
+
         if (publishingTask is not null)
         {
             await using (publishingTask.ConfigureAwait(false))

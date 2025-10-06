@@ -16,11 +16,7 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
 
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
   </ItemGroup>
 
 </Project>

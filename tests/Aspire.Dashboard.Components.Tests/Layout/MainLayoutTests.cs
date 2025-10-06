@@ -7,9 +7,11 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.InternalTesting;
@@ -184,6 +186,7 @@ public partial class MainLayoutTests : DashboardTestContext
     {
         Services.AddLocalization();
         Services.AddOptions();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
         Services.AddSingleton<ThemeManager>();
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<IDashboardClient, TestDashboardClient>();

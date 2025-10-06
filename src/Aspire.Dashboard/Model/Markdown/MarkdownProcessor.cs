@@ -14,7 +14,7 @@ public sealed class MarkdownProcessor
     private readonly MarkdownPipeline _markdownPipeline;
     private readonly HashSet<string>? _safeUrlSchemes;
 
-    public MarkdownProcessor(IStringLocalizer<ControlsStrings> loc, HashSet<string>? safeUrlSchemes)
+    public MarkdownProcessor(IStringLocalizer<ControlsStrings> loc, HashSet<string>? safeUrlSchemes, List<IMarkdownExtension> extensions)
     {
         var autoLinkOptions = new AutoLinkOptions
         {
@@ -34,6 +34,10 @@ public sealed class MarkdownProcessor
         // This should be fine because code blocks returned by model should always be fenced.
         pipelineBuilder.BlockParsers.RemoveAll(p => p is IndentedCodeBlockParser);
         pipelineBuilder.Extensions.Add(new AspireCodeBlockExtension(loc));
+        foreach (var extension in extensions)
+        {
+            pipelineBuilder.Extensions.Add(extension);
+        }
 
         _markdownPipeline = pipelineBuilder.Build();
         _safeUrlSchemes = safeUrlSchemes;

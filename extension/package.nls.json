@@ -6,6 +6,7 @@
 	"extension.debug.defaultConfiguration.description": "Launch the effective Aspire apphost in your workspace",
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",
+	"command.init": "Initialize Aspire",
 	"command.publish": "Publish deployment artifacts",
 	"command.update": "Update integrations",
 	"command.openTerminal": "Open Aspire terminal",

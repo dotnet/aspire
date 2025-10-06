@@ -14,6 +14,12 @@ var privateDevTunnel = builder.AddDevTunnel("devtunnel")
     .WithReference(frontend.GetEndpoint("https"))
     .WithReference(api.GetEndpoint("https"));
 
+// Use the GetEndpoint API to get the tunnel endpoint for the API service
+var devTunnelPortEndpoint = privateDevTunnel.GetEndpoint(api, "https");
+
+// Inject the private dev tunnel endpoint for API into the frontend service
+frontend.WithEnvironment("TUNNEL_URL", devTunnelPortEndpoint);
+
 // Inject the public dev tunnel endpoint for frontend into the API service
 api.WithReference(frontend, publicDevTunnel);
 
