@@ -807,8 +807,8 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
                 // Simulate dotnet sln list output
                 invocationOptions.StandardOutputCallback?.Invoke("Project(s)");
                 invocationOptions.StandardOutputCallback?.Invoke("----------");
-                invocationOptions.StandardOutputCallback?.Invoke("Project1\\Project1.csproj");
-                invocationOptions.StandardOutputCallback?.Invoke("Project2\\Project2.csproj");
+                invocationOptions.StandardOutputCallback?.Invoke($"Project1{Path.DirectorySeparatorChar}Project1.csproj");
+                invocationOptions.StandardOutputCallback?.Invoke($"Project2{Path.DirectorySeparatorChar}Project2.csproj");
             },
             0
         );
