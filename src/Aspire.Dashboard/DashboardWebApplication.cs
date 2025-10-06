@@ -263,6 +263,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddSingleton<DashboardTelemetryService>();
         builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
         builder.Services.AddSingleton<ILoggerProvider, TelemetryLoggerProvider>();
+        builder.Services.AddSingleton<ITelemetryErrorRecorder, TelemetryErrorRecorder>();
 
         // OTLP services.
         builder.Services.AddGrpc();

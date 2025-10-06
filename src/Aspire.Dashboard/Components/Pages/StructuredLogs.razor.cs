@@ -81,6 +81,9 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     public required ILogger<StructuredLogs> Logger { get; init; }
 
     [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
+    [Inject]
     public required DimensionManager DimensionManager { get; set; }
 
     [Inject]
@@ -560,7 +563,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 span,
                 logEntry.InternalId,
                 TelemetryRepository,
-                Logger,
+                ErrorRecorder,
                 _resources,
                 () =>
                 {
