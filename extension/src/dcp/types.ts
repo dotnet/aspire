@@ -97,5 +97,5 @@ interface AspireDebuggersConfiguration {
 
 export interface RunSessionInfo {
     protocols_supported: string[];
-    capabilities: string[];
+    supported_launch_configurations: string[];
 }

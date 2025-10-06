@@ -963,11 +963,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
-            var extensionCapabilities = GetExtensionCapabilities();
+            var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
 
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || extensionCapabilities is null || extensionCapabilities.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
 
@@ -1027,8 +1027,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var projectArgs = new List<string>();
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                var extensionCapabilities = GetExtensionCapabilities();
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (extensionCapabilities is null || extensionCapabilities.Contains("project")))
+                var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
@@ -2014,16 +2014,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return (runArgs, failedToApplyArgs);
     }
 
-    /// <summary>
-    /// Returns a list of capabilities that the Aspire Extension supports, including whether debugging is supported and which extensions are present.
-    /// </summary>
-    private string[]? GetExtensionCapabilities()
+    private string[]? GetSupportedLaunchConfigurations()
     {
         try
         {
             if (_configuration[KnownConfigNames.DebugSessionInfo] is { } debugSessionInfoJson && JsonSerializer.Deserialize<RunSessionInfo>(debugSessionInfoJson) is { } debugSessionInfo)
             {
-                return debugSessionInfo.Capabilities;
+                return debugSessionInfo.SupportedLaunchConfigurations;
             }
         }
         catch (JsonException)

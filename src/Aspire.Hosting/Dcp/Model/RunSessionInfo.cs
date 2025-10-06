@@ -10,6 +10,6 @@ internal sealed class RunSessionInfo
     [JsonPropertyName("protocols_supported")]
     public required string[] ProtocolsSupported { get; set; }
 
-    [JsonPropertyName("capabilities")]
-    public string[]? Capabilities { get; set; }
+    [JsonPropertyName("supported_launch_configurations")]
+    public string[]? SupportedLaunchConfigurations { get; set; }
 }

@@ -1550,7 +1550,7 @@ public class DcpExecutorTests
         var configDict = new Dictionary<string, string?>
         {
             [DcpExecutor.DebugSessionPortVar] = "12345",
-            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], Capabilities = ["test_executable"] }),
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], SupportedLaunchConfigurations = ["test_executable"] }),
             [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
             [KnownConfigNames.DebugSessionRunMode] = "Debug"
         };
@@ -1597,7 +1597,7 @@ public class DcpExecutorTests
         var configDict = new Dictionary<string, string?>
         {
             [DcpExecutor.DebugSessionPortVar] = "12345",
-            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], Capabilities = ["other_executable"] }),
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], SupportedLaunchConfigurations = ["other_executable"] }),
             [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
         };
 
