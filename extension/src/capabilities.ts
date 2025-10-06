@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
 import { RunSessionInfo } from './dcp/types';
 
 
@@ -14,6 +13,10 @@ function isCsDevKitInstalled() {
 
 export function isCsharpInstalled() {
     return isExtensionInstalled("ms-dotnettools.csharp");
+}
+
+export function isPythonInstalled() {
+    return isExtensionInstalled("ms-python.python");
 }
 
 export function getSupportedCapabilities(): string[] {

@@ -4,7 +4,8 @@ import { debugProject } from "../loc/strings";
 import { mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
-import { isCsharpInstalled } from "../capabilities";
+import { isCsharpInstalled, isPythonInstalled } from "../capabilities";
+import { pythonDebuggerExtension } from "./languages/python";
 
 // Represents a resource-specific debugger extension for when the default session configuration is not sufficient to launch the resource.
 export interface ResourceDebuggerExtension {
@@ -60,6 +61,10 @@ export function getResourceDebuggerExtensions(): ResourceDebuggerExtension[] {
     const extensions = [];
     if (isCsharpInstalled()) {
         extensions.push(projectDebuggerExtension);
+    }
+
+    if (isPythonInstalled()) {
+        extensions.push(pythonDebuggerExtension);
     }
 
     return extensions;

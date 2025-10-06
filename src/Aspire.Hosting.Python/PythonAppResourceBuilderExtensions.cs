@@ -148,7 +148,7 @@ public static class PythonAppResourceBuilderExtensions
             resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
         }
 
-        resourceBuilder.WithVSCodeDebugSupport("python", Path.Join(appDirectory, scriptPath), "debugpy", "ms-python.python", ctx =>
+        resourceBuilder.WithVSCodeDebugSupport(Path.Join(appDirectory, scriptPath), "python", "ms-python.python", ctx =>
         {
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
         }, () => new PythonLaunchConfiguration());

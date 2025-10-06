@@ -153,7 +153,7 @@ A JSON document describing the capabilities of the IDE run session endpoint. For
 ```jsonc
 {
     "protocols_supported": [ "2024-03-03" ],
-    "executable_types_supported": [ "project", "python" ]
+    "capabilities": [ "ms-dotnettools.csharp", "ms-python.python" ]
 }
 ```
 
