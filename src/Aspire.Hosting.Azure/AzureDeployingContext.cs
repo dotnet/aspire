@@ -46,8 +46,8 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Save provisioning context values to user secrets (unless NoCache is set)
-        if (!publishingOptions.Value.NoCache)
+        // Save provisioning context values to user secrets (unless NoCache is set or user declined)
+        if (!publishingOptions.Value.NoCache && publishingOptions.Value.SaveToUserSecrets != false)
         {
             await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
         }
@@ -168,8 +168,8 @@ internal sealed class AzureDeployingContext(
                 }
 
                 await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
-                // Save provisioning state after successful resource deployments (unless NoCache is set)
-                if (!publishingOptions.Value.NoCache)
+                // Save provisioning state after successful resource deployments (unless NoCache is set or user declined)
+                if (!publishingOptions.Value.NoCache && publishingOptions.Value.SaveToUserSecrets != false)
                 {
                     await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
                 }

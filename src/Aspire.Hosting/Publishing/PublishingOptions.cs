@@ -37,4 +37,11 @@ public class PublishingOptions
     /// </summary>
     [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public bool NoCache { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether deployment state should be saved to user secrets.
+    /// This is set based on user interaction and is only applicable when NoCache is false.
+    /// </summary>
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public bool? SaveToUserSecrets { get; set; }
 }

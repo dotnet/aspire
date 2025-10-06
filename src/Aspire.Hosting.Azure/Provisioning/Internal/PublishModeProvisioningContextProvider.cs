@@ -135,8 +135,8 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
         }
 
-        // Only save to user secrets if NoCache is not set
-        if (!_publishingOptions.Value.NoCache)
+        // Only save to user secrets if NoCache is not set and user didn't decline
+        if (!_publishingOptions.Value.NoCache && _publishingOptions.Value.SaveToUserSecrets != false)
         {
             if (SubscriptionId != existingSubscriptionId)
             {

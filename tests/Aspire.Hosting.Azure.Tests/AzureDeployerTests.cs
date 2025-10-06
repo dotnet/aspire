@@ -65,6 +65,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var runTask = Task.Run(app.Run);
 
+        // Wait for the save configuration prompt
+        var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Save deployment configuration", savePrompt.Title);
+        savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
         // Wait for the first interaction (subscription selection)
         var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure subscription", subscriptionInteraction.Title);
@@ -463,6 +468,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+        builder.Services.Configure<PublishingOptions>(options => options.SaveToUserSecrets = null);
         builder.Configuration["Parameters:test-param-2"] = "resolved-value-2";
 
         // Add a parameter with a resolved value
@@ -472,9 +478,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Act
         using var app = builder.Build();
-        await app.StartAsync();
-        await app.WaitForShutdownAsync();
+        var runTask = Task.Run(app.Run);
 
+        // Wait for the save configuration prompt
+        var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Save deployment configuration", savePrompt.Title);
+        savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Assert that no other interactions occurred (parameters were resolved, no parameter prompting)
         Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
     }
 
@@ -485,6 +499,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var testInteractionService = new TestInteractionService();
         ConfigureTestServices(builder, interactionService: testInteractionService, bicepProvisioner: new NoOpBicepProvisioner());
+        builder.Services.Configure<PublishingOptions>(options => options.SaveToUserSecrets = true);
 
         // Add a parameter with a custom input generator
         var param = builder.AddParameter("custom-param")
@@ -502,6 +517,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         // Act
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
+
+        // Wait for the save configuration prompt
+        // var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        // Assert.Equal("Save deployment configuration", savePrompt.Title);
+        // savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(true));
 
         // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
@@ -882,6 +902,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
+        // Wait for the save configuration prompt
+        var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Save deployment configuration", savePrompt.Title);
+        savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
         // Wait for the first interaction (subscription selection)
         var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure subscription", subscriptionInteraction.Title);
@@ -940,6 +965,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Replace the default user secrets manager with our test one
         builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Set SaveToUserSecrets to true to skip the save prompt since we already have secrets
+        builder.Services.Configure<PublishingOptions>(options => options.SaveToUserSecrets = true);
 
         // Add an Azure environment resource
         builder.AddAzureEnvironment();
@@ -1067,6 +1095,171 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.Empty(testUserSecretsManager.SavedSecrets);
     }
 
+    [Fact]
+    public async Task DeployAsync_PromptsUserToSaveToUserSecrets()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testUserSecretsManager = new TestUserSecretsManager("test-deployment-key");
+        var testInteractionService = new TestInteractionService();
+
+        // Configure services without default user secrets manager
+        ConfigureTestServices(builder,
+            interactionService: testInteractionService,
+            bicepProvisioner: new NoOpBicepProvisioner(),
+            setDefaultProvisioningOptions: false);
+
+        // Replace the default user secrets manager with our test one
+        builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Add an Azure environment resource
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the save to user secrets prompt
+        var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Save deployment configuration", savePrompt.Title);
+        Assert.Contains("save your deployment configuration", savePrompt.Message);
+
+        // User agrees to save
+        savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(true));
+
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Assert
+        // Verify that user secrets WERE saved since user agreed
+        Assert.NotEmpty(testUserSecretsManager.SavedSecrets);
+    }
+
+    [Fact]
+    public async Task DeployAsync_DoesNotSaveWhenUserDeclinesPrompt()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testUserSecretsManager = new TestUserSecretsManager("test-deployment-key");
+        var testInteractionService = new TestInteractionService();
+
+        // Configure services without default user secrets manager
+        ConfigureTestServices(builder,
+            interactionService: testInteractionService,
+            bicepProvisioner: new NoOpBicepProvisioner(),
+            setDefaultProvisioningOptions: false);
+
+        // Replace the default user secrets manager with our test one
+        builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Add an Azure environment resource
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the save to user secrets prompt
+        var savePrompt = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Save deployment configuration", savePrompt.Title);
+
+        // User declines to save
+        savePrompt.CompletionTcs.SetResult(InteractionResult.Ok(false));
+
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Assert
+        // Verify that user secrets were NOT saved since user declined
+        Assert.Empty(testUserSecretsManager.SavedSecrets);
+    }
+
+    [Fact]
+    public async Task DeployAsync_NoPromptWithNoCache()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testUserSecretsManager = new TestUserSecretsManager("test-deployment-key");
+        var testInteractionService = new TestInteractionService();
+
+        // Configure services without default user secrets manager
+        ConfigureTestServices(builder,
+            interactionService: testInteractionService,
+            bicepProvisioner: new NoOpBicepProvisioner(),
+            setDefaultProvisioningOptions: false);
+
+        // Replace the default user secrets manager with our test one
+        builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Set NoCache to true in PublishingOptions
+        builder.Services.Configure<PublishingOptions>(options => options.NoCache = true);
+
+        // Add an Azure environment resource
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // The first interaction should be subscription (no save prompt with NoCache)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Assert
+        // Verify that user secrets were NOT saved (NoCache is true)
+        Assert.Empty(testUserSecretsManager.SavedSecrets);
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,
@@ -1095,6 +1288,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
             testUserSecretsManager.SetLoadedSecrets(userSecrets);
             userSecretsManager = testUserSecretsManager;
+
+            // Also set SaveToUserSecrets to true to skip the save prompt
+            builder.Services.Configure<PublishingOptions>(options => options.SaveToUserSecrets = true);
         }
         else
         {
