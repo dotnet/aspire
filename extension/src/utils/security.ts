@@ -3,7 +3,7 @@ import forge from 'node-forge';
 
 export function createSelfSignedCert(commonName: string = 'localhost') {
   const pki = forge.pki;
-  const keys = pki.rsa.generateKeyPair(2048);
+  const keys = pki.rsa.generateKeyPair(4096);
   const cert = pki.createCertificate();
   cert.publicKey = keys.publicKey;
   cert.serialNumber = (Math.floor(Math.random() * 1e16)).toString();
@@ -38,7 +38,7 @@ export function createSelfSignedCert(commonName: string = 'localhost') {
 }
 
 export function generateToken(): string {
-    // 32 bytes is used to provide sufficient entropy for security (2^256 possibilities)
-    const key = randomBytes(32);
+    // 4096 bits is used to provide sufficient entropy
+    const key = randomBytes(512);
     return key.toString('base64');
 }
