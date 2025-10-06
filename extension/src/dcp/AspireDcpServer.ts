@@ -7,6 +7,7 @@ import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, Erro
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 import { timingSafeEqual } from 'crypto';
+import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 
 export default class AspireDcpServer {
     private readonly app: express.Express;
@@ -79,9 +80,7 @@ export default class AspireDcpServer {
             });
 
             app.get('/info', (req: Request, res: Response) => {
-                res.json({
-                    protocols_supported: ["2024-03-03"]
-                });
+                res.json(getRunSessionInfo());
             });
 
             app.put('/run_session', requireHeaders, async (req: Request, res: Response) => {

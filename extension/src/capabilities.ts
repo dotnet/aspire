@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ResourceDebuggerExtension } from './debugger/debuggerExtensions';
+import { RunSessionInfo } from './dcp/types';
 
 
 function isExtensionInstalled(extensionId: string): boolean {
@@ -29,4 +30,11 @@ export function getSupportedCapabilities(): string[] {
     vscode.extensions.all.forEach(ext => capabilities.push(ext.id));
 
     return capabilities;
+}
+
+export function getRunSessionInfo(): RunSessionInfo {
+    return {
+        protocols_supported: ["2024-03-03"],
+        capabilities: getSupportedCapabilities()
+    };
 }

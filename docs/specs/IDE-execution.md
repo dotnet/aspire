@@ -13,39 +13,21 @@ When IDE execution is enabled for an `Executable` object, DCP will go through no
 
 ## Enabling IDE execution
 
-### Base requirements
-
 For IDE execution to work, two conditions need to be fulfilled:
 
 1. DCP needs to be told how to contact the IDE (what is the **IDE session endpoint**, specifically).
-2. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
+1. The `ExecutionType` property for the `Executable` object needs to be set to `IDE` (default is `Process`, which indicates OS process-based execution).
 
 Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE session endpoint is configured via environment variables:
 
-| Environment variable | Value |
-| ----- | ----- |
-| `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. Required. |
-| `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. Required. |
+| Environment variable | Value                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ----- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. Required.                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. Required.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `DEBUG_SESSION_SERVER_CERTIFICATE` | If present, provides base64-encoded server certificate used for authenticating IDE endpoint and securing the communication via TLS. <br/> The certificate can be self-signed, but it must include subject alternative name, set to "localhost". Setting canonical name (`cn`) is not sufficient. <br/> If the certificate is provided, all communication with the IDE will occur via `https` and `wss` (the latter for the session change notifications). There will be NO fallback to `http` or `ws` or un-authenticated mode. Using `https` and `wss` is optional but strongly recommended. |
+| `DEBUG_SESSION_INFO` | If present, the same JSON document as returned by the `/info` request, defined below, used to determine which executable types are supported by the IDE |                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
-
-### Requirements for individual resource types
-
-The above setup is sufficient for running `project` resources. However, an IDE may indicate that IDE execution of non-project resources is supported, or that `project` execution is in fact not supported.
-
-Three conditions need to be fulfilled for a resource to be eligible for IDE execution:
-
-1. The resource type must be annotated with `SupportsDebuggingAnnotation`
-2. The environment must contain an environment variable: `ASPIRE_EXTENSION_CAPABILITIES`. `ASPIRE_EXTENSION_CAPABILITIES` is a comma-separated list of capabilities that the IDE provides, which must include:
-
-   - the `DebugAdapterId`
-   - if `RequiredExtensionId` is not null, the `RequiredExtensionId`
-3. If `project` is not a supported resource type, set the `ASPIRE_EXTENSION_DEBUG_RUN_MODE` environment variable to `NoDebug` or `Debug` based on whether to launch a debug session.
-
-For example, if the resource type is `python`, with the `debugpy` debug adapter and the `ms-python.python` required extension, to run a `python` resource with IDE execution, the apphost environment must contain `ASPIRE_EXTENSION_CAPABILITIES=python,ms-python.python`.
-
-> Note: if `ASPIRE_EXTENSION_CAPABILITIES` is not present in the environment, `project` resources will continue to launch as expected, but non-`project` resources will fall back to process execution.
 
 ### Using multiple execution types in the same workload
 
@@ -170,7 +152,8 @@ Used by DCP to get information about capabilities of the IDE run session endpoin
 A JSON document describing the capabilities of the IDE run session endpoint. For example:
 ```jsonc
 {
-    "protocols_supported": [ "2024-03-03" ]
+    "protocols_supported": [ "2024-03-03" ],
+    "executable_types_supported": [ "project", "python" ]
 }
 ```
 
@@ -179,6 +162,7 @@ The properties of the IDE endpoint information document are:
 | Property | Description | Type |
 | --- | --------- | --- |
 | `protocols_supported` | List of protocols supported by the IDE endpoint. See [protocol versioning](#protocol-versioning) for more information. | `string[]` |
+| `capabilities` | List of capabilities supported by the IDE endpoint. If this property is absent, it means that only the `project` type is supported. | `string[]` |
 
 ## Launch configurations (run session requests)
 
@@ -224,14 +208,14 @@ Unless the launch profile specifies otherwise (via `WorkingDirectory` property),
 
 ### Python launch configuration (type: `python`)
 
-Python launch configuration contains details for launching python projects.
+Python launch configuration contains details for launching python scripts.
 
 **Python launch configuration properties**
 
-| Property       | Description                                                                                                                                              | Required?                      |
-|----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| `type`         | Launch configuration type indicator; must be `debugpy` or `python`.                                                                                      | Required                       |
-| `project_path` | Path to the project file for the program that is being launched.                                                                                         | Required                       |
+| Property       | Description                                                                                                                                            | Required?                      |
+|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `type`         | Launch configuration type indicator; must be `python`.                                                                                                 | Required                       |
+| `project_path` | Path to the project file for the program that is being launched.                                                                                       | Required                       |
 | `mode`         | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 
 ## Run session change notifications

@@ -963,9 +963,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
+            var extensionCapabilities = GetExtensionCapabilities();
+
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetExtensionCapabilities()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || (extensionCapabilities is null || extensionCapabilities.Contains(supportsDebuggingAnnotation.RequiredExtensionId))))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 var launchConfiguration = supportsDebuggingAnnotation.LaunchConfigurationProducer?.Invoke() ?? new ExecutableLaunchConfiguration(supportsDebuggingAnnotation.DebugAdapterId);
@@ -976,7 +978,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     launchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
                 }
 
-                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is { } runMode)
+                if (_configuration[KnownConfigNames.DebugSessionRunMode] is { } runMode)
                 {
                     launchConfiguration.Mode = runMode;
                 }
@@ -1031,7 +1033,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var projectArgs = new List<string>();
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetExtensionCapabilities()?.Contains("project") is not false)
+                var extensionCapabilities = GetExtensionCapabilities();
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (extensionCapabilities is null || extensionCapabilities.Contains("project")))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
@@ -2020,11 +2023,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     /// <summary>
     /// Returns a list of capabilities that the Aspire Extension supports, including whether debugging is supported and which extensions are present.
     /// </summary>
-    private List<string>? GetExtensionCapabilities()
+    private string[]? GetExtensionCapabilities()
     {
-        return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
-            ? null
-            : capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        try
+        {
+            if (_configuration[KnownConfigNames.DebugSessionInfo] is { } debugSessionInfoJson && JsonSerializer.Deserialize<RunSessionInfo>(debugSessionInfoJson) is { } debugSessionInfo)
+            {
+                return debugSessionInfo.Capabilities;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)

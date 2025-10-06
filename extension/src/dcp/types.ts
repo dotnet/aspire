@@ -102,3 +102,8 @@ export interface AspireExtendedDebugConfiguration extends vscode.DebugConfigurat
 interface AspireDebuggersConfiguration {
     [key: string]: Record<string, any>;
 }
+
+export interface RunSessionInfo {
+    protocols_supported: string[];
+    capabilities: string[];
+}
