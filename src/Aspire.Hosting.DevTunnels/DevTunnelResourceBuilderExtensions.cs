@@ -320,6 +320,80 @@ public static partial class DevTunnelsResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the target resource.</typeparam>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="resourceBuilder">The target resource builder.</param>
+    /// <param name="endpointName">The name of the endpoint on the target resource.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the specified endpoint is not found in the tunnel.</exception>
+    public static EndpointReference GetEndpoint<TResource>(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResourceBuilder<TResource> resourceBuilder, string endpointName)
+        where TResource : IResourceWithEndpoints
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resourceBuilder);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
+        return tunnelBuilder.GetEndpoint(resourceBuilder.Resource, endpointName);
+    }
+
+    /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target resource and endpoint.
+    /// </summary>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="resource">The target resource.</param>
+    /// <param name="endpointName">The name of the endpoint on the target resource.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, IResource resource, string endpointName)
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(resource);
+        ArgumentNullException.ThrowIfNull(endpointName);
+
+        var portResource = tunnelBuilder.Resource.Ports
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == resource && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, endpointName));
+
+        if (portResource is null)
+        {
+            return CreateEndpointReferenceWithError(tunnelBuilder.Resource, resource, endpointName);
+        }
+
+        return portResource.TunnelEndpoint;
+    }
+
+    /// <summary>
+    /// Gets the tunnel endpoint reference for the specified target endpoint.
+    /// </summary>
+    /// <param name="tunnelBuilder">The dev tunnel resource builder.</param>
+    /// <param name="targetEndpointReference">The target endpoint reference.</param>
+    /// <returns>An <see cref="EndpointReference"/> representing the public tunnel endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceBuilder<DevTunnelResource> tunnelBuilder, EndpointReference targetEndpointReference)
+    {
+        ArgumentNullException.ThrowIfNull(tunnelBuilder);
+        ArgumentNullException.ThrowIfNull(targetEndpointReference);
+
+        var portResource = tunnelBuilder.Resource.Ports
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource 
+                && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName));
+
+        if (portResource is null)
+        {
+            return CreateEndpointReferenceWithError(tunnelBuilder.Resource, targetEndpointReference.Resource, targetEndpointReference.EndpointName);
+        }
+
+        return portResource.TunnelEndpoint;
+    }
+
+    private static EndpointReference CreateEndpointReferenceWithError(DevTunnelResource tunnelResource, IResource targetResource, string endpointName)
+    {
+        return new EndpointReference(tunnelResource, endpointName)
+        {
+            ErrorMessage = $"The dev tunnel '{tunnelResource.Name}' has not been associated with '{endpointName}' on resource '{targetResource.Name}'. Use 'WithReference({targetResource.Name})' on the dev tunnel to expose this endpoint."
+        };
+    }
+
+    /// <summary>
     /// Injects service discovery information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
     /// Each endpoint defined on the target resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
     /// </summary>
