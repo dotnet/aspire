@@ -49,7 +49,7 @@ resource env_contributor_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@20
   location: location
 }
 
-resource env_reader_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource env_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, env_contributor_mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7'))
   properties: {
     principalId: env_contributor_mi.properties.principalId
@@ -58,7 +58,7 @@ resource env_reader_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-resource webapp 'Microsoft.Web/sites@2024-11-01' = {
+resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
   name: take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {

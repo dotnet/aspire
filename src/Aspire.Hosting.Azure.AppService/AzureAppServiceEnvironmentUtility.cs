@@ -35,22 +35,22 @@ internal static class AzureAppServiceEnvironmentUtility
         infra.Add(contributorIdentity);
 
         // Add Reader role assignment
-        var rgReaderRaId = BicepFunction.GetSubscriptionResourceId(
+        var rgRaId = BicepFunction.GetSubscriptionResourceId(
             "Microsoft.Authorization/roleDefinitions",
             "acdd72a7-3385-48ef-bd42-f606fba81ae7");
-        var rgReaderRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgReaderRaId);
+        var rgRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId);
 
-        var rgReaderRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_reader_ra"))
+        var rgRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra"))
         {
-            Name = rgReaderRaName,
+            Name = rgRaName,
             PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
             PrincipalId = contributorIdentity.PrincipalId,
-            RoleDefinitionId = rgReaderRaId
+            RoleDefinitionId = rgRaId
         };
 
-        infra.Add(rgReaderRa);
+        infra.Add(rgRa);
 
-        var webSite = new WebSite("webapp")
+        var dashboard = new WebSite("dashboard")
         {
             // Use the host name as the name of the web app
             Name = GetDashboardHostName(infra.AspireResource.Name),
@@ -78,25 +78,25 @@ internal static class AzureAppServiceEnvironmentUtility
         };
 
         var contributorMid = BicepFunction.Interpolate($"{contributorIdentity.Id}").Compile().ToString();
-        webSite.Identity.UserAssignedIdentities[contributorMid] = new UserAssignedIdentityDetails();
+        dashboard.Identity.UserAssignedIdentities[contributorMid] = new UserAssignedIdentityDetails();
 
         // Security is handled by app service platform
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Frontend__AuthMode", Value = "Unsecured" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__AuthMode", Value = "Unsecured" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__SuppressUnsecuredTelemetryMessage", Value = "true" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__ResourceServiceClient__AuthMode", Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Frontend__AuthMode", Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__AuthMode", Value = "Unsecured" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__Otlp__SuppressUnsecuredTelemetryMessage", Value = "true" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "Dashboard__ResourceServiceClient__AuthMode", Value = "Unsecured" });
         // Dashboard ports
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = "5000" });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "HTTP20_ONLY_PORT", Value = "4317" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = "5000" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "HTTP20_ONLY_PORT", Value = "4317" });
         // Enable SCM preloading to ensure dashboard is always available
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_START_SCM_WITH_PRELOAD", Value = "true" });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_START_SCM_WITH_PRELOAD", Value = "true" });
         // Appsettings related to managed identity for auth
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorIdentity.ClientId });
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorIdentity.ClientId });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
         // Added appsetting to identify the resources in a specific aspire environment
-        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
+        dashboard.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
 
-        infra.Add(webSite);
+        infra.Add(dashboard);
 
         // Outputs needed by the app service environment
         // This identity needs website contributor access on the websites for resource server to work
@@ -110,6 +110,6 @@ internal static class AzureAppServiceEnvironmentUtility
             Value = contributorIdentity.PrincipalId
         });
 
-        return webSite;
+        return dashboard;
     }
 }
