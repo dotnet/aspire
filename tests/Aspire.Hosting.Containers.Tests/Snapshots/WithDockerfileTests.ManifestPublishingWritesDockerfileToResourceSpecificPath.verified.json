@@ -4,7 +4,7 @@
     "testcontainer": {
       "type": "container.v1",
       "build": {
-        "context": "{CurrentDirectory}",
+        "context": ".",
         "dockerfile": "testcontainer.Dockerfile"
       }
     }

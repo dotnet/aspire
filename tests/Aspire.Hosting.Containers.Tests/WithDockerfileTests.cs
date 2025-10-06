@@ -754,11 +754,11 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
         Assert.NotNull(annotation.DockerfileFactory);
-        
+
         // Verify the factory produces the expected content
         var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
         var generatedContent = await annotation.DockerfileFactory(context);
-        
+
         await Verify(generatedContent);
     }
 
@@ -781,11 +781,11 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
         Assert.NotNull(annotation.DockerfileFactory);
-        
+
         // Verify the factory produces the expected content
         var context = new DockerfileFactoryContext { Services = builder.Services.BuildServiceProvider(), CancellationToken = CancellationToken.None };
         var generatedContent = await annotation.DockerfileFactory(context);
-        
+
         await Verify(generatedContent);
     }
 
@@ -806,7 +806,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
                                .WithDockerfile(tempContextPath, context => dockerfileContent);
 
         var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
-        
+
         await Verify(manifest.ToString());
     }
 
@@ -846,7 +846,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
             var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for manifest'";
             var container = builder.AddContainer("testcontainer", "testimage")
-                                   .WithDockerfile(".", context => dockerfileContent);
+                                   .WithDockerfile(tempDir.FullName, context => dockerfileContent);
 
             var app = builder.Build();
             await app.RunAsync();
@@ -858,7 +858,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
             // Verify manifest references the Dockerfile
             var manifestContent = await File.ReadAllTextAsync(manifestPath);
-            
+
             await Verify(actualContent)
                   .AppendContentAsFile(manifestContent, "json");
         }
