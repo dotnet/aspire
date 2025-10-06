@@ -13,6 +13,10 @@ param api_containerimage string
 
 param env_outputs_azure_app_service_dashboard_uri string
 
+param env_outputs_azure_website_contributor_managed_identity_id string
+
+param env_outputs_azure_website_contributor_managed_identity_principal_id string
+
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
@@ -56,6 +60,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: '80'
         }
         {
+          name: 'ASPIRE_ENVIRONMENT_NAME'
+          value: 'env'
+        }
+        {
           name: 'OTEL_SERVICE_NAME'
           value: 'api'
         }
@@ -88,4 +96,14 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       '${env_outputs_azure_container_registry_managed_identity_id}': { }
     }
   }
+}
+
+resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
+  properties: {
+    principalId: env_outputs_azure_website_contributor_managed_identity_principal_id
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
+    principalType: 'ServicePrincipal'
+  }
+  scope: webapp
 }

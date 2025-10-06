@@ -59,6 +59,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'services__project1__http__0'
           value: 'http://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
         }
+        {
+          name: 'ASPIRE_ENVIRONMENT_NAME'
+          value: 'env'
+        }
       ]
     }
   }

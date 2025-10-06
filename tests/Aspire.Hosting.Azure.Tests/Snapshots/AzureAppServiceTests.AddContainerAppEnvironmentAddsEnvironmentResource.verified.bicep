@@ -49,26 +49,8 @@ resource env_contributor_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@20
   location: location
 }
 
-resource env_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, env_contributor_mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
-  properties: {
-    principalId: env_contributor_mi.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource env_ra2 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, env_contributor_mi.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7'))
-  properties: {
-    principalId: env_contributor_mi.properties.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')
-    principalType: 'ServicePrincipal'
-  }
-}
-
 resource webapp 'Microsoft.Web/sites@2024-11-01' = {
-  name: take('${toLower('dashboard')}-${uniqueString(resourceGroup().id)}', 60)
+  name: take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     serverFarmId: env_asplan.id
@@ -114,6 +96,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           name: 'ALLOWED_MANAGED_IDENTITIES'
           value: env_mi.properties.clientId
         }
+        {
+          name: 'ASPIRE_ENVIRONMENT_NAME'
+          value: 'env'
+        }
       ]
       alwaysOn: true
       http20Enabled: true
@@ -141,4 +127,8 @@ output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env_mi.id
 
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID string = env_mi.properties.clientId
 
-output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('dashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID string = env_contributor_mi.id
+
+output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_contributor_mi.properties.principalId
+
+output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'

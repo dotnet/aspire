@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 
@@ -312,6 +313,9 @@ internal sealed class AzureAppServiceWebsiteContext(
             });
         }
 
+        // Added appsetting to identify the resource in a specific aspire environment
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
+
         // Probes
 #pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         if (resource.TryGetAnnotationsOfType<ProbeAnnotation>(out var probeAnnotations))
@@ -329,13 +333,17 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+        RoleAssignment? webSiteRa = null;
         if (environmentContext.Environment.EnableDashboard)
         {
-            var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(infra);
-            AddDashboardSettings(webSite, acrClientIdParameter, dashboardUri);
+            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter);
         }
 
         infra.Add(webSite);
+        if (webSiteRa is not null)
+        {
+            infra.Add(webSiteRa);
+        }
 
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
@@ -374,14 +382,35 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
     }
-    private void AddDashboardSettings(WebSite webSite, ProvisioningParameter acrClientIdParameter, ProvisioningParameter dashboardUri)
+
+    private RoleAssignment AddDashboardPermissionAndSettings(WebSite webSite, ProvisioningParameter acrClientIdParameter)
     {
+        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
+        var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
+        var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
+
+        // Add the appsettings specific to sending telemetry data to dashboard
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = resource.Name });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+
+        // Add Website Contributor role assignment to dashboard's managed identity forthis webapp
+        var websiteRaId = BicepFunction.GetSubscriptionResourceId(
+                    "Microsoft.Authorization/roleDefinitions",
+                    "de139f84-1756-47ae-9be6-808fbbe84772");
+        var websiteRaName = BicepFunction.CreateGuid(webSite.Id, contributorId, websiteRaId);
+
+        return new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra"))
+        {
+            Name = websiteRaName,
+            Scope = new IdentifierExpression(webSite.BicepIdentifier),
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorPrincipalId,
+            RoleDefinitionId = websiteRaId,
+        };
     }
 
     enum SecretType

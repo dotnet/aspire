@@ -17,6 +17,10 @@ param myidentity_outputs_clientid string
 
 param appservice_outputs_azure_app_service_dashboard_uri string
 
+param appservice_outputs_azure_website_contributor_managed_identity_id string
+
+param appservice_outputs_azure_website_contributor_managed_identity_principal_id string
+
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
@@ -57,6 +61,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: myidentity_outputs_clientid
         }
         {
+          name: 'ASPIRE_ENVIRONMENT_NAME'
+          value: 'appservice'
+        }
+        {
           name: 'OTEL_SERVICE_NAME'
           value: 'myapp'
         }
@@ -90,4 +98,14 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       '${myidentity_outputs_id}': { }
     }
   }
+}
+
+resource myapp_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(webapp.id, appservice_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
+  properties: {
+    principalId: appservice_outputs_azure_website_contributor_managed_identity_principal_id
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772')
+    principalType: 'ServicePrincipal'
+  }
+  scope: webapp
 }

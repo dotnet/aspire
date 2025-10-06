@@ -4,7 +4,6 @@
 using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
-using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 using Azure.Provisioning.Roles;
@@ -13,10 +12,13 @@ namespace Aspire.Hosting.Azure.AppService;
 
 internal static class AzureAppServiceEnvironmentUtility
 {
-    internal const string ResourceName = "dashboard";
+    internal const string ResourceName = "aspiredashboard";
 
-    public static BicepValue<string> DashboardHostName => BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
+    public static BicepValue<string> GetDashboardHostName(string aspireResourceName)
+    {
+        return BicepFunction.Take(
+    BicepFunction.Interpolate($"{BicepFunction.ToLower(aspireResourceName)}-{BicepFunction.ToLower(ResourceName)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
+    }
 
     public static WebSite AddDashboard(AzureResourceInfrastructure infra,
         UserAssignedIdentity otelIdentity,
@@ -28,44 +30,13 @@ internal static class AzureAppServiceEnvironmentUtility
         var otelClientId = otelIdentity.ClientId;
         var prefix = infra.AspireResource.Name;
         var contributorIdentity = new UserAssignedIdentity(Infrastructure.NormalizeBicepIdentifier($"{prefix}-contributor-mi"));
-        
+
         infra.Add(contributorIdentity);
-
-        // Add Website Contributor role assignment
-        var rgRaId = BicepFunction.GetSubscriptionResourceId(
-                    "Microsoft.Authorization/roleDefinitions",
-                    "de139f84-1756-47ae-9be6-808fbbe84772");
-        var rgRaName = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId);
-        var rgRa = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra"))
-        {
-            Name = rgRaName,
-            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-            PrincipalId = contributorIdentity.PrincipalId,
-            RoleDefinitionId = rgRaId,
-        };
-
-        infra.Add(rgRa);
-
-        // Add Reader role assignment
-        var rgRaId2 = BicepFunction.GetSubscriptionResourceId(
-            "Microsoft.Authorization/roleDefinitions",
-            "acdd72a7-3385-48ef-bd42-f606fba81ae7");
-        var rgRaName2 = BicepFunction.CreateGuid(BicepFunction.GetResourceGroup().Id, contributorIdentity.Id, rgRaId2);
-
-        var rgRa2 = new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{prefix}_ra2"))
-        {
-            Name = rgRaName2,
-            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
-            PrincipalId = contributorIdentity.PrincipalId,
-            RoleDefinitionId = rgRaId2
-        };
-
-        infra.Add(rgRa2);
 
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
-            Name = DashboardHostName,
+            Name = GetDashboardHostName(infra.AspireResource.Name),
             AppServicePlanId = appServicePlanId,
             // Aspire dashboards are created with a new kind aspiredashboard
             Kind = "app,linux,aspiredashboard",
@@ -105,7 +76,22 @@ internal static class AzureAppServiceEnvironmentUtility
         // Appsettings related to managed identity for auth
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "AZURE_CLIENT_ID", Value = contributorIdentity.ClientId });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ALLOWED_MANAGED_IDENTITIES", Value = otelClientId });
+        // Added appsetting to identify the resources in a specific aspire environment
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = infra.AspireResource.Name });
+
         infra.Add(webSite);
+
+        // Outputs needed by the app service environment
+        // This identity needs website contributor access on the websites for resource server to work
+        infra.Add(new ProvisioningOutput("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID", typeof(string))
+        {
+            Value = contributorIdentity.Id
+        });
+
+        infra.Add(new ProvisioningOutput("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", typeof(string))
+        {
+            Value = contributorIdentity.PrincipalId
+        });
 
         return webSite;
     }
