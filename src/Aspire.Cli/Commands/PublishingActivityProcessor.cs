@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.ObjectModel;
 using Aspire.Cli.Backchannel;
 using Microsoft.Extensions.Logging;
 
@@ -9,17 +8,9 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class PublishingActivityProcessor
 {
-    private class KeyedPublishingActivityCollection : KeyedCollection<string, PublishingActivity>
-    {
-        protected override string GetKeyForItem(PublishingActivity item)
-        {
-            return item.Data.Id;
-        }
-    }
-
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
     private readonly CancellationTokenSource _cts = new();
-    private readonly KeyedPublishingActivityCollection _pendingActivities = new();
+    private readonly List<PublishingActivity> _pendingActivities = new();
     private readonly ILogger _logger;
     private readonly Task _readPublishingActivitiesTask;
     private TaskCompletionSource _activityAvailableTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -102,27 +93,42 @@ internal sealed class PublishingActivityProcessor
         {
             await foreach (var item in publishingActivities)
             {
-                if (_currentActivity != null && _currentActivity.Data.Id == item.Data.Id)
+                await _semaphore.WaitAsync(_cts.Token).ConfigureAwait(false);
+                try
                 {
-                    _currentActivityCts?.Cancel();
-                }
-                else
-                {
-                    // New or updated interaction.
-                    if (_pendingActivities.Contains(item.Data.Id))
-                    {
-                        // Update existing interaction at the same place in collection.
-                        var existingItem = _pendingActivities[item.Data.Id];
-                        var index = _pendingActivities.IndexOf(existingItem);
-                        _pendingActivities.RemoveAt(index);
-                        _pendingActivities.Insert(index, item); // Reinsert at the same index to maintain order.
-                    }
-                    else
+                    if (item.Type != "prompt")
                     {
                         _pendingActivities.Add(item);
                     }
+                    else
+                    {
+                        if (_currentActivity != null && _currentActivity.Data.Id == item.Data.Id)
+                        {
+                            _currentActivityCts?.Cancel();
+                            _pendingActivities.Insert(0, item);
+                        }
+                        else
+                        {
+                            // New or updated interaction.
+                            if (_pendingActivities.SingleOrDefault(a => a.Data.Id == item.Data.Id) is { } existingItem)
+                            {
+                                // Update existing interaction at the same place in collection.
+                                var index = _pendingActivities.IndexOf(existingItem);
+                                _pendingActivities.RemoveAt(index);
+                                _pendingActivities.Insert(index, item); // Reinsert at the same index to maintain order.
+                            }
+                            else
+                            {
+                                _pendingActivities.Add(item);
+                            }
+                        }
+                    }
 
                     NotifyInteractionAvailable();
+                }
+                finally
+                {
+                    _semaphore.Release();
                 }
             }
         }
