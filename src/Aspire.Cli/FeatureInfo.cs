@@ -8,6 +8,7 @@ internal sealed class FeatureInfo
     public required string Key { get; init; }
     public required string Name { get; init; }
     public required string Description { get; init; }
+    public required bool DefaultValue { get; init; }
     
     public static IReadOnlyList<FeatureInfo> KnownFeatureInfos { get; } = new List<FeatureInfo>
     {
@@ -15,55 +16,64 @@ internal sealed class FeatureInfo
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.UpdateNotificationsEnabled}",
             Name = "Update Notifications",
-            Description = "Enable notifications when a newer version of the Aspire CLI is available"
+            Description = "Enable notifications when a newer version of the Aspire CLI is available",
+            DefaultValue = true
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.MinimumSdkCheckEnabled}",
             Name = "Minimum SDK Check",
-            Description = "Enable validation that the minimum required .NET SDK version is installed"
+            Description = "Enable validation that the minimum required .NET SDK version is installed",
+            DefaultValue = true
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.ExecCommandEnabled}",
             Name = "Exec Command",
-            Description = "Enable the experimental 'exec' command for executing commands in running containers"
+            Description = "Enable the experimental 'exec' command for executing commands in running containers",
+            DefaultValue = false
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.OrphanDetectionWithTimestampEnabled}",
             Name = "Orphan Detection with Timestamp",
-            Description = "Enable timestamp-based orphan detection for Docker resources"
+            Description = "Enable timestamp-based orphan detection for Docker resources",
+            DefaultValue = true
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.ShowDeprecatedPackages}",
             Name = "Show Deprecated Packages",
-            Description = "Show deprecated packages in search results and recommendations"
+            Description = "Show deprecated packages in search results and recommendations",
+            DefaultValue = false
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.SingleFileAppHostEnabled}",
             Name = "Single File AppHost",
-            Description = "Enable support for single-file AppHost applications"
+            Description = "Enable support for single-file AppHost applications",
+            DefaultValue = false
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.PackageSearchDiskCachingEnabled}",
             Name = "Package Search Disk Caching",
-            Description = "Enable disk caching for package search results to improve performance"
+            Description = "Enable disk caching for package search results to improve performance",
+            DefaultValue = true
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.StagingChannelEnabled}",
             Name = "Staging Channel",
-            Description = "Enable access to staging packages and templates"
+            Description = "Enable access to staging packages and templates",
+            DefaultValue = false
         },
         new()
         {
             Key = $"{KnownFeatures.FeaturePrefix}:{KnownFeatures.DefaultWatchEnabled}",
             Name = "Default Watch Mode",
-            Description = "Enable watch mode by default when running projects for automatic rebuilds on file changes"
+            Description = "Enable watch mode by default when running projects for automatic rebuilds on file changes",
+            DefaultValue = false
         }
     };
 }

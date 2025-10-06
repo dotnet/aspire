@@ -323,9 +323,12 @@ internal sealed class ConfigCommand : BaseCommand
 
     private sealed class FeatureCommand : BaseConfigSubCommand
     {
+        private readonly IFeatures _features;
+
         public FeatureCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
             : base("feature", ConfigCommandStrings.FeatureCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
         {
+            _features = features;
         }
 
         protected override bool UpdateNotificationsEnabled => false;
@@ -389,12 +392,19 @@ internal sealed class ConfigCommand : BaseCommand
             
             foreach (var feature in FeatureInfo.KnownFeatureInfos)
             {
-                var value = await ConfigurationService.GetConfigurationAsync(feature.Key, cancellationToken);
-                if (value is not null && bool.TryParse(value, out var isEnabled) && isEnabled)
+                // Extract the feature name from the key (remove "features:" prefix)
+                var featureName = feature.Key.Substring(KnownFeatures.FeaturePrefix.Length + 1);
+                
+                // Use IFeatures to check if feature is enabled (respects default values)
+                var isEnabled = _features.IsFeatureEnabled(featureName, feature.DefaultValue);
+                
+                if (isEnabled)
                 {
-                    // Check if it's in global or local config
-                    // This is a simplified check - we assume global if not in local
-                    settings[feature.Key] = (true, false); // For now, assume local; we'll improve this
+                    // Check if it's explicitly set in config or just using default
+                    _ = await ConfigurationService.GetConfigurationAsync(feature.Key, cancellationToken);
+                    var isGlobal = false; // Simplified: we'd need to check both local and global files to determine this
+                    
+                    settings[feature.Key] = (true, isGlobal);
                 }
             }
             
