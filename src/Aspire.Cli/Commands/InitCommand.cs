@@ -121,12 +121,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private async Task<int> InitializeExistingSolutionAsync(InitContext initContext, ParseResult parseResult, CancellationToken cancellationToken)
     {
         var solutionFile = initContext.SelectedSolutionFile!;
-        
-        // Get list of projects in solution to check if AppHost already exists
-        var (getSolutionExitCode, solutionProjects) = await _runner.GetSolutionProjectsAsync(
-            solutionFile,
-            new DotNetCliRunnerInvocationOptions(),
-            cancellationToken);
+
+        var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Loading solution projects...", async () =>
+        {
+            return await _runner.GetSolutionProjectsAsync(
+                solutionFile,
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+        });
 
         if (getSolutionExitCode != 0)
         {
