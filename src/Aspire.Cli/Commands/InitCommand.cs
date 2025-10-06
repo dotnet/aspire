@@ -128,6 +128,79 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             InteractionService.DisplayMessage("check_mark", InitCommandStrings.SolutionAlreadyInitialized);
             return ExitCodeConstants.Success;
         }
+
+        // Get list of projects in solution before creating AppHost
+        var (getSolutionExitCode, solutionProjects) = await _runner.GetSolutionProjectsAsync(
+            solutionFile,
+            new DotNetCliRunnerInvocationOptions(),
+            cancellationToken);
+
+        if (getSolutionExitCode != 0)
+        {
+            InteractionService.DisplayError("Failed to get projects from solution.");
+            return getSolutionExitCode;
+        }
+
+        // Find executable projects in the solution
+        var executableProjects = new List<FileInfo>();
+        foreach (var project in solutionProjects)
+        {
+            // Get OutputType property
+            var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
+                project,
+                [],
+                ["OutputType"],
+                new DotNetCliRunnerInvocationOptions(),
+                cancellationToken);
+
+            if (exitCode == 0 && jsonDoc != null)
+            {
+                var rootElement = jsonDoc.RootElement;
+                if (rootElement.TryGetProperty("Properties", out var properties))
+                {
+                    if (properties.TryGetProperty("OutputType", out var outputTypeElement))
+                    {
+                        var outputType = outputTypeElement.GetString();
+                        if (outputType == "Exe" || outputType == "WinExe")
+                        {
+                            executableProjects.Add(project);
+                        }
+                    }
+                }
+            }
+        }
+
+        initContext.ExecutableProjects = executableProjects;
+
+        // If there are executable projects, prompt user to select which ones to add to appHost
+        if (initContext.ExecutableProjects.Count > 0)
+        {
+            InteractionService.DisplayMessage("information", "Found executable projects in solution:");
+            foreach (var project in initContext.ExecutableProjects)
+            {
+                InteractionService.DisplaySubtleMessage($"  - {Path.GetFileNameWithoutExtension(project.Name)}");
+            }
+
+            var selectedProjects = await InteractionService.PromptForSelectionsAsync(
+                "Select projects to add to the AppHost:",
+                initContext.ExecutableProjects,
+                project => Path.GetFileNameWithoutExtension(project.Name),
+                cancellationToken);
+
+            initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
+
+            // If projects were selected, prompt for which should have ServiceDefaults added
+            if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
+            {
+                var projectsForServiceDefaults = await InteractionService.PromptForSelectionsAsync(
+                    "Select projects to add ServiceDefaults reference to:",
+                    initContext.ExecutableProjectsToAddToAppHost,
+                    project => Path.GetFileNameWithoutExtension(project.Name),
+                    cancellationToken);
+
+                initContext.ProjectsToAddServiceDefaultsTo = projectsForServiceDefaults;
+            }
+        }
         
         // Get template version/channel selection using the same logic as NewCommand
         var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
@@ -234,92 +307,52 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 return addResult;
             }
 
-            // Get list of projects in solution
-            var (getSolutionExitCode, solutionProjects) = await _runner.GetSolutionProjectsAsync(
-                solutionFile,
-                new DotNetCliRunnerInvocationOptions(),
-                cancellationToken);
-
-            if (getSolutionExitCode != 0)
-            {
-                InteractionService.DisplayError("Failed to get projects from solution.");
-                return getSolutionExitCode;
-            }
-
-            // Find the appHost project we just added
             var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            
-            // Find executable projects (excluding the appHost we just added)
-            var executableProjects = new List<FileInfo>();
-            foreach (var project in solutionProjects)
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+
+            // Add selected projects to appHost
+            if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
-                // Skip the appHost project we just added
-                if (project.FullName.Equals(appHostProjectFile.FullName, StringComparison.OrdinalIgnoreCase))
+                InteractionService.DisplayMessage("construction", "Adding project references to AppHost...");
+                
+                foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
-                    continue;
-                }
+                    var addRefResult = await _runner.AddProjectReferenceAsync(
+                        appHostProjectFile,
+                        project,
+                        new DotNetCliRunnerInvocationOptions(),
+                        cancellationToken);
 
-                // Get OutputType property
-                var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
-                    project,
-                    [],
-                    ["OutputType"],
-                    new DotNetCliRunnerInvocationOptions(),
-                    cancellationToken);
-
-                if (exitCode == 0 && jsonDoc != null)
-                {
-                    var rootElement = jsonDoc.RootElement;
-                    if (rootElement.TryGetProperty("Properties", out var properties))
+                    if (addRefResult != 0)
                     {
-                        if (properties.TryGetProperty("OutputType", out var outputTypeElement))
-                        {
-                            var outputType = outputTypeElement.GetString();
-                            if (outputType == "Exe" || outputType == "WinExe")
-                            {
-                                executableProjects.Add(project);
-                            }
-                        }
+                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        return addRefResult;
                     }
+
+                    InteractionService.DisplaySubtleMessage($"  Added reference to {Path.GetFileNameWithoutExtension(project.Name)}");
                 }
             }
 
-            // If there are executable projects, prompt user to select which ones to add to appHost
-            if (executableProjects.Count > 0)
+            // Add ServiceDefaults references to selected projects
+            if (initContext.ProjectsToAddServiceDefaultsTo.Count > 0)
             {
-                InteractionService.DisplayMessage("information", "Found executable projects in solution:");
-                foreach (var project in executableProjects)
+                InteractionService.DisplayMessage("construction", "Adding ServiceDefaults references...");
+                
+                foreach (var project in initContext.ProjectsToAddServiceDefaultsTo)
                 {
-                    InteractionService.DisplaySubtleMessage($"  - {Path.GetFileNameWithoutExtension(project.Name)}");
-                }
+                    var addRefResult = await _runner.AddProjectReferenceAsync(
+                        project,
+                        serviceDefaultsProjectFile,
+                        new DotNetCliRunnerInvocationOptions(),
+                        cancellationToken);
 
-                var selectedProjects = await InteractionService.PromptForSelectionsAsync(
-                    "Select projects to add to the AppHost:",
-                    executableProjects,
-                    project => Path.GetFileNameWithoutExtension(project.Name),
-                    cancellationToken);
-
-                // Add selected projects to appHost
-                if (selectedProjects.Count > 0)
-                {
-                    InteractionService.DisplayMessage("construction", "Adding project references to AppHost...");
-                    
-                    foreach (var project in selectedProjects)
+                    if (addRefResult != 0)
                     {
-                        var addRefResult = await _runner.AddProjectReferenceAsync(
-                            appHostProjectFile,
-                            project,
-                            new DotNetCliRunnerInvocationOptions(),
-                            cancellationToken);
-
-                        if (addRefResult != 0)
-                        {
-                            InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
-                            return addRefResult;
-                        }
-
-                        InteractionService.DisplaySubtleMessage($"  Added reference to {Path.GetFileNameWithoutExtension(project.Name)}");
+                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        return addRefResult;
                     }
+
+                    InteractionService.DisplaySubtleMessage($"  Added ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}");
                 }
             }
 
@@ -449,4 +482,19 @@ internal sealed class InitContext
     /// Gets the expected directory path for the ServiceDefaults project.
     /// </summary>
     public string ExpectedServiceDefaultsDirectory => Path.Combine(SolutionDirectory.FullName, $"{SolutionName}.ServiceDefaults");
+
+    /// <summary>
+    /// List of executable projects found in the solution (excluding the AppHost).
+    /// </summary>
+    public IReadOnlyList<FileInfo> ExecutableProjects { get; set; } = Array.Empty<FileInfo>();
+
+    /// <summary>
+    /// Executable projects selected by the user to add to the AppHost.
+    /// </summary>
+    public IReadOnlyList<FileInfo> ExecutableProjectsToAddToAppHost { get; set; } = Array.Empty<FileInfo>();
+
+    /// <summary>
+    /// Projects selected by the user to add ServiceDefaults reference to.
+    /// </summary>
+    public IReadOnlyList<FileInfo> ProjectsToAddServiceDefaultsTo { get; set; } = Array.Empty<FileInfo>();
 }
