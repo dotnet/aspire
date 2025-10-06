@@ -281,6 +281,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _resources = TelemetryRepository.GetResources();
 
+        // Copying a large trace can be expensive so only do this if required.
         if (_trace == null || _trace.TraceId != TraceId || TelemetryRepository.HasUpdatedTrace(_trace))
         {
             Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);

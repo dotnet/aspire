@@ -23,12 +23,13 @@ public static class TraceHelpers
             if (string.IsNullOrEmpty(item.ParentSpanId) || !trace.Spans.TryGetValue(item.ParentSpanId, out var parentSpan))
             {
                 unrootedSpans.Add(item);
-                continue;
             }
-
-            ref var spans = ref CollectionsMarshal.GetValueRefOrAddDefault(spanLookup, parentSpan, out _);
-            spans ??= [];
-            spans.Add(item);
+            else
+            {
+                ref var childSpans = ref CollectionsMarshal.GetValueRefOrAddDefault(spanLookup, parentSpan, out _);
+                childSpans ??= [];
+                childSpans.Add(item);
+            }
         }
 
         var orderByFunc = static (OtlpSpan s) => s.StartTime;
@@ -42,9 +43,9 @@ public static class TraceHelpers
 
         static void Visit(Dictionary<OtlpSpan, List<OtlpSpan>> spanLookup, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
         {
-            if (spanLookup.TryGetValue(span, out var allSpans))
+            if (spanLookup.TryGetValue(span, out var childSpans))
             {
-                foreach (var childSpan in allSpans.OrderBy(orderByFunc))
+                foreach (var childSpan in childSpans.OrderBy(orderByFunc))
                 {
                     var newState = spanAction(childSpan, state);
 
