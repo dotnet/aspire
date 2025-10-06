@@ -191,5 +191,26 @@ aspire config delete <key> [options]
 **Options:**
 - `-g, --global` - Delete the configuration value from the global settings file instead of the local settings file
 
+#### feature
+Manage feature flags.
+
+```cli
+aspire config feature
+```
+
+**Description:**
+Interactively configure Aspire feature flags. This command presents a multi-select list of available feature flags with descriptions, allowing you to enable or disable multiple features at once. After selecting features, you can choose whether to apply them locally (per project) or globally (user-wide).
+
+**Available Features:**
+- **Update Notifications** - Enable notifications when a newer version of the Aspire CLI is available
+- **Minimum SDK Check** - Enable validation that the minimum required .NET SDK version is installed
+- **Exec Command** - Enable the experimental 'exec' command for executing commands in running containers
+- **Orphan Detection with Timestamp** - Enable timestamp-based orphan detection for Docker resources
+- **Show Deprecated Packages** - Show deprecated packages in search results and recommendations
+- **Single File AppHost** - Enable support for single-file AppHost applications
+- **Package Search Disk Caching** - Enable disk caching for package search results to improve performance
+- **Staging Channel** - Enable access to staging/pre-release packages and templates
+- **Default Watch Mode** - Enable watch mode by default when running projects for automatic rebuilds on file changes
+
 **Description:**
 Manages CLI configuration settings. Configuration can be set locally (per project) or globally (user-wide). Local settings are stored in the current directory, while global settings are stored in `$HOME/.aspire/settings.json`.
