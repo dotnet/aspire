@@ -10,7 +10,6 @@
     </packageSource>
     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
       <package pattern="Aspire*" />
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
   </packageSourceMapping>
 </configuration>

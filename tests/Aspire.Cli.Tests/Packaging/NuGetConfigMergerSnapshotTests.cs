@@ -130,7 +130,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="C:\Users\davifowl\.aspire\hives\pr-11227">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
                         <package pattern="*" />
@@ -191,7 +190,6 @@ public class NuGetConfigMergerSnapshotTests
                 <packageSourceMapping>
                     <packageSource key="dotnet9">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                         <package pattern="Microsoft.Extensions.SpecialPackage*" />
                     </packageSource>
                     <packageSource key="https://api.nuget.org/v3/index.json">
@@ -255,7 +253,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                 </packageSourceMapping>
             </configuration>
@@ -320,7 +317,6 @@ public class NuGetConfigMergerSnapshotTests
                     </packageSource>
                     <packageSource key="C:\Users\midenn\.aspire\hives\pr-11275">
                         <package pattern="Aspire*" />
-                        <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
                     </packageSource>
                 </packageSourceMapping>
             </configuration>
