@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.Configuration;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
 using Aspire.Cli.Tests.TestServices;
@@ -68,6 +69,32 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public void UpdateSolutionEnabled_FeatureFlag_DefaultsToFalse()
+    {
+        // Arrange
+        var features = new TestFeatures();
+
+        // Act
+        var isEnabled = features.IsFeatureEnabled(KnownFeatures.UpdateSolutionEnabled, defaultValue: false);
+
+        // Assert
+        Assert.False(isEnabled);
+    }
+
+    [Fact]
+    public void UpdateSolutionEnabled_FeatureFlag_CanBeEnabled()
+    {
+        // Arrange
+        var features = new TestFeatures().SetFeature(KnownFeatures.UpdateSolutionEnabled, true);
+
+        // Act
+        var isEnabled = features.IsFeatureEnabled(KnownFeatures.UpdateSolutionEnabled, defaultValue: false);
+
+        // Assert
+        Assert.True(isEnabled);
+    }
 }
 
 // Test implementation of IProjectUpdater
@@ -102,5 +129,22 @@ internal sealed class TestPackagingService : IPackagingService
         // Default behavior - return a fake channel
         var testChannel = new PackageChannel("test", PackageChannelQuality.Stable, null, null!);
         return Task.FromResult<IEnumerable<PackageChannel>>(new[] { testChannel });
+    }
+}
+
+// Test implementation of IFeatures
+internal sealed class TestFeatures : IFeatures
+{
+    private readonly Dictionary<string, bool> _features = new();
+
+    public TestFeatures SetFeature(string featureName, bool value)
+    {
+        _features[featureName] = value;
+        return this;
+    }
+
+    public bool IsFeatureEnabled(string featureName, bool defaultValue = false)
+    {
+        return _features.TryGetValue(featureName, out var value) ? value : defaultValue;
     }
 }
