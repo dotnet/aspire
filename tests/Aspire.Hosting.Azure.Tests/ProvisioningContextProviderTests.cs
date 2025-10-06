@@ -395,7 +395,8 @@ public class ProvisioningContextProviderTests
             tokenCredentialProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
             new NullPublishingActivityReporter(),
-            ProvisioningTestHelpers.CreateUserSecretsManager());
+            ProvisioningTestHelpers.CreateUserSecretsManager(),
+            ProvisioningTestHelpers.CreatePublishingOptions());
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);
@@ -479,7 +480,8 @@ public class ProvisioningContextProviderTests
             tokenCredentialProvider,
             new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish),
             new NullPublishingActivityReporter(),
-            userSecretsManager);
+            userSecretsManager,
+            ProvisioningTestHelpers.CreatePublishingOptions());
 
         // Act
         var context = await provider.CreateProvisioningContextAsync(userSecrets);

@@ -30,4 +30,11 @@ public class PublishingOptions
     /// </summary>
     [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public bool Deploy { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether user secrets caching should be disabled during deployment.
+    /// When true, deployment configuration will not be read from or saved to user secrets.
+    /// </summary>
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public bool NoCache { get; set; }
 }

@@ -12,6 +12,11 @@
         <target state="translated">將 Aspire AppHost 的內容部署至其定義的部署目標。(預覽)</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCacheDescription">
+        <source>Disable reading from and writing to user secrets cache during deployment.</source>
+        <target state="new">Disable reading from and writing to user secrets cache during deployment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
         <target state="translated">部署完成</target>

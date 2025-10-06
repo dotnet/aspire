@@ -12,6 +12,11 @@
         <target state="translated">Distribuire il contenuto di un AppHost Aspire alle destinazioni di distribuzione definite. (Anteprima)</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCacheDescription">
+        <source>Disable reading from and writing to user secrets cache during deployment.</source>
+        <target state="new">Disable reading from and writing to user secrets cache during deployment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
         <target state="translated">DISTRIBUZIONE COMPLETATA</target>

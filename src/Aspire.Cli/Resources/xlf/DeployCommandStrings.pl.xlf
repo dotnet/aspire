@@ -12,6 +12,11 @@
         <target state="translated">Wdróż zawartość hosta AppHost platformy Aspire w zdefiniowanych miejscach docelowych wdrożenia. (Wersja zapoznawcza)</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCacheDescription">
+        <source>Disable reading from and writing to user secrets cache during deployment.</source>
+        <target state="new">Disable reading from and writing to user secrets cache during deployment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
         <target state="translated">UKOŃCZONO WDRAŻANIE</target>

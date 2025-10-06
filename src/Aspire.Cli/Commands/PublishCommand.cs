@@ -8,6 +8,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using System.CommandLine;
 
 namespace Aspire.Cli.Commands;
 
@@ -44,7 +45,7 @@ internal sealed class PublishCommand : PublishCommandBase
     protected override string OperationFailedPrefix => PublishCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens)
+    protected override string[] GetRunArguments(ParseResult parseResult, string? fullyQualifiedOutputPath, string[] unmatchedTokens)
     {
         var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
 

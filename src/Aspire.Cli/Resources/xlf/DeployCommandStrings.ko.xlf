@@ -12,6 +12,11 @@
         <target state="translated">Aspire 앱호스트의 콘텐츠를 정의된 배포 대상에 배포하세요. (미리 보기)</target>
         <note />
       </trans-unit>
+      <trans-unit id="NoCacheDescription">
+        <source>Disable reading from and writing to user secrets cache during deployment.</source>
+        <target state="new">Disable reading from and writing to user secrets cache during deployment.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>DEPLOYMENT COMPLETED</source>
         <target state="translated">배포 완료</target>

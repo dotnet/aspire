@@ -958,6 +958,115 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.False(testInteractionService.Interactions.Reader.TryRead(out _));
     }
 
+    [Fact]
+    public async Task DeployAsync_WithNoCache_DoesNotReadFromUserSecrets()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testUserSecretsManager = new TestUserSecretsManager("test-deployment-key");
+        var testInteractionService = new TestInteractionService();
+
+        // Pre-populate user secrets with existing values using flattened keys
+        var prePopulatedSecrets = new JsonObject
+        {
+            ["Azure:test-deployment-key:SubscriptionId"] = "existing-sub-id",
+            ["Azure:test-deployment-key:Location"] = "eastus",
+            ["Azure:test-deployment-key:ResourceGroup"] = "existing-rg"
+        };
+        testUserSecretsManager.SetLoadedSecrets(prePopulatedSecrets);
+
+        // Configure services without default user secrets manager
+        ConfigureTestServices(builder,
+            interactionService: testInteractionService,
+            bicepProvisioner: new NoOpBicepProvisioner(),
+            setDefaultProvisioningOptions: false);
+
+        // Replace the default user secrets manager with our test one
+        builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Set NoCache to true in PublishingOptions
+        builder.Services.Configure<PublishingOptions>(options => options.NoCache = true);
+
+        // Add an Azure environment resource
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the first interaction (subscription selection) - should still be prompted despite cached values
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithNoCache_DoesNotWriteToUserSecrets()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var testUserSecretsManager = new TestUserSecretsManager("test-deployment-key");
+        var testInteractionService = new TestInteractionService();
+
+        // Configure services without default user secrets manager
+        ConfigureTestServices(builder,
+            interactionService: testInteractionService,
+            bicepProvisioner: new NoOpBicepProvisioner(),
+            setDefaultProvisioningOptions: false);
+
+        // Replace the default user secrets manager with our test one
+        builder.Services.AddSingleton<IUserSecretsManager>(testUserSecretsManager);
+
+        // Set NoCache to true in PublishingOptions
+        builder.Services.Configure<PublishingOptions>(options => options.NoCache = true);
+
+        // Add an Azure environment resource
+        builder.AddAzureEnvironment();
+
+        // Act
+        using var app = builder.Build();
+        var runTask = Task.Run(app.Run);
+
+        // Wait for the first interaction (subscription selection)
+        var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure subscription", subscriptionInteraction.Title);
+
+        // Complete the subscription interaction
+        subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
+        subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
+
+        // Wait for the second interaction (location and resource group selection)
+        var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure location and resource group", locationInteraction.Title);
+
+        // Complete the location interaction
+        locationInteraction.Inputs[0].Value = "westus2";
+        locationInteraction.Inputs[1].Value = "test-rg";
+        locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
+
+        // Wait for the run task to complete (or timeout)
+        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // Assert
+        // Verify that user secrets were NOT saved when NoCache is true
+        Assert.Empty(testUserSecretsManager.SavedSecrets);
+    }
+
     private static void ConfigureTestServices(IDistributedApplicationTestingBuilder builder,
         IInteractionService? interactionService = null,
         IBicepProvisioner? bicepProvisioner = null,

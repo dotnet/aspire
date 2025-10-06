@@ -18,6 +18,7 @@ using Aspire.Hosting.ApplicationModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Dcp.Process;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure;
 
@@ -30,7 +31,8 @@ internal sealed class AzureDeployingContext(
     IProcessRunner processRunner,
     ParameterProcessor parameterProcessor,
     IConfiguration configuration,
-    ITokenCredentialProvider tokenCredentialProvider)
+    ITokenCredentialProvider tokenCredentialProvider,
+    IOptions<PublishingOptions> publishingOptions)
 {
 
     public async Task DeployModelAsync(DistributedApplicationModel model, CancellationToken cancellationToken = default)
@@ -44,8 +46,11 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Save provisioning context values to user secrets
-        await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
+        // Save provisioning context values to user secrets (unless NoCache is set)
+        if (!publishingOptions.Value.NoCache)
+        {
+            await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
+        }
 
         // Step 1: Initialize parameters by collecting dependencies and resolving values
         await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
@@ -163,8 +168,11 @@ internal sealed class AzureDeployingContext(
                 }
 
                 await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
-                // Save provisioning state after successful resource deployments
-                await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
+                // Save provisioning state after successful resource deployments (unless NoCache is set)
+                if (!publishingOptions.Value.NoCache)
+                {
+                    await userSecretsManager.SaveUserSecretsAsync(provisioningContext.UserSecrets, cancellationToken).ConfigureAwait(false);
+                }
             }
             catch (Exception)
             {

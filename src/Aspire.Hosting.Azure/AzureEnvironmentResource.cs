@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
@@ -80,6 +81,7 @@ public sealed class AzureEnvironmentResource : Resource
         var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
+        var publishingOptions = context.Services.GetRequiredService<IOptions<PublishingOptions>>();
 
         var azureCtx = new AzureDeployingContext(
             provisioningContextProvider,
@@ -90,7 +92,8 @@ public sealed class AzureEnvironmentResource : Resource
             processRunner,
             parameterProcessor,
             configuration,
-            tokenCredentialProvider);
+            tokenCredentialProvider,
+            publishingOptions);
 
         return azureCtx.DeployModelAsync(context.Model, context.CancellationToken);
     }

@@ -8,6 +8,7 @@ using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
+using System.CommandLine;
 
 namespace Aspire.Cli.Commands;
 
@@ -16,13 +17,18 @@ internal sealed class DeployCommand : PublishCommandBase
     public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
         : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext)
     {
+        var noCacheOption = new Option<bool>("--no-cache")
+        {
+            Description = DeployCommandStrings.NoCacheDescription
+        };
+        Options.Add(noCacheOption);
     }
 
     protected override string OperationCompletedPrefix => DeployCommandStrings.OperationCompletedPrefix;
     protected override string OperationFailedPrefix => DeployCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => DeployCommandStrings.OutputPathArgumentDescription;
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens)
+    protected override string[] GetRunArguments(ParseResult parseResult, string? fullyQualifiedOutputPath, string[] unmatchedTokens)
     {
         var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
 
@@ -32,6 +38,13 @@ internal sealed class DeployCommand : PublishCommandBase
         }
 
         baseArgs.AddRange(["--deploy", "true"]);
+
+        var noCache = parseResult.GetValue<bool>("--no-cache");
+        if (noCache)
+        {
+            baseArgs.AddRange(["--no-cache", "true"]);
+        }
+
         baseArgs.AddRange(unmatchedTokens);
 
         return [.. baseArgs];

@@ -12,6 +12,7 @@ using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
@@ -28,7 +29,8 @@ internal sealed class PublishModeProvisioningContextProvider(
     ITokenCredentialProvider tokenCredentialProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
     IPublishingActivityReporter activityReporter,
-    IUserSecretsManager userSecretsManager) : BaseProvisioningContextProvider(
+    IUserSecretsManager userSecretsManager,
+    IOptions<PublishingOptions> publishingOptions) : BaseProvisioningContextProvider(
         interactionService,
         environment,
         logger,
@@ -39,6 +41,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         userSecretsManager)
 {
     private readonly string _deploymentKey = userSecretsManager.GetDeploymentKey() ?? throw new InvalidOperationException("Deployment key is required for publish mode provisioning.");
+    private readonly IOptions<PublishingOptions> _publishingOptions = publishingOptions;
 
     protected override string GetDefaultResourceGroupName()
     {
@@ -82,25 +85,33 @@ internal sealed class PublishModeProvisioningContextProvider(
         var locationKey = $"Azure:{_deploymentKey}:Location";
         var resourceGroupKey = $"Azure:{_deploymentKey}:ResourceGroup";
 
-        var existingSubscriptionId = userSecrets[subscriptionKey]?.GetValue<string>();
-        var existingLocation = userSecrets[locationKey]?.GetValue<string>();
-        var existingResourceGroup = userSecrets[resourceGroupKey]?.GetValue<string>();
+        string? existingSubscriptionId = null;
+        string? existingLocation = null;
+        string? existingResourceGroup = null;
 
-        // Set options only from user secrets values
-        if (!string.IsNullOrEmpty(existingSubscriptionId))
+        // Only load from user secrets if NoCache is not set
+        if (!_publishingOptions.Value.NoCache)
         {
-            SubscriptionId = existingSubscriptionId;
-        }
+            existingSubscriptionId = userSecrets[subscriptionKey]?.GetValue<string>();
+            existingLocation = userSecrets[locationKey]?.GetValue<string>();
+            existingResourceGroup = userSecrets[resourceGroupKey]?.GetValue<string>();
 
-        if (!string.IsNullOrEmpty(existingLocation))
-        {
-            Location = existingLocation;
-        }
+            // Set options only from user secrets values
+            if (!string.IsNullOrEmpty(existingSubscriptionId))
+            {
+                SubscriptionId = existingSubscriptionId;
+            }
 
-        if (!string.IsNullOrEmpty(existingResourceGroup))
-        {
-            ResourceGroup = existingResourceGroup;
-            AllowResourceGroupCreation = true;
+            if (!string.IsNullOrEmpty(existingLocation))
+            {
+                Location = existingLocation;
+            }
+
+            if (!string.IsNullOrEmpty(existingResourceGroup))
+            {
+                ResourceGroup = existingResourceGroup;
+                AllowResourceGroupCreation = true;
+            }
         }
 
         while (Location == null || SubscriptionId == null)
@@ -124,19 +135,23 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
         }
 
-        if (SubscriptionId != existingSubscriptionId)
+        // Only save to user secrets if NoCache is not set
+        if (!_publishingOptions.Value.NoCache)
         {
-            userSecrets[subscriptionKey] = SubscriptionId;
-        }
+            if (SubscriptionId != existingSubscriptionId)
+            {
+                userSecrets[subscriptionKey] = SubscriptionId;
+            }
 
-        if (Location != existingLocation)
-        {
-            userSecrets[locationKey] = Location;
-        }
+            if (Location != existingLocation)
+            {
+                userSecrets[locationKey] = Location;
+            }
 
-        if (ResourceGroup != existingResourceGroup)
-        {
-            userSecrets[resourceGroupKey] = ResourceGroup;
+            if (ResourceGroup != existingResourceGroup)
+            {
+                userSecrets[resourceGroupKey] = ResourceGroup;
+            }
         }
     }
 
