@@ -46,7 +46,7 @@ public class DotNetTemplateFactoryTests
         }
     }
 
-    private static PackageChannel CreateExplicitChannel(PackageMapping[] mappings) => 
+    private static PackageChannel CreateExplicitChannel(PackageMapping[] mappings) =>
         PackageChannel.CreateExplicitChannel("test", PackageChannelQuality.Both, mappings, new FakeNuGetPackageCache());
 
     private static async Task WriteNuGetConfigAsync(DirectoryInfo dir, string content)
@@ -65,7 +65,7 @@ public class DotNetTemplateFactoryTests
         // Arrange
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var workingDir = workspace.WorkspaceRoot;
-        
+
         var mappings = new[]
         {
             new PackageMapping("Aspire.*", "https://test.feed.example.com")
@@ -86,9 +86,9 @@ public class DotNetTemplateFactoryTests
         // Arrange
         using var workspace = TemporaryWorkspace.Create(_outputHelper);
         var workingDir = workspace.WorkspaceRoot;
-        
+
         // Create existing NuGet.config in working directory without the required source
-        await WriteNuGetConfigAsync(workingDir, 
+        await WriteNuGetConfigAsync(workingDir,
             """
             <?xml version="1.0"?>
             <configuration>
@@ -110,7 +110,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var nugetConfigPath = Path.Combine(workingDir.FullName, "NuGet.config");
         Assert.True(File.Exists(nugetConfigPath), "NuGet.config should exist in working directory");
-        
+
         var content = await File.ReadAllTextAsync(nugetConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
     }
@@ -124,7 +124,7 @@ public class DotNetTemplateFactoryTests
         var outputDir = Directory.CreateDirectory(Path.Combine(workingDir.FullName, "MyProject"));
 
         // Create existing NuGet.config in working directory (parent)
-        var parentConfigContent = 
+        var parentConfigContent =
             """
             <?xml version="1.0"?>
             <configuration>
@@ -154,7 +154,7 @@ public class DotNetTemplateFactoryTests
         // New NuGet.config should be created in output directory
         var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
         Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
-        
+
         var outputContent = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", outputContent);
     }
@@ -168,7 +168,7 @@ public class DotNetTemplateFactoryTests
         var outputDir = Directory.CreateDirectory(Path.Combine(workingDir.FullName, "MyProject"));
 
         // Create existing NuGet.config in output directory
-        await WriteNuGetConfigAsync(outputDir, 
+        await WriteNuGetConfigAsync(outputDir,
             """
             <?xml version="1.0"?>
             <configuration>
@@ -190,7 +190,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
         Assert.True(File.Exists(outputConfigPath), "NuGet.config should exist in output directory");
-        
+
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
         Assert.Contains("https://api.nuget.org/v3/index.json", content);
@@ -221,7 +221,7 @@ public class DotNetTemplateFactoryTests
         // New NuGet.config should be created in output directory
         var outputConfigPath = Path.Combine(outputDir.FullName, "NuGet.config");
         Assert.True(File.Exists(outputConfigPath), "NuGet.config should be created in output directory");
-        
+
         var content = await File.ReadAllTextAsync(outputConfigPath);
         Assert.Contains("https://test.feed.example.com", content);
     }
@@ -347,7 +347,7 @@ public class DotNetTemplateFactoryTests
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
         var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
-        
+
         return new DotNetTemplateFactory(
             interactionService,
             runner,
@@ -383,6 +383,9 @@ public class DotNetTemplateFactoryTests
     private sealed class TestInteractionService : IInteractionService
     {
         public Task<T> PromptForSelectionAsync<T>(string prompt, IEnumerable<T> choices, Func<T, string> displaySelector, CancellationToken cancellationToken) where T : notnull
+            => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
             => throw new NotImplementedException();
 
         public Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
@@ -451,6 +454,16 @@ public class DotNetTemplateFactoryTests
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
+
+        public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class TestCertificateService : ICertificateService
