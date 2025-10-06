@@ -1483,6 +1483,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         spec.VolumeMounts = BuildContainerMounts(modelContainerResource);
 
+        spec.Labels = await BuildContainerLabelsAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
+
         spec.CreateFiles = await BuildCreateFilesAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
 
         (spec.RunArgs, var failedToApplyRunArgs) = await BuildRunArgsAsync(resourceLogger, modelContainerResource, cancellationToken).ConfigureAwait(false);
@@ -2083,5 +2085,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return volumeMounts;
+    }
+
+    private async Task<List<ContainerLabel>?> BuildContainerLabelsAsync(IResource container, CancellationToken cancellationToken)
+    {
+        var labels = await container.ProcessContainerLabelsAsync(_executionContext, _logger, cancellationToken).ConfigureAwait(false);
+        
+        if (labels.Count == 0)
+        {
+            return null;
+        }
+
+        var containerLabels = new List<ContainerLabel>();
+        foreach (var label in labels)
+        {
+            containerLabels.Add(new ContainerLabel
+            {
+                Key = label.Key,
+                Value = label.Value
+            });
+        }
+
+        return containerLabels;
     }
 }

@@ -143,6 +143,45 @@ public class DockerComposeTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public async Task DockerComposeServiceIncludesLabels()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
+
+        var composeEnv = builder.AddDockerComposeEnvironment("docker-compose");
+
+        // Add a container with labels
+        var container = builder.AddContainer("service", "nginx")
+                               .WithLabel("com.example.service", "my-service")
+                               .WithLabel("com.example.environment", "testing")
+                               .WithLabels(new Dictionary<string, string>
+                               {
+                                   ["com.example.owner"] = "team-xyz",
+                                   ["version"] = "1.0"
+                               });
+
+        var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        // Get the deployment target
+        var deploymentTarget = container.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget;
+        Assert.NotNull(deploymentTarget);
+        Assert.IsType<DockerComposeServiceResource>(deploymentTarget);
+
+        var serviceResource = (DockerComposeServiceResource)deploymentTarget;
+        var composeService = await serviceResource.BuildComposeServiceAsync(app.Services.GetRequiredService<DistributedApplicationExecutionContext>(), Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+
+        // Assert labels are included
+        Assert.Equal(4, composeService.Labels.Count);
+        Assert.Equal("my-service", composeService.Labels["com.example.service"]);
+        Assert.Equal("testing", composeService.Labels["com.example.environment"]);
+        Assert.Equal("team-xyz", composeService.Labels["com.example.owner"]);
+        Assert.Equal("1.0", composeService.Labels["version"]);
+    }
+
+    [Fact]
     public async Task DashboardWithForwardedHeadersWritesEnvVar()
     {
         using var tempDir = new TempDirectory();
