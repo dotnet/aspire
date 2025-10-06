@@ -134,13 +134,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             return getSolutionExitCode;
         }
 
-        // Check if any project in the solution is already an AppHost
+        // Check if any project is already an AppHost and find executable projects
+        var executableProjects = new List<FileInfo>();
         foreach (var project in solutionProjects)
         {
+            // Get both IsAspireHost and OutputType properties in a single call
             var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
                 project,
                 [],
-                ["IsAspireHost"],
+                ["IsAspireHost", "OutputType"],
                 new DotNetCliRunnerInvocationOptions(),
                 cancellationToken);
 
@@ -149,6 +151,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 var rootElement = jsonDoc.RootElement;
                 if (rootElement.TryGetProperty("Properties", out var properties))
                 {
+                    // Check if this project is an AppHost
                     if (properties.TryGetProperty("IsAspireHost", out var isAspireHostElement))
                     {
                         var isAspireHost = isAspireHostElement.GetString();
@@ -158,27 +161,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                             return ExitCodeConstants.Success;
                         }
                     }
-                }
-            }
-        }
 
-        // Find executable projects in the solution
-        var executableProjects = new List<FileInfo>();
-        foreach (var project in solutionProjects)
-        {
-            // Get OutputType property
-            var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
-                project,
-                [],
-                ["OutputType"],
-                new DotNetCliRunnerInvocationOptions(),
-                cancellationToken);
-
-            if (exitCode == 0 && jsonDoc != null)
-            {
-                var rootElement = jsonDoc.RootElement;
-                if (rootElement.TryGetProperty("Properties", out var properties))
-                {
+                    // Check if this project is executable
                     if (properties.TryGetProperty("OutputType", out var outputTypeElement))
                     {
                         var outputType = outputTypeElement.GetString();
