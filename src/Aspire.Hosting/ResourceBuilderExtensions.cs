@@ -2340,6 +2340,45 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Specifies a custom icon to display for the resource in the dashboard using custom icon data.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="iconData">The icon data, which can be SVG content or a data URI (e.g., data:image/png;base64,...).</param>
+    /// <param name="iconName">Optional name for the icon for reference purposes.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows specifying custom icon data directly, useful for embedding resources or dynamic icon generation.
+    /// The icon data should be either raw SVG content or a data URI for bitmap formats.
+    /// </para>
+    /// <example>
+    /// Use a custom SVG icon from an embedded resource:
+    /// <code lang="C#">
+    /// var svgContent = "&lt;svg width='24' height='24'&gt;&lt;circle cx='12' cy='12' r='10'/&gt;&lt;/svg&gt;";
+    /// var myService = builder.AddContainer("myservice", "myimage")
+    ///                        .WithIconName(svgContent, "MyIcon");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Use a custom PNG icon from an embedded resource:
+    /// <code lang="C#">
+    /// var iconBytes = Resources.MyIcon; // Embedded resource bytes
+    /// var dataUri = $"data:image/png;base64,{Convert.ToBase64String(iconBytes)}";
+    /// var myService = builder.AddContainer("myservice", "myimage")
+    ///                        .WithIconName(dataUri, "MyIcon");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconData, string? iconName) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(iconData);
+
+        return builder.WithAnnotation(new ResourceIconAnnotation(iconData, iconName));
+    }
+
+    /// <summary>
     /// Configures the compute environment for the compute resource.
     /// </summary>
     /// <param name="builder">The compute resource builder.</param>
@@ -2515,36 +2554,6 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Specifies a custom icon to display for the resource in the dashboard using a FluentUI icon name.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="iconName">The name of the FluentUI icon. See https://aka.ms/fluentui-system-icons for available icons.</param>
-    /// <param name="iconVariant">The variant of the icon (Regular or Filled). Defaults to Filled.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method specifies which FluentUI icon to use when displaying the resource in the dashboard.
-    /// If not specified, the dashboard will use default icons based on the resource type.
-    /// </para>
-    /// <example>
-    /// Set a Redis resource to use the "Database" icon:
-    /// <code lang="C#">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    /// var redis = builder.AddRedis("cache")
-    ///                    .WithResourceIcon("Database", IconVariant.Filled);
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> WithResourceIcon<T>(this IResourceBuilder<T> builder, string iconName, IconVariant iconVariant = IconVariant.Filled) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(iconName);
-
-        return builder.WithAnnotation(new ResourceIconAnnotation(iconName, iconVariant));
-    }
-
-    /// <summary>
     /// Specifies a custom icon to display for the resource in the dashboard using an icon file.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -2618,39 +2627,4 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ResourceIconAnnotation(iconData, iconName));
     }
 
-    /// <summary>
-    /// Specifies a custom icon to display for the resource in the dashboard using custom icon data.
-    /// </summary>
-    /// <typeparam name="T">The resource type.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="iconData">The icon data, which can be SVG content or a data URI (e.g., data:image/png;base64,...).</param>
-    /// <param name="iconName">Optional name for the icon for reference purposes.</param>
-    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method allows specifying custom icon data directly, useful for embedding resources or dynamic icon generation.
-    /// The icon data should be either raw SVG content or a data URI for bitmap formats.
-    /// </para>
-    /// <example>
-    /// Use a custom icon from an embedded resource:
-    /// <code lang="C#">
-    /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
-    /// // For PNG from embedded resource
-    /// var iconBytes = Resources.MyIcon; // Embedded resource bytes
-    /// var base64 = Convert.ToBase64String(iconBytes);
-    /// var dataUri = $"data:image/png;base64,{base64}";
-    /// 
-    /// var myService = builder.AddContainer("myservice", "myimage")
-    ///                        .WithResourceIcon(dataUri, "MyIcon");
-    /// </code>
-    /// </example>
-    /// </remarks>
-    public static IResourceBuilder<T> WithResourceIcon<T>(this IResourceBuilder<T> builder, string iconData, string? iconName) where T : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(iconData);
-
-        return builder.WithAnnotation(new ResourceIconAnnotation(iconData, iconName));
-    }
 }

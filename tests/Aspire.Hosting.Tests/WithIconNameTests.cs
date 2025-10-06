@@ -102,13 +102,13 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_SetsCustomIconDataWithSvgContent()
+    public void WithIconName_SetsCustomIconDataWithSvgContent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var svgContent = "<svg><circle cx='50' cy='50' r='40'/></svg>";
         var container = builder.AddContainer("mycontainer", "myimage")
-                              .WithResourceIcon(svgContent, "MySvgIcon");
+                              .WithIconName(svgContent, "MySvgIcon");
 
         // Verify the annotation was added with custom icon data
         var iconAnnotation = container.Resource.Annotations.OfType<ResourceIconAnnotation>().Single();
@@ -117,13 +117,13 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_SetsCustomIconDataWithDataUri()
+    public void WithIconName_SetsCustomIconDataWithDataUri()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA";
         var container = builder.AddContainer("mycontainer", "myimage")
-                              .WithResourceIcon(dataUri, "MyPngIcon");
+                              .WithIconName(dataUri, "MyPngIcon");
 
         // Verify the annotation was added with custom icon data
         var iconAnnotation = container.Resource.Annotations.OfType<ResourceIconAnnotation>().Single();
@@ -224,35 +224,35 @@ public class WithResourceIconTests
     }
 
     [Fact]
-    public void WithResourceIcon_ThrowsOnNullIconData()
+    public void WithIconName_ThrowsOnNullIconData()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentNullException>(() => container.WithResourceIcon(null!, "test"));
+        Assert.Throws<ArgumentNullException>(() => container.WithIconName(null!, "test"));
     }
 
     [Fact]
-    public void WithResourceIcon_ThrowsOnEmptyIconData()
+    public void WithIconName_ThrowsOnEmptyIconData()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var container = builder.AddContainer("mycontainer", "myimage");
 
-        Assert.Throws<ArgumentException>(() => container.WithResourceIcon("", "test"));
-        Assert.Throws<ArgumentException>(() => container.WithResourceIcon("   ", "test"));
+        Assert.Throws<ArgumentException>(() => container.WithIconName("", "test"));
+        Assert.Throws<ArgumentException>(() => container.WithIconName("   ", "test"));
     }
 
     [Fact]
-    public void WithResourceIcon_CustomDataTakesPrecedenceOverIconName()
+    public void WithIconName_CustomDataTakesPrecedenceOverIconName()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var svgContent = "<svg><rect width='24' height='24'/></svg>";
         var container = builder.AddContainer("mycontainer", "myimage")
                               .WithIconName("Database")
-                              .WithResourceIcon(svgContent, "CustomIcon");
+                              .WithIconName(svgContent, "CustomIcon");
 
         // Should have both annotations
         var iconAnnotations = container.Resource.Annotations.OfType<ResourceIconAnnotation>().ToList();

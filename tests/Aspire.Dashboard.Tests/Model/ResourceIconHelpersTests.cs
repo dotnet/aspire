@@ -103,7 +103,7 @@ public sealed class ResourceIconHelpersTests
     }
 
     [Fact]
-    public void GetIconForResource_WithCustomIconData_ReturnsCustomDataIcon()
+    public void GetIconForResource_WithCustomIconData_ReturnsCustomResourceIcon()
     {
         // Arrange
         var svgContent = "<svg><circle cx='50' cy='50' r='40'/></svg>";
@@ -114,7 +114,7 @@ public sealed class ResourceIconHelpersTests
 
         // Assert
         Assert.NotNull(icon);
-        Assert.IsType<CustomDataIcon>(icon);
+        Assert.IsType<CustomResourceIcon>(icon);
     }
 
     [Fact]
@@ -129,12 +129,12 @@ public sealed class ResourceIconHelpersTests
 
         // Assert
         Assert.NotNull(icon);
-        Assert.IsType<CustomDataIcon>(icon);
+        Assert.IsType<CustomResourceIcon>(icon);
         // Custom data takes precedence over icon name
     }
 
     [Fact]
-    public void GetIconForResource_WithDataUriCustomIconData_ReturnsCustomDataIcon()
+    public void GetIconForResource_WithDataUriCustomIconData_ReturnsCustomResourceIcon()
     {
         // Arrange
         var dataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA";
@@ -145,7 +145,7 @@ public sealed class ResourceIconHelpersTests
 
         // Assert
         Assert.NotNull(icon);
-        Assert.IsType<CustomDataIcon>(icon);
+        Assert.IsType<CustomResourceIcon>(icon);
     }
 
 }

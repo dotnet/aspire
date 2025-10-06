@@ -8,12 +8,12 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 /// <summary>
-/// Represents a custom icon using SVG content or data URI.
+/// Represents a custom resource icon using SVG content or data URI.
 /// </summary>
-internal sealed class CustomDataIcon : Icon
+internal sealed class CustomResourceIcon : Icon
 {
-    public CustomDataIcon(string iconData, IconSize size) 
-        : base("CustomData", IconVariant.Regular, size, iconData)
+    public CustomResourceIcon(IconSize size, string iconContent) 
+        : base(string.Empty, IconVariant.Regular, size, iconContent)
     {
     }
 }
@@ -28,7 +28,7 @@ internal static class ResourceIconHelpers
         // Check if the resource has custom icon data (takes highest precedence)
         if (!string.IsNullOrWhiteSpace(resource.CustomIconData))
         {
-            return new CustomDataIcon(resource.CustomIconData, desiredSize);
+            return new CustomResourceIcon(desiredSize, resource.CustomIconData);
         }
 
         // Check if the resource has a custom icon name specified

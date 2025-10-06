@@ -32,7 +32,7 @@ public sealed class ResourceIconAnnotation : IResourceAnnotation
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(customIconData);
         CustomIconData = customIconData;
-        IconName = iconName ?? "CustomIcon";
+        IconName = iconName ?? string.Empty;
         IconVariant = IconVariant.Regular;
     }
 
@@ -60,8 +60,8 @@ public sealed class ResourceIconAnnotation : IResourceAnnotation
     /// <remarks>
     /// When this property is set, it takes precedence over <see cref="IconName"/> for icon display.
     /// The data should be either:
-    /// - Raw SVG content (e.g., "&lt;svg...&gt;...&lt;/svg&gt;")
-    /// - A data URI (e.g., "data:image/png;base64,...")
+    /// - Raw SVG content (e.g., "&lt;svg width='24' height='24'&gt;&lt;circle cx='12' cy='12' r='10'/&gt;&lt;/svg&gt;")
+    /// - A data URI (e.g., "data:image/png;base64,iVBORw0KGgo...")
     /// </remarks>
     public string? CustomIconData { get; }
 }
