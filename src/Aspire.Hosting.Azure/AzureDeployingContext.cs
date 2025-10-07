@@ -66,7 +66,17 @@ internal sealed class AzureDeployingContext(
         }
 
         // Step 4: Save deployment state after successful deployment
-        await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
+        var stateFilePath = deploymentStateManager.StateFilePath;
+        if (stateFilePath is not null)
+        {
+            var saveStep = await activityReporter.CreateStepAsync($"Saving deployment state to {stateFilePath}", cancellationToken).ConfigureAwait(false);
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
+            await saveStep.CompleteAsync("Deployment state saved", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
+        }
 
         // Display dashboard URL after successful deployment
         var dashboardUrl = TryGetDashboardUrl(model);

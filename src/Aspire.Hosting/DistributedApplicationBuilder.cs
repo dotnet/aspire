@@ -196,9 +196,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        // Set configuration
-        ConfigurePublishingOptions(options);
-        var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -209,6 +206,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
+
+        // Set configuration - must come after ExecutionContext is created
+        ConfigurePublishingOptions(options);
+        var isExecMode = ConfigureExecOptions(options);
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
@@ -237,6 +238,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             ["AppHost:Sha256"] = appHostSha
         });
+
+        // Load deployment state early in the configuration chain if in publish mode
+        // This must happen before command line args are added so they can override saved state
+        if (ExecutionContext.IsPublishMode)
+        {
+            LoadDeploymentState(appHostSha);
+        }
 
         // exec
         if (isExecMode)
@@ -410,8 +418,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
         {
-            // Load deployment state from filesystem if in publish mode and ClearCache is false
-            LoadDeploymentState(appHostSha);
             _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
         }
         else
@@ -651,18 +657,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <summary>
     /// Loads deployment state from the filesystem based on the app host SHA and environment name.
-    /// Only loads if ClearCache is false and in publish mode.
     /// </summary>
     /// <param name="appHostSha">The SHA hash of the app host.</param>
     private void LoadDeploymentState(string appHostSha)
     {
-        // Only load if ClearCache is false
-        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
-        if (clearCache)
-        {
-            return;
-        }
-
         var environment = _innerBuilder.Environment.EnvironmentName;
         var deploymentStatePath = Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),

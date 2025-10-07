@@ -90,11 +90,17 @@ public sealed class ParameterProcessor(
         // Combine explicit parameters with dependent parameters
         var explicitParameters = model.Resources.OfType<ParameterResource>();
         var dependentParameters = referencedParameters.Values.Where(p => !explicitParameters.Contains(p));
-        var allParameters = explicitParameters.Concat(dependentParameters);
+        var allParameters = explicitParameters.Concat(dependentParameters).ToList();
 
         if (allParameters.Any())
         {
             await InitializeParametersAsync(allParameters, waitForResolution).ConfigureAwait(false);
+        }
+
+        // In publish mode, save all parameter values at the end
+        if (executionContext.IsPublishMode && allParameters.Any())
+        {
+            await SaveParametersToDeploymentStateAsync(allParameters, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -225,20 +231,23 @@ public sealed class ParameterProcessor(
     // Internal for testing purposes - allows passing specific parameters to test.
     internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
-        // Load deployment state at the beginning
+        // Load deployment state at the beginning (only in run mode for saving user preference)
         JsonObject? deploymentState = null;
         JsonObject? parametersSection = null;
         var stateModified = false;
 
-        try
+        if (executionContext.IsRunMode)
         {
-            deploymentState = await deploymentStateManager.LoadStateAsync().ConfigureAwait(false);
-            parametersSection = deploymentState?["Parameters"]?.AsObject() ?? [];
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
-            parametersSection = [];
+            try
+            {
+                deploymentState = await deploymentStateManager.LoadStateAsync().ConfigureAwait(false);
+                parametersSection = deploymentState?["Parameters"]?.AsObject() ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
+                parametersSection = [];
+            }
         }
 
         // This method will continue in a loop until all unresolved parameters are resolved.
@@ -338,25 +347,15 @@ public sealed class ParameterProcessor(
                         loggerService.GetLogger(parameter)
                             .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
-                        // Determine if we should save to deployment state
-                        var shouldSaveToDeploymentState = false;
-
-                        if (executionContext.IsPublishMode)
+                        // In run mode, save to deployment state if user opted in
+                        if (executionContext.IsRunMode && showSaveToSecrets && saveParameters?.Value is not null)
                         {
-                            // In publish mode, save to deployment state only if ClearCache is false
-                            var clearCache = publishingOptions?.Value?.ClearCache ?? false;
-                            shouldSaveToDeploymentState = !clearCache;
-                        }
-                        else if (showSaveToSecrets && saveParameters?.Value is not null)
-                        {
-                            // In run mode, only save if user opted in
-                            shouldSaveToDeploymentState = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
-                        }
-
-                        if (shouldSaveToDeploymentState)
-                        {
-                            parametersSection![parameter.Name] = JsonValue.Create(inputValue);
-                            stateModified = true;
+                            var shouldSave = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
+                            if (shouldSave)
+                            {
+                                parametersSection![parameter.Name] = JsonValue.Create(inputValue);
+                                stateModified = true;
+                            }
                         }
 
                         // Remove the parameter from unresolved parameters list.
@@ -379,6 +378,35 @@ public sealed class ParameterProcessor(
             {
                 logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
             }
+        }
+    }
+
+    private async Task SaveParametersToDeploymentStateAsync(IEnumerable<ParameterResource> parameters, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deploymentState = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
+            var parametersSection = new JsonObject();
+
+            foreach (var parameter in parameters)
+            {
+                var value = parameter.ValueInternal;
+                if (!string.IsNullOrEmpty(value))
+                {
+                    parametersSection[parameter.Name] = JsonValue.Create(value);
+                }
+            }
+
+            if (parametersSection.Count > 0)
+            {
+                deploymentState["Parameters"] = parametersSection;
+                await deploymentStateManager.SaveStateAsync(deploymentState, cancellationToken).ConfigureAwait(false);
+                logger.LogInformation("Parameter values saved to deployment state.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
         }
     }
 }
