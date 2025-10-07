@@ -673,7 +673,7 @@ internal sealed class InitContext
                 var tfm = project.TargetFramework;
                 if (tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
                 {
-                    var versionString = tfm.Substring(3);
+                    var versionString = tfm[3..];
                     // Add patch version if not present for SemVersion parsing
                     // TFMs are in format "8.0", "9.0", "10.0", need to make them "8.0.0", "9.0.0", "10.0.0"
                     var dotCount = versionString.Count(c => c == '.');
