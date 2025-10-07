@@ -61,7 +61,6 @@ public sealed class FileDeploymentStateManager(
 
         if (deploymentStatePath is not null && File.Exists(deploymentStatePath))
         {
-            Console.WriteLine($"Loading deployment state from: {deploymentStatePath}");
             logger.LogInformation("Loading deployment state from {Path}", deploymentStatePath);
             return JsonNode.Parse(
                 await File.ReadAllTextAsync(deploymentStatePath, cancellationToken).ConfigureAwait(false),
