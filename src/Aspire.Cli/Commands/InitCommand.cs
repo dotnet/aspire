@@ -281,7 +281,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         "aspire", 
                         initContext.SolutionName, 
                         tempProjectDir, 
-                        ["--framework", initContext.RequiredAppHostFramework], // No extra args needed for aspire template
+                        ["--framework", initContext.RequiredAppHostFramework],
                         new DotNetCliRunnerInvocationOptions(), 
                         cancellationToken);
                 });
