@@ -972,21 +972,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
     public async Task DeployAsync_WithCachedDeploymentState_LoadsFromCache()
     {
         var appHostSha = "testsha2cache";
-
-        using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
-            $"AppHostSha={appHostSha}");
-
-        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
-
-        using var app = builder.Build();
-
-        var deploymentStateManager = app.Services.GetRequiredService<IDeploymentStateManager>();
-        var deploymentStatePath = deploymentStateManager.StateFilePath;
-        Assert.NotNull(deploymentStatePath);
-
+        var deploymentStatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments",
+            appHostSha,
+            $"Production.json"
+        );
         Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
         var cachedState = new JsonObject
         {
@@ -995,6 +987,15 @@ public class AzureDeployerTests(ITestOutputHelper output)
             ["Azure:ResourceGroup"] = "cached-rg-test"
         };
         await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
+
+        using var builder = TestDistributedApplicationBuilder.Create(
+            $"Publishing:Publisher=default",
+            $"Publishing:OutputPath=./",
+            $"Publishing:Deploy=true",
+            $"AppHostSha={appHostSha}");
+
+        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
+        using var app = builder.Build();
 
         // Verify that the cached state was loaded into configuration
         Assert.Equal("cached-sub-12345678-1234-1234-1234-123456789012", builder.Configuration["Azure:SubscriptionId"]);
