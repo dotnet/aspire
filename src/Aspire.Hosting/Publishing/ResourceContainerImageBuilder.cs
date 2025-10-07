@@ -208,20 +208,22 @@ internal sealed class ResourceContainerImageBuilder(
                 cancellationToken).ConfigureAwait(false);
             return;
         }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        else if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
         {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
+            if (!resource.TryGetContainerImageName(out var imageName))
             {
-                // This is a container resource so we'll use the container runtime to build the image
-                await BuildContainerImageFromDockerfileAsync(
-                    resource,
-                    dockerfileBuildAnnotation,
-                    containerImageAnnotation.Image,
-                    step,
-                    options,
-                    cancellationToken).ConfigureAwait(false);
-                return;
+                throw new InvalidOperationException("Resource image name could not be determined.");
             }
+            
+            // This is a container resource so we'll use the container runtime to build the image
+            await BuildContainerImageFromDockerfileAsync(
+                resource,
+                dockerfileBuildAnnotation,
+                imageName,
+                step,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            return;
         }
         else
         {

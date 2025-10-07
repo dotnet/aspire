@@ -430,7 +430,11 @@ internal sealed class AzureDeployingContext(
                         .Where(r => r.RequiresImageBuildAndPush())
                         .Select(async resource =>
                         {
-                            var localImageName = resource.Name.ToLowerInvariant();
+                            if (!resource.TryGetContainerImageName(out var localImageName))
+                            {
+                                throw new InvalidOperationException("Resource image name could not be determined.");
+                            }
+
                             IValueProvider cir = new ContainerImageReference(resource);
                             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
