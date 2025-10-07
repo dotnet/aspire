@@ -31,6 +31,7 @@
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="Azure.Provisioning" />
     <PackageReference Include="Azure.Provisioning.KeyVault" />
+    <PackageReference Include="Azure.Provisioning.Storage" />
     <PackageReference Include="Azure.ResourceManager.Authorization" />
     <PackageReference Include="Azure.ResourceManager.KeyVault" />
     <PackageReference Include="Azure.ResourceManager.Resources" />
@@ -40,6 +41,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Azure.Tests" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.AppContainers" />
+    <InternalsVisibleTo Include="Aspire.Hosting.Azure.Storage" />
   </ItemGroup>
 
 </Project>

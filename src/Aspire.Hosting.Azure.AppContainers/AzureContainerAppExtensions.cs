@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppContainers;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Lifecycle;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
@@ -176,10 +177,10 @@ public static class AzureContainerAppExtensions
                 {
                     Tags = tags,
                     Sku = new StorageSku() { Name = StorageSkuName.StandardLrs },
-                    Kind = StorageKind.StorageV2,
-                    LargeFileSharesState = LargeFileSharesState.Enabled,
-                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2
+                    LargeFileSharesState = LargeFileSharesState.Enabled
                 };
+
+                StorageAccountHelpers.ApplyBestPracticeDefaults(storageVolume);
 
                 infra.Add(storageVolume);
 

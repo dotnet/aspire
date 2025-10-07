@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Storage;
+using Aspire.Hosting.Azure.Utils;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
@@ -51,25 +52,28 @@ public static class AzureStorageExtensions
                     resource.Name = name;
                     return resource;
                 },
-                (infrastructure) => new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
+                (infrastructure) =>
                 {
-                    Kind = StorageKind.StorageV2,
-                    AccessTier = StorageAccountAccessTier.Hot,
-                    Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
-                    NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                    var sa = new StorageAccount(infrastructure.AspireResource.GetBicepIdentifier())
                     {
-                        // Unfortunately Azure Storage does not list ACA as one of the resource types in which
-                        // the AzureServices firewall policy works. This means that we need this Azure Storage
-                        // account to have its default action set to Allow.
-                        DefaultAction = StorageNetworkDefaultAction.Allow
-                    },
-                    // Set the minimum TLS version to 1.2 to ensure resources provisioned are compliant
-                    // with the pending deprecation of TLS 1.0 and 1.1.
-                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
-                    // Disable shared key access to the storage account as managed identity is configured
-                    // to access the storage account by default.
-                    AllowSharedKeyAccess = false,
-                    Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                        AccessTier = StorageAccountAccessTier.Hot,
+                        Sku = new StorageSku() { Name = StorageSkuName.StandardGrs },
+                        NetworkRuleSet = new StorageAccountNetworkRuleSet()
+                        {
+                            // Unfortunately Azure Storage does not list ACA as one of the resource types in which
+                            // the AzureServices firewall policy works. This means that we need this Azure Storage
+                            // account to have its default action set to Allow.
+                            DefaultAction = StorageNetworkDefaultAction.Allow
+                        },
+                        // Disable shared key access to the storage account as managed identity is configured
+                        // to access the storage account by default.
+                        AllowSharedKeyAccess = false,
+                        Tags = { { "aspire-resource-name", infrastructure.AspireResource.Name } }
+                    };
+
+                    StorageAccountHelpers.ApplyBestPracticeDefaults(sa);
+
+                    return sa;
                 });
 
             var azureResource = (AzureStorageResource)infrastructure.AspireResource;
