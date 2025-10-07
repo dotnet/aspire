@@ -62,7 +62,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient);
 
         // Act
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -88,7 +91,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
 
         // Act 1
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -132,7 +138,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
 
         // Act 1
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -188,7 +197,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
 
         // Act 1
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -305,7 +317,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, messageService: messageService);
 
         // Act 1
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -375,7 +390,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
 
         // Act 1
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
@@ -454,7 +472,10 @@ public partial class InteractionsProviderTests : DashboardTestContext
         SetupInteractionProviderServices(dashboardClient: dashboardClient, dialogService: dialogService);
 
         // Act
-        var cut = RenderComponent<Components.Interactions.InteractionsProvider>();
+        var cut = RenderComponent<Components.Interactions.InteractionsProvider>(builder =>
+        {
+            builder.Add(p => p.ViewportInformation, new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false));
+        });
 
         var instance = cut.Instance;
 
