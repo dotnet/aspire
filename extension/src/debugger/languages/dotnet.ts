@@ -162,7 +162,8 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
             debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
-        }
+        },
+        getSupportedFileTypes: () => [".cs"]
     };
 }
 

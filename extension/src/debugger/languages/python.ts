@@ -13,5 +13,6 @@ export const pythonDebuggerExtension: ResourceDebuggerExtension = {
         }
 
         throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
-    }
+    },
+    getSupportedFileTypes: () => [".py"]
 };

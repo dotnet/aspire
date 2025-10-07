@@ -12,7 +12,7 @@ import {
     LaunchSettings,
     LaunchProfile
 } from '../debugger/launchProfiles';
-import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
+import { EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 
 suite('Launch Profile Tests', () => {
     suite('determineBaseLaunchProfile', () => {

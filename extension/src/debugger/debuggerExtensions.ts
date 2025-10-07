@@ -13,6 +13,7 @@ export interface ResourceDebuggerExtension {
     debugAdapter: string;
     extensionId: string | null;
     displayName: string;
+    getSupportedFileTypes: () => string[];
     getProjectFile: (launchConfig: ExecutableLaunchConfiguration) => string;
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
