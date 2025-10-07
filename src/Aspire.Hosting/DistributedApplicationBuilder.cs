@@ -196,6 +196,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
+        ConfigurePublishingOptions(options);
+        var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
@@ -206,10 +208,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
-
-        // Set configuration - must come after ExecutionContext is created
-        ConfigurePublishingOptions(options);
-        var isExecMode = ConfigureExecOptions(options);
 
         // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
         // account for the path the AppHost is running from to disambiguate between different projects
@@ -414,7 +412,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
-        
+
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
         {
