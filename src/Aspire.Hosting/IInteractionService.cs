@@ -100,43 +100,85 @@ public interface IInteractionService
     Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
-internal sealed class InteractionOptionsProviderState(InteractionOptionsProvider provider)
+internal record DynamicRefreshOptions(
+    ILogger Logger,
+    CancellationToken CancellationToken,
+    InteractionInput Input,
+    InteractionInputCollection AllInputs,
+    IServiceProvider ServiceProvider);
+
+internal sealed class DynamicInputState(DynamicInputOptions options)
 {
-    private readonly InteractionOptionsProvider _provider = provider;
+    private readonly DynamicInputOptions _options = options;
     private readonly object _lock = new object();
 
-    internal IReadOnlyList<KeyValuePair<string, string>>? LoadedOptions { get; private set; }
-    internal bool IsLoading { get; private set; }
+    internal bool Loading { get; private set; }
 
-    internal (IReadOnlyList<KeyValuePair<string, string>>? loadedOptions, bool isLoading) GetOptions()
+    private Task? _currentTask;
+    private CancellationTokenSource? _currentCts;
+    private bool _isNextQueued;
+
+    internal void RefreshInput(DynamicRefreshOptions options)
     {
         lock (_lock)
         {
-            return (LoadedOptions, IsLoading);
+            // Already queued but not yet started — ignore new call
+            if (_isNextQueued)
+            {
+                return;
+            }
+
+            if (_currentTask == null || _currentTask.IsCompleted)
+            {
+                StartNewTask(options);
+                return;
+            }
+
+            // A task is running — cancel and queue restart
+            _currentCts?.Cancel();
+            _isNextQueued = true;
+
+            // Queue continuation once current completes
+            _currentTask.ContinueWith(_ =>
+            {
+                lock (_lock)
+                {
+                    if (_isNextQueued)
+                    {
+                        _isNextQueued = false;
+                        StartNewTask(options);
+                    }
+                }
+            }, TaskScheduler.Default);
         }
     }
 
-    internal void RefreshData(LoadOptionsContext context, ILogger logger)
+    private void StartNewTask(DynamicRefreshOptions options)
     {
-        lock (_lock)
-        {
-            // Don't remove existing loaded options.
-            // We want to keep them so the current value stays selected until it has finished loading.
-            IsLoading = true;
-        }
+        Debug.Assert(Monitor.IsEntered(_lock));
 
-        _ = Task.Run(async () =>
+        Loading = true;
+
+        _currentCts = CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken);
+        var currentToken = _currentCts.Token;
+
+        _currentTask = Task.Run(async () =>
         {
             try
             {
-                var loadedOptions = await _provider.LoadOptions(context).ConfigureAwait(false);
+                await _options.UpdateInputCallback(new UpdateInputContext
+                {
+                    AllInputs = options.AllInputs,
+                    Input = options.Input,
+                    ServiceProvider = options.ServiceProvider,
+                    CancellationToken = currentToken
+                }).ConfigureAwait(false);
                 lock (_lock)
                 {
-                    LoadedOptions = loadedOptions;
-                    IsLoading = false;
+                    Loading = false;
                 }
 
-                OnDataRefresh?.Invoke(loadedOptions);
+                OnDataRefresh?.Invoke(options.Input);
             }
             catch (OperationCanceledException)
             {
@@ -144,29 +186,30 @@ internal sealed class InteractionOptionsProviderState(InteractionOptionsProvider
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error loading options for input '{InputName}'.", context.InputName);
+                options.Logger.LogError(ex, "Error loading options for input '{InputName}'.", options.Input.Name);
             }
-        });
+        }, currentToken);
     }
 
-    internal Action<IReadOnlyList<KeyValuePair<string, string>>>? OnDataRefresh { get; set; }
+    internal Action<InteractionInput>? OnDataRefresh { get; set; }
 }
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class InteractionOptionsProvider
+public sealed class DynamicInputOptions
 {
-    public required Func<LoadOptionsContext, Task<IReadOnlyList<KeyValuePair<string, string>>>> LoadOptions { get; init; }
+    public required Func<UpdateInputContext, Task> UpdateInputCallback { get; init; }
+    public bool AlwaysUpdateOnStart { get; init; }
     public IReadOnlyList<string>? DependsOnInputs { get; init; }
 }
 
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class LoadOptionsContext
+public sealed class UpdateInputContext
 {
-    public required string InputName { get; init; }
-    public required InteractionInputCollection Inputs { get; init; }
-    public required CancellationToken CancellationToken { get; init; }
+    public required InteractionInput Input { get; init; }
+    public required InteractionInputCollection AllInputs { get; init; }
     public required IServiceProvider ServiceProvider { get; init; }
+    public required CancellationToken CancellationToken { get; init; }
 }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
@@ -177,11 +220,8 @@ public sealed class LoadOptionsContext
 [DebuggerDisplay("Name = {Name}, InputType = {InputType}, Required = {Required}, Value = {Value}")]
 public sealed class InteractionInput
 {
-    private IReadOnlyList<KeyValuePair<string, string>>? _options;
-    private InteractionOptionsProvider? _optionsProvider;
-
     internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
-    internal InteractionOptionsProviderState? OptionsProviderState { get; set; }
+    internal DynamicInputState? DynamicState { get; set; }
     internal List<string> ValidationErrors { get; } = [];
 
     /// <summary>
@@ -218,42 +258,12 @@ public sealed class InteractionInput
     /// <summary>
     /// Gets or sets the options for the input. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
-    /// <remarks>
-    /// Either <see cref="Options"/> or <see cref="OptionsProvider"/> can be specified. Both properties can't be set on an input.
-    /// </remarks>
-    public IReadOnlyList<KeyValuePair<string, string>>? Options
-    {
-        get => _options;
-        init
-        {
-            _options = value;
-            ValidateOptionsSet();
-        }
-    }
+    public IReadOnlyList<KeyValuePair<string, string>>? Options { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="InteractionOptionsProvider"/> for the input. Only used by <see cref="InputType.Choice"/> inputs.
+    /// Gets or sets the <see cref="DynamicInputOptions"/> for the input.
     /// </summary>
-    /// <remarks>
-    /// Either <see cref="Options"/> or <see cref="OptionsProvider"/> can be specified. Both properties can't be set on an input.
-    /// </remarks>
-    public InteractionOptionsProvider? OptionsProvider
-    {
-        get => _optionsProvider;
-        init
-        {
-            _optionsProvider = value;
-            ValidateOptionsSet();
-        }
-    }
-
-    private void ValidateOptionsSet()
-    {
-        if (_options != null && _optionsProvider != null)
-        {
-            throw new ArgumentException($"Either set {nameof(Options)} or {nameof(OptionsProvider)} on {nameof(InteractionInput)}. Both properties can't be set.");
-        }
-    }
+    public DynamicInputOptions? DynamicOptions { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the input.
@@ -269,6 +279,11 @@ public sealed class InteractionInput
     /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
     public bool AllowCustomChoice { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
+    /// </summary>
+    public bool Disabled { get; set; }
 
     /// <summary>
     /// gets or sets the maximum length for text inputs.

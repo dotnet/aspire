@@ -291,7 +291,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 // Find all the inputs that are depended on.
                 // These inputs value changing will cause the interaction to be sent to the server.
                 var updateStateOnChangeInputs = inputsInfo.Inputs
-                    .SelectMany(i => i.OptionsProvider?.DependsOnInputs ?? [])
+                    .SelectMany(i => i.DynamicOptions?.DependsOnInputs ?? [])
                     .ToList();
 
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
@@ -300,12 +300,13 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                     Label = input.EffectiveLabel,
                     InputType = input.InputType.ToString(),
                     Required = input.Required,
-                    Options = input.Options ?? input.OptionsProviderState?.LoadedOptions,
+                    Options = input.Options,
                     Value = input.Value,
                     ValidationErrors = input.ValidationErrors,
                     AllowCustomChoice = input.AllowCustomChoice,
                     UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName)),
-                    IsOptionsLoading = input.OptionsProviderState?.IsLoading ?? false
+                    Loading = input.DynamicState?.Loading ?? false,
+                    Disabled = input.Disabled
                 }).ToList();
 
                 var activity = new PublishingActivity

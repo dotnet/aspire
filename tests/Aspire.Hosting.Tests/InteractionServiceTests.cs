@@ -738,10 +738,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                OptionsProvider = new InteractionOptionsProvider
+                DynamicOptions = new DynamicInputOptions
                 {
                     DependsOnInputs = ["DoesNotExist"],
-                    LoadOptions = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
@@ -771,10 +771,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                OptionsProvider = new InteractionOptionsProvider
+                DynamicOptions = new DynamicInputOptions
                 {
                     DependsOnInputs = ["Age"],
-                    LoadOptions = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"

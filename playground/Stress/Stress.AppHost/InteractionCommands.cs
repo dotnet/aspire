@@ -207,14 +207,14 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   OptionsProvider = new InteractionOptionsProvider
+                   DynamicOptions = new DynamicInputOptions
                    {
-                       LoadOptions = async (context) =>
+                       UpdateInputCallback = async (context) =>
                        {
-                           await Task.Delay(1000, context.CancellationToken);
+                           await Task.Delay(5000, context.CancellationToken);
 
                            // Simulate loading options from a database or web service.
-                           return [
+                           context.Input.Options = [
                                KeyValuePair.Create("option1", "Option 1"),
                                KeyValuePair.Create("option2", "Option 2"),
                                KeyValuePair.Create("option3", "Option 3")
@@ -222,21 +222,28 @@ internal static class InteractionCommands
                        }
                    }
                };
-               var dependentOptionsProvider = new InteractionOptionsProvider
+               var dependentOptionsProvider = new DynamicInputOptions
                {
-                   LoadOptions = async (context) =>
+                   UpdateInputCallback = async (context) =>
                    {
-                       await Task.Delay(1000, context.CancellationToken);
+                       var dependsOnInput = context.AllInputs["PredefinedOptions"];
 
-                       var dependsOnInput = context.Inputs["PredefinedOptions"];
-
-                       var list = new List<KeyValuePair<string, string>>();
-                       for (var i = 0; i < 3; i++)
+                       if (!string.IsNullOrEmpty(dependsOnInput.Value))
                        {
-                           list.Add(KeyValuePair.Create($"option{i}-{dependsOnInput.Value}", $"Option {i} - {dependsOnInput.Value}"));
-                       }
+                           await Task.Delay(5000, context.CancellationToken);
+                           var list = new List<KeyValuePair<string, string>>();
+                           for (var i = 0; i < 3; i++)
+                           {
+                               list.Add(KeyValuePair.Create($"option{i}-{dependsOnInput.Value}", $"Option {i} - {dependsOnInput.Value}"));
+                           }
 
-                       return list;
+                           context.Input.Disabled = false;
+                           context.Input.Options = list;
+                       }
+                       else
+                       {
+                           context.Input.Disabled = true;
+                       }
                    },
                    DependsOnInputs = ["PredefinedOptions"]
                };
@@ -247,7 +254,8 @@ internal static class InteractionCommands
                    Label = "Dynamic",
                    Placeholder = "Select dynamic value",
                    Required = true,
-                   OptionsProvider = dependentOptionsProvider
+                   Disabled = true,
+                   DynamicOptions = dependentOptionsProvider
                };
                var dynamicCustomChoiceInput = new InteractionInput
                {
@@ -257,7 +265,26 @@ internal static class InteractionCommands
                    Placeholder = "Select dynamic value",
                    AllowCustomChoice = true,
                    Required = true,
-                   OptionsProvider = dependentOptionsProvider
+                   Disabled = true,
+                   DynamicOptions = dependentOptionsProvider
+               };
+               var dynamicTextInput = new InteractionInput
+               {
+                   Name = "DynamicTextInput",
+                   InputType = InputType.Text,
+                   Placeholder = "Placeholder!",
+                   Required = true,
+                   Disabled = true,
+                   DynamicOptions = new DynamicInputOptions
+                   {
+                       DependsOnInputs = ["Dynamic"],
+                       UpdateInputCallback = async (context) =>
+                       {
+                           await Task.Delay(5000, context.CancellationToken);
+                           var dependsOnInput = context.AllInputs["Dynamic"];
+                           context.Input.Value = dependsOnInput.Value;
+                       }
+                   }
                };
 
                var inputs = new List<InteractionInput>
@@ -265,7 +292,8 @@ internal static class InteractionCommands
                    predefinedOptionsInput,
                    customChoiceInput,
                    dynamicInput,
-                   dynamicCustomChoiceInput
+                   dynamicCustomChoiceInput,
+                   dynamicTextInput
                };
                var result = await interactionService.PromptInputsAsync(
                    "Choice inputs",
@@ -318,9 +346,9 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   OptionsProvider = new InteractionOptionsProvider
+                   DynamicOptions = new DynamicInputOptions
                    {
-                       LoadOptions = async (context) =>
+                       UpdateInputCallback = async (context) =>
                        {
                            await Task.Delay(1000, context.CancellationToken);
 
@@ -335,13 +363,13 @@ internal static class InteractionCommands
                    Label = "Dynamic",
                    Placeholder = "Select dynamic value",
                    Required = true,
-                   OptionsProvider = new InteractionOptionsProvider
+                   DynamicOptions = new DynamicInputOptions
                    {
-                       LoadOptions = async (context) =>
+                       UpdateInputCallback = async (context) =>
                        {
                            await Task.Delay(1000, context.CancellationToken);
 
-                           var dependsOnInput = context.Inputs["PredefinedOptions"];
+                           var dependsOnInput = context.AllInputs["PredefinedOptions"];
 
                            if (dependsOnInput.Value == "option1")
                            {
@@ -354,7 +382,7 @@ internal static class InteractionCommands
                                list.Add(KeyValuePair.Create($"option{i}-{dependsOnInput.Value}", $"Option {i} - {dependsOnInput.Value}"));
                            }
 
-                           return list;
+                           context.Input.Options = list;
                        },
                        DependsOnInputs = ["PredefinedOptions"]
                    }

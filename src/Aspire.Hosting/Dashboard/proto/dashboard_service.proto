@@ -388,9 +388,10 @@ message InteractionInput {
     bool enable_description_markdown = 9;
     int32 max_length = 10;
     bool allow_custom_choice = 11;
-    bool options_loading = 12;
+    bool loading = 12;
     bool update_state_on_change = 13;
     string name = 14;
+    bool disabled = 15;
 }
 enum MessageIntent {
     MESSAGE_INTENT_NONE = 0;
