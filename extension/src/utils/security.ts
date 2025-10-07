@@ -10,6 +10,7 @@ interface SelfSignedCert {
 export async function createSelfSignedCertAsync(commonName: string = 'localhost'): Promise<SelfSignedCert> {
   const pki = forge.pki;
   const keys = await new Promise<forge.pki.rsa.KeyPair>((resolve, reject) => {
+    // 4096 bits provides enough entropy, per @blowdart
     pki.rsa.generateKeyPair({ bits: 4096, workers: -1 }, (err, keypair) => {
       if (err) {
         reject(err);
