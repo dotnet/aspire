@@ -69,7 +69,7 @@ internal static class X509Certificate2Extensions
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
-        if (certificate == null || certificate.GetCertificateVersion() < MinimumCertificateVersionSupportingContainerTrust)
+        if (certificate.GetCertificateVersion() < MinimumCertificateVersionSupportingContainerTrust)
         {
             return false;
         }
