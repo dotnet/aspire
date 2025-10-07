@@ -432,7 +432,8 @@ internal sealed class AzureDeployingContext(
                         {
                             if (!resource.TryGetContainerImageName(out var localImageName))
                             {
-                                throw new InvalidOperationException("Resource image name could not be determined.");
+                                // For resources without an explicit image name, we use the resource name.
+                                localImageName = resource.Name.ToLowerInvariant();
                             }
 
                             IValueProvider cir = new ContainerImageReference(resource);
