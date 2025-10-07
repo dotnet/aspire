@@ -172,7 +172,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         builder.AddPythonApp("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
 
-        var app = builder.Build();
+        using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
@@ -188,14 +188,16 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "opentelemetry-instrument"), pythonProjectResource.Command);
         }
 
-        Assert.Equal("--traces_exporter", commandArguments[0]);
-        Assert.Equal("otlp", commandArguments[1]);
-        Assert.Equal("--logs_exporter", commandArguments[2]);
-        Assert.Equal("console,otlp", commandArguments[3]);
-        Assert.Equal("--metrics_exporter", commandArguments[4]);
-        Assert.Equal("otlp", commandArguments[5]);
-        Assert.Equal(pythonExecutable, commandArguments[6]);
-        Assert.Equal(scriptName, commandArguments[7]);
+        // Arguments should now be: [python executable path, script name]
+        Assert.Equal(pythonExecutable, commandArguments[0]);
+        Assert.Equal(scriptName, commandArguments[1]);
+
+        // Check for environment variables instead of command-line arguments
+        var environmentVariables = await pythonProjectResource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        Assert.Equal("otlp", environmentVariables["OTEL_TRACES_EXPORTER"]);
+        Assert.Equal("otlp,console", environmentVariables["OTEL_LOGS_EXPORTER"]);
+        Assert.Equal("otlp", environmentVariables["OTEL_METRICS_EXPORTER"]);
+        Assert.Equal("true", environmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"]);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);

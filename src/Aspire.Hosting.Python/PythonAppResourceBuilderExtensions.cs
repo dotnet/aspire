@@ -127,11 +127,9 @@ public static class PythonAppResourceBuilderExtensions
 
         var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
-            // If the app is to be automatically instrumented, add the instrumentation executable arguments first.
+            // If the app is to be automatically instrumented, add the python executable as the next argument.
             if (!string.IsNullOrEmpty(instrumentationExecutable))
             {
-                AddOpenTelemetryArguments(context);
-
                 // Add the python executable as the next argument so we can run the app.
                 context.Args.Add(pythonExecutable!);
             }
@@ -142,6 +140,19 @@ public static class PythonAppResourceBuilderExtensions
         if (!string.IsNullOrEmpty(instrumentationExecutable))
         {
             resourceBuilder.WithOtlpExporter();
+
+            // Configure OpenTelemetry exporters using environment variables
+            // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
+            // These are only needed in run mode, not publish mode
+            resourceBuilder.WithEnvironment(context =>
+            {
+                if (!context.ExecutionContext.IsPublishMode)
+                {
+                    context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
+                    context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp,console";
+                    context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
+                }
+            });
 
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
@@ -166,18 +177,6 @@ public static class PythonAppResourceBuilderExtensions
         {
             context.Args.Add(arg);
         }
-    }
-
-    private static void AddOpenTelemetryArguments(CommandLineArgsCallbackContext context)
-    {
-        context.Args.Add("--traces_exporter");
-        context.Args.Add("otlp");
-
-        context.Args.Add("--logs_exporter");
-        context.Args.Add("console,otlp");
-
-        context.Args.Add("--metrics_exporter");
-        context.Args.Add("otlp");
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
