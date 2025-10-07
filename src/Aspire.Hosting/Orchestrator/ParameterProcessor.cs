@@ -11,7 +11,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Resources;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -25,8 +24,7 @@ public sealed class ParameterProcessor(
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
     DistributedApplicationExecutionContext executionContext,
-    IDeploymentStateManager deploymentStateManager,
-    IOptions<PublishingOptions>? publishingOptions = null)
+    IDeploymentStateManager deploymentStateManager)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 

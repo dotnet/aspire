@@ -11,8 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
@@ -766,8 +764,7 @@ public class ParameterProcessorTests
         ILogger<ParameterProcessor>? logger = null,
         bool disableDashboard = true,
         DistributedApplicationExecutionContext? executionContext = null,
-        IDeploymentStateManager? deploymentStateManager = null,
-        IOptions<PublishingOptions>? publishingOptions = null)
+        IDeploymentStateManager? deploymentStateManager = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
@@ -775,8 +772,7 @@ public class ParameterProcessorTests
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-            deploymentStateManager ?? new MockDeploymentStateManager(),
-            publishingOptions
+            deploymentStateManager ?? new MockDeploymentStateManager()
         );
     }
 

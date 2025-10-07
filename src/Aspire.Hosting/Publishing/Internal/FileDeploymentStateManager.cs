@@ -26,6 +26,7 @@ public sealed class FileDeploymentStateManager(
         WriteIndented = true
     };
 
+    /// <inheritdoc/>
     public string? StateFilePath => GetDeploymentStatePath();
 
     private string? GetDeploymentStatePath()
@@ -47,6 +48,7 @@ public sealed class FileDeploymentStateManager(
         return Path.Combine(aspireDir, $"{environment}.json");
     }
 
+    /// <inheritdoc/>
     public async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         var jsonDocumentOptions = new JsonDocumentOptions
@@ -69,6 +71,7 @@ public sealed class FileDeploymentStateManager(
         return [];
     }
 
+    /// <inheritdoc/>
     public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
     {
         try

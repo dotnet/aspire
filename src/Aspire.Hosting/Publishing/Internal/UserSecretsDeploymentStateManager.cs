@@ -21,6 +21,7 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
         WriteIndented = true
     };
 
+    /// <inheritdoc/>
     public string? StateFilePath => GetUserSecretsPath();
 
     private static string? GetUserSecretsPath()
@@ -32,6 +33,7 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
         };
     }
 
+    /// <inheritdoc/>
     public async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         var jsonDocumentOptions = new JsonDocumentOptions
@@ -48,6 +50,7 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
         return userSecrets;
     }
 
+    /// <inheritdoc/>
     public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
     {
         try

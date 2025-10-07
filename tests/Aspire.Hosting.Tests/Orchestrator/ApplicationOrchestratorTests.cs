@@ -470,8 +470,7 @@ public class ApplicationOrchestratorTests
                 CreateInteractionService(),
                 NullLogger<ParameterProcessor>.Instance,
                 executionContext,
-                deploymentStateManager: new MockDeploymentStateManager(),
-                publishingOptions: null)
+                deploymentStateManager: new MockDeploymentStateManager())
             );
     }
 
