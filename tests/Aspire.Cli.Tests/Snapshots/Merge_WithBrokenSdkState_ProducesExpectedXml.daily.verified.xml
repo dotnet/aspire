@@ -3,14 +3,10 @@
     <clear />
     <add key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
     <add key="https://api.nuget.org/v3/index.json" value="https://api.nuget.org/v3/index.json" />
-    <add key="C:\Users\davifowl\.aspire\hives\pr-11227" value="C:\Users\davifowl\.aspire\hives\pr-11227" />
   </packageSources>
   <packageSourceMapping>
     <packageSource key="https://api.nuget.org/v3/index.json">
       <package pattern="*" />
-    </packageSource>
-    <packageSource key="C:\Users\davifowl\.aspire\hives\pr-11227">
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
     <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
       <package pattern="Aspire*" />
