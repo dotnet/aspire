@@ -72,7 +72,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject deploymentState, CancellationToken cancellationToken = default)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -103,12 +103,12 @@ internal abstract partial class BaseProvisioningContextProvider(
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
             // Generate an resource group name since none was provided
-            // Create a unique resource group name and save it in user secrets
+            // Create a unique resource group name and save it in deployment state
             resourceGroupName = GetDefaultResourceGroupName();
 
             createIfAbsent = true;
 
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            deploymentState.Prop("Azure")["ResourceGroup"] = resourceGroupName;
         }
         else
         {
@@ -149,8 +149,8 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
-        // Persist the provisioning options to user secrets so they can be reused in the future
-        var azureSection = userSecrets.Prop("Azure");
+        // Persist the provisioning options to deployment state so they can be reused in the future
+        var azureSection = deploymentState.Prop("Azure");
         azureSection["Location"] = _options.Location;
         azureSection["SubscriptionId"] = _options.SubscriptionId;
         azureSection["ResourceGroup"] = resourceGroupName;
@@ -163,7 +163,7 @@ internal abstract partial class BaseProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets,
+                    deploymentState,
                     _distributedApplicationExecutionContext);
     }
 

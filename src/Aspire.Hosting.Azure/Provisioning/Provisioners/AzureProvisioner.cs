@@ -23,7 +23,7 @@ internal sealed class AzureProvisioner(
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
-    IDeploymentStateManager userSecretsManager
+    IDeploymentStateManager deploymentStateManager
     ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
@@ -164,11 +164,11 @@ internal sealed class AzureProvisioner(
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Load user secrets first so they can be passed to the provisioning context
-        var userSecrets = await userSecretsManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
+        // Load deployment state first so it can be passed to the provisioning context
+        var deploymentState = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(deploymentState, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -179,11 +179,11 @@ internal sealed class AzureProvisioner(
 
         var task = Task.WhenAll(tasks);
 
-        // Suppress throwing so that we can save the user secrets even if the task fails
+        // Suppress throwing so that we can save the deployment state even if the task fails
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-        // If we created any resources then save the user secrets
-        await userSecretsManager.SaveStateAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        // If we created any resources then save the deployment state
+        await deploymentStateManager.SaveStateAsync(deploymentState, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)

@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Azure;
 
 internal sealed class AzureDeployingContext(
     IProvisioningContextProvider provisioningContextProvider,
-    Publishing.IDeploymentStateManager deploymentStateManager,
+    IDeploymentStateManager deploymentStateManager,
     IBicepProvisioner bicepProvisioner,
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
@@ -117,23 +117,23 @@ internal sealed class AzureDeployingContext(
 
     private async Task<bool> TryProvisionAzureBicepResources(List<AzureBicepResource> bicepResources, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var resourcesToProvision = bicepResources
+        bicepResources = bicepResources
             .Where(r => r.ProvisioningTaskCompletionSource == null || !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
             .ToList();
 
-        if (resourcesToProvision.Count == 0)
+        if (bicepResources.Count == 0)
         {
             return true;
         }
 
-        var deployingStep = await activityReporter.CreateStepAsync($"Deploying {resourcesToProvision.Count} Azure resource(s)", cancellationToken).ConfigureAwait(false);
+        var deployingStep = await activityReporter.CreateStepAsync($"Deploying {bicepResources.Count} Azure resource(s)", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
         {
             try
             {
                 var provisioningTasks = new List<Task>();
 
-                foreach (var resource in resourcesToProvision)
+                foreach (var resource in bicepResources)
                 {
                     if (resource is AzureBicepResource bicepResource)
                     {
