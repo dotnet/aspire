@@ -34,22 +34,22 @@ internal static class IDistributedApplicationBuilderExtensions
                 "Application Configuration",
                 "Configure additional application settings:",
                 [
-                    //new InteractionInput
-                    //{
-                    //    Name = "ApplicationName",
-                    //    Label = "Application Name",
-                    //    InputType = InputType.Text,
-                    //    Required = true,
-                    //    Placeholder = "my-app"
-                    //},
-                    //new InteractionInput
-                    //{
-                    //    Name = "ApplicationVersion",
-                    //    Label = "Application Version",
-                    //    InputType = InputType.Text,
-                    //    Required = false,
-                    //    Placeholder = "1.0.0"
-                    //},
+                    new InteractionInput
+                    {
+                        Name = "ApplicationName",
+                        Label = "Application Name",
+                        InputType = InputType.Text,
+                        Required = true,
+                        Placeholder = "my-app"
+                    },
+                    new InteractionInput
+                    {
+                        Name = "ApplicationVersion",
+                        Label = "Application Version",
+                        InputType = InputType.Text,
+                        Required = false,
+                        Placeholder = "1.0.0"
+                    },
                     new InteractionInput
                     {
                         Name = "SSLCertificateType",

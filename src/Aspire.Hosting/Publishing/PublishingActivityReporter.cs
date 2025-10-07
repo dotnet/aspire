@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Dashboard;
+using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Publishing;
@@ -17,12 +18,14 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
     private readonly InteractionService _interactionService;
+    private readonly ILogger<PublishingActivityReporter> _logger;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Task _interactionServiceSubscriber;
 
-    public PublishingActivityReporter(InteractionService interactionService)
+    public PublishingActivityReporter(InteractionService interactionService, ILogger<PublishingActivityReporter> logger)
     {
         _interactionService = interactionService;
+        _logger = logger;
         _interactionServiceSubscriber = Task.Run(() => SubscribeToInteractionsAsync(_cancellationTokenSource.Token));
     }
 
@@ -373,6 +376,10 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                                 if (responseAnswer.Name != null && inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out var matchingInput))
                                 {
                                     dtos.Add(new InputDto(matchingInput.Name, responseAnswer.Value ?? "", matchingInput.InputType));
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Unable to match answer with name '{InputName}' to an input.", responseAnswer.Name);
                                 }
                             }
 
