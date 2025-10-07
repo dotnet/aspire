@@ -539,7 +539,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
 
         // If any inputs are still loading then display a loading status until they're available.
-        if (inputs.Any(input => input.IsOptionsLoading))
+        if (inputs.Any(input => input.Loading))
         {
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             promptState.Status = AnsiConsole.Status();
@@ -575,6 +575,12 @@ internal abstract class PublishCommandBase : BaseCommand
         for (var i = promptState.InputIndex; i < inputs.Count; i++)
         {
             var input = inputs[i];
+
+            if (input.Disabled)
+            {
+                // Skip disabled inputs in the CLI.
+                continue;
+            }
 
             string? result;
 

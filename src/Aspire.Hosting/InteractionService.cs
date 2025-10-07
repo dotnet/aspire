@@ -109,21 +109,21 @@ internal class InteractionService : IInteractionService
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
-            if (input.InputType == InputType.Choice && input.OptionsProvider is { } optionsProvider)
+            if (input.DynamicOptions is { } dynamicOptions)
             {
-                if (optionsProvider.DependsOnInputs != null)
+                if (dynamicOptions.DependsOnInputs != null)
                 {
-                    foreach (var dependsOnInputName in optionsProvider.DependsOnInputs)
+                    foreach (var dependsOnInputName in dynamicOptions.DependsOnInputs)
                     {
                         // Validate dependency input exists and is defined before this input.
                         // We check that the dependency is defined before this input so that experiences such as the CLI, where inputs are forward only, work correctly.
                         if (!inputCollection.TryGetByName(dependsOnInputName, out var dependsOnInput))
                         {
-                            throw new InvalidOperationException($"The input '{input.Name}' has an OptionsProvider that depends on an input named '{dependsOnInputName}', but no such input exists.");
+                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicOptions)} that depends on an input named '{dependsOnInputName}', but no such input exists.");
                         }
                         if (inputCollection.IndexOf(dependsOnInput) >= i)
                         {
-                            throw new InvalidOperationException($"The input '{input.Name}' has an OptionsProvider that depends on an input named '{dependsOnInputName}', but that input is not defined before it. Inputs must be defined in order so that dependencies are always to earlier inputs.");
+                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicOptions)} that depends on an input named '{dependsOnInputName}', but that input is not defined before it. Inputs must be defined in order so that dependencies are always to earlier inputs.");
                         }
                     }
                 }
@@ -143,34 +143,39 @@ internal class InteractionService : IInteractionService
 
             foreach (var input in inputs)
             {
-                if (input.InputType == InputType.Choice && input.OptionsProvider is { } optionsProvider)
+                if (input.DynamicOptions is { } dynamicOptions)
                 {
-                    input.OptionsProviderState = new InteractionOptionsProviderState(optionsProvider);
+                    input.DynamicState = new DynamicInputState(dynamicOptions);
 
-                    input.OptionsProviderState.OnDataRefresh = (newOptions) =>
+                    input.DynamicState.OnDataRefresh = (input) =>
                     {
-                        // Check that the previously specified value is in the new options.
-                        // If the value isn't in the new options then clear it.
-                        // Don't clear the value if a custom choice is allowed.
-                        if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
+                        // Options or value on a choice could have changed. Ensure the value is still valid.
+                        if (input.InputType == InputType.Choice)
                         {
-                            if (!newOptions.Any(o => o.Key == input.Value))
+                            // Check that the previously specified value is in the new options.
+                            // If the value isn't in the new options then clear it.
+                            // Don't clear the value if a custom choice is allowed.
+                            if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
                             {
-                                input.Value = null;
+                                if (input.Options == null || !input.Options.Any(o => o.Key == input.Value))
+                                {
+                                    input.Value = null;
+                                }
                             }
                         }
 
                         // Notify the UI that the interaction has been updated.
                         UpdateInteraction(newState);
                     };
-                    var context = new LoadOptionsContext
+
+                    // Refresh input on start if:
+                    // -The dynamic input doesn't depend on other inputs, or
+                    // -Has been configured to always update
+                    if (dynamicOptions.DependsOnInputs == null || dynamicOptions.DependsOnInputs.Count == 0 || dynamicOptions.AlwaysUpdateOnStart)
                     {
-                        CancellationToken = interactionCts.Token,
-                        ServiceProvider = _serviceProvider,
-                        InputName = input.Name,
-                        Inputs = inputCollection
-                    };
-                    input.OptionsProviderState.RefreshData(context, _logger);
+                        var refreshOptions = new DynamicRefreshOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
+                        input.DynamicState.RefreshInput(refreshOptions);
+                    }
                 }
             }
 
@@ -374,7 +379,7 @@ internal class InteractionService : IInteractionService
                             case InputType.Choice:
                                 if (!input.AllowCustomChoice)
                                 {
-                                    var options = input.Options ?? input.OptionsProviderState?.LoadedOptions;
+                                    var options = input.Options;
                                     if (options != null && !options.Any(o => o.Key == value))
                                     {
                                         context.AddValidationError(input, "Value must be one of the provided options.");

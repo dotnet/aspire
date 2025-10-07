@@ -69,19 +69,19 @@ internal static class IDistributedApplicationBuilderExtensions
                         Label = "More certificate details",
                         InputType = InputType.Choice,
                         Required = true,
-                        OptionsProvider = new InteractionOptionsProvider
+                        DynamicOptions = new DynamicInputOptions
                         {
                             DependsOnInputs = ["SSLCertificateType"],
-                            LoadOptions = async (c) =>
+                            UpdateInputCallback = async (c) =>
                             {
-                                await Task.Delay(1000);
-                                var dependsOnInput = c.Inputs["SSLCertificateType"];
+                                await Task.Delay(5000);
+                                var dependsOnInput = c.AllInputs["SSLCertificateType"];
                                 var options = new List<KeyValuePair<string, string>>();
                                 for (var i = 0; i < 5; i++)
                                 {
                                     options.Add(new KeyValuePair<string, string>($"{dependsOnInput.Value}-{i}", $"{dependsOnInput.Value}-{i}"));
                                 }
-                                return options;
+                                c.Input.Options = options;
                             }
                         }
                     }

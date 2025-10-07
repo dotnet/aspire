@@ -211,7 +211,7 @@ internal sealed class DashboardServiceData : IDisposable
                 incomingValue = (bool.TryParse(incomingValue, out var b) && b) ? "true" : "false";
             }
 
-            if (modelInput.Value != incomingValue)
+            if (!string.Equals(modelInput.Value ?? string.Empty, incomingValue ?? string.Empty))
             {
                 modelInput.Value = incomingValue;
 
@@ -219,9 +219,8 @@ internal sealed class DashboardServiceData : IDisposable
                 if (dependencyChange)
                 {
                     var dependentInputs = inputsInfo.Inputs.Where(
-                        i => i.InputType == InputType.Choice &&
-                        i.OptionsProvider is { } optionsProvider &&
-                        (optionsProvider.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
+                        i => i.DynamicOptions is { } dynamicOptions &&
+                        (dynamicOptions.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
 
                     foreach (var dependentInput in dependentInputs)
                     {
@@ -234,14 +233,8 @@ internal sealed class DashboardServiceData : IDisposable
         // Refresh options for choice inputs that depend on other inputs.
         foreach (var inputToUpdate in choiceInteractionsToUpdate)
         {
-            var context = new LoadOptionsContext
-            {
-                CancellationToken = cancellationToken,
-                ServiceProvider = serviceProvider,
-                InputName = inputToUpdate.Name,
-                Inputs = inputsInfo.Inputs
-            };
-            inputToUpdate.OptionsProviderState!.RefreshData(context, logger);
+            var refreshOptions = new DynamicRefreshOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
+            inputToUpdate.DynamicState!.RefreshInput(refreshOptions);
         }
     }
 }

@@ -25,12 +25,11 @@ public sealed class InputViewModel
                 .Select(option => new SelectViewModel<string> { Id = option.Key, Name = option.Value, })
                 .ToList();
 
-            SelectOptions.Clear();
-            SelectOptions.AddRange(optionsVM);
+            SelectOptions = optionsVM;
         }
     }
 
-    public List<SelectViewModel<string>> SelectOptions { get; } = [];
+    public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
 
     public string? Value
     {
@@ -51,4 +50,6 @@ public sealed class InputViewModel
         get => int.TryParse(Input.Value, CultureInfo.InvariantCulture, out var result) ? result : null;
         set => Input.Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
+
+    public bool InputDisabled => Input.Disabled || Input.Loading;
 }

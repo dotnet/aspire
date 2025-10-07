@@ -118,7 +118,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             // Find all the inputs that are depended on.
                             // These inputs value changing will cause the interaction to be sent to the server.
                             var updateStateOnChangeInputs = inputs.Inputs
-                                .SelectMany(i => i.OptionsProvider?.DependsOnInputs ?? [])
+                                .SelectMany(i => i.DynamicOptions?.DependsOnInputs ?? [])
                                 .ToList();
 
                             var inputInstances = inputs.Inputs.Select(input =>
@@ -131,7 +131,8 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required,
                                     AllowCustomChoice = input.AllowCustomChoice,
-                                    UpdateStateOnChange = updateStateOnChange
+                                    UpdateStateOnChange = updateStateOnChange,
+                                    Disabled = input.Disabled
                                 };
                                 if (input.EffectiveLabel != null)
                                 {
@@ -154,15 +155,9 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
-                                if (input.OptionsProviderState is { } providerState)
+                                if (input.DynamicState is { } providerState)
                                 {
-                                    var (loadedOptions, isLoading) = providerState.GetOptions();
-
-                                    dto.OptionsLoading = isLoading;
-                                    if (loadedOptions != null)
-                                    {
-                                        dto.Options.Add(loadedOptions.ToDictionary());
-                                    }
+                                    dto.Loading = providerState.Loading;
                                 }
                                 if (input.MaxLength != null)
                                 {

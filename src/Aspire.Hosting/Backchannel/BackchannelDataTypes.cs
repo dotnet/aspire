@@ -177,7 +177,9 @@ internal sealed class PublishingPromptInput
     /// </summary>
     public bool UpdateStateOnChange { get; init; }
 
-    public bool IsOptionsLoading { get; init; }
+    public bool Loading { get; init; }
+
+    public bool Disabled { get; init; }
 }
 
 /// <summary>
