@@ -538,6 +538,16 @@ public static class ResourceExtensions
     /// <returns>True if the container image name was found, otherwise false.</returns>
     public static bool TryGetContainerImageName(this IResource resource, [NotNullWhen(true)] out string? imageName)
     {
+        // First check if there's a DockerfileBuildAnnotation with an image name/tag
+        // This takes precedence over the ContainerImageAnnotation when building from a Dockerfile
+        if (resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&
+            !string.IsNullOrEmpty(buildAnnotation.ImageName))
+        {
+            var tagSuffix = string.IsNullOrEmpty(buildAnnotation.ImageTag) ? string.Empty : $":{buildAnnotation.ImageTag}";
+            imageName = $"{buildAnnotation.ImageName}{tagSuffix}";
+            return true;
+        }
+
         if (resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } imageAnnotation)
         {
             var registryPrefix = string.IsNullOrEmpty(imageAnnotation.Registry) ? string.Empty : $"{imageAnnotation.Registry}/";

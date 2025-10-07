@@ -489,6 +489,15 @@ public static class ContainerResourceBuilderExtensions
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, fullyQualifiedDockerfilePath, stage);
 
+        // If there's already a ContainerImageAnnotation, don't overwrite it.
+        // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
+        {
+            annotation.ImageName = imageName;
+            annotation.ImageTag = imageTag;
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+        }
+
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
                       .WithImage(imageName)
@@ -550,6 +559,15 @@ public static class ContainerResourceBuilderExtensions
         {
             DockerfileFactory = context => Task.FromResult(dockerfileFactory(context))
         };
+
+        // If there's already a ContainerImageAnnotation, don't overwrite it.
+        // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
+        {
+            annotation.ImageName = imageName;
+            annotation.ImageTag = imageTag;
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+        }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
@@ -613,6 +631,15 @@ public static class ContainerResourceBuilderExtensions
         {
             DockerfileFactory = dockerfileFactory
         };
+
+        // If there's already a ContainerImageAnnotation, don't overwrite it.
+        // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
+        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
+        {
+            annotation.ImageName = imageName;
+            annotation.ImageTag = imageTag;
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+        }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
                       .WithImageRegistry(registry: null)
