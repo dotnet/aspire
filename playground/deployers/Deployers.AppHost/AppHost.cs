@@ -80,103 +80,99 @@ builder.AddAzureFunctionsProject<Projects.AzureFunctionsEndToEnd_Functions>("fun
     .WithReference(queue);
 
 builder.AddNodeApp("static-app", "../Deployers.StaticSite")
+    // Annotation 1: PushStaticSite (depends on ConfigureStoragePermissions)
+    // This is declared FIRST but depends on steps declared later - tests order independence!
     .WithAnnotation(new DeployingCallbackAnnotation(context =>
     {
         var step = new PipelineStep
         {
-            Name = "BuildStaticSite",
-            Action = async (deployingContext) =>
+            Name = "PushStaticSite",
+            Action = async (deployingContext, pipelineContext) =>
             {
-                var staticSitePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Deployers.StaticSite", "Deployers.StaticSite");
-
-                if (!Directory.Exists(staticSitePath))
+                // Read the distPath from the BuildStaticSite step's output
+                if (!pipelineContext.TryGetOutput<string>("BuildStaticSite:distPath", out var distPath))
                 {
-                    throw new DirectoryNotFoundException($"Static site directory not found: {staticSitePath}");
+                    throw new InvalidOperationException("BuildStaticSite step did not produce a distPath output");
                 }
 
-                var deploymentStep = await context.ActivityReporter.CreateStepAsync("Building static site", context.CancellationToken);
+                if (!Directory.Exists(distPath))
+                {
+                    throw new DirectoryNotFoundException($"Build output directory not found: {distPath}");
+                }
+
+                var deploymentStep = await context.ActivityReporter.CreateStepAsync("Uploading static files to Azure Storage", context.CancellationToken);
                 await using (deploymentStep)
                 {
                     try
                     {
+                        // Get the storage account from the application model
+                        var storageAccount = context.Model.Resources.OfType<Aspire.Hosting.Azure.AzureStorageResource>().First();
+                        var blobEndpoint = await storageAccount.BlobEndpoint.GetValueAsync();
 
-                        // Step 1: npm install
-                        var installTask = await deploymentStep.CreateTaskAsync("Installing npm dependencies", context.CancellationToken);
-
-                        var installProcess = new Process
+                        if (string.IsNullOrEmpty(blobEndpoint))
                         {
-                            StartInfo = new ProcessStartInfo
-                            {
-                                FileName = "npm",
-                                Arguments = "install",
-                                WorkingDirectory = staticSitePath,
-                                UseShellExecute = false,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                CreateNoWindow = true
-                            }
-                        };
-
-                        installProcess.Start();
-                        await installProcess.WaitForExitAsync(context.CancellationToken);
-
-                        if (installProcess.ExitCode != 0)
-                        {
-                            var error = await installProcess.StandardError.ReadToEndAsync();
-                            await installTask.FailAsync($"npm install failed with exit code {installProcess.ExitCode}: {error}", context.CancellationToken);
-                            throw new InvalidOperationException($"npm install failed with exit code {installProcess.ExitCode}: {error}");
+                            throw new InvalidOperationException("Failed to get blob endpoint from storage account");
                         }
 
-                        await installTask.SucceedAsync("npm dependencies installed successfully", context.CancellationToken);
+                        var blobServiceClient = new BlobServiceClient(new Uri(blobEndpoint), new DefaultAzureCredential());
 
-                        // Step 2: npm run build
-                        var buildTask = await deploymentStep.CreateTaskAsync("Building static site with npm", context.CancellationToken);
+                        // Upload files to a regular blob container
+                        var uploadTask = await deploymentStep.CreateTaskAsync("Uploading static files to storage", context.CancellationToken);
 
-                        var buildProcess = new Process
+                        // Use a regular container name instead of $web
+                        var containerClient = blobServiceClient.GetBlobContainerClient("static-files");
+                        await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: context.CancellationToken);
+
+                        // Upload all files from the dist directory
+                        var files = Directory.GetFiles(distPath, "*", SearchOption.AllDirectories);
+                        await uploadTask.UpdateStatusAsync($"Uploading {files.Length} files to blob storage", context.CancellationToken);
+
+                        var uploadTasks = new List<Task>();
+
+                        foreach (var file in files)
                         {
-                            StartInfo = new ProcessStartInfo
+                            var relativePath = Path.GetRelativePath(distPath, file);
+                            var blobName = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+
+                            var blobClient = containerClient.GetBlobClient(blobName);
+
+                            var contentType = GetContentType(file);
+                            var uploadOptions = new BlobUploadOptions
                             {
-                                FileName = "npm",
-                                Arguments = "run build",
-                                WorkingDirectory = staticSitePath,
-                                UseShellExecute = false,
-                                RedirectStandardOutput = true,
-                                RedirectStandardError = true,
-                                CreateNoWindow = true
-                            }
-                        };
+                                HttpHeaders = new BlobHttpHeaders
+                                {
+                                    ContentType = contentType
+                                }
+                            };
 
-                        buildProcess.Start();
-                        await buildProcess.WaitForExitAsync(context.CancellationToken);
-
-                        if (buildProcess.ExitCode != 0)
-                        {
-                            var error = await buildProcess.StandardError.ReadToEndAsync();
-                            await buildTask.FailAsync($"npm run build failed with exit code {buildProcess.ExitCode}: {error}", context.CancellationToken);
-                            throw new InvalidOperationException($"npm run build failed with exit code {buildProcess.ExitCode}: {error}");
+                            var uploadFileTask = blobClient.UploadAsync(file, uploadOptions, context.CancellationToken);
+                            uploadTasks.Add(uploadFileTask);
                         }
 
-                        await buildTask.SucceedAsync("Static site built successfully", context.CancellationToken);
-                        await deploymentStep.CompleteAsync("Static site build completed successfully", CompletionState.Completed, context.CancellationToken);
+                        await Task.WhenAll(uploadTasks);
+                        await uploadTask.SucceedAsync($"Successfully uploaded {files.Length} files to blob storage", context.CancellationToken);
+
+                        await deploymentStep.CompleteAsync("Static files upload completed successfully", CompletionState.Completed, context.CancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        await deploymentStep.CompleteAsync($"Static site build failed: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken);
+                        await deploymentStep.CompleteAsync($"Static files upload failed: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken);
                         throw;
                     }
                 }
             }
         };
-
-        step.Dependencies.Add("ProvisionBicepResources");
+        step.DependsOnStep("ConfigureStoragePermissions");
         return step;
     }))
+    // Annotation 2: ConfigureStoragePermissions (depends on BuildStaticSite)
+    // This is declared SECOND but depends on a step declared later
     .WithAnnotation(new DeployingCallbackAnnotation(context =>
     {
         var step = new PipelineStep
         {
             Name = "ConfigureStoragePermissions",
-            Action = async (deployingContext) =>
+            Action = async (deployingContext, pipelineContext) =>
             {
                 var deploymentStep = await context.ActivityReporter.CreateStepAsync("Configuring storage account permissions", context.CancellationToken);
                 await using (deploymentStep)
@@ -307,88 +303,107 @@ builder.AddNodeApp("static-app", "../Deployers.StaticSite")
             }
         };
 
-        step.Dependencies.Add("BuildStaticSite");
+        // This step depends on BuildStaticSite which is declared LAST
+        // Two-pass registration makes this work perfectly!
+        step.DependsOnStep("BuildStaticSite");
         return step;
     }))
+    // Annotation 3: BuildStaticSite (depends on ProvisionBicepResources)
+    // This is declared LAST even though the other two steps depend on it!
     .WithAnnotation(new DeployingCallbackAnnotation(context =>
     {
         var step = new PipelineStep
         {
-            Name = "PushStaticSite",
-            Action = async (deployingContext) =>
+            Name = "BuildStaticSite",
+            Action = async (deployingContext, pipelineContext) =>
             {
                 var staticSitePath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Deployers.StaticSite", "Deployers.StaticSite");
-                var distPath = Path.Combine(staticSitePath, "dist");
 
-                if (!Directory.Exists(distPath))
+                if (!Directory.Exists(staticSitePath))
                 {
-                    throw new DirectoryNotFoundException($"Build output directory not found: {distPath}");
+                    throw new DirectoryNotFoundException($"Static site directory not found: {staticSitePath}");
                 }
 
-                var deploymentStep = await context.ActivityReporter.CreateStepAsync("Uploading static files to Azure Storage", context.CancellationToken);
+                var deploymentStep = await context.ActivityReporter.CreateStepAsync("Building static site", context.CancellationToken);
                 await using (deploymentStep)
                 {
                     try
                     {
-                        // Get the storage account from the application model
-                        var storageAccount = context.Model.Resources.OfType<Aspire.Hosting.Azure.AzureStorageResource>().First();
-                        var blobEndpoint = await storageAccount.BlobEndpoint.GetValueAsync();
 
-                        if (string.IsNullOrEmpty(blobEndpoint))
+                        // Step 1: npm install
+                        var installTask = await deploymentStep.CreateTaskAsync("Installing npm dependencies", context.CancellationToken);
+
+                        var installProcess = new Process
                         {
-                            throw new InvalidOperationException("Failed to get blob endpoint from storage account");
-                        }
-
-                        var blobServiceClient = new BlobServiceClient(new Uri(blobEndpoint), new DefaultAzureCredential());
-
-                        // Upload files to a regular blob container
-                        var uploadTask = await deploymentStep.CreateTaskAsync("Uploading static files to storage", context.CancellationToken);
-
-                        // Use a regular container name instead of $web
-                        var containerClient = blobServiceClient.GetBlobContainerClient("static-files");
-                        await containerClient.CreateIfNotExistsAsync(PublicAccessType.None, cancellationToken: context.CancellationToken);
-
-                        // Upload all files from the dist directory
-                        var files = Directory.GetFiles(distPath, "*", SearchOption.AllDirectories);
-                        await uploadTask.UpdateStatusAsync($"Uploading {files.Length} files to blob storage", context.CancellationToken);
-
-                        var uploadTasks = new List<Task>();
-
-                        foreach (var file in files)
-                        {
-                            var relativePath = Path.GetRelativePath(distPath, file);
-                            var blobName = relativePath.Replace(Path.DirectorySeparatorChar, '/');
-
-                            var blobClient = containerClient.GetBlobClient(blobName);
-
-                            var contentType = GetContentType(file);
-                            var uploadOptions = new BlobUploadOptions
+                            StartInfo = new ProcessStartInfo
                             {
-                                HttpHeaders = new BlobHttpHeaders
-                                {
-                                    ContentType = contentType
-                                }
-                            };
+                                FileName = "npm",
+                                Arguments = "install",
+                                WorkingDirectory = staticSitePath,
+                                UseShellExecute = false,
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true,
+                                CreateNoWindow = true
+                            }
+                        };
 
-                            var uploadFileTask = blobClient.UploadAsync(file, uploadOptions, context.CancellationToken);
-                            uploadTasks.Add(uploadFileTask);
+                        installProcess.Start();
+                        await installProcess.WaitForExitAsync(context.CancellationToken);
+
+                        if (installProcess.ExitCode != 0)
+                        {
+                            var error = await installProcess.StandardError.ReadToEndAsync();
+                            await installTask.FailAsync($"npm install failed with exit code {installProcess.ExitCode}: {error}", context.CancellationToken);
+                            throw new InvalidOperationException($"npm install failed with exit code {installProcess.ExitCode}: {error}");
                         }
 
-                        await Task.WhenAll(uploadTasks);
-                        await uploadTask.SucceedAsync($"Successfully uploaded {files.Length} files to blob storage", context.CancellationToken);
+                        await installTask.SucceedAsync("npm dependencies installed successfully", context.CancellationToken);
 
-                        await deploymentStep.CompleteAsync("Static files upload completed successfully", CompletionState.Completed, context.CancellationToken);
+                        // Step 2: npm run build
+                        var buildTask = await deploymentStep.CreateTaskAsync("Building static site with npm", context.CancellationToken);
+
+                        var buildProcess = new Process
+                        {
+                            StartInfo = new ProcessStartInfo
+                            {
+                                FileName = "npm",
+                                Arguments = "run build",
+                                WorkingDirectory = staticSitePath,
+                                UseShellExecute = false,
+                                RedirectStandardOutput = true,
+                                RedirectStandardError = true,
+                                CreateNoWindow = true
+                            }
+                        };
+
+                        buildProcess.Start();
+                        await buildProcess.WaitForExitAsync(context.CancellationToken);
+
+                        if (buildProcess.ExitCode != 0)
+                        {
+                            var error = await buildProcess.StandardError.ReadToEndAsync();
+                            await buildTask.FailAsync($"npm run build failed with exit code {buildProcess.ExitCode}: {error}", context.CancellationToken);
+                            throw new InvalidOperationException($"npm run build failed with exit code {buildProcess.ExitCode}: {error}");
+                        }
+
+                        await buildTask.SucceedAsync("Static site built successfully", context.CancellationToken);
+
+                        // Store the distPath as an output for other steps to consume
+                        var distPath = Path.Combine(staticSitePath, "dist");
+                        pipelineContext.SetOutput("BuildStaticSite:distPath", distPath);
+
+                        await deploymentStep.CompleteAsync("Static site build completed successfully", CompletionState.Completed, context.CancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        await deploymentStep.CompleteAsync($"Static files upload failed: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken);
+                        await deploymentStep.CompleteAsync($"Static site build failed: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken);
                         throw;
                     }
                 }
             }
         };
 
-        step.Dependencies.Add("ConfigureStoragePermissions");
+        step.DependsOnStep("ProvisionBicepResources");
         return step;
     }));
 

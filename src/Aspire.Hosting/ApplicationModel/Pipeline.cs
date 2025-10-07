@@ -36,6 +36,9 @@ public class Pipeline
 
         var sortedSteps = TopologicalSort(stepsByName);
 
+        // Create a shared pipeline context for passing data between steps
+        var pipelineContext = new PipelineContext();
+
         foreach (var step in sortedSteps)
         {
             if (step.Action is null)
@@ -43,7 +46,7 @@ public class Pipeline
                 continue;
             }
 
-            await step.Action(context).ConfigureAwait(false);
+            await step.Action(context, pipelineContext).ConfigureAwait(false);
             executedSteps.Add(step.Name);
         }
     }

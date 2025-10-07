@@ -27,6 +27,7 @@ public sealed class DeployingContext(
     string? outputPath)
 {
     private IPublishingActivityReporter? _activityReporter;
+    private PipelineStepRegistry? _stepRegistry;
 
     /// <summary>
     /// Gets the distributed application model to be deployed.
@@ -50,6 +51,11 @@ public sealed class DeployingContext(
         Services.GetRequiredService<IPublishingActivityReporter>();
 
     /// <summary>
+    /// Gets the pipeline step registry for discovering and registering deployment steps.
+    /// </summary>
+    public PipelineStepRegistry StepRegistry => _stepRegistry ??= new PipelineStepRegistry();
+
+    /// <summary>
     /// Gets the logger for deploying operations.
     /// </summary>
     public ILogger Logger { get; } = logger;
@@ -66,6 +72,7 @@ public sealed class DeployingContext(
 
     /// <summary>
     /// Invokes deploying callbacks for each resource in the provided distributed application model.
+    /// Uses a two-pass approach: first registering all steps, then resolving dependencies.
     /// </summary>
     /// <param name="model">The distributed application model whose resources will be processed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
@@ -73,14 +80,32 @@ public sealed class DeployingContext(
     {
         var pipeline = new Pipeline();
 
+        // PASS 1: Create and register all pipeline steps
+        // This ensures all steps are available in the registry before any dependencies are resolved
+        var steps = new List<PipelineStep>();
+
         foreach (var resource in model.Resources)
         {
             var annotations = resource.Annotations.OfType<DeployingCallbackAnnotation>();
             foreach (var annotation in annotations)
             {
                 var step = annotation.Callback(this);
-                pipeline.AddStep(step);
+
+                // Register the step in the registry immediately
+                StepRegistry.Register(step);
+                steps.Add(step);
             }
+        }
+
+        // PASS 2: Resolve dependencies and add steps to pipeline
+        // At this point, all steps are registered and can reference each other
+        foreach (var step in steps)
+        {
+            // Resolve dependencies using the registry
+            step.ResolveDependencies(StepRegistry);
+
+            // Add to pipeline for execution
+            pipeline.AddStep(step);
         }
 
         await pipeline.ExecuteAsync(this, CancellationToken).ConfigureAwait(false);

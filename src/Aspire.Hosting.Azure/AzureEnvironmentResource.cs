@@ -93,7 +93,7 @@ public sealed class AzureEnvironmentResource : Resource
         return new PipelineStep
         {
             Name = "ValidateAzureCliLogin",
-            Action = async ctx =>
+            Action = async (ctx, pipelineContext) =>
             {
                 var tokenCredentialProvider = ctx.Services.GetRequiredService<ITokenCredentialProvider>();
                 var activityReporter = ctx.Services.GetRequiredService<IPublishingActivityReporter>();
@@ -127,7 +127,7 @@ public sealed class AzureEnvironmentResource : Resource
         return new PipelineStep
         {
             Name = "InitializeParameters",
-            Action = async ctx =>
+            Action = async (ctx, pipelineContext) =>
             {
                 var parameterProcessor = ctx.Services.GetRequiredService<ParameterProcessor>();
                 await parameterProcessor.InitializeParametersAsync(ctx.Model, waitForResolution: true, ctx.CancellationToken).ConfigureAwait(false);
@@ -140,7 +140,7 @@ public sealed class AzureEnvironmentResource : Resource
         var step = new PipelineStep
         {
             Name = "ProvisionBicepResources",
-            Action = async ctx =>
+            Action = async (ctx, pipelineContext) =>
             {
                 var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
                 var userSecretsManager = ctx.Services.GetRequiredService<IUserSecretsManager>();
@@ -160,8 +160,8 @@ public sealed class AzureEnvironmentResource : Resource
                 }
             }
         };
-        step.Dependencies.Add("ValidateAzureCliLogin");
-        step.Dependencies.Add("InitializeParameters");
+        step.DependsOnStep("ValidateAzureCliLogin");
+        step.DependsOnStep("InitializeParameters");
         return step;
     }
 
@@ -170,7 +170,7 @@ public sealed class AzureEnvironmentResource : Resource
         var step = new PipelineStep
         {
             Name = "BuildAndPushContainerImages",
-            Action = async ctx =>
+            Action = async (ctx, pipelineContext) =>
             {
                 var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
                 var activityReporter = ctx.Services.GetRequiredService<IPublishingActivityReporter>();
@@ -183,7 +183,7 @@ public sealed class AzureEnvironmentResource : Resource
                 }
             }
         };
-        step.Dependencies.Add("ProvisionBicepResources");
+        step.DependsOnStep("ProvisionBicepResources");
         return step;
     }
 
@@ -192,7 +192,7 @@ public sealed class AzureEnvironmentResource : Resource
         var step = new PipelineStep
         {
             Name = "DeployComputeResources",
-            Action = async ctx =>
+            Action = async (ctx, pipelineContext) =>
             {
                 var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
                 var userSecretsManager = ctx.Services.GetRequiredService<IUserSecretsManager>();
@@ -214,8 +214,8 @@ public sealed class AzureEnvironmentResource : Resource
                 }
             }
         };
-        step.Dependencies.Add("BuildAndPushContainerImages");
-        step.Dependencies.Add("PushStaticSite");
+        step.DependsOnStep("BuildAndPushContainerImages");
+        step.DependsOnStep("PushStaticSite", required: false);
         return step;
     }
 
