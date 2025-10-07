@@ -2175,7 +2175,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 arguments.Add(caBundlePath);
             }
 
-            // Buld the requried environment variables to configure the resource to trust the custom certificates
+            // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
                 envVars.Add(new EnvVar
