@@ -213,128 +213,140 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
-            var pendingRun = _runner.RunAsync(
-                effectiveAppHostFile,
-                watch,
-                !watch,
-                unmatchedTokens,
-                env,
-                backchannelCompletitionSource,
-                runOptions,
-                cancellationToken);
-
-            // Wait for the backchannel to be established.
-            var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
-
-            var logFile = GetAppHostLogFile();
-
-            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
-
-            var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
-
-            if (dashboardUrls.DashboardHealthy is false)
+            while (true)
             {
-                InteractionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
-                InteractionService.DisplayLines(runOutputCollector.GetLines());
-                return ExitCodeConstants.DashboardFailure;
-            }
+                var pendingRun = _runner.RunAsync(
+                    effectiveAppHostFile,
+                    watch,
+                    !watch,
+                    unmatchedTokens,
+                    env,
+                    backchannelCompletitionSource,
+                    runOptions,
+                    cancellationToken);
 
-            _ansiConsole.WriteLine();
-            var topGrid = new Grid();
-            topGrid.AddColumn();
-            topGrid.AddColumn();
+                // Wait for the backchannel to be established.
+                var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
-            var topPadder = new Padder(topGrid, new Padding(3, 0));
+                var logFile = GetAppHostLogFile();
 
-            var dashboardsLocalizedString = RunCommandStrings.Dashboard;
-            var logsLocalizedString = RunCommandStrings.Logs;
-            var endpointsLocalizedString = RunCommandStrings.Endpoints;
-            var appHostLocalizedString = RunCommandStrings.AppHost;
+                var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
 
-            var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
-                .Max(s => s.Length);
+                var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
-            topGrid.Columns[0].Width = longestLocalizedLength + 1;
-
-            var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
-            topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
-            {
-                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
-            }
-
-            topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
-
-            _ansiConsole.Write(topPadder);
-
-            // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
-            // than environment variables since it comes from the same backend detection logic
-            var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
-            var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
-            var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
-                              && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
-
-            AppendCtrlCMessage(longestLocalizedLength);
-
-            if (isCodespaces || isRemoteContainers || isSshRemote)
-            {
-                bool firstEndpoint = true;
-
-                try
+                if (dashboardUrls.DashboardHealthy is false)
                 {
-                    var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
-                    await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
+                    InteractionService.DisplayError(RunCommandStrings.DashboardFailedToStart);
+                    InteractionService.DisplayLines(runOutputCollector.GetLines());
+                    return ExitCodeConstants.DashboardFailure;
+                }
+
+                _ansiConsole.WriteLine();
+                var topGrid = new Grid();
+                topGrid.AddColumn();
+                topGrid.AddColumn();
+
+                var topPadder = new Padder(topGrid, new Padding(3, 0));
+
+                var dashboardsLocalizedString = RunCommandStrings.Dashboard;
+                var logsLocalizedString = RunCommandStrings.Logs;
+                var endpointsLocalizedString = RunCommandStrings.Endpoints;
+                var appHostLocalizedString = RunCommandStrings.AppHost;
+
+                var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
+                    .Max(s => s.Length);
+
+                topGrid.Columns[0].Width = longestLocalizedLength + 1;
+
+                var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
+                topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
+                topGrid.AddRow(Text.Empty, Text.Empty);
+                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+                {
+                    topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                }
+
+                topGrid.AddRow(Text.Empty, Text.Empty);
+                topGrid.AddRow(new Align(new Markup($"[bold green]{logsLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(logFile.FullName));
+
+                _ansiConsole.Write(topPadder);
+
+                // Use the presence of CodespacesUrlWithLoginToken to detect codespaces, as this is more reliable
+                // than environment variables since it comes from the same backend detection logic
+                var isCodespaces = dashboardUrls.CodespacesUrlWithLoginToken is not null;
+                var isRemoteContainers = _configuration.GetValue<bool>("REMOTE_CONTAINERS", false);
+                var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
+                                  && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
+
+                AppendCtrlCMessage(longestLocalizedLength);
+
+                if (isCodespaces || isRemoteContainers || isSshRemote)
+                {
+                    bool firstEndpoint = true;
+
+                    try
                     {
-                        ProcessResourceState(resourceState, (resource, endpoint) =>
+                        var resourceStates = backchannel.GetResourceStatesAsync(cancellationToken);
+                        await foreach (var resourceState in resourceStates.WithCancellation(cancellationToken))
                         {
-                            // When we are appending endpoints we need
-                            // to remove the CTRL-C message that was appended
-                            // previously. So we can write the endpoint.
-                            // We will append the CTRL-C message again after
-                            // writing the endpoint.
-                            ClearLines(2);
-
-                            var endpointsGrid = new Grid();
-                            endpointsGrid.AddColumn();
-                            endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
-
-                            if (firstEndpoint)
+                            ProcessResourceState(resourceState, (resource, endpoint) =>
                             {
-                                endpointsGrid.AddRow(Text.Empty, Text.Empty);
-                            }
+                                // When we are appending endpoints we need
+                                // to remove the CTRL-C message that was appended
+                                // previously. So we can write the endpoint.
+                                // We will append the CTRL-C message again after
+                                // writing the endpoint.
+                                ClearLines(2);
 
-                            endpointsGrid.AddRow(
-                                firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
-                                new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
-                            );
+                                var endpointsGrid = new Grid();
+                                endpointsGrid.AddColumn();
+                                endpointsGrid.AddColumn();
+                                endpointsGrid.Columns[0].Width = longestLocalizedLength;
 
-                            var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
-                            _ansiConsole.Write(endpointsPadder);
-                            firstEndpoint = false;
+                                if (firstEndpoint)
+                                {
+                                    endpointsGrid.AddRow(Text.Empty, Text.Empty);
+                                }
 
-                            AppendCtrlCMessage(longestLocalizedLength);
-                        });
+                                endpointsGrid.AddRow(
+                                    firstEndpoint ? new Align(new Markup($"[bold green]{endpointsLocalizedString}[/]:"), HorizontalAlignment.Right) : Text.Empty,
+                                    new Markup($"[bold]{resource}[/] [grey]has endpoint[/] [link={endpoint}]{endpoint}[/]")
+                                );
+
+                                var endpointsPadder = new Padder(endpointsGrid, new Padding(3, 0));
+                                _ansiConsole.Write(endpointsPadder);
+                                firstEndpoint = false;
+
+                                AppendCtrlCMessage(longestLocalizedLength);
+                            });
+                        }
+                    }
+                    catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Just swallow this exception because this is an orderly shutdown of the backchannel.
                     }
                 }
-                catch (ConnectionLostException) when (cancellationToken.IsCancellationRequested)
+
+                if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
                 {
-                    // Just swallow this exception because this is an orderly shutdown of the backchannel.
+                    _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
+                    extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
+                    extensionInteractionService.NotifyAppHostStartupCompleted();
                 }
-            }
 
-            if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
-            {
-                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
-                extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
-                extensionInteractionService.NotifyAppHostStartupCompleted();
-            }
+                await pendingLogCapture;
+                var exitCode = await pendingRun;
 
-            await pendingLogCapture;
-            return await pendingRun;
+                // If the apphost returns exit code 88, restart it
+                if (exitCode != 88)
+                {
+                    return exitCode;
+                }
+
+                // Reset the backchannel completion source for the next iteration
+                backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
+            }
         }
         catch (OperationCanceledException ex) when (ex.CancellationToken == cancellationToken || ex is ExtensionOperationCanceledException)
         {
