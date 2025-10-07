@@ -397,7 +397,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
 
-        // Add Website Contributor role assignment to dashboard's managed identity forthis webapp
+        // Add Website Contributor role assignment to dashboard's managed identity for this webapp
         var websiteRaId = BicepFunction.GetSubscriptionResourceId(
                     "Microsoft.Authorization/roleDefinitions",
                     "de139f84-1756-47ae-9be6-808fbbe84772");
