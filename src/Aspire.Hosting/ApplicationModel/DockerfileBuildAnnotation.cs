@@ -35,4 +35,11 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// Gets the secrets to pass to the build.
     /// </summary>
     public Dictionary<string, object> BuildSecrets { get; } = [];
+
+    /// <summary>
+    /// Gets or sets the factory function that generates Dockerfile content dynamically.
+    /// When set, this factory will be invoked to generate the Dockerfile content at build time,
+    /// and the content will be written to a generated file path.
+    /// </summary>
+    public Func<DockerfileFactoryContext, Task<string>>? DockerfileFactory { get; init; }
 }

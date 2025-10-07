@@ -63,6 +63,7 @@ public sealed class AzureEnvironmentResource : Resource
         var publishingContext = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
+            context.Services,
             context.Logger,
             context.ActivityReporter);
 
