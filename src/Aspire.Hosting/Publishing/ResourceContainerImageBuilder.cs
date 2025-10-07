@@ -214,7 +214,7 @@ internal sealed class ResourceContainerImageBuilder(
             {
                 throw new InvalidOperationException("Resource image name could not be determined.");
             }
-            
+
             // This is a container resource so we'll use the container runtime to build the image
             await BuildContainerImageFromDockerfileAsync(
                 resource,
@@ -223,6 +223,12 @@ internal sealed class ResourceContainerImageBuilder(
                 step,
                 options,
                 cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var _))
+        {
+            // This resource already has a container image associated with it so no build is needed.
+            logger.LogInformation("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
             return;
         }
         else
