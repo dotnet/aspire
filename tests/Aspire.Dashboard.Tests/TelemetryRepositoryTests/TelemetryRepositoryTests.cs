@@ -5,11 +5,13 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
+using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
-
 using static Aspire.Tests.Shared.Telemetry.TelemetryTestHelpers;
 
 namespace Aspire.Dashboard.Tests.TelemetryRepositoryTests;
@@ -154,5 +156,44 @@ public class TelemetryRepositoryTests
 
         // Assert
         Assert.Equal(1, unsubscribeCallCount);
+    }
+
+    [Fact]
+    public async Task Subscription_ExecuteAfterDispose_LogWithNoExecute()
+    {
+        // Arrange
+        var tcs = new TaskCompletionSource<WriteContext>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var testSink = new TestSink();
+        testSink.MessageLogged += (write) =>
+        {
+            if (write.Message == "Callback 'Test' has been disposed.")
+            {
+                tcs.TrySetResult(write);
+            }
+        };
+        var factory = LoggerFactory.Create(b =>
+        {
+            b.AddProvider(new TestLoggerProvider(testSink));
+            b.SetMinimumLevel(LogLevel.Trace);
+        });
+
+        var telemetryRepository = CreateRepository(loggerFactory: factory);
+
+        var subscription = new Subscription(
+            name: "Test",
+            resourceKey: null,
+            subscriptionType: SubscriptionType.Read,
+            callback: () => Task.CompletedTask,
+            unsubscribe: () => { },
+            executionContext: null,
+            telemetryRepository: telemetryRepository);
+
+        subscription.Dispose();
+
+        // Act
+        subscription.Execute();
+
+        // Assert
+        await tcs.Task.DefaultTimeout();
     }
 }

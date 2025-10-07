@@ -6,12 +6,15 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.ResourceGraph;
 using Aspire.Dashboard.Resources;
 using Aspire.Tests.Shared.DashboardModel;
+using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
 
 namespace Aspire.Dashboard.Tests.Model;
 
 public class ResourceGraphMapperTests
 {
+    private readonly IconResolver _iconResolver = new IconResolver(NullLogger<IconResolver>.Instance);
+
     [Fact]
     public void MapResource_HasReference_Added()
     {
@@ -25,7 +28,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false, _iconResolver);
 
         // Assert
         var referencedName = Assert.Single(dto.ReferencedNames);
@@ -47,7 +50,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false, _iconResolver);
 
         // Assert
         Assert.Collection(dto.ReferencedNames,
@@ -66,7 +69,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false);
+        var dto = ResourceGraphMapper.MapResource(resource, resources, new TestStringLocalizer<Columns>(), showHiddenResources: false, _iconResolver);
 
         // Assert
         Assert.Empty(dto.ReferencedNames);
@@ -85,7 +88,7 @@ public class ResourceGraphMapperTests
         };
 
         // Act
-        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: true);
+        var dto = ResourceGraphMapper.MapResource(resource1, resources, new TestStringLocalizer<Columns>(), showHiddenResources: true, _iconResolver);
 
         // Assert
         Assert.Contains("hidden-app", dto.ReferencedNames);

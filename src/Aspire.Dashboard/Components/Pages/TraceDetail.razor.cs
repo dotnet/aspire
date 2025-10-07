@@ -6,6 +6,8 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -40,6 +42,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     private string? _elementIdBeforeDetailsViewOpened;
     private FluentDataGrid<SpanWaterfallViewModel> _dataGrid = null!;
     private GridColumnManager _manager = null!;
+    private AIContext? _aiContext;
     private IList<GridColumn> _gridColumns = null!;
     private string _filter = string.Empty;
     private readonly List<MenuButtonItem> _traceActionsMenuItems = [];
@@ -58,6 +61,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required ILogger<TraceDetail> Logger { get; init; }
 
     [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
+    [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
@@ -71,6 +77,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
 
     [Inject]
     public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.TraceDetail> Loc { get; init; }
@@ -96,6 +105,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = CreateAIContext();
 
         _gridColumns = [
             new GridColumn(Name: NameColumn, DesktopWidth: "7fr", MobileWidth: "7fr"),
@@ -224,6 +234,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             // If parameters change after render then the grid is automatically updated.
             // Explicitly update data grid to support navigating between traces via span links.
             await _dataGrid.SafeRefreshDataAsync();
+
+            // Update AI context with new trace.
+            _aiContext?.ContextHasChanged();
         }
 
         if (SpanId is not null && _spanWaterfallViewModels is not null)
@@ -237,6 +250,24 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             // Navigate to remove ?spanId=xxx in the URL.
             NavigationManager.NavigateTo(DashboardUrls.TraceDetailUrl(TraceId), new NavigationOptions { ReplaceHistoryEntry = true });
         }
+    }
+
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(TraceDetail), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                if (_trace is { } trace)
+                {
+                    builder.Trace(context, trace);
+                }
+                else
+                {
+                    builder.Default(context);
+                }
+            };
+        });
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -253,8 +284,12 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _resources = TelemetryRepository.GetResources();
 
-        Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
-        _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        // Copying a large trace can be expensive so only do this if required.
+        if (_trace == null || _trace.TraceId != TraceId || TelemetryRepository.HasUpdatedTrace(_trace))
+        {
+            Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
+            _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        }
 
         if (_trace == null)
         {
@@ -521,6 +556,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             span,
             selectedLogEntryId: null,
             TelemetryRepository,
+            ErrorRecorder,
             _resources,
             () =>
             {
@@ -534,8 +570,26 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             });
     }
 
+    private async Task ExplainTraceAsync()
+    {
+        await AIContextProvider.LaunchAssistantSidebarAsync(
+            promptContext =>
+            {
+                if (_trace is { } trace)
+                {
+                    return PromptContextsBuilder.AnalyzeTrace(
+                        promptContext,
+                        AIPromptsLoc.GetString(nameof(AIPrompts.PromptAnalyzeTrace), OtlpHelpers.ToShortenedId(trace.TraceId)),
+                        trace);
+                }
+
+                return Task.CompletedTask;
+            });
+    }
+
     public void Dispose()
     {
+        _aiContext?.Dispose();
         foreach (var subscription in _peerChangesSubscriptions)
         {
             subscription.Dispose();

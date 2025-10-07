@@ -159,6 +159,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -206,6 +207,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -262,6 +264,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -318,6 +321,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
     {
         // Arrange
@@ -432,31 +436,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
-        // Wait for the notification interaction first
-        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
-        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", notificationInteraction.Message);
-
-        // Complete the notification interaction to proceed to inputs dialog
-        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
-
-        // Wait for the parameter inputs interaction
+        // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the parameter input (should include save to secrets option)
+        // Verify the parameter input (should not include save to secrets option in publish mode)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
                 Assert.Equal("test-param", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.Equal("Enter value for test-param", input.Placeholder);
-            },
-            input =>
-            {
-                Assert.Equal("Save to user secrets", input.Label);
-                Assert.Equal(InputType.Boolean, input.InputType);
-                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -517,18 +507,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
-        // Wait for the notification interaction first
-        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
-
-        // Complete the notification interaction to proceed to inputs dialog
-        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
-
-        // Wait for the parameter inputs interaction
+        // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the custom input generator is respected (should include save to secrets option)
+        // Verify the custom input generator is respected (should not include save to secrets option in publish mode)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
@@ -538,12 +521,6 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 Assert.Equal(InputType.Number, input.InputType);
                 Assert.Equal("8080", input.Placeholder);
                 Assert.False(input.EnableDescriptionMarkdown);
-            },
-            input =>
-            {
-                Assert.Equal("Save to user secrets", input.Label);
-                Assert.Equal(InputType.Boolean, input.InputType);
-                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -558,6 +535,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
@@ -610,6 +588,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
@@ -671,31 +650,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
-        // Wait for the notification interaction first
-        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
-        Assert.Equal("There are unresolved parameters that need to be set. Please provide values for them.", notificationInteraction.Message);
-
-        // Complete the notification interaction to proceed to inputs dialog
-        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
-
-        // Wait for the parameter inputs interaction
+        // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the generated parameter is prompted for
+        // Verify the generated parameter is prompted for (should not include save to secrets option in publish mode)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
                 Assert.Equal("cache-password", input.Label);
                 Assert.Equal(InputType.SecretText, input.InputType);
                 Assert.Equal("Enter value for cache-password", input.Placeholder);
-                Assert.False(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Save to user secrets", input.Label);
-                Assert.Equal(InputType.Boolean, input.InputType);
                 Assert.False(input.Required);
             });
 
@@ -731,30 +696,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
-        // Wait for the notification interaction first
-        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
-
-        // Complete the notification interaction to proceed to inputs dialog
-        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
-
-        // Wait for the parameter inputs interaction
+        // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the dependent parameter is discovered and prompted for
+        // Verify the dependent parameter is discovered and prompted for (should not include save to secrets option in publish mode)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
                 Assert.Equal("dependent-param", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.Equal("Enter value for dependent-param", input.Placeholder);
-            },
-            input =>
-            {
-                Assert.Equal("Save to user secrets", input.Label);
-                Assert.Equal(InputType.Boolean, input.InputType);
-                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -789,30 +741,17 @@ public class AzureDeployerTests(ITestOutputHelper output)
         using var app = builder.Build();
         var runTask = Task.Run(app.Run);
 
-        // Wait for the notification interaction first
-        var notificationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Unresolved parameters", notificationInteraction.Title);
-
-        // Complete the notification interaction to proceed to inputs dialog
-        notificationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true));
-
-        // Wait for the parameter inputs interaction
+        // Wait for the parameter inputs interaction (no notification in publish mode)
         var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Set unresolved parameters", parameterInputs.Title);
 
-        // Verify the dependent parameter is discovered and prompted for
+        // Verify the dependent parameter is discovered and prompted for (should not include save to secrets option in publish mode)
         Assert.Collection(parameterInputs.Inputs,
             input =>
             {
                 Assert.Equal("app-port", input.Label);
                 Assert.Equal(InputType.Text, input.InputType);
                 Assert.Equal("Enter value for app-port", input.Placeholder);
-            },
-            input =>
-            {
-                Assert.Equal("Save to user secrets", input.Label);
-                Assert.Equal(InputType.Boolean, input.InputType);
-                Assert.False(input.Required);
             });
 
         // Complete the parameter inputs interaction
@@ -827,6 +766,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -895,7 +835,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.Equal("/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv", containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);
 
         // Assert that funcapp outputs are propagated
-        var funcAppDeployment = Assert.IsType<AzureProvisioningResource>(funcApp.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
+        var funcAppDeployment = Assert.IsAssignableFrom<AzureProvisioningResource>(funcApp.Resource.GetDeploymentTargetAnnotation()?.DeploymentTarget);
         Assert.NotNull(funcAppDeployment);
         Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_default_domain"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"]);
         Assert.Equal(await ((BicepOutputReference)funcAppDeployment.Parameters["env_outputs_azure_container_apps_environment_id"]!).GetValueAsync(), containerAppEnv.Resource.Outputs["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"]);

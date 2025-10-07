@@ -311,9 +311,9 @@ public class AzureFunctionsTests
 
         var app = builder.Build();
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         var (_, bicep) = await GetManifestWithBicep(funcApp.Resource.GetDeploymentTargetAnnotation()!.DeploymentTarget);
 

@@ -194,6 +194,6 @@ echo
 log "Aspire CLI will discover a channel named '$HIVE_NAME' from:"
 log "  $HIVE_PATH"
 echo
-log "Channel behavior: Aspire* and Microsoft.Extensions.ServiceDiscovery* come from the hive; others from nuget.org."
+log "Channel behavior: Aspire* comes from the hive; others from nuget.org."
 echo
 log "The Aspire CLI discovers channels automatically from the hives directory; no extra flags are required."

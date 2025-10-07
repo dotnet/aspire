@@ -35,8 +35,8 @@ internal static class AppHostHelper
             return (false, false, null);
         }
 
-        var compatibleRanges = SemVersionRange.Parse("^9.2.0-dev", SemVersionRangeOptions.IncludeAllPrerelease);
-        if (!aspireVersion.Satisfies(compatibleRanges))
+        var minimumVersion = SemVersion.Parse("9.2.0");
+        if (aspireVersion.ComparePrecedenceTo(minimumVersion) < 0)
         {
             interactionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.AspireSDKVersionNotSupported, appHostInformation.AspireHostingVersion));
             return (false, false, appHostInformation.AspireHostingVersion);

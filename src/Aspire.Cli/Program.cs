@@ -111,6 +111,7 @@ public class Program
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
+        builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -137,6 +138,7 @@ public class Program
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
+        builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();

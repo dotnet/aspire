@@ -7,9 +7,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Docker;
 
-internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentResource environment, ILogger logger, IServiceProvider serviceProvider)
+internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentResource environment, ILogger logger)
 {
-    public IServiceProvider ServiceProvider => serviceProvider;
     public async Task<DockerComposeServiceResource> CreateDockerComposeServiceResourceAsync(IResource resource, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
     {
         if (environment.ResourceMapping.TryGetValue(resource, out var existingResource))
@@ -19,7 +18,7 @@ internal sealed class DockerComposeEnvironmentContext(DockerComposeEnvironmentRe
 
         logger.LogInformation("Creating Docker Compose resource for {ResourceName}", resource.Name);
 
-        var serviceResource = new DockerComposeServiceResource(resource.Name, resource, environment, ServiceProvider);
+        var serviceResource = new DockerComposeServiceResource(resource.Name, resource, environment);
         environment.ResourceMapping[resource] = serviceResource;
 
         // Process endpoints

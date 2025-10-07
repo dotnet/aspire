@@ -214,7 +214,7 @@ internal sealed class ResourceContainerImageBuilder(
             {
                 // This is a container resource so we'll use the container runtime to build the image
                 await BuildContainerImageFromDockerfileAsync(
-                    resource.Name,
+                    resource,
                     dockerfileBuildAnnotation,
                     containerImageAnnotation.Image,
                     step,
@@ -336,13 +336,26 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
-            $"Building image: {resourceName}",
+            $"Building image: {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
+
+        // If there's a factory, generate the Dockerfile content and write it to the specified path
+        if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+        {
+            var context = new DockerfileFactoryContext
+            {
+                Services = serviceProvider,
+                Resource = resource,
+                CancellationToken = cancellationToken
+            };
+            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+            await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+        }
 
         // Resolve build arguments
         var resolvedBuildArguments = new Dictionary<string, string?>();
@@ -356,6 +369,12 @@ internal sealed class ResourceContainerImageBuilder(
         foreach (var buildSecret in dockerfileBuildAnnotation.BuildSecrets)
         {
             resolvedBuildSecrets[buildSecret.Key] = await ResolveValue(buildSecret.Value, cancellationToken).ConfigureAwait(false);
+        }
+
+        // ensure outputPath is created if specified since docker/podman won't create it for us
+        if (options?.OutputPath is { } outputPath)
+        {
+            Directory.CreateDirectory(outputPath);
         }
 
         if (publishingTask is not null)
@@ -374,12 +393,12 @@ internal sealed class ResourceContainerImageBuilder(
                         dockerfileBuildAnnotation.Stage,
                         cancellationToken).ConfigureAwait(false);
 
-                    await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                    await publishingTask.FailAsync($"Building image for {resourceName} failed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
                     throw;
                 }
             }

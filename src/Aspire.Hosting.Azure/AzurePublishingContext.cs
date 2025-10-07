@@ -25,12 +25,15 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
+    IServiceProvider serviceProvider,
     ILogger logger,
     IPublishingActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
     private IPublishingActivityReporter ActivityReporter => activityReporter;
+
+    private IServiceProvider ServiceProvider => serviceProvider;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -310,6 +313,27 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
+                // Materialize Dockerfile factory if present
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = ServiceProvider,
+                        Resource = resource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
+                    Directory.CreateDirectory(outputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default

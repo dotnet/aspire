@@ -2,11 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Dashboard.Components.Controls;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -33,6 +36,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     private SelectViewModel<ResourceTypeDetails> _allResource = default!;
 
     private TotalItemsFooter _totalItemsFooter = default!;
+    private ExplainErrorsButton? _explainErrorsButton;
     private int _totalItemsCount;
     private List<OtlpResource> _resources = default!;
     private List<SelectViewModel<ResourceTypeDetails>> _resourceViewModels = default!;
@@ -49,6 +53,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     private ColumnResizeLabels _resizeLabels = ColumnResizeLabels.Default;
     private ColumnSortLabels _sortLabels = ColumnSortLabels.Default;
+    private AIContext? _aiContext;
 
     public string BasePath => DashboardUrls.StructuredLogsBasePath;
     public string SessionStorageKey => BrowserStorageKeys.StructuredLogsPageState;
@@ -76,6 +81,9 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     public required ILogger<StructuredLogs> Logger { get; init; }
 
     [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
+    [Inject]
     public required DimensionManager DimensionManager { get; set; }
 
     [Inject]
@@ -86,6 +94,9 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     [Inject]
     public required PauseManager PauseManager { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
@@ -111,6 +122,10 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     [Parameter]
     [SupplyParameterFromQuery(Name = "filters")]
     public string? SerializedFilters { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public long? LogEntryId { get; set; }
 
     public StructureLogsDetailsViewModel? SelectedLogEntry { get; set; }
 
@@ -140,7 +155,10 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         // Updating the total item count as a field doesn't work because it isn't updated with the grid.
         // The workaround is to explicitly update and refresh the control.
         _totalItemsCount = logs.TotalItemCount;
-        _totalItemsFooter.UpdateDisplayedCount(_totalItemsCount);
+        _totalItemsFooter?.UpdateDisplayedCount(_totalItemsCount);
+
+        _explainErrorsButton?.UpdateHasErrors(ViewModel.HasErrors());
+        _aiContext?.ContextHasChanged();
 
         TelemetryRepository.MarkViewedErrorLogs(ViewModel.ResourceKey);
 
@@ -150,6 +168,8 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
     protected override void OnInitialized()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
+        _aiContext = CreateAIContext();
+
         (_resizeLabels, _sortLabels) = DashboardUIHelpers.CreateGridLabels(ControlsStringsLoc);
 
         _gridColumns = [
@@ -207,6 +227,25 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         }));
     }
 
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(StructuredLogs), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                var application = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
+                if (application != null)
+                {
+                    builder.StructuredLogs(context, application, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
+                }
+                else
+                {
+                    builder.StructuredLogs(context, ViewModel.GetLogs, ViewModel.HasErrors(), () => ViewModel.GetErrorLogs(int.MaxValue));
+                }
+            };
+        });
+    }
+
     protected override async Task OnParametersSetAsync()
     {
         if (await this.InitializeViewModelAsync())
@@ -216,6 +255,20 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
         UpdateSubscription();
         UpdateTelemetryProperties();
+
+        _aiContext?.ContextHasChanged();
+
+        if (LogEntryId is not null)
+        {
+            var logEntryId = TelemetryRepository.GetLog(LogEntryId.Value);
+            if (logEntryId != null)
+            {
+                await OnShowPropertiesAsync(logEntryId, buttonId: null);
+            }
+
+            // Navigate to remove ?logEntryId=xxx in the URL.
+            NavigationManager.NavigateTo(DashboardUrls.StructuredLogsUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+        }
     }
 
     private void UpdateResources()
@@ -283,6 +336,15 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
         }
 
         _elementIdBeforeDetailsViewOpened = null;
+    }
+
+    private async Task ExplainErrorsAsync()
+    {
+        await AIContextProvider.LaunchAssistantSidebarAsync(
+            promptContext => PromptContextsBuilder.ErrorStructuredLogs(
+                promptContext,
+                AIPromptsLoc[nameof(AIPrompts.PromptErrorsStructuredLogs)],
+                () => ViewModel.GetErrorLogs(count: int.MaxValue)));
     }
 
     private async Task OpenFilterAsync(FieldTelemetryFilter? entry)
@@ -417,6 +479,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
 
     public void Dispose()
     {
+        _aiContext?.Dispose();
         _resourcesSubscription?.Dispose();
         _logsSubscription?.Dispose();
         DimensionManager.OnViewportInformationChanged -= OnBrowserResize;
@@ -500,6 +563,7 @@ public partial class StructuredLogs : IComponentWithTelemetry, IPageWithSessionA
                 span,
                 logEntry.InternalId,
                 TelemetryRepository,
+                ErrorRecorder,
                 _resources,
                 () =>
                 {

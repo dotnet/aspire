@@ -210,4 +210,30 @@ internal static class IConfigurationExtensions
 
         return value.Value;
     }
+
+    /// <summary>
+    /// Gets a configuration value with support for dash-to-underscore normalization.
+    /// First tries the exact configuration key, then tries with dashes replaced by underscores.
+    /// </summary>
+    /// <remarks>
+    /// This supports command-line arguments and environment variables where dashes are replaced with underscores.
+    /// For example, a parameter named "my-param" can be resolved from configuration key "my_param".
+    /// </remarks>
+    /// <param name="configuration">The <see cref="IConfiguration"/> this method extends.</param>
+    /// <param name="configKey">The configuration key to look up.</param>
+    /// <returns>The configuration value, or <see langword="null"/> if not found.</returns>
+    public static string? GetValueWithNormalizedKey(this IConfiguration configuration, string configKey)
+    {
+        // First try to get the value with the exact configuration key
+        var value = configuration[configKey];
+
+        // If not found, try with underscores as a fallback
+        if (string.IsNullOrEmpty(value))
+        {
+            var normalizedKey = configKey.Replace("-", "_", StringComparison.Ordinal);
+            value = configuration[normalizedKey];
+        }
+
+        return value;
+    }
 }

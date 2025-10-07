@@ -21,6 +21,7 @@ internal sealed class RootCommand : BaseRootCommand
 
     public RootCommand(
         NewCommand newCommand,
+        InitCommand initCommand,
         RunCommand runCommand,
         AddCommand addCommand,
         PublishCommand publishCommand,
@@ -36,6 +37,7 @@ internal sealed class RootCommand : BaseRootCommand
         : base(RootCommandStrings.Description)
     {
         ArgumentNullException.ThrowIfNull(newCommand);
+        ArgumentNullException.ThrowIfNull(initCommand);
         ArgumentNullException.ThrowIfNull(runCommand);
         ArgumentNullException.ThrowIfNull(addCommand);
         ArgumentNullException.ThrowIfNull(publishCommand);
@@ -92,6 +94,7 @@ internal sealed class RootCommand : BaseRootCommand
         Options.Add(cliWaitForDebuggerOption);
 
         Subcommands.Add(newCommand);
+        Subcommands.Add(initCommand);
         Subcommands.Add(runCommand);
         Subcommands.Add(addCommand);
         Subcommands.Add(publishCommand);
