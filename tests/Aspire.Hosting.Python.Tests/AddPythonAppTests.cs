@@ -37,6 +37,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile"
+              },
+              "env": {
+                "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }
             """;
@@ -179,18 +182,18 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var pythonProjectResource = Assert.Single(executableResources);
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
+        // Should use Python executable directly, not opentelemetry-instrument
         if (OperatingSystem.IsWindows())
         {
-            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "opentelemetry-instrument.exe"), pythonProjectResource.Command);
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "python.exe"), pythonProjectResource.Command);
         }
         else
         {
-            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "opentelemetry-instrument"), pythonProjectResource.Command);
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        // Arguments should now be: [python executable path, script name]
-        Assert.Equal(pythonExecutable, commandArguments[0]);
-        Assert.Equal(scriptName, commandArguments[1]);
+        // Arguments should be: [script name]
+        Assert.Equal(scriptName, commandArguments[0]);
 
         // Check for environment variables instead of command-line arguments
         var environmentVariables = await pythonProjectResource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
