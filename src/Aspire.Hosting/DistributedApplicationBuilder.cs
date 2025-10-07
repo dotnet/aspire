@@ -655,10 +655,18 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <summary>
     /// Loads deployment state from the filesystem based on the app host SHA and environment name.
+    /// Only loads if ClearCache is false.
     /// </summary>
     /// <param name="appHostSha">The SHA hash of the app host.</param>
     private void LoadDeploymentState(string appHostSha)
     {
+        // Only load if ClearCache is false
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        if (clearCache)
+        {
+            return;
+        }
+
         var environment = _innerBuilder.Environment.EnvironmentName;
         var deploymentStatePath = Path.Combine(
             System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
