@@ -490,11 +490,15 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                                 targetFramework = targetFrameworkElement.GetString() ?? "net9.0";
                             }
 
-                            executableProjects.Add(new ExecutableProjectInfo
+                            // Only add projects with supported TFMs
+                            if (IsSupportedTfm(targetFramework))
                             {
-                                ProjectFile = project,
-                                TargetFramework = targetFramework
-                            });
+                                executableProjects.Add(new ExecutableProjectInfo
+                                {
+                                    ProjectFile = project,
+                                    TargetFramework = targetFramework
+                                });
+                            }
                         }
                     }
                 }
@@ -502,6 +506,22 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         initContext.ExecutableProjects = executableProjects;
+    }
+
+    /// <summary>
+    /// Determines if the specified target framework moniker is supported.
+    /// </summary>
+    /// <param name="tfm">The target framework moniker to check.</param>
+    /// <returns>True if the TFM is supported; otherwise, false.</returns>
+    private static bool IsSupportedTfm(string tfm)
+    {
+        return tfm switch
+        {
+            "net8.0" => true,
+            "net9.0" => true,
+            "net10.0" => true,
+            _ => false
+        };
     }
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -644,8 +664,8 @@ internal sealed class InitContext
                 return "net9.0"; // Default framework if no projects selected
             }
 
-            // Parse and compare TFMs to find the highest one
-            var highestVersion = 0.0;
+            // Parse and compare TFMs to find the highest one using SemVersion
+            SemVersion? highestVersion = null;
             var highestTfm = "net9.0";
 
             foreach (var project in ExecutableProjectsToAddToAppHost)
@@ -654,9 +674,17 @@ internal sealed class InitContext
                 if (tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
                 {
                     var versionString = tfm.Substring(3);
-                    if (double.TryParse(versionString, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var version))
+                    // Add patch version if not present for SemVersion parsing
+                    // TFMs are in format "8.0", "9.0", "10.0", need to make them "8.0.0", "9.0.0", "10.0.0"
+                    var dotCount = versionString.Count(c => c == '.');
+                    if (dotCount == 1)
                     {
-                        if (version > highestVersion)
+                        versionString += ".0";
+                    }
+                    
+                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var version))
+                    {
+                        if (highestVersion is null || SemVersion.ComparePrecedence(version, highestVersion) > 0)
                         {
                             highestVersion = version;
                             highestTfm = tfm;
