@@ -478,6 +478,12 @@ internal sealed class AzureDeployingContext(
                 {
                     return $"https://aspire-dashboard.ext.{domainValue}";
                 }
+                // If the resource is a compute environment (app service), we can use its properties
+                // to get the dashboard URL.
+                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_APP_SERVICE_DASHBOARD_URI", out var dashboardUri))
+                {
+                    return (string?)dashboardUri;
+                }
             }
         }
 
