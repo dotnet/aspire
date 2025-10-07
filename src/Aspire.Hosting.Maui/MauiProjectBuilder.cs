@@ -300,10 +300,10 @@ public sealed class MauiProjectBuilder
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
 
-        // // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
-        // // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
-        // // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
-        // builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
+        // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
+        // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
+        // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
+        builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
 
         // Determine if the requested platform is supported on the current host OS.
         var isWindows = OperatingSystem.IsWindows();
