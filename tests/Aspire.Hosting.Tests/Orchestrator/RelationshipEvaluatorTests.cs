@@ -44,6 +44,97 @@ public class RelationshipEvaluatorTests
         Assert.Empty(parentChildLookup[grandChildWithAnnotationsResource.Resource]);
     }
 
+    [Fact]
+    public void WithChildRelationshipUsingResourceBuilderCreatesCorrectParentChildLookup()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddContainer("parent", "image");
+        var child1Resource = builder.AddContainer("child1", "image");
+        var child2Resource = builder.AddContainer("child2", "image");
+
+        parentResource.WithChildRelationship(child1Resource)
+                     .WithChildRelationship(child2Resource);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parentChildLookup = RelationshipEvaluator.GetParentChildLookup(appModel);
+        Assert.Equal(1, parentChildLookup.Count);
+
+        Assert.Collection(parentChildLookup[parentResource.Resource],
+            x => Assert.Equal(child1Resource.Resource, x),
+            x => Assert.Equal(child2Resource.Resource, x));
+    }
+
+    [Fact]
+    public void WithChildRelationshipUsingResourceCreatesCorrectParentChildLookup()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddContainer("parent", "image");
+        var child1Resource = builder.AddContainer("child1", "image");
+        var child2Resource = builder.AddContainer("child2", "image");
+
+        parentResource.WithChildRelationship(child1Resource.Resource)
+                     .WithChildRelationship(child2Resource.Resource);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parentChildLookup = RelationshipEvaluator.GetParentChildLookup(appModel);
+        Assert.Equal(1, parentChildLookup.Count);
+
+        Assert.Collection(parentChildLookup[parentResource.Resource],
+            x => Assert.Equal(child1Resource.Resource, x),
+            x => Assert.Equal(child2Resource.Resource, x));
+    }
+
+    [Fact]
+    public void WithChildRelationshipAndWithParentRelationshipWorkTogether()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var parentResource = builder.AddContainer("parent", "image");
+        var child1Resource = builder.AddContainer("child1", "image");
+        var child2Resource = builder.AddContainer("child2", "image")
+            .WithParentRelationship(parentResource);
+
+        parentResource.WithChildRelationship(child1Resource);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parentChildLookup = RelationshipEvaluator.GetParentChildLookup(appModel);
+        Assert.Equal(1, parentChildLookup.Count);
+
+        Assert.Collection(parentChildLookup[parentResource.Resource],
+            x => Assert.Equal(child1Resource.Resource, x),
+            x => Assert.Equal(child2Resource.Resource, x));
+    }
+
+    [Fact]
+    public void WithChildRelationshipHandlesNestedRelationships()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var grandParentResource = builder.AddContainer("grandparent", "image");
+        var parentResource = builder.AddContainer("parent", "image");
+        var childResource = builder.AddContainer("child", "image");
+
+        grandParentResource.WithChildRelationship(parentResource);
+        parentResource.WithChildRelationship(childResource);
+
+        using var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parentChildLookup = RelationshipEvaluator.GetParentChildLookup(appModel);
+        Assert.Equal(2, parentChildLookup.Count);
+
+        Assert.Single(parentChildLookup[grandParentResource.Resource], parentResource.Resource);
+        Assert.Single(parentChildLookup[parentResource.Resource], childResource.Resource);
+    }
+
     private sealed class CustomChildResource(string name, IResource parent) : Resource(name), IResourceWithParent
     {
         public IResource Parent => parent;

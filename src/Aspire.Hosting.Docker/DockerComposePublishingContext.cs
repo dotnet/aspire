@@ -87,6 +87,27 @@ internal sealed class DockerComposePublishingContext(
                     containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
+                // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 var composeService = serviceResource.BuildComposeService();
 
                 HandleComposeFileVolumes(serviceResource, composeFile);

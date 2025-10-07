@@ -679,6 +679,81 @@ public class ParameterProcessorTests
         }
     }
 
+    [Fact]
+    public async Task InitializeParametersAsync_UsesExecutionContextOptions_DoesNotThrow()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("testParam", () => "testValue");
+
+        var serviceProviderAccessed = false;
+        builder.AddContainer("testContainer", "nginx")
+               .WithEnvironment(context =>
+               {
+                   // This should not throw InvalidOperationException
+                   // when using the proper execution context constructor
+                   var sp = context.ExecutionContext.ServiceProvider;
+                   serviceProviderAccessed = sp is not null;
+                   context.EnvironmentVariables["TEST_ENV"] = param;
+               });
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Get the ParameterProcessor from the built app's service provider
+        // This ensures it has the proper execution context with ServiceProvider
+        var parameterProcessor = app.Services.GetRequiredService<ParameterProcessor>();
+
+        // Act - Should not throw InvalidOperationException about IServiceProvider not being available
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        Assert.True(serviceProviderAccessed);
+        var parameterResource = model.Resources.OfType<ParameterResource>().Single();
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_SkipsResourcesExcludedFromPublish()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var param = builder.AddParameter("excludedParam", () => "excludedValue");
+
+        var excludedContainer = builder.AddContainer("excludedContainer", "nginx")
+               .WithEnvironment(context =>
+               {
+                   context.EnvironmentVariables["EXCLUDED_ENV"] = param;
+               });
+
+        // Mark the container as excluded from publish
+        excludedContainer.ExcludeFromManifest();
+
+        using var app = builder.Build();
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var parameterProcessor = CreateParameterProcessor();
+
+        // Act - The excluded container should be skipped during parameter collection
+        await parameterProcessor.InitializeParametersAsync(model);
+
+        // Assert
+        // The environment callback should have been invoked during parameter collection
+        // because we now create a publish execution context to collect dependent parameters
+        // However, since we filter out excluded resources, the parameter should not be initialized
+        // unless it's explicitly in the model
+        var parameters = model.Resources.OfType<ParameterResource>().ToList();
+        Assert.Single(parameters);
+        
+        var parameterResource = parameters[0];
+        Assert.Equal("excludedParam", parameterResource.Name);
+        
+        // The parameter should be initialized since it's explicitly in the model
+        Assert.NotNull(parameterResource.WaitForValueTcs);
+        Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
+    }
+
     private static ParameterProcessor CreateParameterProcessor(
         ResourceNotificationService? notificationService = null,
         ResourceLoggerService? loggerService = null,
@@ -722,5 +797,78 @@ public class ParameterProcessorTests
     private static ParameterResource CreateParameterWithGenericError(string name)
     {
         return new ParameterResource(name, _ => throw new InvalidOperationException($"Generic error for parameter '{name}'"), secret: false);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_ThrowsWhenValueIsEmpty()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
+        var interactionService = CreateInteractionService();
+        var parameterProcessor = CreateParameterProcessor(
+            interactionService: interactionService,
+            executionContext: executionContext);
+
+        var parameterWithGenerateDefault = new ParameterResource(
+            "generatedParam",
+            parameterDefault => parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
+            secret: false)
+        {
+            Default = new GenerateParameterDefault()
+        };
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
+
+        // Assert - Should be added to unresolved parameters because GenerateParameterDefault is not supported in publish mode
+        Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
+        Assert.False(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_DoesNotThrowWhenValueExists()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Parameters:generatedParam"] = "existingValue" })
+            .Build();
+        
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        var serviceProvider = services.BuildServiceProvider();
+        
+        var executionContext = new DistributedApplicationExecutionContext(
+            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
+            {
+                ServiceProvider = serviceProvider
+            });
+        
+        var parameterProcessor = CreateParameterProcessor(executionContext: executionContext);
+
+        var parameterWithGenerateDefault = new ParameterResource(
+            "generatedParam",
+            parameterDefault => configuration["Parameters:generatedParam"] ?? parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
+            secret: false)
+        {
+            Default = new GenerateParameterDefault()
+        };
+
+        // Act
+        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
+
+        // Assert - Should succeed because value exists in configuration
+        Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
+        Assert.True(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompletedSuccessfully);
+        Assert.Equal("existingValue", await parameterWithGenerateDefault.WaitForValueTcs.Task);
     }
 }

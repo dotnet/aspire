@@ -154,6 +154,11 @@ public sealed class InteractionInput
     public string? Placeholder { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
+    /// </summary>
+    public bool AllowCustomChoice { get; init; }
+
+    /// <summary>
     /// gets or sets the maximum length for text inputs.
     /// </summary>
     public int? MaxLength

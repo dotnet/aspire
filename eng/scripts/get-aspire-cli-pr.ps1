@@ -702,6 +702,54 @@ function Get-PRHeadSHA {
     return $headSha.Trim()
 }
 
+# Function to extract version suffix from downloaded NuGet packages
+function Get-VersionSuffixFromPackages {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadDir
+    )
+    
+    if ($PSCmdlet.ShouldProcess("packages", "Extract version suffix from packages") -and $WhatIfPreference) {
+        # Return a mock version for WhatIf
+        return "pr.1234.a1b2c3d4"
+    }
+    
+    # Look for any .nupkg file and extract version from its name
+    $nupkgFiles = Get-ChildItem -Path $DownloadDir -Filter "*.nupkg" -Recurse | Select-Object -First 1
+    
+    if (-not $nupkgFiles) {
+        Write-Message "No .nupkg files found to extract version from" -Level Verbose
+        throw "No NuGet packages found to extract version information from"
+    }
+    
+    $filename = $nupkgFiles.Name
+    Write-Message "Extracting version from package: $filename" -Level Verbose
+    
+    # Extract version from package name using a more robust approach
+    # Remove .nupkg extension first, then look for the specific version pattern
+    $baseName = $filename -replace '\.nupkg$', ''
+    
+    # Look for semantic version pattern with PR suffix (more specific and robust)
+    if ($baseName -match '.*\.(\d+\.\d+\.\d+-pr\.\d+\.[0-9a-g]+)$') {
+        $version = $Matches[1]
+        Write-Message "Extracted version: $version" -Level Verbose
+        
+        # Extract just the PR suffix part using more specific regex
+        if ($version -match '(pr\.[0-9]+\.[0-9a-g]+)') {
+            $versionSuffix = $Matches[1]
+            Write-Message "Extracted version suffix: $versionSuffix" -Level Verbose
+            return $versionSuffix
+        } else {
+            Write-Message "Package version does not contain PR suffix: $version" -Level Verbose
+            throw "Package version does not contain expected PR suffix format"
+        }
+    } else {
+        Write-Message "Could not extract version from package name: $filename" -Level Verbose
+        throw "Could not extract version from package name: $filename"
+    }
+}
+
 # Function to find workflow run for SHA
 function Find-WorkflowRun {
     [CmdletBinding()]
@@ -712,7 +760,7 @@ function Find-WorkflowRun {
 
     Write-Message "Finding ci.yml workflow run for SHA: $HeadSHA" -Level Verbose
 
-    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | sort_by(.created_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
+    $runId = Invoke-GitHubAPICall -Endpoint "$Script:GHReposBase/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$HeadSHA" -JqFilter ".workflow_runs | sort_by(.created_at, .updated_at) | reverse | .[0].id" -ErrorMessage "Failed to query workflow runs for SHA: $HeadSHA"
 
     if ([string]::IsNullOrWhiteSpace($runId) -or $runId -eq "null") {
         throw "No ci.yml workflow run found for PR SHA: $HeadSHA. This could mean no workflow has been triggered for this SHA $HeadSHA . Check at https://github.com/dotnet/aspire/actions/workflows/ci.yml"
@@ -1010,6 +1058,15 @@ function Start-DownloadAndInstall {
         $cliDownloadDir = Get-AspireCliFromArtifact -RunId $runId -RID $rid -TempDir $TempDir
     }
     $nugetDownloadDir = Get-BuiltNugets -RunId $runId -RID $rid -TempDir $TempDir
+
+    # Extract and print the version suffix from downloaded packages
+    try {
+        $versionSuffix = Get-VersionSuffixFromPackages -DownloadDir $nugetDownloadDir
+        Write-Message "Package version suffix: $versionSuffix" -Level Info
+    }
+    catch {
+        Write-Message "Could not extract version suffix from downloaded packages: $($_.Exception.Message)" -Level Warning
+    }
 
     # Download VS Code extension if not skipped
     $extensionDownloadDir = $null

@@ -18,6 +18,7 @@ public sealed class DashboardOptions
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
+    public AIOptions AI { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -84,6 +85,12 @@ public sealed class OtlpOptions
     public string? HttpEndpointUrl { get; set; }
 
     public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to suppress the unsecured telemetry message in the dashboard UI.
+    /// When true, the warning message about unsecured OTLP endpoints will not be displayed.
+    /// </summary>
+    public bool SuppressUnsecuredTelemetryMessage { get; set; }
 
     public BindingAddress? GetGrpcEndpointAddress()
     {
@@ -305,6 +312,11 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class AIOptions
+{
+    public bool? Disabled { get; set; }
 }
 
 public sealed class DebugSessionOptions

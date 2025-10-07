@@ -20,9 +20,9 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkVersion = "9.0.302";
 
     /// <summary>
-    /// The minimum .NET SDK version required for Aspire when single-file apphost is enabled.
+    /// The minimum .NET SDK version required for Aspire when .NET 10 features are enabled.
     /// </summary>
-    public const string MinimumSdkVersionSingleFileAppHost = "10.0.100";
+    public const string MinimumSdkNet10SdkVersion = "10.0.100";
 
     /// <inheritdoc />
     public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
@@ -90,7 +90,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                         }
 
                         // Check if this version meets the minimum requirement
-                        if (SemVersion.ComparePrecedence(sdkVersion, minVersion) >= 0)
+                        if (MeetsMinimumRequirement(sdkVersion, minVersion, minimumVersion))
                         {
                             meetsMinimum = true;
                         }
@@ -143,13 +143,35 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             return overrideVersion;
         }
-        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        else if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false) ||
+                 features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, false))
         {
-            return MinimumSdkVersionSingleFileAppHost;
+            return MinimumSdkNet10SdkVersion;
         }
         else
         {
             return MinimumSdkVersion;
         }
+    }
+
+    /// <summary>
+    /// Checks if an installed SDK version meets the minimum requirement.
+    /// For .NET 10.x requirements, allows any .NET 10.x version including prereleases.
+    /// </summary>
+    /// <param name="installedVersion">The installed SDK version.</param>
+    /// <param name="requiredVersion">The required minimum version (parsed).</param>
+    /// <param name="requiredVersionString">The required version string.</param>
+    /// <returns>True if the installed version meets the requirement.</returns>
+    private static bool MeetsMinimumRequirement(SemVersion installedVersion, SemVersion requiredVersion, string requiredVersionString)
+    {
+        // Special handling for .NET 10.0.100 requirement - allow any .NET 10.x version
+        if (requiredVersionString == MinimumSdkNet10SdkVersion)
+        {
+            // If we require 10.0.100, accept any version that is >= 10.0.0
+            return installedVersion.Major >= 10;
+        }
+
+        // For all other requirements, use strict version comparison
+        return SemVersion.ComparePrecedence(installedVersion, requiredVersion) >= 0;
     }
 }

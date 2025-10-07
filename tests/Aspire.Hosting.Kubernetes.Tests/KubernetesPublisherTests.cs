@@ -183,11 +183,13 @@ public class KubernetesPublisherTests()
         var param0 = builder.AddParameter("param0");
         var param1 = builder.AddParameter("param1", secret: true);
         var cs = builder.AddConnectionString("api-cs", ReferenceExpression.Create($"Url={param0}, Secret={param1}"));
+        var csPlain = builder.AddConnectionString("api-cs2", ReferenceExpression.Create($"host.local:80"));
 
         var param3 = builder.AddResource(ParameterResourceBuilderExtensions.CreateDefaultPasswordParameter(builder, "param3"));
         builder.AddProject<TestProject>("SpeciaL-ApP", launchProfileName: null)
             .WithEnvironment("param3", param3)
-            .WithReference(cs);
+            .WithReference(cs)
+            .WithReference(csPlain);
 
         var app = builder.Build();
 
@@ -276,6 +278,29 @@ public class KubernetesPublisherTests()
         }
 
         await settingsTask;
+    }
+
+    [Fact]
+    public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, "default", outputPath: tempDir.Path);
+
+        builder.AddKubernetesEnvironment("env");
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for kubernetes'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithDockerfile(".", context => dockerfileContent);
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify Dockerfile was written to resource-specific path
+        var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+        var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+        
+        await Verify(actualContent);
     }
 
     private sealed class KedaScaledObject() : BaseKubernetesResource("keda.sh/v1alpha1", "ScaledObject")

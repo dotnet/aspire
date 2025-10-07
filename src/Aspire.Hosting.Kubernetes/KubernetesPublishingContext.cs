@@ -71,6 +71,27 @@ internal sealed class KubernetesPublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation(environment)?.DeploymentTarget is KubernetesResource serviceResource)
             {
+                // Materialize Dockerfile factory if present
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 if (serviceResource.TargetResource.TryGetAnnotationsOfType<KubernetesServiceCustomizationAnnotation>(out var annotations))
                 {
                     foreach (var a in annotations)
@@ -115,7 +136,7 @@ internal sealed class KubernetesPublishingContext(
             }
 
             string? value;
-            
+
             // If there's a parameter source, resolve its value asynchronously
             if (helmExpressionWithValue.ParameterSource is ParameterResource parameter)
             {
@@ -126,7 +147,7 @@ internal sealed class KubernetesPublishingContext(
                 value = helmExpressionWithValue.Value;
             }
 
-            paramValues[key] = value ?? string.Empty;
+            paramValues[key.ToHelmValuesSectionName()] = value ?? string.Empty;
         }
 
         if (paramValues.Count > 0)

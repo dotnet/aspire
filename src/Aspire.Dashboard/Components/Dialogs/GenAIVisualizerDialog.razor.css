@@ -141,6 +141,8 @@
     row-gap: 12px;
     /* don't stretch images */
     align-items: flex-start;
+    /* break up long words that take up the entire line. avoid horizontal scrollbars */
+    word-break: break-word;
 }
 
 ::deep .tab-container img {
@@ -187,6 +189,15 @@
     font-size: 12px;
 }
 
+::deep .display-error-message {
+    color: var(--error);
+}
+
+::deep .display-error-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 ::deep .no-message-content-content {
     color: var(--foreground-subtext-rest);
     font-size: 12px;
@@ -197,4 +208,8 @@
     margin-left: auto;
     margin-top: 4px;
     margin-right: 4px;
+}
+
+::deep .markdown-container {
+    width: 100%;
 }

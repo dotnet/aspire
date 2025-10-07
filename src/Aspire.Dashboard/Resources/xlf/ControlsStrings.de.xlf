@@ -344,7 +344,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Aufzeichnung angehalten</target>
+        <target state="translated">Erfassung angehalten</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -524,7 +524,7 @@
       </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
-        <target state="new">Cloud</target>
+        <target state="translated">Cloud</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">

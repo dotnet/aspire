@@ -15,7 +15,7 @@ public static class DockerComposeEnvironmentExtensions
 {
     internal static IDistributedApplicationBuilder AddDockerComposeInfrastructureCore(this IDistributedApplicationBuilder builder)
     {
-        builder.Services.TryAddLifecycleHook<DockerComposeInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<DockerComposeInfrastructure>();
 
         return builder;
     }

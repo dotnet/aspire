@@ -55,12 +55,12 @@ internal sealed class DevTunnelLoginManager(
                     _logger.LogDebug("Prompting user to login to dev tunnel service");
                     var result = await _interactionService.PromptNotificationAsync(
                         "Dev tunnels",
-                        $"Dev tunnels requires authentication to continue:",
+                        Resources.MessageStrings.AuthenticationRequiredNotification,
                         new()
                         {
                             Intent = MessageIntent.Warning,
-                            PrimaryButtonText = "Login with Microsoft",
-                            SecondaryButtonText = "Login with GitHub",
+                            PrimaryButtonText = Resources.MessageStrings.LoginWithMicrosoft,
+                            SecondaryButtonText = Resources.MessageStrings.LoginWithGitHub,
                             ShowSecondaryButton = true,
                             ShowDismiss = false
                         },

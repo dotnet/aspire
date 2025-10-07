@@ -20,6 +20,17 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 {
     public IEnumerable<ITemplate> GetTemplates()
     {
+        var showAllTemplates = features.IsFeatureEnabled(KnownFeatures.ShowAllTemplates, false);
+        return GetTemplatesCore(showAllTemplates);
+    }
+
+    public IEnumerable<ITemplate> GetAllTemplates()
+    {
+        return GetTemplatesCore(showAllTemplates: true);
+    }
+
+    private IEnumerable<ITemplate> GetTemplatesCore(bool showAllTemplates)
+    {
         yield return new CallbackTemplate(
             "aspire-starter",
             TemplatingStrings.AspireStarter_Description,
@@ -36,32 +47,35 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
-        yield return new CallbackTemplate(
-            "aspire-apphost",
-            TemplatingStrings.AspireAppHost_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
+        if (showAllTemplates)
+        {
+            yield return new CallbackTemplate(
+                "aspire-apphost",
+                TemplatingStrings.AspireAppHost_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
 
-        yield return new CallbackTemplate(
-            "aspire-servicedefaults",
-            TemplatingStrings.AspireServiceDefaults_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
+            yield return new CallbackTemplate(
+                "aspire-servicedefaults",
+                TemplatingStrings.AspireServiceDefaults_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+        }
 
         // Single-file AppHost template (gated by feature flag). This template only exists in the pack
         // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             yield return new CallbackTemplate(
                 "aspire-apphost-singlefile",
                 TemplatingStrings.AspireAppHostSingleFile_Description,
                 projectName => $"./{projectName}",
                 _ => { },
-                ApplyTemplateWithNoExtraArgsAsync
+                ApplySingleFileTemplate
                 );
         }
 
@@ -94,21 +108,24 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         // Prepends a test framework selection step then calls the
         // underlying test template.
-        yield return new CallbackTemplate(
-            "aspire-test",
-            TemplatingStrings.IntegrationTestsTemplate_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            async (template, parseResult, ct) =>
-            {
-                var testTemplate = await prompter.PromptForTemplateAsync(
-                    [msTestTemplate, xunitTemplate, nunitTemplate],
-                    ct
-                );
+        if (showAllTemplates)
+        {
+            yield return new CallbackTemplate(
+                "aspire-test",
+                TemplatingStrings.IntegrationTestsTemplate_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                async (template, parseResult, ct) =>
+                {
+                    var testTemplate = await prompter.PromptForTemplateAsync(
+                        [msTestTemplate, xunitTemplate, nunitTemplate],
+                        ct
+                    );
 
-                var testCallbackTemplate = (CallbackTemplate)testTemplate;
-                return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
-            });
+                    var testCallbackTemplate = (CallbackTemplate)testTemplate;
+                    return await testCallbackTemplate.ApplyTemplateAsync(parseResult, ct);
+                });
+        }
     }
 
     private async Task<string[]> PromptForExtraAspireStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
@@ -228,13 +245,42 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        if (parseResult.CommandResult.Command is InitCommand)
+        {
+            return await ApplyTemplateAsync(
+                template,
+                executionContext.WorkingDirectory.Name,
+                executionContext.WorkingDirectory.FullName,
+                parseResult,
+                (_, _) => Task.FromResult(Array.Empty<string>()),
+                cancellationToken
+                );
+        }
+        else
+        {
+            return await ApplyTemplateAsync(
+                template,
+                parseResult,
+                (_, _) => Task.FromResult(Array.Empty<string>()),
+                cancellationToken
+                );
+        }
+    }
+
     private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
+    {
+        var name = await GetProjectNameAsync(parseResult, cancellationToken);
+        var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
+
+        return await ApplyTemplateAsync(template, name, outputPath, parseResult, extraArgsCallback, cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplyTemplateAsync(CallbackTemplate template, string name, string outputPath, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         try
         {
-            var name = await GetProjectNameAsync(parseResult, cancellationToken);
-            var outputPath = await GetOutputPathAsync(parseResult, template.PathDeriver, name, cancellationToken);
-
             var source = parseResult.GetValue<string?>("--source");
             var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken: cancellationToken);
 
@@ -396,9 +442,11 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         if (parseResult.GetValue<string>("--version") is { } version)
         {
-            var explicitPacakgeFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
             var explicitPackageFromChannel = orderedPackagesFromChannels.FirstOrDefault(p => p.Package.Version == version);
-            return explicitPackageFromChannel;
+            if (explicitPackageFromChannel.Package is not null)
+            {
+                return explicitPackageFromChannel;
+            }
         }
 
         var selectedPackageFromChannel = await prompter.PromptForTemplatesVersionAsync(orderedPackagesFromChannels, cancellationToken);
@@ -436,7 +484,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         {
             // For subdirectory creation, always create/update NuGet.config in the output directory only
             // and ignore any existing NuGet.config in the working directory
-            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
             interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
             return;
         }
@@ -457,7 +505,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel);
+                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
                 interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
             }
         }
@@ -471,7 +519,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
             if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
             {
-                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel);
+                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel, cancellationToken: cancellationToken);
                 interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
             }
         }

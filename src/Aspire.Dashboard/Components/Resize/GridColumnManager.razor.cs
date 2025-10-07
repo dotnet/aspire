@@ -9,6 +9,8 @@ namespace Aspire.Dashboard.Components.Resize;
 
 public partial class GridColumnManager : ComponentBase, IDisposable
 {
+    private const int AISidebarWidth = 480;
+
     private Dictionary<string, GridColumn> _columnById = null!;
     private float _availableFraction = 1;
     private ViewportInformation? _gridViewportInformation;
@@ -26,40 +28,55 @@ public partial class GridColumnManager : ComponentBase, IDisposable
 
     protected override void OnInitialized()
     {
-        DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;
         _columnById = Columns.ToDictionary(c => c.Name, StringComparers.GridColumn);
+
+        DimensionManager.OnViewportSizeChanged += OnViewportSizeChanged;
+
+        // There should be a viewport size when this component is created.
+        // To be safe, double check there is data available before accessing the properties.
+        if (DimensionManager.HasViewportSize)
+        {
+            SetViewportInformation(DimensionManager.ViewportSize, DimensionManager.IsAISidebarOpen);
+        }
     }
 
     private void OnViewportSizeChanged(object sender, ViewportSizeChangedEventArgs e)
     {
-        SetViewportInformation(e.ViewportSize);
+        SetViewportInformation(e.ViewportSize, e.IsAISidebarOpen);
     }
 
-    private void SetViewportInformation(ViewportSize viewportSize)
+    private void SetViewportInformation(ViewportSize viewportSize, bool isAISidebarOpen)
     {
-        if (_availableFraction == 1)
+        ViewportInformation? newViewportInformation;
+        if (_availableFraction == 1 && !isAISidebarOpen)
         {
-            _gridViewportInformation = null;
+            newViewportInformation = null;
         }
         else
         {
-            var calculatedViewportSize = new ViewportSize(
-                Convert.ToInt32(viewportSize.Width * _availableFraction),
-                viewportSize.Height);
-            var newViewportInformation = ViewportInformation.GetViewportInformation(calculatedViewportSize);
-
-            if (_gridViewportInformation != newViewportInformation)
+            var calculatedWidth = Convert.ToInt32(viewportSize.Width * _availableFraction);
+            if (isAISidebarOpen)
             {
-                _gridViewportInformation = newViewportInformation;
-                _ = InvokeAsync(StateHasChanged);
+                calculatedWidth -= AISidebarWidth;
             }
+
+            var calculatedViewportSize = new ViewportSize(
+                Math.Max(calculatedWidth, 0),
+                viewportSize.Height);
+            newViewportInformation = ViewportInformation.GetViewportInformation(calculatedViewportSize);
+        }
+
+        if (_gridViewportInformation != newViewportInformation)
+        {
+            _gridViewportInformation = newViewportInformation;
+            _ = InvokeAsync(StateHasChanged);
         }
     }
 
     public void SetWidthFraction(float fraction)
     {
         _availableFraction = fraction;
-        SetViewportInformation(DimensionManager.ViewportSize);
+        SetViewportInformation(DimensionManager.ViewportSize, DimensionManager.IsAISidebarOpen);
     }
 
     /// <summary>
@@ -112,4 +129,3 @@ public partial class GridColumnManager : ComponentBase, IDisposable
         DimensionManager.OnViewportSizeChanged -= OnViewportSizeChanged;
     }
 }
-

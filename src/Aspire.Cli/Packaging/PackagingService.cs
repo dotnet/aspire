@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Configuration;
 using Aspire.Cli.NuGet;
+using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace Aspire.Cli.Packaging;
 
@@ -10,7 +13,7 @@ internal interface IPackagingService
     public Task<IEnumerable<PackageChannel>> GetChannelsAsync(CancellationToken cancellationToken = default);
 }
 
-internal class PackagingService(CliExecutionContext executionContext, INuGetPackageCache nuGetPackageCache) : IPackagingService
+internal class PackagingService(CliExecutionContext executionContext, INuGetPackageCache nuGetPackageCache, IFeatures features, IConfiguration configuration) : IPackagingService
 {
     public Task<IEnumerable<PackageChannel>> GetChannelsAsync(CancellationToken cancellationToken = default)
     {
@@ -24,7 +27,6 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Prerelease, new[]
         {
             new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
-            new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
         }, nuGetPackageCache);
 
@@ -42,7 +44,6 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
                 var prChannel = PackageChannel.CreateExplicitChannel(prHive.Name, PackageChannelQuality.Prerelease, new[]
                 {
                     new PackageMapping("Aspire*", prHive.FullName),
-                    new PackageMapping("Microsoft.Extensions.ServiceDiscovery*", prHive.FullName),
                     new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
                 }, nuGetPackageCache);
 
@@ -52,6 +53,66 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
 
         var channels = new List<PackageChannel>([defaultChannel, stableChannel, dailyChannel, ..prPackageChannels]);
 
+        // Add staging channel if feature is enabled
+        if (features.IsFeatureEnabled(KnownFeatures.StagingChannelEnabled, false))
+        {
+            var stagingChannel = CreateStagingChannel();
+            if (stagingChannel is not null)
+            {
+                channels.Add(stagingChannel);
+            }
+        }
+
         return Task.FromResult<IEnumerable<PackageChannel>>(channels);
+    }
+
+    private PackageChannel? CreateStagingChannel()
+    {
+        var commitHash = GetCommitHashForStagingChannel();
+        if (commitHash is null)
+        {
+            return null;
+        }
+
+        var stagingFeedUrl = $"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{commitHash}/nuget/v3/index.json";
+
+        var stagingChannel = PackageChannel.CreateExplicitChannel("staging", PackageChannelQuality.Stable, new[]
+        {
+            new PackageMapping("Aspire*", stagingFeedUrl),
+            new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
+        }, nuGetPackageCache, configureGlobalPackagesFolder: true);
+
+        return stagingChannel;
+    }
+
+    private string? GetCommitHashForStagingChannel()
+    {
+        // Check for test override first
+        var overrideHash = configuration["overrideStagingHash"];
+        if (!string.IsNullOrEmpty(overrideHash))
+        {
+            return overrideHash.Length >= 8 ? overrideHash[..8] : overrideHash;
+        }
+
+        // Extract from assembly version
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttributes(typeof(AssemblyInformationalVersionAttribute), false)
+            .OfType<AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion;
+
+        if (informationalVersion is null)
+        {
+            return null;
+        }
+
+        var plusIndex = informationalVersion.IndexOf('+');
+        if (plusIndex < 0 || plusIndex + 1 >= informationalVersion.Length)
+        {
+            return null;
+        }
+
+        var commitHash = informationalVersion[(plusIndex + 1)..];
+        return commitHash.Length >= 8 ? commitHash[..8] : commitHash;
     }
 }

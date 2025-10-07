@@ -7,12 +7,13 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
+internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
 {
     public string Name { get; } = name;
     public PackageChannelQuality Quality { get; } = quality;
     public PackageMapping[]? Mappings { get; } = mappings;
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
+    public bool ConfigureGlobalPackagesFolder { get; } = configureGlobalPackagesFolder;
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
@@ -150,9 +151,9 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         return filteredPackages;
     }
 
-    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache)
+    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
     {
-        return new PackageChannel(name, quality, mappings, nuGetPackageCache);
+        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder);
     }
 
     public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)

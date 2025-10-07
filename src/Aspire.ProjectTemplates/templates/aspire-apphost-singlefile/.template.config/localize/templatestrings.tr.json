@@ -1,16 +1,18 @@
-{
+﻿{
   "author": "Microsoft",
-  "name": "Aspire Single-File App Host",
-  "description": "A minimal Aspire AppHost for single-file scenarios (Aspire 9.5+, .NET 10+).",
-  "symbols/Framework/choices/net10.0/description": "Target net10.0",
-  "symbols/AspireVersionCli/description": "Aspire version",
+  "name": "Aspire Tek Dosya Uygulama Ana İşlemi",
+  "description": "Tek dosya senaryoları için minimal Aspire Uygulama Ana İşlemi (Aspire 9.5+, .NET 10+).",
+  "symbols/Framework/choices/net10.0/description": "Hedef net10.0",
+  "symbols/AspireVersionCli/description": "Aspire sürümü",
+  "symbols/AspireVersionCli/choices/13.0/displayName": "13.0",
+  "symbols/AspireVersionCli/choices/13.0/description": "Aspire 13.0",
   "symbols/AspireVersionCli/choices/9.5/displayName": "9.5",
   "symbols/AspireVersionCli/choices/9.5/description": "Aspire 9.5",
-  "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the AppHost project. This option is only applicable when the parameter no-https is not used.",
-  "symbols/appHostOtlpHttpsPort/description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostResourceHttpsPort/description": "Port number to use for the resource service HTTPS endpoint in launchSettings.json of the AppHost project.",
-  "symbols/NoHttps/description": "Whether to turn off HTTPS."
+  "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostOtlpHttpPort/description": "AppHost projesinin OTLP HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostResourceHttpPort/description": "AppHost projesinin kaynak hizmeti HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostHttpsPort/description": "AppHost projesinin HTTPS uç noktası launchSettings.json bağlantı noktası numarası. Bu seçenek yalnızca no-https parametresi kullanılmadığında uygulanabilir.",
+  "symbols/appHostOtlpHttpsPort/description": "AppHost projesinin OTLP HTTPS uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostResourceHttpsPort/description": "AppHost projesinin kaynak hizmeti HTTPS uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/NoHttps/description": "HTTPS'nin kapatılıp kapatılmayacağı."
 }

@@ -4,6 +4,7 @@
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure;
 using Azure.Identity;
 using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
@@ -13,24 +14,14 @@ using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Polly;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting;
 
 /// <summary>
 /// Extension methods for adding Kusto resources to the application model.
 /// </summary>
 public static class AzureKustoBuilderExtensions
 {
-    private static readonly ResiliencePipeline s_pipeline = new ResiliencePipelineBuilder()
-        .AddRetry(new()
-        {
-            MaxRetryAttempts = 3,
-            Delay = TimeSpan.FromSeconds(2),
-            ShouldHandle = new PredicateBuilder().Handle<KustoRequestThrottledException>(),
-        })
-        .Build();
-
     /// <summary>
     /// Adds an Azure Data Explorer (Kusto) cluster resource to the application model.
     /// </summary>
@@ -71,7 +62,7 @@ public static class AzureKustoBuilderExtensions
                     // Basic cluster configuration - can be enhanced in the future
                     Sku = new KustoSku()
                     {
-                        Name = KustoSkuName.StandardD11V2,
+                        Name = KustoSkuName.StandardE2aV4,
                         Tier = KustoSkuTier.Standard,
                         Capacity = 2
                     },
@@ -182,8 +173,7 @@ public static class AzureKustoBuilderExtensions
                 Image = AzureKustoEmulatorContainerImageTags.Image,
                 Tag = AzureKustoEmulatorContainerImageTags.Tag
             })
-            .WithEnvironment("ACCEPT_EULA", "Y")
-            .WithContainerRuntimeArgs("--memory", "4G");
+            .WithEnvironment("ACCEPT_EULA", "Y");
 
         configureContainer?.Invoke(surrogateBuilder);
 
@@ -293,7 +283,7 @@ public static class AzureKustoBuilderExtensions
 
         try
         {
-            await s_pipeline.ExecuteAsync(async cancellationToken => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+            await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(async ct => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Database '{DatabaseName}' created successfully", databaseResource.DatabaseName);
         }
         catch (KustoBadRequestException e) when (e.Message.Contains("EntityNameAlreadyExistsException"))

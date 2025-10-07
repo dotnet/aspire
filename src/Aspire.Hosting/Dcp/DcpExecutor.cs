@@ -963,21 +963,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             exe.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, exeInstance.Suffix);
             exe.Annotate(CustomResource.ResourceNameAnnotation, executable.Name);
 
+            var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
+
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || GetDebugSupportedResourceTypes()?.Contains(supportsDebuggingAnnotation.RequiredExtensionId) is true))
+                && (supportsDebuggingAnnotation.RequiredExtensionId is null || supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
-                var projectLaunchConfiguration = new ProjectLaunchConfiguration();
-                projectLaunchConfiguration.Type = supportsDebuggingAnnotation.DebugAdapterId;
-                projectLaunchConfiguration.ProjectPath = supportsDebuggingAnnotation.ProjectPath;
-
-                if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
-                {
-                    projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
-                }
-
-                exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
+                supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);
             }
             else
             {
@@ -1027,15 +1020,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var projectArgs = new List<string>();
 
                 // We cannot use the IDE execution type if the Aspire extension does not support c# projects
-                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && GetDebugSupportedResourceTypes()?.Contains("project") is not false)
+                var supportedLaunchConfigurations = GetSupportedLaunchConfigurations();
+                if (!string.IsNullOrEmpty(_configuration[DebugSessionPortVar]) && (supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains("project")))
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.IDE;
-
-                    if (_configuration[KnownConfigNames.ExtensionDebugRunMode] is ProjectLaunchMode.Debug)
-                    {
-                        projectLaunchConfiguration.Mode = ProjectLaunchMode.Debug;
-                    }
-
                     projectLaunchConfiguration.DisableLaunchProfile = project.TryGetLastAnnotation<ExcludeLaunchProfileAnnotation>(out _);
 
                     // Use the effective launch profile which has fallback logic
@@ -1484,7 +1472,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var dcpContainerResource = (Container)cr.DcpResource;
         var modelContainerResource = cr.ModelResource;
 
-        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, cancellationToken).ConfigureAwait(false);
+        await ApplyBuildArgumentsAsync(dcpContainerResource, modelContainerResource, _executionContext.ServiceProvider, cancellationToken).ConfigureAwait(false);
 
         var spec = dcpContainerResource.Spec;
 
@@ -1523,10 +1511,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         await _kubernetesService.CreateAsync(dcpContainerResource, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, CancellationToken cancellationToken)
+    private static async Task ApplyBuildArgumentsAsync(Container dcpContainerResource, IResource modelContainerResource, IServiceProvider serviceProvider, CancellationToken cancellationToken)
     {
         if (modelContainerResource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } dockerfileBuildAnnotation)
         {
+            // If there's a factory, generate the Dockerfile content and write it to the specified path
+            if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+            {
+                var context = new DockerfileFactoryContext
+                {
+                    Services = serviceProvider,
+                    Resource = modelContainerResource,
+                    CancellationToken = cancellationToken
+                };
+                var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+                await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+            }
+
             var dcpBuildArgs = new List<EnvVar>();
 
             foreach (var buildArgument in dockerfileBuildAnnotation.BuildArguments)
@@ -2019,14 +2020,20 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return (runArgs, failedToApplyArgs);
     }
 
-    /// <summary>
-    /// Returns a list of resource types that are supported for IDE launch. Always contains project
-    /// </summary>
-    private List<string>? GetDebugSupportedResourceTypes()
+    private string[]? GetSupportedLaunchConfigurations()
     {
-        return _configuration[KnownConfigNames.ExtensionCapabilities] is not { } capabilities
-            ? null
-            : capabilities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        try
+        {
+            if (_configuration[KnownConfigNames.DebugSessionInfo] is { } debugSessionInfoJson && JsonSerializer.Deserialize<RunSessionInfo>(debugSessionInfoJson) is { } debugSessionInfo)
+            {
+                return debugSessionInfo.SupportedLaunchConfigurations;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 
     private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)

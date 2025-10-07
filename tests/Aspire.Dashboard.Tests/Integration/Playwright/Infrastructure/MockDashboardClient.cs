@@ -29,6 +29,13 @@ public sealed class MockDashboardClient : IDashboardClient
         }.ToDictionary(),
         state: KnownResourceState.Running);
 
+    private readonly List<ResourceViewModel>? _resources;
+
+    public MockDashboardClient(List<ResourceViewModel>? resources = null)
+    {
+        _resources = resources;
+    }
+
     public bool IsEnabled => true;
     public Task WhenConnected => Task.CompletedTask;
     public string ApplicationName => "IntegrationTestApplication";
@@ -61,8 +68,7 @@ public sealed class MockDashboardClient : IDashboardClient
         throw new NotImplementedException();
     }
 
-    public ResourceViewModel? GetResource(string resourceName)
-    {
-        throw new NotImplementedException();
-    }
+    public ResourceViewModel? GetResource(string resourceName) => null;
+
+    public IReadOnlyList<ResourceViewModel> GetResources() => _resources ?? [];
 }

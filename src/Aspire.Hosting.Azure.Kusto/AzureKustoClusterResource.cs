@@ -10,7 +10,7 @@ using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Kusto;
 using Azure.Provisioning.Primitives;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting.Azure;
 
 /// <summary>
 /// A resource that represents a Kusto cluster.

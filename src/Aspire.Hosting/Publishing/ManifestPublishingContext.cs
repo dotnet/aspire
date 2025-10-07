@@ -257,7 +257,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             Writer.WriteString("type", "container.v1");
             WriteConnectionString(container);
-            WriteBuildContext(container);
+            await WriteBuildContextAsync(container).ConfigureAwait(false);
         }
         else
         {
@@ -299,13 +299,39 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         WriteBindings(container);
     }
 
-    private void WriteBuildContext(ContainerResource container)
+    private async Task WriteBuildContextAsync(ContainerResource container)
     {
         if (container.TryGetAnnotationsOfType<DockerfileBuildAnnotation>(out var annotations) && annotations.Single() is { } annotation)
         {
+            string dockerfilePath = annotation.DockerfilePath;
+
+            // If there's a factory, generate the Dockerfile content and write it to both the original path and a resource-specific path
+            if (annotation.DockerfileFactory is not null)
+            {
+                var context = new DockerfileFactoryContext
+                {
+                    Services = ExecutionContext.ServiceProvider,
+                    Resource = container,
+                    CancellationToken = CancellationToken
+                };
+                var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);
+                
+                // Always write to the original DockerfilePath so code looking at that path still works
+                await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, CancellationToken).ConfigureAwait(false);
+                
+                // Copy to a resource-specific path in the manifest output directory for publishing
+                var manifestDirectory = Path.GetDirectoryName(ManifestPath)!;
+                var resourceDockerfilePath = Path.Combine(manifestDirectory, $"{container.Name}.Dockerfile");
+                Directory.CreateDirectory(manifestDirectory);
+                File.Copy(annotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                
+                // Update the dockerfile path to use the generated file for the manifest
+                dockerfilePath = resourceDockerfilePath;
+            }
+
             Writer.WriteStartObject("build");
             Writer.WriteString("context", GetManifestRelativePath(annotation.ContextPath));
-            Writer.WriteString("dockerfile", GetManifestRelativePath(annotation.DockerfilePath));
+            Writer.WriteString("dockerfile", GetManifestRelativePath(dockerfilePath));
 
             if (annotation.Stage is { } stage)
             {

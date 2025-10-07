@@ -7,6 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Resources;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.SecretManager.Tools.Internal;
 
@@ -96,11 +98,14 @@ public sealed class ParameterProcessor(
 
     private async Task CollectDependentParameterResourcesAsync(DistributedApplicationModel model, Dictionary<string, ParameterResource> referencedParameters, HashSet<object?> currentDependencySet, CancellationToken cancellationToken)
     {
-        var publishExecutionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
-
         foreach (var resource in model.Resources)
         {
-            await ProcessResourceDependenciesAsync(resource, publishExecutionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
+            if (resource.IsExcludedFromPublish())
+            {
+                continue;
+            }
+
+            await ProcessResourceDependenciesAsync(resource, executionContext, referencedParameters, currentDependencySet, cancellationToken).ConfigureAwait(false);
         }
 
     }
@@ -160,9 +165,14 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
+            // Check if we need to validate GenerateParameterDefault in publish mode
+            // We use GetParameterValue to distinguish between configured values and generated values
+            // because ValueInternal might contain a generated value even if no configuration was provided.
             if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
             {
-                throw new MissingParameterValueException("GenerateParameterDefault is not supported in this context. Falling back to prompting.");
+                // Try to get a configured value (without using the default) to see if the parameter was actually specified. This will throw if the value is missing.
+                var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
+                value = ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
             }
 
             await notificationService.PublishUpdateAsync(parameterResource, s =>
@@ -226,18 +236,35 @@ public sealed class ParameterProcessor(
         // This method will continue in a loop until all unresolved parameters are resolved.
         while (unresolvedParameters.Count > 0)
         {
-            // First we show a notification that there are unresolved parameters.
-            var result = await interactionService.PromptNotificationAsync(
-                InteractionStrings.ParametersBarTitle,
-                InteractionStrings.ParametersBarMessage,
-                 new NotificationInteractionOptions
-                 {
-                     Intent = MessageIntent.Warning,
-                     PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
-                 })
-                .ConfigureAwait(false);
+            var showNotification = true;
+            var showSaveToSecrets = true;
 
-            if (result.Data)
+            // Skip notification and save to user secrets prompts during publish mode
+            if (executionContext.IsPublishMode)
+            {
+                showNotification = false;
+                showSaveToSecrets = false;
+            }
+
+            var proceedToInputs = true;
+
+            if (showNotification)
+            {
+                // First we show a notification that there are unresolved parameters.
+                var result = await interactionService.PromptNotificationAsync(
+                    InteractionStrings.ParametersBarTitle,
+                    InteractionStrings.ParametersBarMessage,
+                     new NotificationInteractionOptions
+                     {
+                         Intent = MessageIntent.Warning,
+                         PrimaryButtonText = InteractionStrings.ParametersBarPrimaryButtonText
+                     })
+                    .ConfigureAwait(false);
+
+                proceedToInputs = result.Data;
+            }
+
+            if (proceedToInputs)
             {
                 // Now we build up a new form base on the unresolved parameters.
                 var resourceInputs = new List<(ParameterResource ParameterResource, InteractionInput Input)>();
@@ -249,17 +276,28 @@ public sealed class ParameterProcessor(
                     resourceInputs.Add((parameter, input));
                 }
 
-                var saveParameters = new InteractionInput
+                var inputs = resourceInputs.Select(i => i.Input).ToList();
+                InteractionInput? saveParameters = null;
+
+                if (showSaveToSecrets)
                 {
-                    Name = "RememberParameters",
-                    InputType = InputType.Boolean,
-                    Label = InteractionStrings.ParametersInputsRememberLabel
-                };
+                    saveParameters = new InteractionInput
+                    {
+                        Name = "RememberParameters",
+                        InputType = InputType.Boolean,
+                        Label = InteractionStrings.ParametersInputsRememberLabel
+                    };
+                    inputs.Add(saveParameters);
+                }
+
+                var message = executionContext.IsPublishMode
+                    ? InteractionStrings.ParametersInputsMessagePublishMode
+                    : InteractionStrings.ParametersInputsMessage;
 
                 var valuesPrompt = await interactionService.PromptInputsAsync(
                     InteractionStrings.ParametersInputsTitle,
-                    InteractionStrings.ParametersInputsMessage,
-                    [.. resourceInputs.Select(i => i.Input), saveParameters],
+                    message,
+                    [.. inputs],
                     new InputsDialogInteractionOptions
                     {
                         PrimaryButtonText = InteractionStrings.ParametersInputsPrimaryButtonText,
@@ -300,7 +338,10 @@ public sealed class ParameterProcessor(
                             .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
                         // Persist the parameter value to user secrets if requested.
-                        if (bool.TryParse(saveParameters.Value, out var saveToSecrets) && saveToSecrets)
+                        if (showSaveToSecrets &&
+                            saveParameters != null &&
+                            bool.TryParse(saveParameters.Value, out var saveToSecrets) &&
+                            saveToSecrets)
                         {
                             SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
                         }

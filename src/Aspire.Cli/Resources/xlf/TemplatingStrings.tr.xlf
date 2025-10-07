@@ -29,7 +29,7 @@
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
         <source>Single-file AppHost (experimental)</source>
-        <target state="new">Single-file AppHost (experimental)</target>
+        <target state="translated">Tek dosya Uygulama Ana İşlemi (deneysel)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">

@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">Graph</target>
+        <target state="translated">Graf</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -99,7 +99,7 @@
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
         <source>Remove for {0}</source>
-        <target state="translated">Bu işlem için {0}</target>
+        <target state="translated">{0} için kaldır</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSignalsButtonTitle">
@@ -524,7 +524,7 @@
       </trans-unit>
       <trans-unit id="SpanTypeCloud">
         <source>Cloud</source>
-        <target state="new">Cloud</target>
+        <target state="translated">Bulut</target>
         <note />
       </trans-unit>
       <trans-unit id="SpanTypeDatabase">
