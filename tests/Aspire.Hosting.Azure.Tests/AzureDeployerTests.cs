@@ -10,6 +10,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;

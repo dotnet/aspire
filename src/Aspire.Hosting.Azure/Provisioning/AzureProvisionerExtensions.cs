@@ -50,12 +50,10 @@ public static class AzureProvisionerExtensions
 
         if (builder.ExecutionContext.IsPublishMode)
         {
-            builder.Services.TryAddSingleton<Publishing.IDeploymentStateManager, FileDeploymentStateManager>();
             builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         }
         else
         {
-            builder.Services.TryAddSingleton<Publishing.IDeploymentStateManager, UserSecretsDeploymentStateManager>();
             builder.Services.AddSingleton<IProvisioningContextProvider, RunModeProvisioningContextProvider>();
         }
         builder.Services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();

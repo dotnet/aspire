@@ -406,10 +406,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
-        // Load deployment state from filesystem if in publish mode and ClearCache is false
+        
+        // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
         {
+            // Load deployment state from filesystem if in publish mode and ClearCache is false
             LoadDeploymentState(appHostSha);
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
+        }
+        else
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.UserSecretsDeploymentStateManager>();
         }
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);

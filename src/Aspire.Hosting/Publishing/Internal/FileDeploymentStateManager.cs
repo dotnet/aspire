@@ -5,15 +5,17 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Aspire.Hosting.Azure.Provisioning.Internal;
+namespace Aspire.Hosting.Publishing.Internal;
 
-internal sealed class FileDeploymentStateManager(
+/// <summary>
+/// File-based deployment state manager for publish scenarios.
+/// </summary>
+public sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,
     IHostEnvironment hostEnvironment,

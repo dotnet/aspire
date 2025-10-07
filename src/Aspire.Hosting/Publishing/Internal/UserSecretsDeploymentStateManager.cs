@@ -6,16 +6,15 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Azure.Provisioning.Internal;
+namespace Aspire.Hosting.Publishing.Internal;
 
 /// <summary>
 /// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
-internal sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : IDeploymentStateManager
+public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : IDeploymentStateManager
 {
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
     {
@@ -79,7 +78,7 @@ internal sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeplo
     /// Flattens a JsonObject to use colon-separated keys for configuration compatibility.
     /// This ensures all secrets are stored in the flat format expected by .NET configuration.
     /// </summary>
-    internal static JsonObject FlattenJsonObject(JsonObject source)
+    public static JsonObject FlattenJsonObject(JsonObject source)
     {
         var result = new JsonObject();
         FlattenJsonObjectRecursive(source, string.Empty, result);

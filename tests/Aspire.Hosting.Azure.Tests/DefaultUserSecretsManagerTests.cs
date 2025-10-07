@@ -2,7 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing.Internal;
 
 namespace Aspire.Hosting.Azure.Tests;
 
