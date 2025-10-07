@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
 import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration } from '../../loc/strings';
-import { execFile } from 'child_process';
+import { ChildProcessWithoutNullStreams, execFile, spawn } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
+import * as readline from 'readline';
+import * as os from 'os';
 import { doesFileExist } from '../../utils/io';
 import { AspireResourceExtendedDebugConfiguration, isProjectLaunchConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
@@ -20,6 +22,7 @@ interface IDotNetService {
     getAndActivateDevKit(): Promise<boolean>
     buildDotNetProject(projectFile: string): Promise<void>;
     getDotNetTargetPath(projectFile: string): Promise<string>;
+    getDotNetRunApiOutput(projectFile: string): Promise<string>;
 }
 
 class DotNetService implements IDotNetService {
@@ -112,6 +115,69 @@ class DotNetService implements IDotNetService {
             throw new Error(failedToGetTargetPath(String(err)));
         }
     }
+
+    async getDotNetRunApiOutput(projectPath: string): Promise<string> {
+        return new Promise<string>(async (resolve, reject) => {
+            try {
+                let childProcess: ChildProcessWithoutNullStreams;
+                const timeout = setTimeout(() => {
+                    childProcess?.kill();
+                    reject(new Error('Timeout while waiting for dotnet run-api response'));
+                }, 10_000);
+
+                const logger = extensionLogOutputChannel;
+                logger.info('dotnet run-api - starting process');
+
+                childProcess = spawn('dotnet', ['run-api'], {
+                    cwd: path.dirname(projectPath),
+                    env: process.env,
+                    stdio: ['pipe', 'pipe', 'pipe']
+                });
+
+                childProcess.on('error', reject);
+                childProcess.on('exit', (code, signal) => {
+                    clearTimeout(timeout);
+                    reject(new Error(`dotnet run-api exited with ${code ?? signal}`));
+                });
+
+                const rl = readline.createInterface(childProcess.stdout);
+                rl.on('line', line => {
+                    clearTimeout(timeout);
+                    logger.info(`dotnet run-api - received: ${line}`);
+                    resolve(line);
+                });
+
+                const message = JSON.stringify({ ['$type']: 'GetRunCommand', ['EntryPointFileFullPath']: projectPath });
+                logger.info(`dotnet run-api - sending: ${message}`);
+                childProcess.stdin.write(message + os.EOL);
+                childProcess.stdin.end();
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+}
+
+function isSingleFileAppHost(projectPath: string): boolean {
+    return path.basename(projectPath).toLowerCase() === 'apphost.cs';
+}
+
+function applyRunApiOutputToDebugConfiguration(runApiOutput: string, debugConfiguration: AspireResourceExtendedDebugConfiguration) {
+    const parsed = JSON.parse(runApiOutput);
+    if (parsed.$type === 'Error') {
+        throw new Error(`dotnet run-api failed: ${parsed.Message}`);
+    }
+    else if (parsed.$type !== 'RunCommand') {
+        throw new Error(`dotnet run-api failed: Unexpected response type '${parsed.$type}'`);
+    }
+
+    debugConfiguration.program = parsed.ExecutablePath;
+    if (parsed.EnvironmentVariables) {
+        debugConfiguration.env = {
+            ...debugConfiguration.env,
+            ...parsed.EnvironmentVariables
+        };
+    }
 }
 
 export function createProjectDebuggerExtension(dotNetService: IDotNetService): ResourceDebuggerExtension {
@@ -148,20 +214,27 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
                 ? `Using launch profile '${profileName}' for project: ${projectPath}`
                 : `No launch profile selected for project: ${projectPath}`);
 
-            // Build project if needed
-            const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
-            if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild) && await dotNetService.getAndActivateDevKit()) {
-                await dotNetService.buildDotNetProject(projectPath);
-            }
-
             // Configure debug session with launch profile settings
-            debugConfiguration.program = outputPath;
             debugConfiguration.cwd = determineWorkingDirectory(projectPath, baseProfile);
             debugConfiguration.args = determineArguments(baseProfile?.commandLineArgs, args);
             debugConfiguration.env = Object.fromEntries(mergeEnvironmentVariables(baseProfile?.environmentVariables, env));
             debugConfiguration.executablePath = baseProfile?.executablePath;
             debugConfiguration.checkForDevCert = baseProfile?.useSSL;
             debugConfiguration.serverReadyAction = determineServerReadyAction(baseProfile?.launchBrowser, baseProfile?.applicationUrl);
+
+            // Build project if needed
+            if (!isSingleFileAppHost(projectPath)) {
+                const outputPath = await dotNetService.getDotNetTargetPath(projectPath);
+                if ((!(await doesFileExist(outputPath)) || launchOptions.forceBuild) && await dotNetService.getAndActivateDevKit()) {
+                    await dotNetService.buildDotNetProject(projectPath);
+                }
+
+                debugConfiguration.program = outputPath;
+            }
+            else {
+                const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
+                applyRunApiOutputToDebugConfiguration(runApiOutput, debugConfiguration);
+            }
         }
     };
 }
