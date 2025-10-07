@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
@@ -44,14 +46,16 @@ public static class AzureProvisionerExtensions
         builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
         builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
         builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
-        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
         builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+
         if (builder.ExecutionContext.IsPublishMode)
         {
+            builder.Services.TryAddSingleton<Publishing.IDeploymentStateManager, FileDeploymentStateManager>();
             builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
         }
         else
         {
+            builder.Services.TryAddSingleton<Publishing.IDeploymentStateManager, UserSecretsDeploymentStateManager>();
             builder.Services.AddSingleton<IProvisioningContextProvider, RunModeProvisioningContextProvider>();
         }
         builder.Services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();

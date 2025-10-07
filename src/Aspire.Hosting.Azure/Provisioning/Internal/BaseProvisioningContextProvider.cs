@@ -149,6 +149,12 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
+        // Persist the provisioning options to user secrets so they can be reused in the future
+        var azureSection = userSecrets.Prop("Azure");
+        azureSection["Location"] = _options.Location;
+        azureSection["SubscriptionId"] = _options.SubscriptionId;
+        azureSection["ResourceGroup"] = resourceGroupName;
+
         return new ProvisioningContext(
                     credential,
                     armClient,

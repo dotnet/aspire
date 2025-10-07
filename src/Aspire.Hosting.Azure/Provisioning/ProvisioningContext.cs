@@ -17,7 +17,7 @@ internal sealed class ProvisioningContext(
     ITenantResource tenant,
     AzureLocation location,
     UserPrincipal principal,
-    JsonObject userSecrets,
+    JsonObject deploymentState,
     DistributedApplicationExecutionContext executionContext)
 {
     public TokenCredential Credential => credential;
@@ -27,6 +27,6 @@ internal sealed class ProvisioningContext(
     public IResourceGroupResource ResourceGroup => resourceGroup;
     public AzureLocation Location => location;
     public UserPrincipal Principal => principal;
-    public JsonObject UserSecrets => userSecrets;
+    public JsonObject DeploymentState => deploymentState;
     public DistributedApplicationExecutionContext ExecutionContext => executionContext;
 }

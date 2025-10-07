@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Resources;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -9,8 +11,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -684,6 +688,7 @@ public class ParameterProcessorTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddSingleton<IDeploymentStateManager>(new MockDeploymentStateManager());
         var param = builder.AddParameter("testParam", () => "testValue");
 
         var serviceProviderAccessed = false;
@@ -745,10 +750,10 @@ public class ParameterProcessorTests
         // unless it's explicitly in the model
         var parameters = model.Resources.OfType<ParameterResource>().ToList();
         Assert.Single(parameters);
-        
+
         var parameterResource = parameters[0];
         Assert.Equal("excludedParam", parameterResource.Name);
-        
+
         // The parameter should be initialized since it's explicitly in the model
         Assert.NotNull(parameterResource.WaitForValueTcs);
         Assert.True(parameterResource.WaitForValueTcs.Task.IsCompletedSuccessfully);
@@ -760,15 +765,18 @@ public class ParameterProcessorTests
         IInteractionService? interactionService = null,
         ILogger<ParameterProcessor>? logger = null,
         bool disableDashboard = true,
-        DistributedApplicationExecutionContext? executionContext = null)
+        DistributedApplicationExecutionContext? executionContext = null,
+        IDeploymentStateManager? deploymentStateManager = null,
+        IOptions<PublishingOptions>? publishingOptions = null)
     {
         return new ParameterProcessor(
             notificationService ?? ResourceNotificationServiceTestHelpers.Create(),
             loggerService ?? new ResourceLoggerService(),
             interactionService ?? CreateInteractionService(disableDashboard),
             logger ?? new NullLogger<ParameterProcessor>(),
-            new DistributedApplicationOptions { DisableDashboard = disableDashboard },
-            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run)
+            executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            deploymentStateManager ?? new MockDeploymentStateManager(),
+            publishingOptions
         );
     }
 
@@ -778,6 +786,21 @@ public class ParameterProcessorTests
             new NullLogger<InteractionService>(),
             new DistributedApplicationOptions { DisableDashboard = disableDashboard },
             new ServiceCollection().BuildServiceProvider());
+    }
+
+    private sealed class MockDeploymentStateManager : IDeploymentStateManager
+    {
+        public string? StateFilePath => null;
+
+        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new JsonObject());
+        }
+
+        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private static ParameterResource CreateParameterResource(string name, string value, bool secret = false)
@@ -800,59 +823,23 @@ public class ParameterProcessorTests
     }
 
     [Fact]
-    public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_ThrowsWhenValueIsEmpty()
-    {
-        // Arrange
-        var configuration = new ConfigurationBuilder().Build();
-        var services = new ServiceCollection();
-        services.AddSingleton<IConfiguration>(configuration);
-        var serviceProvider = services.BuildServiceProvider();
-        
-        var executionContext = new DistributedApplicationExecutionContext(
-            new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
-            {
-                ServiceProvider = serviceProvider
-            });
-        
-        var interactionService = CreateInteractionService();
-        var parameterProcessor = CreateParameterProcessor(
-            interactionService: interactionService,
-            executionContext: executionContext);
-
-        var parameterWithGenerateDefault = new ParameterResource(
-            "generatedParam",
-            parameterDefault => parameterDefault?.GetDefaultValue() ?? throw new MissingParameterValueException("Parameter 'generatedParam' is missing"),
-            secret: false)
-        {
-            Default = new GenerateParameterDefault()
-        };
-
-        // Act
-        await parameterProcessor.InitializeParametersAsync([parameterWithGenerateDefault]);
-
-        // Assert - Should be added to unresolved parameters because GenerateParameterDefault is not supported in publish mode
-        Assert.NotNull(parameterWithGenerateDefault.WaitForValueTcs);
-        Assert.False(parameterWithGenerateDefault.WaitForValueTcs.Task.IsCompleted);
-    }
-
-    [Fact]
     public async Task InitializeParametersAsync_WithGenerateParameterDefaultInPublishMode_DoesNotThrowWhenValueExists()
     {
         // Arrange
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Parameters:generatedParam"] = "existingValue" })
             .Build();
-        
+
         var services = new ServiceCollection();
         services.AddSingleton<IConfiguration>(configuration);
         var serviceProvider = services.BuildServiceProvider();
-        
+
         var executionContext = new DistributedApplicationExecutionContext(
             new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish, "manifest")
             {
                 ServiceProvider = serviceProvider
             });
-        
+
         var parameterProcessor = CreateParameterProcessor(executionContext: executionContext);
 
         var parameterWithGenerateDefault = new ParameterResource(

@@ -1,23 +1,29 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
 /// <summary>
-/// Default implementation of <see cref="IUserSecretsManager"/>.
+/// User secrets implementation of <see cref="IDeploymentStateManager"/>.
 /// </summary>
-internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManager> logger) : IUserSecretsManager
+internal sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploymentStateManager> logger) : IDeploymentStateManager
 {
     private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
     {
         WriteIndented = true
     };
+
+    public string? StateFilePath => GetUserSecretsPath();
+
     private static string? GetUserSecretsPath()
     {
         return Assembly.GetEntryAssembly()?.GetCustomAttribute<UserSecretsIdAttribute>()?.UserSecretsId switch
@@ -27,16 +33,15 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         };
     }
 
-    public async Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
+    public async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
-        var userSecretsPath = GetUserSecretsPath();
-        
         var jsonDocumentOptions = new JsonDocumentOptions
         {
             CommentHandling = JsonCommentHandling.Skip,
             AllowTrailingCommas = true,
         };
 
+        var userSecretsPath = GetUserSecretsPath();
         var userSecrets = userSecretsPath is not null && File.Exists(userSecretsPath)
             ? JsonNode.Parse(await File.ReadAllTextAsync(userSecretsPath, cancellationToken).ConfigureAwait(false),
                 documentOptions: jsonDocumentOptions)!.AsObject()
@@ -44,7 +49,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         return userSecrets;
     }
 
-    public async Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -53,13 +58,10 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
             {
                 throw new InvalidOperationException("User secrets path could not be determined.");
             }
-            
-            // Normalize to flat configuration format with colon separators
-            var flattenedSecrets = FlattenJsonObject(userSecrets);
-            
-            // Ensure directory exists before attempting to create secrets file
+
+            var flattenedUserSecrets = FlattenJsonObject(state);
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
-            await File.WriteAllTextAsync(userSecretsPath, flattenedSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(userSecretsPath, flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Azure resource connection strings saved to user secrets.");
         }
@@ -89,7 +91,7 @@ internal sealed class DefaultUserSecretsManager(ILogger<DefaultUserSecretsManage
         foreach (var kvp in source)
         {
             var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
-            
+
             if (kvp.Value is JsonObject nestedObject)
             {
                 FlattenJsonObjectRecursive(nestedObject, key, result);

@@ -1,16 +1,17 @@
 #pragma warning disable ASPIREINTERACTION001
+#pragma warning disable ASPIREPUBLISHERS001
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Resources;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.SecretManager.Tools.Internal;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -23,8 +24,9 @@ public sealed class ParameterProcessor(
     ResourceLoggerService loggerService,
     IInteractionService interactionService,
     ILogger<ParameterProcessor> logger,
-    DistributedApplicationOptions options,
-    DistributedApplicationExecutionContext executionContext)
+    DistributedApplicationExecutionContext executionContext,
+    IDeploymentStateManager deploymentStateManager,
+    IOptions<PublishingOptions>? publishingOptions = null)
 {
     private readonly List<ParameterResource> _unresolvedParameters = [];
 
@@ -165,16 +167,6 @@ public sealed class ParameterProcessor(
         {
             var value = parameterResource.ValueInternal ?? "";
 
-            // Check if we need to validate GenerateParameterDefault in publish mode
-            // We use GetParameterValue to distinguish between configured values and generated values
-            // because ValueInternal might contain a generated value even if no configuration was provided.
-            if (parameterResource.Default is GenerateParameterDefault generateDefault && executionContext.IsPublishMode)
-            {
-                // Try to get a configured value (without using the default) to see if the parameter was actually specified. This will throw if the value is missing.
-                var configuration = executionContext.ServiceProvider.GetRequiredService<IConfiguration>();
-                value = ParameterResourceBuilderExtensions.GetParameterValue(configuration, parameterResource.Name, parameterDefault: null, parameterResource.ConfigurationKey);
-            }
-
             await notificationService.PublishUpdateAsync(parameterResource, s =>
             {
                 return s with
@@ -233,18 +225,27 @@ public sealed class ParameterProcessor(
     // Internal for testing purposes - allows passing specific parameters to test.
     internal async Task HandleUnresolvedParametersAsync(IList<ParameterResource> unresolvedParameters)
     {
+        // Load deployment state at the beginning
+        JsonObject? deploymentState = null;
+        JsonObject? parametersSection = null;
+        var stateModified = false;
+
+        try
+        {
+            deploymentState = await deploymentStateManager.LoadStateAsync().ConfigureAwait(false);
+            parametersSection = deploymentState?["Parameters"]?.AsObject() ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
+            parametersSection = [];
+        }
+
         // This method will continue in a loop until all unresolved parameters are resolved.
         while (unresolvedParameters.Count > 0)
         {
-            var showNotification = true;
-            var showSaveToSecrets = true;
-
-            // Skip notification and save to user secrets prompts during publish mode
-            if (executionContext.IsPublishMode)
-            {
-                showNotification = false;
-                showSaveToSecrets = false;
-            }
+            var showNotification = executionContext.IsRunMode;
+            var showSaveToSecrets = executionContext.IsRunMode;
 
             var proceedToInputs = true;
 
@@ -337,19 +338,46 @@ public sealed class ParameterProcessor(
                         loggerService.GetLogger(parameter)
                             .LogInformation("Parameter resource {ResourceName} has been resolved via user interaction.", parameter.Name);
 
-                        // Persist the parameter value to user secrets if requested.
-                        if (showSaveToSecrets &&
-                            saveParameters != null &&
-                            bool.TryParse(saveParameters.Value, out var saveToSecrets) &&
-                            saveToSecrets)
+                        // Determine if we should save to deployment state
+                        var shouldSaveToDeploymentState = false;
+
+                        if (executionContext.IsPublishMode)
                         {
-                            SecretsStore.TrySetUserSecret(options.Assembly, parameter.ConfigurationKey, inputValue);
+                            // In publish mode, save to deployment state only if ClearCache is false
+                            var clearCache = publishingOptions?.Value?.ClearCache ?? false;
+                            shouldSaveToDeploymentState = !clearCache;
+                        }
+                        else if (showSaveToSecrets && saveParameters?.Value is not null)
+                        {
+                            // In run mode, only save if user opted in
+                            shouldSaveToDeploymentState = bool.TryParse(saveParameters.Value, out var saveToDeploymentState) && saveToDeploymentState;
+                        }
+
+                        if (shouldSaveToDeploymentState)
+                        {
+                            parametersSection![parameter.Name] = JsonValue.Create(inputValue);
+                            stateModified = true;
                         }
 
                         // Remove the parameter from unresolved parameters list.
                         unresolvedParameters.RemoveAt(i);
                     }
                 }
+            }
+        }
+
+        // Save deployment state at the end if modified
+        if (stateModified && deploymentState is not null)
+        {
+            try
+            {
+                deploymentState["Parameters"] = parametersSection;
+                await deploymentStateManager.SaveStateAsync(deploymentState).ConfigureAwait(false);
+                logger.LogInformation("Parameter values saved to deployment state.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
             }
         }
     }

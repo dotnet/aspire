@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +23,7 @@ internal sealed class AzureProvisioner(
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
-    IUserSecretsManager userSecretsManager
+    IDeploymentStateManager userSecretsManager
     ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
@@ -162,7 +165,7 @@ internal sealed class AzureProvisioner(
         CancellationToken cancellationToken)
     {
         // Load user secrets first so they can be passed to the provisioning context
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
+        var userSecrets = await userSecretsManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
         var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
@@ -180,7 +183,7 @@ internal sealed class AzureProvisioner(
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        await userSecretsManager.SaveStateAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)

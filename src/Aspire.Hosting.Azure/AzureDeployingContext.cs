@@ -23,7 +23,7 @@ namespace Aspire.Hosting.Azure;
 
 internal sealed class AzureDeployingContext(
     IProvisioningContextProvider provisioningContextProvider,
-    IUserSecretsManager userSecretsManager,
+    Publishing.IDeploymentStateManager deploymentStateManager,
     IBicepProvisioner bicepProvisioner,
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
@@ -40,7 +40,7 @@ internal sealed class AzureDeployingContext(
             return;
         }
 
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
+        var userSecrets = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
         // Step 1: Provision Azure Bicep resources from the distributed application model
@@ -64,6 +64,9 @@ internal sealed class AzureDeployingContext(
         {
             return;
         }
+
+        // Step 4: Save deployment state after successful deployment
+        await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
 
         // Display dashboard URL after successful deployment
         var dashboardUrl = TryGetDashboardUrl(model);
@@ -104,14 +107,23 @@ internal sealed class AzureDeployingContext(
 
     private async Task<bool> TryProvisionAzureBicepResources(List<AzureBicepResource> bicepResources, ProvisioningContext provisioningContext, CancellationToken cancellationToken)
     {
-        var deployingStep = await activityReporter.CreateStepAsync("Deploying Azure resources", cancellationToken).ConfigureAwait(false);
+        var resourcesToProvision = bicepResources
+            .Where(r => r.ProvisioningTaskCompletionSource == null || !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
+            .ToList();
+
+        if (resourcesToProvision.Count == 0)
+        {
+            return true;
+        }
+
+        var deployingStep = await activityReporter.CreateStepAsync($"Deploying {resourcesToProvision.Count} Azure resource(s)", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
         {
             try
             {
                 var provisioningTasks = new List<Task>();
 
-                foreach (var resource in bicepResources)
+                foreach (var resource in resourcesToProvision)
                 {
                     if (resource is AzureBicepResource bicepResource)
                     {
@@ -125,11 +137,17 @@ internal sealed class AzureDeployingContext(
                                 {
                                     bicepResource.ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                                    await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
-
-                                    bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
-
-                                    await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                    if (await bicepProvisioner.ConfigureResourceAsync(configuration, bicepResource, cancellationToken).ConfigureAwait(false))
+                                    {
+                                        bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+                                        await resourceTask.CompleteAsync($"Using existing deployment for {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                    }
+                                    else
+                                    {
+                                        await bicepProvisioner.GetOrCreateResourceAsync(bicepResource, provisioningContext, cancellationToken).ConfigureAwait(false);
+                                        bicepResource.ProvisioningTaskCompletionSource?.TrySetResult();
+                                        await resourceTask.CompleteAsync($"Successfully provisioned {bicepResource.Name}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                                    }
                                 }
                                 catch (Exception ex)
                                 {

@@ -72,7 +72,7 @@ public sealed class AzureEnvironmentResource : Resource
     private Task DeployAsync(DeployingContext context)
     {
         var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
-        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+        var userSecretsManager = context.Services.GetRequiredService<IDeploymentStateManager>();
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
