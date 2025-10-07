@@ -191,45 +191,18 @@ public static class YarpNpmResourceExtensions
     {
         var sb = new StringBuilder();
         
-        // Build stage
-        sb.AppendLine(CultureInfo.InvariantCulture, $"FROM node:{options.NodeVersion} AS build");
-        sb.AppendLine("WORKDIR /src");
-        sb.AppendLine();
-        sb.AppendLine("# Copy package files");
-        sb.AppendLine("COPY package*.json ./");
-        
-        // Add yarn.lock or pnpm-lock.yaml if using yarn or pnpm
-        if (options.PackageManager == "yarn")
-        {
-            sb.AppendLine("COPY yarn.lock ./");
-        }
-        else if (options.PackageManager == "pnpm")
-        {
-            sb.AppendLine("COPY pnpm-lock.yaml ./");
-        }
-        
-        sb.AppendLine();
-        sb.AppendLine("# Install dependencies");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"RUN {options.PackageManager} {options.InstallCommand}");
-        sb.AppendLine();
-        sb.AppendLine("# Copy source files");
+        // Stage 1: Build Node.js app
+        sb.AppendLine(CultureInfo.InvariantCulture, $"FROM node:{options.NodeVersion} AS builder");
+        sb.AppendLine("WORKDIR /app");
         sb.AppendLine("COPY . .");
-        sb.AppendLine();
-        sb.AppendLine("# Build the application");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"RUN {options.PackageManager} {options.InstallCommand}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"RUN {options.PackageManager} {options.BuildCommand}");
         sb.AppendLine();
         
-        // Runtime stage - copy to YARP container
-        sb.AppendLine("FROM mcr.microsoft.com/dotnet/aspnet:9.0");
+        // Stage 2: Copy static files to YARP container
+        sb.AppendLine(CultureInfo.InvariantCulture, $"FROM {YarpContainerImageTags.Registry}/{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag} AS yarp");
         sb.AppendLine("WORKDIR /app");
-        sb.AppendLine();
-        sb.AppendLine("# Copy the YARP binaries from the base YARP image");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"COPY --from={YarpContainerImageTags.Registry}/{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag} /app /app");
-        sb.AppendLine();
-        sb.AppendLine("# Copy built static assets");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"COPY --from=build /src/{options.OutputDir} /wwwroot");
-        sb.AppendLine();
-        sb.AppendLine("ENTRYPOINT [\"dotnet\", \"/app/yarp.dll\"]");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"COPY --from=builder /app/{options.OutputDir} ./wwwroot");
 
         return sb.ToString();
     }

@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Yarp;
 /// Configuration options for Node.js static build in YARP npm resources.
 /// </summary>
 [Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-public sealed class NodeStaticBuildOptions
+internal sealed class NodeStaticBuildOptions
 {
     /// <summary>
     /// Gets or sets the package manager to use (e.g., "npm", "pnpm", "yarn").

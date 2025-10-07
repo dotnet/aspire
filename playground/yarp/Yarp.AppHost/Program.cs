@@ -25,6 +25,10 @@ var staticGateway = builder.AddYarp("static-gateway")
                                    .WithTransformPathRemovePrefix("/api");
                            });
 
+#pragma warning disable ASPIREHOSTING001 // Type is for evaluation purposes only
+var viteApp = builder.AddYarpNpmApp("vite-app", Path.Combine("..", "vite-app"));
+#pragma warning restore ASPIREHOSTING001
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

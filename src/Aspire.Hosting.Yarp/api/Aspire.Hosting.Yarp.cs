@@ -47,28 +47,6 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<Yarp.YarpResource> WithStaticFiles(this ApplicationModel.IResourceBuilder<Yarp.YarpResource> builder) { throw null; }
     }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public static partial class YarpNpmResourceExtensions
-    {
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> AddYarpNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> WithBuildCommand(this ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> builder, string command) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> WithInstallCommand(this ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> builder, string command) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> WithNodeVersion(this ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> builder, string version) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> WithOutputDir(this ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> builder, string outputDir) { throw null; }
-
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-        public static ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> WithPackageManager(this ApplicationModel.IResourceBuilder<Yarp.YarpNpmResource> builder, string packageManager) { throw null; }
-    }
 }
 
 namespace Aspire.Hosting.Yarp
@@ -103,23 +81,6 @@ namespace Aspire.Hosting.Yarp
     public partial class YarpResource : ApplicationModel.ContainerResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
         public YarpResource(string name) : base(default!, default) { }
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public partial class YarpNpmResource : YarpResource
-    {
-        public YarpNpmResource(string name) : base(default!) { }
-    }
-
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREHOSTING001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
-    public sealed partial class NodeStaticBuildOptions
-    {
-        public NodeStaticBuildOptions() { }
-        public string BuildCommand { get; set; }
-        public string InstallCommand { get; set; }
-        public string NodeVersion { get; set; }
-        public string OutputDir { get; set; }
-        public string PackageManager { get; set; }
     }
 
     public partial class YarpRoute

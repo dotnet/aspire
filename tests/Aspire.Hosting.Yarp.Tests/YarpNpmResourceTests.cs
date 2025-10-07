@@ -173,11 +173,12 @@ public class YarpNpmResourceTests(ITestOutputHelper testOutputHelper)
 
         var dockerfile = await annotation.DockerfileFactory(context);
 
-        Assert.Contains("FROM node:22 AS build", dockerfile);
+        Assert.Contains("FROM node:22 AS builder", dockerfile);
+        Assert.Contains("WORKDIR /app", dockerfile);
+        Assert.Contains("COPY . .", dockerfile);
         Assert.Contains("RUN npm install", dockerfile);
         Assert.Contains("RUN npm run build", dockerfile);
-        Assert.Contains("COPY --from=build /src/dist /wwwroot", dockerfile);
-        Assert.Contains("ENTRYPOINT [\"dotnet\", \"/app/yarp.dll\"]", dockerfile);
+        Assert.Contains("COPY --from=builder /app/dist ./wwwroot", dockerfile);
     }
 
     [Fact]
@@ -205,11 +206,12 @@ public class YarpNpmResourceTests(ITestOutputHelper testOutputHelper)
 
         var dockerfile = await annotation.DockerfileFactory(context);
 
-        Assert.Contains("FROM node:20 AS build", dockerfile);
-        Assert.Contains("COPY pnpm-lock.yaml ./", dockerfile);
+        Assert.Contains("FROM node:20 AS builder", dockerfile);
+        Assert.Contains("WORKDIR /app", dockerfile);
+        Assert.Contains("COPY . .", dockerfile);
         Assert.Contains("RUN pnpm install --frozen-lockfile", dockerfile);
         Assert.Contains("RUN pnpm build", dockerfile);
-        Assert.Contains("COPY --from=build /src/build /wwwroot", dockerfile);
+        Assert.Contains("COPY --from=builder /app/build ./wwwroot", dockerfile);
     }
 
     [Fact]
@@ -235,8 +237,9 @@ public class YarpNpmResourceTests(ITestOutputHelper testOutputHelper)
 
         var dockerfile = await annotation.DockerfileFactory(context);
 
-        Assert.Contains("FROM node:18 AS build", dockerfile);
-        Assert.Contains("COPY yarn.lock ./", dockerfile);
+        Assert.Contains("FROM node:18 AS builder", dockerfile);
+        Assert.Contains("WORKDIR /app", dockerfile);
+        Assert.Contains("COPY . .", dockerfile);
         Assert.Contains("RUN yarn install", dockerfile);
         Assert.Contains("RUN yarn run build", dockerfile);
     }
@@ -261,6 +264,6 @@ public class YarpNpmResourceTests(ITestOutputHelper testOutputHelper)
 
         var dockerfile = await annotation.DockerfileFactory(context);
 
-        Assert.Contains($"COPY --from={YarpContainerImageTags.Registry}/{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag} /app /app", dockerfile);
+        Assert.Contains($"FROM {YarpContainerImageTags.Registry}/{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag} AS yarp", dockerfile);
     }
 }
