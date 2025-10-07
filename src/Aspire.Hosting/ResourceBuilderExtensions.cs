@@ -1999,6 +1999,111 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="certificateAuthorityCollection">Additional certificates in a <see cref="CertificateAuthorityCollection"/> to treat as trusted certificate authorities for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(certificateAuthorityCollection);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation([certificateAuthorityCollection.Resource]);
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="trust">Indicates whether the developer certificate should be treated as trusted.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    public static IResourceBuilder<TResource> WithDeveloperCertificateTrust<TResource>(this IResourceBuilder<TResource> builder, bool trust)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation(trustDeveloperCertificates: trust);
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Sets the <see cref="CustomCertificateAuthoritiesScope"/> for custom certificate authorities associated with the resource.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    public static IResourceBuilder<TResource> WithCustomCertificateAuthoritiesScope<TResource>(this IResourceBuilder<TResource> builder, CustomCertificateAuthoritiesScope scope)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation(scope: scope);
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
+    /// configure itself for custom certificate trust.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<TResource> WithExecutableCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ExecutableCertificateTrustCallbackAnnotationContext, Task> callback)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ExecutableCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
+    /// configure itself for custom certificate trust.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
+        where TResource : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
     // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
     // if found.

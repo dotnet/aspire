@@ -943,9 +943,7 @@ public static class ContainerResourceBuilderExtensions
             Umask = umask,
         };
 
-        builder.Resource.Annotations.Add(annotation);
-
-        return builder;
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
     /// <summary>
@@ -1016,9 +1014,7 @@ public static class ContainerResourceBuilderExtensions
             Umask = umask,
         };
 
-        builder.Resource.Annotations.Add(annotation);
-
-        return builder;
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
     /// <summary>
@@ -1060,15 +1056,13 @@ public static class ContainerResourceBuilderExtensions
                 Umask = umask,
             };
 
-            builder.Resource.Annotations.Add(annotation);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
         }
         else
         {
             // In publish mode, use a bind mount as it is better supported by publish targets
-            builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
+            return builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
         }
-
-        return builder;
     }
 
     /// <summary>

@@ -153,6 +153,14 @@ public static class PythonAppResourceBuilderExtensions
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
         });
 
+        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
+        {
+            // TODO: Invoke the python interpreter from the virtual environment to get the certifi bundle path
+            // and then combine that with any extra certs the user might have added.
+            ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+            return Task.CompletedTask;
+        });
+
         resourceBuilder.PublishAsDockerFile();
 
         return resourceBuilder;

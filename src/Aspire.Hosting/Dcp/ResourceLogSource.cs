@@ -60,7 +60,7 @@ internal sealed class ResourceLogSource<TResource>(
         }
 
         _ = WaitForStreamsToCompleteAsync();
-        
+
         await foreach (var batch in channel.GetBatchesAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
         {
             yield return batch;
