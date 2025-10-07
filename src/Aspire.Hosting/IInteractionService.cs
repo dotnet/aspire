@@ -273,7 +273,7 @@ public sealed class InteractionInput
     /// <summary>
     /// Gets or sets the placeholder text for the input.
     /// </summary>
-    public string? Placeholder { get; set; }
+    public string? Placeholder { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
@@ -291,7 +291,7 @@ public sealed class InteractionInput
     public int? MaxLength
     {
         get => field;
-        set
+        init
         {
             if (value is { } v)
             {
