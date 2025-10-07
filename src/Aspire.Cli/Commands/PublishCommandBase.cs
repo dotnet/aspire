@@ -614,6 +614,12 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
+        // All inputs processed. Reset index to the first prompt.
+        if (!sendUpdateResponse)
+        {
+            promptState.InputIndex = 0;
+        }
+
         // Send all results as an array
         await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers.ToArray(), updateResponse: sendUpdateResponse, cancellationToken);
     }
