@@ -116,6 +116,13 @@ internal abstract partial class BaseProvisioningContextProvider(
             createIfAbsent = _options.AllowResourceGroupCreation ?? false;
         }
 
+        // In publish mode, always allow resource group creation
+        if (_distributedApplicationExecutionContext.IsPublishMode)
+        {
+            createIfAbsent = true;
+            _options.AllowResourceGroupCreation = true;
+        }
+
         var resourceGroups = subscriptionResource.GetResourceGroups();
 
         IResourceGroupResource? resourceGroup;
@@ -154,6 +161,10 @@ internal abstract partial class BaseProvisioningContextProvider(
         azureSection["Location"] = _options.Location;
         azureSection["SubscriptionId"] = _options.SubscriptionId;
         azureSection["ResourceGroup"] = resourceGroupName;
+        if (_options.AllowResourceGroupCreation.HasValue)
+        {
+            azureSection["AllowResourceGroupCreation"] = _options.AllowResourceGroupCreation.Value;
+        }
 
         return new ProvisioningContext(
                     credential,

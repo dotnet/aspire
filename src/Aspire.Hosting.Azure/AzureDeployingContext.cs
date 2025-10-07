@@ -43,6 +43,19 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
+        // Save deployment state after initializing provisioning context
+        var stateFilePath = deploymentStateManager.StateFilePath;
+        if (stateFilePath is not null)
+        {
+            var saveStep = await activityReporter.CreateStepAsync($"Saving deployment state to {stateFilePath}", cancellationToken).ConfigureAwait(false);
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
+            await saveStep.CompleteAsync("Deployment state saved", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
+        }
+
         // Step 1: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
@@ -66,7 +79,6 @@ internal sealed class AzureDeployingContext(
         }
 
         // Step 4: Save deployment state after successful deployment
-        var stateFilePath = deploymentStateManager.StateFilePath;
         if (stateFilePath is not null)
         {
             var saveStep = await activityReporter.CreateStepAsync($"Saving deployment state to {stateFilePath}", cancellationToken).ConfigureAwait(false);
