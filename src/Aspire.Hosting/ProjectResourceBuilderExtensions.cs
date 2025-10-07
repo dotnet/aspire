@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -282,7 +283,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
+                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 

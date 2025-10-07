@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -8,14 +9,17 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an endpoint reference for a resource with endpoints.
 /// </summary>
+[DebuggerDisplay("Resource = {Resource.Name}, EndpointName = {EndpointName}, IsAllocated = {IsAllocated}")]
 public sealed class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
 
-    // TODO: Expose this
-    internal EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
+    /// <summary>
+    /// Gets the endpoint annotation associated with the endpoint reference.
+    /// </summary>
+    public EndpointAnnotation EndpointAnnotation => GetEndpointAnnotation() ?? throw new InvalidOperationException(ErrorMessage ?? $"The endpoint `{EndpointName}` is not defined for the resource `{Resource.Name}`.");
 
     /// <summary>
     /// Gets the resource owner of the endpoint reference.
@@ -30,6 +34,11 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public string EndpointName { get; }
 
     /// <summary>
+    /// Gets or sets a custom error message to be thrown when the endpoint annotation is not found.
+    /// </summary>
+    public string? ErrorMessage { get; init; }
+
+    /// <summary>
     /// Gets a value indicating whether the endpoint is allocated.
     /// </summary>
     public bool IsAllocated => _isAllocated ??= GetAllocatedEndpoint() is not null;
@@ -41,7 +50,12 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
     string IManifestExpressionProvider.ValueExpression => GetExpression();
 
-    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => new(Url);
+    /// <summary>
+    /// Gets the URL of the endpoint asynchronously. Waits for the endpoint to be allocated if necessary.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The URL of the endpoint.</returns>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(cancellationToken);
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
@@ -101,6 +115,9 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// Gets the URL for this endpoint.
     /// </summary>
     public string Url => AllocatedEndpoint.UriString;
+
+    internal ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot =>
+        EndpointAnnotation.AllocatedEndpointSnapshot;
 
     internal AllocatedEndpoint AllocatedEndpoint =>
         GetAllocatedEndpoint()
@@ -170,30 +187,38 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
-    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken) => Property switch
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
     {
-        EndpointProperty.Url => new(Endpoint.Url),
-        EndpointProperty.Host => new(Endpoint.Host),
-        EndpointProperty.IPV4Host => new("127.0.0.1"),
-        EndpointProperty.Port => new(Endpoint.Port.ToString(CultureInfo.InvariantCulture)),
-        EndpointProperty.Scheme => new(Endpoint.Scheme),
-        EndpointProperty.TargetPort => new(ComputeTargetPort()),
-        EndpointProperty.HostAndPort => new($"{Endpoint.Host}:{Endpoint.Port.ToString(CultureInfo.InvariantCulture)}"),
-        _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
-    };
-
-    private string? ComputeTargetPort()
-    {
-        // We have a target port, so we can return it directly.
-        if (Endpoint.TargetPort is int port)
+        return Property switch
         {
-            return port.ToString(CultureInfo.InvariantCulture);
-        }
+            EndpointProperty.Scheme => new(Endpoint.Scheme),
+            EndpointProperty.IPV4Host => new("127.0.0.1"),
+            EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
+            _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
+        };
 
+        async ValueTask<string?> ResolveValueWithAllocatedAddress()
+        {
+            var allocatedEndpoint = await Endpoint.AllocatedEndpointSnapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+            return Property switch
+            {
+                EndpointProperty.Url => new(allocatedEndpoint.UriString),
+                EndpointProperty.Host => new(allocatedEndpoint.Address),
+                EndpointProperty.Port => new(allocatedEndpoint.Port.ToString(CultureInfo.InvariantCulture)),
+                EndpointProperty.TargetPort => new(ComputeTargetPort(allocatedEndpoint)),
+                EndpointProperty.HostAndPort => new($"{allocatedEndpoint.Address}:{allocatedEndpoint.Port.ToString(CultureInfo.InvariantCulture)}"),
+                _ => throw new InvalidOperationException($"The property '{Property}' is not supported for the endpoint '{Endpoint.EndpointName}'.")
+            };
+        }
+    }
+
+    private static string? ComputeTargetPort(AllocatedEndpoint allocatedEndpoint)
+    {
         // There is no way to resolve the value of the target port until runtime. Even then, replicas make this very complex because
         // the target port is not known until the replica is allocated.
         // Instead, we return an expression that will be resolved at runtime by the orchestrator.
-        return Endpoint.AllocatedEndpoint.TargetPortExpression
+        return allocatedEndpoint.TargetPortExpression
             ?? throw new InvalidOperationException("The endpoint does not have an associated TargetPortExpression from the orchestrator.");
     }
 

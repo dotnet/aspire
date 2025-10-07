@@ -1,0 +1,14 @@
+# Manual trigger pipeline for Azure DevOps tests
+# Can be invoked manually with "/azp run azdo-tests"
+
+# Only manual triggers - no automatic builds
+trigger: none
+
+# No PR triggers for this pipeline
+pr: none
+
+extends:
+  template: /eng/pipelines/templates/public-pipeline-template.yml
+  parameters:
+    # Always run both pipeline and helix tests for manual runs
+    testVariants: '_pipeline_tests,_helix_tests'

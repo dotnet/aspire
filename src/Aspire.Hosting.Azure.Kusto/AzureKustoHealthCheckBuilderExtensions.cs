@@ -5,7 +5,7 @@ using Kusto.Data;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Aspire.Hosting.Azure.Kusto;
+namespace Aspire.Hosting.Azure;
 
 internal static class AzureKustoHealthCheckBuilderExtensions
 {

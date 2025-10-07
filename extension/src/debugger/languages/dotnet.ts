@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { extensionLogOutputChannel } from '../../utils/logging';
-import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath } from '../../loc/strings';
+import { noCsharpBuildTask, buildFailedWithExitCode, noOutputFromMsbuild, failedToGetTargetPath, invalidLaunchConfiguration } from '../../loc/strings';
 import { execFile } from 'child_process';
 import * as util from 'util';
 import * as path from 'path';
 import { doesFileExist } from '../../utils/io';
-import { AspireResourceExtendedDebugConfiguration } from '../../dcp/types';
+import { AspireResourceExtendedDebugConfiguration, isProjectLaunchConfiguration } from '../../dcp/types';
 import { ResourceDebuggerExtension } from '../debuggerExtensions';
 import {
     readLaunchSettings,
@@ -120,11 +120,28 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
         debugAdapter: 'coreclr',
         extensionId: 'ms-dotnettools.csharp',
         displayName: 'C#',
+        getProjectFile: (launchConfig) => {
+            if (isProjectLaunchConfiguration(launchConfig)) {
+                return launchConfig.project_path;
+            }
+
+            throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+        },
         createDebugSessionConfigurationCallback: async (launchConfig, args, env, launchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration): Promise<void> => {
+            if (!isProjectLaunchConfiguration(launchConfig)) {
+                extensionLogOutputChannel.info(`The resource type was not project for ${JSON.stringify(launchConfig)}`);
+                throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
+            }
+
             const projectPath = launchConfig.project_path;
 
             // Apply launch profile settings if available
             const launchSettings = await readLaunchSettings(projectPath);
+            if (!isProjectLaunchConfiguration(launchConfig)) {
+                extensionLogOutputChannel.info(`The resource type was not project for ${projectPath}`);
+                throw new Error(invalidLaunchConfiguration(projectPath));
+            }
+
             const { profile: baseProfile, profileName } = determineBaseLaunchProfile(launchConfig, launchSettings);
 
             extensionLogOutputChannel.info(profileName

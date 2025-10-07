@@ -102,6 +102,28 @@ internal class ConsoleInteractionService : IInteractionService
         return await _ansiConsole.PromptAsync(prompt, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+        ArgumentNullException.ThrowIfNull(choices, nameof(choices));
+        ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
+
+        // Check if the choices collection is empty to avoid throwing an InvalidOperationException
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NoItemsAvailableForSelection, promptText));
+        }
+
+        var prompt = new MultiSelectionPrompt<T>()
+            .Title(promptText)
+            .UseConverter(choiceFormatter)
+            .AddChoices(choices)
+            .PageSize(10);
+
+        var result = await _ansiConsole.PromptAsync(prompt, cancellationToken);
+        return result;
+    }
+
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         var cliInformationalVersion = VersionHelper.GetDefaultTemplateVersion();

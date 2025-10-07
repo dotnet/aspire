@@ -3,36 +3,32 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Dcp.Model;
 
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
 /// Represents an annotation that specifies that the resource can be debugged by the Aspire Extension.
-///
-/// <param name="projectPath">The entrypoint of the resource.</param>
-/// <param name="debugAdapterId">The debug adapter ID to use for debugging.</param>
-/// <param name="requiredExtensionId">The ID of the required extension that provides the debug adapter.</param>
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}, Type = {Type}")]
-[Experimental("ASPIREEXTENSION001")]
-public sealed class SupportsDebuggingAnnotation(string projectPath, string debugAdapterId, string? requiredExtensionId) : IResourceAnnotation
+[DebuggerDisplay("Type = {GetType().Name,nq}, RequiredExtensionId = {RequiredExtensionId,nq}")]
+[Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+internal sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 {
-    private readonly string _projectPath = projectPath ?? throw new ArgumentNullException(nameof(projectPath));
-    private readonly string _debugAdapterId = debugAdapterId ?? throw new ArgumentNullException(nameof(debugAdapterId));
-    private readonly string _requiredExtensionId = requiredExtensionId ?? string.Empty;
+    private SupportsDebuggingAnnotation(string? requiredExtensionId,
+        Action<Executable, string> launchConfigurationAnnotator)
+    {
+        RequiredExtensionId = requiredExtensionId;
+        LaunchConfigurationAnnotator = launchConfigurationAnnotator;
+    }
 
-    /// <summary>
-    /// Gets the project path.
-    /// </summary>
-    public string ProjectPath => _projectPath;
+    public string? RequiredExtensionId { get; }
+    public Action<Executable, string> LaunchConfigurationAnnotator { get; }
 
-    /// <summary>
-    /// Gets the debug adapter ID.
-    /// </summary>
-    public string DebugAdapterId => _debugAdapterId;
-
-    /// <summary>
-    /// Gets the required extension ID.
-    /// </summary>
-    public string? RequiredExtensionId => _requiredExtensionId;
+    internal static SupportsDebuggingAnnotation Create<T>(string? requiredExtensionId, Func<string, T> launchProfileProducer)
+    {
+        return new SupportsDebuggingAnnotation(requiredExtensionId, (exe, mode) =>
+        {
+            exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchProfileProducer(mode));
+        });
+    }
 }

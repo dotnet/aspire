@@ -48,6 +48,16 @@ public readonly record struct ResourceKey(string Name, string? InstanceId) : ICo
         return string.Compare(InstanceId, other.InstanceId, StringComparisons.ResourceName);
     }
 
+    public string GetCompositeName()
+    {
+        if (InstanceId == null)
+        {
+            return Name;
+        }
+
+        return $"{Name}-{InstanceId}";
+    }
+
     public bool EqualsCompositeName(string name)
     {
         if (name == null)

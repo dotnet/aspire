@@ -186,17 +186,29 @@
                         @if (OverviewActiveView == OverviewViewKind.InputOutput)
                         {
                             <div class="tab-container">
-                                @if (Content.NoMessageContent)
+                                @if (!string.IsNullOrEmpty(Content.DisplayErrorMessage))
                                 {
-                                    <div class="no-message-content-content">
-                                        @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
+                                    <div class="display-error-message">
+                                        <h5>@Loc[nameof(Dialogs.GenAIDisplayErrorMessageText)]</h5>
+                                        <div class="display-error-content">
+                                            @Content.DisplayErrorMessage
+                                        </div>
                                     </div>
                                 }
-                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
-                                @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
-                                @if (Content.ErrorItem is { } errorItem)
+                                else
                                 {
-                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
+                                    @if (Content.NoMessageContent)
+                                    {
+                                        <div class="no-message-content-content">
+                                            @((MarkupString)string.Format(CultureInfo.CurrentCulture, Loc[nameof(Dialogs.GenAINoMessageContentMoreInformationMessage)], "https://aka.ms/aspire/telemetry-ai-content"))
+                                        </div>
+                                    }
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIInputHeaderText)], Content.InputMessages, Content.NoMessageContent)
+                                    @RenderMessageSection(Loc[nameof(Dialogs.GenAIOutputHeaderText)], Content.OutputMessages, Content.NoMessageContent)
+                                    @if (Content.ErrorItem is { } errorItem)
+                                    {
+                                        @RenderMessageSection(Loc[nameof(Dialogs.GenAIErrorHeaderText)], [errorItem], Content.NoMessageContent)
+                                    }
                                 }
                             </div>
                         }

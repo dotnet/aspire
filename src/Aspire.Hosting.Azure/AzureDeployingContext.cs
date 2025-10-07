@@ -28,8 +28,6 @@ internal sealed class AzureDeployingContext(
     IPublishingActivityReporter activityReporter,
     IResourceContainerImageBuilder containerImageBuilder,
     IProcessRunner processRunner,
-    ParameterProcessor parameterProcessor,
-    IServiceProvider serviceProvider,
     IConfiguration configuration,
     ITokenCredentialProvider tokenCredentialProvider)
 {
@@ -45,10 +43,7 @@ internal sealed class AzureDeployingContext(
         var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
         var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
 
-        // Step 1: Initialize parameters by collecting dependencies and resolving values
-        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
-
-        // Step 2: Provision Azure Bicep resources from the distributed application model
+        // Step 1: Provision Azure Bicep resources from the distributed application model
         var bicepResources = model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .ToList();
@@ -58,13 +53,13 @@ internal sealed class AzureDeployingContext(
             return;
         }
 
-        // Step 3: Build and push container images to ACR
+        // Step 2: Build and push container images to ACR
         if (!await TryDeployContainerImages(model, cancellationToken).ConfigureAwait(false))
         {
             return;
         }
 
-        // Step 4: Deploy compute resources to compute environment with images from step 2
+        // Step 3: Deploy compute resources to compute environment with images from step 2
         if (!await TryDeployComputeResources(model, provisioningContext, cancellationToken).ConfigureAwait(false))
         {
             return;
@@ -408,7 +403,7 @@ internal sealed class AzureDeployingContext(
                         .Select(async resource =>
                         {
                             var localImageName = resource.Name.ToLowerInvariant();
-                            IValueProvider cir = new ContainerImageReference(resource, serviceProvider);
+                            IValueProvider cir = new ContainerImageReference(resource);
                             var targetTag = await cir.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
                             var pushTask = await pushStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", cancellationToken).ConfigureAwait(false);
@@ -482,6 +477,12 @@ internal sealed class AzureDeployingContext(
                 if (environmentBicepResource.Outputs.TryGetValue($"AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
                 {
                     return $"https://aspire-dashboard.ext.{domainValue}";
+                }
+                // If the resource is a compute environment (app service), we can use its properties
+                // to get the dashboard URL.
+                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_APP_SERVICE_DASHBOARD_URI", out var dashboardUri))
+                {
+                    return (string?)dashboardUri;
                 }
             }
         }

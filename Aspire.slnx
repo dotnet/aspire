@@ -339,12 +339,6 @@
     <Project Path="playground/yarp/Yarp.Backend/Yarp.Backend.csproj" Id="1a96af46-9332-4e00-9202-fb00bd7d37b3" />
     <Project Path="playground/yarp/Yarp.Frontend/Yarp.Frontend.csproj" Id="a5c7276a-9ac5-4b89-9c1a-34efd457c7a4" />
   </Folder>
-  <Folder Name="/ServiceDiscovery/">
-    <Project Path="src/Microsoft.Extensions.ServiceDiscovery.Abstractions/Microsoft.Extensions.ServiceDiscovery.Abstractions.csproj" />
-    <Project Path="src/Microsoft.Extensions.ServiceDiscovery.Dns/Microsoft.Extensions.ServiceDiscovery.Dns.csproj" />
-    <Project Path="src/Microsoft.Extensions.ServiceDiscovery.Yarp/Microsoft.Extensions.ServiceDiscovery.Yarp.csproj" />
-    <Project Path="src/Microsoft.Extensions.ServiceDiscovery/Microsoft.Extensions.ServiceDiscovery.csproj" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path="Directory.Build.props" />
@@ -355,7 +349,6 @@
     <File Path="spelling.dic" />
     <File Path="src/Schema/aspire-8.0.json" />
   </Folder>
-  <Folder Name="/src/" />
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
@@ -445,11 +438,6 @@
     <Project Path="tests/Aspire.Hosting.Tests/Aspire.Hosting.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Valkey.Tests/Aspire.Hosting.Valkey.Tests.csproj" />
     <Project Path="tests/Aspire.Hosting.Yarp.Tests/Aspire.Hosting.Yarp.Tests.csproj" />
-  </Folder>
-  <Folder Name="/tests/ServiceDiscovery/">
-    <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests/Microsoft.Extensions.ServiceDiscovery.Dns.Tests.csproj" />
-    <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Tests/Microsoft.Extensions.ServiceDiscovery.Tests.csproj" />
-    <Project Path="tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests/Microsoft.Extensions.ServiceDiscovery.Yarp.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/TestingAppHost1/">
     <Project Path="tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj" />

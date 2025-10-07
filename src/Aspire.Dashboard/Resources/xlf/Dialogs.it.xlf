@@ -102,6 +102,11 @@
         <target state="translated">Dettagli</target>
         <note />
       </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="GenAIDurationLabel">
         <source>Duration</source>
         <target state="translated">Durata</target>
@@ -364,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">La pagina verrà ricaricata in base alla modifica della lingua.</target>
+        <target state="translated">La pagina verrà ricaricata al cambiamento della lingua.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">

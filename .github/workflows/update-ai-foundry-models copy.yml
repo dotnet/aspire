@@ -18,8 +18,6 @@ jobs:
 
       - name: Generate updated AIFoundry model descriptors
         working-directory: src/Aspire.Hosting.Azure.AIFoundry/tools
-        env:
-          CI: false
         run: |
           set -e
           "$GITHUB_WORKSPACE/dotnet.sh" run GenModel.cs

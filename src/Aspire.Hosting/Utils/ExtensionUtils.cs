@@ -9,6 +9,6 @@ internal static class ExtensionUtils
 {
     public static bool IsExtensionHost(IConfiguration configuration)
     {
-        return configuration[KnownConfigNames.ExtensionCapabilities] is not null;
+        return configuration[KnownConfigNames.DebugSessionInfo] is not null;
     }
 }

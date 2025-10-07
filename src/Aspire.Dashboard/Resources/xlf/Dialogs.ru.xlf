@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">Максимально допустимая {1} символов.</target>
+        <target state="translated">Максимально допустимая длина в символах: {1}.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -100,6 +100,11 @@
       <trans-unit id="GenAIDetailsTabText">
         <source>Details</source>
         <target state="translated">Сведения</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="GenAIDisplayErrorMessageText">
+        <source>Error displaying GenAI content:</source>
+        <target state="new">Error displaying GenAI content:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
@@ -364,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">Страница будет перезагружена при изменении языка.</target>
+        <target state="translated">Страница перезагрузится при смене языка.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">

@@ -1,3 +1,4 @@
+# DisableDockerDetector "Playground/demo application used for testing Aspire features"
 FROM node:20
  
 WORKDIR /app

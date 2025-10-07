@@ -19,6 +19,11 @@ on:
         required: true
         type: boolean
         default: false
+      # When true, ignores test failures and checks if .trx files have nonzero test count
+      ignoreTestFailures:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
 
@@ -40,7 +45,6 @@ jobs:
           --build
           -c Release
           --ci
-          /p:CI=false
           /p:GeneratePackageOnBuild=false
           ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
 
@@ -53,7 +57,6 @@ jobs:
           ${{ inputs.extraRunSheetBuilderArgs }}
           -c Release
           --ci
-          /p:CI=false
           /p:Restore=false
           /p:Build=false
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
@@ -81,7 +84,7 @@ jobs:
       fail-fast: false
       matrix:
         tests: ${{ fromJson(needs.generate_tests_matrix.outputs.runsheet) }}
-    if: ${{ always() && !cancelled() && github.repository_owner == 'dotnet' && needs.generate_tests_matrix.outputs.runsheet != '[]' }}
+    if: ${{ github.repository_owner == 'dotnet' }}
     uses: ./.github/workflows/run-tests.yml
     with:
       testShortName: ${{ matrix.tests.project }}
@@ -90,9 +93,10 @@ jobs:
       os: ${{ matrix.tests.os }}
       enablePlaywrightInstall: ${{ inputs.enablePlaywrightInstall }}
       extraTestArgs: ${{ inputs.extraTestArgs }}
+      ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
 
   results:
-    if: ${{ always() && github.repository_owner == 'dotnet' }}
+    if: ${{ github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [generate_tests_matrix, build_packages, run_tests]
@@ -145,8 +149,6 @@ jobs:
 
       - name: Generate test results summary
         if: steps.check_tests.outputs.tests_run == 'true'
-        env:
-          CI: false
         run: >
           ${{ github.workspace }}/dotnet.sh
           run
@@ -154,3 +156,11 @@ jobs:
           --
           ${{ github.workspace }}/testresults
           --combined
+
+      - name: Fail if any dependency failed
+        # 'skipped' can be when a transitive dependency fails and the dependent job gets 'skipped'.
+        # For example, one of setup_* jobs failing and the Integration test jobs getting 'skipped'
+        if: ${{ always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')) }}
+        run: |
+          echo "One or more dependent jobs failed."
+          exit 1

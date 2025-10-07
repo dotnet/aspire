@@ -7,6 +7,7 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
@@ -675,12 +676,14 @@ public partial class TraceDetailsTests : DashboardTestContext
         Services.AddSingleton<IDialogService, DialogService>();
         Services.AddSingleton<ISessionStorage, TestSessionStorage>();
         Services.AddSingleton<ILocalStorage, TestLocalStorage>();
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         Services.AddSingleton<ShortcutManager>();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<IKeyCodeService, KeyCodeService>();
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<DashboardTelemetryService>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)
