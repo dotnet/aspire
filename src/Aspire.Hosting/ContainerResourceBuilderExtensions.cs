@@ -215,6 +215,15 @@ public static class ContainerResourceBuilderExtensions
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Tag = tag;
+            
+            // If there's a DockerfileBuildAnnotation with an image tag, update it as well
+            // so that the user's explicit tag preference is respected
+            if (builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&
+                !string.IsNullOrEmpty(buildAnnotation.ImageTag))
+            {
+                buildAnnotation.ImageTag = tag;
+            }
+            
             return builder;
         }
 
@@ -295,6 +304,14 @@ public static class ContainerResourceBuilderExtensions
         else
         {
             imageAnnotation.Tag = parsedReference.Tag ?? tag ?? "latest";
+        }
+
+        // If there's a DockerfileBuildAnnotation with an image name/tag, clear them
+        // so that the user's explicit image preference is respected
+        if (builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation)
+        {
+            buildAnnotation.ImageName = null;
+            buildAnnotation.ImageTag = null;
         }
 
         return builder;
