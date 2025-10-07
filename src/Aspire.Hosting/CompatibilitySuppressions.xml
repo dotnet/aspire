@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- https://learn.microsoft.com/dotnet/fundamentals/package-validation/diagnostic-ids -->
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
@@ -11,6 +11,27 @@
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.InputsDialogValidationContext.get_Inputs</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.InteractionInput.set_Placeholder</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.InteractionInput.set_MaxLength</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.InteractionInput.init_Options</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>
     <Right>lib/net8.0/Aspire.Hosting.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
