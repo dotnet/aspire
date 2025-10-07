@@ -827,9 +827,9 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         _completionSource.SetResult();
     }
 
-    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse, CancellationToken cancellationToken)
     {
-        CompletedPrompts.Add(new PromptCompletion(promptId, answers));
+        CompletedPrompts.Add(new PromptCompletion(promptId, answers, updateResponse));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
         {
             completionSource.SetResult();
@@ -877,7 +877,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 // Data structures for tracking prompts
 internal sealed record PromptInputData(string Name, string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
-internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers);
+internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers, bool UpdateResponse);
 
 // Enhanced TestConsoleInteractionService that tracks interaction types
 [SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]
