@@ -152,8 +152,8 @@ Used by DCP to get information about capabilities of the IDE run session endpoin
 A JSON document describing the capabilities of the IDE run session endpoint. For example:
 ```jsonc
 {
-    "protocols_supported": [ "2024-03-03", "2025-10-01" ],
-    "supported_launch_configurations": [ "project", "blazor_webapp" ]
+    "protocols_supported": [ "2024-04-23", "2025-10-01" ],
+    "supported_launch_configurations": [ "project", "python" ]
 }
 ```
 
@@ -324,8 +324,13 @@ If the protocol version is newer than the latest the IDE supports, the IDE shoul
 Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
 Changes: none (baseline version)
 
+**`2024-04-23`** <br/>
+Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
+Changes:
+- Expects the IDE endpoint to be able to respond to WebSocket `ping` messages with a proper `pong` message. Used for detecting notification connection failures.
+
 **`2025-10-01`** <br/>
-Applicable Aspire versions: `9.6` and above (DCP will downgrade to `2024-03-03` if necessary). <br/>
+Applicable Aspire versions: `13.0` and above (DCP will downgrade to `2024-03-03` or `2024-04-23` if necessary). <br/>
 Changes:
 - Adds [session message notification](#session-message-notification) as one of the run session change notification types.
 - Adds `supported_launch_configurations` property to [IDE endpoint information request](#ide-endpoint-information-request).
