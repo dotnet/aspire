@@ -2,24 +2,26 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Cli.Rosetta.Models.Types;
 
 namespace Aspire.Cli.Rosetta.Models;
 
-public class ApplicationModel
+internal class ApplicationModel : IDisposable
 {
+    public required AssemblyLoaderContext AssemblyLoaderContext { get; init; }
     public required Dictionary<string, IntegrationModel> IntegrationModels { get; init; }
-    public required Dictionary<Type, ResourceModel> ResourceModels { get; init; }
-    public required HashSet<Type> ModelTypes { get; init; }
+    public required Dictionary<RoType, ResourceModel> ResourceModels { get; init; }
+    public required HashSet<RoType> ModelTypes { get; init; }
     public required string AppPath { get; init; }
-
     public required IWellKnownTypes WellKnownTypes { get; init; }
 
     // Custom method names
     public List<Mapping> MethodMappings = [];
+    private bool _disposedValue;
 
-    public static ApplicationModel Create(IEnumerable<IntegrationModel> integrationModels, string appPath)
+    public static ApplicationModel Create(IEnumerable<IntegrationModel> integrationModels, string appPath, AssemblyLoaderContext assemblyLoaderContext)
     {
-        var knownTypes = integrationModels.Any() ? integrationModels.FirstOrDefault()?.WellKnownTypes! : new WellKnownTypes([]);
+        var knownTypes = integrationModels.Any() ? integrationModels.FirstOrDefault()?.WellKnownTypes! : new WellKnownTypes(assemblyLoaderContext);
 
         var integrationModelsLookup = integrationModels.ToDictionary(x => x.AssemblyName);
         var resourceModels = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
@@ -34,7 +36,7 @@ public class ApplicationModel
         }
 
         // Discover all model types across all integrations
-        var modelTypes = new HashSet<Type>();
+        var modelTypes = new HashSet<RoType>();
 
         foreach (var integrationModel in integrationModels)
         {
@@ -58,12 +60,41 @@ public class ApplicationModel
                 new("WithEnvironment", [stringType, stringType], "WithEnvironmentString"),
             ],
             WellKnownTypes = knownTypes,
+            AssemblyLoaderContext = assemblyLoaderContext
         };
     }
 
-    public bool TryGetMapping(string methodName, Type[] parameterTypes, [NotNullWhen(true)] out Mapping? mapping)
+    public bool TryGetMapping(string methodName, RoType[] parameterTypes, [NotNullWhen(true)] out Mapping? mapping)
     {
         mapping = MethodMappings.FirstOrDefault(x => x.MethodName == methodName && x.ParameterTypes.SequenceEqual(parameterTypes));
         return mapping != null;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposedValue)
+        {
+            if (disposing)
+            {
+                // TODO: dispose managed state (managed objects)
+            }
+
+            AssemblyLoaderContext.Dispose();
+            _disposedValue = true;
+        }
+    }
+
+    // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+    ~ApplicationModel()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: false);
+    }
+
+    public void Dispose()
+    {
+        // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
     }
 }

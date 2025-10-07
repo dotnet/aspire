@@ -90,7 +90,7 @@
     <SystemFormatsAsn1Version>9.0.9</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.9</SystemTextJsonVersion>
     <SystemThreadingChannelsVersion>9.0.9</SystemThreadingChannelsVersion>
-    <SystemReflectionMetadataLoadContextVersion>9.0.9</SystemReflectionMetadataLoadContextVersion>
+    <SystemReflectionMetadataVersion>9.0.9</SystemReflectionMetadataVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryInstrumentationAspNetCoreVersion>1.12.0</OpenTelemetryInstrumentationAspNetCoreVersion>
     <OpenTelemetryInstrumentationHttpVersion>1.12.0</OpenTelemetryInstrumentationHttpVersion>

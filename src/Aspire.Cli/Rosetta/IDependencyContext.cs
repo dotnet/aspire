@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli.Rosetta;
 
-public interface IDependencyContext
+internal interface IDependencyContext
 {
     public string ArtifactsPath { get; }
     IEnumerable<string> GetAssemblyPaths(string name, string version);

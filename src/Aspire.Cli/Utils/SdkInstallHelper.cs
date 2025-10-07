@@ -33,10 +33,10 @@ internal static class SdkInstallHelper
         if (!success)
         {
             var detectedVersion = highestVersion ?? "(not found)";
-            
-            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
-                ErrorStrings.MinimumSdkVersionNotMet, 
-                minimumRequiredVersion, 
+
+            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture,
+                ErrorStrings.MinimumSdkVersionNotMet,
+                minimumRequiredVersion,
                 detectedVersion);
             interactionService.DisplayError(sdkErrorMessage);
             return false;

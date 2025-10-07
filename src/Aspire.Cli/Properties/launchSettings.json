@@ -1,8 +1,13 @@
 {
   "profiles": {
+    "polyglot-typescript": {
+      "commandName": "Project",
+      "commandLineArgs": "polyglot new -o c:\\temp\\r310",
+      "dotnetRunMessages": true
+    },   
     "dev-waitfor-explicit": {
       "commandName": "Project",
-      "commandLineArgs": "polyglot run -o c:\\temp\\r926",
+      "commandLineArgs": "dev ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj",
       "dotnetRunMessages": true
     },
     "dev-waitfor-implicit": {

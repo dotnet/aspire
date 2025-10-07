@@ -2,9 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.CompilerServices;
-using Aspire.Cli.Rosetta;
+using Aspire.Cli.Rosetta.Models.Types;
 
 namespace Aspire.Cli.Rosetta.Models;
 
@@ -18,7 +17,7 @@ namespace Aspire.Cli.Rosetta.Models;
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 [UnconditionalSuppressMessage("Trimming", "IL3050", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 [UnconditionalSuppressMessage("Trimming", "IL3053", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
-public class IntegrationModel
+internal class IntegrationModel
 {
     // Types that should not be handled as model types
     private static readonly HashSet<Type> s_knownTypes = [typeof(string), typeof(Uri)];
@@ -27,7 +26,7 @@ public class IntegrationModel
     /// Gets or sets the name of the package.
     /// </summary>
     /// <example>Aspire.Hosting.Redis</example>
-    public string AssemblyName => Assembly.GetName().Name ?? string.Empty;
+    public string AssemblyName => Assembly.Name ?? string.Empty;
 
     /// <summary>
     /// Integration models for integration package references.
@@ -37,7 +36,7 @@ public class IntegrationModel
     /// <summary>
     /// Types implementing IResource.
     /// </summary>
-    public Dictionary<Type, ResourceModel> Resources { get; } = [];
+    public Dictionary<RoType, ResourceModel> Resources { get; } = [];
 
     /// <summary>
     /// Extension methods for IDistributedApplicationBuilder.
@@ -47,20 +46,18 @@ public class IntegrationModel
     /// IResourceBuilder&lt;RedisResource&gt; AddRedis(this IDistributedApplicationBuilder builder, [ResourceName] string name, int? port = null)
     /// </code>
     /// </example>
-    public List<MethodInfo> IDistributedApplicationBuilderExtensionMethods { get; } = [];
+    public List<RoMethod> IDistributedApplicationBuilderExtensionMethods { get; } = [];
 
-    public List<MethodInfo> SharedExtensionMethods { get; } = [];
+    public List<RoMethod> SharedExtensionMethods { get; } = [];
 
-    public HashSet<Type> ModelTypes { get; } = [];
+    public HashSet<RoType> ModelTypes { get; } = [];
 
-    public required Assembly Assembly { get; init; }
+    public required RoAssembly Assembly { get; init; }
 
     public required IWellKnownTypes WellKnownTypes { get; init; }
 
-    public static IntegrationModel Create(IWellKnownTypes knownTypes, Assembly assembly)
+    public static IntegrationModel Create(IWellKnownTypes knownTypes, RoAssembly assembly)
     {
-        ArgumentNullException.ThrowIfNotReflectionOnly(assembly);
-
         var integration = new IntegrationModel
         {
             Assembly = assembly,
@@ -68,7 +65,7 @@ public class IntegrationModel
         };
 
         // List all types implementing IResource
-        var types = assembly.GetTypes()
+        var types = assembly.GetTypeDefinitions()
             .Where(t => !t.IsAbstract && t.IsPublic && knownTypes.IResourceType.IsAssignableFrom(t))
             .ToList();
 
@@ -106,48 +103,44 @@ public class IntegrationModel
         return integration;
     }
 
-    internal IEnumerable<MethodInfo> GetExtensionMethods(IWellKnownTypes wellKnownTypes, Type extendedType)
+    internal IEnumerable<RoMethod> GetExtensionMethods(IWellKnownTypes wellKnownTypes, RoType extendedType)
     {
-        ArgumentNullException.ThrowIfNotReflectionOnly(extendedType);
-
         return GetExtensionMethods(Assembly, wellKnownTypes, extendedType);
     }
 
-    private static IEnumerable<MethodInfo> GetExtensionMethods(Assembly assembly, IWellKnownTypes wellKnownTypes, Type extendedType)
+    private static IEnumerable<RoMethod> GetExtensionMethods(RoAssembly assembly, IWellKnownTypes wellKnownTypes, RoType extendedType)
     {
-        ArgumentException.ThrowIfNotReflectionOnly(assembly);
-        ArgumentException.ThrowIfNotReflectionOnly(extendedType);
-
         var obsoleteAttributeType = wellKnownTypes.GetKnownType<ObsoleteAttribute>();
         var extensionAttributeType = wellKnownTypes.GetKnownType<ExtensionAttribute>();
 
         var isGenericTypeDefinition = extendedType.IsGenericType && extendedType.IsTypeDefinition;
-        var query = from type in assembly.GetTypes()
+        var query = from type in assembly.GetTypeDefinitions()
                     where type.IsSealed && !type.IsGenericType && !type.IsNested && type.IsPublic
-                    from method in type.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                    from method in type.Methods
+                    where method.IsStatic && method.IsPublic
                     where HasAttribute(method, extensionAttributeType)
                     where !HasAttribute(method, obsoleteAttributeType)
                     // where !HasFuncParameters(method) // We can't handle generate Func<,> parameters for now
                     where isGenericTypeDefinition
-                        ? method.GetParameters()[0].ParameterType.IsGenericType && method.GetParameters()[0].ParameterType.GetGenericTypeDefinition() == extendedType
-                        : method.GetParameters()[0].ParameterType == extendedType
+                        ? method.Parameters[0].ParameterType.IsGenericType && method.Parameters[0].ParameterType.GenericTypeDefinition == extendedType
+                        : method.Parameters[0].ParameterType == extendedType
                     select method;
         return query;
 
-        bool HasAttribute(MethodInfo method, Type attributeType)
+        bool HasAttribute(RoMethod method, RoType attributeType)
         {
-            return CustomAttributeData.GetCustomAttributes(method).Any(attr => attr.AttributeType == attributeType);
+            return method.GetCustomAttributes().Any(attr => attr.AttributeType == attributeType);
         }
     }
 
-    public void DiscoverModelClasses(List<MethodInfo> methods, HashSet<Type> modelTypes)
+    public void DiscoverModelClasses(List<RoMethod> methods, HashSet<RoType> modelTypes)
     {
         // Collect classes for types that are used as return types or arguments in the extension methods which 
         // are not IResourceBuilder<T>.
 
-        void ScanMethod(MethodInfo method)
+        void ScanMethod(RoMethod method)
         {
-            var types = method.GetParameters()
+            var types = method.Parameters
                 .Select(p => p.ParameterType)
                 .ToList();
 
@@ -157,7 +150,7 @@ public class IntegrationModel
             {
                 var type = t;
 
-                if (type.IsGenericType && type.GetGenericTypeDefinition() == WellKnownTypes.GetKnownType(typeof(Nullable<>)))
+                if (type.IsGenericType && type.GenericTypeDefinition == WellKnownTypes.GetKnownType(typeof(Nullable<>)))
                 {
                     type = type.GetGenericArguments()[0];
                 }
@@ -183,7 +176,7 @@ public class IntegrationModel
             ScanMethod(method);
         }
 
-        bool IsCandidate(Type type)
+        bool IsCandidate(RoType type)
         {
             var objectType = WellKnownTypes.GetKnownType<object>();
             var knownTypes = s_knownTypes.Select(WellKnownTypes.GetKnownType).ToHashSet();
@@ -195,9 +188,9 @@ public class IntegrationModel
             var isCandidate = !type.IsGenericParameter &&
                 !type.IsByRef &&
                 type.IsPublic &&
-                (type.Assembly != objectType.Assembly || type.IsEnum) && 
+                (type.DeclaringAssembly != objectType.DeclaringAssembly || type.IsEnum) &&
                 !knownTypes.Contains(type) &&
-               !(type.IsGenericType && type.GetGenericTypeDefinition() == WellKnownTypes.IResourceBuilderType);
+               !(type.IsGenericType && type.GenericTypeDefinition == WellKnownTypes.IResourceBuilderType);
 
             return isCandidate;
         }

@@ -74,7 +74,7 @@ internal sealed class PolyglotCommand : BaseCommand
 
                 InteractionService.DisplaySubtleMessage($"Generic App Host: '{projectModel.ProjectModelPath}'");
 
-                var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
+                using var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService, language);
 
@@ -185,7 +185,7 @@ internal sealed class PolyglotCommand : BaseCommand
 
                 packagesJson.Import(packageName, packageVersion);
 
-                var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
+                using var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 // Detect language from existing app
                 var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService);
@@ -226,7 +226,7 @@ internal sealed class PolyglotCommand : BaseCommand
             {
                 var projectModel = new ProjectModel(output);
 
-                var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
+                using var appModel = await RosettaServices.CreateApplicationModel(output, InteractionService);
 
                 // Detect language
                 var codegen = RosettaServices.CreateCodegenerator(appModel, InteractionService);

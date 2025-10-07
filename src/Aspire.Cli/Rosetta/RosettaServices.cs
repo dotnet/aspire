@@ -8,7 +8,7 @@ using Aspire.Cli.Rosetta.Models;
 
 namespace Aspire.Cli.Rosetta;
 
-internal class RosettaServices
+internal sealed class RosettaServices
 {
     public static async Task<ApplicationModel> CreateApplicationModel(string appPath, IInteractionService interactionService, bool debug = false)
     {
@@ -19,9 +19,10 @@ internal class RosettaServices
         await EnsureProjectBuilt(projectModel, interactionService);
 
         var context = projectModel.CreateDependencyContext();
+        var assemblyLoaderContext = new AssemblyLoaderContext();
 
-        var integrations = packagesJson.ResolveIntegrations(context, debug);
-        var appModel = ApplicationModel.Create(integrations, appPath);
+        var integrations = packagesJson.ResolveIntegrations(context, assemblyLoaderContext, debug);
+        var appModel = ApplicationModel.Create(integrations, appPath, assemblyLoaderContext);
         return appModel;
     }
 

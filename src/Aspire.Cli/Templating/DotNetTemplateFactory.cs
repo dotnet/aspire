@@ -426,7 +426,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         var workingDir = executionContext.WorkingDirectory;
         var outputDir = new DirectoryInfo(outputPath);
-        
+
         // Determine if we're creating the project in-place (output directory same as working directory)
         var normalizedOutputPath = Path.GetFullPath(outputPath);
         var normalizedWorkingPath = workingDir.FullName;

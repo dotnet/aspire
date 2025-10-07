@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli.Rosetta.Generators;
 
-public interface ICodeGenerator
+internal interface ICodeGenerator
 {
     /// <summary>
     /// Generates the code depending on imported packages. This is invoked every time 

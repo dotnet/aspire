@@ -13,13 +13,6 @@
     <IsAotCompatible>true</IsAotCompatible>
     <PublishAot>true</PublishAot>
     <PublishTrimmed>true</PublishTrimmed>
-    <!-- Show individual warnings -->
-    <TrimmerSingleWarn>false</TrimmerSingleWarn>
-    <!-- Ignore trim warnings for now -->
-    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
-    <SuppressAotAnalysisWarnings>true</SuppressAotAnalysisWarnings>
-    <!-- Disable unsupported API check (IL3001) when AOT is enabled -->
-    <IlcDisableUnsupportedApiCheck>true</IlcDisableUnsupportedApiCheck>
     <DefineConstants>$(DefineConstants);CLI</DefineConstants>
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
@@ -70,7 +63,7 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Semver" />
-    <PackageReference Include="System.Reflection.MetadataLoadContext" />
+    <PackageReference Include="System.Reflection.Metadata" />
   </ItemGroup>
 
   <ItemGroup>

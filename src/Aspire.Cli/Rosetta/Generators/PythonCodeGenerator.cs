@@ -7,11 +7,12 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using Aspire.Cli.Rosetta.Models;
+using Aspire.Cli.Rosetta.Models.Types;
 
 namespace Aspire.Cli.Rosetta.Generators;
 
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
-public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
+internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
 {
     private const string ModulePath = "./modules";
     private const string TripleQuotes = "\"\"\"";
@@ -291,14 +292,14 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         foreach (var mg in overloads.GroupBy(m => m.Name))
         {
             var index = 0;
-            foreach (var overload in mg.OrderBy(m => m.GetParameters().Length))
+            foreach (var overload in mg.OrderBy(m => m.Parameters.Count))
             {
-                var methodName = _appModel.TryGetMapping(overload.Name, overload.GetParameters().Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
+                var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
                     : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
 
-                var parameters = overload.GetParameters().Skip(1);
-                
+                var parameters = overload.Parameters.Skip(1);
+
                 // Push optional and nullable parameters to the end of the list
                 var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
 
@@ -322,10 +323,10 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                         invoke = make_instruction("INVOKE",
                             source = self._name, 
                             target = result._name, 
-                            methodAssembly = "{{overload.DeclaringType?.Assembly.GetName().Name}}", 
+                            methodAssembly = "{{overload.DeclaringType?.DeclaringAssembly.Name}}", 
                             methodType = "{{overload.DeclaringType?.FullName}}", 
                             methodName = "{{overload.Name}}", 
-                            methodArgumentTypes = [{{string.Join(", ", overload.GetParameters().Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
+                            methodArgumentTypes = [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
                             metadataToken = {{overload.MetadataToken}},
                             args = {{{jsonParameterList}}} 
                         )
@@ -346,7 +347,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         foreach (var methodGroups in builderMethods.GroupBy(m => m.Name))
         {
             var index = 0;
-            var overloads = methodGroups.OrderBy(m => m.GetParameters().Length).ToArray();
+            var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
 
             foreach (var overload in overloads)
             {
@@ -355,20 +356,20 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                     continue;
                 }
 
-                Type returnType = overload.ReturnType;
+                var returnType = overload.ReturnType;
                 var pyReturnTypeName = returnType.Name;
 
-                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+                if (returnType.IsGenericType && returnType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
                 {
                     returnType = returnType.GetGenericArguments()[0];
                     pyReturnTypeName = returnType.Name + "Builder";
                 }
-                
-                var methodName = _appModel.TryGetMapping(overload.Name, overload.GetParameters().Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
+
+                var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
                     : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
-                
-                var parameters = overload.GetParameters().Skip(1);
+
+                var parameters = overload.Parameters.Skip(1);
 
                 // Push optional and nullable parameters to the end of the list
                 var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
@@ -394,10 +395,10 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                         invoke = make_instruction("INVOKE",
                             source = self._name, 
                             target = result._name, 
-                            methodAssembly = "{{overload.DeclaringType?.Assembly.GetName().Name}}", 
+                            methodAssembly = "{{overload.DeclaringType?.DeclaringAssembly.Name}}", 
                             methodType = "{{overload.DeclaringType?.FullName}}", 
                             methodName = "{{overload.Name}}", 
-                            methodArgumentTypes = [{{string.Join(", ", overload.GetParameters().Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
+                            methodArgumentTypes = [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
                             metadataToken = {{overload.MetadataToken}},
                             args = {{{jsonParameterList}}} 
                         )
@@ -420,7 +421,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             {
                 textWriter.WriteLine();
                 textWriter.WriteLine($"class {type.Name}(Enum):");
-                foreach (var n in Enum.GetNames(type))
+                foreach (var n in type.GetEnumNames())
                 {
                     if (n == "None")
                     {
@@ -438,13 +439,18 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             {
                 textWriter.WriteLine();
                 textWriter.WriteLine($$"""
-                class {{type.Name}}(ReferenceClass):
+                class {{SanitizeClassName(type.Name)}}(ReferenceClass):
                     def __init__(self, builder):
                         super().__init__(builder, "{{type.Name}}", "{{ToSnakeCase(type.Name)}}")
                 """);
             }
         }
     }
+
+    /// <summary>
+    /// Sanitize a class name by replacing '+' with '_' to handle nested classes.
+    /// </summary>
+    private static string SanitizeClassName(string name) => name.Replace("+", "_");
 
     private void GenerateResourceClasses(TextWriter textWriter, IEnumerable<IntegrationModel> allIntegrationModels, bool includeMethods)
     {
@@ -458,7 +464,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
 
         void EmitResourceClass(TextWriter textWriter, ResourceModel model)
         {
-            var resourceName = model.ResourceType.Name;
+            var resourceName = SanitizeClassName(model.ResourceType.Name);
             textWriter.WriteLine();
             if (includeMethods)
             {
@@ -482,29 +488,29 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         }
     }
 
-    private void GenerateResourceExtensionMethods(TextWriter writer, Type type, IEnumerable<MethodInfo> extensionMethods)
+    private void GenerateResourceExtensionMethods(TextWriter writer, RoType type, IEnumerable<RoMethod> extensionMethods)
     {
         foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
         {
             var index = 0;
-            var overloads = methodGroups.OrderBy(m => m.GetParameters().Length).ToArray();
+            var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
 
             foreach (var overload in overloads)
             {
-                Type returnType = overload.ReturnType;
+                var returnType = overload.ReturnType;
                 var pyReturnTypeName = returnType.Name;
 
-                if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+                if (returnType.IsGenericType && returnType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
                 {
                     returnType = returnType.ContainsGenericParameters ? type : returnType.GetGenericArguments()[0];
                     pyReturnTypeName = returnType.Name + "Builder";
                 }
 
-                var methodName = _appModel.TryGetMapping(overload.Name, overload.GetParameters().Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
+                var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
                     : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
 
-                var parameters = overload.GetParameters().Skip(1);
+                var parameters = overload.Parameters.Skip(1);
                 // Push optional and nullable parameters to the end of the list
 
                 var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
@@ -512,7 +518,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                 var parameterList = String.Join(", ", orderedParameters.Select(FormatArgument)); // name: string, port?: number | null
                 var csParameterList = String.Join(", ", parameters.Select(FormatCsArgument));
                 var jsonParameterList = string.Join(", ", parameters.Select(FormatJsonArgument)); // name: name, port: port
-                
+
                 writer.WriteLine($$"""
 
                     def {{methodName}}(self, {{parameterList}}):
@@ -530,10 +536,10 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
                         invoke = make_instruction("INVOKE",
                             source = self._name, 
                             target = result._name, 
-                            methodAssembly = "{{overload.DeclaringType?.Assembly.GetName().Name}}", 
+                            methodAssembly = "{{overload.DeclaringType?.DeclaringAssembly.Name}}", 
                             methodType = "{{overload.DeclaringType?.FullName}}", 
                             methodName = "{{overload.Name}}", 
-                            methodArgumentTypes = [{{string.Join(", ", overload.GetParameters().Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
+                            methodArgumentTypes = [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
                             metadataToken = {{overload.MetadataToken}},
                             args = {{{jsonParameterList}}} 
                         )
@@ -617,11 +623,11 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         return resultFileName;
     }
 
-    private string FormatArgument(ParameterInfo p)
+    private string FormatArgument(RoParameterInfo p)
     {
         var result = p.Name!;
 
-        if (p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)))
+        if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)))
         {
             result += $": Optional[{FormatPyType(p.ParameterType.GetGenericArguments()[0])}] = None";
         }
@@ -634,16 +640,17 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             else
             {
                 result += $": {FormatPyType(p.ParameterType)}";
-            }        }
+            }
+        }
 
         return result;
     }
 
-    private string FormatJsonArgument(ParameterInfo p)
+    private string FormatJsonArgument(RoParameterInfo p)
     {
         var result = $"\"{p.Name!}\": {p.Name!}";
 
-        if (p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+        if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             result += "._name";
         }
@@ -651,22 +658,22 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         return result;
     }
 
-    private string FormatCsArgument(ParameterInfo p) => FormatCsArgument(p, "");
+    private string FormatCsArgument(RoParameterInfo p) => FormatCsArgument(p, "");
 
-    private string FormatCsArgument(ParameterInfo p, string prefix)
+    private string FormatCsArgument(RoParameterInfo p, string prefix)
     {
         string result;
 
         // Is the parameter of Type Action<IResourceBuilder<T>>? (callback)
         if (p.ParameterType.IsGenericType &&
-            p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) &&
+            p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) &&
             p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
             genericArgument.IsGenericType &&
-            genericArgument.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+            genericArgument.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             // This is a resource builder
             var resourceType = genericArgument.GetGenericArguments()[0];
-            var resourceName = resourceType.Name;
+            var resourceName = SanitizeClassName(resourceType.Name);
 
             var index = s_globalSnippets.Count;
             var csMethodName = $"Callback{s_counter++}";
@@ -689,7 +696,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             return $"{{default if callback{index} is None else callback{index}(result.builder, {prefix}{p.Name})}}";
         }
         // Value resolution
-        else if (p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+        else if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             result = $"{prefix}{p.Name}._name";
         }
@@ -707,7 +714,7 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         {
             result = $"{{convert_array({result})}}";
         }
-        else if (p.IsOptional || p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)))
+        else if (p.IsOptional || p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)))
         {
             result = $"{{convert_nullable({result})}}";
         }
@@ -727,21 +734,21 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         return result;
     }
 
-    private string FormatPyType(Type type)
+    private string FormatPyType(RoType type)
     {
         return type switch
         {
             { IsGenericType: true } when _appModel.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t == _appModel.WellKnownTypes.IResourceWithConnectionStringType => "ResourceBuilder",
             { IsGenericType: true } when _appModel.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t.IsInterface => "ResourceBuilder",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => $"Optional[{FormatPyType(type.GetGenericArguments()[0])}]",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(List<>)) => "list",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "dict",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IList<>)) => "list",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "list",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "list",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "list",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) => "callable",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType => $"{SanitizeClassName(type.GetGenericArguments()[0].Name)}Builder",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => $"Optional[{FormatPyType(type.GetGenericArguments()[0])}]",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(List<>)) => "list",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "dict",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IList<>)) => "list",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "list",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "list",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "list",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) => "callable",
             { } when type.IsArray => "list",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(Char)) => "str",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(String)) => "str",
@@ -766,22 +773,22 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(DateTime)) => "datetime",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(TimeSpan)) => "timedelta",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "datetime",
-            { } when _appModel.ModelTypes.Contains(type) => type.Name,
+            { } when _appModel.ModelTypes.Contains(type) => SanitizeClassName(type.Name),
             { } when type.IsEnum => type.Name,
             _ => "object"
         };
     }
 
-    private static string FormatMethodSignature(MethodInfo method)
+    private static string FormatMethodSignature(RoMethod method)
     {
-        var parameters = method.GetParameters();
+        var parameters = method.Parameters;
         var parameterList = string.Join(", ", parameters.Select(p => $"{PrettyPrintCSharpType(p.ParameterType)} {p.Name}"));
 
         // Add generic constraints
 
         var genericArguments = method.GetGenericArguments();
 
-        if (genericArguments.Length > 0)
+        if (genericArguments.Count > 0)
         {
             var genericArgumentList = string.Join(", ", genericArguments.Select(PrettyPrintCSharpType));
             return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}<{genericArgumentList}>({parameterList})";
@@ -790,37 +797,11 @@ public class PythonCodeGenerator(ApplicationModel appModel) : ICodeGenerator
         return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}({parameterList})";
     }
 
-    private static string PrettyPrintCSharpType(Type? t)
+    private static string PrettyPrintCSharpType(RoType? t)
     {
         if (t is null)
         {
             return "";
-        }
-
-        // Print a C# type definition
-        if (t.IsGenericType)
-        {
-            var genericType = t.GetGenericTypeDefinition();
-            var genericArguments = t.GetGenericArguments();
-            var genericArgumentList = string.Join(", ", genericArguments.Select(PrettyPrintCSharpType));
-
-            return $"{t.Name[..t.Name.IndexOf('`')]}<{genericArgumentList}>";
-        }
-
-        if (t.IsArray)
-        {
-            var elementType = t.GetElementType();
-            return $"{PrettyPrintCSharpType(elementType)}[]";
-        }
-
-        if (t.IsByRef)
-        {
-            return $"ref {PrettyPrintCSharpType(t.GetElementType()!)}";
-        }
-
-        if (t.IsPointer)
-        {
-            return $"{PrettyPrintCSharpType(t.GetElementType()!)}*";
         }
 
         return t.Name;

@@ -1,12 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Rosetta.Models;
+using Aspire.Cli.Rosetta.Models.Types;
 
 namespace Aspire.Cli.Rosetta;
 
@@ -14,7 +14,7 @@ namespace Aspire.Cli.Rosetta;
 /// Represents the aspire.json file used by the tool.
 /// It references all the Aspire Hosting packages used in the project.
 /// </summary>
-public class PackagesJson
+internal sealed class PackagesJson
 {
     const string FolderPrefix = ".aspire";
     const string PackagesFileName = "aspire.json";
@@ -38,7 +38,7 @@ public class PackagesJson
             File.WriteAllText(nugetCache, result);
         }
 
-        var doc = JsonObject.Parse(File.ReadAllText(nugetCache));
+        var doc = JsonNode.Parse(File.ReadAllText(nugetCache));
         s_packageNames = doc!["data"]!.AsArray().Select(x => $"{x!.AsObject()["id"]}@{x.AsObject()["version"]}").ToHashSet();
     }
 
@@ -162,39 +162,19 @@ public class PackagesJson
         return (id, version);
     }
 
-    public MetadataLoadContext GetMetadataLoadContext(IDependencyContext dependencyContext)
-    {
-        var artifactsAssemblies = new List<string>(Directory.GetFiles(dependencyContext.ArtifactsPath, "*.dll"));
-        var resolver = new PathAssemblyResolver(artifactsAssemblies);
-        //var runtimeAssemblies = Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory(), "*.dll");
-
-        //var resolver = new Rosetta.PathAssemblyResolver(artifactsAssemblies.Union(runtimeAssemblies));
-
-        // Use MetadataLoadContext to isolate the types from Aspire.Hosting since this project will
-        // be built using a different version than the one we load dynamically.
-        var metadataLoadContext = new MetadataLoadContext(resolver);
-
-        //var wellKnownTypes = new WellKnownTypes([metadataLoadContext.LoadFromAssemblyName("Aspire.Hosting"), metadataLoadContext.LoadFromAssemblyName("System.Private.CoreLib")]);
-
-        //return (metadataLoadContext, wellKnownTypes);
-
-        return metadataLoadContext;
-    }
-
     /// <summary>
     /// Resolves integrations based on provided dependency context and returns a list of integration models, including all transitive packages.
     /// </summary>
     /// <param name="dependencyContext">Provides access to assembly paths and dependency information for resolving integrations.</param>
+    /// <param name="assemblyLoaderContext"></param>
     /// <param name="debug"></param>
     /// <returns>A list of integration models that have been resolved.</returns>
-    public List<IntegrationModel> ResolveIntegrations(IDependencyContext dependencyContext, bool debug)
+    public List<IntegrationModel> ResolveIntegrations(IDependencyContext dependencyContext, AssemblyLoaderContext assemblyLoaderContext, bool debug)
     {
         var queue = new Queue<(string, string)>();
         var visited = new HashSet<string>();
         var integrationReverseLookup = new Dictionary<IntegrationModel, (string, string)>();
         var integrationLookup = new Dictionary<(string, string), List<IntegrationModel>>();
-
-        var metadataLoadContext = GetMetadataLoadContext(dependencyContext);
 
         foreach (var (name, version) in GetPackages())
         {
@@ -216,18 +196,58 @@ public class PackagesJson
                 Console.WriteLine($"Resolving {name}@{version}...");
             }
 
-            var assemblies = new List<Assembly>();
+            var assemblies = new List<RoAssembly>();
 
             foreach (var assemblyFullPath in dependencyContext.GetAssemblyPaths(name, version))
             {
-                assemblies.Add(metadataLoadContext.LoadFromAssemblyPath(assemblyFullPath));
+                if (!File.Exists(assemblyFullPath))
+                {
+                    continue;
+                }
+                try
+                {
+                    var assembly = assemblyLoaderContext.LoadAssembly(assemblyFullPath);
+
+                    if (assembly is null)
+                    {
+                        throw new InvalidOperationException($"Failed to load assembly '{assemblyFullPath}' for package '{name}@{version}'.");
+                    }
+
+                    assemblies.Add(assembly);
+                }
+                catch (BadImageFormatException)
+                {
+                    // Native or otherwise unsupported binary – skip.
+                }
+                catch (Exception ex) when (!debug)
+                {
+                    // Swallow non-debug failures to keep resolution resilient.
+                    _ = ex; // no-op
+                }
             }
 
-            var wellKnownTypes = new WellKnownTypes(assemblies.Union([
-                metadataLoadContext.LoadFromAssemblyName("Aspire.Hosting"),
-                metadataLoadContext.LoadFromAssemblyName("System.Runtime"),
-                metadataLoadContext.LoadFromAssemblyName("System.Private.CoreLib")
-                ]));
+            var aspireHostingAssemblyPath = Path.Combine(dependencyContext.ArtifactsPath, "Aspire.Hosting.dll");
+
+            // Ensure Aspire.Hosting + core assemblies are available for well known type lookup.
+            var aspireHosting = assemblyLoaderContext.LoadAssembly(aspireHostingAssemblyPath);
+
+            if (aspireHosting is null)
+            {
+                throw new InvalidOperationException("Aspire.Hosting assembly not found. Ensure Aspire.Hosting.AppHost package is referenced.");
+            }
+
+            var mscorlibPath = Path.Combine(dependencyContext.ArtifactsPath, "System.Private.CoreLib.dll");
+            var mscorlib = assemblyLoaderContext.LoadAssembly(mscorlibPath) ?? throw new InvalidOperationException("System.Private.CoreLib.dll assembly not found.");
+
+            var systemRuntimePath = Path.Combine(dependencyContext.ArtifactsPath, "System.Runtime.dll");
+            var systemRuntime = assemblyLoaderContext.LoadAssembly(systemRuntimePath) ?? throw new InvalidOperationException("System.Runtime.dll assembly not found.");
+
+            var wellKnownAssemblies = assemblies
+                .Concat([aspireHosting, systemRuntime, mscorlib])
+                .Where(a => a is not null)!
+                .Distinct();
+
+            var wellKnownTypes = new WellKnownTypes(assemblyLoaderContext);
 
             foreach (var assembly in assemblies)
             {

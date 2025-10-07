@@ -16,7 +16,7 @@ namespace Aspire.Cli.Rosetta;
 /// </summary>
 
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
-internal class ProjectModel
+internal sealed class ProjectModel
 {
     const string ProjectHashFileName = ".projecthash";
     const string FolderPrefix = ".aspire";
@@ -62,7 +62,7 @@ internal class ProjectModel
 
         return string.Empty;
     }
-    
+
     public void SaveProjectHash(string hash)
     {
         var hashFilePath = Path.Combine(_projectModelPath, ProjectHashFileName);

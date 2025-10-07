@@ -4,21 +4,22 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Aspire.Cli.Embedded;
 using System.Reflection;
 using System.Text.Json;
+using Aspire.Cli.Embedded;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Rosetta.Models;
+using Aspire.Cli.Rosetta.Models.Types;
 
 namespace Aspire.Cli.Rosetta.Generators;
 
 [UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
-internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionService interactionService) : ICodeGenerator
+internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionService interactionService) : ICodeGenerator
 {
     private const string ModulePath = "./.modules";
 
     // Custom record-like classes that contain the overload parameters
-    private readonly Dictionary<MemberInfo, string> _overloadParameterClassByMethod = [];
+    private readonly Dictionary<RoMethod, string> _overloadParameterClassByMethod = [];
     private readonly Dictionary<string, string> _overloadParameterClassByName = [];
     private readonly ApplicationModel _appModel = appModel;
 
@@ -310,7 +311,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
                 textWriter.WriteLine();
                 textWriter.WriteLine($$"""
                     export enum {{type.Name}} {
-                      {{String.Join(", ", Enum.GetNames(type).Select(x => $"{x} = \"{x}\""))}}
+                      {{String.Join(", ", type.GetEnumNames().Select(x => $"{x} = \"{x}\""))}}
                     }
                     """);
                 continue;
@@ -319,7 +320,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
             {
                 textWriter.WriteLine();
                 textWriter.WriteLine($$"""
-                export class {{type.Name}} extends ReferenceClass {
+                export class {{SanitizeClassName(type.Name)}} extends ReferenceClass {
                   constructor(builder: DistributedApplicationBuilderBase) {
                       super(builder, "{{type.Name}}", "{{CamelCase(type.Name)}}");
                   }
@@ -329,61 +330,67 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         }
     }
 
-    private void GenerateResourceClasses(TextWriter textWriter)
-    {
-        foreach (var resourceModel in _appModel.ResourceModels.Values)
-        {
-            EmitResourceClass(textWriter, resourceModel);
-        }
+  /// <summary>
+  /// Sanitize a class name by replacing '+' with '_' to handle nested classes.
+  /// </summary>
+  private static string SanitizeClassName(string name) => name.Replace("+", "_");
 
-        void EmitResourceClass(TextWriter textWriter, ResourceModel model)
-        {
-            var resourceName = model.ResourceType.Name;
-            textWriter.WriteLine();
-            textWriter.WriteLine($$"""
+  private void GenerateResourceClasses(TextWriter textWriter)
+  {
+    foreach (var resourceModel in _appModel.ResourceModels.Values)
+    {
+      EmitResourceClass(textWriter, resourceModel);
+    }
+
+    void EmitResourceClass(TextWriter textWriter, ResourceModel model)
+    {
+      var resourceName = SanitizeClassName(model.ResourceType.Name);
+      textWriter.WriteLine();
+      textWriter.WriteLine($$"""
                 export class {{resourceName}}Builder extends ReferenceClass {
                   constructor(builder: DistributedApplicationBuilderBase, cstype: string = "IResourceBuilder<{{model.ResourceType.FullName}}>") {
                       super(builder, cstype, "{{CamelCase(resourceName)}}Builder");
                   }
                 """);
 
-            GenerateMethods(textWriter, model.IResourceTypeBuilderExtensionsMethods, "this.builder");
+      GenerateMethods(textWriter, model.IResourceTypeBuilderExtensionsMethods, "this.builder");
 
-            textWriter.WriteLine($"}}");
-        }
+      textWriter.WriteLine($"}}");
     }
+  }
 
-    private void GenerateMethods(TextWriter writer, IEnumerable<MethodInfo> extensionMethods, string ctorArgs)
+    private void GenerateMethods(TextWriter writer, IEnumerable<RoMethod> extensionMethods, string ctorArgs)
     {
         foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
         {
             var index = 0;
-            var overloads = methodGroups.OrderBy(m => m.GetParameters().Length).ToArray();
+            var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
 
             foreach (var overload in overloads)
             {
                 // The return type is either `RedisResourceBuilder` for `IResourceBuilder<T>`
                 // or the actual return type of the extension method, e.g. EndpointReference
 
-                Type returnType = overload.ReturnType;
+                var returnType = overload.ReturnType;
+
                 var jsReturnTypeName = FormatJsType(returnType);
 
                 var parameterTypes = new List<string>();
 
-                var methodName = _appModel.TryGetMapping(overload.Name, overload.GetParameters().Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
+                var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? CamelCase(mapping.GeneratedName)
                     : CamelCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
 
-                var parameters = overload.GetParameters().Skip(1); // Skip the first parameter (this)
+                var parameters = overload.Parameters.Skip(1); // Skip the first parameter (this)
 
-                bool ParameterIsOptionalOrNullable(ParameterInfo p) => p.IsOptional || _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType);
+                bool ParameterIsOptionalOrNullable(RoParameterInfo p) => p.IsOptional || _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType);
 
                 // Push optional and nullable parameters to the end of the list
                 var orderedParameters = parameters.OrderBy(p => p.IsOptional ? 1 : 0).ThenBy(p => _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType) ? 1 : 0);
 
                 const string optionalArgumentName = "optionalArguments";
 
-                var optionalParameters = overload.GetParameters().Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
+                var optionalParameters = overload.Parameters.Skip(1).Where(ParameterIsOptionalOrNullable).ToArray();
 
                 // When there are more than 1 optional parameters, we need to generate a class
                 var shouldCreateArgsClass = optionalParameters.Length > 1;
@@ -421,7 +428,10 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
 
                         overloadParameterClass += "\n";
 
-                        static bool HasDefaultValue(ParameterInfo p) => p.RawDefaultValue != DBNull.Value && p.RawDefaultValue is not null;
+                        // These are the two values that are assigned to RawDefaultValue when there is no default value, based on the value of IsOptional
+                        // c.f. https://source.dot.net/#System.Reflection.MetadataLoadContext/System/Reflection/TypeLoading/Parameters/Ecma/EcmaFatMethodParameter.cs,48
+                        // And also c.f. the RoParameterInfo.cs implementation
+                        static bool HasDefaultValue(RoParameterInfo p) => p.RawDefaultValue != null && p.RawDefaultValue != DBNull.Value && p.RawDefaultValue != Missing.Value;
 
                         // Make a copy ctor
                         // constructor(args: Partial <Type> = { }) {
@@ -450,7 +460,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
                                 }
                                 else if (p.ParameterType.IsEnum)
                                 {
-                                    defaultValue += $" = {p.ParameterType.Name}.{p.DefaultValue}";
+                                    defaultValue += $" = {p.ParameterType.Name}.{p.RawDefaultValue}";
                                 }
                                 else
                                 {
@@ -525,10 +535,10 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
                         name: 'INVOKE', 
                         source: this[_name], 
                         target: result[_name], 
-                        methodAssembly: '{{overload.DeclaringType?.Assembly.GetName().Name}}', 
+                        methodAssembly: '{{overload.DeclaringType?.DeclaringAssembly.Name}}', 
                         methodType: '{{overload.DeclaringType?.FullName}}', 
                         methodName: '{{overload.Name}}', 
-                        methodArgumentTypes: [{{string.Join(", ", overload.GetParameters().Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
+                        methodArgumentTypes: [{{string.Join(", ", overload.Parameters.Select(p => "'" + p.ParameterType.FullName + "'"))}}], 
                         metadataToken: {{overload.MetadataToken}},
                         args: {{{jsonParameterList}}} 
                     });
@@ -541,16 +551,16 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         }
     }
 
-    private static string FormatMethodSignature(MethodInfo method)
+    private static string FormatMethodSignature(RoMethod method)
     {
-        var parameters = method.GetParameters();
+        var parameters = method.Parameters;
         var parameterList = string.Join(", ", parameters.Select(p => $"{PrettyPrintCSharpType(p.ParameterType)} {p.Name}"));
 
         // Add generic constraints
 
         var genericArguments = method.GetGenericArguments();
 
-        if (genericArguments.Length > 0)
+        if (genericArguments.Count > 0)
         {
             var genericArgumentList = string.Join(", ", genericArguments.Select(PrettyPrintCSharpType));
             return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}<{genericArgumentList}>({parameterList})";
@@ -559,37 +569,11 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         return $"{PrettyPrintCSharpType(method.ReturnType)} {method.Name}({parameterList})";
     }
 
-    private static string PrettyPrintCSharpType(Type? t)
+    private static string PrettyPrintCSharpType(RoType? t)
     {
         if (t is null)
         {
             return "";
-        }
-
-        // Print a C# type definition
-        if (t.IsGenericType)
-        {
-            var genericType = t.GetGenericTypeDefinition();
-            var genericArguments = t.GetGenericArguments();
-            var genericArgumentList = string.Join(", ", genericArguments.Select(PrettyPrintCSharpType));
-
-            return $"{t.Name[..t.Name.IndexOf('`')]}<{genericArgumentList}>";
-        }
-
-        if (t.IsArray)
-        {
-            var elementType = t.GetElementType();
-            return $"{PrettyPrintCSharpType(elementType)}[]";
-        }
-
-        if (t.IsByRef)
-        {
-            return $"ref {PrettyPrintCSharpType(t.GetElementType()!)}";
-        }
-
-        if (t.IsPointer)
-        {
-            return $"{PrettyPrintCSharpType(t.GetElementType()!)}*";
         }
 
         return t.Name;
@@ -600,12 +584,12 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         return char.ToLowerInvariant(methodName[0]) + methodName.Substring(1);
     }
 
-    private string FormatJsonArgument(ParameterInfo p, string prefix)
+    private string FormatJsonArgument(RoParameterInfo p, string prefix)
     {
         var result = p.Name!;
         result += $": {prefix}{p.Name!}";
 
-        if (p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+        if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             result += "?.[_name]";
         }
@@ -618,8 +602,8 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
 
         return result;
     }
-    
-    private string FormatArgument(ParameterInfo p)
+
+    private string FormatArgument(RoParameterInfo p)
     {
         var result = p.Name!;
         var IsNullableOfT = _appModel.WellKnownTypes.IsNullableOfT(p.ParameterType);
@@ -640,9 +624,9 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         return result;
     }
 
-    private string FormatCsArgument(ParameterInfo p) => FormatCsArgument(p, "");
+    private string FormatCsArgument(RoParameterInfo p) => FormatCsArgument(p, "");
 
-    private string FormatCsArgument(ParameterInfo p, string prefix)
+    private string FormatCsArgument(RoParameterInfo p, string prefix)
     {
         string result;
 
@@ -651,14 +635,14 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         // NOTE: Callbacks are a challenge. Currently, callbacks are projected to run inline.
         // Aspire integrations should indicate if callbacks are safe to run inline or need to be deferred.
         if (p.ParameterType.IsGenericType &&
-            p.ParameterType.GetGenericTypeDefinition() == actionType &&
+            p.ParameterType.GenericTypeDefinition == actionType &&
             p.ParameterType.GetGenericArguments()[0] is { } genericArgument &&
             genericArgument.IsGenericType &&
-            genericArgument.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+            genericArgument.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             // This is a resource builder
             var resourceType = genericArgument.GetGenericArguments()[0];
-            var resourceName = resourceType.Name;
+            var resourceName = SanitizeClassName(resourceType.Name);
 
             return $$"""
                 ${ capture(() => { 
@@ -675,7 +659,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         }
 
         // Value resolution
-        else if (p.ParameterType.IsGenericType && p.ParameterType.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType)
+        else if (p.ParameterType.IsGenericType && p.ParameterType.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType)
         {
             result = $"{prefix}{p.Name}?.[_name]";
         }
@@ -713,21 +697,21 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
         return result;
     }
 
-    private string FormatJsType(Type type)
+    private string FormatJsType(RoType type)
     {
         return type switch
         {
             { IsGenericType: true } when _appModel.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t == _appModel.WellKnownTypes.IResourceWithConnectionStringType => "IResourceWithConnectionStringBuilder",
             { IsGenericType: true } when _appModel.WellKnownTypes.TryGetResourceBuilderTypeArgument(type, out var t) && t.IsInterface => "ResourceBuilder",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(type.GetGenericArguments()[0]) + " | null",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(List<>)) => "Array",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IList<>)) => "Array",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "Array",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "Array",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "Array",
-            { IsGenericType: true } when type.GetGenericTypeDefinition() == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) => $"({String.Join(" ,", type.GetGenericArguments().Select((x, i) => $"p{i}: {FormatJsType(x)}"))}) => void",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.IResourceBuilderType => $"{type.GetGenericArguments()[0].Name}Builder",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Nullable<>)) => FormatJsType(type.GetGenericArguments()[0]) + " | null",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(List<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Dictionary<,>)) => "Map",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IList<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(ICollection<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyList<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(IReadOnlyCollection<>)) => "Array",
+            { IsGenericType: true } when type.GenericTypeDefinition == _appModel.WellKnownTypes.GetKnownType(typeof(Action<>)) => $"({String.Join(" ,", type.GetGenericArguments().Select((x, i) => $"p{i}: {FormatJsType(x)}"))}) => void",
             { } when type.IsArray => $"Array<{FormatJsType(type.GetElementType() ?? _appModel.WellKnownTypes.GetKnownType(typeof(object)))}>",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(Char)) => "string",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(String)) => "string",
@@ -752,7 +736,7 @@ internal class JavaScriptCodeGenerator(ApplicationModel appModel, IInteractionSe
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(DateTime)) => "Date",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(TimeSpan)) => "number",
             { } when type == _appModel.WellKnownTypes.GetKnownType(typeof(DateTimeOffset)) => "Date",
-            { } when _appModel.ModelTypes.Contains(type) => type.Name,
+            { } when _appModel.ModelTypes.Contains(type) => SanitizeClassName(type.Name),
             { } when type.IsEnum => "any", // Enums should be handled by _modelTypes
             _ => "any"
         };
