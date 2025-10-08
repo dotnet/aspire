@@ -332,6 +332,10 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
             InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+
+            // Send visual bell notification when operation is complete
+            Console.Write("\a");
+            Console.Out.Flush();
         }
 
         return !hasErrors;
@@ -483,6 +487,10 @@ internal abstract class PublishCommandBase : BaseCommand
                 AnsiConsole.MarkupLine(
                     $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] " +
                     $"{prefix}{publishingActivity.Data.StatusText.EscapeMarkup()}[/]");
+
+                // Send visual bell notification when operation is complete
+                Console.Write("\a");
+                Console.Out.Flush();
 
                 return !hasErrors;
             }
