@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -160,5 +161,54 @@ public class NodeJsPublicApiTests
              ? Assert.Throws<ArgumentNullException>(action)
              : Assert.Throws<ArgumentException>(action);
         Assert.Equal(nameof(scriptName), exception.ParamName);
+    }
+
+    [Fact]
+    public void RunWithHttpsDevCertificateShouldThrowWhenBuilderIsNull()
+    {
+        IResourceBuilder<NodeAppResource> builder = null!;
+        const string certFileEnv = "CERT_FILE";
+        const string certKeyFileEnv = "CERT_KEY_FILE";
+
+        var action = () => builder.RunWithHttpsDevCertificate(certFileEnv, certKeyFileEnv);
+
+        var exception = Assert.Throws<ArgumentNullException>(action);
+        Assert.Equal(nameof(builder), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RunWithHttpsDevCertificateShouldThrowWhenCertFileEnvIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var nodeApp = builder.AddNodeApp("app", "app.js");
+        var certFileEnv = isNull ? null! : string.Empty;
+        const string certKeyFileEnv = "CERT_KEY_FILE";
+
+        var action = () => nodeApp.RunWithHttpsDevCertificate(certFileEnv, certKeyFileEnv);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(certFileEnv), exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RunWithHttpsDevCertificateShouldThrowWhenCertKeyFileEnvIsNullOrEmpty(bool isNull)
+    {
+        var builder = TestDistributedApplicationBuilder.Create();
+        var nodeApp = builder.AddNodeApp("app", "app.js");
+        const string certFileEnv = "CERT_FILE";
+        var certKeyFileEnv = isNull ? null! : string.Empty;
+
+        var action = () => nodeApp.RunWithHttpsDevCertificate(certFileEnv, certKeyFileEnv);
+
+        var exception = isNull
+            ? Assert.Throws<ArgumentNullException>(action)
+            : Assert.Throws<ArgumentException>(action);
+        Assert.Equal(nameof(certKeyFileEnv), exception.ParamName);
     }
 }
