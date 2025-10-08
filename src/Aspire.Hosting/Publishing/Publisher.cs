@@ -111,7 +111,7 @@ internal class Publisher(
             if (options.Value.Deploy && !options.Value.ClearCache)
             {
                 var deploymentStateManager = serviceProvider.GetService<IDeploymentStateManager>();
-                if (deploymentStateManager?.StateFilePath is not null)
+                if (deploymentStateManager?.StateFilePath is not null && File.Exists(deploymentStateManager.StateFilePath))
                 {
                     var statePathTask = await step.CreateTaskAsync(
                         "Checking deployment state configuration.",
