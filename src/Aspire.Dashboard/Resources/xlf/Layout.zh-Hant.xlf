@@ -42,19 +42,24 @@
         <target state="translated">重新載入</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryBody">
-        <source>Untrusted apps can send telemetry to the dashboard.</source>
-        <target state="translated">不受信任的應用程式可以將遙測傳送至儀表板。</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="MessageTelemetryLink">
+      <trans-unit id="MessageUnsecuredEndpointLink">
         <source>More information</source>
-        <target state="translated">更多資訊</target>
+        <target state="new">More information</target>
         <note />
       </trans-unit>
-      <trans-unit id="MessageTelemetryTitle">
-        <source>Telemetry endpoint is unsecured</source>
-        <target state="translated">遙測端點不安全</target>
+      <trans-unit id="MessageUnsecuredEndpointMcpBody">
+        <source>Untrusted apps can access sensitive information about the running services.</source>
+        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointTelemetryBody">
+        <source>Untrusted apps can send telemetry to the dashboard.</source>
+        <target state="new">Untrusted apps can send telemetry to the dashboard.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageUnsecuredEndpointTitle">
+        <source>Endpoint is unsecured</source>
+        <target state="new">Endpoint is unsecured</target>
         <note />
       </trans-unit>
       <trans-unit id="NavMenuConsoleLogsTab">

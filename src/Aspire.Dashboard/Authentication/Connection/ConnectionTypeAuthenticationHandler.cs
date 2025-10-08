@@ -22,9 +22,9 @@ public class ConnectionTypeAuthenticationHandler : AuthenticationHandler<Connect
             return Task.FromResult(AuthenticateResult.Fail("No type specified on this connection."));
         }
 
-        if (!connectionTypeFeature.ConnectionTypes.Contains(Options.RequiredConnectionType))
+        if (!Options.RequiredConnectionTypes.Any(connectionTypeFeature.ConnectionTypes.Contains))
         {
-            return Task.FromResult(AuthenticateResult.Fail($"Connection type {Options.RequiredConnectionType} is not enabled on this connection."));
+            return Task.FromResult(AuthenticateResult.Fail($"Connection types '{string.Join(", ", Options.RequiredConnectionTypes)}' are not enabled on this connection."));
         }
 
         return Task.FromResult(AuthenticateResult.NoResult());
@@ -35,9 +35,10 @@ public static class ConnectionTypeAuthenticationDefaults
 {
     public const string AuthenticationSchemeFrontend = "ConnectionFrontend";
     public const string AuthenticationSchemeOtlp = "ConnectionOtlp";
+    public const string AuthenticationSchemeMcp = "ConnectionMcp";
 }
 
 public sealed class ConnectionTypeAuthenticationHandlerOptions : AuthenticationSchemeOptions
 {
-    public ConnectionType RequiredConnectionType { get; set; }
+    public HashSet<ConnectionType> RequiredConnectionTypes { get; set; } = [];
 }
