@@ -672,6 +672,8 @@ public class DcpExecutorTests
                         "2024-08-19T06:10:05.000Z Seventh" + Environment.NewLine +
                         "2024-08-19T06:10:04.000Z Forth" + Environment.NewLine +
                         "2024-08-19T06:10:04.000Z Fifth" + Environment.NewLine));
+                case Logs.StreamTypeSystem:
+                    return new MemoryStream();
                 default:
                     throw new InvalidOperationException("Unexpected type: " + logStreamType);
             }
@@ -729,6 +731,7 @@ public class DcpExecutorTests
         public Pipe StandardErr { get; set; } = default!;
         public Pipe StartupOut { get; set; } = default!;
         public Pipe StartupErr { get; set; } = default!;
+        public Pipe System { get; set; } = default!;
     }
 
     private static async Task<LogStreamPipes> GetStreamPipesAsync(Channel<(string Type, Pipe Pipe)> logStreamPipesChannel)
@@ -752,12 +755,15 @@ public class DcpExecutorTests
                 case Logs.StreamTypeStartupStdErr:
                     result.StartupErr = item.Pipe;
                     break;
+                case Logs.StreamTypeSystem:
+                    result.System = item.Pipe;
+                    break;
                 default:
                     throw new InvalidOperationException("Unexpected type: " + item.Type);
             }
 
             pipeCount++;
-            if (pipeCount == 4)
+            if (pipeCount == 5)
             {
                 logStreamPipesChannel.Writer.Complete();
             }

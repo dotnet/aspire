@@ -50,22 +50,6 @@ internal interface IBicepCompiler
 }
 
 /// <summary>
-/// Provides user secrets management functionality.
-/// </summary>
-internal interface IUserSecretsManager
-{
-    /// <summary>
-    /// Loads user secrets from the current application.
-    /// </summary>
-    Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Saves user secrets to the current application.
-    /// </summary>
-    Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
-}
-
-/// <summary>
 /// Provides provisioning context creation functionality.
 /// </summary>
 internal interface IProvisioningContextProvider

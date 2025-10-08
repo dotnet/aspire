@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.CommandLine;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -44,7 +45,7 @@ internal sealed class PublishCommand : PublishCommandBase
     protected override string OperationFailedPrefix => PublishCommandStrings.OperationFailedPrefix;
     protected override string GetOutputPathDescription() => PublishCommandStrings.OutputPathArgumentDescription;
 
-    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens)
+    protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
         var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
 

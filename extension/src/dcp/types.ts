@@ -56,7 +56,7 @@ export interface DcpServerConnectionInfo {
 }
 
 export interface RunSessionNotification {
-    notification_type: 'processRestarted' | 'sessionTerminated' | 'serviceLogs';
+    notification_type: 'processRestarted' | 'sessionTerminated' | 'serviceLogs' | 'sessionMessage';
     session_id: string;
     dcp_id: string;
 }
@@ -75,6 +75,14 @@ export interface ServiceLogsNotification extends RunSessionNotification {
     notification_type: 'serviceLogs';
     is_std_err: boolean;
     log_message: string;
+}
+
+export interface SessionMessageNotification extends RunSessionNotification {
+    notification_type: 'sessionMessage';
+    message: string;
+    code?: string;
+    level: "error" | "info" | "debug";
+    details: ErrorDetails[];
 }
 
 export interface LaunchOptions {
