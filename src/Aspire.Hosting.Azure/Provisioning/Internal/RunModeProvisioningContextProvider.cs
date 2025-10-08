@@ -3,12 +3,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -61,7 +59,7 @@ internal sealed class RunModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 
-    private void EnsureProvisioningOptions()
+    private void EnsureProvisioningOptions(JsonObject userSecrets)
     {
         if (!_interactionService.IsAvailable ||
             (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
@@ -77,7 +75,7 @@ internal sealed class RunModeProvisioningContextProvider(
         {
             try
             {
-                await RetrieveAzureProvisioningOptions().ConfigureAwait(false);
+                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
 
                 _logger.LogDebug("Azure provisioning options have been handled successfully.");
             }
@@ -91,22 +89,15 @@ internal sealed class RunModeProvisioningContextProvider(
 
     public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        EnsureProvisioningOptions();
+        EnsureProvisioningOptions(userSecrets);
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
         return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
+    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                            .Where(p => p.PropertyType == typeof(AzureLocation))
-                            .Select(p => (AzureLocation)p.GetValue(null)!)
-                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
-                            .OrderBy(kvp => kvp.Value)
-                            .ToList();
-
         while (_options.Location == null || _options.SubscriptionId == null)
         {
             var messageBarResult = await _interactionService.PromptNotificationAsync(
@@ -129,42 +120,17 @@ internal sealed class RunModeProvisioningContextProvider(
 
             if (messageBarResult.Data)
             {
-                var result = await _interactionService.PromptInputsAsync(
-                    AzureProvisioningStrings.InputsTitle,
-                    AzureProvisioningStrings.InputsMessage,
-                    [
-                        new InteractionInput { Name = LocationName, InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
-                        new InteractionInput { Name = SubscriptionIdName, InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
-                        new InteractionInput { Name = ResourceGroupName, InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
-                    ],
-                    new InputsDialogInteractionOptions
-                    {
-                        EnableMessageMarkdown = true,
-                        ValidationCallback = static (validationContext) =>
-                        {
-                            var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
-                            if (!Guid.TryParse(subscriptionInput.Value, out var _))
-                            {
-                                validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
-                            }
+                // Use the shared dynamic prompting method from base class
+                await RetrieveAzureProvisioningOptionsAsync(cancellationToken).ConfigureAwait(false);
 
-                            var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
-                            if (!IsValidResourceGroupName(resourceGroupInput.Value))
-                            {
-                                validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
-                            }
-
-                            return Task.CompletedTask;
-                        }
-                    },
-                    cancellationToken).ConfigureAwait(false);
-
-                if (!result.Canceled)
+                if (_options.Location != null && _options.SubscriptionId != null && _options.ResourceGroup != null)
                 {
-                    _options.Location = result.Data[LocationName].Value;
-                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
-                    _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                    _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
+                    var azureSection = userSecrets.Prop("Azure");
+
+                    // Persist the parameter value to user secrets so they can be reused in the future
+                    azureSection["Location"] = _options.Location;
+                    azureSection["SubscriptionId"] = _options.SubscriptionId;
+                    azureSection["ResourceGroup"] = _options.ResourceGroup;
 
                     _provisioningOptionsAvailable.SetResult();
                 }

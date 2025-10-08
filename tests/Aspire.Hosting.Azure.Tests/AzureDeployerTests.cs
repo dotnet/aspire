@@ -873,8 +873,8 @@ public class AzureDeployerTests(ITestOutputHelper output)
         {
             builder.Services.AddSingleton(activityReporter);
         }
-        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IDeploymentStateManager, NoOpDeploymentStateManager>();
+        builder.Services.AddSingleton<IProvisioningContextProvider, ProvisioningContextProvider>();
+        builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
         if (bicepProvisioner is not null)
         {
             builder.Services.AddSingleton(bicepProvisioner);
