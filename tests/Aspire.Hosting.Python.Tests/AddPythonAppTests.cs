@@ -238,6 +238,40 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Directory.Delete(projectDirectory, true);
     }
 
+    [Fact]
+    public async Task AddPythonAppWithoutVirtualEnvironment_FallsBackToSystemPython()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+
+        var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(projectDirectory);
+
+        var scriptPath = Path.Combine(projectDirectory, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello world!')");
+
+        // Add Python app without creating a virtual environment
+        builder.AddPythonApp("pythonProject", projectDirectory, "main.py");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        Assert.Equal("pythonProject", pythonProjectResource.Name);
+        Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
+        
+        // When venv doesn't exist, should fall back to system "python"
+        Assert.Equal("python", pythonProjectResource.Command);
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+
+        Assert.Equal("main.py", commandArguments[0]);
+
+        // Clean up the directory
+        Directory.Delete(projectDirectory, true);
+    }
+
     private static (string projectDirectory, string pythonExecutable, string scriptName) CreateTempPythonProject(ITestOutputHelper outputHelper, bool instrument = false)
     {
         var projectDirectory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
