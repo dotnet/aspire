@@ -208,20 +208,51 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="virtualEnvironmentPath">The path to the virtual environment. Can be absolute or relative to the app directory.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>
-    /// <para>
-    /// This method can only be used with Python app resources that haven't been fully configured yet.
-    /// Due to architectural limitations, changing the virtual environment after resource creation requires using
-    /// the deprecated <see cref="AddPythonApp(IDistributedApplicationBuilder, string, string, string, string, string[])"/> overload directly.
-    /// </para>
-    /// </remarks>
-    [Obsolete("WithVirtualEnvironment cannot be used after resource creation. Use the AddPythonApp overload with virtualEnvironmentPath parameter instead.")]
-    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> WithVirtualEnvironment(
         this IResourceBuilder<PythonAppResource> builder, string virtualEnvironmentPath)
     {
-        throw new NotSupportedException(
-            "WithVirtualEnvironment cannot modify the virtual environment after the Python resource has been created. " +
-            "The virtual environment path must be specified when calling AddPythonApp.");
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
+
+        var resource = builder.Resource;
+        var appDirectory = resource.WorkingDirectory;
+
+        // Resolve the virtual environment path (can be absolute or relative to app directory)
+        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
+            ? virtualEnvironmentPath
+            : Path.Join(appDirectory, virtualEnvironmentPath));
+
+        var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
+        var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
+        var appExecutable = instrumentationExecutable ?? pythonExecutable;
+
+        // Update the command to use the new virtual environment
+        builder.WithCommand(appExecutable);
+
+        // If instrumentation is available, configure OpenTelemetry
+        if (!string.IsNullOrEmpty(instrumentationExecutable))
+        {
+            // Update args to include instrumentation and python executable
+            builder.WithArgs(context =>
+            {
+                // Remove existing args to rebuild them with instrumentation
+                var existingArgs = context.Args.ToArray();
+                context.Args.Clear();
+
+                AddOpenTelemetryArguments(context);
+                context.Args.Add(pythonExecutable!);
+
+                // Re-add the existing args (script path and any script args)
+                foreach (var arg in existingArgs)
+                {
+                    context.Args.Add(arg);
+                }
+            });
+
+            builder.WithOtlpExporter();
+            builder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
+        }
+
+        return builder;
     }
 }
