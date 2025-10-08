@@ -3,7 +3,7 @@ import { aspireTerminalName, dcpServerNotInitialized, rpcServerNotInitialized } 
 import { extensionLogOutputChannel } from './logging';
 import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
-import { getRunSessionInfo } from '../capabilities';
+import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 
 export interface AspireTerminal {
     terminal: vscode.Terminal;
@@ -114,7 +114,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
             env.ASPIRE_EXTENSION_DEBUG_SESSION_ID = debugSessionId;
             env.DCP_INSTANCE_ID_PREFIX = debugSessionId + '-';
             env.DEBUG_SESSION_RUN_MODE = noDebug === false ? "Debug" : "NoDebug";
+            env.ASPIRE_EXTENSION_DEBUG_RUN_MODE = noDebug === false ? "Debug" : "NoDebug";
             env.DEBUG_SESSION_INFO = JSON.stringify(getRunSessionInfo());
+            env.ASPIRE_EXTENSION_CAPABILITIES = getSupportedCapabilities().join(',');
         }
 
         return env;
