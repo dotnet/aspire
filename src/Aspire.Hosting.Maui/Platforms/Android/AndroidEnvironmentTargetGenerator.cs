@@ -1,0 +1,275 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using System.Globalization;
+using System.Xml.Linq;
+using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.Logging;
+
+namespace Aspire.Hosting.Maui.Platforms.Android;
+
+internal static class AndroidEnvironmentTargetGenerator
+{
+    private const string PlatformMoniker = "android";
+
+    public static async Task AppendEnvironmentTargetsAsync(CommandLineArgsCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+
+        if (context.Resource is not ProjectResource projectResource)
+        {
+            return;
+        }
+
+        var generator = new Generator(context, projectResource);
+        await generator.ExecuteAsync(context.CancellationToken).ConfigureAwait(false);
+    }
+
+    private sealed class Generator
+    {
+        private readonly CommandLineArgsCallbackContext _context;
+        private readonly ProjectResource _projectResource;
+        private readonly Dictionary<string, string> _environment = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _encodedKeys = new(StringComparer.OrdinalIgnoreCase);
+
+        public Generator(CommandLineArgsCallbackContext context, ProjectResource projectResource)
+        {
+            _context = context;
+            _projectResource = projectResource;
+        }
+
+        public async Task ExecuteAsync(CancellationToken cancellationToken)
+        {
+            await CollectEnvironmentAsync(cancellationToken).ConfigureAwait(false);
+
+            if (_environment.Count == 0)
+            {
+                return;
+            }
+
+            var logger = _context.Logger;
+
+            var targetsPath = CreateTargetsFile(logger);
+            _context.Args.Add("-p:CustomAfterMicrosoftCommonTargets=" + targetsPath);
+
+            logger.LogInformation(
+                "Forwarding {EnvironmentVariableCount} environment variable(s) to the {Platform} launcher using targets file '{TargetsFile}'.",
+                _environment.Count,
+                PlatformMoniker,
+                targetsPath);
+
+            if (_encodedKeys.Count > 0)
+            {
+                logger.LogInformation(
+                    "Encoded semicolons for environment variables {EnvironmentVariables} when forwarding to '{Resource}'.",
+                    string.Join(", ", _encodedKeys),
+                    _projectResource.Name);
+            }
+        }
+
+        private async Task CollectEnvironmentAsync(CancellationToken cancellationToken)
+        {
+            await _projectResource.ProcessEnvironmentVariableValuesAsync(
+                _context.ExecutionContext,
+                (key, _, processed, exception) =>
+                {
+                    if (exception is not null || string.IsNullOrEmpty(key) || processed is not string value)
+                    {
+                        return;
+                    }
+
+                    if (!ShouldForwardToAndroid(key))
+                    {
+                        return;
+                    }
+
+                    // Android environment variables must be uppercase to be properly read by the runtime
+                    var normalizedKey = key.ToUpperInvariant();
+
+                    var encodedValue = EncodeSemicolons(value, out var wasEncoded);
+                    _environment[normalizedKey] = encodedValue;
+                    if (wasEncoded)
+                    {
+                        _encodedKeys.Add(normalizedKey);
+                    }
+                },
+                _context.Logger,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            // OTLP tunneled endpoint substitution: if a stub name and its service discovery var exist, override OTEL_EXPORTER_OTLP_ENDPOINT
+            if (_environment.TryGetValue("ASPIRE_MAUI_OTLP_STUB_NAME", out var stubName))
+            {
+                // Service discovery variable from tunnel injection uses the original endpoint scheme (http) even though
+                // the public dev tunnel endpoint is only reachable via HTTPS. Replace the scheme if needed.
+                // New stable endpoint name is 'otlp' (independent of scheme) so look that up first, then fall back.
+                // Note: Keys are uppercase since we normalized them above
+                var sdKey = $"SERVICES__{stubName.ToUpperInvariant()}__OTLP__0";
+                if (!_environment.ContainsKey(sdKey))
+                {
+                    // Backward compatibility with earlier prototype where endpoint name equaled scheme 'http'.
+                    var legacyKey = $"SERVICES__{stubName.ToUpperInvariant()}__HTTP__0";
+                    if (_environment.ContainsKey(legacyKey))
+                    {
+                        sdKey = legacyKey;
+                    }
+                }
+                if (_environment.TryGetValue(sdKey, out var tunneledUrl))
+                {
+                    if (Uri.TryCreate(tunneledUrl, UriKind.Absolute, out var u) && u.Host.EndsWith(".devtunnels.ms", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var builder = new UriBuilder(u);
+                        // Always use https for dev tunnel hosts
+                        builder.Scheme = "https";
+                        // Remove default port 443 (and any trailing slash after ToString())
+                        if (builder.Port == 443)
+                        {
+                            builder.Port = -1; // clears explicit :443
+                        }
+                        tunneledUrl = builder.Uri.ToString().TrimEnd('/');
+                    }
+                    _environment["OTEL_EXPORTER_OTLP_ENDPOINT"] = tunneledUrl;
+                }
+            }
+        }
+
+        private string CreateTargetsFile(ILogger logger)
+        {
+            var tempDirectory = Path.Combine(Path.GetTempPath(), "aspire", "maui", "android-env");
+            Directory.CreateDirectory(tempDirectory);
+
+            PruneOldTargets(tempDirectory, logger);
+
+            var sanitizedName = SanitizeFileName(_projectResource.Name + "-" + PlatformMoniker);
+            var uniqueId = Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture);
+            var targetsPath = Path.Combine(tempDirectory, $"{sanitizedName}-{uniqueId}.targets");
+
+            var projectElement = new XElement("Project");
+            projectElement.Add(new XElement(
+                "Import",
+                new XAttribute("Project", "$(MSBuildExtensionsPath)/v$(MSBuildToolsVersion)/Custom.After.Microsoft.Common.targets"),
+                new XAttribute("Condition", "Exists('$(MSBuildExtensionsPath)/v$(MSBuildToolsVersion)/Custom.After.Microsoft.Common.targets')")));
+
+            // Create an ItemGroup for AndroidEnvironment files to be generated
+            var itemGroup = new XElement("ItemGroup");
+            foreach (var (key, value) in _environment.OrderBy(static kvp => kvp.Key, StringComparer.OrdinalIgnoreCase))
+            {
+                itemGroup.Add(new XElement("_GeneratedAndroidEnvironment", new XAttribute("Include", $"{key}={value}")));
+            }
+
+            projectElement.Add(itemGroup);
+
+            // Add target to generate environment file(s)
+            var targetElement = new XElement(
+                "Target",
+                new XAttribute("Name", "AspireGenerateAndroidEnvironmentFiles"),
+                new XAttribute("BeforeTargets", "_GenerateEnvironmentFiles"),
+                new XAttribute("Condition", "'@(_GeneratedAndroidEnvironment)' != ''"));
+
+            // Write environment variables to a temporary file in IntermediateOutputPath
+            targetElement.Add(new XElement(
+                "WriteLinesToFile",
+                new XAttribute("File", "$(IntermediateOutputPath)__aspire_environment__.txt"),
+                new XAttribute("Lines", "@(_GeneratedAndroidEnvironment)"),
+                new XAttribute("Overwrite", "True"),
+                new XAttribute("WriteOnlyWhenDifferent", "True")));
+
+            // Add the file to AndroidEnvironment items
+            targetElement.Add(new XElement(
+                "ItemGroup",
+                new XElement("AndroidEnvironment", new XAttribute("Include", "$(IntermediateOutputPath)__aspire_environment__.txt"))));
+
+            // Add the file to FileWrites for clean
+            targetElement.Add(new XElement(
+                "ItemGroup",
+                new XElement("FileWrites", new XAttribute("Include", "$(IntermediateOutputPath)__aspire_environment__.txt"))));
+
+            // Force the GeneratePackageManagerJava target to re-run by deleting its stamp file
+            // This ensures environment changes trigger a rebuild of the Java environment files
+            targetElement.Add(new XElement(
+                "Delete",
+                new XAttribute("Files", "$(_AndroidStampDirectory)_GeneratePackageManagerJava.stamp")));
+
+            projectElement.Add(targetElement);
+
+            var document = new XDocument(new XDeclaration("1.0", "utf-8", "yes"), projectElement);
+            document.Save(targetsPath);
+
+            return targetsPath;
+        }
+
+        private static void PruneOldTargets(string directory, ILogger logger)
+        {
+            var expiration = DateTimeOffset.UtcNow - TimeSpan.FromDays(1);
+            var deletedFiles = new List<string>();
+
+            foreach (var file in Directory.EnumerateFiles(directory, "*.targets", SearchOption.TopDirectoryOnly))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if (info.Exists && info.LastWriteTimeUtc < expiration)
+                    {
+                        info.Delete();
+                        deletedFiles.Add(info.Name);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Failed to prune stale Android environment targets file '{TargetsFile}'.", file);
+                }
+            }
+
+            if (deletedFiles.Count > 0)
+            {
+                logger.LogDebug("Pruned {Count} stale Android environment targets file(s) from '{Directory}': {Files}.", deletedFiles.Count, directory, string.Join(", ", deletedFiles));
+            }
+        }
+
+        private static bool ShouldForwardToAndroid(string key)
+        {
+            return key.StartsWith("services__", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("connectionstrings__", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("ASPIRE_", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("AppHost__", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("OTEL_", StringComparison.OrdinalIgnoreCase)
+                || key.StartsWith("LOGGING__CONSOLE", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("ASPNETCORE_ENVIRONMENT", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("ASPNETCORE_URLS", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("DOTNET_ENVIRONMENT", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("DOTNET_URLS", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("DOTNET_LAUNCH_PROFILE", StringComparison.OrdinalIgnoreCase)
+                || key.Equals("DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            var invalidCharacters = Path.GetInvalidFileNameChars();
+            if (name.IndexOfAny(invalidCharacters) < 0)
+            {
+                return name;
+            }
+
+            var chars = name.ToCharArray();
+            for (var i = 0; i < chars.Length; i++)
+            {
+                if (Array.IndexOf(invalidCharacters, chars[i]) >= 0)
+                {
+                    chars[i] = '_';
+                }
+            }
+
+            return new string(chars);
+        }
+
+        private static string EncodeSemicolons(string value, out bool wasEncoded)
+        {
+            wasEncoded = value.Contains(';', StringComparison.Ordinal);
+            if (!wasEncoded)
+            {
+                return value;
+            }
+
+            return value.Replace(";", "%3B", StringComparison.Ordinal);
+        }
+    }
+}

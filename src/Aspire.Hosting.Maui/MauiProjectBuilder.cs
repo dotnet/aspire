@@ -270,7 +270,8 @@ public sealed class MauiProjectBuilder
         foreach (var pr in _platformResources.Where(p => p.Resource is IResourceWithEnvironment))
         {
             pr.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
-            if (pr.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase))
+            if (pr.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase) ||
+                pr.Resource.Name.EndsWith("-android", StringComparison.OrdinalIgnoreCase))
             {
                 pr.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
             }
@@ -359,6 +360,11 @@ public sealed class MauiProjectBuilder
             {
                 await iOSMlaunchEnvironmentTargetGenerator.AppendEnvironmentTargetsAsync(context).ConfigureAwait(false);
             }
+
+            if (platformMoniker.Equals("android", StringComparison.OrdinalIgnoreCase))
+            {
+                await Platforms.Android.AndroidEnvironmentTargetGenerator.AppendEnvironmentTargetsAsync(context).ConfigureAwait(false);
+            }
         });
 
         _platformResources.Add(builder);
@@ -369,7 +375,9 @@ public sealed class MauiProjectBuilder
             var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
             builder.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
 
-            if (_otlpStubName is not null && builder.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase))
+            if (_otlpStubName is not null && 
+                (builder.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase) ||
+                 builder.Resource.Name.EndsWith("-android", StringComparison.OrdinalIgnoreCase)))
             {
                 builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
             }
