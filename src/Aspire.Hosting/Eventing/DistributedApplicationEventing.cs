@@ -25,6 +25,9 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
     {
         if (_eventSubscriptionListLookup.TryGetValue(typeof(T), out var subscriptions))
         {
+            // Determine the resource associated with the event if it's a resource-specific event
+            var resource = @event is IDistributedApplicationResourceEvent resourceEvent ? resourceEvent.Resource : null;
+
             if (dispatchBehavior == EventDispatchBehavior.BlockingConcurrent || dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
             {
                 var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
@@ -39,13 +42,27 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                     // Non-blocking concurrent.
                     _ = Task.Run(async () =>
                     {
-                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                        try
+                        {
+                            await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                        }
                     }, default);
                 }
                 else
                 {
                     // Blocking concurrent.
-                    await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                    try
+                    {
+                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                    }
                 }
             }
             else
@@ -57,7 +74,14 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                     {
                         foreach (var subscription in subscriptions.ToArray())
                         {
-                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                            try
+                            {
+                                await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                            }
                         }
                     }, default);
                 }
@@ -66,10 +90,36 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                     // Blocking sequential.
                     foreach (var subscription in subscriptions.ToArray())
                     {
-                        await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        try
+                        {
+                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private async Task PublishExceptionEventAsync(Exception exception, Type eventType, IResource? resource)
+    {
+        // Avoid infinite loop if PublishEventException handler throws
+        if (eventType == typeof(PublishEventException))
+        {
+            return;
+        }
+
+        try
+        {
+            var exceptionEvent = new PublishEventException(exception, eventType, resource);
+            await PublishAsync(exceptionEvent, EventDispatchBehavior.BlockingSequential).ConfigureAwait(false);
+        }
+        catch
+        {
+            // If we can't publish the exception event, there's nothing we can do
         }
     }
 

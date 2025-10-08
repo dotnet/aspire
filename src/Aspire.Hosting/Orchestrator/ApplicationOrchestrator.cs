@@ -11,6 +11,8 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -64,6 +66,7 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
+        _eventing.Subscribe<PublishEventException>(OnPublishEventException);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -306,6 +309,32 @@ internal sealed class ApplicationOrchestrator
     private async Task OnResourceEndpointsAllocated(ResourceEndpointsAllocatedEvent @event, CancellationToken cancellationToken)
     {
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
+    }
+
+    private Task OnPublishEventException(PublishEventException @event, CancellationToken cancellationToken)
+    {
+        // Log the exception to both the resource-specific logger (if available) and a general logger
+        if (@event.Resource is not null)
+        {
+            var resourceLogger = _loggerService.GetLogger(@event.Resource);
+            resourceLogger.LogError(@event.Exception, "An exception occurred while publishing event {EventType} for resource {ResourceName}.", @event.EventType.Name, @event.Resource.Name);
+        }
+
+        // Also log to a general logger using IServiceProvider
+        var logger = _serviceProvider.GetService<ILogger<ApplicationOrchestrator>>();
+        if (logger is not null)
+        {
+            if (@event.Resource is not null)
+            {
+                logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType} for resource {ResourceName}.", @event.EventType.Name, @event.Resource.Name);
+            }
+            else
+            {
+                logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType}.", @event.EventType.Name);
+            }
+        }
+
+        return Task.CompletedTask;
     }
 
     private async Task OnResourceChanged(OnResourceChangedContext context)
