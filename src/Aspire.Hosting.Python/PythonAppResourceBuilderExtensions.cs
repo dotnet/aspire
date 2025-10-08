@@ -27,7 +27,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <para>
     /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
     /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
-    /// Use <see cref="WithScriptArgs(IResourceBuilder{PythonAppResource}, string[])"/> to pass arguments to the script.
+    /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
     /// The virtual environment must be initialized before running the app. To setup a virtual environment use the 
@@ -48,7 +48,7 @@ public static class PythonAppResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddPythonApp("python-app", "PythonApp", "main.py")
-    ///        .WithScriptArgs("arg1", "arg2");
+    ///        .WithArgs("arg1", "arg2");
     ///
     /// builder.Build().Run();
     /// </code>
@@ -70,14 +70,14 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithScriptArgs</c>:
+    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithArgs</c>:
     /// <code lang="csharp">
     /// builder.AddPythonApp("name", "dir", "script.py")
-    ///        .WithScriptArgs("arg1", "arg2");
+    ///        .WithArgs("arg1", "arg2");
     /// </code>
     /// </para>
     /// </remarks>
-    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithScriptArgs(...) instead.")]
+    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithArgs(...) instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
@@ -95,15 +95,15 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithVirtualEnvironment</c> and <c>WithScriptArgs</c>:
+    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithVirtualEnvironment</c> and <c>WithArgs</c>:
     /// <code lang="csharp">
     /// builder.AddPythonApp("name", "dir", "script.py")
     ///        .WithVirtualEnvironment("myenv")
-    ///        .WithScriptArgs("arg1", "arg2");
+    ///        .WithArgs("arg1", "arg2");
     /// </code>
     /// </para>
     /// </remarks>
-    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithVirtualEnvironment(...).WithScriptArgs(...) instead.")]
+    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithVirtualEnvironment(...).WithArgs(...) instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
@@ -225,20 +225,5 @@ public static class PythonAppResourceBuilderExtensions
         throw new NotSupportedException(
             "WithVirtualEnvironment cannot modify the virtual environment after the Python resource has been created. " +
             "The virtual environment path must be specified when calling AddPythonApp.");
-    }
-
-    /// <summary>
-    /// Adds arguments to pass to the Python script.
-    /// </summary>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="args">The arguments to pass to the script.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<PythonAppResource> WithScriptArgs(
-        this IResourceBuilder<PythonAppResource> builder, params string[] args)
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ThrowIfNullOrContainsIsNullOrEmpty(args);
-
-        return builder.WithArgs(args);
     }
 }
