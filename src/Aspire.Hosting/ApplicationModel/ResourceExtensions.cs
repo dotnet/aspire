@@ -154,13 +154,14 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The resource to get the environment variables from.</param>
     /// <param name="applicationOperation">The context in which the AppHost is being executed.</param>
+    /// <param name="serviceProvider">The service provider to use for resolving services during environment variable evaluation.</param>
     /// <returns>The environment variables retrieved from the resource.</returns>
     /// <remarks>
     /// This method is useful when you want to make sure the environment variables are added properly to resources, mostly in test situations.
     /// This method has asynchronous behavior when <paramref name = "applicationOperation" /> is <see cref="DistributedApplicationOperation.Run"/>
     /// and environment variables were provided from <see cref="IValueProvider"/> otherwise it will be synchronous.
     /// <example>
-    /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation)"/> inside
+    /// Using <see cref="GetEnvironmentVariableValuesAsync(IResourceWithEnvironment, DistributedApplicationOperation, IServiceProvider)"/> inside
     /// a unit test to validate environment variable values.
     /// <code>
     /// var builder = DistributedApplication.CreateBuilder();
@@ -185,10 +186,14 @@ public static class ResourceExtensions
     /// </example>
     /// </remarks>
     public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariableValuesAsync(this IResourceWithEnvironment resource,
-            DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
+            DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run,
+            IServiceProvider? serviceProvider = null)
     {
         var env = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
+        {
+            ServiceProvider = serviceProvider
+        });
         await resource.ProcessEnvironmentVariableValuesAsync(
             executionContext,
             (key, unprocessed, value, ex) =>
