@@ -47,10 +47,10 @@
       <source xml:lang="en">Configure launch.json file</source>
     </trans-unit>
     <trans-unit id="command.runAppHost">
-      <source xml:lang="en">Run Aspire app host</source>
+      <source xml:lang="en">Run Aspire apphost</source>
     </trans-unit>
     <trans-unit id="command.debugAppHost">
-      <source xml:lang="en">Debug Aspire app host</source>
+      <source xml:lang="en">Debug Aspire apphost</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
       <source xml:lang="en">No apphost found in the current workspace.</source>
