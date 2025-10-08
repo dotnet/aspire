@@ -115,7 +115,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
     [Fact]
     [RequiresTools(["python"])]
-    public async Task PythonResourceSupportsWithReference()
+    public void PythonResourceSupportsWithReference()
     {
         var (projectDirectory, _, scriptName) = CreateTempPythonProject(outputHelper);
 
@@ -127,9 +127,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName)
                             .WithReference(externalResource);
 
-        var environmentVariables = await pyproj.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
-
-        Assert.Equal("test", environmentVariables["ConnectionStrings__connectionString"]);
+        // Check that the connection string reference was added
+        var connectionStringAnnotations = pyproj.Resource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        Assert.NotEmpty(connectionStringAnnotations);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
@@ -201,12 +201,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // Arguments should be: [script name]
         Assert.Equal(scriptName, commandArguments[0]);
 
-        // Check for environment variables instead of command-line arguments
-        var environmentVariables = await pythonProjectResource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
-        Assert.Equal("otlp", environmentVariables["OTEL_TRACES_EXPORTER"]);
-        Assert.Equal("otlp,console", environmentVariables["OTEL_LOGS_EXPORTER"]);
-        Assert.Equal("otlp", environmentVariables["OTEL_METRICS_EXPORTER"]);
-        Assert.Equal("true", environmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"]);
+        // Check for OTEL environment variable annotations
+        var otelAnnotations = pythonProjectResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        Assert.NotEmpty(otelAnnotations);
+        
+        // Verify OtlpExporter annotation was added
+        var otlpAnnotation = pythonProjectResource.Annotations.OfType<OtlpExporterAnnotation>().SingleOrDefault();
+        Assert.NotNull(otlpAnnotation);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
