@@ -137,11 +137,12 @@ public static class PythonAppResourceBuilderExtensions
             context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
             context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp,console";
             context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
+
+            // Make sure to attach the logging instrumentation setting, so we can capture logs.
+            // Without this you'll need to configure logging yourself. Which is kind of a pain.
+           context.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
         });
 
-        // Make sure to attach the logging instrumentation setting, so we can capture logs.
-        // Without this you'll need to configure logging yourself. Which is kind of a pain.
-        resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
 
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
         {
