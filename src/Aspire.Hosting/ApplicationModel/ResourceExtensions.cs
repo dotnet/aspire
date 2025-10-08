@@ -188,10 +188,8 @@ public static class ResourceExtensions
             DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run)
     {
         var env = new Dictionary<string, string>();
-        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
-        {
-            ServiceProvider = new EmptyServiceProvider()
-        });
+        var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
+
         await resource.ProcessEnvironmentVariableValuesAsync(
             executionContext,
             (key, unprocessed, value, ex) =>
@@ -763,11 +761,5 @@ public static class ResourceExtensions
         ArgumentNullException.ThrowIfNull(callback);
 
         return builder.WithAnnotation(new DeploymentImageTagCallbackAnnotation(callback));
-    }
-
-    private sealed class EmptyServiceProvider : IServiceProvider
-    {
-        public static EmptyServiceProvider Instance { get; } = new EmptyServiceProvider();
-        public object? GetService(Type serviceType) => null;
     }
 }

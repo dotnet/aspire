@@ -128,7 +128,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
                             .WithReference(externalResource);
 
         using var app = builder.Build();
-        var environmentVariables = await pyproj.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pyproj.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("test", environmentVariables["ConnectionStrings__connectionString"]);
 
@@ -203,7 +203,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Equal(scriptName, commandArguments[0]);
 
         // Check for environment variables instead of command-line arguments
-        var environmentVariables = await pythonProjectResource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         Assert.Equal("otlp", environmentVariables["OTEL_TRACES_EXPORTER"]);
         Assert.Equal("otlp,console", environmentVariables["OTEL_LOGS_EXPORTER"]);
         Assert.Equal("otlp", environmentVariables["OTEL_METRICS_EXPORTER"]);
