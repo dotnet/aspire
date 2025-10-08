@@ -51,7 +51,7 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
+        Assert.NotNull(context.DeploymentState);
         Assert.Equal("westus2", context.Location.Name);
     }
 
@@ -401,7 +401,7 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
+        Assert.NotNull(context.DeploymentState);
         Assert.Equal("westus2", context.Location.Name);
     }
 }

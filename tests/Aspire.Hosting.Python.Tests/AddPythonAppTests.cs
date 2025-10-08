@@ -37,6 +37,12 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
               "build": {
                 "context": ".",
                 "dockerfile": "Dockerfile"
+              },
+              "env": {
+                "OTEL_TRACES_EXPORTER": "otlp",
+                "OTEL_LOGS_EXPORTER": "otlp",
+                "OTEL_METRICS_EXPORTER": "otlp",
+                "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }
             """;
@@ -71,6 +77,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
                 "dockerfile": "Dockerfile"
               },
               "env": {
+                "OTEL_TRACES_EXPORTER": "otlp",
+                "OTEL_LOGS_EXPORTER": "otlp",
+                "OTEL_METRICS_EXPORTER": "otlp",
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }
@@ -118,7 +127,8 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var pyproj = builder.AddPythonApp("pyproj", projectDirectory, scriptName)
                             .WithReference(externalResource);
 
-        var environmentVariables = await pyproj.Resource.GetEnvironmentVariableValuesAsync(DistributedApplicationOperation.Run);
+        using var app = builder.Build();
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pyproj.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
 
         Assert.Equal("test", environmentVariables["ConnectionStrings__connectionString"]);
 
@@ -172,30 +182,33 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         builder.AddPythonApp("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
 
-        var app = builder.Build();
+        using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var executableResources = appModel.GetExecutableResources();
 
         var pythonProjectResource = Assert.Single(executableResources);
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 
+        // Should use Python executable directly, not opentelemetry-instrument
         if (OperatingSystem.IsWindows())
         {
-            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "opentelemetry-instrument.exe"), pythonProjectResource.Command);
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "python.exe"), pythonProjectResource.Command);
         }
         else
         {
-            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "opentelemetry-instrument"), pythonProjectResource.Command);
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
         }
 
-        Assert.Equal("--traces_exporter", commandArguments[0]);
-        Assert.Equal("otlp", commandArguments[1]);
-        Assert.Equal("--logs_exporter", commandArguments[2]);
-        Assert.Equal("console,otlp", commandArguments[3]);
-        Assert.Equal("--metrics_exporter", commandArguments[4]);
-        Assert.Equal("otlp", commandArguments[5]);
-        Assert.Equal(pythonExecutable, commandArguments[6]);
-        Assert.Equal(scriptName, commandArguments[7]);
+        // Arguments should be: [script name]
+        Assert.Single(commandArguments);
+        Assert.Equal(scriptName, commandArguments[0]);
+
+        // Check for environment variables instead of command-line arguments
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        Assert.Equal("otlp", environmentVariables["OTEL_TRACES_EXPORTER"]);
+        Assert.Equal("otlp", environmentVariables["OTEL_LOGS_EXPORTER"]);
+        Assert.Equal("otlp", environmentVariables["OTEL_METRICS_EXPORTER"]);
+        Assert.Equal("true", environmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"]);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);

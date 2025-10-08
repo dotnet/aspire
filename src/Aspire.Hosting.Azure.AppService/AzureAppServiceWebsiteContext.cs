@@ -311,6 +311,13 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Name = "AZURE_CLIENT_ID",
                 Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
             });
+
+            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "AZURE_TOKEN_CREDENTIALS",
+                Value = "ManagedIdentityCredential"
+            });
         }
 
         // Added appsetting to identify the resource in a specific aspire environment

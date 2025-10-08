@@ -119,34 +119,29 @@ public static class PythonAppResourceBuilderExtensions
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
-        var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
         var pythonExecutable = virtualEnvironment.GetExecutablePath("python");
-        var appExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var resource = new PythonAppResource(name, appExecutable, appDirectory);
+        var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
 
         var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
-            // If the app is to be automatically instrumented, add the instrumentation executable arguments first.
-            if (!string.IsNullOrEmpty(instrumentationExecutable))
-            {
-                AddOpenTelemetryArguments(context);
-
-                // Add the python executable as the next argument so we can run the app.
-                context.Args.Add(pythonExecutable!);
-            }
-
             AddArguments(scriptPath, scriptArgs, context);
         });
 
-        if (!string.IsNullOrEmpty(instrumentationExecutable))
+        resourceBuilder.WithOtlpExporter();
+
+        // Configure OpenTelemetry exporters using environment variables
+        // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
+        resourceBuilder.WithEnvironment(context =>
         {
-            resourceBuilder.WithOtlpExporter();
+            context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
+            context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp";
+            context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
 
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
-            resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
-        }
+            context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+        });
 
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
         {
@@ -166,18 +161,6 @@ public static class PythonAppResourceBuilderExtensions
         {
             context.Args.Add(arg);
         }
-    }
-
-    private static void AddOpenTelemetryArguments(CommandLineArgsCallbackContext context)
-    {
-        context.Args.Add("--traces_exporter");
-        context.Args.Add("otlp");
-
-        context.Args.Add("--logs_exporter");
-        context.Args.Add("console,otlp");
-
-        context.Args.Add("--metrics_exporter");
-        context.Args.Add("otlp");
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)

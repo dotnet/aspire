@@ -30,7 +30,8 @@ export function isProjectLaunchConfiguration(obj: any): obj is ProjectLaunchConf
 
 export interface PythonLaunchConfiguration extends ExecutableLaunchConfiguration {
     type: "python";
-    program_path: string;
+    program_path?: string;
+    project_path?: string; // leftover from 9.5 usage of project path
 }
 
 export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfiguration {

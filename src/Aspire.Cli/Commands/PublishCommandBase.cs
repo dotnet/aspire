@@ -75,7 +75,7 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens);
+    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
@@ -173,7 +173,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 effectiveAppHostFile,
                 false,
                 true,
-                GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens),
+                GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
                 env,
                 backchannelCompletionSource,
                 operationRunOptions,
