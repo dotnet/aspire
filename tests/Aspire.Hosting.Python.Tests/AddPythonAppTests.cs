@@ -39,6 +39,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
                 "dockerfile": "Dockerfile"
               },
               "env": {
+                "OTEL_TRACES_EXPORTER": "otlp",
+                "OTEL_LOGS_EXPORTER": "otlp,console",
+                "OTEL_METRICS_EXPORTER": "otlp",
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }
@@ -74,6 +77,9 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
                 "dockerfile": "Dockerfile"
               },
               "env": {
+                "OTEL_TRACES_EXPORTER": "otlp",
+                "OTEL_LOGS_EXPORTER": "otlp,console",
+                "OTEL_METRICS_EXPORTER": "otlp",
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
             }

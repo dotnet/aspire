@@ -132,15 +132,11 @@ public static class PythonAppResourceBuilderExtensions
 
         // Configure OpenTelemetry exporters using environment variables
         // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
-        // These are only needed in run mode, not publish mode
         resourceBuilder.WithEnvironment(context =>
         {
-            if (!context.ExecutionContext.IsPublishMode)
-            {
-                context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
-                context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp,console";
-                context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
-            }
+            context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
+            context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp,console";
+            context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
         });
 
         // Make sure to attach the logging instrumentation setting, so we can capture logs.
