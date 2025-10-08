@@ -140,7 +140,7 @@ public static class PythonAppResourceBuilderExtensions
 
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
-            context.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
+            context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
         });
 
 
