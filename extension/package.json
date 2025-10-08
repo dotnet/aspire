@@ -129,25 +129,25 @@
         "command": "aspire-vscode.runAppHost",
         "title": "%command.runAppHost%",
         "category": "Aspire",
-        "icon": "$(play)"
+        "icon": "$(run-all)"
       },
       {
         "command": "aspire-vscode.debugAppHost",
         "title": "%command.debugAppHost%",
         "category": "Aspire",
-        "icon": "$(debug)"
+        "icon": "$(debug-all)"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "aspire.isAppHostFile",
+          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
           "group": "aspire_actions@1"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.isAppHostFile",
+          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
           "group": "aspire_actions@2"
         }
       ],
