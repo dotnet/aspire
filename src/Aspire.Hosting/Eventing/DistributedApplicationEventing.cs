@@ -33,36 +33,30 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                 var pendingSubscriptionCallbacks = new List<Task>(subscriptions.Count);
                 foreach (var subscription in subscriptions.ToArray())
                 {
-                    var pendingSubscriptionCallback = subscription.Callback(@event, cancellationToken);
-                    pendingSubscriptionCallbacks.Add(pendingSubscriptionCallback);
-                }
-
-                if (dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
-                {
-                    // Non-blocking concurrent.
-                    _ = Task.Run(async () =>
+                    // Wrap each callback to catch exceptions individually
+                    var wrappedCallback = Task.Run(async () =>
                     {
                         try
                         {
-                            await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
+                            await subscription.Callback(@event, cancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
                             await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
                         }
-                    }, default);
+                    }, cancellationToken);
+                    pendingSubscriptionCallbacks.Add(wrappedCallback);
+                }
+
+                if (dispatchBehavior == EventDispatchBehavior.NonBlockingConcurrent)
+                {
+                    // Non-blocking concurrent - fire and forget
+                    _ = Task.WhenAll(pendingSubscriptionCallbacks);
                 }
                 else
                 {
-                    // Blocking concurrent.
-                    try
-                    {
-                        await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
-                    }
+                    // Blocking concurrent - wait for all to complete
+                    await Task.WhenAll(pendingSubscriptionCallbacks).ConfigureAwait(false);
                 }
             }
             else
@@ -115,7 +109,8 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
         try
         {
             var exceptionEvent = new PublishEventException(exception, eventType, resource);
-            await PublishAsync(exceptionEvent, EventDispatchBehavior.BlockingSequential).ConfigureAwait(false);
+            // Use NonBlockingSequential to avoid potential deadlocks when publishing from within an event handler
+            await PublishAsync(exceptionEvent, EventDispatchBehavior.NonBlockingSequential).ConfigureAwait(false);
         }
         catch
         {
