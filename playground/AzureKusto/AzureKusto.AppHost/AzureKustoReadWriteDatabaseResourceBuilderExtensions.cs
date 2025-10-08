@@ -5,6 +5,8 @@ using Aspire.Hosting.Azure;
 using Kusto.Cloud.Platform.Utils;
 using Kusto.Data;
 using Kusto.Data.Net.Client;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Polly;
 
 internal static class AzureKustoReadWriteDatabaseResourceBuilderExtensions
@@ -26,7 +28,8 @@ internal static class AzureKustoReadWriteDatabaseResourceBuilderExtensions
         {
             if (!dbBuilder.Resource.Parent.IsEmulator)
             {
-                Console.WriteLine("Skipping Kusto DB control command for non-emulator.");
+                var logger = evt.Services.GetRequiredService<ResourceLoggerService>().GetLogger(dbBuilder.Resource);
+                logger.LogInformation("Skipping Kusto DB control command for non-emulator.");
                 return;
             }
 
