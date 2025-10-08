@@ -1,5 +1,6 @@
 ﻿@using Aspire.Dashboard.Components.CustomIcons
 @using Aspire.Dashboard.Components.Interactions
+@using Aspire.Dashboard.Components.Dialogs
 @using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Assistant
 @using Aspire.Dashboard.Resources
@@ -46,6 +47,12 @@
                           Title="@Loc[nameof(Layout.MainLayoutLaunchSettings)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchSettings)]">
                 <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral"/>
             </FluentButton>
+            <FluentButton Class="header-button"
+                          Appearance="Appearance.Stealth" OnClick="@LaunchMcpAsync" Target="_blank" Rel="noreferrer noopener"
+                          Title="MCP Server" aria-label="MCP Server">
+                <FluentIcon Value="@(new AspireIcons.Size24.McpIcon())" Color="Color.Neutral" />
+            </FluentButton>
+
             <UserProfile/>
         </FluentHeader>
 

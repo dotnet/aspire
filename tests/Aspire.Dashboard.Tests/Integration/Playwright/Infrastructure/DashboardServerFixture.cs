@@ -3,6 +3,7 @@
 
 using System.Reflection;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -29,7 +30,8 @@ public class DashboardServerFixture : IAsyncLifetime
             [DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = "http://127.0.0.1:0",
             [DashboardConfigNames.DashboardOtlpAuthModeName.ConfigKey] = nameof(OtlpAuthMode.Unsecured),
-            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured)
+            [DashboardConfigNames.DashboardFrontendAuthModeName.ConfigKey] = nameof(FrontendAuthMode.Unsecured),
+            [DashboardConfigNames.DashboardMcpAuthModeName.ConfigKey] = nameof(McpAuthMode.Unsecured)
         };
     }
 
