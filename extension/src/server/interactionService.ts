@@ -87,7 +87,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
@@ -117,7 +118,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
