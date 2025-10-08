@@ -125,8 +125,7 @@ class DotNetService implements IDotNetService {
                     reject(new Error('Timeout while waiting for dotnet run-api response'));
                 }, 10_000);
 
-                const logger = extensionLogOutputChannel;
-                logger.info('dotnet run-api - starting process');
+                extensionLogOutputChannel.info('dotnet run-api - starting process');
 
                 childProcess = spawn('dotnet', ['run-api'], {
                     cwd: path.dirname(projectPath),
@@ -143,12 +142,12 @@ class DotNetService implements IDotNetService {
                 const rl = readline.createInterface(childProcess.stdout);
                 rl.on('line', line => {
                     clearTimeout(timeout);
-                    logger.info(`dotnet run-api - received: ${line}`);
+                    extensionLogOutputChannel.info(`dotnet run-api - received: ${line}`);
                     resolve(line);
                 });
 
                 const message = JSON.stringify({ ['$type']: 'GetRunCommand', ['EntryPointFileFullPath']: projectPath });
-                logger.info(`dotnet run-api - sending: ${message}`);
+                extensionLogOutputChannel.info(`dotnet run-api - sending: ${message}`);
                 childProcess.stdin.write(message + os.EOL);
                 childProcess.stdin.end();
             } catch (e) {
