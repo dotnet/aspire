@@ -261,8 +261,11 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         Assert.Equal("pythonProject", pythonProjectResource.Name);
         Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
         
-        // When venv doesn't exist, should fall back to system "python"
-        Assert.Equal("python", pythonProjectResource.Command);
+        // When venv doesn't exist, should still use the expected venv path (not validated)
+        var expectedPythonPath = OperatingSystem.IsWindows()
+            ? Path.Join(projectDirectory, ".venv", "Scripts", "python.exe")
+            : Path.Join(projectDirectory, ".venv", "bin", "python");
+        Assert.Equal(expectedPythonPath, pythonProjectResource.Command);
 
         var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
 

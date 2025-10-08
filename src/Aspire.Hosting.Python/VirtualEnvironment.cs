@@ -55,4 +55,21 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
             $"The executable {name} could not be found in the virtual environment at '{virtualEnvironmentPath}' . " +
             "Make sure the virtual environment is initialized and the executable is installed.");
     }
+
+    /// <summary>
+    /// Gets the expected path for an executable in the virtual environment without validating it exists.
+    /// </summary>
+    /// <param name="name">The name of the executable.</param>
+    /// <returns>The expected path to the executable in the virtual environment.</returns>
+    public string GetExecutablePath(string name)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return Path.Join(virtualEnvironmentPath, "Scripts", name + ".exe");
+        }
+        else
+        {
+            return Path.Join(virtualEnvironmentPath, "bin", name);
+        }
+    }
 }
