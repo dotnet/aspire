@@ -7,26 +7,26 @@ import { getResourceDebuggerExtensions } from '../debugger/debuggerExtensions';
 export class AspireEditorCommandProvider implements vscode.Disposable {
     private _disposable: vscode.Disposable;
 
-    constructor(vscodeExtensionContext: vscode.ExtensionContext) {
+    constructor() {
         // Listen to active editor changes
         this._disposable = vscode.window.onDidChangeActiveTextEditor(async (editor) => {
             if (editor) {
-                await this.processDocument(vscodeExtensionContext, editor.document);
+                await this.processDocument(editor.document);
             }
         });
 
         // Initialize context for the currently active document
-        this.initializeActiveDocument(vscodeExtensionContext);
+        this.initializeActiveDocument();
     }
 
-    private async initializeActiveDocument(context: vscode.ExtensionContext): Promise<void> {
+    private async initializeActiveDocument(): Promise<void> {
         const activeDocument = vscode.window.activeTextEditor?.document;
         if (activeDocument) {
-            await this.processDocument(context, activeDocument);
+            await this.processDocument(activeDocument);
         }
     }
 
-    public async processDocument(context: vscode.ExtensionContext, document: vscode.TextDocument): Promise<void> {
+    public async processDocument(document: vscode.TextDocument): Promise<void> {
         // Check if the current file is AppHost.cs
         const isAppHostFile = path.basename(document.fileName).toLowerCase() === 'apphost.cs';
         await vscode.commands.executeCommand('setContext', 'aspire.isAppHostFile', isAppHostFile);

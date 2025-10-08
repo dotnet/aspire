@@ -7,20 +7,12 @@ import { AspireEditorCommandProvider } from '../editor/AspireEditorCommandProvid
 
 suite('AspireEditorCommandProvider Tests', () => {
     let sandbox: sinon.SinonSandbox;
-    let mockContext: vscode.ExtensionContext;
     let executeCommandStub: sinon.SinonStub;
     let findFilesStub: sinon.SinonStub;
     let readdirStub: sinon.SinonStub;
 
     setup(() => {
         sandbox = sinon.createSandbox();
-        mockContext = {
-            workspaceState: {
-                get: sandbox.stub(),
-                update: sandbox.stub()
-            }
-        } as any;
-
         executeCommandStub = sandbox.stub(vscode.commands, 'executeCommand');
         findFilesStub = sandbox.stub(vscode.workspace, 'findFiles');
         readdirStub = sandbox.stub(fs.promises, 'readdir');
@@ -32,7 +24,7 @@ suite('AspireEditorCommandProvider Tests', () => {
 
     suite('calculatePathDistance', () => {
         test('calculates distance correctly for same directory', () => {
-            const provider = new AspireEditorCommandProvider(mockContext);
+            const provider = new AspireEditorCommandProvider();
             const workspaceRoot = path.join('C:', 'workspace');
             const distance = provider.calculatePathDistance(
                 path.join(workspaceRoot, 'src', 'file.cs'),
@@ -45,7 +37,7 @@ suite('AspireEditorCommandProvider Tests', () => {
         });
 
         test('calculates distance correctly for parent directory', () => {
-            const provider = new AspireEditorCommandProvider(mockContext);
+            const provider = new AspireEditorCommandProvider();
             const workspaceRoot = path.join('C:', 'workspace');
             const distance = provider.calculatePathDistance(
                 path.join(workspaceRoot, 'src', 'nested', 'file.cs'),
@@ -58,7 +50,7 @@ suite('AspireEditorCommandProvider Tests', () => {
         });
 
         test('calculates distance correctly for different branches', () => {
-            const provider = new AspireEditorCommandProvider(mockContext);
+            const provider = new AspireEditorCommandProvider();
             const workspaceRoot = path.join('C:', 'workspace');
             const distance = provider.calculatePathDistance(
                 path.join(workspaceRoot, 'src', 'nested', 'file.cs'),
