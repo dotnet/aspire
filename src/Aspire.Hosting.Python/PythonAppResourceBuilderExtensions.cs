@@ -200,12 +200,6 @@ public static class PythonAppResourceBuilderExtensions
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
-
-        // Resolve the virtual environment path (can be absolute or relative to app directory)
-        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
-            ? virtualEnvironmentPath
-            : Path.Join(appDirectory, virtualEnvironmentPath));
-
         // Update the command to use the new virtual environment
         builder.WithCommand(virtualEnvironment.GetRequiredExecutable("python"));
 
