@@ -10,13 +10,9 @@ namespace Aspire.Hosting
 {
     public static partial class PythonAppResourceBuilderExtensions
     {
+        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, params string[] scriptArgs) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs) { throw null; }
-
-        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, System.Collections.Generic.IEnumerable<string> scriptArgs) { throw null; }
-
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        [System.Obsolete("This overload is obsolete due to parameter ambiguity. Use the overload that accepts IEnumerable<string> for scriptArgs: AddPythonApp(builder, name, appDirectory, scriptPath, virtualEnvironmentPath, new[] { \"arg1\", \"arg2\" })")]
-        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, string[] scriptArgs) { throw null; }
     }
 
     [System.Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
