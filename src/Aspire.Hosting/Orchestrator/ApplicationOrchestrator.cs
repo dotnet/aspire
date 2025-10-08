@@ -321,17 +321,14 @@ internal sealed class ApplicationOrchestrator
         }
 
         // Also log to a general logger using IServiceProvider
-        var logger = _serviceProvider.GetService<ILogger<ApplicationOrchestrator>>();
-        if (logger is not null)
+        var logger = _serviceProvider.GetRequiredService<ILogger<ApplicationOrchestrator>>();
+        if (@event.Resource is not null)
         {
-            if (@event.Resource is not null)
-            {
-                logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType} for resource {ResourceName}.", @event.EventType.Name, @event.Resource.Name);
-            }
-            else
-            {
-                logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType}.", @event.EventType.Name);
-            }
+            logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType} for resource {ResourceName}.", @event.EventType.Name, @event.Resource.Name);
+        }
+        else
+        {
+            logger.LogError(@event.Exception, "An exception occurred while publishing event {EventType}.", @event.EventType.Name);
         }
 
         return Task.CompletedTask;
