@@ -40,7 +40,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
               },
               "env": {
                 "OTEL_TRACES_EXPORTER": "otlp",
-                "OTEL_LOGS_EXPORTER": "otlp,console",
+                "OTEL_LOGS_EXPORTER": "otlp",
                 "OTEL_METRICS_EXPORTER": "otlp",
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
@@ -78,7 +78,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
               },
               "env": {
                 "OTEL_TRACES_EXPORTER": "otlp",
-                "OTEL_LOGS_EXPORTER": "otlp,console",
+                "OTEL_LOGS_EXPORTER": "otlp",
                 "OTEL_METRICS_EXPORTER": "otlp",
                 "OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED": "true"
               }
@@ -205,7 +205,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // Check for environment variables instead of command-line arguments
         var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         Assert.Equal("otlp", environmentVariables["OTEL_TRACES_EXPORTER"]);
-        Assert.Equal("otlp,console", environmentVariables["OTEL_LOGS_EXPORTER"]);
+        Assert.Equal("otlp", environmentVariables["OTEL_LOGS_EXPORTER"]);
         Assert.Equal("otlp", environmentVariables["OTEL_METRICS_EXPORTER"]);
         Assert.Equal("true", environmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"]);
 
