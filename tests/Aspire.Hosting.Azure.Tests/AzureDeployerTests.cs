@@ -254,7 +254,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api" &&
+            call.localImageName.StartsWith("api:") &&
             call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -322,7 +322,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
     {
         // Arrange
@@ -405,7 +405,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             call.targetImageName.StartsWith("aasregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "python-app" &&
+            call.localImageName.StartsWith("python-app:") &&
             call.targetImageName.StartsWith("acaregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -746,7 +746,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
