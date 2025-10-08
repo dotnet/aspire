@@ -561,35 +561,9 @@ public static class ContainerResourceBuilderExtensions
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrEmpty(contextPath);
         ArgumentNullException.ThrowIfNull(dockerfileFactory);
 
-        var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
-                                           .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        // Create a unique temporary Dockerfile path for this resource
-        var tempDockerfilePath = Path.Combine(Path.GetTempPath(), $"Dockerfile.{builder.Resource.Name}.{Guid.NewGuid():N}");
-
-        var imageName = ImageNameGenerator.GenerateImageName(builder);
-        var imageTag = ImageNameGenerator.GenerateImageTag(builder);
-        var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, tempDockerfilePath, stage)
-        {
-            DockerfileFactory = context => Task.FromResult(dockerfileFactory(context))
-        };
-
-        // If there's already a ContainerImageAnnotation, don't overwrite it.
-        // Instead, store the generated image name and tag on the DockerfileBuildAnnotation.
-        if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { })
-        {
-            annotation.ImageName = imageName;
-            annotation.ImageTag = imageTag;
-            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
-        }
-
-        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace)
-                      .WithImageRegistry(registry: null)
-                      .WithImage(imageName)
-                      .WithImageTag(imageTag);
+        return builder.WithDockerfile(contextPath, context => Task.FromResult(dockerfileFactory(context)), stage);
     }
 
     /// <summary>
