@@ -5,6 +5,7 @@
 
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Aspire.Hosting.Azure.Resources;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -179,4 +180,202 @@ internal abstract partial class BaseProvisioningContextProvider(
     }
 
     protected abstract string GetDefaultResourceGroupName();
+
+    /// <summary>
+    /// Prompts for subscription using dynamic options when available, falls back to manual input.
+    /// </summary>
+    protected async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
+    {
+        var result = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.SubscriptionDialogTitle,
+            AzureProvisioningStrings.SubscriptionSelectionMessage,
+            [
+                new InteractionInput
+                {
+                    Name = SubscriptionIdName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                    Required = true,
+                    AllowCustomChoice = true,
+                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                    DynamicOptions = new DynamicInputOptions
+                    {
+                        AlwaysUpdateOnStart = true,
+                        UpdateInputCallback = async (context) =>
+                        {
+                            try
+                            {
+                                var credential = _tokenCredentialProvider.TokenCredential;
+                                var armClient = _armClientProvider.GetArmClient(credential);
+                                var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(context.CancellationToken).ConfigureAwait(false);
+                                var subscriptionList = availableSubscriptions.ToList();
+
+                                if (subscriptionList.Count > 0)
+                                {
+                                    var subscriptionOptions = subscriptionList
+                                        .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
+                                        .OrderBy(kvp => kvp.Value)
+                                        .ToList();
+
+                                    context.Input.Options = subscriptionOptions;
+                                }
+                                else
+                                {
+                                    context.Input.Options = [];
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Allowing manual input.");
+                                context.Input.Options = [];
+                            }
+                        }
+                    }
+                }
+            ],
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false,
+                ValidationCallback = static (validationContext) =>
+                {
+                    var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
+                    if (!string.IsNullOrWhiteSpace(subscriptionInput.Value) && !Guid.TryParse(subscriptionInput.Value, out var _))
+                    {
+                        validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
+                    }
+                    return Task.CompletedTask;
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (!result.Canceled)
+        {
+            _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+        }
+    }
+
+    /// <summary>
+    /// Prompts for location and resource group using dynamic options when available, falls back to static locations.
+    /// </summary>
+    protected async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
+    {
+        var result = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.LocationDialogTitle,
+            AzureProvisioningStrings.LocationSelectionMessage,
+            [
+                new InteractionInput
+                {
+                    Name = LocationName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.LocationLabel,
+                    Required = true,
+                    DynamicOptions = new DynamicInputOptions
+                    {
+                        AlwaysUpdateOnStart = true,
+                        UpdateInputCallback = async (context) =>
+                        {
+                            try
+                            {
+                                var credential = _tokenCredentialProvider.TokenCredential;
+                                var armClient = _armClientProvider.GetArmClient(credential);
+                                var availableLocations = await armClient.GetAvailableLocationsAsync(_options.SubscriptionId!, context.CancellationToken).ConfigureAwait(false);
+                                var locationList = availableLocations.ToList();
+
+                                if (locationList.Count > 0)
+                                {
+                                    var locationOptions = locationList
+                                        .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
+                                        .OrderBy(kvp => kvp.Value)
+                                        .ToList();
+
+                                    context.Input.Options = locationOptions;
+                                }
+                                else
+                                {
+                                    // Fall back to static locations from AzureLocation
+                                    var staticLocations = GetStaticAzureLocations();
+                                    context.Input.Options = staticLocations;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to static locations.");
+
+                                // Fall back to static locations from AzureLocation
+                                var staticLocations = GetStaticAzureLocations();
+                                context.Input.Options = staticLocations;
+                            }
+                        }
+                    }
+                },
+                new InteractionInput
+                {
+                    Name = ResourceGroupName,
+                    InputType = InputType.Text,
+                    Label = AzureProvisioningStrings.ResourceGroupLabel,
+                    Value = GetDefaultResourceGroupName()
+                }
+            ],
+            new InputsDialogInteractionOptions
+            {
+                EnableMessageMarkdown = false,
+                ValidationCallback = static (validationContext) =>
+                {
+                    var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
+                    if (!IsValidResourceGroupName(resourceGroupInput.Value))
+                    {
+                        validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
+                    }
+                    return Task.CompletedTask;
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
+
+        if (!result.Canceled)
+        {
+            _options.Location = result.Data[LocationName].Value;
+            _options.ResourceGroup = result.Data[ResourceGroupName].Value;
+            _options.AllowResourceGroupCreation = true;
+        }
+    }
+
+    /// <summary>
+    /// Gets static Azure locations as fallback when dynamic loading fails.
+    /// </summary>
+    private static List<KeyValuePair<string, string>> GetStaticAzureLocations()
+    {
+        return typeof(AzureLocation).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(p => p.PropertyType == typeof(AzureLocation))
+            .Select(p => (AzureLocation)p.GetValue(null)!)
+            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+            .OrderBy(kvp => kvp.Value)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Common method to retrieve Azure provisioning options with dynamic prompts.
+    /// </summary>
+    protected async Task RetrieveAzureProvisioningOptionsAsync(CancellationToken cancellationToken = default)
+    {
+        while (_options.Location == null || _options.SubscriptionId == null)
+        {
+            if (_options.SubscriptionId == null)
+            {
+                await PromptForSubscriptionAsync(cancellationToken).ConfigureAwait(false);
+                if (_options.SubscriptionId == null)
+                {
+                    continue;
+                }
+            }
+
+            if (_options.Location == null)
+            {
+                await PromptForLocationAndResourceGroupAsync(cancellationToken).ConfigureAwait(false);
+                if (_options.Location == null)
+                {
+                    continue;
+                }
+            }
+        }
+    }
 }

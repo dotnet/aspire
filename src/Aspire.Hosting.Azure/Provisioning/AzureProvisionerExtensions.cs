@@ -46,14 +46,9 @@ public static class AzureProvisionerExtensions
         builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
         builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
 
-        if (builder.ExecutionContext.IsPublishMode)
-        {
-            builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        }
-        else
-        {
-            builder.Services.AddSingleton<IProvisioningContextProvider, RunModeProvisioningContextProvider>();
-        }
+        // Register unified provisioning context provider for both run and publish modes
+        builder.Services.AddSingleton<IProvisioningContextProvider, ProvisioningContextProvider>();
+
         builder.Services.TryAddSingleton<IProcessRunner, DefaultProcessRunner>();
 
         return builder;

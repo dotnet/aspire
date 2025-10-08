@@ -107,11 +107,11 @@ internal static class ProvisioningTestHelpers
     }
 
     /// <summary>
-    /// Creates a test logger for RunModeProvisioningContextProvider.
+    /// Creates a test logger for ProvisioningContextProvider.
     /// </summary>
-    public static ILogger<RunModeProvisioningContextProvider> CreateLogger()
+    public static ILogger<ProvisioningContextProvider> CreateLogger()
     {
-        return NullLogger<RunModeProvisioningContextProvider>.Instance;
+        return NullLogger<ProvisioningContextProvider>.Instance;
     }
 
     /// <summary>
