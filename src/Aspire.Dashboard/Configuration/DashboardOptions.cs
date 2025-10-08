@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 
 namespace Aspire.Dashboard.Configuration;
@@ -13,6 +14,7 @@ public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
     public OtlpOptions Otlp { get; set; } = new();
+    public McpOptions Mcp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();

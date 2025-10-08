@@ -17,7 +17,12 @@ internal sealed class ConnectionTypeMiddleware
 
     public ConnectionTypeMiddleware(ConnectionType[] connectionTypes, ConnectionDelegate next)
     {
-        _connectionTypes = connectionTypes.ToList();
+        var list = new List<ConnectionType>(connectionTypes)
+        {
+            ConnectionType.Mcp
+        };
+
+        _connectionTypes = list;
         _next = next ?? throw new ArgumentNullException(nameof(next));
     }
 

@@ -42,6 +42,21 @@
         <target state="translated">Ricarica</target>
         <note />
       </trans-unit>
+      <trans-unit id="MessageMcpBody">
+        <source>Untrusted apps can access sensitive information about the running services.</source>
+        <target state="new">Untrusted apps can access sensitive information about the running services.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageMcpLink">
+        <source>More information</source>
+        <target state="new">More information</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="MessageMcpTitle">
+        <source>MCP endpoint is unsecured</source>
+        <target state="new">MCP endpoint is unsecured</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MessageTelemetryBody">
         <source>Untrusted apps can send telemetry to the dashboard.</source>
         <target state="translated">Le app non attendibili possono inviare dati di telemetria al dashboard.</target>

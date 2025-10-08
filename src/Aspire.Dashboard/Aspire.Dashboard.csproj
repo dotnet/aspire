@@ -19,6 +19,9 @@
     <RollForward>Major</RollForward>
 
     <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
+
+    <!-- Enable raw string literals support in Razor -->
+    <Features>use-roslyn-tokenizer</Features>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -51,6 +54,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>

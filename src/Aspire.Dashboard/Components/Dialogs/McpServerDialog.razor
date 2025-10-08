@@ -1,0 +1,64 @@
+﻿@implements IDialogContentComponent
+
+@using Aspire.Dashboard.Components.CustomIcons
+@using Aspire.Dashboard.Configuration
+@using Aspire.Dashboard.Mcp
+@using Aspire.Dashboard.Model.Markdown
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Options
+@using System.Text.Encodings.Web
+@using System.Text.Json
+@inject NavigationManager Navigation
+@inject IOptions<DashboardOptions> DashboardOptions
+
+<div class="mcp-server-dialog-content">
+    <p>
+        <b>Endpoint:</b>
+        <code>@McpEndpointUrl</code>
+    </p>
+    <p>
+      <a href="@($"vscode:mcp/install?{Uri.EscapeDataString(JsonConfiguration)}")">
+      <img
+        src="https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white"
+        alt="Install in VS Code">
+    </a>
+    </p>
+    <p>
+      <a href="@($"vscode-insiders:mcp/install?{Uri.EscapeDataString(JsonConfiguration)}")">
+        <img
+          src="https://img.shields.io/badge/VS_Code_Insiders-Install_Server-7DDA58?style=for-the-badge&logo=modelcontextprotocol&logoColor=white"
+          alt="Install in VS Code">
+      </a>
+    </p>
+</div>
+
+@code {
+    private static JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
+    private string McpEndpointUrl => new Uri(baseUri: new Uri(Navigation.BaseUri), relativeUri: DashboardOptions.Value.Mcp.Path).ToString();
+
+    private string McpJsonConfigUnsecured => JsonSerializer.Serialize(new {
+        name = "aspire-dashboard",
+        type = "http",
+        url = McpEndpointUrl,
+    }, _jsonSerializerOptions);
+
+    private string McpJsonConfigApiKey => JsonSerializer.Serialize(new {
+        name = "aspire-dashboard",
+        type = "http",
+        url = McpEndpointUrl,
+        headers = new Dictionary<string, string?>{
+            [McpApiKeyAuthenticationHandler.ApiKeyHeaderName] = DashboardOptions.Value.Mcp.PrimaryApiKey
+        }
+    }, _jsonSerializerOptions);
+
+    private string JsonConfiguration => DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey
+        ? McpJsonConfigApiKey
+        : McpJsonConfigUnsecured;
+
+    private void AddToVSCode()
+    {        
+        var url = $"vscode:mcp/install?{Uri.EscapeDataString(JsonConfiguration)}";
+
+        Navigation.NavigateTo(url, forceLoad: true);
+    }
+}

@@ -180,4 +180,13 @@
   <data name="ReconnectRetryButtonText" xml:space="preserve">
     <value>Retry</value>
   </data>
+  <data name="MessageMcpTitle" xml:space="preserve">
+    <value>MCP endpoint is unsecured</value>
+  </data>
+  <data name="MessageMcpLink" xml:space="preserve">
+    <value>More information</value>
+  </data>
+  <data name="MessageMcpBody" xml:space="preserve">
+    <value>Untrusted apps can access sensitive information about the running services.</value>
+  </data>
 </root>
