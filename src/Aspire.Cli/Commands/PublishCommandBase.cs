@@ -277,6 +277,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
         await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
+            StartTerminalProgressBar();
             if (activity.Type == PublishingActivityTypes.PublishComplete)
             {
                 publishingActivity = activity;
@@ -324,7 +325,6 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
-        StopTerminalProgressBar();
         var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
         var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
@@ -350,6 +350,7 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
             {
+                StartTerminalProgressBar();
                 if (activity.Type == PublishingActivityTypes.PublishComplete)
                 {
                     publishingActivity = activity;
@@ -464,6 +465,12 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (publishingActivity is not null)
             {
+                await renderer.StopSpinnerAsync();
+                Console.Write("\r");          // Move to start of line
+                Console.Write("     ");       // Write multiple spaces to clear
+                Console.Write("\r");          // Move back to start of line
+                Console.Out.Flush();
+
                 var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
                 var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
@@ -484,8 +491,11 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
-            StopTerminalProgressBar();
             await renderer.StopSpinnerAsync();
+            Console.Write("\r");          // Move to start of line
+            Console.Write("     ");       // Write multiple spaces to clear
+            Console.Write("\r");          // Move back to start of line
+            Console.Out.Flush();
         }
     }
 
