@@ -306,6 +306,12 @@ public sealed class MauiProjectBuilder
         // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
         builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
 
+        // Override OTEL_RESOURCE_ATTRIBUTES placeholder (the generic OTLP configuration sets a DCP interpolation template
+        // like {{- index .Annotations "otel-service-instance-id" -}} which is never resolved for a local MAUI project).
+        // Provide a unique service instance ID for this platform resource. Each device/emulator running this app
+        // will have a distinct instance ID, allowing proper telemetry tracking in the dashboard.
+        builder.WithEnvironment("OTEL_RESOURCE_ATTRIBUTES", "service.instance.id=" + Guid.NewGuid().ToString());
+
         // Determine if the requested platform is supported on the current host OS.
         var isWindows = OperatingSystem.IsWindows();
         var isMacOS = OperatingSystem.IsMacOS();
