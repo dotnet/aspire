@@ -52,6 +52,11 @@ internal sealed class ResourceLogSource<TResource>(
         var stderrStreamTask = Task.Run(() => StreamLogsAsync(stderrStream, isError: true), cancellationToken);
         streamTasks.Add(stderrStreamTask);
 
+        var systemStream = await kubernetesService.GetLogStreamAsync(resource, Logs.StreamTypeSystem, cancellationToken, follow: follow, timestamps: true).ConfigureAwait(false);
+
+        var systemStreamTask = Task.Run(() => StreamLogsAsync(systemStream, isError: false), cancellationToken);
+        streamTasks.Add(systemStreamTask);
+
         // End the enumeration when both streams have been read to completion.
         async Task WaitForStreamsToCompleteAsync()
         {

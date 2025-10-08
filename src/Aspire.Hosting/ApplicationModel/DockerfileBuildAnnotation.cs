@@ -42,4 +42,16 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// and the content will be written to a generated file path.
     /// </summary>
     public Func<DockerfileFactoryContext, Task<string>>? DockerfileFactory { get; init; }
+
+    /// <summary>
+    /// Gets or sets the image name for the generated container image.
+    /// When set, this will be used as the container image name instead of the value from ContainerImageAnnotation.
+    /// </summary>
+    public string? ImageName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the image tag for the generated container image.
+    /// When set, this will be used as the container image tag instead of the value from ContainerImageAnnotation.
+    /// </summary>
+    public string? ImageTag { get; set; }
 }

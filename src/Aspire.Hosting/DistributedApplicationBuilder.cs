@@ -196,7 +196,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        // Set configuration
         ConfigurePublishingOptions(options);
         var isExecMode = ConfigureExecOptions(options);
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
@@ -215,7 +214,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
         // we want to use a stable hash based only on the project name.
         string appHostSha;
-        if (ExecutionContext.IsPublishMode)
+
+        // Check if AppHostSha is already configured (e.g., for testing scenarios)
+        var configuredAppHostSha = _innerBuilder.Configuration["AppHostSha"];
+        if (!string.IsNullOrEmpty(configuredAppHostSha))
+        {
+            appHostSha = configuredAppHostSha;
+        }
+        else if (ExecutionContext.IsPublishMode)
         {
             var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
             appHostSha = Convert.ToHexString(appHostNameShaBytes);
@@ -230,6 +236,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             ["AppHost:Sha256"] = appHostSha
         });
+
+        // Load deployment state early in the configuration chain if in publish mode
+        // This must happen before command line args are added so they can override saved state
+        if (ExecutionContext.IsPublishMode)
+        {
+            LoadDeploymentState(appHostSha);
+        }
 
         // exec
         if (isExecMode)
@@ -401,6 +414,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
 
+        // Register IDeploymentStateManager based on execution context
+        if (ExecutionContext.IsPublishMode)
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
+        }
+        else
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.UserSecretsDeploymentStateManager>();
+        }
+
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
         // Overwrite registry if override specified in options
@@ -484,6 +507,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--deploy", "Publishing:Deploy" },
+            { "--clear-cache", "Publishing:ClearCache" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
@@ -631,6 +655,41 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     }
 
     /// <summary>
+    /// Loads deployment state from the filesystem based on the app host SHA and environment name.
+    /// Only loads if ClearCache is false.
+    /// </summary>
+    /// <param name="appHostSha">The SHA hash of the app host.</param>
+    private void LoadDeploymentState(string appHostSha)
+    {
+        // Only load if ClearCache is false
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        if (clearCache)
+        {
+            return;
+        }
+
+        var environment = _innerBuilder.Environment.EnvironmentName;
+        var deploymentStatePath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments",
+            appHostSha,
+            $"{environment}.json"
+        );
+
+        if (!File.Exists(deploymentStatePath))
+        {
+            return;
+        }
+
+        try
+        {
+            _innerBuilder.Configuration.AddJsonFile(deploymentStatePath, optional: true, reloadOnChange: false);
+        }
+        catch { }
+    }
+
+    /// <summary>
     /// Gets the metadata value for the specified key from the assembly metadata.
     /// </summary>
     /// <param name="assemblyMetadata">The assembly metadata.</param>
@@ -639,3 +698,4 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }
+
