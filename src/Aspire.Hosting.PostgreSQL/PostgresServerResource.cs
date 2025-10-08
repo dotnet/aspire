@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a PostgreSQL container.
 /// </summary>
-public class PostgresServerResource : ContainerResource, IResourceWithConnectionString
+public class PostgresServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithConnectionProperties<ProstresServerConnectionProperties>
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "postgres";
@@ -98,4 +98,32 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         _databases.TryAdd(name, databaseName);
     }
+
+    // Expose Host and Port properties for convenience,
+    // maybe removing the need for IResourceWithConnectionProperties<T> in some cases.
+
+    /// <summary>
+    /// Gets the host endpoint reference for this service.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the endpoint reference expression that identifies the port for this endpoint.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    internal ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"postgresql://{UserNameReference}:{PasswordParameter}@{Host}:{Port}");
+
+    IReadOnlyDictionary<string, ReferenceExpression> IResourceWithConnectionString.GetConnectionProperties() =>
+        new Dictionary<string, ReferenceExpression>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Host"] = ReferenceExpression.Create($"{Host}"),
+            ["Port"] = ReferenceExpression.Create($"{Port}"),
+            ["Username"] = ReferenceExpression.Create($"{UserNameReference}"),
+            ["Password"] = ReferenceExpression.Create($"{PasswordParameter}"),
+
+            // Optionally include a URI-style connection string
+            ["Uri"] = UriExpression,
+        };
 }

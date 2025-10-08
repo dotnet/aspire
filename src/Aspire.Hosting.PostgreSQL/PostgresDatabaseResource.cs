@@ -4,7 +4,6 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using static Aspire.Hosting.ApplicationModel.PostgresDatabaseResource;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -15,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
 public class PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource)
-    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString, IResourceWithProperties<Properties>
+    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString, IResourceWithConnectionProperties<ProstresDatabaseConnectionProperties>
 {
     /// <summary>
     /// Gets the parent PostgresSQL container resource.
@@ -48,46 +47,13 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
         return argument;
     }
 
-    /// <inheritdoc />
-    public ReferenceExpression GetProperty(Properties key) => key switch
-    {
-        Properties.Host => ReferenceExpression.Create($"{Parent.PrimaryEndpoint.Property(EndpointProperty.Host)}"),
-        Properties.Port => ReferenceExpression.Create($"{Parent.PrimaryEndpoint.Property(EndpointProperty.Port)}"),
-        Properties.Username => ReferenceExpression.Create($"{Parent.UserNameReference}"),
-        Properties.Password => ReferenceExpression.Create($"{Parent.PasswordParameter}"),
-        Properties.Database => ReferenceExpression.Create($"{DatabaseName}"),
-        _ => throw new ArgumentException($"Unknown property: {key}", nameof(key))
-    };
+    internal ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName}");
 
-    /// <summary>
-    /// Properties
-    /// </summary>
-    public enum Properties
-    {
-        /// <summary>
-        /// Host
-        /// </summary>
-        Host,
-
-        /// <summary>
-        /// Port
-        /// </summary>
-        Port,
-
-        /// <summary>
-        /// Username
-        /// </summary>
-        Username,
-
-        /// <summary>
-        /// Password
-        /// </summary>
-        Password,
-
-        /// <summary>
-        /// Database
-        /// </summary>
-        Database
-    }
+    IReadOnlyDictionary<string, ReferenceExpression> IResourceWithConnectionString.GetConnectionProperties() =>
+        new Dictionary<string, ReferenceExpression>(((IResourceWithConnectionString)Parent).GetConnectionProperties(), StringComparer.OrdinalIgnoreCase)
+        {
+            ["Database"] = ReferenceExpression.Create($"{DatabaseName}"),
+            ["Uri"] = ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName}"),
+        };
 }
-

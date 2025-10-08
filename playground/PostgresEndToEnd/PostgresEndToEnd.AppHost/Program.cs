@@ -6,13 +6,31 @@ var builder = DistributedApplication.CreateBuilder(args);
 var db1 = builder.AddPostgres("pg")
                  .AddDatabase("db1");
 
+// 1- Invoking WithReference automatically renders environment variables for each connection property
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
        .WithReference(db1).WaitFor(db1)
+
+// 2- Customize the prefix. Q: _ or not?
+       .WithConnectionProperties(db1, "ASPIRE_")
+
+// 3- Remove connection properties if you don't want them at all
+       .WithConnectionPropertiesRemoved(db1)
+
+// 4- WithEnvironment allows custom environment variable configuration
        .WithEnvironment(context =>
        {
-           var host = db1.Resource.GetProperty(PostgresDatabaseResource.Properties.Host);
-           var port = db1.Resource.GetProperty(PostgresDatabaseResource.Properties.Port);
-           context.EnvironmentVariables["DB"] = ReferenceExpression.Create($"{host}:{port}");
+           // Connection property references can also be used directly to configure environment variables
+           var host = db1.Resource.GetConnectionProperty("Host");
+
+           // Using the enum ensures compile-time safety when IResourceWithConnectionProperties<T> is used
+           var port = db1.Resource.GetConnectionProperty(ProstresDatabaseConnectionProperties.Port);
+
+           // Using exposed properties
+           var user = db1.Resource.Parent.Host;
+
+           // Configure a custom environment variable using the connection properties
+           // When building URIs we should have tools for encoding/escaping values
+           context.EnvironmentVariables["DB"] = ReferenceExpression.Create($"{user}@{host}:{port}");
        });
 
 #if !SKIP_DASHBOARD_REFERENCE

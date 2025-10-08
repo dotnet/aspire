@@ -33,11 +33,14 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     IEnumerable<object> IValueWithReferences.References => [ConnectionStringExpression];
 
     /// <summary>
-    /// Gets a dictionary containing expressions for connection-related properties, keyed by property name.
+    /// Retrieves a read-only collection of key-value pairs that describe the current connection's properties.
     /// </summary>
-    /// <remarks>Property names are compared using case-insensitive ordinal comparison. The dictionary
-    /// includes an entry for the connection string expression under the key "ConnectionString".</remarks>
-    public ReferenceExpression GetProperty(string key) => ReferenceExpression.Create($"");
+    /// <remarks>The returned dictionary may include provider-specific properties such as server version,
+    /// connection state, or authentication details. The set of available properties depends on the implementation and
+    /// the current connection context.</remarks>
+    /// <returns>An <see cref="IReadOnlyDictionary{String, Object}"/> containing the names and values of the connection
+    /// properties. The dictionary is empty if no properties are available.</returns>
+    IReadOnlyDictionary<string, ReferenceExpression> GetConnectionProperties() => new Dictionary<string, ReferenceExpression>();
 }
 
 /// <summary>
@@ -45,16 +48,6 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
 /// connection string.
 /// </summary>
 /// <typeparam name="T">The type of the properties associated with the resource.</typeparam>
-public interface IResourceWithProperties<T> : IResourceWithConnectionString where T : struct
+public interface IResourceWithConnectionProperties<T> : IResourceWithConnectionString where T : struct
 {
-    /// <summary>
-    /// Retrieves the value of a connection property associated with the specified key.
-    /// </summary>
-    /// <param name="key">The key used to identify the connection property. The key is converted to its string representation to perform
-    /// the lookup.</param>
-    /// <returns>The value of the connection property associated with the specified key, or null if the property does not exist
-    /// or the property collection is not initialized.</returns>
-    public ReferenceExpression GetProperty(T key) => ReferenceExpression.Create($"");
-
-    ReferenceExpression IResourceWithConnectionString.GetProperty(string key) => GetProperty(Enum.Parse<T>(key));
 }
