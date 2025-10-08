@@ -3,9 +3,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Aspire.Hosting.Azure.Resources;
+using Aspire.Hosting.Azure.Utils;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
@@ -16,13 +18,14 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Azure.Provisioning.Internal;
 
 /// <summary>
-/// Base implementation for <see cref="IProvisioningContextProvider"/> that provides common functionality.
+/// Unified implementation for <see cref="IProvisioningContextProvider"/> that handles both run mode and publish mode scenarios.
+/// Uses enhanced prompting logic with dynamic subscription and location fetching.
 /// </summary>
-internal abstract partial class BaseProvisioningContextProvider(
+internal sealed partial class ProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
     IHostEnvironment environment,
-    ILogger logger,
+    ILogger<ProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
@@ -32,19 +35,22 @@ internal abstract partial class BaseProvisioningContextProvider(
     internal const string SubscriptionIdName = "SubscriptionId";
     internal const string ResourceGroupName = "ResourceGroup";
 
-    protected readonly IInteractionService _interactionService = interactionService;
-    protected readonly AzureProvisionerOptions _options = options.Value;
-    protected readonly IHostEnvironment _environment = environment;
-    protected readonly ILogger _logger = logger;
-    protected readonly IArmClientProvider _armClientProvider = armClientProvider;
-    protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
-    protected readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
-    protected readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
+    private readonly IInteractionService _interactionService = interactionService;
+    private readonly AzureProvisionerOptions _options = options.Value;
+    private readonly IHostEnvironment _environment = environment;
+    private readonly ILogger _logger = logger;
+    private readonly IArmClientProvider _armClientProvider = armClientProvider;
+    private readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;
+    private readonly ITokenCredentialProvider _tokenCredentialProvider = tokenCredentialProvider;
+    private readonly DistributedApplicationExecutionContext _distributedApplicationExecutionContext = distributedApplicationExecutionContext;
+
+    // For run mode - tracks when provisioning options are available
+    private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     [GeneratedRegex(@"^[a-zA-Z0-9_\-\.\(\)]+$")]
     private static partial Regex ResourceGroupValidCharacters();
 
-    protected static bool IsValidResourceGroupName(string? name)
+    private static bool IsValidResourceGroupName(string? name)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 90)
         {
@@ -73,101 +79,156 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    private string GetDefaultResourceGroupName()
     {
-        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+        var prefix = "rg-aspire";
 
-        var credential = _tokenCredentialProvider.TokenCredential;
-
-        if (_tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
+        if (!string.IsNullOrWhiteSpace(_options.ResourceGroupPrefix))
         {
-            defaultProvider.LogCredentialType();
+            prefix = _options.ResourceGroupPrefix;
         }
 
-        var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
+        var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - 1; // extra '-'
 
-        _logger.LogInformation("Getting default subscription and tenant...");
-
-        var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
-
-        _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
-        _logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
-
-        if (string.IsNullOrEmpty(_options.Location))
+        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(_environment.ApplicationName.ToLowerInvariant());
+        if (normalizedApplicationName.Length > maxApplicationNameSize)
         {
-            throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
+            normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
         }
 
-        string resourceGroupName;
-        bool createIfAbsent;
-
-        if (string.IsNullOrEmpty(_options.ResourceGroup))
+        // Add random suffix for run mode to ensure uniqueness, but not for publish mode for consistency
+        if (_distributedApplicationExecutionContext.IsPublishMode)
         {
-            // Generate an resource group name since none was provided
-            // Create a unique resource group name and save it in user secrets
-            resourceGroupName = GetDefaultResourceGroupName();
-
-            createIfAbsent = true;
-
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            return $"{prefix}-{normalizedApplicationName}";
         }
         else
         {
-            resourceGroupName = _options.ResourceGroup;
-            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
-        }
+            var suffix = RandomNumberGenerator.GetHexString(8, lowercase: true);
+            var maxAppNameWithSuffix = maxApplicationNameSize - suffix.Length - 1; // extra '-'
 
-        var resourceGroups = subscriptionResource.GetResourceGroups();
-
-        IResourceGroupResource? resourceGroup;
-
-        var location = new AzureLocation(_options.Location);
-        try
-        {
-            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
-            resourceGroup = response.Value;
-
-            _logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
-        }
-        catch (Exception)
-        {
-            if (!createIfAbsent)
+            if (normalizedApplicationName.Length > maxAppNameWithSuffix)
             {
-                throw;
+                normalizedApplicationName = normalizedApplicationName[..maxAppNameWithSuffix];
             }
 
-            // REVIEW: Is it possible to do this without an exception?
-
-            _logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
-
-            var rgData = new ResourceGroupData(location);
-            rgData.Tags.Add("aspire", "true");
-            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
-            resourceGroup = operation.Value;
-
-            _logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
+            return $"{prefix}-{normalizedApplicationName}-{suffix}";
         }
-
-        var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
-
-        return new ProvisioningContext(
-                    credential,
-                    armClient,
-                    subscriptionResource,
-                    resourceGroup,
-                    tenantResource,
-                    location,
-                    principal,
-                    userSecrets,
-                    _distributedApplicationExecutionContext);
     }
 
-    protected abstract string GetDefaultResourceGroupName();
+    public async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        if (_distributedApplicationExecutionContext.IsPublishMode)
+        {
+            // Publish mode: Direct prompting
+            try
+            {
+                await RetrieveAzureProvisioningOptions(userSecrets, cancellationToken).ConfigureAwait(false);
+                _logger.LogDebug("Azure provisioning options have been handled successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                throw;
+            }
+        }
+        else
+        {
+            // Run mode: Async prompting with task completion source
+            EnsureProvisioningOptions(userSecrets);
+            await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
+        }
+
+        return await CreateProvisioningContextInternalAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+    }
+
+    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    {
+        if (!_interactionService.IsAvailable ||
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
+        {
+            // If the interaction service is not available, or
+            // if both options are already set, we can skip the prompt
+            _provisioningOptionsAvailable.TrySetResult();
+            return;
+        }
+
+        // Start the loop that will allow the user to specify the Azure provisioning options
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+
+                _logger.LogDebug("Azure provisioning options have been handled successfully.");
+                _provisioningOptionsAvailable.SetResult();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
+                _provisioningOptionsAvailable.SetException(ex);
+            }
+        });
+    }
+
+    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        if (_distributedApplicationExecutionContext.IsPublishMode)
+        {
+            // Publish mode: Direct dynamic prompting
+            await RetrieveAzureProvisioningOptionsAsync(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            // Run mode: Notification prompt first, then dynamic prompting
+            await RetrieveAzureProvisioningOptionsForRunMode(userSecrets, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task RetrieveAzureProvisioningOptionsForRunMode(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        while (_options.Location == null || _options.SubscriptionId == null)
+        {
+            var messageBarResult = await _interactionService.PromptNotificationAsync(
+                 AzureProvisioningStrings.NotificationTitle,
+                 AzureProvisioningStrings.NotificationMessage,
+                 new NotificationInteractionOptions
+                 {
+                     Intent = MessageIntent.Warning,
+                     PrimaryButtonText = AzureProvisioningStrings.NotificationPrimaryButtonText
+                 },
+                 cancellationToken)
+                 .ConfigureAwait(false);
+
+            if (messageBarResult.Canceled)
+            {
+                // User canceled the prompt, so we exit the loop
+                throw new MissingConfigurationException("Azure provisioning options were not provided.");
+            }
+
+            if (messageBarResult.Data)
+            {
+                // Use the shared dynamic prompting method
+                await RetrieveAzureProvisioningOptionsAsync(cancellationToken).ConfigureAwait(false);
+
+                if (_options.Location != null && _options.SubscriptionId != null && _options.ResourceGroup != null)
+                {
+                    var azureSection = userSecrets.Prop("Azure");
+
+                    // Persist the parameter value to user secrets so they can be reused in the future
+                    azureSection["Location"] = _options.Location;
+                    azureSection["SubscriptionId"] = _options.SubscriptionId;
+                    azureSection["ResourceGroup"] = _options.ResourceGroup;
+
+                    break; // Exit the loop
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Prompts for subscription using dynamic options when available, falls back to manual input.
     /// </summary>
-    protected async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
+    private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         var result = await _interactionService.PromptInputsAsync(
             AzureProvisioningStrings.SubscriptionDialogTitle,
@@ -240,7 +301,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     /// <summary>
     /// Prompts for location and resource group using dynamic options when available, falls back to static locations.
     /// </summary>
-    protected async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
+    private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         var result = await _interactionService.PromptInputsAsync(
             AzureProvisioningStrings.LocationDialogTitle,
@@ -338,7 +399,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     /// <summary>
     /// Common method to retrieve Azure provisioning options with dynamic prompts.
     /// </summary>
-    protected async Task RetrieveAzureProvisioningOptionsAsync(CancellationToken cancellationToken = default)
+    private async Task RetrieveAzureProvisioningOptionsAsync(CancellationToken cancellationToken = default)
     {
         while (_options.Location == null || _options.SubscriptionId == null)
         {
@@ -360,5 +421,94 @@ internal abstract partial class BaseProvisioningContextProvider(
                 }
             }
         }
+    }
+
+    private async Task<ProvisioningContext> CreateProvisioningContextInternalAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    {
+        var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
+
+        var credential = _tokenCredentialProvider.TokenCredential;
+
+        if (_tokenCredentialProvider is DefaultTokenCredentialProvider defaultProvider)
+        {
+            defaultProvider.LogCredentialType();
+        }
+
+        var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
+
+        _logger.LogInformation("Getting default subscription and tenant...");
+
+        var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
+
+        _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
+        _logger.LogInformation("Tenant: {tenantId}", tenantResource.TenantId);
+
+        if (string.IsNullOrEmpty(_options.Location))
+        {
+            throw new MissingConfigurationException("An azure location/region is required. Set the Azure:Location configuration value.");
+        }
+
+        string resourceGroupName;
+        bool createIfAbsent;
+
+        if (string.IsNullOrEmpty(_options.ResourceGroup))
+        {
+            // Generate an resource group name since none was provided
+            // Create a unique resource group name and save it in user secrets
+            resourceGroupName = GetDefaultResourceGroupName();
+
+            createIfAbsent = true;
+
+            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+        }
+        else
+        {
+            resourceGroupName = _options.ResourceGroup;
+            createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+        }
+
+        var resourceGroups = subscriptionResource.GetResourceGroups();
+
+        IResourceGroupResource? resourceGroup;
+
+        var location = new AzureLocation(_options.Location);
+        try
+        {
+            var response = await resourceGroups.GetAsync(resourceGroupName, cancellationToken).ConfigureAwait(false);
+            resourceGroup = response.Value;
+
+            _logger.LogInformation("Using existing resource group {rgName}.", resourceGroup.Name);
+        }
+        catch (Exception)
+        {
+            if (!createIfAbsent)
+            {
+                throw;
+            }
+
+            // REVIEW: Is it possible to do this without an exception?
+
+            _logger.LogInformation("Creating resource group {rgName} in {location}...", resourceGroupName, location);
+
+            var rgData = new ResourceGroupData(location);
+            rgData.Tags.Add("aspire", "true");
+            var operation = await resourceGroups.CreateOrUpdateAsync(WaitUntil.Completed, resourceGroupName, rgData, cancellationToken).ConfigureAwait(false);
+            resourceGroup = operation.Value;
+
+            _logger.LogInformation("Resource group {rgName} created.", resourceGroup.Name);
+        }
+
+        var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
+
+        return new ProvisioningContext(
+                    credential,
+                    armClient,
+                    subscriptionResource,
+                    resourceGroup,
+                    tenantResource,
+                    location,
+                    principal,
+                    userSecrets,
+                    _distributedApplicationExecutionContext);
     }
 }
