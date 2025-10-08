@@ -47,17 +47,7 @@ internal sealed class AzureDeployingContext(
         var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
         if (!clearCache)
         {
-            var stateFilePath = deploymentStateManager.StateFilePath;
-            if (stateFilePath is not null)
-            {
-                var saveStep = await activityReporter.CreateStepAsync($"Saving deployment state to {stateFilePath}", cancellationToken).ConfigureAwait(false);
-                await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
-                await saveStep.CompleteAsync("Deployment state saved", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
-            }
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
         }
 
         // Step 1: Provision Azure Bicep resources from the distributed application model
@@ -85,17 +75,7 @@ internal sealed class AzureDeployingContext(
         // Step 4: Save deployment state after successful deployment (only if ClearCache is false)
         if (!clearCache)
         {
-            var stateFilePath = deploymentStateManager.StateFilePath;
-            if (stateFilePath is not null)
-            {
-                var saveStep = await activityReporter.CreateStepAsync($"Saving deployment state to {stateFilePath}", cancellationToken).ConfigureAwait(false);
-                await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
-                await saveStep.CompleteAsync("Deployment state saved", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
-            }
-            else
-            {
-                await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
-            }
+            await deploymentStateManager.SaveStateAsync(provisioningContext.DeploymentState, cancellationToken).ConfigureAwait(false);
         }
 
         // Display dashboard URL after successful deployment
