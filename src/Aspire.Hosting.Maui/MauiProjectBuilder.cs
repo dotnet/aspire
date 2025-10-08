@@ -335,6 +335,23 @@ public sealed class MauiProjectBuilder
                 _ => "Unsupported host operating system for this platform."
             };
             builder.WithAnnotation(new MauiUnsupportedPlatformAnnotation(reason));
+            
+            // Publish the unsupported state after resources are created
+            // The "Unsupported" state should prevent lifecycle commands (Start/Stop/Restart) from appearing
+            // Note: Dashboard expects "warning" not "warn" for the warning icon to display
+            var resource = builder.Resource;
+            _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+            {
+                var notificationService = evt.Services.GetService<ResourceNotificationService>();
+                if (notificationService != null)
+                {
+                    _ = notificationService.PublishUpdateAsync(resource, s => s with
+                    {
+                        State = new ResourceStateSnapshot("Unsupported", "warning")
+                    });
+                }
+                return Task.CompletedTask;
+            });
         }
 
         // Pass framework & device specific msbuild properties via args so launching uses correct target
@@ -402,11 +419,12 @@ public sealed class MauiProjectBuilder
             var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
             var logger = loggerService?.GetLogger(res);
 
-            // Always gate unsupported platform starts (independent of initial startup phase) so tests and early attempts fail fast.
-            if (res.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().FirstOrDefault() is { } unsupported)
+            // Silently prevent starting unsupported platforms - the "Unsupported" state already indicates why.
+            // Don't throw an exception as that causes "Failed to start" which is misleading.
+            if (res.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().Any())
             {
-                logger?.LogWarning("MAUI platform '{Resource}' cannot start on this host: {Reason}", res.Name, unsupported.Reason);
-                throw new InvalidOperationException($"The .NET MAUI platform resource '{res.Name}' cannot be started on this host: {unsupported.Reason}");
+                logger?.LogInformation("MAUI platform '{Resource}' is unsupported on this host and will not start.", res.Name);
+                return;
             }
 
             // Skip build work during initial AppHost startup; only build on user-initiated explicit start later.
