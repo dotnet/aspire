@@ -312,6 +312,17 @@ public sealed class MauiProjectBuilder
         // will have a distinct instance ID, allowing proper telemetry tracking in the dashboard.
         builder.WithEnvironment("OTEL_RESOURCE_ATTRIBUTES", "service.instance.id=" + Guid.NewGuid().ToString());
 
+        // Add platform-specific icons for the dashboard
+        var iconName = platformMoniker switch
+        {
+            "android" => "PhoneLaptop",
+            "ios" => "Phone",
+            "windows" => "Desktop",
+            "maccatalyst" => "Laptop",
+            _ => "Apps"
+        };
+        builder.WithAnnotation(new ResourceIconAnnotation(iconName, IconVariant.Filled));
+
         // Determine if the requested platform is supported on the current host OS.
         var isWindows = OperatingSystem.IsWindows();
         var isMacOS = OperatingSystem.IsMacOS();
