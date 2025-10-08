@@ -57,7 +57,7 @@ public static class PythonAppResourceBuilderExtensions
     [OverloadResolutionPriority(1)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv", []);
+        => AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv");
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -81,7 +81,11 @@ public static class PythonAppResourceBuilderExtensions
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
-        => AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv", scriptArgs);
+    {
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
+        return AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv")
+            .WithArgs(scriptArgs);
+    }
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -108,18 +112,21 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
-        => AddPythonAppCore(builder, name, appDirectory, scriptPath, virtualEnvironmentPath, scriptArgs);
+    {
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
+        return AddPythonAppCore(builder, name, appDirectory, scriptPath, virtualEnvironmentPath)
+            .WithArgs(scriptArgs);
+    }
 
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
         IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
-        string virtualEnvironmentPath, string[] scriptArgs)
+        string virtualEnvironmentPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
-        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
@@ -143,7 +150,8 @@ public static class PythonAppResourceBuilderExtensions
                 context.Args.Add(pythonExecutable!);
             }
 
-            AddArguments(scriptPath, scriptArgs, context);
+            // Add the script path as the first argument
+            context.Args.Add(scriptPath);
         });
 
         if (!string.IsNullOrEmpty(instrumentationExecutable))
@@ -163,16 +171,6 @@ public static class PythonAppResourceBuilderExtensions
         resourceBuilder.PublishAsDockerFile();
 
         return resourceBuilder;
-    }
-
-    private static void AddArguments(string scriptPath, string[] scriptArgs, CommandLineArgsCallbackContext context)
-    {
-        context.Args.Add(scriptPath);
-
-        foreach (var arg in scriptArgs)
-        {
-            context.Args.Add(arg);
-        }
     }
 
     private static void AddOpenTelemetryArguments(CommandLineArgsCallbackContext context)
