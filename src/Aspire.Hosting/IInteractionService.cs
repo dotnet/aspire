@@ -112,11 +112,11 @@ internal sealed class DynamicInputState(DynamicInputOptions options)
     private readonly DynamicInputOptions _options = options;
     private readonly object _lock = new object();
 
-    internal bool Loading { get; private set; }
-
     private Task? _currentTask;
     private CancellationTokenSource? _currentCts;
     private bool _isNextQueued;
+
+    public bool Loading { get; private set; }
 
     internal void RefreshInput(DynamicRefreshOptions options)
     {

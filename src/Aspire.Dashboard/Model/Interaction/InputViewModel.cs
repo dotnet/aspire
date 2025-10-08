@@ -18,6 +18,26 @@ public sealed class InputViewModel
 
     public void SetInput(InteractionInput input)
     {
+        string value;
+        if (Input == null)
+        {
+            value = input.Value;
+        }
+        else
+        {
+            // Only overwrite the local value if the input was loading and is no longer loading (update could have come from server)
+            // This avoids changes in local values being overwritten by a dynamic server update.
+            if (Input.Loading && !input.Loading)
+            {
+                value = input.Value;
+            }
+            else
+            {
+                value = Input.Value;
+            }
+        }
+        input.Value = value;
+
         Input = input;
         if (input.InputType == InputType.Choice && input.Options != null)
         {

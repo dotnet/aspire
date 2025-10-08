@@ -245,14 +245,14 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
-    public class PromptState
+    internal class PromptState
     {
         public required string ActivityId { get; init; }
-        public int InputIndex { get; internal set; }
+        public int InputIndex { get; set; }
         public bool DisplayedStatusText { get; set; }
-        public Status? Status { get; internal set; }
-        public TaskCompletionSource? CompleteStatusTcs { get; internal set; }
-        public Task? LoadingTask { get; internal set; }
+        public Status? Status { get; set; }
+        public TaskCompletionSource? CompleteStatusTcs { get; set; }
+        public Task? LoadingTask { get; set; }
     }
 
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
@@ -544,7 +544,7 @@ internal abstract class PublishCommandBase : BaseCommand
             var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             promptState.Status = AnsiConsole.Status();
             promptState.CompleteStatusTcs = tcs;
-            promptState.LoadingTask = promptState.Status.StartAsync("Loading", c => tcs.Task);
+            promptState.LoadingTask = promptState.Status.StartAsync(PublishCommandStrings.InputPromptLoading, c => tcs.Task);
             return;
         }
         else

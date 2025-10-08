@@ -289,8 +289,8 @@ internal static class InteractionCommands
 
                var inputs = new List<InteractionInput>
                {
-                   predefinedOptionsInput,
                    customChoiceInput,
+                   predefinedOptionsInput,
                    dynamicInput,
                    dynamicCustomChoiceInput,
                    dynamicTextInput
