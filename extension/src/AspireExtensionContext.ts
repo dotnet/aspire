@@ -5,7 +5,7 @@ import { debugSessionAlreadyExists, extensionContextNotInitialized } from './loc
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
-import { AspireEditorCommandProvider } from './editor/EditorCommandProvider';
+import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 
 export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer?: AspireRpcServer;

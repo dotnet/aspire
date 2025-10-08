@@ -154,28 +154,22 @@
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "aspire.isAppHostFile",
+          "when": "aspire.isAppHostFile || aspire.hasAppHost",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.isAppHostFile",
+          "when": "aspire.isAppHostFile || aspire.hasAppHost",
           "group": "navigation@-3"
-        },
-        {
-          "command": "aspire-vscode.runAppHost",
-          "when": "aspire.appHostPath",
-          "group": "navigation@-2"
-        },
-        {
-          "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.appHostPath",
-          "group": "navigation@-1"
         }
       ],
       "commandPalette": [
         {
           "command": "aspire-vscode.runAppHost",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.debugAppHost",
           "when": "false"
         }
       ]

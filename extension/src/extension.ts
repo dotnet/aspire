@@ -21,7 +21,7 @@ import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
 import { MessageConnection } from 'vscode-jsonrpc';
 import { openTerminalCommand } from './commands/openTerminal';
 import { updateCommand } from './commands/update';
-import { AspireEditorCommandProvider } from './editor/EditorCommandProvider';
+import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 
 let aspireExtensionContext = new AspireExtensionContext();
 
