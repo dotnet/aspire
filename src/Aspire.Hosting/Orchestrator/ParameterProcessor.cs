@@ -388,32 +388,10 @@ public sealed class ParameterProcessor(
 
             foreach (var parameter in parameters)
             {
-                // Try to get the value - skip parameters that don't have values yet
-                try
+                var value = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
+                if (!string.IsNullOrEmpty(value))
                 {
-                    // Check if the parameter has been resolved
-                    if (parameter.WaitForValueTcs?.Task.IsCompleted == true)
-                    {
-                        var value = await parameter.WaitForValueTcs.Task.ConfigureAwait(false);
-                        if (!string.IsNullOrEmpty(value))
-                        {
-                            parametersSection[parameter.Name] = JsonValue.Create(value);
-                        }
-                    }
-                    else
-                    {
-                        // Try to get from ValueInternal (configuration or default)
-                        var value = parameter.ValueInternal;
-                        if (!string.IsNullOrEmpty(value))
-                        {
-                            parametersSection[parameter.Name] = JsonValue.Create(value);
-                        }
-                    }
-                }
-                catch (MissingParameterValueException)
-                {
-                    // Parameter doesn't have a value yet, skip it
-                    logger.LogDebug("Skipping parameter {ParameterName} - no value available", parameter.Name);
+                    parametersSection[parameter.Name] = JsonValue.Create(value);
                 }
             }
 
