@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable CS0612
+#pragma warning disable CS0618 // Type or member is obsolete
 
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
