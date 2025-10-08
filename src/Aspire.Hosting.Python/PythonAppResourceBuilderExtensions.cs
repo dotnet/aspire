@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.ComponentModel;
 #pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
@@ -60,7 +61,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
-        => AddPythonApp(builder, name, appDirectory, scriptPath, ".venv", scriptArgs);
+        => AddPythonApp(builder, name, appDirectory, scriptPath, ".venv", (IEnumerable<string>)scriptArgs);
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -97,7 +98,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonApp("python-app", "PythonApp", "main.py");
+    /// builder.AddPythonApp("python-app", "PythonApp", "main.py", ".venv", new[] { "arg1", "arg2" });
     ///
     /// builder.Build().Run();
     /// </code>
@@ -105,14 +106,17 @@ public static class PythonAppResourceBuilderExtensions
     /// </remarks>
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
-        string virtualEnvironmentPath, params string[] scriptArgs)
+        string virtualEnvironmentPath, IEnumerable<string> scriptArgs)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
-        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
+        ArgumentNullException.ThrowIfNull(scriptArgs);
+        
+        var scriptArgsArray = scriptArgs.ToArray();
+        ThrowIfNullOrContainsIsNullOrEmpty(scriptArgsArray);
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
@@ -136,7 +140,7 @@ public static class PythonAppResourceBuilderExtensions
                 context.Args.Add(pythonExecutable!);
             }
 
-            AddArguments(scriptPath, scriptArgs, context);
+            AddArguments(scriptPath, scriptArgsArray, context);
         });
 
         if (!string.IsNullOrEmpty(instrumentationExecutable))
@@ -157,6 +161,29 @@ public static class PythonAppResourceBuilderExtensions
 
         return resourceBuilder;
     }
+
+    /// <summary>
+    /// Adds a python application with a virtual environment to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the python app files.</param>
+    /// <param name="scriptPath">The path to the script to run, relative to the app directory.</param>
+    /// <param name="virtualEnvironmentPath">Path to the virtual environment.</param>
+    /// <param name="scriptArgs">The arguments for the script.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload is obsolete due to parameter ambiguity issues. Use the overload that accepts 
+    /// <c>IEnumerable&lt;string&gt;</c> for scriptArgs instead.
+    /// </para>
+    /// </remarks>
+    [Obsolete("This overload is obsolete due to parameter ambiguity. Use the overload that accepts IEnumerable<string> for scriptArgs: AddPythonApp(builder, name, appDirectory, scriptPath, virtualEnvironmentPath, new[] { \"arg1\", \"arg2\" })")]
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static IResourceBuilder<PythonAppResource> AddPythonApp(
+        this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
+        string virtualEnvironmentPath, string[] scriptArgs)
+        => AddPythonApp(builder, name, appDirectory, scriptPath, virtualEnvironmentPath, (IEnumerable<string>)scriptArgs);
 
     private static void AddArguments(string scriptPath, string[] scriptArgs, CommandLineArgsCallbackContext context)
     {

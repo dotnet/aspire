@@ -170,7 +170,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper, instrument: true);
 
-        builder.AddPythonApp("pythonProject", projectDirectory, scriptName, virtualEnvironmentPath: ".venv");
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName);
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -233,6 +233,86 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(scriptName, commandArguments[0]);
         Assert.Equal("test", commandArguments[1]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
+    }
+
+    [Fact]
+    [RequiresTools(["python"])]
+    public async Task AddPythonAppWithMultipleScriptArgs_IncludesAllArguments()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
+
+        // This should call the 4-parameter overload (without virtualEnvironmentPath)
+        // and pass "arg1" and "arg2" as script arguments
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName, "arg1", "arg2");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        Assert.Equal("pythonProject", pythonProjectResource.Name);
+        Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "python.exe"), pythonProjectResource.Command);
+        }
+        else
+        {
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
+        }
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+
+        Assert.Equal(scriptName, commandArguments[0]);
+        Assert.Equal("arg1", commandArguments[1]);
+        Assert.Equal("arg2", commandArguments[2]);
+
+        // If we don't throw, clean up the directories.
+        Directory.Delete(projectDirectory, true);
+    }
+
+    [Fact]
+    [RequiresTools(["python"])]
+    public async Task AddPythonAppWithVirtualEnvironmentAndScriptArgs_UsesSpecifiedVirtualEnvironment()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+
+        var (projectDirectory, pythonExecutable, scriptName) = CreateTempPythonProject(outputHelper);
+
+        // Use the new non-params overload to specify virtualEnvironmentPath with script args
+        IEnumerable<string> scriptArgs = new[] { "arg1", "arg2" };
+        builder.AddPythonApp("pythonProject", projectDirectory, scriptName, ".venv", scriptArgs);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        Assert.Equal("pythonProject", pythonProjectResource.Name);
+        Assert.Equal(projectDirectory, pythonProjectResource.WorkingDirectory);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "Scripts", "python.exe"), pythonProjectResource.Command);
+        }
+        else
+        {
+            Assert.Equal(Path.Join(projectDirectory, ".venv", "bin", "python"), pythonProjectResource.Command);
+        }
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+
+        Assert.Equal(scriptName, commandArguments[0]);
+        Assert.Equal("arg1", commandArguments[1]);
+        Assert.Equal("arg2", commandArguments[2]);
 
         // If we don't throw, clean up the directories.
         Directory.Delete(projectDirectory, true);
