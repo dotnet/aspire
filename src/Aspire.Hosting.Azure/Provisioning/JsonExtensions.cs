@@ -9,14 +9,27 @@ internal static class JsonExtensions
 {
     public static JsonNode Prop(this JsonNode obj, string key)
     {
-        var node = obj[key];
+        var jsonObj = obj.AsObject();
+
+        // Try to get the existing node
+        var node = jsonObj[key];
         if (node is not null)
         {
             return node;
         }
 
+        // Create a new node and try to add it
         node = new JsonObject();
-        obj.AsObject().Add(key, node);
+
+        if (!jsonObj.TryAdd(key, node))
+        {
+            node = jsonObj[key];
+            if (node is null)
+            {
+                throw new InvalidOperationException($"Failed to get or create property '{key}'");
+            }
+        }
+
         return node;
     }
 }

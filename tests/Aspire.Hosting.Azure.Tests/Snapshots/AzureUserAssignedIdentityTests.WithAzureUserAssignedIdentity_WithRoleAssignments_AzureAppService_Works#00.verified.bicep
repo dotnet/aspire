@@ -61,6 +61,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: myidentity_outputs_clientid
         }
         {
+          name: 'AZURE_TOKEN_CREDENTIALS'
+          value: 'ManagedIdentityCredential'
+        }
+        {
           name: 'ASPIRE_ENVIRONMENT_NAME'
           value: 'appservice'
         }

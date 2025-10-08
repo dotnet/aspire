@@ -133,35 +133,29 @@ public static class PythonAppResourceBuilderExtensions
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
-        var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
         var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
-        var appExecutable = instrumentationExecutable ?? pythonExecutable;
 
-        var resource = new PythonAppResource(name, appExecutable, appDirectory);
+        var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
 
         var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
         {
-            // If the app is to be automatically instrumented, add the instrumentation executable arguments first.
-            if (!string.IsNullOrEmpty(instrumentationExecutable))
-            {
-                AddOpenTelemetryArguments(context);
-
-                // Add the python executable as the next argument so we can run the app.
-                context.Args.Add(pythonExecutable!);
-            }
-
-            // Add the script path as the first argument
             context.Args.Add(scriptPath);
         });
 
-        if (!string.IsNullOrEmpty(instrumentationExecutable))
+        resourceBuilder.WithOtlpExporter();
+
+        // Configure OpenTelemetry exporters using environment variables
+        // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
+        resourceBuilder.WithEnvironment(context =>
         {
-            resourceBuilder.WithOtlpExporter();
+            context.EnvironmentVariables["OTEL_TRACES_EXPORTER"] = "otlp";
+            context.EnvironmentVariables["OTEL_LOGS_EXPORTER"] = "otlp";
+            context.EnvironmentVariables["OTEL_METRICS_EXPORTER"] = "otlp";
 
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
-            resourceBuilder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
-        }
+            context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+        });
 
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
         {
@@ -171,18 +165,6 @@ public static class PythonAppResourceBuilderExtensions
         resourceBuilder.PublishAsDockerFile();
 
         return resourceBuilder;
-    }
-
-    private static void AddOpenTelemetryArguments(CommandLineArgsCallbackContext context)
-    {
-        context.Args.Add("--traces_exporter");
-        context.Args.Add("otlp");
-
-        context.Args.Add("--logs_exporter");
-        context.Args.Add("console,otlp");
-
-        context.Args.Add("--metrics_exporter");
-        context.Args.Add("otlp");
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)
@@ -214,44 +196,18 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
 
-        var resource = builder.Resource;
-        var appDirectory = resource.WorkingDirectory;
+        var appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, resource.WorkingDirectory));
+        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
+            ? virtualEnvironmentPath
+            : Path.Join(appDirectory, virtualEnvironmentPath));
 
         // Resolve the virtual environment path (can be absolute or relative to app directory)
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
-        var instrumentationExecutable = virtualEnvironment.GetExecutable("opentelemetry-instrument");
-        var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
-        var appExecutable = instrumentationExecutable ?? pythonExecutable;
-
         // Update the command to use the new virtual environment
-        builder.WithCommand(appExecutable);
-
-        // If instrumentation is available, configure OpenTelemetry
-        if (!string.IsNullOrEmpty(instrumentationExecutable))
-        {
-            // Update args to include instrumentation and python executable
-            builder.WithArgs(context =>
-            {
-                // Remove existing args to rebuild them with instrumentation
-                var existingArgs = context.Args.ToArray();
-                context.Args.Clear();
-
-                AddOpenTelemetryArguments(context);
-                context.Args.Add(pythonExecutable!);
-
-                // Re-add the existing args (script path and any script args)
-                foreach (var arg in existingArgs)
-                {
-                    context.Args.Add(arg);
-                }
-            });
-
-            builder.WithOtlpExporter();
-            builder.WithEnvironment("OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED", "true");
-        }
+        builder.WithCommand(virtualEnvironment.GetRequiredExecutable("python"));
 
         return builder;
     }

@@ -63,7 +63,7 @@ internal static class ProvisioningTestHelpers
     public static ITokenCredentialProvider CreateTokenCredentialProvider() => new TestTokenCredentialProvider();
     public static ISecretClientProvider CreateSecretClientProvider() => new TestSecretClientProvider(CreateTokenCredentialProvider());
     public static IBicepCompiler CreateBicepCompiler() => new TestBicepCompiler();
-    public static IUserSecretsManager CreateUserSecretsManager() => new TestUserSecretsManager();
+    public static IDeploymentStateManager CreateUserSecretsManager() => new TestUserSecretsManager();
     public static IUserPrincipalProvider CreateUserPrincipalProvider() => new TestUserPrincipalProvider();
     public static TokenCredential CreateTokenCredential() => new TestTokenCredential();
 
@@ -571,16 +571,18 @@ internal sealed class TestBicepCompiler : IBicepCompiler
     }
 }
 
-internal sealed class TestUserSecretsManager : IUserSecretsManager
+internal sealed class TestUserSecretsManager : IDeploymentStateManager
 {
     private JsonObject _userSecrets = [];
 
-    public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default)
+    public string? StateFilePath => null;
+
+    public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_userSecrets);
     }
 
-    public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
         _userSecrets = userSecrets;
         return Task.CompletedTask;

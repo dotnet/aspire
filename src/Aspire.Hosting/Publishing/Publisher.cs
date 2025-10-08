@@ -27,6 +27,44 @@ internal class Publisher(
             );
         }
 
+        // Check if --clear-cache flag is set and prompt user before deleting deployment state
+        if (options.Value.Deploy && options.Value.ClearCache)
+        {
+            var deploymentStateManager = serviceProvider.GetService<IDeploymentStateManager>();
+            if (deploymentStateManager?.StateFilePath is not null && File.Exists(deploymentStateManager.StateFilePath))
+            {
+                var interactionService = serviceProvider.GetService<IInteractionService>();
+                if (interactionService?.IsAvailable == true)
+                {
+                    var hostEnvironment = serviceProvider.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+                    var environmentName = hostEnvironment?.EnvironmentName ?? "Production";
+                    var result = await interactionService.PromptNotificationAsync(
+                        "Clear Deployment State",
+                        $"The deployment state for the '{environmentName}' environment will be deleted. All Azure resources will be re-provisioned. Do you want to continue?",
+                        new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Confirmation,
+                            ShowSecondaryButton = true,
+                            ShowDismiss = false,
+                            PrimaryButtonText = "Yes",
+                            SecondaryButtonText = "No"
+                        },
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (result.Canceled || !result.Data)
+                    {
+                        // User declined or canceled - exit the deployment
+                        logger.LogInformation("User declined to clear deployment state. Canceling deployment.");
+                        return;
+                    }
+
+                    // User confirmed - delete the deployment state file
+                    logger.LogInformation("Deleting deployment state file at {Path} due to --clear-cache flag", deploymentStateManager.StateFilePath);
+                    File.Delete(deploymentStateManager.StateFilePath);
+                }
+            }
+        }
+
         // Add a step to do model analysis before publishing/deploying
         var step = await progressReporter.CreateStepAsync(
             "Analyzing model.",
@@ -68,6 +106,25 @@ internal class Publisher(
                         state,
                         cancellationToken)
                         .ConfigureAwait(false);
+
+            // Add a task to show the deployment state file path if available
+            if (options.Value.Deploy && !options.Value.ClearCache)
+            {
+                var deploymentStateManager = serviceProvider.GetService<IDeploymentStateManager>();
+                if (deploymentStateManager?.StateFilePath is not null && File.Exists(deploymentStateManager.StateFilePath))
+                {
+                    var statePathTask = await step.CreateTaskAsync(
+                        "Checking deployment state configuration.",
+                        cancellationToken)
+                        .ConfigureAwait(false);
+
+                    await statePathTask.CompleteAsync(
+                        $"Deployment state will be loaded from: {deploymentStateManager.StateFilePath}",
+                        CompletionState.Completed,
+                        cancellationToken)
+                        .ConfigureAwait(false);
+                }
+            }
 
             if (state == CompletionState.CompletedWithError)
             {
