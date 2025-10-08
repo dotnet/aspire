@@ -31,4 +31,30 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     public string? ConnectionStringEnvironmentVariable => null;
 
     IEnumerable<object> IValueWithReferences.References => [ConnectionStringExpression];
+
+    /// <summary>
+    /// Gets a dictionary containing expressions for connection-related properties, keyed by property name.
+    /// </summary>
+    /// <remarks>Property names are compared using case-insensitive ordinal comparison. The dictionary
+    /// includes an entry for the connection string expression under the key "ConnectionString".</remarks>
+    public ReferenceExpression GetProperty(string key) => ReferenceExpression.Create($"");
+}
+
+/// <summary>
+/// Represents a resource that exposes a set of properties of type <typeparamref name="T"/> and provides access via a
+/// connection string.
+/// </summary>
+/// <typeparam name="T">The type of the properties associated with the resource.</typeparam>
+public interface IResourceWithProperties<T> : IResourceWithConnectionString where T : struct
+{
+    /// <summary>
+    /// Retrieves the value of a connection property associated with the specified key.
+    /// </summary>
+    /// <param name="key">The key used to identify the connection property. The key is converted to its string representation to perform
+    /// the lookup.</param>
+    /// <returns>The value of the connection property associated with the specified key, or null if the property does not exist
+    /// or the property collection is not initialized.</returns>
+    public ReferenceExpression GetProperty(T key) => ReferenceExpression.Create($"");
+
+    ReferenceExpression IResourceWithConnectionString.GetProperty(string key) => GetProperty(Enum.Parse<T>(key));
 }

@@ -3,13 +3,17 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var db1 = builder.AddAzurePostgresFlexibleServer("pg")
-                 .RunAsContainer()
+var db1 = builder.AddPostgres("pg")
                  .AddDatabase("db1");
 
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
-       .WithExternalHttpEndpoints()
-       .WithReference(db1).WaitFor(db1);
+       .WithReference(db1).WaitFor(db1)
+       .WithEnvironment(context =>
+       {
+           var host = db1.Resource.GetProperty(PostgresDatabaseResource.Properties.Host);
+           var port = db1.Resource.GetProperty(PostgresDatabaseResource.Properties.Port);
+           context.EnvironmentVariables["DB"] = ReferenceExpression.Create($"{host}:{port}");
+       });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

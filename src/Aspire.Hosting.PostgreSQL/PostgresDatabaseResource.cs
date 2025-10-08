@@ -4,6 +4,7 @@
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using static Aspire.Hosting.ApplicationModel.PostgresDatabaseResource;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -14,7 +15,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
 public class PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource)
-    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString
+    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString, IResourceWithProperties<Properties>
 {
     /// <summary>
     /// Gets the parent PostgresSQL container resource.
@@ -46,4 +47,47 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    /// <inheritdoc />
+    public ReferenceExpression GetProperty(Properties key) => key switch
+    {
+        Properties.Host => ReferenceExpression.Create($"{Parent.PrimaryEndpoint.Property(EndpointProperty.Host)}"),
+        Properties.Port => ReferenceExpression.Create($"{Parent.PrimaryEndpoint.Property(EndpointProperty.Port)}"),
+        Properties.Username => ReferenceExpression.Create($"{Parent.UserNameReference}"),
+        Properties.Password => ReferenceExpression.Create($"{Parent.PasswordParameter}"),
+        Properties.Database => ReferenceExpression.Create($"{DatabaseName}"),
+        _ => throw new ArgumentException($"Unknown property: {key}", nameof(key))
+    };
+
+    /// <summary>
+    /// Properties
+    /// </summary>
+    public enum Properties
+    {
+        /// <summary>
+        /// Host
+        /// </summary>
+        Host,
+
+        /// <summary>
+        /// Port
+        /// </summary>
+        Port,
+
+        /// <summary>
+        /// Username
+        /// </summary>
+        Username,
+
+        /// <summary>
+        /// Password
+        /// </summary>
+        Password,
+
+        /// <summary>
+        /// Database
+        /// </summary>
+        Database
+    }
 }
+

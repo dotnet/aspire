@@ -460,7 +460,29 @@ public static class ResourceBuilderExtensions
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
             context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+
+            var propertiesPrefix = $"{resource.Name.ToUpperInvariant()}_";
+
+            SplatConnectionProperties(resource, propertiesPrefix, context);
         });
+    }
+
+    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        var enumTypes = resource.GetType().GetInterfaces()
+            .Where(t => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IResourceWithProperties<>))
+            .Select(t => t.GetGenericArguments()[0]);
+
+        foreach (var enumType in enumTypes)
+        {
+            foreach (var propertyName in Enum.GetNames(enumType))
+            {
+                var propertyValue = resource.GetProperty(propertyName);
+                context.EnvironmentVariables[$"{prefix}{propertyName.ToUpperInvariant()}"] = propertyValue;
+            }
+        }
     }
 
     /// <summary>
