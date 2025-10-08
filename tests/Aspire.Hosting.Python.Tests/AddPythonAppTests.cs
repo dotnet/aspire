@@ -200,6 +200,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         }
 
         // Arguments should be: [script name]
+        Assert.Single(commandArguments);
         Assert.Equal(scriptName, commandArguments[0]);
 
         // Check for environment variables instead of command-line arguments

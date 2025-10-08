@@ -189,7 +189,6 @@ public static class ResourceExtensions
     {
         var env = new Dictionary<string, string>();
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation));
-
         await resource.ProcessEnvironmentVariableValuesAsync(
             executionContext,
             (key, unprocessed, value, ex) =>
