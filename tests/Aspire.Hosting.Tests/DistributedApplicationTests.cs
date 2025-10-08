@@ -562,7 +562,7 @@ public class DistributedApplicationTests
     public async Task VerifyContainerCreateFile()
     {
         using var testProgram = CreateTestProgram("verify-container-create-file");
-        testProgram.AppBuilder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = false;
+        testProgram.AppBuilder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = "false";
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
