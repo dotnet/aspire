@@ -15,6 +15,7 @@ using Aspire.Dashboard.Authentication.OtlpApiKey;
 using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Assistant.Prompts;
@@ -255,6 +256,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         // Data from the server.
         builder.Services.TryAddSingleton<IDashboardClient, DashboardClient>();
+
+        // Host an in-process MCP server so the dashboard can expose MCP tools (resource listing, diagnostics).
+        // Register the MCP server directly via the SDK.
+
+        builder.Services.AddAspireMcpTools();
+
         builder.Services.TryAddScoped<DashboardCommandExecutor>();
 
         builder.Services.AddSingleton<PauseManager>();
@@ -372,6 +379,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _logger.LogWarning("OTLP server is unsecured. Untrusted apps can send telemetry to the dashboard. For more information, visit https://go.microsoft.com/fwlink/?linkid=2267030");
             }
 
+            if (_dashboardOptionsMonitor.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured)
+            {
+                _logger.LogWarning("MCP server is unsecured. Untrusted apps can access sensitive information.");
+            }
+
             // Log frontend login URL last at startup so it's easy to find in the logs.
             if (frontendEndpointInfo != null)
             {
@@ -426,6 +438,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         }
 
         _app.UseMiddleware<ValidateTokenMiddleware>();
+
+        _app.MapMcp(_dashboardOptionsMonitor.CurrentValue.Mcp.Path).RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
 
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())
@@ -709,8 +723,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             .AddScheme<FrontendCompositeAuthenticationHandlerOptions, FrontendCompositeAuthenticationHandler>(FrontendCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpCompositeAuthenticationHandlerOptions, OtlpCompositeAuthenticationHandler>(OtlpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
             .AddScheme<OtlpApiKeyAuthenticationHandlerOptions, OtlpApiKeyAuthenticationHandler>(OtlpApiKeyAuthenticationDefaults.AuthenticationScheme, o => { })
+            .AddScheme<McpCompositeAuthenticationHandlerOptions, McpCompositeAuthenticationHandler>(McpCompositeAuthenticationDefaults.AuthenticationScheme, o => { })
+            .AddScheme<McpApiKeyAuthenticationHandlerOptions, McpApiKeyAuthenticationHandler>(McpApiKeyAuthenticationHandler.AuthenticationScheme, o => { })
             .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeFrontend, o => o.RequiredConnectionType = ConnectionType.Frontend)
             .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeOtlp, o => o.RequiredConnectionType = ConnectionType.Otlp)
+            .AddScheme<ConnectionTypeAuthenticationHandlerOptions, ConnectionTypeAuthenticationHandler>(ConnectionTypeAuthenticationDefaults.AuthenticationSchemeMcp, o => o.RequiredConnectionType = ConnectionType.Mcp)
             .AddCertificate(options =>
             {
                 // Bind options to configuration so they can be overridden by environment variables.
@@ -848,6 +865,12 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 name: OtlpAuthorization.PolicyName,
                 policy: new AuthorizationPolicyBuilder(OtlpCompositeAuthenticationDefaults.AuthenticationScheme)
                     .RequireClaim(OtlpAuthorization.OtlpClaimName, [bool.TrueString])
+                    .Build());
+
+            options.AddPolicy(
+                name: McpApiKeyAuthenticationHandler.PolicyName,
+                policy: new AuthorizationPolicyBuilder(McpCompositeAuthenticationDefaults.AuthenticationScheme)
+                    .RequireClaim(McpApiKeyAuthenticationHandler.McpClaimName, [bool.TrueString])
                     .Build());
 
             switch (dashboardOptions.Frontend.AuthMode)
