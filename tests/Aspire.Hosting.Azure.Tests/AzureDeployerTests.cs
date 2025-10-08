@@ -746,7 +746,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
