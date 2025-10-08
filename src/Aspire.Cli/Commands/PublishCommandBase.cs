@@ -79,9 +79,14 @@ internal abstract class PublishCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Send terminal infinite progress bar start sequence
+        StartTerminalProgressBar();
+
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
+            // Send terminal progress bar stop sequence
+            StopTerminalProgressBar();
             return ExitCodeConstants.SdkNotInstalled;
         }
 
@@ -99,6 +104,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (effectiveAppHostFile is null)
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 return ExitCodeConstants.FailedToFindProject;
             }
 
@@ -107,6 +114,8 @@ internal abstract class PublishCommandBase : BaseCommand
             // Validate that single file AppHost feature is enabled if we detected a .cs file
             if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
                 return ExitCodeConstants.FailedToFindProject;
             }
@@ -131,6 +140,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 return ExitCodeConstants.AppHostIncompatible;
             }
 
@@ -146,6 +157,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
                 if (buildExitCode != 0)
                 {
+                    // Send terminal progress bar stop sequence
+                    StopTerminalProgressBar();
                     InteractionService.DisplayLines(buildOutputCollector.GetLines());
                     InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                     return ExitCodeConstants.FailedToBuildArtifacts;
@@ -199,6 +212,9 @@ internal abstract class PublishCommandBase : BaseCommand
                 false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
             };
 
+            // Send terminal progress bar stop sequence
+            StopTerminalProgressBar();
+
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
             var exitCode = await pendingRun;
 
@@ -216,15 +232,21 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (OperationCanceledException)
         {
+            // Send terminal progress bar stop sequence on cancellation
+            StopTerminalProgressBar();
             InteractionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
@@ -232,12 +254,16 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             InteractionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
@@ -298,6 +324,7 @@ internal abstract class PublishCommandBase : BaseCommand
             }
         }
 
+        StopTerminalProgressBar();
         var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
         var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
@@ -457,6 +484,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
+            StopTerminalProgressBar();
             await renderer.StopSpinnerAsync();
         }
     }
@@ -763,5 +791,21 @@ internal abstract class PublishCommandBase : BaseCommand
             }
             return color;
         }
+    }
+
+    /// <summary>
+    /// Starts the terminal infinite progress bar.
+    /// </summary>
+    private static void StartTerminalProgressBar()
+    {
+        Console.Write("\u001b]9;4;3\u001b\\");
+    }
+
+    /// <summary>
+    /// Stops the terminal progress bar.
+    /// </summary>
+    private static void StopTerminalProgressBar()
+    {
+        Console.Write("\u001b]9;4;0\u001b\\");
     }
 }
