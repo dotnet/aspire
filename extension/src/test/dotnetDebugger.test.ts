@@ -37,6 +37,10 @@ class TestDotNetService {
     getAndActivateDevKit(): Promise<boolean> {
         return Promise.resolve(this._hasDevKit);
     }
+
+    getDotNetRunApiOutput(projectPath: string): Promise<string> {
+        return Promise.resolve('');
+    }
 }
 
 suite('Dotnet Debugger Extension Tests', () => {

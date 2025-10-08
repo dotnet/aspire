@@ -9,7 +9,10 @@ export const pythonDebuggerExtension: ResourceDebuggerExtension = {
     displayName: 'Python',
     getProjectFile: (launchConfig) => {
         if (isPythonLaunchConfiguration(launchConfig)) {
-            return launchConfig.program_path;
+            const programPath = launchConfig.program_path || launchConfig.project_path;
+            if (programPath) {
+                return programPath;
+            }
         }
 
         throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
