@@ -43,6 +43,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                         catch (Exception ex)
                         {
                             await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                            throw;
                         }
                     }, cancellationToken);
                     pendingSubscriptionCallbacks.Add(wrappedCallback);
@@ -75,6 +76,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                             catch (Exception ex)
                             {
                                 await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                                throw;
                             }
                         }
                     }, default);
@@ -91,6 +93,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
                         catch (Exception ex)
                         {
                             await PublishExceptionEventAsync(ex, typeof(T), resource).ConfigureAwait(false);
+                            throw;
                         }
                     }
                 }

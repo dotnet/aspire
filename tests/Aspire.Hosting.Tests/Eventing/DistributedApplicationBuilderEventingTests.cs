@@ -355,7 +355,11 @@ public class DistributedApplicationBuilderEventingTests
             return Task.CompletedTask;
         });
 
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential);
+        // The exception should be rethrown after being published
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingSequential);
+        });
 
         // Wait for the async exception handler to complete
         await tcs.Task.DefaultTimeout();
@@ -366,6 +370,7 @@ public class DistributedApplicationBuilderEventingTests
         Assert.Equal(exceptionMessage, capturedExceptionEvent.Exception.Message);
         Assert.Equal(typeof(DummyEvent), capturedExceptionEvent.EventType);
         Assert.Null(capturedExceptionEvent.Resource);
+        Assert.Equal(exceptionMessage, exception.Message);
     }
 
     [Fact]
@@ -389,7 +394,12 @@ public class DistributedApplicationBuilderEventingTests
         });
 
         using var app = builder.Build();
-        await builder.Eventing.PublishAsync(new ResourceReadyEvent(testResource.Resource, app.Services), EventDispatchBehavior.BlockingSequential);
+        
+        // The exception should be rethrown after being published
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new ResourceReadyEvent(testResource.Resource, app.Services), EventDispatchBehavior.BlockingSequential);
+        });
 
         // Wait for the async exception handler to complete
         await tcs.Task.DefaultTimeout();
@@ -446,7 +456,11 @@ public class DistributedApplicationBuilderEventingTests
             return Task.CompletedTask;
         });
 
-        await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent);
+        // The exception should be rethrown after being published
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+        {
+            await builder.Eventing.PublishAsync(new DummyEvent(), EventDispatchBehavior.BlockingConcurrent);
+        });
 
         // Wait for the async exception handler to complete
         await tcs.Task.DefaultTimeout();
