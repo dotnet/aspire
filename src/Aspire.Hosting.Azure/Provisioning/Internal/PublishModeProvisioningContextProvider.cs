@@ -105,7 +105,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         bool fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "Retrieving Azure subscription information",
+            "fetch-subscription",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -222,7 +222,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         bool fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "Retrieving Azure region information",
+            "[fetch-regions]",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))

@@ -67,7 +67,7 @@ internal class Publisher(
 
         // Add a step to do model analysis before publishing/deploying
         var step = await progressReporter.CreateStepAsync(
-            "Analyzing model.",
+            "analyze-model",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))

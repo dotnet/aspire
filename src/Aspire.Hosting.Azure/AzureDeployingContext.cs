@@ -95,7 +95,7 @@ internal sealed class AzureDeployingContext(
             return true;
         }
 
-        var validationStep = await activityReporter.CreateStepAsync("Validating Azure CLI authentication", cancellationToken).ConfigureAwait(false);
+        var validationStep = await activityReporter.CreateStepAsync("validate-auth", cancellationToken).ConfigureAwait(false);
         await using (validationStep.ConfigureAwait(false))
         {
             try
@@ -126,7 +126,7 @@ internal sealed class AzureDeployingContext(
             return true;
         }
 
-        var deployingStep = await activityReporter.CreateStepAsync($"Deploying {bicepResources.Count} Azure resource(s)", cancellationToken).ConfigureAwait(false);
+        var deployingStep = await activityReporter.CreateStepAsync("deploy-resources", cancellationToken).ConfigureAwait(false);
         await using (deployingStep.ConfigureAwait(false))
         {
             try
@@ -254,7 +254,7 @@ internal sealed class AzureDeployingContext(
             return true;
         }
 
-        var computeStep = await activityReporter.CreateStepAsync("Deploying compute resources", cancellationToken).ConfigureAwait(false);
+        var computeStep = await activityReporter.CreateStepAsync("deploy-compute", cancellationToken).ConfigureAwait(false);
         await using (computeStep.ConfigureAwait(false))
         {
             try
@@ -346,7 +346,7 @@ internal sealed class AzureDeployingContext(
             return;
         }
 
-        var loginStep = await activityReporter.CreateStepAsync("Authenticating to container registries", cancellationToken).ConfigureAwait(false);
+        var loginStep = await activityReporter.CreateStepAsync("auth-registries", cancellationToken).ConfigureAwait(false);
         await using (loginStep.ConfigureAwait(false))
         {
             try
@@ -414,7 +414,7 @@ internal sealed class AzureDeployingContext(
     private async Task PushImagesToAllRegistries(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, CancellationToken cancellationToken)
     {
         var totalImageCount = resourcesByRegistry.Values.SelectMany(resources => resources).Count();
-        var pushStep = await activityReporter.CreateStepAsync($"Pushing {totalImageCount} images to container registries", cancellationToken).ConfigureAwait(false);
+        var pushStep = await activityReporter.CreateStepAsync("push-images", cancellationToken).ConfigureAwait(false);
         await using (pushStep.ConfigureAwait(false))
         {
             try

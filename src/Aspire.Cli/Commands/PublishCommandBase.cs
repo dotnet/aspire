@@ -791,7 +791,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 formattedMessage = $"[red]{formattedMessage}[/]";
             }
 
-            AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]{stepTitle,-12}[/] {formattedMessage}");
+            AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]({stepTitle})[/] {formattedMessage}");
 
             if (wasSpinning)
             {
