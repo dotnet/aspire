@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+
+    <!-- Do not run tests in Helix -->
+    <RunOnAzdoHelixWindows>false</RunOnAzdoHelixWindows>
+    <RunOnAzdoHelixLinux>false</RunOnAzdoHelixLinux>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Shared test utilities -->
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/TemplatesTesting/ToolCommand.cs" Link="Utils/ToolCommand.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/TemplatesTesting/CommandResult.cs" Link="Utils/CommandResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/TemplatesTesting/ToolCommandException.cs" Link="Utils/ToolCommandException.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/TemplatesTesting/TestOutputWrapper.cs" Link="Utils/TestOutputWrapper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/TemplatesTesting/EnvironmentVariables.cs" Link="Utils/EnvironmentVariables.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)../Shared/Playwright/TestUtils.cs" Link="Utils/TestUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Aspire.TestUtilities\Aspire.TestUtilities.csproj" />
+    <PackageReference Include="Microsoft.DotNet.XUnitV3Extensions" />
+  </ItemGroup>
+
+</Project>
