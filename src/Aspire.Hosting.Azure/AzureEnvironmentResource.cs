@@ -86,6 +86,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => PushContainerImagesAsync(context.Model, ctx, context)
             };
             pushStep.DependsOnStep(buildStep);
+            pushStep.DependsOnStep(provisionStep);
 
             var deployStep = new PipelineStep
             {

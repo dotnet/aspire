@@ -19,7 +19,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     public void AddStep(string name,
                        Func<DeployingContext, Task> action,
-                       string? dependsOn = null)
+                       string? dependsOn = null,
+                       string? requiredBy = null)
     {
         var step = new PipelineStep
         {
@@ -30,6 +31,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         if (dependsOn != null)
         {
             step.DependsOnStep(dependsOn);
+        }
+
+        if (requiredBy != null)
+        {
+            step.IsRequiredBy(requiredBy);
         }
 
         _steps.Add(step);
@@ -71,9 +77,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             foreach (var annotation in annotations)
             {
-                yield return annotation.CreateStep(context);
+                return annotation.CreateSteps(context);
             }
         }
+
+        return [];
     }
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)
