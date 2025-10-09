@@ -1961,13 +1961,13 @@ public class AzureContainerAppsTests
 
         builder.AddAzureContainerAppEnvironment("env");
 
-        var directory = Directory.CreateTempSubdirectory(".aspire-test");
+        using var tempDirectory = new TempDirectory();
 
         // Contents of the Dockerfile are not important for this test
-        File.WriteAllText(Path.Combine(directory.FullName, "Dockerfile"), "FROM alpine");
+        File.WriteAllText(Path.Combine(tempDirectory.Path, "Dockerfile"), "FROM alpine");
 
-        builder.AddDockerfile("with-bind-mount", directory.FullName)
-            .WithBindMount(directory.FullName, "/app/data");
+        builder.AddDockerfile("with-bind-mount", tempDirectory.Path)
+            .WithBindMount(tempDirectory.Path, "/app/data");
 
         using var app = builder.Build();
 
@@ -1985,9 +1985,6 @@ public class AzureContainerAppsTests
         Assert.NotNull(resource);
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
-
-        // Verify that the bind mount output name has underscores instead of hyphens
-        Assert.Contains("bindmounts_with_bind_mount_0", bicep);
 
         await Verify(bicep, "bicep");
     }
