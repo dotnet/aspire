@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -15,7 +14,6 @@ namespace Aspire.Cli.Rosetta;
 /// Represents the dotnet project that is used to generate the AppHost.
 /// </summary>
 
-[UnconditionalSuppressMessage("Trimming", "IL3001", Justification = "Types are coming from System.Reflection.Metadata which are trim/aot compatible")]
 internal sealed class ProjectModel
 {
     const string ProjectHashFileName = ".projecthash";
