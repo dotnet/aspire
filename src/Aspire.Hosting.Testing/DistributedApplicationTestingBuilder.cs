@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -238,6 +239,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
 
+            public IDistributedApplicationPipeline Pipeline => innerBuilder.Pipeline;
+
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
             public DistributedApplication Build() => BuildAsync(CancellationToken.None).Result;
@@ -387,6 +390,8 @@ public static class DistributedApplicationTestingBuilder
         public IResourceCollection Resources => _innerBuilder.Resources;
 
         public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
+
+        public IDistributedApplicationPipeline Pipeline => _innerBuilder.Pipeline;
 
         public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 

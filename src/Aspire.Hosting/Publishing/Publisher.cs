@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -84,7 +85,7 @@ internal class Publisher(
             {
                 if (options.Value.Deploy)
                 {
-                    if (resource.HasAnnotationOfType<DeployingCallbackAnnotation>())
+                    if (resource.HasAnnotationOfType<PipelineStepAnnotation>())
                     {
                         targetResources.Add(resource);
                     }
@@ -133,7 +134,7 @@ internal class Publisher(
             }
         }
 
-        // If deployment is enabled, run deploying callbacks after publishing
+        // If deployment is enabled, execute the pipeline with steps from PipelineStepAnnotation
         if (options.Value.Deploy)
         {
             // Initialize parameters as a pre-requisite for deployment
@@ -142,7 +143,10 @@ internal class Publisher(
 
             var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
                 Path.GetFullPath(options.Value.OutputPath) : null);
-            await deployingContext.WriteModelAsync(model).ConfigureAwait(false);
+
+            // Execute the pipeline - it will collect steps from PipelineStepAnnotation on resources
+            var builder = serviceProvider.GetRequiredService<IDistributedApplicationBuilder>();
+            await builder.Pipeline.ExecuteAsync(deployingContext).ConfigureAwait(false);
         }
         else
         {

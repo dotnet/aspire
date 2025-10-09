@@ -12,6 +12,7 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
@@ -58,6 +59,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
+    private IDistributedApplicationPipeline? _pipeline;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -85,6 +87,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+
+    /// <inheritdoc />
+    public IDistributedApplicationPipeline Pipeline =>
+        _pipeline ??= new DistributedApplicationPipeline(this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -253,6 +259,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddSingleton<IDistributedApplicationBuilder>(this);
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
@@ -412,6 +419,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
+        _innerBuilder.Services.AddSingleton<IPipelineOutputs, InMemoryPipelineOutputs>();
 
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
