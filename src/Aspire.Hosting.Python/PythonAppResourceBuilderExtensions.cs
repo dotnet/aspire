@@ -133,7 +133,7 @@ public static class PythonAppResourceBuilderExtensions
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
-        var pythonExecutable = virtualEnvironment.GetRequiredExecutable("python");
+        var pythonExecutable = virtualEnvironment.GetExecutable("python");
 
         var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
 
@@ -196,12 +196,11 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
 
-        var appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.ApplicationBuilder.AppHostDirectory, builder.Resource.WorkingDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
-            : Path.Join(appDirectory, virtualEnvironmentPath));
+            : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
         // Update the command to use the new virtual environment
-        builder.WithCommand(virtualEnvironment.GetRequiredExecutable("python"));
+        builder.WithCommand(virtualEnvironment.GetExecutable("python"));
 
         return builder;
     }
