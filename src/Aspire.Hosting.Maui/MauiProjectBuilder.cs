@@ -267,20 +267,10 @@ public sealed class MauiProjectBuilder
 
         // Ensure platforms exist (auto-detect if user hasn't added explicitly yet) so we can wire env vars.
         EnsureAutoDetection();
+
         foreach (var pr in _platformResources.Where(p => p.Resource is IResourceWithEnvironment))
         {
-            pr.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
-            if (pr.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase) ||
-                pr.Resource.Name.EndsWith("-android", StringComparison.OrdinalIgnoreCase))
-            {
-                pr.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
-            }
-            if (_enableOtelDebug)
-            {
-                pr.WithEnvironment("OTEL_LOG_LEVEL", "debug")
-                  .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
-                  .WithEnvironment("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1");
-            }
+            ApplyOtlpConfigurationToPlatform(pr);
         }
 
         return this;
@@ -288,81 +278,38 @@ public sealed class MauiProjectBuilder
 
     private void AddPlatform(string platformMoniker, string? runtimeIdentifier = null, string? msbuildProperty = null)
     {
+        var platformConfig = MauiPlatformConfiguration.KnownPlatforms.GetByMoniker(platformMoniker);
+        if (platformConfig is null)
+        {
+            return; // Unknown platform moniker
+        }
+
         // Identify TFM prefix e.g. net10.0-windows, net10.0-android
         var tfm = _availableTfms.FirstOrDefault(t => t.Contains('-') && t.Split('-')[1].StartsWith(platformMoniker, StringComparison.OrdinalIgnoreCase));
         if (tfm is null)
         {
-            return; // platform not targeted by project
+            return; // Platform not targeted by project
         }
 
         var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
-        // Use existing AddProject API so we don't rely on internal internals.
+
+        // Use existing AddProject API to create the platform-specific resource.
         var builder = _appBuilder.AddProject(resourceName, _projectPath)
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
 
-        // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
-        // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
-        // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
-        builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
+        // Configure OpenTelemetry service identification for this platform.
+        ConfigureOpenTelemetryEnvironment(builder, resourceName);
 
-        // Override OTEL_RESOURCE_ATTRIBUTES placeholder (the generic OTLP configuration sets a DCP interpolation template
-        // like {{- index .Annotations "otel-service-instance-id" -}} which is never resolved for a local MAUI project).
-        // Provide a unique service instance ID for this platform resource. Each device/emulator running this app
-        // will have a distinct instance ID, allowing proper telemetry tracking in the dashboard.
-        builder.WithEnvironment("OTEL_RESOURCE_ATTRIBUTES", "service.instance.id=" + Guid.NewGuid().ToString());
+        // Add platform-specific icon for dashboard visualization.
+        builder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
 
-        // Add platform-specific icons for the dashboard
-        var iconName = platformMoniker switch
-        {
-            "android" => "PhoneLaptop",
-            "ios" => "Phone",
-            "windows" => "Desktop",
-            "maccatalyst" => "Laptop",
-            _ => "Apps"
-        };
-        builder.WithAnnotation(new ResourceIconAnnotation(iconName, IconVariant.Filled));
-
-        // Determine if the requested platform is supported on the current host OS.
-        var isWindows = OperatingSystem.IsWindows();
-        var isMacOS = OperatingSystem.IsMacOS();
-
-        // Android builds can run on both Windows and macOS (developer tooling scenario). For now we allow always.
-        var supported = platformMoniker switch
-        {
-            "windows" => isWindows,
-            "maccatalyst" or "ios" => isMacOS,
-            // Future: additional host checks for android if needed.
-            _ => true
-        };
+        // Check if the platform is supported on the current host OS.
+        var supported = platformConfig.IsSupportedOnCurrentHost();
 
         if (!supported)
         {
-            var reason = platformMoniker switch
-            {
-                "windows" => "Windows platform requires running on a Windows host.",
-                "maccatalyst" => "MacCatalyst platform requires running on a macOS host.",
-                "ios" => "iOS platform requires running on a macOS host with appropriate tooling.",
-                _ => "Unsupported host operating system for this platform."
-            };
-            builder.WithAnnotation(new MauiUnsupportedPlatformAnnotation(reason));
-            
-            // Publish the unsupported state after resources are created
-            // The "Unsupported" state should prevent lifecycle commands (Start/Stop/Restart) from appearing
-            // Note: Dashboard expects "warning" not "warn" for the warning icon to display
-            var resource = builder.Resource;
-            _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
-            {
-                var notificationService = evt.Services.GetService<ResourceNotificationService>();
-                if (notificationService != null)
-                {
-                    _ = notificationService.PublishUpdateAsync(resource, s => s with
-                    {
-                        State = new ResourceStateSnapshot("Unsupported", "warning")
-                    });
-                }
-                return Task.CompletedTask;
-            });
+            ConfigureUnsupportedPlatform(builder, platformConfig);
         }
 
         // Pass framework & device specific msbuild properties via args so launching uses correct target
@@ -404,25 +351,7 @@ public sealed class MauiProjectBuilder
         _platformResources.Add(builder);
 
         // If OTLP tunneling already configured, wire the new platform to the stub & tunnel now.
-        if (_otlpDevTunnel is not null && _otlpStub is not null && builder.Resource is IResourceWithEnvironment)
-        {
-            var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
-            builder.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
-
-            if (_otlpStubName is not null && 
-                (builder.Resource.Name.EndsWith("-ios", StringComparison.OrdinalIgnoreCase) ||
-                 builder.Resource.Name.EndsWith("-android", StringComparison.OrdinalIgnoreCase)))
-            {
-                builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
-            }
-
-            if (_enableOtelDebug)
-            {
-                builder.WithEnvironment("OTEL_LOG_LEVEL", "debug")
-                       .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
-                       .WithEnvironment("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1");
-            }
-        }
+        ApplyOtlpConfigurationIfNeeded(builder);
 
         // Conditional build hook executed right before the resource starts (per explicit start invocation).
         builder.OnBeforeResourceStarted(async (res, evt, ct) =>
@@ -607,6 +536,102 @@ public sealed class MauiProjectBuilder
             }
         }
         return list;
+    }
+
+    /// <summary>
+    /// Configures OpenTelemetry environment variables for the platform resource.
+    /// Overrides DCP interpolation templates with concrete values for local MAUI projects.
+    /// </summary>
+    private static void ConfigureOpenTelemetryEnvironment(IResourceBuilder<ProjectResource> builder, string resourceName)
+    {
+        // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
+        // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
+        // Provide a stable concrete service name instead so the exporter doesn't emit the literal template.
+        builder.WithEnvironment("OTEL_SERVICE_NAME", resourceName);
+
+        // Override OTEL_RESOURCE_ATTRIBUTES placeholder (the generic OTLP configuration sets a DCP interpolation template
+        // like {{- index .Annotations "otel-service-instance-id" -}} which is never resolved for a local MAUI project).
+        // Provide a unique service instance ID for this platform resource. Each device/emulator running this app
+        // will have a distinct instance ID, allowing proper telemetry tracking in the dashboard.
+        builder.WithEnvironment("OTEL_RESOURCE_ATTRIBUTES", "service.instance.id=" + Guid.NewGuid().ToString());
+    }
+
+    /// <summary>
+    /// Configures an unsupported platform to display a warning state in the dashboard
+    /// and prevent lifecycle operations.
+    /// </summary>
+    private void ConfigureUnsupportedPlatform(IResourceBuilder<ProjectResource> builder, MauiPlatformConfiguration platformConfig)
+    {
+        builder.WithAnnotation(new MauiUnsupportedPlatformAnnotation(platformConfig.UnsupportedReason));
+
+        // Publish the unsupported state after resources are created.
+        // The "Unsupported" state prevents the platform from being started.
+        // Note: Dashboard expects "warning" (not "warn" from KnownResourceStateStyles.Warn) for the warning icon to display.
+        // This is a known inconsistency in the Aspire codebase between the hosting and dashboard layers.
+        var resource = builder.Resource;
+        _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+        {
+            var notificationService = evt.Services.GetService<ResourceNotificationService>();
+            if (notificationService is not null)
+            {
+                _ = notificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    State = new ResourceStateSnapshot("Unsupported", "warning")
+                });
+            }
+
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>
+    /// Applies OTLP dev tunnel configuration to a platform if OTLP dev tunnel is enabled.
+    /// </summary>
+    private void ApplyOtlpConfigurationIfNeeded(IResourceBuilder<ProjectResource> builder)
+    {
+        if (_otlpDevTunnel is null || _otlpStub is null || builder.Resource is not IResourceWithEnvironment)
+        {
+            return;
+        }
+
+        ApplyOtlpConfigurationToPlatform(builder);
+    }
+
+    /// <summary>
+    /// Applies OTLP dev tunnel configuration to a specific platform resource builder.
+    /// </summary>
+    private void ApplyOtlpConfigurationToPlatform(IResourceBuilder<ProjectResource> builder)
+    {
+        if (_otlpDevTunnel is null || _otlpStub is null)
+        {
+            return;
+        }
+
+        var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
+        builder.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
+
+        // iOS and Android require the stub name to locate the OTLP endpoint after dev tunnel allocation.
+        var platformMoniker = ExtractPlatformMonikerFromResourceName(builder.Resource.Name);
+        if (_otlpStubName is not null && (platformMoniker == "ios" || platformMoniker == "android"))
+        {
+            builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
+        }
+
+        if (_enableOtelDebug)
+        {
+            builder.WithEnvironment("OTEL_LOG_LEVEL", "debug")
+                   .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
+                   .WithEnvironment("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1");
+        }
+    }
+
+    /// <summary>
+    /// Extracts the platform moniker from a resource name (e.g., "myapp-ios" -> "ios").
+    /// </summary>
+    private static string ExtractPlatformMonikerFromResourceName(string resourceName)
+    {
+        var idx = resourceName.LastIndexOf('-');
+        return idx >= 0 && idx < resourceName.Length - 1 ? resourceName[(idx + 1)..] : string.Empty;
     }
 
 }

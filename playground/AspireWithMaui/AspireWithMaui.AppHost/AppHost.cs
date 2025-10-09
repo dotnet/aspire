@@ -10,7 +10,8 @@ builder.AddMauiProject("mauiclient", @"../AspireWithMaui.MauiClient/AspireWithMa
     .WithWindows()
     .WithAndroid()
     .WithiOS()
-    .WithOtlpDevTunnel()
-    .WithReference(weatherApi, publicDevTunnel); // for service discovery of other services if needed
+    .WithMacCatalyst()
+    .WithOtlpDevTunnel() // Setup a tunnel for the Open Telemetry communication, only needed for Android & iOS, but also works for desktop
+    .WithReference(weatherApi, publicDevTunnel);
 
 builder.Build().Run();
