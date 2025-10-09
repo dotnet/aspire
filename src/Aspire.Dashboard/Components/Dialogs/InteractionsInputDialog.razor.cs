@@ -3,6 +3,7 @@
 
 using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Model.Markdown;
+using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Resources;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;
@@ -90,6 +91,10 @@ public partial class InteractionsInputDialog
                 else if (firstInputElement is FluentInputBase<int?> numberInput)
                 {
                     numberInput.FocusAsync();
+                }
+                else if (firstInputElement is FluentInputBase<SelectViewModel<string>> selectInput)
+                {
+                    selectInput.FocusAsync();
                 }
             }
         }
