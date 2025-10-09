@@ -11,6 +11,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.Maui.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
   </ItemGroup>
   
