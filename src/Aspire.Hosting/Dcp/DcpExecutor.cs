@@ -1254,9 +1254,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
-        (var certificateArgs, var certificateEnv) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, cancellationToken).ConfigureAwait(false);
-        spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-        spec.Env.AddRange(certificateEnv);
+        (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
+            spec.Env.AddRange(certificateEnv);
+        }
+        else
+        {
+            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", er.ModelResource.Name);
+        }
 
         try
         {
@@ -1514,11 +1521,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
-        (var certificateArgs, var certificateEnv, var certificateFiles) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, cancellationToken).ConfigureAwait(false);
-
-        spec.Args.AddRange(certificateArgs);
-        spec.Env.AddRange(certificateEnv);
-        spec.CreateFiles.AddRange(certificateFiles);
+        (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
+            spec.Env = (spec.Env ?? []).Concat(certificateEnv).ToList();
+            spec.CreateFiles.AddRange(certificateFiles);
+        }
+        else
+        {
+            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelContainerResource.Name);
+        }
 
         if (_dcpInfo is not null)
         {
@@ -2027,7 +2040,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return (runArgs, failedToApplyArgs);
     }
 
-    private async Task<(List<string>, List<EnvVar>)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, CancellationToken cancellationToken)
+    /// <summary>
+    /// Build up the certificate authority trust configuration for an executable.
+    /// </summary>
+    /// <param name="modelResource">The executable IResource.</param>
+    /// <param name="resourceArguments">The existing list of executable command line arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of executable environment variables.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing additional command line arguments and environment variables, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
         bool trustDevCert = _options.Value.TrustDeveloperCertificate;
@@ -2068,11 +2089,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateTrustArguments)
             {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
                 arguments.Add(arg);
             }
 
             foreach (var arg in context.CertificateBundleArguments)
             {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
                 arguments.Add(arg);
                 arguments.Add(caBundlePath);
             }
@@ -2080,6 +2113,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, false);
+                }
+
                 envVars.Add(new EnvVar
                 {
                     Name = caFileEnv,
@@ -2099,16 +2140,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             File.WriteAllText(caBundlePath, caBundleBuilder.ToString());
         }
 
-        return (arguments, envVars);
+        return (arguments, envVars, true);
     }
 
     /// <summary>
     /// Build up the certificate authority trust configuration for a container.
     /// </summary>
     /// <param name="modelResource">The container IResource.</param>
+    /// <param name="resourceArguments">The existing list of container arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of container environment variables.</param>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
-    /// <returns>A tuple containing additional command line arguments, environment variables, and container file entries required to configure certificate authority trust.</returns>
-    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, CancellationToken cancellationToken)
+    /// <returns>A tuple containing additional command line arguments, environment variables, and container file entries required to configure certificate authority trust, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
         bool trustDevCert = _options.Value.TrustDeveloperCertificate;
@@ -2156,11 +2199,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var arg in context.CertificateTrustArguments)
             {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
                 arguments.Add(arg);
             }
 
             foreach (var arg in context.CertificateBundleArguments)
             {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
                 arguments.Add(arg);
                 arguments.Add(caBundlePath);
             }
@@ -2168,6 +2223,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
                 envVars.Add(new EnvVar
                 {
                     Name = caFileEnv,
@@ -2186,6 +2249,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var caDirEnv in context.CertificatesDirectoryEnvironment)
             {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
                 envVars.Add(new EnvVar
                 {
                     Name = caDirEnv,
@@ -2247,7 +2318,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        return (arguments, envVars, createFiles);
+        return (arguments, envVars, createFiles, true);
     }
 
     private string[]? GetSupportedLaunchConfigurations()
