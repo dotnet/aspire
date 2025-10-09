@@ -459,20 +459,12 @@ internal sealed class AzureDeployingContext(
         if (azureComputeEnv is AzureProvisioningResource provisioningResource &&
             provisioningResource.Outputs.TryGetValue("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
         {
-            // Check if the resource has any external endpoints
-            bool hasExternalEndpoint = false;
-            if (computeResource.TryGetEndpoints(out var endpoints))
+            // Only produce endpoints for resources that have external endpoints
+            if (computeResource.TryGetEndpoints(out var endpoints) && endpoints.Any(e => e.IsExternal))
             {
-                hasExternalEndpoint = endpoints.Any(e => e.IsExternal);
+                var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
+                return $" to {endpoint}";
             }
-
-            // Construct the URL based on whether endpoints are external or internal
-            var hostPart = hasExternalEndpoint
-                ? $"{computeResource.Name.ToLowerInvariant()}.{domainValue}"
-                : $"{computeResource.Name.ToLowerInvariant()}.internal.{domainValue}";
-            
-            var endpoint = $"https://{hostPart}";
-            return $" to {endpoint}";
         }
 
         return string.Empty;
