@@ -157,4 +157,25 @@ public class InputViewModelTests
         // Assert - proto strings default to empty string, not null
         Assert.True(string.IsNullOrEmpty(viewModel.Value));
     }
+
+    [Fact]
+    public void InputViewModel_ChoiceWithAllowCustomChoice_DoesNotDefaultToFirstOption()
+    {
+        // Arrange
+        var input = new InteractionInput
+        {
+            Label = "Choose Color",
+            InputType = InputType.Choice,
+            AllowCustomChoice = true
+        };
+        input.Options.Add("red", "Red");
+        input.Options.Add("blue", "Blue");
+        input.Options.Add("green", "Green");
+
+        // Act
+        var viewModel = new InputViewModel(input);
+
+        // Assert - When AllowCustomChoice is true, value should not default
+        Assert.True(string.IsNullOrEmpty(viewModel.Value));
+    }
 }
