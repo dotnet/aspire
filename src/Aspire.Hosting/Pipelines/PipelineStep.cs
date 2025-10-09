@@ -35,4 +35,13 @@ public class PipelineStep
     {
         Dependencies.Add(stepName);
     }
+
+    /// <summary>
+    /// Adds a dependency on another step.
+    /// </summary>
+    /// <param name="step">The step to depend on.</param>
+    public void DependsOnStep(PipelineStep step)
+    {
+        Dependencies.Add(step.Name);
+    }
 }

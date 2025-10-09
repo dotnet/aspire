@@ -59,59 +59,43 @@ public sealed class AzureEnvironmentResource : Resource
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
 
-        // Register Azure deployment pipeline steps directly
         Annotations.Add(new PipelineStepAnnotation(context =>
         {
-            var step = new PipelineStep
+            var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
                 Action = ctx => ValidateAzureCliLoginAsync(ctx, context)
             };
-            return step;
-        }));
 
-        Annotations.Add(new PipelineStepAnnotation(context =>
-        {
-            var step = new PipelineStep
+            var provisionStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.ProvisionInfrastructure,
                 Action = ctx => ProvisionAzureBicepResourcesAsync(context.Model, ctx, context)
             };
-            step.DependsOnStep("validate-azure-cli-login");
-            return step;
-        }));
+            provisionStep.DependsOnStep(validateStep);
 
-        Annotations.Add(new PipelineStepAnnotation(context =>
-        {
-            var step = new PipelineStep
+            var buildStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.BuildImages,
                 Action = ctx => BuildContainerImagesAsync(context.Model, ctx, context)
             };
-            return step;
-        }));
 
-        Annotations.Add(new PipelineStepAnnotation(context =>
-        {
-            var step = new PipelineStep
+            var pushStep = new PipelineStep
             {
                 Name = "push-container-images",
                 Action = ctx => PushContainerImagesAsync(context.Model, ctx, context)
             };
-            step.DependsOnStep(WellKnownPipelineSteps.BuildImages);
-            return step;
-        }));
+            pushStep.DependsOnStep(buildStep);
 
-        Annotations.Add(new PipelineStepAnnotation(context =>
-        {
-            var step = new PipelineStep
+            var deployStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.DeployCompute,
                 Action = ctx => DeployComputeResourcesAsync(context.Model, ctx, context)
             };
-            step.DependsOnStep("push-container-images");
-            step.DependsOnStep(WellKnownPipelineSteps.ProvisionInfrastructure);
-            return step;
+            deployStep.DependsOnStep(pushStep);
+            deployStep.DependsOnStep(provisionStep);
+
+            return new[] { validateStep, provisionStep, buildStep, pushStep, deployStep };
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
