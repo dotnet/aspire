@@ -158,3 +158,6 @@ playground/**/publish/
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
 tools/ReleaseNotes/release-notes-*.md
+
+# Aspire Extension
+/extension/.vscode-test/
