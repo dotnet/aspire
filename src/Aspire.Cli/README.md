@@ -191,5 +191,15 @@ aspire config delete <key> [options]
 **Options:**
 - `-g, --global` - Delete the configuration value from the global settings file instead of the local settings file
 
+#### feature
+Manage feature flags.
+
+```cli
+aspire config feature
+```
+
+**Description:**
+Interactively configure Aspire feature flags. This command presents a multi-select list of available feature flags with descriptions, allowing you to enable or disable multiple features at once. After selecting features, you can choose whether to apply them locally (per project) or globally (user-wide).
+
 **Description:**
 Manages CLI configuration settings. Configuration can be set locally (per project) or globally (user-wide). Local settings are stored in the current directory, while global settings are stored in `$HOME/.aspire/settings.json`.

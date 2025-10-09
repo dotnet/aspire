@@ -417,6 +417,32 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
         var featureFlags = provider.GetRequiredService<IFeatures>();
         Assert.False(featureFlags.IsFeatureEnabled(KnownFeatures.ShowDeprecatedPackages, defaultValue: false));
     }
+
+    [Fact]
+    public async Task ConfigFeatureCommand_CanBeInvoked()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper,
+            options =>
+            {
+                options.ConfigurationCallback += config =>
+                {
+                    // Enable extension mode for testing to avoid interactive prompts
+                    config["ASPIRE_EXTENSION_PROMPT_ENABLED"] = "true";
+                    config["ASPIRE_EXTENSION_TOKEN"] = "token";
+                };
+
+                options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
+                options.ConfigurationServiceFactory = _ => new TestConfigurationService();
+            });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<Aspire.Cli.Commands.RootCommand>();
+        var result = command.Parse("config feature");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(0, exitCode);
+    }
 }
 
 public class TestConfigurationService : IConfigurationService
