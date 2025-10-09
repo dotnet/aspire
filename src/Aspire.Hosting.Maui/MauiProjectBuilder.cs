@@ -284,6 +284,19 @@ public sealed class MauiProjectBuilder
             return; // Unknown platform moniker
         }
 
+        var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
+
+        // Check if this platform has already been added (duplicate guard)
+        if (_platformResources.Any(pr => pr.Resource.Name.Equals(resourceName, StringComparison.OrdinalIgnoreCase)))
+        {
+            // Platform already added - log a warning and skip
+            var loggerFactory = _appBuilder.Services.BuildServiceProvider().GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger<MauiProjectBuilder>();
+            logger?.LogWarning("Platform '{Platform}' has already been added to MAUI project '{Project}'. Ignoring duplicate call to With{Platform}().",
+                platformMoniker, _mauiLogicalResource.Name, char.ToUpper(platformMoniker[0]) + platformMoniker[1..]);
+            return;
+        }
+
         // Identify TFM prefix e.g. net10.0-windows, net10.0-android
         var tfm = _availableTfms.FirstOrDefault(t => t.Contains('-') && t.Split('-')[1].StartsWith(platformMoniker, StringComparison.OrdinalIgnoreCase));
         if (tfm is null)
@@ -292,8 +305,6 @@ public sealed class MauiProjectBuilder
             ConfigureMissingTfmPlatform(platformMoniker, platformConfig);
             return;
         }
-
-        var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
 
         // Use existing AddProject API to create the platform-specific resource.
         var builder = _appBuilder.AddProject(resourceName, _projectPath)
