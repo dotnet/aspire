@@ -416,7 +416,7 @@ public partial class AIFoundryModel
         /// <summary>
         /// gpt-5-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
-        public static readonly AIFoundryModel Gpt5Chat = new() { Name = "gpt-5-chat", Version = "2025-08-07", Format = "OpenAI" };
+        public static readonly AIFoundryModel Gpt5Chat = new() { Name = "gpt-5-chat", Version = "2025-10-03", Format = "OpenAI" };
 
         /// <summary>
         /// gpt-5-mini is a lightweight version for cost-sensitive applications.
