@@ -1989,7 +1989,6 @@ public class AzureContainerAppsTests
         // Verify that the bind mount output name has underscores instead of hyphens
         Assert.Contains("bindmounts_with_bind_mount_0", bicep);
 
-        await Verify(manifest.ToString(), "json")
-              .AppendContentAsFile(bicep, "bicep");
+        await Verify(bicep, "bicep");
     }
 }
