@@ -20,3 +20,15 @@ internal sealed class MauiUnsupportedPlatformAnnotation(string reason) : IResour
 {
     public string Reason { get; } = reason;
 }
+
+/// <summary>
+/// Annotation applied to platform resources that were requested but don't have a matching TFM in the project.
+/// Used to display warnings in the dashboard and logs.
+/// </summary>
+/// <param name="platformMoniker">The platform moniker that is missing (e.g., "android", "ios").</param>
+/// <param name="warningMessage">Detailed message explaining the missing TFM.</param>
+internal sealed class MauiMissingTfmAnnotation(string platformMoniker, string warningMessage) : IResourceAnnotation
+{
+    public string PlatformMoniker { get; } = platformMoniker;
+    public string WarningMessage { get; } = warningMessage;
+}
