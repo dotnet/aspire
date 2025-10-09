@@ -336,10 +336,10 @@ public class DistributedApplicationBuilderEventingTests
     }
 
     [Fact]
-    public async Task ExceptionInEventHandlerIsPublishedAsPublishEventException()
+    public async Task ExceptionInEventHandlerIsPublishedAsEventPublishExceptionEvent()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        PublishEventException? capturedExceptionEvent = null;
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
         var exceptionMessage = "Test exception in event handler";
         var tcs = new TaskCompletionSource();
 
@@ -348,7 +348,7 @@ public class DistributedApplicationBuilderEventingTests
             throw new InvalidOperationException(exceptionMessage);
         });
 
-        builder.Eventing.Subscribe<PublishEventException>((@event, ct) =>
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
         {
             capturedExceptionEvent = @event;
             tcs.TrySetResult();
@@ -378,7 +378,7 @@ public class DistributedApplicationBuilderEventingTests
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         var testResource = builder.AddResource(new TestResource("test-resource"));
-        PublishEventException? capturedExceptionEvent = null;
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
         var tcs = new TaskCompletionSource();
 
         builder.Eventing.Subscribe(testResource.Resource, (ResourceReadyEvent @event, CancellationToken ct) =>
@@ -386,7 +386,7 @@ public class DistributedApplicationBuilderEventingTests
             throw new InvalidOperationException("Test exception");
         });
 
-        builder.Eventing.Subscribe<PublishEventException>((@event, ct) =>
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
         {
             capturedExceptionEvent = @event;
             tcs.TrySetResult();
@@ -413,7 +413,7 @@ public class DistributedApplicationBuilderEventingTests
     public async Task ExceptionInNonBlockingSequentialHandlerIsPublished()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        PublishEventException? capturedExceptionEvent = null;
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
         var tcs = new TaskCompletionSource();
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
@@ -421,7 +421,7 @@ public class DistributedApplicationBuilderEventingTests
             throw new InvalidOperationException("Test exception");
         });
 
-        builder.Eventing.Subscribe<PublishEventException>((@event, ct) =>
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
         {
             capturedExceptionEvent = @event;
             tcs.TrySetResult();
@@ -441,7 +441,7 @@ public class DistributedApplicationBuilderEventingTests
     public async Task ExceptionInBlockingConcurrentHandlerIsPublished()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        PublishEventException? capturedExceptionEvent = null;
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
         var tcs = new TaskCompletionSource();
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
@@ -449,7 +449,7 @@ public class DistributedApplicationBuilderEventingTests
             throw new InvalidOperationException("Test exception");
         });
 
-        builder.Eventing.Subscribe<PublishEventException>((@event, ct) =>
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
         {
             capturedExceptionEvent = @event;
             tcs.TrySetResult();
@@ -473,7 +473,7 @@ public class DistributedApplicationBuilderEventingTests
     public async Task ExceptionInNonBlockingConcurrentHandlerIsPublished()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
-        PublishEventException? capturedExceptionEvent = null;
+        EventPublishExceptionEvent? capturedExceptionEvent = null;
         var tcs = new TaskCompletionSource();
 
         builder.Eventing.Subscribe<DummyEvent>((@event, ct) =>
@@ -481,7 +481,7 @@ public class DistributedApplicationBuilderEventingTests
             throw new InvalidOperationException("Test exception");
         });
 
-        builder.Eventing.Subscribe<PublishEventException>((@event, ct) =>
+        builder.Eventing.Subscribe<EventPublishExceptionEvent>((@event, ct) =>
         {
             capturedExceptionEvent = @event;
             tcs.TrySetResult();

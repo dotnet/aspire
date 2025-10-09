@@ -66,7 +66,7 @@ internal sealed class ApplicationOrchestrator
         _eventing.Subscribe<ConnectionStringAvailableEvent>(PublishConnectionStringValue);
         // Implement WaitFor functionality using BeforeResourceStartedEvent.
         _eventing.Subscribe<BeforeResourceStartedEvent>(WaitForInBeforeResourceStartedEvent);
-        _eventing.Subscribe<PublishEventException>(OnPublishEventException);
+        _eventing.Subscribe<EventPublishExceptionEvent>(OnPublishEventException);
     }
 
     private async Task PublishConnectionStringValue(ConnectionStringAvailableEvent @event, CancellationToken token)
@@ -311,7 +311,7 @@ internal sealed class ApplicationOrchestrator
         await PublishResourceEndpointUrls(@event.Resource, cancellationToken).ConfigureAwait(false);
     }
 
-    private Task OnPublishEventException(PublishEventException @event, CancellationToken cancellationToken)
+    private Task OnPublishEventException(EventPublishExceptionEvent @event, CancellationToken cancellationToken)
     {
         // Log the exception to both the resource-specific logger (if available) and a general logger
         if (@event.Resource is not null)

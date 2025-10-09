@@ -29,7 +29,7 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
         {
             try
             {
-                var exceptionEvent = new PublishEventException(exception, eventType, resource);
+                var exceptionEvent = new EventPublishExceptionEvent(exception, eventType, resource);
                 // Use NonBlockingSequential to avoid potential deadlocks when publishing from within an event handler
                 await PublishAsync(exceptionEvent, EventDispatchBehavior.NonBlockingSequential).ConfigureAwait(false);
             }
@@ -131,8 +131,8 @@ public class DistributedApplicationEventing : IDistributedApplicationEventing
 
     private void PublishExceptionEventAsync(Exception exception, Type eventType, IResource? resource)
     {
-        // Avoid infinite loop if PublishEventException handler throws
-        if (eventType == typeof(PublishEventException))
+        // Avoid infinite loop if EventPublishExceptionEvent handler throws
+        if (eventType == typeof(EventPublishExceptionEvent))
         {
             return;
         }
