@@ -222,7 +222,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         bool fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "[fetch-regions]",
+            "fetch-regions",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
