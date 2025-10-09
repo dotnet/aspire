@@ -59,7 +59,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
-    private IDistributedApplicationPipeline? _pipeline;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
@@ -89,8 +88,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
 
     /// <inheritdoc />
-    public IDistributedApplicationPipeline Pipeline =>
-        _pipeline ??= new DistributedApplicationPipeline(this);
+    public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.

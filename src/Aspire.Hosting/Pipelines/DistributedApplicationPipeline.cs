@@ -9,13 +9,7 @@ namespace Aspire.Hosting.Pipelines;
 
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
-    private readonly List<PipelineStep> _steps = new();
-    private readonly IDistributedApplicationBuilder _builder;
-
-    public DistributedApplicationPipeline(IDistributedApplicationBuilder builder)
-    {
-        _builder = builder;
-    }
+    private readonly List<PipelineStep> _steps = [];
 
     public void AddStep(string name,
                        Func<DeployingContext, Task> action,
