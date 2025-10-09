@@ -61,6 +61,9 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     public required ILogger<TraceDetail> Logger { get; init; }
 
     [Inject]
+    public required ITelemetryErrorRecorder ErrorRecorder { get; init; }
+
+    [Inject]
     public required TelemetryRepository TelemetryRepository { get; init; }
 
     [Inject]
@@ -281,8 +284,12 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
     {
         _resources = TelemetryRepository.GetResources();
 
-        Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
-        _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        // Copying a large trace can be expensive so only do this if required.
+        if (_trace == null || _trace.TraceId != TraceId || TelemetryRepository.HasUpdatedTrace(_trace))
+        {
+            Logger.LogInformation("Getting trace '{TraceId}'.", TraceId);
+            _trace = (TraceId != null) ? TelemetryRepository.GetTrace(TraceId) : null;
+        }
 
         if (_trace == null)
         {
@@ -549,7 +556,7 @@ public partial class TraceDetail : ComponentBase, IComponentWithTelemetry, IDisp
             span,
             selectedLogEntryId: null,
             TelemetryRepository,
-            Logger,
+            ErrorRecorder,
             _resources,
             () =>
             {

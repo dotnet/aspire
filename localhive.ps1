@@ -228,6 +228,6 @@ Write-Host
 Write-Log "Aspire CLI will discover a channel named '$Name' from:"
 Write-Log "  $hivePath"
 Write-Host
-Write-Log "Channel behavior: Aspire* and Microsoft.Extensions.ServiceDiscovery* come from the hive; others from nuget.org."
+Write-Log "Channel behavior: Aspire* comes from the hive; others from nuget.org."
 Write-Host
 Write-Log 'The Aspire CLI discovers channels automatically from the hives directory; no extra flags are required.'

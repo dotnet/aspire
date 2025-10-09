@@ -63,6 +63,7 @@ public sealed class AzureEnvironmentResource : Resource
         var publishingContext = new AzurePublishingContext(
             context.OutputPath,
             azureProvisioningOptions.Value,
+            context.Services,
             context.Logger,
             context.ActivityReporter);
 
@@ -72,12 +73,11 @@ public sealed class AzureEnvironmentResource : Resource
     private Task DeployAsync(DeployingContext context)
     {
         var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
-        var userSecretsManager = context.Services.GetRequiredService<IUserSecretsManager>();
+        var userSecretsManager = context.Services.GetRequiredService<IDeploymentStateManager>();
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var activityPublisher = context.Services.GetRequiredService<IPublishingActivityReporter>();
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
-        var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
@@ -88,7 +88,6 @@ public sealed class AzureEnvironmentResource : Resource
             activityPublisher,
             containerImageBuilder,
             processRunner,
-            parameterProcessor,
             configuration,
             tokenCredentialProvider);
 

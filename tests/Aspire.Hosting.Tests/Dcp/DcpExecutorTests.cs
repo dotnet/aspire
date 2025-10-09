@@ -672,6 +672,8 @@ public class DcpExecutorTests
                         "2024-08-19T06:10:05.000Z Seventh" + Environment.NewLine +
                         "2024-08-19T06:10:04.000Z Forth" + Environment.NewLine +
                         "2024-08-19T06:10:04.000Z Fifth" + Environment.NewLine));
+                case Logs.StreamTypeSystem:
+                    return new MemoryStream();
                 default:
                     throw new InvalidOperationException("Unexpected type: " + logStreamType);
             }
@@ -729,6 +731,7 @@ public class DcpExecutorTests
         public Pipe StandardErr { get; set; } = default!;
         public Pipe StartupOut { get; set; } = default!;
         public Pipe StartupErr { get; set; } = default!;
+        public Pipe System { get; set; } = default!;
     }
 
     private static async Task<LogStreamPipes> GetStreamPipesAsync(Channel<(string Type, Pipe Pipe)> logStreamPipesChannel)
@@ -752,12 +755,15 @@ public class DcpExecutorTests
                 case Logs.StreamTypeStartupStdErr:
                     result.StartupErr = item.Pipe;
                     break;
+                case Logs.StreamTypeSystem:
+                    result.System = item.Pipe;
+                    break;
                 default:
                     throw new InvalidOperationException("Unexpected type: " + item.Type);
             }
 
             pipeCount++;
-            if (pipeCount == 4)
+            if (pipeCount == 5)
             {
                 logStreamPipesChannel.Writer.Complete();
             }
@@ -1540,7 +1546,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport("project-file", "test_executable", "test_executable");
+        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(mode => new ExecutableLaunchConfiguration("test_executable_type") { Mode = mode }, "test_executable");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         // No SupportsDebuggingAnnotation for this one
@@ -1550,9 +1556,9 @@ public class DcpExecutorTests
         var configDict = new Dictionary<string, string?>
         {
             [DcpExecutor.DebugSessionPortVar] = "12345",
-            [KnownConfigNames.ExtensionCapabilities] = "test_executable",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], SupportedLaunchConfigurations = ["test_executable"] }),
             [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
-            [KnownConfigNames.ExtensionDebugRunMode] = "Debug"
+            [KnownConfigNames.DebugSessionRunMode] = "Debug"
         };
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
@@ -1572,11 +1578,10 @@ public class DcpExecutorTests
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
         Assert.Equal(ExecutionType.IDE, debuggableExe.Spec.ExecutionType);
-        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
+        Assert.True(debuggableExe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var launchConfigs1));
         var config1 = Assert.Single(launchConfigs1);
-        Assert.Equal(ProjectLaunchMode.Debug, config1.Mode);
-        Assert.Equal("test_executable", config1.Type);
-        Assert.Equal("project-file", config1.ProjectPath);
+        Assert.Equal(ExecutableLaunchMode.Debug, config1.Mode);
+        Assert.Equal("test_executable_type", config1.Type);
 
         var nonDebuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestOtherExecutable");
         Assert.Equal(ExecutionType.Process, nonDebuggableExe.Spec.ExecutionType);
@@ -1591,15 +1596,14 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var executable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(executable).WithVSCodeDebugSupport("project-file", "test_executable", "test_executable");
+        builder.AddResource(executable).WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test_executable");
 
         // Simulate debug session port and extension endpoint (extension mode)
         var configDict = new Dictionary<string, string?>
         {
             [DcpExecutor.DebugSessionPortVar] = "12345",
-            [KnownConfigNames.ExtensionCapabilities] = "other_executable",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(new RunSessionInfo { ProtocolsSupported = ["test"], SupportedLaunchConfigurations = ["other_executable"] }),
             [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234",
-            [KnownConfigNames.ExtensionDebugRunMode] = "Debug"
         };
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
@@ -1628,7 +1632,7 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport("test", "test_executable", "test_executable");
+        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test_executable");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
         builder.AddResource(nonDebuggableExecutable);
@@ -1719,7 +1723,7 @@ public class DcpExecutorTests
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
     private sealed class TestOtherExecutableResource(string directory) : ExecutableResource("TestOtherExecutable", "test-other", directory);
-    
+
     private sealed class TestHostEnvironment : IHostEnvironment
     {
         public string ApplicationName { get; set; } = default!;

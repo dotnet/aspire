@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -23,6 +25,44 @@ internal class Publisher(
             throw new DistributedApplicationException(
                 "The '--output-path [path]' option was not specified."
             );
+        }
+
+        // Check if --clear-cache flag is set and prompt user before deleting deployment state
+        if (options.Value.Deploy && options.Value.ClearCache)
+        {
+            var deploymentStateManager = serviceProvider.GetService<IDeploymentStateManager>();
+            if (deploymentStateManager?.StateFilePath is not null && File.Exists(deploymentStateManager.StateFilePath))
+            {
+                var interactionService = serviceProvider.GetService<IInteractionService>();
+                if (interactionService?.IsAvailable == true)
+                {
+                    var hostEnvironment = serviceProvider.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+                    var environmentName = hostEnvironment?.EnvironmentName ?? "Production";
+                    var result = await interactionService.PromptNotificationAsync(
+                        "Clear Deployment State",
+                        $"The deployment state for the '{environmentName}' environment will be deleted. All Azure resources will be re-provisioned. Do you want to continue?",
+                        new NotificationInteractionOptions
+                        {
+                            Intent = MessageIntent.Confirmation,
+                            ShowSecondaryButton = true,
+                            ShowDismiss = false,
+                            PrimaryButtonText = "Yes",
+                            SecondaryButtonText = "No"
+                        },
+                        cancellationToken).ConfigureAwait(false);
+
+                    if (result.Canceled || !result.Data)
+                    {
+                        // User declined or canceled - exit the deployment
+                        logger.LogInformation("User declined to clear deployment state. Canceling deployment.");
+                        return;
+                    }
+
+                    // User confirmed - delete the deployment state file
+                    logger.LogInformation("Deleting deployment state file at {Path} due to --clear-cache flag", deploymentStateManager.StateFilePath);
+                    File.Delete(deploymentStateManager.StateFilePath);
+                }
+            }
         }
 
         // Add a step to do model analysis before publishing/deploying
@@ -67,6 +107,25 @@ internal class Publisher(
                         cancellationToken)
                         .ConfigureAwait(false);
 
+            // Add a task to show the deployment state file path if available
+            if (options.Value.Deploy && !options.Value.ClearCache)
+            {
+                var deploymentStateManager = serviceProvider.GetService<IDeploymentStateManager>();
+                if (deploymentStateManager?.StateFilePath is not null && File.Exists(deploymentStateManager.StateFilePath))
+                {
+                    var statePathTask = await step.CreateTaskAsync(
+                        "Checking deployment state configuration.",
+                        cancellationToken)
+                        .ConfigureAwait(false);
+
+                    await statePathTask.CompleteAsync(
+                        $"Deployment state will be loaded from: {deploymentStateManager.StateFilePath}",
+                        CompletionState.Completed,
+                        cancellationToken)
+                        .ConfigureAwait(false);
+                }
+            }
+
             if (state == CompletionState.CompletedWithError)
             {
                 // If there are no resources to publish or deploy, we can exit early
@@ -77,6 +136,10 @@ internal class Publisher(
         // If deployment is enabled, run deploying callbacks after publishing
         if (options.Value.Deploy)
         {
+            // Initialize parameters as a pre-requisite for deployment
+            var parameterProcessor = serviceProvider.GetRequiredService<ParameterProcessor>();
+            await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
+
             var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
                 Path.GetFullPath(options.Value.OutputPath) : null);
             await deployingContext.WriteModelAsync(model).ConfigureAwait(false);

@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +23,7 @@ internal sealed class AzureProvisioner(
     ResourceLoggerService loggerService,
     IDistributedApplicationEventing eventing,
     IProvisioningContextProvider provisioningContextProvider,
-    IUserSecretsManager userSecretsManager
+    IDeploymentStateManager deploymentStateManager
     ) : IDistributedApplicationEventingSubscriber
 {
     internal const string AspireResourceNameTag = "aspire-resource-name";
@@ -161,11 +164,11 @@ internal sealed class AzureProvisioner(
         IList<(IResource Resource, IAzureResource AzureResource)> azureResources,
         CancellationToken cancellationToken)
     {
-        // Load user secrets first so they can be passed to the provisioning context
-        var userSecrets = await userSecretsManager.LoadUserSecretsAsync(cancellationToken).ConfigureAwait(false);
+        // Load deployment state first so it can be passed to the provisioning context
+        var deploymentState = await deploymentStateManager.LoadStateAsync(cancellationToken).ConfigureAwait(false);
 
         // Make resources wait on the same provisioning context
-        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(userSecrets, cancellationToken));
+        var provisioningContextLazy = new Lazy<Task<ProvisioningContext>>(() => provisioningContextProvider.CreateProvisioningContextAsync(deploymentState, cancellationToken));
 
         var tasks = new List<Task>();
 
@@ -176,11 +179,11 @@ internal sealed class AzureProvisioner(
 
         var task = Task.WhenAll(tasks);
 
-        // Suppress throwing so that we can save the user secrets even if the task fails
+        // Suppress throwing so that we can save the deployment state even if the task fails
         await task.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
-        // If we created any resources then save the user secrets
-        await userSecretsManager.SaveUserSecretsAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        // If we created any resources then save the deployment state
+        await deploymentStateManager.SaveStateAsync(deploymentState, cancellationToken).ConfigureAwait(false);
 
         // Set the completion source for all resources
         foreach (var resource in azureResources)

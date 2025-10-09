@@ -16,6 +16,7 @@ export interface IInteractionService {
     promptForSecretString: (promptText: string, required: boolean, rpcClient: ICliRpcClient) => Promise<string | null>;
     confirm: (promptText: string, defaultValue: boolean) => Promise<boolean | null>;
     promptForSelection: (promptText: string, choices: string[]) => Promise<string | null>;
+    promptForSelections: (promptText: string, choices: string[]) => Promise<string[] | null>;
     displayIncompatibleVersionError: (requiredCapability: string, appHostHostingSdkVersion: string, rpcClient: ICliRpcClient) => Promise<void>;
     displayError: (errorMessage: string) => void;
     displayMessage: (emoji: string, message: string) => void;
@@ -86,7 +87,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
@@ -116,7 +118,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
@@ -151,6 +154,18 @@ export class InteractionService implements IInteractionService {
         const selected = await vscode.window.showQuickPick(choices, {
             placeHolder: formatText(promptText),
             canPickMany: false,
+            ignoreFocusOut: true
+        });
+
+        return selected ?? null;
+    }
+
+    async promptForSelections(promptText: string, choices: string[]): Promise<string[] | null> {
+        extensionLogOutputChannel.info(`Prompting for multiple selections: ${promptText}`);
+
+        const selected = await vscode.window.showQuickPick(choices, {
+            placeHolder: formatText(promptText),
+            canPickMany: true,
             ignoreFocusOut: true
         });
 
@@ -304,11 +319,14 @@ export class InteractionService implements IInteractionService {
     }
 
     logMessage(logLevel: CSLogLevel, message: string) {
+        // Unable to log trace or debug messages, these levels are ignored by default
+        // and we cannot set the log level programmatically. So for now, log as info
+        // https://github.com/microsoft/vscode/issues/223536
         if (logLevel === 'Trace') {
-            extensionLogOutputChannel.trace(formatText(message));
+            extensionLogOutputChannel.info(`[trace] ${formatText(message)}`);
         }
         else if (logLevel === 'Debug') {
-            extensionLogOutputChannel.debug(formatText(message));
+            extensionLogOutputChannel.info(`[debug] ${formatText(message)}`);
         }
         else if (logLevel === 'Information') {
             extensionLogOutputChannel.info(formatText(message));
@@ -355,7 +373,8 @@ export class InteractionService implements IInteractionService {
             noDebug: !debug,
         };
 
-        const didDebugStart = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], debugConfiguration);
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(workingDirectory));
+        const didDebugStart = await vscode.debug.startDebugging(workspaceFolder, debugConfiguration);
         if (!didDebugStart) {
             throw new Error(failedToStartDebugSession);
         }
@@ -389,6 +408,7 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("promptForSecretString", middleware('promptForSecretString', async (promptText: string, required: boolean) => interactionService.promptForSecretString(promptText, required, rpcClient)));
     connection.onRequest("confirm", middleware('confirm', interactionService.confirm.bind(interactionService)));
     connection.onRequest("promptForSelection", middleware('promptForSelection', interactionService.promptForSelection.bind(interactionService)));
+    connection.onRequest("promptForSelections", middleware('promptForSelections', interactionService.promptForSelections.bind(interactionService)));
     connection.onRequest("displayIncompatibleVersionError", middleware('displayIncompatibleVersionError', (requiredCapability: string, appHostHostingSdkVersion: string) => interactionService.displayIncompatibleVersionError(requiredCapability, appHostHostingSdkVersion, rpcClient)));
     connection.onRequest("displayError", middleware('displayError', interactionService.displayError.bind(interactionService)));
     connection.onRequest("displayMessage", middleware('displayMessage', interactionService.displayMessage.bind(interactionService)));
