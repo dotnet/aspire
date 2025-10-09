@@ -186,7 +186,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage()}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
