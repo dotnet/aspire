@@ -47,7 +47,7 @@ public static class PythonAppResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonApp("python-app", "PythonApp", "main.py")
+    /// builder.AddPythonApp("python-app", "../python-app", "main.py")
     ///        .WithArgs("arg1", "arg2");
     ///
     /// builder.Build().Run();
@@ -124,9 +124,9 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        ArgumentException.ThrowIfNullOrEmpty(appDirectory);
+        ArgumentNullException.ThrowIfNull(appDirectory);
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
-        ArgumentException.ThrowIfNullOrEmpty(virtualEnvironmentPath);
+        ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
