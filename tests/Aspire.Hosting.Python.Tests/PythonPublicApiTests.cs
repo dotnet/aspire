@@ -97,14 +97,12 @@ public class PythonPublicApiTests
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddPythonAppShouldThrowWhenAppDirectoryIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void AddPythonAppShouldThrowWhenAppDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
-        var appDirectory = isNull ? null! : string.Empty;
+        string appDirectory = null!;
         const string scriptPath = "scripts";
         string[] scriptArgs = ["--traces"];
 
@@ -114,9 +112,7 @@ public class PythonPublicApiTests
             scriptPath,
             scriptArgs);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(appDirectory), exception.ParamName);
     }
 
@@ -235,14 +231,12 @@ public class PythonPublicApiTests
         Assert.Equal(nameof(name), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddPythonAppWithVirtualEnvironmentPathShouldThrowWhenAppDirectoryIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void AddPythonAppWithVirtualEnvironmentPathShouldThrowWhenAppDirectoryIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
-        var appDirectory = isNull ? null! : string.Empty;
+        string appDirectory = null!;
         const string scriptPath = "scripts";
         const string virtualEnvironmentPath = ".venv";
         string[] scriptArgs = ["--traces"]; ;
@@ -254,9 +248,7 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(appDirectory), exception.ParamName);
     }
 
@@ -285,16 +277,14 @@ public class PythonPublicApiTests
         Assert.Equal(nameof(scriptPath), exception.ParamName);
     }
 
-    [Theory]
-    [InlineData(true)]
-    [InlineData(false)]
-    public void AddPythonAppWithVirtualEnvironmentPathShouldThrowWhenVirtualEnvironmentPathIsNullOrEmpty(bool isNull)
+    [Fact]
+    public void AddPythonAppWithVirtualEnvironmentPathShouldThrowWhenVirtualEnvironmentPathIsNull()
     {
         var builder = TestDistributedApplicationBuilder.Create();
         const string name = "Python";
         const string appDirectory = "/src/python";
         const string scriptPath = "scripts";
-        var virtualEnvironmentPath = isNull ? null! : string.Empty;
+        string? virtualEnvironmentPath = null!;
         string[] scriptArgs = ["--traces"]; ;
 
         var action = () => builder.AddPythonApp(
@@ -304,9 +294,7 @@ public class PythonPublicApiTests
             virtualEnvironmentPath,
             scriptArgs);
 
-        var exception = isNull
-            ? Assert.Throws<ArgumentNullException>(action)
-            : Assert.Throws<ArgumentException>(action);
+        var exception = Assert.Throws<ArgumentNullException>(action);
         Assert.Equal(nameof(virtualEnvironmentPath), exception.ParamName);
     }
 

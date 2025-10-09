@@ -367,4 +367,139 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     private const string InstrumentedPythonAppRequirements = """"
         opentelemetry-distro[otlp]
         """";
+
+    [Fact]
+    public void AddPythonApp_DoesNotThrowOnMissingVirtualEnvironment()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        // Should not throw - validation is deferred until runtime
+        var exception = Record.Exception(() => 
+            builder.AddPythonApp("pythonProject", tempDir.Path, "main.py"));
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task WithVirtualEnvironment_UpdatesCommandToUseNewVirtualEnvironment()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithVirtualEnvironment("custom-venv");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal(Path.Join(expectedProjectDirectory, "custom-venv", "Scripts", "python.exe"), pythonProjectResource.Command);
+        }
+        else
+        {
+            Assert.Equal(Path.Join(expectedProjectDirectory, "custom-venv", "bin", "python"), pythonProjectResource.Command);
+        }
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+        Assert.Equal(scriptName, commandArguments[0]);
+    }
+
+    [Fact]
+    public async Task WithVirtualEnvironment_SupportsAbsolutePath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+        using var tempVenvDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithVirtualEnvironment(tempVenvDir.Path);
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal(Path.Join(tempVenvDir.Path, "Scripts", "python.exe"), pythonProjectResource.Command);
+        }
+        else
+        {
+            Assert.Equal(Path.Join(tempVenvDir.Path, "bin", "python"), pythonProjectResource.Command);
+        }
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+        Assert.Equal(scriptName, commandArguments[0]);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_ThrowsOnNullBuilder()
+    {
+        IResourceBuilder<PythonAppResource> builder = null!;
+
+        var exception = Assert.Throws<ArgumentNullException>(() => 
+            builder.WithVirtualEnvironment("some-venv"));
+
+        Assert.Equal("builder", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithVirtualEnvironment_ThrowsOnNullOrEmptyPath()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName);
+
+        var nullException = Assert.Throws<ArgumentNullException>(() => 
+            resourceBuilder.WithVirtualEnvironment(null!));
+        Assert.Equal("virtualEnvironmentPath", nullException.ParamName);
+
+        var emptyException = Assert.Throws<ArgumentException>(() => 
+            resourceBuilder.WithVirtualEnvironment(string.Empty));
+        Assert.Equal("virtualEnvironmentPath", emptyException.ParamName);
+    }
+
+    [Fact]
+    public async Task WithVirtualEnvironment_CanBeChainedWithOtherExtensions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var resourceBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithVirtualEnvironment(".venv")
+            .WithArgs("arg1", "arg2")
+            .WithEnvironment("TEST_VAR", "test_value");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var executableResources = appModel.GetExecutableResources();
+
+        var pythonProjectResource = Assert.Single(executableResources);
+
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(pythonProjectResource, TestServiceProvider.Instance);
+        Assert.Equal(3, commandArguments.Count);
+        Assert.Equal(scriptName, commandArguments[0]);
+        Assert.Equal("arg1", commandArguments[1]);
+        Assert.Equal("arg2", commandArguments[2]);
+
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+        Assert.Equal("test_value", environmentVariables["TEST_VAR"]);
+    }
 }
