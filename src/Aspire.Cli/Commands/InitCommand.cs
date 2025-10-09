@@ -462,7 +462,8 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             
             // Create or update NuGet.config for explicit channels
-            await CreateOrUpdateNuGetConfigAsync(initContext.SolutionDirectory, selectedTemplateDetails.Channel, cancellationToken);
+            var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+            await nugetConfigPrompter.PromptToCreateOrUpdateAsync(initContext.SolutionDirectory, selectedTemplateDetails.Channel, cancellationToken);
             
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
@@ -598,56 +599,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             "net10.0" => true,
             _ => false
         };
-    }
-
-    /// <summary>
-    /// Creates or updates a NuGet.config file in the solution directory for explicit channels.
-    /// </summary>
-    private async Task CreateOrUpdateNuGetConfigAsync(DirectoryInfo solutionDirectory, PackageChannel channel, CancellationToken cancellationToken)
-    {
-        if (channel.Type is not PackageChannelType.Explicit)
-        {
-            return;
-        }
-
-        var mappings = channel.Mappings;
-        if (mappings is null || mappings.Length == 0)
-        {
-            return;
-        }
-
-        var hasConfigInSolutionDir = NuGetConfigMerger.TryFindNuGetConfigInDirectory(solutionDirectory, out var nugetConfigFile);
-        var hasMissingSources = hasConfigInSolutionDir && NuGetConfigMerger.HasMissingSources(solutionDirectory, channel);
-
-        if (!hasConfigInSolutionDir)
-        {
-            // Ask for confirmation before creating the file
-            var choice = await InteractionService.PromptForSelectionAsync(
-                TemplatingStrings.CreateNugetConfigConfirmation,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(solutionDirectory, channel, cancellationToken: cancellationToken);
-                InteractionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
-            }
-        }
-        else if (hasMissingSources)
-        {
-            var updateChoice = await InteractionService.PromptForSelectionAsync(
-                "Update NuGet.config to add missing package sources for the selected channel?",
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(solutionDirectory, channel, cancellationToken: cancellationToken);
-                InteractionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
-            }
-        }
     }
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
