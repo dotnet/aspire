@@ -11,6 +11,6 @@ internal static class SqlServerContainerImageTags
     /// <remarks>mssql/server</remarks>
     public const string Image = "mssql/server";
 
-    /// <remarks>2025-latest</remarks>
-    public const string Tag = "2025-latest";
+    /// <remarks>2022-latest</remarks>
+    public const string Tag = "2022-latest";
 }
