@@ -25,6 +25,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace Aspire.Hosting.Tests;
 
@@ -619,6 +621,96 @@ public class DistributedApplicationTests
                     }
                 },
                 item.Spec.CreateFiles);
+            });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [RequiresDevCert]
+    [InlineData(null, null, true)]
+    [InlineData(null, false, false)]
+    [InlineData(null, true, true)]
+    [InlineData(false, null, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, null, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
+    {
+        using var testProgram = CreateTestProgram("verify-container-dev-cert");
+        if (implicitTrust.HasValue)
+        {
+            testProgram.AppBuilder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = implicitTrust.Value ? "true" : "false";
+        }
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
+        if (explicitTrust.HasValue)
+        {
+            container.WithDeveloperCertificateTrust(explicitTrust.Value);
+        }
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal(RedisImageSource, item.Spec.Image);
+
+                if (expectDevCert)
+                {
+                    Assert.NotNull(item.Spec.Env);
+                    Assert.Collection(item.Spec.Env.OrderBy(e => e.Name),
+                        certDir =>
+                        {
+                            Assert.Equal("SSL_CERT_DIR", certDir.Name);
+                            Assert.StartsWith("/usr/lib/ssl/aspire/certs:", certDir.Value);
+                        });
+                    Assert.NotNull(item.Spec.CreateFiles);
+                    Assert.Collection(item.Spec.CreateFiles,
+                        createCerts =>
+                        {
+                            Assert.Equal("/usr/lib/ssl/aspire", createCerts.Destination);
+                            Assert.NotNull(createCerts.Entries);
+                            Assert.Collection(createCerts.Entries,
+                                bundle =>
+                                {
+                                    Assert.Equal("cert.pem", bundle.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
+                                    var certs = new X509Certificate2Collection();
+                                    certs.ImportFromPem(bundle.Contents);
+                                    var devCert = Assert.Single(certs);
+                                    Assert.True(devCert.IsAspNetCoreDevelopmentCertificate());
+                                },
+                                dir =>
+                                {
+                                    Assert.Equal("certs", dir.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
+                                    Assert.NotNull(dir.Entries);
+                                    Assert.Collection(dir.Entries,
+                                        cert =>
+                                        {
+                                            Assert.Equal(ContainerFileSystemEntryType.OpenSSL, cert.Type);
+                                            Assert.NotNull(cert.Contents);
+                                            var parsedCert = new X509Certificate2(Encoding.UTF8.GetBytes(cert.Contents));
+                                            Assert.True(parsedCert.IsAspNetCoreDevelopmentCertificate());
+                                            Assert.Equal($"{parsedCert.Thumbprint}.pem", cert.Name);
+                                        });
+                                });
+                        });
+                }
+                else
+                {
+                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                }
             });
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
