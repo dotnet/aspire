@@ -11,4 +11,10 @@ namespace Aspire.Hosting.ApplicationModel;
 [Experimental("ASPIRECOMPUTE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IComputeEnvironmentResource : IResource
 {
+    /// <summary>
+    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
+    /// </summary>
+    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
+    ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference) => throw new NotImplementedException();
 }

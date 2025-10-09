@@ -383,6 +383,8 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(webSiteRa);
         }
 
+        infra.Add(new ProvisioningOutput("hostname", typeof(string)) { Value = webSite.Name });
+
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {

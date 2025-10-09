@@ -54,6 +54,19 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     ReferenceExpression IContainerRegistry.Endpoint => 
         ReferenceExpression.Create($"{ContainerRegistryUrl}");
 
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+        var deploymentTarget = resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this);
+        if (deploymentTarget is null)
+        {
+            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
+        }
+
+        var hostname = ((AzureAppServiceWebSiteResource)deploymentTarget.DeploymentTarget).HostName;
+        return ReferenceExpression.Create($"{hostname}.azurewebsites.net");
+    }
+
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)
     {
