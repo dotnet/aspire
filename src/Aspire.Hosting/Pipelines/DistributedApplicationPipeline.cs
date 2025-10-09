@@ -77,11 +77,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             foreach (var annotation in annotations)
             {
-                return annotation.CreateSteps(context);
+                foreach (var step in annotation.CreateSteps(context))
+                {
+                    yield return step;
+                }
             }
         }
-
-        return [];
     }
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)
@@ -121,6 +122,24 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             graph[step.Name] = [];
             inDegree[step.Name] = 0;
+        }
+
+        foreach (var step in steps)
+        {
+            foreach (var requiredByStep in step.RequiredBy)
+            {
+                if (!graph.ContainsKey(requiredByStep))
+                {
+                    throw new InvalidOperationException(
+                        $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
+                }
+
+                var requiredByStepObj = registry.GetStep(requiredByStep);
+                if (requiredByStepObj != null && !requiredByStepObj.Dependencies.Contains(step.Name))
+                {
+                    requiredByStepObj.Dependencies.Add(step.Name);
+                }
+            }
         }
 
         foreach (var step in steps)
