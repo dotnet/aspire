@@ -275,7 +275,7 @@ public sealed class OpenIdConnectOptions
     /// <summary>
     /// Gets or sets the optional value to configure the ClaimActions of <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions"/>
     /// </summary>
-    public ClaimAction[]? ClaimActions { get; set; }
+    public List<ClaimAction> ClaimActions { get; set; } = new();
 
     public string[] GetNameClaimTypes()
     {

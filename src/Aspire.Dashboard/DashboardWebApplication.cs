@@ -805,7 +805,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Configure additional ClaimActions
                     var claimActions = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
-                    if (claimActions is { Length: > 0 })
+                    if (claimActions.Count > 0)
                     {
                         foreach (var claimAction in claimActions)
                         {
@@ -892,18 +892,13 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
     internal static Action<OpenIdConnectOptions> GetOidcClaimActionConfigure(ClaimAction action)
     {
-        Action<OpenIdConnectOptions> configureAction = (action.SubKey is null, action.IsUnique)
-            switch
-            {
-                (true, true) => options =>
-                    options.ClaimActions.MapUniqueJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+        Action<OpenIdConnectOptions> configureAction = (action.SubKey is null, action.IsUnique) switch
+        {
+            (true, true) => options => options.ClaimActions.MapUniqueJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (true, _) => options => options.ClaimActions.MapJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (false, _) => options => options.ClaimActions.MapJsonSubKey(action.ClaimType, action.JsonKey, action.SubKey!, action.ValueType ?? ClaimValueTypes.String)
+        };
 
-                (true, _) => options =>
-                    options.ClaimActions.MapJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
-
-                (false, _) => options =>
-                    options.ClaimActions.MapJsonSubKey(action.ClaimType, action.JsonKey, action.SubKey!, action.ValueType ?? ClaimValueTypes.String)
-            };
         return configureAction;
     }
 
