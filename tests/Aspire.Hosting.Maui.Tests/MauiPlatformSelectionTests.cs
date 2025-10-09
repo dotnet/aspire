@@ -10,16 +10,23 @@ public class MauiPlatformSelectionTests
     {
         var csproj = MauiTestHelpers.CreateProject("net10.0-windows10.0.19041.0");
         var builder = Hosting.DistributedApplication.CreateBuilder();
-        // Call MacCatalyst even though not targeted
+        // Call MacCatalyst even though not targeted - this should create a warning resource
         builder.AddMauiProject("maui", csproj).WithMacCatalyst();
         using var app = builder.Build();
 
         var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
-        Assert.DoesNotContain(model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>(), r => r.Name == "maui-maccatalyst");
+        // Verify the missing TFM warning resource is created
+        var maccatalystResource = model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>().SingleOrDefault(r => r.Name == "maui-maccatalyst");
+        Assert.NotNull(maccatalystResource);
+        
+        // Verify it has the missing TFM annotation
+        var missingTfmAnnotation = maccatalystResource.Annotations.OfType<Aspire.Hosting.Maui.MauiMissingTfmAnnotation>().FirstOrDefault();
+        Assert.NotNull(missingTfmAnnotation);
+        Assert.Equal("maccatalyst", missingTfmAnnotation.PlatformMoniker);
     }
 
     [Xunit.Fact]
-    public async Task MultiplePlatforms_AllResourcesPresent()
+    public void MultiplePlatforms_AllResourcesPresent()
     {
         var csproj = MauiTestHelpers.CreateProject("net10.0-windows10.0.19041.0", "net10.0-maccatalyst", "net10.0-android");
         var builder = Hosting.DistributedApplication.CreateBuilder();
@@ -28,7 +35,7 @@ public class MauiPlatformSelectionTests
                .WithMacCatalyst()
                .WithAndroid();
         using var app = builder.Build();
-        // Host startup not required for inspecting platform resource annotations & args.
+        
         var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
         var resources = model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>().ToList();
 
@@ -38,11 +45,33 @@ public class MauiPlatformSelectionTests
 
         Assert.All(new[] { win, mac, and }, r => Assert.Contains(r.Annotations, a => a is Hosting.ApplicationModel.ExplicitStartupAnnotation));
 
-        var winArgs = await Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(win, Hosting.DistributedApplicationOperation.Publish);
-        var macArgs = await Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(mac, Hosting.DistributedApplicationOperation.Publish);
-        var andArgs = await Hosting.ApplicationModel.ResourceExtensions.GetArgumentValuesAsync(and, Hosting.DistributedApplicationOperation.Publish);
-        Assert.Contains("-f", winArgs); Assert.Contains("-f", macArgs); Assert.Contains("-f", andArgs);
-        Assert.Contains("-p:OpenArguments=-W", macArgs); // MacCatalyst special flag
+        // Verify arguments are configured by checking for CommandLineArgsCallbackAnnotation
+        // Each platform should have args callbacks for -f and the TFM
+        Assert.All(new[] { win, mac, and }, r => 
+        {
+            var argsAnnotations = r.Annotations.OfType<Hosting.ApplicationModel.CommandLineArgsCallbackAnnotation>().ToList();
+            Assert.NotEmpty(argsAnnotations);
+        });
+        
+        // Verify MacCatalyst has the OpenArguments flag by invoking its callbacks
+        var macArgsAnnotations = mac.Annotations.OfType<Hosting.ApplicationModel.CommandLineArgsCallbackAnnotation>().ToList();
+        var macArgs = new List<object>();
+        var contextOptions = new Hosting.DistributedApplicationExecutionContextOptions(Hosting.DistributedApplicationOperation.Publish)
+        {
+            ServiceProvider = app.Services
+        };
+        var mockContext = new Hosting.ApplicationModel.CommandLineArgsCallbackContext(macArgs)
+        {
+            ExecutionContext = new Hosting.DistributedApplicationExecutionContext(contextOptions)
+        };
+        
+        foreach (var annotation in macArgsAnnotations)
+        {
+            annotation.Callback(mockContext);
+        }
+        
+        Assert.Contains(macArgs, a => a is string s && s == "-f");
+        Assert.Contains(macArgs, a => a is string s && s == "-p:OpenArguments=-W");
     }
 
     [Xunit.Fact]

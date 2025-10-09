@@ -288,7 +288,9 @@ public sealed class MauiProjectBuilder
         var tfm = _availableTfms.FirstOrDefault(t => t.Contains('-') && t.Split('-')[1].StartsWith(platformMoniker, StringComparison.OrdinalIgnoreCase));
         if (tfm is null)
         {
-            return; // Platform not targeted by project
+            // Platform was requested but project doesn't target this TFM - create a warning resource
+            ConfigureMissingTfmPlatform(platformMoniker, platformConfig);
+            return;
         }
 
         var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
@@ -582,6 +584,65 @@ public sealed class MauiProjectBuilder
 
             return Task.CompletedTask;
         });
+    }
+
+    /// <summary>
+    /// Configures a platform that was requested but doesn't have a matching TFM in the project.
+    /// Creates a warning resource in the dashboard to inform the developer.
+    /// </summary>
+    private void ConfigureMissingTfmPlatform(string platformMoniker, MauiPlatformConfiguration platformConfig)
+    {
+        var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
+
+        // Create a placeholder project resource to show in the dashboard
+        var builder = _appBuilder.AddProject(resourceName, _projectPath)
+            .WithExplicitStart()
+            .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
+
+        // Add platform-specific icon for dashboard visualization
+        builder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
+
+        // Track that this platform is missing the required TFM
+        var warningMessage = $"Project does not target {platformMoniker}. Add 'net10.0-{platformMoniker}' to TargetFrameworks in the project file.";
+        builder.WithAnnotation(new MauiMissingTfmAnnotation(platformMoniker, warningMessage));
+
+        // Publish the warning state after resources are created
+        // Note: Dashboard expects "warning" (not "warn" from KnownResourceStateStyles.Warn) for the warning icon to display.
+        var resource = builder.Resource;
+        _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+        {
+            var notificationService = evt.Services.GetService<ResourceNotificationService>();
+            var loggerService = evt.Services.GetService<ResourceLoggerService>();
+            
+            if (notificationService is not null)
+            {
+                _ = notificationService.PublishUpdateAsync(resource, s => s with
+                {
+                    State = new ResourceStateSnapshot("Missing TFM", "warning")
+                });
+            }
+
+            // Also log a warning to help developers discover the issue
+            if (loggerService is not null)
+            {
+                var logger = loggerService.GetLogger(resource);
+                logger?.LogWarning("Platform '{Platform}' was requested but the project '{ProjectPath}' does not include 'net10.0-{Platform}' in its TargetFrameworks. Add it to the project file to enable this platform.", 
+                    platformMoniker, _projectPath, platformMoniker);
+            }
+
+            return Task.CompletedTask;
+        });
+
+        // Prevent this platform from being started
+        builder.OnBeforeResourceStarted(async (res, evt, ct) =>
+        {
+            var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
+            var logger = loggerService?.GetLogger(res);
+
+            logger?.LogWarning("Cannot start platform '{Platform}' because it is not included in the project's TargetFrameworks.", platformMoniker);
+        });
+
+        _platformResources.Add(builder);
     }
 
     /// <summary>
