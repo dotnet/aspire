@@ -98,6 +98,58 @@ internal static class InteractionCommands
 
                return CommandResults.Success();
            })
+           .WithCommand("choice-no-placeholder", "Choice with no placeholder", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+               var dinnerInput = new InteractionInput
+               {
+                   Name = "Dinner",
+                   InputType = InputType.Choice,
+                   Label = "Dinner",
+                   Required = true,
+                   Options =
+                   [
+                       KeyValuePair.Create("pizza", "Pizza"),
+                       KeyValuePair.Create("fried-chicken", "Fried chicken"),
+                       KeyValuePair.Create("burger", "Burger")
+                   ]
+               };
+               var requirementsInput = new InteractionInput
+               {
+                   Name = "Requirements",
+                   InputType = InputType.Choice,
+                   Label = "Requirements",
+                   AllowCustomChoice = true,
+                   Options =
+                   [
+                       KeyValuePair.Create("vegetarian", "Vegetarian"),
+                       KeyValuePair.Create("vegan", "Vegan")
+                   ]
+               };
+               var result = await interactionService.PromptInputsAsync(
+                   title: "Text request",
+                   message: "Provide your name",
+                   inputs: [
+                       dinnerInput,
+                       requirementsInput
+                   ],
+                   cancellationToken: commandContext.CancellationToken);
+
+               if (result.Canceled)
+               {
+                   return CommandResults.Failure("Canceled");
+               }
+
+               var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+               var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+               foreach (var updatedInput in result.Data)
+               {
+                   logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+               }
+
+               return CommandResults.Success();
+           })
            .WithCommand("input-interaction", "Input interactions", executeCommand: async commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();

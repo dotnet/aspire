@@ -27,6 +27,13 @@ public sealed class InputViewModel
 
             SelectOptions.Clear();
             SelectOptions.AddRange(optionsVM);
+
+            // If no placeholder is set and value is empty, default to the first option
+            // Only default when AllowCustomChoice is false to ensure strict selection from options
+            if (string.IsNullOrEmpty(input.Placeholder) && string.IsNullOrEmpty(input.Value) && optionsVM.Count > 0 && !input.AllowCustomChoice)
+            {
+                input.Value = optionsVM[0].Id;
+            }
         }
     }
 
