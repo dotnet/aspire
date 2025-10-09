@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,9 +17,6 @@
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Aspire.Cli.SourceGen\Aspire.Cli.SourceGen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-  </ItemGroup>
 
   <!-- Set the nuget properties when building as a global tool. -->
   <PropertyGroup Condition="'$(IsCliToolProject)' == 'true'">
@@ -46,15 +43,13 @@
     <Compile Remove="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
     <Compile Remove="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
     <Compile Remove="Rosetta\Shared\RemoteAppHost\Program.cs" />
-    <None Include="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
-    <None Include="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
-    <None Include="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
-    <None Include="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
-    <None Include="Rosetta\Shared\RemoteAppHost\Program.cs" />
-    <None Include="Rosetta\Shared\python\remote_app_host_client.py" />
-    <None Include="Rosetta\Shared\typescript\package.json" />
-    <None Include="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
-    <None Include="Rosetta\Shared\typescript\types.ts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Rosetta\Shared\python\remote_app_host_client.py" />
+    <None Remove="Rosetta\Shared\typescript\package.json" />
+    <None Remove="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
+    <None Remove="Rosetta\Shared\typescript\types.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,17 +74,19 @@
     <Compile Include="$(SharedDir)PackageUpdateHelpers.cs" Link="Utils\PackageUpdateHelpers.cs" />
   </ItemGroup>
 
-  <!-- Additional files consumed by FileEmbedderGenerator -->
   <ItemGroup>
-    <AdditionalFiles Include="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
-    <AdditionalFiles Include="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
-    <AdditionalFiles Include="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
-    <AdditionalFiles Include="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
-    <AdditionalFiles Include="Rosetta\Shared\RemoteAppHost\Program.cs" />
-    <AdditionalFiles Include="Rosetta\Shared\python\remote_app_host_client.py" />
-    <AdditionalFiles Include="Rosetta\Shared\typescript\package.json" />
-    <AdditionalFiles Include="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
-    <AdditionalFiles Include="Rosetta\Shared\typescript\types.ts" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionModels.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\InstructionProcessor.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\JsonRpcServer.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\OrphanDetector.cs" />
+    <EmbeddedResource Include="Rosetta\Shared\RemoteAppHost\Program.cs" />
+
+    <EmbeddedResource Include="Rosetta\Shared\python\remote_app_host_client.py" />
+
+    <EmbeddedResource Include="Rosetta\Shared\typescript\package.json" />
+
+    <EmbeddedResource Include="Rosetta\Shared\typescript\RemoteAppHostClient.ts" />
+    <EmbeddedResource Include="Rosetta\Shared\typescript\types.ts" />
   </ItemGroup>
 
   <ItemGroup>
@@ -239,5 +236,4 @@
       <LastGenOutput>DeployCommandStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
 </Project>

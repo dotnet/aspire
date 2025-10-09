@@ -44,7 +44,6 @@
     <Project Path="src/Components/Aspire.StackExchange.Redis/Aspire.StackExchange.Redis.csproj" />
   </Folder>
   <Folder Name="/Hosting/">
-    <Project Path="src/Aspire.Cli.SourceGen/Aspire.Cli.SourceGen.csproj" />
     <Project Path="src/Aspire.Cli/Aspire.Cli.csproj" />
     <Project Path="src/Aspire.Dashboard/Aspire.Dashboard.csproj" />
     <Project Path="src/Aspire.Hosting.Analyzers/Aspire.Hosting.Analyzers.csproj" />

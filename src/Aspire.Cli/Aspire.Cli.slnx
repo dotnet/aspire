@@ -5,6 +5,5 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="../../tests/Aspire.Cli.Tests/Aspire.Cli.Tests.csproj" />
-  <Project Path="../Aspire.Cli.SourceGen/Aspire.Cli.SourceGen.csproj" />
   <Project Path="Aspire.Cli.csproj" />
 </Solution>
