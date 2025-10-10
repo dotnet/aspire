@@ -480,6 +480,9 @@ public interface IDistributedApplicationTestingBuilder : IDistributedApplication
     /// <inheritdoc cref="IDistributedApplicationBuilder.Eventing" />
     new IDistributedApplicationEventing Eventing => ((IDistributedApplicationBuilder)this).Eventing;
 
+    /// <inheritdoc cref="IDistributedApplicationBuilder.Pipeline" />
+    new IDistributedApplicationPipeline Pipeline => ((IDistributedApplicationBuilder)this).Pipeline;
+
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
     new IResourceCollection Resources => ((IDistributedApplicationBuilder)this).Resources;
 
