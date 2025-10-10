@@ -142,7 +142,7 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_SkipsServicesWithoutImage()
+    public void AddDockerComposeFile_ImportsServicesWithBuildConfiguration()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -170,14 +170,19 @@ services:
             
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
-            // Verify that only cache service was created (app has build, no image)
+            // Verify that both services were created
             var cacheResource = appModel.Resources.OfType<ContainerResource>()
                 .FirstOrDefault(r => r.Name == "cache");
             Assert.NotNull(cacheResource);
             
+            // app service should now be imported via AddDockerfile since it has build configuration
             var appResource = appModel.Resources.OfType<ContainerResource>()
                 .FirstOrDefault(r => r.Name == "app");
-            Assert.Null(appResource);
+            Assert.NotNull(appResource);
+            
+            // Verify app has build annotation
+            var buildAnnotation = appResource.Annotations.OfType<DockerfileBuildAnnotation>().FirstOrDefault();
+            Assert.NotNull(buildAnnotation);
         }
         finally
         {
@@ -285,6 +290,69 @@ services:
         // Verify postgres has volumes
         var postgresVolumes = postgresResource.Annotations.OfType<ContainerMountAnnotation>();
         Assert.NotEmpty(postgresVolumes);
+    }
+
+    [Fact]
+    public void AddDockerComposeFile_SupportsServicesWithBuildConfiguration()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  webapp:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+      target: production
+      args:
+        NODE_ENV: production
+        API_URL: https://api.example.com
+    ports:
+      - ""3000:3000""
+    environment:
+      PORT: ""3000""
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify webapp service was imported with build configuration
+            var webappResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "webapp");
+            Assert.NotNull(webappResource);
+            
+            // Verify it has a Dockerfile build annotation
+            var buildAnnotation = webappResource.Annotations.OfType<DockerfileBuildAnnotation>().FirstOrDefault();
+            Assert.NotNull(buildAnnotation);
+            // Context path will be made absolute by AddDockerfile, so just check it ends with "app"
+            Assert.EndsWith("app", buildAnnotation.ContextPath.Replace('\\', '/'));
+            // Dockerfile path is also made absolute
+            Assert.EndsWith("Dockerfile", buildAnnotation.DockerfilePath?.Replace('\\', '/'));
+            Assert.Equal("production", buildAnnotation.Stage);
+            
+            // Verify build args are added as environment variables
+            var envAnnotations = webappResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+            Assert.NotEmpty(envAnnotations);
+            
+            // Verify the endpoint was created
+            var endpoints = webappResource.Annotations.OfType<EndpointAnnotation>();
+            Assert.NotEmpty(endpoints);
+            var endpoint = endpoints.First();
+            Assert.Equal(3000, endpoint.Port);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
     }
 
 }

@@ -122,33 +122,57 @@ public static class DockerComposeFileResourceBuilderExtensions
 
     private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, List<string> warnings)
     {
-        if (string.IsNullOrWhiteSpace(service.Image))
+        IResourceBuilder<ContainerResource> containerBuilder;
+
+        // Check if service has a build configuration
+        if (service.Build is not null)
         {
-            // Skip services without an image - these likely have build configurations which aren't supported
-            // Don't add a warning for this as it's expected behavior
+            // Use AddDockerfile for services with build configurations
+            var contextPath = service.Build.Context ?? ".";
+            var dockerfilePath = service.Build.Dockerfile;
+            var stage = service.Build.Target;
+
+            containerBuilder = builder.AddDockerfile(serviceName, contextPath, dockerfilePath, stage)
+                .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
+            
+            // Add build args as environment variables if present
+            if (service.Build.Args is not null && service.Build.Args.Count > 0)
+            {
+                foreach (var (key, value) in service.Build.Args)
+                {
+                    containerBuilder.WithEnvironment(key, value);
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(service.Image))
+        {
+            // Use AddContainer for services with pre-built images
+            // Parse image using ContainerReferenceParser
+            ContainerReference containerRef;
+            try
+            {
+                containerRef = ContainerReferenceParser.Parse(service.Image);
+            }
+            catch (Exception ex)
+            {
+                warnings.Add($"Failed to parse image reference '{service.Image}' for service '{serviceName}': {ex.Message}");
+                return;
+            }
+
+            var imageName = containerRef.Registry is null 
+                ? containerRef.Image 
+                : $"{containerRef.Registry}/{containerRef.Image}";
+            var imageTag = containerRef.Tag ?? "latest";
+
+            containerBuilder = builder.AddContainer(serviceName, imageName, imageTag)
+                .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
+        }
+        else
+        {
+            // Skip services without an image or build configuration
+            warnings.Add($"Service '{serviceName}' has neither image nor build configuration. Skipping.");
             return;
         }
-
-        // Parse image using ContainerReferenceParser
-        ContainerReference containerRef;
-        try
-        {
-            containerRef = ContainerReferenceParser.Parse(service.Image);
-        }
-        catch (Exception ex)
-        {
-            warnings.Add($"Failed to parse image reference '{service.Image}' for service '{serviceName}': {ex.Message}");
-            return;
-        }
-
-        var imageName = containerRef.Registry is null 
-            ? containerRef.Image 
-            : $"{containerRef.Registry}/{containerRef.Image}";
-        var imageTag = containerRef.Tag ?? "latest";
-
-        // Create container resource and mark it as a child of the compose file resource
-        var containerBuilder = builder.AddContainer(serviceName, imageName, imageTag)
-            .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
 
         // Import environment variables
         if (service.Environment is not null && service.Environment.Count > 0)
