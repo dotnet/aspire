@@ -579,4 +579,25 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         Assert.Equal("builder", exception.ParamName);
     }
+
+    [Fact]
+    public void WithUvEnvironment_IsIdempotent()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        // Call WithUvEnvironment twice
+        var pythonBuilder = builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithUvEnvironment()
+            .WithUvEnvironment();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify that only one UV environment resource was created
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+        Assert.Equal("pythonProject-uv-environment", uvEnvironmentResource.Name);
+    }
 }
