@@ -2,9 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Threading.Channels;
+using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Tests;
 
@@ -193,7 +195,11 @@ public class InteractionServiceTests
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
         Assert.Equal(Interaction.InteractionState.InProgress, interaction.State);
 
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", string.Empty, InputType.Text)]);
 
         // The interaction should still be in progress due to validation error
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
@@ -213,7 +219,11 @@ public class InteractionServiceTests
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", string.Empty, InputType.Text)]);
 
         // The interaction should still be in progress due to invalid data
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
@@ -232,8 +242,11 @@ public class InteractionServiceTests
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        input.Value = "not-in-options";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", "not-in-options", InputType.Choice)]);
 
         // The interaction should still be in progress due to invalid data
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
@@ -252,8 +265,11 @@ public class InteractionServiceTests
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        input.Value = "not-in-options";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", "not-in-options", InputType.Choice)]);
 
         var result = await resultTask.DefaultTimeout();
         Assert.False(result.Canceled);
@@ -270,8 +286,11 @@ public class InteractionServiceTests
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        input.Value = "one";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", "one", InputType.Number)]);
 
         // The interaction should still be in progress due to invalid data
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
@@ -290,8 +309,11 @@ public class InteractionServiceTests
 
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        input.Value = "maybe";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = new[] { input } },
+            inputs: [new InputDto("Value", "maybe", InputType.Number)]);
 
         // The interaction should still be in progress due to invalid data
         Assert.False(interaction.CompletionTcs.Task.IsCompleted);
@@ -321,8 +343,12 @@ public class InteractionServiceTests
             var interaction = Assert.Single(interactionService.GetCurrentInteractions());
             var resolvedMaxLength = InteractionHelpers.GetMaxLength(maxLength);
 
-            input.Value = new string('!', success ? resolvedMaxLength : resolvedMaxLength + 1);
-            await CompleteInteractionAsync(interactionService, interaction.InteractionId, new InteractionCompletionState { Complete = true, State = new[] { input } });
+            var newValue = new string('!', success ? resolvedMaxLength : resolvedMaxLength + 1);
+            await CompleteInteractionAsync(
+                interactionService,
+                interaction.InteractionId,
+                new InteractionCompletionState { Complete = true, State = new[] { input } },
+                inputs: [new InputDto("Value", newValue, InputType.Text)]);
 
             if (!success)
             {
@@ -654,10 +680,14 @@ public class InteractionServiceTests
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
         // Set values and complete
-        inputs[0].Value = "testuser";
-        inputs[1].Value = "testpass";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId,
-            new InteractionCompletionState { Complete = true, State = inputs });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = inputs },
+            inputs: [
+                new InputDto("Username", "testuser", InputType.Text),
+                new InputDto("Password", "testpass", InputType.SecretText)
+            ]);
 
         var result = await resultTask.DefaultTimeout();
 
@@ -675,6 +705,125 @@ public class InteractionServiceTests
         // Should also be accessible by index for backward compatibility
         Assert.Equal("testuser", resultCollection[0].Value);
         Assert.Equal("testpass", resultCollection[1].Value);
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_WithDynamicInput_NotDependant_LoadOnPrompt()
+    {
+        // Arrange
+        var updateTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var interactionService = CreateInteractionService();
+        var subscription = interactionService.SubscribeInteractionUpdates();
+        var updates = Channel.CreateUnbounded<Interaction>();
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var interaction in subscription.WithCancellation(CancellationToken.None))
+            {
+                await updates.Writer.WriteAsync(interaction);
+            }
+        });
+
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput
+            {
+                Name = "Dynamic",
+                InputType = InputType.Choice,
+                DynamicOptions = new DynamicInputOptions
+                {
+                    UpdateInputCallback = async c =>
+                    {
+                        await updateTcs.Task;
+                        c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
+                    }
+                }
+            }
+        };
+
+        // Act
+        var resultTask = interactionService.PromptInputsAsync("Login", "Please enter credentials", inputs);
+
+        // Set values and complete
+        var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
+        var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
+
+        // Assert
+        updateTcs.SetResult();
+
+        interaction = await updates.Reader.ReadAsync().DefaultTimeout();
+        inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
+    }
+
+    [Fact]
+    public async Task PromptInputsAsync_WithDynamicInput_Dependant_LoadOnDependantChange()
+    {
+        // Arrange
+        var updateTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var interactionService = CreateInteractionService();
+        var subscription = interactionService.SubscribeInteractionUpdates();
+        var updates = Channel.CreateUnbounded<Interaction>();
+        var readTask = Task.Run(async () =>
+        {
+            await foreach (var interaction in subscription.WithCancellation(CancellationToken.None))
+            {
+                await updates.Writer.WriteAsync(interaction);
+            }
+        });
+
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput { Name = "Username", Label = "Username", InputType = InputType.Text },
+            new InteractionInput
+            {
+                Name = "Dynamic",
+                InputType = InputType.Choice,
+                DynamicOptions = new DynamicInputOptions
+                {
+                    UpdateInputCallback = async c =>
+                    {
+                        await updateTcs.Task;
+                        c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
+                    },
+                    DependsOnInputs = ["Username"]
+                }
+            }
+        };
+
+        // Act
+        var resultTask = interactionService.PromptInputsAsync("Login", "Please enter credentials", inputs);
+
+        // Set values and complete
+        var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
+        var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
+
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = false, State = inputsInteractionInfo.Inputs },
+            inputs: [new InputDto("Username", "testuser", InputType.Text)]).DefaultTimeout();
+
+        // Assert
+        interaction = await updates.Reader.ReadAsync().DefaultTimeout();
+        inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+
+        updateTcs.SetResult();
+
+        interaction = await updates.Reader.ReadAsync().DefaultTimeout();
+        inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
+
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
     [Fact]
@@ -713,10 +862,14 @@ public class InteractionServiceTests
         var resultTask = interactionService.PromptInputsAsync("Validation Test", "Test validation", inputs, options);
         var interaction = Assert.Single(interactionService.GetCurrentInteractions());
 
-        inputs[0].Value = "test@example.com";
-        inputs[1].Value = "25";
-        await CompleteInteractionAsync(interactionService, interaction.InteractionId,
-            new InteractionCompletionState { Complete = true, State = inputs });
+        await CompleteInteractionAsync(
+            interactionService,
+            interaction.InteractionId,
+            new InteractionCompletionState { Complete = true, State = inputs },
+            inputs: [
+                new InputDto("Email", "test@example.com", InputType.Text),
+                new InputDto("Age", "25", InputType.Number)
+            ]);
 
         var result = await resultTask.DefaultTimeout();
 
@@ -791,9 +944,30 @@ public class InteractionServiceTests
         Assert.NotNull(ex);
     }
 
-    private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state)
+    private static async Task CompleteInteractionAsync(InteractionService interactionService, int interactionId, InteractionCompletionState state, List<DashboardServiceData.InputDto>? inputs = null)
     {
-        await interactionService.ProcessInteractionFromClientAsync(interactionId, (_, _, _) => state, CancellationToken.None);
+        await interactionService.ProcessInteractionFromClientAsync(
+            interactionId,
+            (interaction, serviceProvider, logger) =>
+            {
+                if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
+                {
+                    if (inputs == null)
+                    {
+                        throw new InvalidOperationException("Inputs should be specified when completing input interaction");
+                    }
+
+                    DashboardServiceData.ProcessInputs(
+                        serviceProvider,
+                        logger,
+                        inputsInfo,
+                        inputs,
+                        !state.Complete,
+                        interaction.CancellationToken);
+                }
+                return state;
+            },
+            CancellationToken.None);
     }
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)

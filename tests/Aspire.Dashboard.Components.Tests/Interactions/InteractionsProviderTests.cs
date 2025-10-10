@@ -288,7 +288,7 @@ public partial class InteractionsProviderTests : DashboardTestContext
         Assert.NotNull(dialogParameters);
         Assert.NotNull(vm);
 
-        await vm.OnSubmitCallback(response).DefaultTimeout();
+        await vm.OnSubmitCallback(response, false).DefaultTimeout();
 
         var update = await sendInteractionUpdatesChannel.Reader.ReadAsync();
 

@@ -145,28 +145,31 @@ internal class InteractionService : IInteractionService
             {
                 if (input.DynamicOptions is { } dynamicOptions)
                 {
-                    input.DynamicState = new DynamicInputState(dynamicOptions);
-
-                    input.DynamicState.OnDataRefresh = (input) =>
+                    var dynamicState = new DynamicInputState(dynamicOptions)
                     {
-                        // Options or value on a choice could have changed. Ensure the value is still valid.
-                        if (input.InputType == InputType.Choice)
+                        OnDataRefresh = (input) =>
                         {
-                            // Check that the previously specified value is in the new options.
-                            // If the value isn't in the new options then clear it.
-                            // Don't clear the value if a custom choice is allowed.
-                            if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
+                            // Options or value on a choice could have changed. Ensure the value is still valid.
+                            if (input.InputType == InputType.Choice)
                             {
-                                if (input.Options == null || !input.Options.Any(o => o.Key == input.Value))
+                                // Check that the previously specified value is in the new options.
+                                // If the value isn't in the new options then clear it.
+                                // Don't clear the value if a custom choice is allowed.
+                                if (!input.AllowCustomChoice && !string.IsNullOrEmpty(input.Value))
                                 {
-                                    input.Value = null;
+                                    if (input.Options == null || !input.Options.Any(o => o.Key == input.Value))
+                                    {
+                                        input.Value = null;
+                                    }
                                 }
                             }
-                        }
 
-                        // Notify the UI that the interaction has been updated.
-                        UpdateInteraction(newState);
+                            // Notify the UI that the interaction has been updated.
+                            UpdateInteraction(newState);
+                        }
                     };
+
+                    input.DynamicState = dynamicState;
 
                     // Refresh input on start if:
                     // -The dynamic input doesn't depend on other inputs, or

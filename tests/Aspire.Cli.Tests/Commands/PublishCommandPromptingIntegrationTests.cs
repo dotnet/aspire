@@ -827,7 +827,17 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
         _completionSource.SetResult();
     }
 
-    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse, CancellationToken cancellationToken)
+    public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: false);
+    }
+
+    public Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: true);
+    }
+
+    private Task CompletePromptResponseCoreAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse)
     {
         CompletedPrompts.Add(new PromptCompletion(promptId, answers, updateResponse));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
