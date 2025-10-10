@@ -455,21 +455,29 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.ConnectionString;
+
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
-
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
-
-            var prefix = connectionName switch
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
             {
-                null => $"{resource.Name.ToUpperInvariant()}_",
-                "" => "",
-                _ => $"{connectionName.ToUpperInvariant()}_"
+                var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+                context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            }
 
-            };
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+            {
+                var prefix = connectionName switch
+                {
+                    null => $"{resource.Name.ToUpperInvariant()}_",
+                    "" => "",
+                    _ => $"{connectionName.ToUpperInvariant()}_"
+                };
 
-            SplatConnectionProperties(resource, prefix, context);
+                SplatConnectionProperties(resource, prefix, context);
+            }
         });
     }
 

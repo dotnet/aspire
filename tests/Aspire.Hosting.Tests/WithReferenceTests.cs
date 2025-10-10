@@ -269,15 +269,21 @@ public class WithReferenceTests
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "123");
     }
 
-    [Fact]
-    public async Task ConnectionStringResourceWithExpressionConnectionString()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ConnectionStringResourceWithExpressionConnectionString(bool useFormat)
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
         var endpoint = builder.AddParameter("endpoint", "http://localhost:3452");
         var key = builder.AddParameter("key", "secretKey", secret: true);
 
-        var cs = ReferenceExpression.Create($"Endpoint={endpoint};Key={key}");
+        // Ensure that parameters wrapped in IValueEncoder are added in ResourceRelationshipAnnotation.
+        var cs = useFormat
+            ? ReferenceExpression.Create($"Endpoint={endpoint};Key={key:uri}")
+            : ReferenceExpression.Create($"Endpoint={endpoint};Key={key}")
+            ;
 
         // Get the service provider.
         var resource = builder.AddConnectionString("cs", cs);
@@ -401,6 +407,173 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore__default__0" && kvp.Value == "https://petstore.swagger.io/");
+    }
+
+    [Fact]
+    public async Task ProjectResourceWithReferenceGetsConnectionStringAndProperties()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are present (from the annotation - ProjectResource has All flag)
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT" && kvp.Value == "5432");
+    }
+
+    [Fact]
+    public async Task ExecutableResourceWithReferenceGetsConnectionStringAndProperties()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var executable = builder.AddExecutable("myexe", "cmd", ".", args: [])
+                                .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are present (from the annotation - ExecutableResource has All flag)
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT" && kvp.Value == "5432");
+    }
+
+    [Fact]
+    public async Task ContainerResourceWithReferenceGetsOnlyConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are NOT present (no annotation - defaults to connection string only)
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_HOST");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_PORT");
+    }
+
+    [Fact]
+    public async Task ResourceWithCustomAnnotationRespectsFlags()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        // Create a container and explicitly add the annotation for properties only
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+                               .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(container.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is NOT present
+        Assert.DoesNotContain(config, kvp => kvp.Key == "ConnectionStrings__resource");
+
+        // Verify connection properties ARE present
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT" && kvp.Value == "5432");
+    }
+
+    [Fact]
+    public async Task ResourceWithCustomAnnotationOverridesDefault()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        // Create a project resource and add a custom annotation that differs from the default
+        // ProjectResource defaults to ReferenceEnvironmentInjectionFlags.All
+        // Here we override it to only inject ConnectionString (not ConnectionProperties)
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.ConnectionString))
+                              .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present (included in ConnectionString flag)
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are NOT present (excluded by our custom annotation)
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_HOST");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_PORT");
+    }
+
+    [Fact]
+    public async Task ConnectionStringResourceWithConnectionPropertiesOverwriteName()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var projectB = builder.AddProject<ProjectB>("projectb")
+                              .WithReference(resource, connectionName: "bob");
+
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__bob" && kvp.Value == "Server=localhost;Database=mydb");
+        Assert.Contains(config, kvp => kvp.Key == "BOB_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "BOB_PORT" && kvp.Value == "5432");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_HOST");
+        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_PORT");
+    }
+
+    private sealed class TestResourceWithProperties(string name) : Resource(name), IResourceWithConnectionString
+    {
+        public string? ConnectionString { get; set; }
+
+        public ReferenceExpression ConnectionStringExpression =>
+            ReferenceExpression.Create($"{ConnectionString}");
+
+        public IEnumerable<KeyValuePair<string, ReferenceExpression>> GetConnectionProperties()
+        {
+            yield return new KeyValuePair<string, ReferenceExpression>("Host", ReferenceExpression.Create($"localhost"));
+            yield return new KeyValuePair<string, ReferenceExpression>("Port", ReferenceExpression.Create($"5432"));
+        }
     }
 
     private sealed class TestResource(string name) : Resource(name), IResourceWithConnectionString

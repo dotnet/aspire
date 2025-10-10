@@ -3,14 +3,14 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal interface IEncoderProvider : IValueProvider, IManifestExpressionProvider
+internal interface IEncoderProvider : IValueWithReferences, IValueProvider, IManifestExpressionProvider
 {
 }
 
 internal class UrlEncoderProvider<T> : IEncoderProvider where T : IValueProvider, IManifestExpressionProvider
 {
     private readonly T _valueProvider;
-    
+
     public UrlEncoderProvider(T valueProvider)
     {
         _valueProvider = valueProvider;
@@ -22,8 +22,8 @@ internal class UrlEncoderProvider<T> : IEncoderProvider where T : IValueProvider
         {
             var expression = _valueProvider.ValueExpression;
 
-            if (expression.StartsWith("{", StringComparison.Ordinal) &&
-                expression.EndsWith("}", StringComparison.Ordinal))
+            if (expression.StartsWith('{') &&
+                expression.EndsWith('}'))
             {
                 return $"{{{expression[1..^1]}:uri}}";
             }
@@ -45,18 +45,23 @@ internal class UrlEncoderProvider<T> : IEncoderProvider where T : IValueProvider
 
         return Uri.EscapeDataString(value);
     }
-}
 
-internal class NullEncoderProvider<T> : IEncoderProvider where T : IValueProvider, IManifestExpressionProvider
-{
-    private readonly T _valueProvider;
-    
-    public NullEncoderProvider(T valueProvider)
+    IEnumerable<object> IValueWithReferences.References
     {
-        _valueProvider = valueProvider;
+        get
+        {
+            if (_valueProvider is IResource)
+            {
+                yield return _valueProvider;
+            }
+
+            if (_valueProvider is IValueWithReferences valueWithReferences)
+            {
+                foreach (var reference in valueWithReferences.References)
+                {
+                    yield return reference;
+                }
+            }
+        }
     }
-    public string ValueExpression => _valueProvider.ValueExpression;
-    /// <inheritdoc/>
-    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) =>
-        _valueProvider.GetValueAsync(cancellationToken);
 }

@@ -152,15 +152,22 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
-            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            switch (format?.ToLowerInvariant())
             {
-                "uri" => new UrlEncoderProvider<T>(valueProvider),
-                null => new NullEncoderProvider<T>(valueProvider),
-                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-            };
+                case "uri":
+                    var encoder = new UrlEncoderProvider<T>(valueProvider);
+                    _valueProviders.Add(encoder);
+                    _manifestExpressions.Add(encoder.ValueExpression);
+                    break;
 
-            _valueProviders.Add(encoder);
-            _manifestExpressions.Add(encoder.ValueExpression);
+                case null:
+                    _valueProviders.Add(valueProvider);
+                    _manifestExpressions.Add(valueProvider.ValueExpression);
+                    break;
+
+                default:
+                    throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI).");
+            }
         }
 
         /// <summary>
@@ -175,15 +182,22 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
-            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            switch (format?.ToLowerInvariant())
             {
-                "uri" => new UrlEncoderProvider<T>(valueProvider.Resource),
-                null => new NullEncoderProvider<T>(valueProvider.Resource),
-                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-            };
+                case "uri":
+                    var encoder = new UrlEncoderProvider<T>(valueProvider.Resource);
+                    _valueProviders.Add(encoder);
+                    _manifestExpressions.Add(encoder.ValueExpression);
+                    break;
 
-            _valueProviders.Add(encoder);
-            _manifestExpressions.Add(encoder.ValueExpression);
+                case null:
+                    _valueProviders.Add(valueProvider.Resource);
+                    _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
+                    break;
+
+                default:
+                    throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI).");
+            }
         }
 
         internal readonly ReferenceExpression GetExpression() =>
@@ -329,14 +343,20 @@ public class ReferenceExpressionBuilder
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
         {
-            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            switch (format?.ToLowerInvariant())
             {
-                "uri" => new UrlEncoderProvider<T>(valueProvider),
-                null => new NullEncoderProvider<T>(valueProvider),
-                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-            };
+                case "uri":
+                    var encoder = new UrlEncoderProvider<T>(valueProvider);
+                    builder.AppendFormatted(encoder);
+                    break;
 
-            builder.AppendFormatted(encoder);
+                case null:
+                    builder.AppendFormatted(valueProvider);
+                    break;
+
+                default:
+                    throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI).");
+            }
         }
 
         /// <summary>
@@ -348,14 +368,20 @@ public class ReferenceExpressionBuilder
         public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
             where T : IResource, IValueProvider, IManifestExpressionProvider
         {
-            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            switch (format?.ToLowerInvariant())
             {
-                "uri" => new UrlEncoderProvider<T>(valueProvider.Resource),
-                null => new NullEncoderProvider<T>(valueProvider.Resource),
-                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-            };
+                case "uri":
+                    var encoder = new UrlEncoderProvider<T>(valueProvider.Resource);
+                    builder.AppendFormatted(encoder);
+                    break;
 
-            builder.AppendFormatted(encoder);
+                case null:
+                    builder.AppendFormatted(valueProvider.Resource);
+                    break;
+
+                default:
+                    throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI).");
+            }
         }
     }
 }
