@@ -27,6 +27,15 @@ public static class DockerComposeFileResourceBuilderExtensions
     /// Services that cannot be translated are skipped with a warning.
     /// All created resources are children of the DockerComposeFileResource.
     /// </remarks>
+    /// <example>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddDockerComposeFile("mycompose", "./docker-compose.yml");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
     public static IResourceBuilder<DockerComposeFileResource> AddDockerComposeFile(
         this IDistributedApplicationBuilder builder,
         [ResourceName] string name,

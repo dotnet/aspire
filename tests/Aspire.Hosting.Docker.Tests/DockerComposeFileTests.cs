@@ -215,4 +215,59 @@ services:
             tempDir.Delete(recursive: true);
         }
     }
+
+    [Fact]
+    public void AddDockerComposeFile_ComprehensiveExample()
+    {
+        // Use the test-docker-compose.yml file from the test directory
+        var composeFilePath = Path.Combine(Directory.GetCurrentDirectory(), "test-docker-compose.yml");
+        
+        if (!File.Exists(composeFilePath))
+        {
+            output.WriteLine($"Warning: test-docker-compose.yml not found at {composeFilePath}, skipping test");
+            return;
+        }
+
+        using var builder = TestDistributedApplicationBuilder.Create();
+        
+        builder.AddDockerComposeFile("testcompose", composeFilePath);
+        
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        
+        // Verify all three services were created
+        var webResource = appModel.Resources.OfType<ContainerResource>()
+            .FirstOrDefault(r => r.Name == "web");
+        Assert.NotNull(webResource);
+        
+        var redisResource = appModel.Resources.OfType<ContainerResource>()
+            .FirstOrDefault(r => r.Name == "redis");
+        Assert.NotNull(redisResource);
+        
+        var postgresResource = appModel.Resources.OfType<ContainerResource>()
+            .FirstOrDefault(r => r.Name == "postgres");
+        Assert.NotNull(postgresResource);
+        
+        // Verify web service has correct image
+        var webImage = webResource.Annotations.OfType<ContainerImageAnnotation>().FirstOrDefault();
+        Assert.NotNull(webImage);
+        Assert.Equal("nginx", webImage.Image);
+        Assert.Equal("alpine", webImage.Tag);
+        
+        // Verify web service has environment variables
+        var webEnv = webResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        Assert.NotEmpty(webEnv);
+        
+        // Verify web service has endpoints
+        var webEndpoints = webResource.Annotations.OfType<EndpointAnnotation>();
+        Assert.NotEmpty(webEndpoints);
+        
+        // Verify postgres has environment variables
+        var postgresEnv = postgresResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+        Assert.NotEmpty(postgresEnv);
+        
+        // Verify postgres has volumes
+        var postgresVolumes = postgresResource.Annotations.OfType<ContainerMountAnnotation>();
+        Assert.NotEmpty(postgresVolumes);
+    }
 }
