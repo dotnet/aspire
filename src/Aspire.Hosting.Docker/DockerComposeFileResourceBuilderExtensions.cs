@@ -6,7 +6,6 @@ using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -47,25 +46,20 @@ public static class DockerComposeFileResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(composeFilePath);
 
         var resource = new DockerComposeFileResource(name, composeFilePath);
-        var resourceBuilder = builder.AddResource(resource);
-
-        // Get a logger to report parsing issues without crashing the app
-        var loggerFactory = builder.Services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger("Aspire.Hosting.Docker.ComposeFileImport");
-
-        // Parse and import the compose file with error handling
-        ParseAndImportComposeFile(builder, resource, logger);
-
-        return resourceBuilder;
+        
+        return builder.AddResource(resource).OnInitializeResource(async (resource, e, ct) =>
+        {
+            ParseAndImportComposeFile(builder, resource, composeFilePath, e.Logger);
+            await Task.CompletedTask.ConfigureAwait(false);
+        });
     }
 
     private static void ParseAndImportComposeFile(
         IDistributedApplicationBuilder builder,
         DockerComposeFileResource parentResource,
+        string composeFilePath,
         ILogger logger)
     {
-        var composeFilePath = parentResource.ComposeFilePath;
-
         if (!File.Exists(composeFilePath))
         {
             logger.LogError("Docker Compose file not found: {ComposeFilePath}", composeFilePath);

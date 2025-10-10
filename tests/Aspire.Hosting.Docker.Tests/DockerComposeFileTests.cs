@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,7 +11,7 @@ namespace Aspire.Hosting.Docker.Tests;
 public class DockerComposeFileTests(ITestOutputHelper output)
 {
     [Fact]
-    public void AddDockerComposeFile_ParsesSimpleService()
+    public async Task AddDockerComposeFile_ParsesSimpleService()
     {
         // Create a temp docker-compose.yml file
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
@@ -38,8 +39,11 @@ services:
             Assert.Equal("mycompose", composeResource.Resource.Name);
             Assert.Equal(composeFilePath, composeResource.Resource.ComposeFilePath);
             
-            // Build the app
+            // Build the app and execute initialization hooks
             var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
+            await ExecuteBeforeStartHooksAsync(app, default);
+            
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
             // Verify that a redis container was created
@@ -67,7 +71,7 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_ParsesMultipleServices()
+    public async Task AddDockerComposeFile_ParsesMultipleServices()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -93,6 +97,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
             
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
@@ -117,7 +122,7 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_HandlesWhenFileNotFound()
+    public async Task AddDockerComposeFile_HandlesWhenFileNotFound()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         
@@ -126,6 +131,7 @@ services:
         Assert.NotNull(composeResource);
         
         var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
         
         // Verify the resource exists but no services were imported
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -134,7 +140,7 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_SkipsServicesWithoutImage()
+    public async Task AddDockerComposeFile_SkipsServicesWithoutImage()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -159,6 +165,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
             
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
@@ -178,7 +185,7 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_ParsesVolumeMounts()
+    public async Task AddDockerComposeFile_ParsesVolumeMounts()
     {
         var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
         output.WriteLine($"Temp directory: {tempDir.FullName}");
@@ -206,6 +213,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
             
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
@@ -224,7 +232,7 @@ services:
     }
 
     [Fact]
-    public void AddDockerComposeFile_ComprehensiveExample()
+    public async Task AddDockerComposeFile_ComprehensiveExample()
     {
         // Use the test-docker-compose.yml file from the test directory
         var composeFilePath = Path.Combine(Directory.GetCurrentDirectory(), "test-docker-compose.yml");
@@ -240,6 +248,7 @@ services:
         builder.AddDockerComposeFile("testcompose", composeFilePath);
         
         var app = builder.Build();
+            await ExecuteBeforeStartHooksAsync(app, default);
         
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
@@ -279,4 +288,6 @@ services:
         Assert.NotEmpty(postgresVolumes);
     }
 
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
 }
