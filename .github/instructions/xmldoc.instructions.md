@@ -1,6 +1,12 @@
+---
+applyTo: "src/**/*.cs"
+---
+
 # XML Documentation Standards for Aspire
 
 This document provides comprehensive guidelines for writing high-quality XML documentation comments in the Aspire repository.
+
+**Note:** This guide applies to all C# source files in the `src/` directory. API files under `src/*/api/*.cs` are auto-generated and should not be manually edited.
 
 ## Purpose
 
