@@ -457,6 +457,137 @@ public class DistributedApplicationPipelineTests
         Assert.True(dIndex < eIndex, "d should execute before e (requiredBy relationship)");
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WithMultipleDependencies_ExecutesInCorrectOrder()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep("step1", async (context) =>
+        {
+            executedSteps.Add("step1");
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step2", async (context) =>
+        {
+            executedSteps.Add("step2");
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step3", async (context) =>
+        {
+            executedSteps.Add("step3");
+            await Task.CompletedTask;
+        }, dependsOn: new[] { "step1", "step2" });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        var step1Index = executedSteps.IndexOf("step1");
+        var step2Index = executedSteps.IndexOf("step2");
+        var step3Index = executedSteps.IndexOf("step3");
+
+        Assert.True(step1Index < step3Index, "step1 should execute before step3");
+        Assert.True(step2Index < step3Index, "step2 should execute before step3");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithMultipleRequiredBy_ExecutesInCorrectOrder()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep("step1", async (context) =>
+        {
+            executedSteps.Add("step1");
+            await Task.CompletedTask;
+        }, requiredBy: new[] { "step2", "step3" });
+
+        pipeline.AddStep("step2", async (context) =>
+        {
+            executedSteps.Add("step2");
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step3", async (context) =>
+        {
+            executedSteps.Add("step3");
+            await Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        var step1Index = executedSteps.IndexOf("step1");
+        var step2Index = executedSteps.IndexOf("step2");
+        var step3Index = executedSteps.IndexOf("step3");
+
+        Assert.True(step1Index < step2Index, "step1 should execute before step2");
+        Assert.True(step1Index < step3Index, "step1 should execute before step3");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithUnknownRequiredByStep_ThrowsInvalidOperationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("step1", async (context) =>
+        {
+            await Task.CompletedTask;
+        }, requiredBy: "unknown-step");
+
+        var context = CreateDeployingContext(builder.Build());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        Assert.Contains("Step 'step1' is required by unknown step 'unknown-step'", exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithUnknownRequiredByStepInList_ThrowsInvalidOperationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("step1", async (context) =>
+        {
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step2", async (context) =>
+        {
+            await Task.CompletedTask;
+        }, requiredBy: new[] { "step1", "unknown-step" });
+
+        var context = CreateDeployingContext(builder.Build());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        Assert.Contains("Step 'step2' is required by unknown step 'unknown-step'", exception.Message);
+    }
+
+    [Fact]
+    public void AddStep_WithInvalidDependsOnType_ThrowsArgumentException()
+    {
+        var pipeline = new DistributedApplicationPipeline();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            pipeline.AddStep("step1", async (context) => await Task.CompletedTask, dependsOn: 123));
+
+        Assert.Contains("The dependsOn parameter must be a string or IEnumerable<string>", exception.Message);
+    }
+
+    [Fact]
+    public void AddStep_WithInvalidRequiredByType_ThrowsArgumentException()
+    {
+        var pipeline = new DistributedApplicationPipeline();
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            pipeline.AddStep("step1", async (context) => await Task.CompletedTask, requiredBy: 123));
+
+        Assert.Contains("The requiredBy parameter must be a string or IEnumerable<string>", exception.Message);
+    }
+
     private static DeployingContext CreateDeployingContext(DistributedApplication app)
     {
         return new DeployingContext(

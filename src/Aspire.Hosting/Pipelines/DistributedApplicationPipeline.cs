@@ -13,9 +13,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     private readonly List<PipelineStep> _steps = [];
 
     public void AddStep(string name,
-                       Func<DeployingContext, Task> action,
-                       string? dependsOn = null,
-                       string? requiredBy = null)
+        Func<DeployingContext, Task> action,
+        object? dependsOn = null,
+        object? requiredBy = null)
     {
         var step = new PipelineStep
         {
@@ -25,15 +25,57 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         if (dependsOn != null)
         {
-            step.DependsOn(dependsOn);
+            AddDependencies(step, dependsOn);
         }
 
         if (requiredBy != null)
         {
-            step.IsRequiredBy(requiredBy);
+            AddRequiredBy(step, requiredBy);
         }
 
         _steps.Add(step);
+    }
+
+    private static void AddDependencies(PipelineStep step, object dependsOn)
+    {
+        if (dependsOn is string stepName)
+        {
+            step.DependsOn(stepName);
+        }
+        else if (dependsOn is IEnumerable<string> stepNames)
+        {
+            foreach (var name in stepNames)
+            {
+                step.DependsOn(name);
+            }
+        }
+        else
+        {
+            throw new ArgumentException(
+                $"The dependsOn parameter must be a string or IEnumerable<string>, but was {dependsOn.GetType().Name}.",
+                nameof(dependsOn));
+        }
+    }
+
+    private static void AddRequiredBy(PipelineStep step, object requiredBy)
+    {
+        if (requiredBy is string stepName)
+        {
+            step.IsRequiredBy(stepName);
+        }
+        else if (requiredBy is IEnumerable<string> stepNames)
+        {
+            foreach (var name in stepNames)
+            {
+                step.IsRequiredBy(name);
+            }
+        }
+        else
+        {
+            throw new ArgumentException(
+                $"The requiredBy parameter must be a string or IEnumerable<string>, but was {requiredBy.GetType().Name}.",
+                nameof(requiredBy));
+        }
     }
 
     public void AddStep(PipelineStep step)
@@ -43,7 +85,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     public async Task ExecuteAsync(DeployingContext context)
     {
-        var allSteps = _steps.Concat(CollectAnnotatedSteps(context)).ToList();
+        var allSteps = _steps.Concat(CollectStepsFromAnnotations(context)).ToList();
 
         if (allSteps.Count == 0)
         {
@@ -63,7 +105,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private static IEnumerable<PipelineStep> CollectAnnotatedSteps(DeployingContext context)
+    private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(DeployingContext context)
     {
         foreach (var resource in context.Model.Resources)
         {
@@ -101,6 +143,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 {
                     throw new InvalidOperationException(
                         $"Step '{step.Name}' depends on unknown step '{dependency}'");
+                }
+            }
+
+            foreach (var requiredBy in step.RequiredBy)
+            {
+                if (!stepNames.Contains(requiredBy))
+                {
+                    throw new InvalidOperationException(
+                        $"Step '{step.Name}' is required by unknown step '{requiredBy}'");
                 }
             }
         }
@@ -203,14 +254,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private sealed class PipelineRegistry : IPipelineRegistry
+    private sealed class PipelineRegistry(IEnumerable<PipelineStep> steps) : IPipelineRegistry
     {
-        private readonly Dictionary<string, PipelineStep> _stepsByName;
-
-        public PipelineRegistry(IEnumerable<PipelineStep> steps)
-        {
-            _stepsByName = steps.ToDictionary(s => s.Name);
-        }
+        private readonly Dictionary<string, PipelineStep> _stepsByName = steps.ToDictionary(s => s.Name);
 
         public IEnumerable<PipelineStep> GetAllSteps() => _stepsByName.Values;
 

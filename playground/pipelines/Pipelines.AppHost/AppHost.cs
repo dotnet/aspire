@@ -40,7 +40,7 @@ var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env")
         }
     });
 
-var withBindMount = builder.AddDockerfile("withBindMount", ".", "./Dockerfile.bindmount")
+var withBindMount = builder.AddDockerfile("with-bind-mount", ".", "./Dockerfile.bindmount")
     .WithComputeEnvironment(acaEnv)
     .WithBindMount("../data", "/data");
 

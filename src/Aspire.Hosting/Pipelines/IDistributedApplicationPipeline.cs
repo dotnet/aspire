@@ -19,12 +19,12 @@ public interface IDistributedApplicationPipeline
     /// </summary>
     /// <param name="name">The unique name of the step.</param>
     /// <param name="action">The action to execute for this step.</param>
-    /// <param name="dependsOn">The name of the step this step depends on, if any.</param>
-    /// <param name="requiredBy">The name of the step that requires this step, if any.</param>
+    /// <param name="dependsOn">The name of the step this step depends on, or a list of step names.</param>
+    /// <param name="requiredBy">The name of the step that requires this step, or a list of step names.</param>
     void AddStep(string name,
                  Func<DeployingContext, Task> action,
-                 string? dependsOn = null,
-                 string? requiredBy = null);
+                 object? dependsOn = null,
+                 object? requiredBy = null);
 
     /// <summary>
     /// Adds a deployment step to the pipeline.
