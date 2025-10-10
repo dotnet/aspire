@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 #pragma warning disable IDE0005
 
 using Aspire.Hosting.ApplicationModel;
@@ -360,14 +361,14 @@ public class DistributedApplicationPipelineTests
             Name = "step1",
             Action = async (context) => await Task.CompletedTask
         };
-        step1.DependsOnStep("step2");
+        step1.DependsOn("step2");
 
         var step2 = new PipelineStep
         {
             Name = "step2",
             Action = async (context) => await Task.CompletedTask
         };
-        step2.DependsOnStep("step1");
+        step2.DependsOn("step1");
 
         pipeline.AddStep(step1);
         pipeline.AddStep(step2);

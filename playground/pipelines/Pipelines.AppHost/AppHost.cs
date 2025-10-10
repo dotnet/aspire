@@ -1,5 +1,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREPIPELINES001
 
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;

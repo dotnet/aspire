@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using Aspire.Hosting.ApplicationModel;
 
@@ -24,7 +25,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         if (dependsOn != null)
         {
-            step.DependsOnStep(dependsOn);
+            step.DependsOn(dependsOn);
         }
 
         if (requiredBy != null)

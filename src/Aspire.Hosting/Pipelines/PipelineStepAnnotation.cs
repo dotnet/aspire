@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
@@ -10,6 +11,7 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// An annotation that creates a pipeline step for a resource during deployment.
 /// </summary>
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PipelineStepAnnotation : IResourceAnnotation
 {
     private readonly Func<DeployingContext, IEnumerable<PipelineStep>> _factory;

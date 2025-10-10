@@ -72,7 +72,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Name = WellKnownPipelineSteps.ProvisionInfrastructure,
                 Action = ctx => ProvisionAzureBicepResourcesAsync(context.Model, ctx, context)
             };
-            provisionStep.DependsOnStep(validateStep);
+            provisionStep.DependsOn(validateStep);
 
             var buildStep = new PipelineStep
             {
@@ -85,16 +85,16 @@ public sealed class AzureEnvironmentResource : Resource
                 Name = "push-container-images",
                 Action = ctx => PushContainerImagesAsync(context.Model, ctx, context)
             };
-            pushStep.DependsOnStep(buildStep);
-            pushStep.DependsOnStep(provisionStep);
+            pushStep.DependsOn(buildStep);
+            pushStep.DependsOn(provisionStep);
 
             var deployStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.DeployCompute,
                 Action = ctx => DeployComputeResourcesAsync(context.Model, ctx, context)
             };
-            deployStep.DependsOnStep(pushStep);
-            deployStep.DependsOnStep(provisionStep);
+            deployStep.DependsOn(pushStep);
+            deployStep.DependsOn(provisionStep);
 
             return [validateStep, provisionStep, buildStep, pushStep, deployStep];
         }));

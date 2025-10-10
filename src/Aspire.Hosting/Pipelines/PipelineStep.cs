@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
@@ -10,6 +11,7 @@ namespace Aspire.Hosting.Pipelines;
 /// <summary>
 /// Represents a step in the deployment pipeline.
 /// </summary>
+[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PipelineStep
 {
     /// <summary>
@@ -36,7 +38,7 @@ public class PipelineStep
     /// Adds a dependency on another step.
     /// </summary>
     /// <param name="stepName">The name of the step to depend on.</param>
-    public void DependsOnStep(string stepName)
+    public void DependsOn(string stepName)
     {
         Dependencies.Add(stepName);
     }
@@ -45,7 +47,7 @@ public class PipelineStep
     /// Adds a dependency on another step.
     /// </summary>
     /// <param name="step">The step to depend on.</param>
-    public void DependsOnStep(PipelineStep step)
+    public void DependsOn(PipelineStep step)
     {
         Dependencies.Add(step.Name);
     }
