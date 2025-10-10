@@ -57,6 +57,143 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task InitCommand_WhenGetSolutionProjectsFails_SetsOutputCollectorAndCallsCallbacks()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a solution file to trigger InitializeExistingSolutionAsync path
+        var solutionFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Test.sln"));
+        File.WriteAllText(solutionFile.FullName, "Fake solution file");
+        
+        const string testErrorMessage = "Test error from dotnet sln list";
+        var standardOutputCallbackInvoked = false;
+        var standardErrorCallbackInvoked = false;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            // Mock the runner to return an error when GetSolutionProjectsAsync is called
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+                
+                runner.GetSolutionProjectsAsyncCallback = (solutionFile, invocationOptions, cancellationToken) =>
+                {
+                    // Verify that the OutputCollector callbacks are wired up
+                    Assert.NotNull(invocationOptions.StandardOutputCallback);
+                    Assert.NotNull(invocationOptions.StandardErrorCallback);
+                    
+                    // Simulate calling the callbacks to verify they work
+                    invocationOptions.StandardOutputCallback?.Invoke("Some output");
+                    standardOutputCallbackInvoked = true;
+                    
+                    invocationOptions.StandardErrorCallback?.Invoke(testErrorMessage);
+                    standardErrorCallbackInvoked = true;
+                    
+                    // Return a non-zero exit code to trigger the error path
+                    return (1, Array.Empty<FileInfo>());
+                };
+                
+                return runner;
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var initCommand = serviceProvider.GetRequiredService<InitCommand>();
+        
+        // Act - Invoke init command
+        var parseResult = initCommand.Parse("init");
+        var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Assert
+        Assert.Equal(1, exitCode); // Should return the error exit code
+        Assert.True(standardOutputCallbackInvoked, "StandardOutputCallback should have been invoked");
+        Assert.True(standardErrorCallbackInvoked, "StandardErrorCallback should have been invoked");
+    }
+
+    [Fact]
+    public async Task InitCommand_WhenNewProjectFails_SetsOutputCollectorAndCallsCallbacks()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        
+        // Create a solution file to trigger InitializeExistingSolutionAsync path
+        var solutionFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "Test.sln"));
+        File.WriteAllText(solutionFile.FullName, "Fake solution file");
+        
+        const string testErrorMessage = "Test error from dotnet new";
+        var standardOutputCallbackInvoked = false;
+        var standardErrorCallbackInvoked = false;
+        
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            // Mock the runner
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner();
+
+                runner.GetSolutionProjectsAsyncCallback = (solutionFile, invocationOptions, cancellationToken) =>
+                {
+                    return (0, Array.Empty<FileInfo>());
+                };
+
+                runner.GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, invocationOptions, cancellationToken) =>
+                {
+                    return (0, null);
+                };
+
+                runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, invocationOptions, cancellationToken) =>
+                {
+                    return (0, "10.0.0");
+                };
+
+                runner.NewProjectAsyncCallback = (templateName, projectName, outputPath, invocationOptions, cancellationToken) =>
+                {
+                    // Verify that the OutputCollector callbacks are wired up
+                    Assert.NotNull(invocationOptions.StandardOutputCallback);
+                    Assert.NotNull(invocationOptions.StandardErrorCallback);
+
+                    // Simulate calling the callbacks to verify they work
+                    invocationOptions.StandardOutputCallback?.Invoke("Some output");
+                    standardOutputCallbackInvoked = true;
+
+                    invocationOptions.StandardErrorCallback?.Invoke(testErrorMessage);
+                    standardErrorCallbackInvoked = true;
+
+                    // Return a non-zero exit code to trigger the error path
+                    return 1;
+                };
+
+                return runner;
+            };
+
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                return interactionService;
+            };
+            
+            // Mock packaging service
+            options.PackagingServiceFactory = (sp) =>
+            {
+                return new TestPackagingService();
+            };
+        });
+
+        var serviceProvider = services.BuildServiceProvider();
+        var initCommand = serviceProvider.GetRequiredService<InitCommand>();
+        
+        // Act - Invoke init command  
+        var parseResult = initCommand.Parse("init");
+        var exitCode = await parseResult.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        
+        // Assert
+        Assert.Equal(1, exitCode); // Should return the error exit code
+        Assert.True(standardOutputCallbackInvoked, "StandardOutputCallback should have been invoked");
+        Assert.True(standardErrorCallbackInvoked, "StandardErrorCallback should have been invoked");
+    }
+
+    [Fact]
     public async Task InitCommand_WithSingleFileAppHost_DoesNotPromptForProjectNameOrOutputPath()
     {
         // Arrange
