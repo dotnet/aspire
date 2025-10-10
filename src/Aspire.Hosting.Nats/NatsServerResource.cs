@@ -80,7 +80,7 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
             builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@");
         }
 
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort):uri}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
         return builder.Build();
     }

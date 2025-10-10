@@ -121,7 +121,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a formatted value to the expression.
         /// </summary>
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-        /// <param name="format"></param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         public readonly void AppendFormatted(string? value, string? format = null)
         {
             if (format is not null)
@@ -145,7 +145,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
-        /// <param name="format"></param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
         {
@@ -174,7 +174,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
-        /// <param name="format"></param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
             where T : IResource, IValueProvider, IManifestExpressionProvider
@@ -339,7 +339,7 @@ public class ReferenceExpressionBuilder
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
-        /// <param name="format"></param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
         {
@@ -363,7 +363,7 @@ public class ReferenceExpressionBuilder
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
-        /// <param name="format"></param>
+        /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         /// <exception cref="InvalidOperationException"></exception>
         public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
             where T : IResource, IValueProvider, IManifestExpressionProvider

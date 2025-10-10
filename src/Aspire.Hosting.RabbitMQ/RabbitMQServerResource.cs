@@ -84,7 +84,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
             builder.AppendLiteral(":");
             builder.Append($"{PasswordParameter:uri}");
             builder.AppendLiteral("@");
-            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort):uri}");
+            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
             return builder.Build();
         }
