@@ -13,11 +13,6 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, string virtualEnvironmentPath, params string[] scriptArgs) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> AddPythonApp(this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs) { throw null; }
-
-        public static ApplicationModel.IResourceBuilder<Python.PythonAppResource> WithVirtualEnvironment(this ApplicationModel.IResourceBuilder<Python.PythonAppResource> builder, string virtualEnvironmentPath) { throw null; }
-
-        public static ApplicationModel.IResourceBuilder<T> WithPythonUvEnvironment<T>(this ApplicationModel.IResourceBuilder<T> builder)
-            where T : Python.PythonAppResource { throw null; }
     }
 
     [System.Obsolete("PythonProjectResource is deprecated. Please use PythonAppResource instead.")]
@@ -42,12 +37,5 @@ namespace Aspire.Hosting.Python
     public partial class PythonProjectResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
         public PythonProjectResource(string name, string executablePath, string projectDirectory) : base(default!, default!, default!) { }
-    }
-
-    public partial class PythonUvEnvironmentResource : ApplicationModel.ExecutableResource, ApplicationModel.IResourceWithParent<PythonAppResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
-    {
-        public PythonUvEnvironmentResource(string name, PythonAppResource parent) : base(default!, default!, default!) { }
-
-        public PythonAppResource Parent { get { throw null; } }
     }
 }

@@ -504,7 +504,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithPythonUvEnvironment_CreatesUvEnvironmentResource()
+    public void WithUvEnvironment_CreatesUvEnvironmentResource()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -512,7 +512,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
-            .WithPythonUvEnvironment();
+            .WithUvEnvironment();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -526,7 +526,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task WithPythonUvEnvironment_AddsUvSyncArgument()
+    public async Task WithUvEnvironment_AddsUvSyncArgument()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -534,7 +534,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
-            .WithPythonUvEnvironment();
+            .WithUvEnvironment();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -547,7 +547,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithPythonUvEnvironment_SetsParentRelationship()
+    public void WithUvEnvironment_AddsWaitForCompletionRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
@@ -555,27 +555,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var scriptName = "main.py";
 
         builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
-            .WithPythonUvEnvironment();
-
-        var app = builder.Build();
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-
-        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
-        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
-
-        Assert.Equal(pythonAppResource, uvEnvironmentResource.Parent);
-    }
-
-    [Fact]
-    public void WithPythonUvEnvironment_AddsWaitForCompletionRelationship()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        using var tempDir = new TempDirectory();
-
-        var scriptName = "main.py";
-
-        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
-            .WithPythonUvEnvironment();
+            .WithUvEnvironment();
 
         var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -590,32 +570,13 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithPythonUvEnvironment_ThrowsOnNullBuilder()
+    public void WithUvEnvironment_ThrowsOnNullBuilder()
     {
         IResourceBuilder<PythonAppResource> builder = null!;
 
         var exception = Assert.Throws<ArgumentNullException>(() => 
-            builder.WithPythonUvEnvironment());
+            builder.WithUvEnvironment());
 
         Assert.Equal("builder", exception.ParamName);
-    }
-
-    [Fact]
-    public void WithPythonUvEnvironment_CanBeChainedWithOtherExtensions()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
-        using var tempDir = new TempDirectory();
-
-        var scriptName = "main.py";
-
-        var exception = Record.Exception(() =>
-        {
-            builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
-                .WithPythonUvEnvironment()
-                .WithArgs("arg1", "arg2")
-                .WithEnvironment("TEST_VAR", "test_value");
-        });
-
-        Assert.Null(exception);
     }
 }

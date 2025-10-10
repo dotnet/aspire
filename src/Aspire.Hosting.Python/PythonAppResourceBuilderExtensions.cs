@@ -222,7 +222,7 @@ public static class PythonAppResourceBuilderExtensions
     /// specified in pyproject.toml are installed.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<T> WithPythonUvEnvironment<T>(this IResourceBuilder<T> builder)
+    public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
         where T : PythonAppResource
     {
         ArgumentNullException.ThrowIfNull(builder);

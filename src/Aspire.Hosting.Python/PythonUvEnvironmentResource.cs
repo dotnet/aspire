@@ -10,11 +10,7 @@ namespace Aspire.Hosting.Python;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="parent">The parent Python application resource.</param>
-public class PythonUvEnvironmentResource(string name, PythonAppResource parent)
-    : ExecutableResource(name, "uv", parent.WorkingDirectory), IResourceWithParent<PythonAppResource>
+internal sealed class PythonUvEnvironmentResource(string name, PythonAppResource parent)
+    : ExecutableResource(name, "uv", parent.WorkingDirectory)
 {
-    /// <summary>
-    /// Gets the parent Python application resource.
-    /// </summary>
-    public PythonAppResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
 }
