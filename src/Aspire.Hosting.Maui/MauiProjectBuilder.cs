@@ -644,7 +644,7 @@ public sealed class MauiProjectBuilder
         });
 
         // Prevent this platform from being started
-        builder.OnBeforeResourceStarted(async (res, evt, ct) =>
+        builder.OnBeforeResourceStarted((res, evt, ct) =>
         {
             var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
             var logger = loggerService?.GetLogger(res);
