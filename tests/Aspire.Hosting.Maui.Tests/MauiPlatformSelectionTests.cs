@@ -99,7 +99,7 @@ public class MauiPlatformSelectionTests
 
         if (OperatingSystem.IsWindows())
         {
-            // On Windows, auto-detection should add windows and android platforms
+            // On Windows, auto-detection adds windows and android platforms
             var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
             Assert.NotNull(warning);
             Assert.Contains("windows", warning!.Message);
@@ -109,7 +109,7 @@ public class MauiPlatformSelectionTests
         }
         else if (OperatingSystem.IsMacOS())
         {
-            // On macOS, auto-detection should add maccatalyst, ios, and android platforms
+            // On macOS, auto-detection adds maccatalyst, ios, and android platforms
             var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
             Assert.NotNull(warning);
             Assert.Contains("maccatalyst", warning!.Message);
@@ -121,11 +121,13 @@ public class MauiPlatformSelectionTests
         }
         else
         {
-            // On Linux (or other unsupported OS), auto-detect doesn't add platforms
+            // On Linux (or other unsupported OS), auto-detect doesn't add any platforms
             // Should get the "No .NET MAUI platform resources were configured" warning instead
-            var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && 
+            var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning &&
                 (w.Message?.Contains("No .NET MAUI platform resources were configured") ?? false));
+
             Assert.NotNull(warning);
+
             // No platform resources should be added
             var mauiPlatformResources = modelResources.Where(r => r.Name.StartsWith("maui-", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.DoesNotContain(mauiPlatformResources, r => true); // Should be empty
