@@ -11,6 +11,7 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     internal const string PrimaryEndpointName = "tcp";
     internal const string ManagementEndpointName = "management";
     private const string DefaultUserName = "guest";
+    private EndpointReference? _managementEndpoint;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RabbitMQServerResource"/> class.
@@ -33,6 +34,21 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
+    /// Gets the management endpoint for the RabbitMQ server.
+    /// </summary>
+    public EndpointReference ManagementEndpoint => _managementEndpoint ??= new(this, ManagementEndpointName);
+
+    /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the parameter that contains the RabbitMQ server user name.
     /// </summary>
     public ParameterResource? UserNameParameter { get; }
@@ -50,7 +66,33 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// <summary>
     /// Gets the connection string expression for the RabbitMQ server.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create(
-            $"amqp://{UserNameReference}:{PasswordParameter}@{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+    public ReferenceExpression ConnectionStringExpression => UriExpression;
+
+    internal ReferenceExpression UriExpression
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("amqp://");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{PasswordParameter:uri}");
+            builder.AppendLiteral("@");
+            builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort):uri}");
+
+            return builder.Build();
+        }
+    }
+
+    internal ReferenceExpression ManagementUriExpression => ReferenceExpression.Create($"{ManagementEndpoint.Property(EndpointProperty.Url)}");
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Username", UserNameReference);
+        yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
+        yield return new("ManagementUri", ManagementUriExpression);
+    }
 }

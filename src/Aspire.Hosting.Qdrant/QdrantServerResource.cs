@@ -36,9 +36,29 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for the gRPC endpoint.
+    /// </summary>
+    public EndpointReferenceExpression GrpcHost => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for the gRPC endpoint.
+    /// </summary>
+    public EndpointReferenceExpression GrpcPort => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the HTTP endpoint for the Qdrant database.
     /// </summary>
     public EndpointReference HttpEndpoint => _httpEndpoint ??= new(this, HttpEndpointName);
+
+    /// <summary>
+    /// Gets the host endpoint reference for the HTTP endpoint.
+    /// </summary>
+    public EndpointReferenceExpression HttpHost => HttpEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for the HTTP endpoint.
+    /// </summary>
+    public EndpointReferenceExpression HttpPort => HttpEndpoint.Property(EndpointProperty.Port);
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant gRPC endpoint.
@@ -47,10 +67,25 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
        ReferenceExpression.Create(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 
+    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+
     /// <summary>
     /// Gets the connection string expression for the Qdrant HTTP endpoint.
     /// </summary>
     public ReferenceExpression HttpConnectionStringExpression =>
         ReferenceExpression.Create(
             $"Endpoint={HttpEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
+
+    internal ReferenceExpression HttpUriExpression => ReferenceExpression.Create($"{HttpEndpoint.Property(EndpointProperty.Url)}");
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("GrpcHost", ReferenceExpression.Create($"{GrpcHost}"));
+        yield return new("GrpcPort", ReferenceExpression.Create($"{GrpcPort}"));
+        yield return new("HttpHost", ReferenceExpression.Create($"{HttpHost}"));
+        yield return new("HttpPort", ReferenceExpression.Create($"{HttpPort}"));
+        yield return new("ApiKey", ReferenceExpression.Create($"{ApiKeyParameter}"));
+        yield return new("Uri", UriExpression);
+        yield return new("HttpUri", HttpUriExpression);
+    }
 }

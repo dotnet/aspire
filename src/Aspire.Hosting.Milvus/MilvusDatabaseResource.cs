@@ -26,6 +26,8 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
 
+    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}?database={DatabaseName:uri}");
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -36,4 +38,11 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new("Uri", UriExpression),
+            ]);
 }

@@ -34,6 +34,16 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; }
@@ -53,6 +63,12 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
+    internal ReferenceExpression UriExpression => BuildConnectionString();
+
+    private static ReferenceExpression AuthenticationDatabaseReference => ReferenceExpression.Create($"{DefaultAuthenticationDatabase}");
+
+    private static ReferenceExpression AuthenticationMechanismReference => ReferenceExpression.Create($"{DefaultAuthenticationMechanism}");
+
     internal ReferenceExpression BuildConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
@@ -60,19 +76,24 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"{UserNameReference}:{PasswordParameter}@");
+            builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@");
         }
 
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort):uri}");
 
         if (databaseName is not null)
         {
-            builder.Append($"/{databaseName}");
+            var databaseExpression = ReferenceExpression.Create($"{databaseName}");
+            builder.AppendLiteral("/");
+            builder.Append($"{databaseExpression:uri}");
         }
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"?authSource={DefaultAuthenticationDatabase}&authMechanism={DefaultAuthenticationMechanism}");
+            builder.AppendLiteral("?authSource=");
+            builder.Append($"{AuthenticationDatabaseReference:uri}");
+            builder.AppendLiteral("&authMechanism=");
+            builder.Append($"{AuthenticationMechanismReference:uri}");
         }
 
         return builder.Build();
@@ -88,5 +109,21 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Username", UserNameReference);
+
+        if (PasswordParameter is not null)
+        {
+            yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+            yield return new("AuthenticationDatabase", AuthenticationDatabaseReference);
+            yield return new("AuthenticationMechanism", AuthenticationMechanismReference);
+        }
+
+        yield return new("Uri", UriExpression);
     }
 }

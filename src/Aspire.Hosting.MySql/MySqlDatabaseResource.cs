@@ -36,6 +36,8 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
             return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
+
+    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -46,4 +48,11 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new("Uri", UriExpression),
+            ]);
 }

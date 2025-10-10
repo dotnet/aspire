@@ -33,6 +33,16 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets or sets the user name for the NATS server.
     /// </summary>
     public ParameterResource? UserNameParameter { get; set; }
@@ -52,6 +62,8 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
+    internal ReferenceExpression UriExpression => BuildConnectionString();
+
     internal ReferenceExpression BuildConnectionString()
     {
         var builder = new ReferenceExpressionBuilder();
@@ -59,11 +71,25 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
 
         if (PasswordParameter is not null)
         {
-            builder.Append($"{UserNameReference}:{PasswordParameter}@");
+            builder.Append($"{UserNameReference:uri}:{PasswordParameter:uri}@");
         }
 
-        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+        builder.Append($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort):uri}");
 
         return builder.Build();
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Username", UserNameReference);
+
+        if (PasswordParameter is not null)
+        {
+            yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        }
+
+        yield return new("Uri", UriExpression);
     }
 }

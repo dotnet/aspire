@@ -37,6 +37,8 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
         }
     }
 
+    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -47,4 +49,11 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new("Uri", UriExpression),
+            ]);
 }

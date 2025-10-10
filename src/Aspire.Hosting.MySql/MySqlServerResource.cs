@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class MySqlServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal static string PrimaryEndpointName => "tcp";
+    private const string DefaultUserName = "root";
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
     private readonly List<MySqlDatabaseResource> _databaseResources = [];
@@ -32,6 +33,16 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets or sets the parameter that contains the MySQL server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; set; }
@@ -41,7 +52,27 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID=root;Password={PasswordParameter}");
+            $"Server={PrimaryEndpoint.Property(EndpointProperty.Host)};Port={PrimaryEndpoint.Property(EndpointProperty.Port)};User ID={DefaultUserName};Password={PasswordParameter}");
+
+    private static ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
+
+    internal ReferenceExpression UriExpression
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("mysql://");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{PasswordParameter:uri}");
+            builder.AppendLiteral("@");
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.
@@ -54,5 +85,14 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     {
         _databases.TryAdd(database.Name, database.DatabaseName);
         _databaseResources.Add(database);
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Username", UserNameReference);
+        yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
     }
 }

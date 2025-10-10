@@ -26,6 +26,8 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
+    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -36,4 +38,11 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new("Uri", UriExpression),
+            ]);
 }

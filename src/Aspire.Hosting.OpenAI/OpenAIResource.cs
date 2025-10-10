@@ -37,6 +37,20 @@ public sealed class OpenAIResource : Resource, IResourceWithConnectionString
     /// <summary>
     /// Gets the base connection string for the OpenAI account.
     /// </summary>
+    private ReferenceExpression EndpointExpression => ReferenceExpression.Create($"{Endpoint}");
+
+    /// <summary>
+    /// Gets the base connection string for the OpenAI account.
+    /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        ReferenceExpression.Create($"Endpoint={Endpoint};Key={Key}");
+        ReferenceExpression.Create($"Endpoint={EndpointExpression};Key={Key}");
+
+    internal ReferenceExpression UriExpression => EndpointExpression;
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Endpoint", EndpointExpression);
+        yield return new("Uri", UriExpression);
+        yield return new("Key", ReferenceExpression.Create($"{Key}"));
+    }
 }

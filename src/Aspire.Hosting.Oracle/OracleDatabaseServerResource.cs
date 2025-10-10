@@ -9,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 public class OracleDatabaseServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
+    private const string DefaultUserName = "system";
 
     /// <summary>
     /// Initializes a new instance of the <see cref="OracleDatabaseServerResource"/> class.
@@ -29,6 +30,16 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     public EndpointReference PrimaryEndpoint { get; }
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the parameter that contains the Oracle Database server password.
     /// </summary>
     public ParameterResource PasswordParameter { get; }
@@ -38,7 +49,27 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create(
-            $"user id=system;password={PasswordParameter};data source={PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+            $"user id={DefaultUserName};password={PasswordParameter};data source={PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+
+    private static ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
+
+    internal ReferenceExpression UriExpression
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("oracle://");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{PasswordParameter:uri}");
+            builder.AppendLiteral("@");
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
 
     private readonly Dictionary<string, string> _databases = new(StringComparers.ResourceName);
 
@@ -50,5 +81,14 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
     internal void AddDatabase(string name, string databaseName)
     {
         _databases.TryAdd(name, databaseName);
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+        yield return new("Username", UserNameReference);
+        yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        yield return new("Uri", UriExpression);
     }
 }

@@ -34,6 +34,16 @@ public class ValkeyResource(string name) : ContainerResource(name), IResourceWit
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the connection string expression for the Valkey server.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression
@@ -60,5 +70,38 @@ public class ValkeyResource(string name) : ContainerResource(name), IResourceWit
         }
 
         return builder.Build();
+    }
+
+    internal ReferenceExpression UriExpression
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("valkey://");
+
+            if (PasswordParameter is not null)
+            {
+                builder.Append($":{PasswordParameter:uri}@");
+            }
+
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+
+        if (PasswordParameter is not null)
+        {
+            yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        }
+
+        yield return new("Uri", UriExpression);
     }
 }

@@ -20,6 +20,8 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.BuildConnectionString(DatabaseName);
 
+    internal ReferenceExpression UriExpression => Parent.BuildConnectionString(DatabaseName);
+
     /// <summary>
     /// Gets the parent MongoDB container resource.
     /// </summary>
@@ -35,4 +37,11 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new("Uri", UriExpression),
+            ]);
 }

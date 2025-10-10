@@ -32,6 +32,16 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for this resource.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the parameter that contains the Redis server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; private set; }
@@ -83,5 +93,38 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
     internal void SetPassword(ParameterResource? password)
     {
         PasswordParameter = password;
+    }
+
+    internal ReferenceExpression UriExpression
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("redis://");
+
+            if (PasswordParameter is not null)
+            {
+                builder.Append($":{PasswordParameter:uri}@");
+            }
+
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+
+        if (PasswordParameter is not null)
+        {
+            yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
+        }
+
+        yield return new("Uri", UriExpression);
     }
 }
