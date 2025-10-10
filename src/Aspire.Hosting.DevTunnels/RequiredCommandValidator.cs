@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
@@ -132,65 +131,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// <returns>Full path if resolved; otherwise null.</returns>
     protected static string? ResolveCommand(string command)
     {
-        // If the command includes any directory separator, treat it as a path (relative or absolute)
-        if (command.IndexOfAny([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar]) >= 0)
-        {
-            var candidate = Path.GetFullPath(command);
-            return File.Exists(candidate) ? candidate : null;
-        }
-
-        // Search PATH
-        var pathEnv = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrEmpty(pathEnv))
-        {
-            return null;
-        }
-
-        var paths = pathEnv.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // On Windows consider PATHEXT if no extension specified
-            var hasExtension = Path.HasExtension(command);
-            var pathext = Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD";
-            var exts = pathext.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            foreach (var dir in paths)
-            {
-                if (hasExtension)
-                {
-                    var candidate = Path.Combine(dir, command);
-                    if (File.Exists(candidate))
-                    {
-                        return candidate;
-                    }
-                }
-                else
-                {
-                    foreach (var ext in exts)
-                    {
-                        var candidate = Path.Combine(dir, command + ext);
-                        if (File.Exists(candidate))
-                        {
-                            return candidate;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            foreach (var dir in paths)
-            {
-                var candidate = Path.Combine(dir, command);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return null;
+        return Aspire.Hosting.ApplicationModel.CommandResolver.ResolveCommand(command);
     }
 }
 #pragma warning restore ASPIREINTERACTION001
