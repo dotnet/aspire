@@ -502,4 +502,120 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             pythonProjectResource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
         Assert.Equal("test_value", environmentVariables["TEST_VAR"]);
     }
+
+    [Fact]
+    public void WithPythonUvEnvironment_CreatesUvEnvironmentResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPythonUvEnvironment();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+        Assert.Equal("pythonProject-uv-environment", uvEnvironmentResource.Name);
+        Assert.Equal("uv", uvEnvironmentResource.Command);
+
+        var expectedProjectDirectory = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, tempDir.Path));
+        Assert.Equal(expectedProjectDirectory, uvEnvironmentResource.WorkingDirectory);
+    }
+
+    [Fact]
+    public async Task WithPythonUvEnvironment_AddsUvSyncArgument()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPythonUvEnvironment();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(uvEnvironmentResource, TestServiceProvider.Instance);
+
+        Assert.Single(commandArguments);
+        Assert.Equal("sync", commandArguments[0]);
+    }
+
+    [Fact]
+    public void WithPythonUvEnvironment_SetsParentRelationship()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPythonUvEnvironment();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+
+        Assert.Equal(pythonAppResource, uvEnvironmentResource.Parent);
+    }
+
+    [Fact]
+    public void WithPythonUvEnvironment_AddsWaitForCompletionRelationship()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+            .WithPythonUvEnvironment();
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var pythonAppResource = appModel.Resources.OfType<PythonAppResource>().Single();
+        var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
+
+        var waitAnnotations = pythonAppResource.Annotations.OfType<WaitAnnotation>();
+        var waitForCompletionAnnotation = Assert.Single(waitAnnotations);
+        Assert.Equal(uvEnvironmentResource, waitForCompletionAnnotation.Resource);
+        Assert.Equal(WaitType.WaitForCompletion, waitForCompletionAnnotation.WaitType);
+    }
+
+    [Fact]
+    public void WithPythonUvEnvironment_ThrowsOnNullBuilder()
+    {
+        IResourceBuilder<PythonAppResource> builder = null!;
+
+        var exception = Assert.Throws<ArgumentNullException>(() => 
+            builder.WithPythonUvEnvironment());
+
+        Assert.Equal("builder", exception.ParamName);
+    }
+
+    [Fact]
+    public void WithPythonUvEnvironment_CanBeChainedWithOtherExtensions()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var scriptName = "main.py";
+
+        var exception = Record.Exception(() =>
+        {
+            builder.AddPythonApp("pythonProject", tempDir.Path, scriptName)
+                .WithPythonUvEnvironment()
+                .WithArgs("arg1", "arg2")
+                .WithEnvironment("TEST_VAR", "test_value");
+        });
+
+        Assert.Null(exception);
+    }
 }

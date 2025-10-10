@@ -204,4 +204,38 @@ public static class PythonAppResourceBuilderExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Adds a UV environment setup task to ensure the virtual environment exists before running the Python application.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a child resource that runs <c>uv sync</c> in the working directory of the Python application.
+    /// The Python application will wait for this resource to complete successfully before starting.
+    /// </para>
+    /// <para>
+    /// UV (https://github.com/astral-sh/uv) is a modern Python package manager that can manage virtual environments
+    /// and dependencies. The <c>uv sync</c> command ensures that the virtual environment exists and all dependencies
+    /// specified in pyproject.toml are installed.
+    /// </para>
+    /// </remarks>
+    public static IResourceBuilder<T> WithPythonUvEnvironment<T>(this IResourceBuilder<T> builder)
+        where T : PythonAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
+        var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
+
+        var uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
+            .WithArgs("sync")
+            .WithParentRelationship(builder);
+
+        builder.WaitForCompletion(uvBuilder);
+
+        return builder;
+    }
 }
