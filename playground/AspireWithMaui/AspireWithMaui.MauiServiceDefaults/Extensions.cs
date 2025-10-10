@@ -99,7 +99,6 @@ public static class Extensions
         return builder;
     }
 
-
     // OpenTelemetry initializer for MAUI
     private sealed class OpenTelemetryInitializer : IMauiInitializeService
     {
