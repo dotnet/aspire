@@ -12,13 +12,7 @@
                 Source="dotnet_bot.png"
                 HeightRequest="120"
                 Aspect="AspectFit"
-                SemanticProperties.Description="dot net bot in a hovercraft number nine" />
-
-            <Label
-                Text="Weather Forecast"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1"
-                HorizontalOptions="Center" />
+                SemanticProperties.Description="dot net bot under a aspire logo umbrella" />
 
             <Label
                 Text="Data from the Aspire Weather API"

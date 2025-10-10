@@ -7,13 +7,13 @@
     Title="AspireWithMaui.MauiClient">
 
     <TabBar>
-        <Tab Title="Weather">
+        <Tab Title="Weather" Icon="weather.png">
             <ShellContent
                 Title="Weather"
                 ContentTemplate="{DataTemplate local:MainPage}"
                 Route="weather" />
         </Tab>
-        <Tab Title="Environment">
+        <Tab Title="Environment" Icon="aspire_outline.png">
             <ShellContent
                 Title="Environment"
                 ContentTemplate="{DataTemplate local:EnvironmentPage}"
