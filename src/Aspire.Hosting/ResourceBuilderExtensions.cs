@@ -2006,6 +2006,18 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="certificateAuthorityCollection">Additional certificates in a <see cref="CertificateAuthorityCollection"/> to treat as trusted certificate authorities for the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a certificate authority collection to a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificatesFromFile("../my-ca.pem");
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
         where TResource : IResource
     {
@@ -2031,6 +2043,23 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="trust">Indicates whether the developer certificate should be treated as trusted.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable trust for app host managed developer certificate(s) for a container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithDeveloperCertificateTrust(false);
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Disable automatic trust for app host managed developer certificate(s), but explicitly enable it for a specific resource.
+    /// <code lang="csharp">
+    /// builder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = "false";
+    /// var project = builder.AddProject&lt;MyService&gt;("my-service")
+    ///    .WithDeveloperCertificateTrust(true);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithDeveloperCertificateTrust<TResource>(this IResourceBuilder<TResource> builder, bool trust)
         where TResource : IResource
     {
@@ -2054,6 +2083,26 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// The default scope is <see cref="CustomCertificateAuthoritiesScope.Append"/> which means that custom certificate authorities
+    /// should be appended to the default trusted certificate authorities for the resource. Setting the scope to
+    /// <see cref="CustomCertificateAuthoritiesScope.Override"/> indicates the set of certificates in referenced
+    /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
+    /// exclusive source of trust for a resource.
+    /// In all cases, this is a best effort implementation as not all resources support full customization of certificate
+    /// trust.
+    /// <example>
+    /// Set the scope for custom certificate authorities to override the default trusted certificate authorities for a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificate(new X509Certificate2("my-ca.pem"));
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection)
+    ///     .WithCustomCertificateAuthoritiesScope(CustomCertificateAuthoritiesScope.Override);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithCustomCertificateAuthoritiesScope<TResource>(this IResourceBuilder<TResource> builder, CustomCertificateAuthoritiesScope scope)
         where TResource : IResource
     {
