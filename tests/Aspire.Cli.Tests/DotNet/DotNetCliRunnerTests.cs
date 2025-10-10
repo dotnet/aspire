@@ -863,6 +863,341 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
 
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task RunAsyncAppliesNoLaunchProfileForSingleFileAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = true
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // For single-file .cs files, should include --no-launch-profile
+                Assert.Contains("run", args);
+                Assert.Contains("--no-launch-profile", args);
+                Assert.Contains(appHostFile.FullName, args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: appHostFile,
+            watch: false,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncDoesNotIncludeNoLaunchProfileForSingleFileAppHostWhenNotSpecified()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = false
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // For single-file .cs files, should NOT include --no-launch-profile when false
+                Assert.Contains("run", args);
+                Assert.DoesNotContain("--no-launch-profile", args);
+                Assert.Contains(appHostFile.FullName, args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: appHostFile,
+            watch: false,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncFiltersOutEmptyAndWhitespaceArguments()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        // Use watch=true and NoLaunchProfile=false to ensure some empty strings are generated
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = false,
+            Debug = false
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // Verify no empty or whitespace-only arguments exist
+                foreach (var arg in args)
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(arg), $"Found empty or whitespace argument in args: [{string.Join(", ", args)}]");
+                }
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true, // This will generate empty strings for verboseSwitch when Debug=false
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncFiltersOutEmptyArgumentsForSingleFileAppHost()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = false // This will generate an empty string for noProfileSwitch
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // Verify no empty or whitespace-only arguments exist in single-file AppHost scenario
+                foreach (var arg in args)
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(arg), $"Found empty or whitespace argument in args: [{string.Join(", ", args)}]");
+                }
+                
+                // Ensure the correct arguments are present
+                Assert.Contains("run", args);
+                Assert.Contains(appHostFile.FullName, args);
+                Assert.Contains("--", args);
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: appHostFile,
+            watch: false,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncIncludesAllNonEmptyFlagsWhenEnabled()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = true,
+            Debug = true
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // With watch=true and Debug=true, should include --verbose
+                Assert.Contains("watch", args);
+                Assert.Contains("--non-interactive", args);
+                Assert.Contains("--verbose", args);
+                Assert.Contains("--no-launch-profile", args);
+                Assert.Contains("--project", args);
+                Assert.Contains(projectFile.FullName, args);
+                
+                // Verify no empty or whitespace-only arguments exist
+                foreach (var arg in args)
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(arg), $"Found empty or whitespace argument in args: [{string.Join(", ", args)}]");
+                }
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task RunAsyncCorrectlyHandlesWatchWithoutDebug()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+        var interactionService = provider.GetRequiredService<IInteractionService>();
+
+        var options = new DotNetCliRunnerInvocationOptions()
+        {
+            NoLaunchProfile = true,
+            Debug = false // No debug, so no --verbose
+        };
+
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            interactionService,
+            executionContext,
+            new NullDiskCache(),
+            (args, _, _, _, _, _) =>
+            {
+                // With watch=true but Debug=false, should NOT include --verbose
+                Assert.Contains("watch", args);
+                Assert.Contains("--non-interactive", args);
+                Assert.DoesNotContain("--verbose", args);
+                Assert.Contains("--no-launch-profile", args);
+                Assert.Contains("--project", args);
+                Assert.Contains(projectFile.FullName, args);
+                
+                // Verify no empty or whitespace-only arguments exist
+                foreach (var arg in args)
+                {
+                    Assert.False(string.IsNullOrWhiteSpace(arg), $"Found empty or whitespace argument in args: [{string.Join(", ", args)}]");
+                }
+            },
+            0
+        );
+
+        var exitCode = await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.Equal(0, exitCode);
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
