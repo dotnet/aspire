@@ -199,6 +199,7 @@ jobs:
           path: extension/out/aspire-extension.vsix
 
   results:
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Test Results
     needs: [
