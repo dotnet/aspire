@@ -15,9 +15,13 @@ namespace Aspire.Hosting.Lifecycle;
 /// This subscriber processes <see cref="RequiredCommandAnnotation"/> on resources and validates
 /// that the specified commands/executables are available on the local machine PATH.
 /// </remarks>
+// Suppress experimental interaction API warnings locally.
+#pragma warning disable ASPIREINTERACTION001
 internal sealed class RequiredCommandValidationLifecycleHook(
+    IInteractionService interactionService,
     ILogger<RequiredCommandValidationLifecycleHook> logger) : IDistributedApplicationEventingSubscriber
 {
+    private readonly IInteractionService _interactionService = interactionService ?? throw new ArgumentNullException(nameof(interactionService));
     private readonly ILogger _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc />
@@ -78,10 +82,39 @@ internal sealed class RequiredCommandValidationLifecycleHook(
                 _ => string.Format(CultureInfo.CurrentCulture, "Required command '{0}' was not found on PATH or at the specified location.", command)
             };
 
-            _logger.LogError("Resource '{ResourceName}' cannot start: {Message}", resource.Name, message);
+            _logger.LogWarning("Resource '{ResourceName}' cannot start: {Message}", resource.Name, message);
+
+            // Show notification using interaction service if available
+            if (_interactionService.IsAvailable)
+            {
+                try
+                {
+                    var options = new NotificationInteractionOptions
+                    {
+                        Intent = MessageIntent.Warning,
+                        // Provide a link only if we have one.
+                        LinkText = link is null ? null : "Installation instructions",
+                        LinkUrl = link,
+                        ShowDismiss = true,
+                        ShowSecondaryButton = false
+                    };
+
+                    _ = _interactionService.PromptNotificationAsync(
+                        title: "Missing command",
+                        message: message,
+                        options,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Failed to show missing command notification");
+                }
+            }
+
             throw new DistributedApplicationException(message);
         }
 
         _logger.LogDebug("Required command '{Command}' for resource '{ResourceName}' resolved to '{ResolvedPath}'.", command, resource.Name, resolved);
     }
 }
+#pragma warning restore ASPIREINTERACTION001
