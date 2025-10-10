@@ -44,10 +44,21 @@ public partial class EnvironmentPage : ContentPage
 
         try
         {
-            return Uri.UnescapeDataString(value);
+            var decoded = Uri.UnescapeDataString(value);
+            
+            // Validate that the decoded string doesn't contain control characters that could indicate malicious content
+            // Allow only printable characters, tabs, and newlines
+            if (decoded.Any(c => char.IsControl(c) && c != '\t' && c != '\n' && c != '\r'))
+            {
+                // If suspicious control characters found, return the original encoded value for safety
+                return value;
+            }
+            
+            return decoded;
         }
         catch (UriFormatException)
         {
+            // If decoding fails, return the original value
             return value;
         }
     }
