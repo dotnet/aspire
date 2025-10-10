@@ -47,9 +47,33 @@ public static class DockerComposeFileResourceBuilderExtensions
 
         var resource = new DockerComposeFileResource(name, composeFilePath);
         
+        // Parse and import the compose file synchronously to add resources to the model
+        // Capture any exceptions to report during initialization
+        Exception? parseException = null;
+        List<string> warnings = [];
+        
+        try
+        {
+            ParseAndImportComposeFile(builder, resource, composeFilePath, warnings);
+        }
+        catch (Exception ex)
+        {
+            parseException = ex;
+        }
+        
+        // Use OnInitializeResource to report any issues that occurred during parsing
         return builder.AddResource(resource).OnInitializeResource(async (resource, e, ct) =>
         {
-            ParseAndImportComposeFile(builder, resource, composeFilePath, e.Logger);
+            if (parseException is not null)
+            {
+                e.Logger.LogError(parseException, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
+            }
+            
+            foreach (var warning in warnings)
+            {
+                e.Logger.LogWarning("{Warning}", warning);
+            }
+            
             await Task.CompletedTask.ConfigureAwait(false);
         });
     }
@@ -58,12 +82,11 @@ public static class DockerComposeFileResourceBuilderExtensions
         IDistributedApplicationBuilder builder,
         DockerComposeFileResource parentResource,
         string composeFilePath,
-        ILogger logger)
+        List<string> warnings)
     {
         if (!File.Exists(composeFilePath))
         {
-            logger.LogError("Docker Compose file not found: {ComposeFilePath}", composeFilePath);
-            return;
+            throw new FileNotFoundException($"Docker Compose file not found: {composeFilePath}", composeFilePath);
         }
 
         var yamlContent = File.ReadAllText(composeFilePath);
@@ -75,37 +98,34 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
-            return;
+            throw new InvalidOperationException($"Failed to parse Docker Compose file: {composeFilePath}", ex);
         }
 
         if (composeFile?.Services is null || composeFile.Services.Count == 0)
         {
-            logger.LogWarning("No services found in Docker Compose file: {ComposeFilePath}", composeFilePath);
+            warnings.Add($"No services found in Docker Compose file: {composeFilePath}");
             return;
         }
-
-        logger.LogInformation("Importing {ServiceCount} services from Docker Compose file: {ComposeFilePath}", composeFile.Services.Count, composeFilePath);
 
         foreach (var (serviceName, service) in composeFile.Services)
         {
             try
             {
-                ImportService(builder, parentResource, serviceName, service, logger);
+                ImportService(builder, parentResource, serviceName, service, warnings);
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to import service '{ServiceName}' from Docker Compose file. Skipping.", serviceName);
+                warnings.Add($"Failed to import service '{serviceName}' from Docker Compose file: {ex.Message}");
             }
         }
     }
 
-    private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, ILogger logger)
+    private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, List<string> warnings)
     {
         if (string.IsNullOrWhiteSpace(service.Image))
         {
             // Skip services without an image - these likely have build configurations which aren't supported
-            logger.LogDebug("Skipping service '{ServiceName}' - no image specified", serviceName);
+            // Don't add a warning for this as it's expected behavior
             return;
         }
 
@@ -117,7 +137,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to parse image reference '{ImageReference}' for service '{ServiceName}'. Skipping.", service.Image, serviceName);
+            warnings.Add($"Failed to parse image reference '{service.Image}' for service '{serviceName}': {ex.Message}");
             return;
         }
 
@@ -129,8 +149,6 @@ public static class DockerComposeFileResourceBuilderExtensions
         // Create container resource and mark it as a child of the compose file resource
         var containerBuilder = builder.AddContainer(serviceName, imageName, imageTag)
             .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
-
-        logger.LogDebug("Imported service '{ServiceName}' with image '{Image}:{Tag}'", serviceName, imageName, imageTag);
 
         // Import environment variables
         if (service.Environment is not null && service.Environment.Count > 0)
