@@ -6,6 +6,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
 
@@ -116,8 +117,32 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         foreach (var level in levels)
         {
-            await Task.WhenAll(level.Select(step =>
-                ExecuteStepAsync(step, context))).ConfigureAwait(false);
+            var tasks = level.Select(step => ExecuteStepAsync(step, context)).ToList();
+            try
+            {
+                await Task.WhenAll(tasks).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Collect all exceptions from failed tasks
+                var exceptions = tasks
+                    .Where(t => t.IsFaulted)
+                    .SelectMany(t => t.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())
+                    .ToList();
+
+                if (exceptions.Count == 1)
+                {
+                    ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
+                }
+                else if (exceptions.Count > 1)
+                {
+                    throw new AggregateException(
+                        $"Multiple pipeline steps failed at the same level: {string.Join(", ", exceptions.OfType<InvalidOperationException>().Select(e => e.Message))}",
+                        exceptions);
+                }
+
+                throw;
+            }
         }
     }
 
@@ -250,8 +275,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         if (levels.Sum(l => l.Count) != steps.Count())
         {
+            var processedSteps = new HashSet<string>(levels.SelectMany(l => l.Select(s => s.Name)));
+            var stepsInCycle = steps.Where(s => !processedSteps.Contains(s.Name)).Select(s => s.Name).ToList();
+
             throw new InvalidOperationException(
-                "Circular dependency detected in pipeline steps");
+                $"Circular dependency detected in pipeline steps: {string.Join(", ", stepsInCycle)}");
         }
 
         return levels;
@@ -265,8 +293,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
         catch (Exception ex)
         {
+            var exceptionInfo = ExceptionDispatchInfo.Capture(ex);
             throw new InvalidOperationException(
-                $"Step '{step.Name}' failed: {ex.Message}", ex);
+                $"Step '{step.Name}' failed: {ex.Message}", exceptionInfo.SourceException);
         }
     }
 
