@@ -4,6 +4,8 @@
 using Aspire.Hosting.ApplicationModel;
 using Xunit;
 
+namespace Aspire.Hosting.Tests;
+
 public class CommandResolverTests
 {
     [Fact]
