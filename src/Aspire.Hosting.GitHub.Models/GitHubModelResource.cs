@@ -74,7 +74,13 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"Endpoint={EndpointExpression};Key={Key};Model={Model}");
 
-    internal ReferenceExpression UriExpression => EndpointExpression;
+    /// <summary>
+    /// Gets the endpoint URI expression for the GitHub Models resource.
+    /// </summary>
+    /// <remarks>
+    /// Format matches the configured endpoint, for example <c>https://models.github.ai/inference</c> or <c>https://models.github.ai/orgs/{organization}/inference</c> when an organization is specified.
+    /// </remarks>
+    public ReferenceExpression UriExpression => EndpointExpression;
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

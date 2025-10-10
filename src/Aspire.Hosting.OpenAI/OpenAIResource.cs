@@ -45,7 +45,13 @@ public sealed class OpenAIResource : Resource, IResourceWithConnectionString
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"Endpoint={EndpointExpression};Key={Key}");
 
-    internal ReferenceExpression UriExpression => EndpointExpression;
+    /// <summary>
+    /// Gets the endpoint URI expression for the OpenAI account.
+    /// </summary>
+    /// <remarks>
+    /// Format matches the configured endpoint, for example <c>https://api.openai.com/v1</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => EndpointExpression;
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

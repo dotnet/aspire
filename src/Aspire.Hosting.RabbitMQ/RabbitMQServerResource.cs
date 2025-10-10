@@ -68,7 +68,13 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => UriExpression;
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the RabbitMQ server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>amqp://{user}:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {
@@ -84,7 +90,13 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
         }
     }
 
-    internal ReferenceExpression ManagementUriExpression => ReferenceExpression.Create($"{ManagementEndpoint.Property(EndpointProperty.Url)}");
+    /// <summary>
+    /// Gets the management endpoint URI expression for the RabbitMQ server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>http://{host}:{port}</c>. The scheme reflects the endpoint configuration and may be <c>https</c> when TLS is enabled.
+    /// </remarks>
+    public ReferenceExpression ManagementUriExpression => ReferenceExpression.Create($"{ManagementEndpoint.Property(EndpointProperty.Url)}");
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
