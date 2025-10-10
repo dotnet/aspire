@@ -240,11 +240,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             },
         };
 
-        infra.Add(new ProvisioningOutput($"{Infrastructure.NormalizeBicepIdentifier(resource.Name)}_name", typeof(string))
-        {
-            Value = webSite.Name
-        });
-
         // Defining the main container for the app service
         var mainContainer = new SiteContainer("mainContainer")
         {
