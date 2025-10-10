@@ -1667,6 +1667,126 @@ public class DcpExecutorTests
         Assert.False(nonDebuggableExe.TryGetAnnotationAsObjectList<ProjectLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out _));
     }
 
+    [Fact]
+    public async Task ProjectExecutable_NoDebugSessionInfo_DefaultsToProjectSupport()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        builder.AddProject<Projects.ServiceA>("ServiceA");
+
+        // Simulate debug session port but no DebugSessionInfo (simulates missing or null configuration)
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+            // No DebugSessionInfo set - should default to ["project"]
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
+        // Should run in IDE mode because "project" is implicitly supported
+        Assert.Equal(ExecutionType.IDE, exe.Spec.ExecutionType);
+    }
+
+    [Fact]
+    public async Task ProjectExecutable_InvalidDebugSessionInfo_DefaultsToProjectSupport()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        builder.AddProject<Projects.ServiceA>("ServiceA");
+
+        // Simulate debug session port with invalid JSON in DebugSessionInfo
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = "{invalid json}",
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
+        // Should run in IDE mode because deserialization failure defaults to ["project"]
+        Assert.Equal(ExecutionType.IDE, exe.Spec.ExecutionType);
+    }
+
+    [Fact]
+    public async Task ProjectExecutable_DebugSessionInfoWithNullSupportedLaunchConfigurations_DefaultsToProjectSupport()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            AssemblyName = typeof(DistributedApplicationTests).Assembly.FullName
+        });
+
+        builder.AddProject<Projects.ServiceA>("ServiceA");
+
+        // Simulate debug session info with null SupportedLaunchConfigurations
+        var runSessionInfo = new RunSessionInfo
+        {
+            ProtocolsSupported = ["test"],
+            SupportedLaunchConfigurations = null
+        };
+
+        var configDict = new Dictionary<string, string?>
+        {
+            [DcpExecutor.DebugSessionPortVar] = "12345",
+            [KnownConfigNames.DebugSessionInfo] = JsonSerializer.Serialize(runSessionInfo),
+            [KnownConfigNames.ExtensionEndpoint] = "http://localhost:1234"
+        };
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(configDict).Build();
+
+        var kubernetesService = new TestKubernetesService();
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.Single(dcpExes);
+
+        var exe = Assert.Single(dcpExes, e => e.AppModelResourceName == "ServiceA");
+        // Should run in IDE mode because null SupportedLaunchConfigurations defaults to ["project"]
+        Assert.Equal(ExecutionType.IDE, exe.Spec.ExecutionType);
+    }
+
     private static void HasKnownCommandAnnotations(IResource resource)
     {
         var commandAnnotations = resource.Annotations.OfType<ResourceCommandAnnotation>().ToList();
