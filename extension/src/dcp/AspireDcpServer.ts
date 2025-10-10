@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from 'express';
 import https from 'https';
 import WebSocket, { WebSocketServer } from 'ws';
-import { createSelfSignedCert, generateToken } from '../utils/security';
+import { createSelfSignedCertAsync, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
-import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionTerminatedNotification } from './types';
+import { AspireResourceDebugSession, DcpServerConnectionInfo, ErrorDetails, ErrorResponse, ProcessRestartedNotification, RunSessionNotification, RunSessionPayload, ServiceLogsNotification, SessionMessageNotification, SessionTerminatedNotification } from './types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
 import { createDebugSessionConfiguration, ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 import { timingSafeEqual } from 'crypto';
@@ -38,7 +38,7 @@ export default class AspireDcpServer {
         const wsBySession = new Map<string, WebSocket>();
         const pendingNotificationQueueByDcpId = new Map<string, RunSessionNotification[]>();
 
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             const token = generateToken();
 
             const app = express();
@@ -174,7 +174,7 @@ export default class AspireDcpServer {
             });
 
 
-            const { key, cert, certBase64 } = createSelfSignedCert();
+            const { key, cert, certBase64 } = await createSelfSignedCertAsync();
             const server = https.createServer({ key, cert }, app);
             const wss = new WebSocketServer({ noServer: true });
 
@@ -204,8 +204,12 @@ export default class AspireDcpServer {
                 }
             });
 
-            wss.on('connection', (ws: WebSocket, req) => {
+            wss.on('connection', (ws: WebSocket) => {
                 ws.send(JSON.stringify({ notification_type: 'connected' }) + '\n');
+            });
+
+            wss.on('message', (data) => {
+                extensionLogOutputChannel.info(`Received message from WebSocket client: ${data}`);
             });
 
             server.listen(0, () => {

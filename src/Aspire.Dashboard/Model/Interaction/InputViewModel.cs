@@ -18,6 +18,26 @@ public sealed class InputViewModel
 
     public void SetInput(InteractionInput input)
     {
+        string value;
+        if (Input == null)
+        {
+            value = input.Value;
+        }
+        else
+        {
+            // Only overwrite the local value if the input was loading and is no longer loading (update could have come from server)
+            // This avoids changes in local values being overwritten by a dynamic server update.
+            if (Input.Loading && !input.Loading)
+            {
+                value = input.Value;
+            }
+            else
+            {
+                value = Input.Value;
+            }
+        }
+        input.Value = value;
+
         Input = input;
         if (input.InputType == InputType.Choice && input.Options != null)
         {
@@ -25,12 +45,11 @@ public sealed class InputViewModel
                 .Select(option => new SelectViewModel<string> { Id = option.Key, Name = option.Value, })
                 .ToList();
 
-            SelectOptions.Clear();
-            SelectOptions.AddRange(optionsVM);
+            SelectOptions = optionsVM;
         }
     }
 
-    public List<SelectViewModel<string>> SelectOptions { get; } = [];
+    public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
 
     public string? Value
     {
@@ -51,4 +70,6 @@ public sealed class InputViewModel
         get => int.TryParse(Input.Value, CultureInfo.InvariantCulture, out var result) ? result : null;
         set => Input.Value = value?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
     }
+
+    public bool InputDisabled => Input.Disabled || Input.Loading;
 }

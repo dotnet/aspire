@@ -75,7 +75,7 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     protected abstract string GetOutputPathDescription();
-    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens);
+    protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
 
@@ -173,7 +173,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 effectiveAppHostFile,
                 false,
                 true,
-                GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens),
+                GetRunArguments(fullyQualifiedOutputPath, unmatchedTokens, parseResult),
                 env,
                 backchannelCompletionSource,
                 operationRunOptions,
@@ -186,7 +186,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 InteractionService.DisplayMessage("bug", InteractionServiceStrings.WaitingForDebuggerToAttachToAppHost);
             }
 
-            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench: {GetProgressMessage()}", async () =>
+            var backchannel = await InteractionService.ShowStatusAsync($":hammer_and_wrench:  {GetProgressMessage()}", async () =>
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
@@ -245,11 +245,22 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
+    internal class PromptState
+    {
+        public required string ActivityId { get; init; }
+        public int InputIndex { get; set; }
+        public bool DisplayedStatusText { get; set; }
+        public Status? Status { get; set; }
+        public TaskCompletionSource? CompleteStatusTcs { get; set; }
+        public Task? LoadingTask { get; set; }
+    }
+
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, string>();
         PublishingActivity? publishingActivity = null;
+        PromptState? promptState = null;
 
         await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
@@ -277,7 +288,12 @@ internal abstract class PublishCommandBase : BaseCommand
             }
             else if (activity.Type == PublishingActivityTypes.Prompt)
             {
-                await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+                if (promptState == null || promptState.ActivityId != activity.Data.Id)
+                {
+                    promptState = new PromptState { ActivityId = activity.Data.Id };
+                }
+
+                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
             }
             else
             {
@@ -318,6 +334,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var steps = new Dictionary<string, StepInfo>();
         PublishingActivity? publishingActivity = null;
         var currentStepProgress = new ProgressContextInfo();
+        PromptState? promptState = null;
 
         await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
@@ -395,7 +412,12 @@ internal abstract class PublishCommandBase : BaseCommand
             }
             else if (activity.Type == PublishingActivityTypes.Prompt)
             {
-                await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+                if (promptState == null || promptState.ActivityId != activity.Data.Id)
+                {
+                    promptState = new PromptState { ActivityId = activity.Data.Id };
+                }
+
+                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
             }
             else
             {
@@ -502,7 +524,7 @@ internal abstract class PublishCommandBase : BaseCommand
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
-    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, PromptState promptState, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
         {
@@ -516,47 +538,92 @@ internal abstract class PublishCommandBase : BaseCommand
             throw new InvalidOperationException("Prompt provided without input data.");
         }
 
-        // Check for validation errors. If there are errors then this isn't the first time the user has been prompted.
-        var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
+        // If any inputs are still loading then display a loading status until they're available.
+        if (inputs.Any(input => input.Loading))
+        {
+            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            promptState.Status = AnsiConsole.Status();
+            promptState.CompleteStatusTcs = tcs;
+            promptState.LoadingTask = promptState.Status.StartAsync(PublishCommandStrings.InputPromptLoading, c => tcs.Task);
+            return;
+        }
+        else
+        {
+            promptState.CompleteStatusTcs?.TrySetResult();
+            promptState.CompleteStatusTcs = null;
+
+            if (promptState.LoadingTask is { } task)
+            {
+                await task;
+                promptState.LoadingTask = null;
+            }
+        }
 
         // For multiple inputs, display the activity status text as a header.
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
-        if (!hasValidationErrors && inputs.Count > 1)
+        if (!promptState.DisplayedStatusText && inputs.Count > 1)
         {
             var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
+
+            promptState.DisplayedStatusText = true;
         }
 
         // Handle multiple inputs
-        var answers = new PublishingPromptInputAnswer[inputs.Count];
-        for (var i = 0; i < inputs.Count; i++)
+        var answers = new List<PublishingPromptInputAnswer>();
+        var sendUpdateResponse = false;
+        for (var i = promptState.InputIndex; i < inputs.Count; i++)
         {
             var input = inputs[i];
+
+            if (input.Disabled)
+            {
+                // Skip disabled inputs in the CLI.
+                continue;
+            }
 
             string? result;
 
             // Get prompt for input if there are no validation errors (first time we've asked)
             // or there are validation errors and this input has an error.
+            var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
                 // Build the prompt text based on number of inputs
                 var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
+
+                sendUpdateResponse = input.UpdateStateOnChange;
             }
             else
             {
                 result = input.Value;
             }
 
-            answers[i] = new PublishingPromptInputAnswer
+            answers.Add(new PublishingPromptInputAnswer
             {
+                Name = input.Name,
                 Value = result
-            };
+            });
+
+            if (sendUpdateResponse)
+            {
+                promptState.InputIndex = i + 1;
+                break;
+            }
         }
 
-        // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
+        // All inputs processed. Reset index to the first prompt.
+        if (!sendUpdateResponse)
+        {
+            promptState.InputIndex = 0;
+            await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
+        }
+        else
+        {
+            await backchannel.UpdatePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
+        }
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

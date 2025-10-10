@@ -1,0 +1,43 @@
+﻿@namespace Aspire.Dashboard.Components
+@using System.Collections.Immutable
+@using Aspire.Dashboard.Model
+@using Aspire.DashboardService.Proto.V1
+@inherits FluentComponentBase
+
+@{
+    var descriptionId = !string.IsNullOrEmpty(InputViewModel.Input.Description)
+        ? $"{ForId}-description"
+        : null;
+}
+
+<FluentInputLabel ForId="@ForId" Label="@InputViewModel.Input.Label" AriaLabel="@InputViewModel.Input.Description" Required="@InputViewModel.Input.Required" />
+<div class="input-choice-container">
+    @ChildContent(new InteractionInputFieldContext { ViewModel = InputViewModel, DescriptionId = descriptionId })
+    @if (InputViewModel.Input.Loading)
+    {
+        <FluentProgressRing Width="20px" />
+    }
+</div>
+@GetDescriptionContent(InputViewModel.Input, descriptionId)
+<ValidationMessage For="@(() => InputViewModel.Value)" />
+
+@code {
+    private RenderFragment? GetDescriptionContent(InteractionInput vm, string? id)
+    {
+        @if (!string.IsNullOrEmpty(vm.Description))
+        {
+            return
+            @<div class="input-description" id="@id">
+            @if (vm.EnableDescriptionMarkdown)
+            {
+                <MarkdownRenderer MarkdownProcessor="@MarkdownProcessor" Markdown="@vm.Description" SuppressParagraphOnNewLines="true" />
+            }
+            else
+            {
+                <span>@vm.Description</span>
+            }
+            </div>;
+        }
+        return null;
+    }
+}
