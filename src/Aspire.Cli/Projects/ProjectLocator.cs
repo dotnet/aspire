@@ -16,18 +16,10 @@ namespace Aspire.Cli.Projects;
 internal interface IProjectLocator
 {
     Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
-    Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
-    Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken);
 }
 
 internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
 {
-    public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
-    {
-        var allCandidates = await FindAppHostProjectFilesAsync(new DirectoryInfo(searchDirectory), cancellationToken);
-        return [..allCandidates.BuildableAppHost, ..allCandidates.UnbuildableSuspectedAppHostProjects];
-    }
-
     private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
@@ -423,71 +415,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
-    }
-
-    public async Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity();
-
-        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
-        {
-            var executableProjects = new List<FileInfo>();
-            var lockObject = new object();
-            logger.LogDebug("Searching for executable project files in {SearchDirectory}", searchDirectory);
-
-            var enumerationOptions = new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true
-            };
-
-            var searchDir = new DirectoryInfo(searchDirectory);
-            var projectFiles = searchDir.GetFiles("*.csproj", enumerationOptions);
-            logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory);
-
-            var parallelOptions = new ParallelOptions
-            {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = Environment.ProcessorCount
-            };
-
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
-            {
-                logger.LogDebug("Checking project file {ProjectFile} for OutputType", projectFile.FullName);
-
-                var (exitCode, jsonDocument) = await runner.GetProjectItemsAndPropertiesAsync(
-                    projectFile,
-                    [],
-                    ["OutputType"],
-                    new DotNet.DotNetCliRunnerInvocationOptions(),
-                    ct);
-
-                if (exitCode == 0 && jsonDocument != null)
-                {
-                    var rootElement = jsonDocument.RootElement;
-                    if (rootElement.TryGetProperty("Properties", out var properties))
-                    {
-                        if (properties.TryGetProperty("OutputType", out var outputTypeElement))
-                        {
-                            var outputType = outputTypeElement.GetString();
-                            if (outputType == "Exe" || outputType == "WinExe")
-                            {
-                                logger.LogDebug("Found executable project file {ProjectFile} with OutputType {OutputType}", projectFile.FullName, outputType);
-                                lock (lockObject)
-                                {
-                                    executableProjects.Add(projectFile);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Sort for deterministic results
-            executableProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
-
-            return executableProjects;
-        });
     }
 }
 
