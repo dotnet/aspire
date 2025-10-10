@@ -12,17 +12,45 @@ In your AppHost project, install the .NET Aspire Docker Hosting library with [Nu
 dotnet add package Aspire.Hosting.Docker
 ```
 
-## Usage example
+## Usage examples
 
-Then, in the _AppHost.cs_ file of `AppHost`, add the environment:
+### Publishing to Docker Compose
+
+To publish an Aspire application to Docker Compose, add the Docker Compose environment in the _AppHost.cs_ file:
 
 ```csharp
 builder.AddDockerComposeEnvironment("compose");
 ```
 
+Then publish using the Aspire CLI:
+
 ```shell
 aspire publish -o docker-compose-artifacts
 ```
+
+### Importing from Docker Compose
+
+You can import existing Docker Compose files into your Aspire application model using `AddDockerComposeFile`:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Import services from a docker-compose.yml file
+builder.AddDockerComposeFile("myservices", "./docker-compose.yml");
+
+builder.Build().Run();
+```
+
+This will parse the Docker Compose file and create Aspire container resources for each service that has an `image` specified. The following Docker Compose features are supported:
+
+- **Image**: Container image name and tag
+- **Ports**: Port mappings (mapped to Aspire endpoints)
+- **Environment**: Environment variables
+- **Volumes**: Both bind mounts and named volumes
+- **Command**: Container command arguments
+- **Entrypoint**: Container entrypoint
+
+**Note**: Services that use `build` instead of `image` are skipped, as Aspire focuses on pre-built container images. Other Docker Compose features like networks, health checks, and restart policies are not automatically imported but can be configured manually on the created resources.
 
 ## Feedback & contributing
 
