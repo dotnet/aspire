@@ -342,7 +342,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Add AppHost project to solution
             initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
             var addAppHostResult = await InteractionService.ShowStatusAsync(
-                "Adding AppHost project to solution...",
+                InitCommandStrings.AddingAppHostProjectToSolution,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions
@@ -368,7 +368,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Add ServiceDefaults project to solution
             initContext.AddServiceDefaultsToSolutionOutputCollector = new OutputCollector();
             var addServiceDefaultsResult = await InteractionService.ShowStatusAsync(
-                "Adding ServiceDefaults project to solution...",
+                InitCommandStrings.AddingServiceDefaultsProjectToSolution,
                 async () =>
                 {
                     var options = new DotNetCliRunnerInvocationOptions
