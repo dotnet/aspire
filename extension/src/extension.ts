@@ -45,7 +45,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	terminalProvider.dcpServerConnectionInfo = dcpServer.connectionInfo;
 	terminalProvider.closeAllOpenAspireTerminals();
 
-	const editorCommandProvider = new AspireEditorCommandProvider();
+	const editorCommandProvider = new AspireEditorCommandProvider(terminalProvider);
 
 	const cliAddCommandRegistration = vscode.commands.registerCommand('aspire-vscode.add', () => tryExecuteCommand('aspire-vscode.add', terminalProvider, addCommand));
 	const cliNewCommandRegistration = vscode.commands.registerCommand('aspire-vscode.new', () => tryExecuteCommand('aspire-vscode.new', terminalProvider, newCommand));

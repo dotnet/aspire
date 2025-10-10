@@ -199,6 +199,9 @@
     <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
       <source xml:lang="en">No apphost found in the current workspace.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectApphost">
+      <source xml:lang="en">Select an apphost to launch</source>
+    </trans-unit>
   </body></file>
   <file original=".localization/loc/strings" source-language="en" datatype="plaintext"><body>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
@@ -353,6 +356,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
       <source xml:lang="en">No apphost found in the current workspace.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectApphost">
+      <source xml:lang="en">Select an apphost to launch</source>
     </trans-unit>
   </body></file>
 </xliff>

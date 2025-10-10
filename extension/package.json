@@ -154,12 +154,12 @@
       "editor/title/run": [
         {
           "command": "aspire-vscode.runAppHost",
-          "when": "aspire.isAppHostFile || aspire.hasAppHost",
+          "when": "aspire.documentHasAppHost",
           "group": "navigation@-4"
         },
         {
           "command": "aspire-vscode.debugAppHost",
-          "when": "aspire.isAppHostFile || aspire.hasAppHost",
+          "when": "aspire.documentHasAppHost",
           "group": "navigation@-3"
         }
       ],

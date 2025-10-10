@@ -60,3 +60,4 @@ export const processExceptionOccurred = (error: string, command: string) => loca
 export const failedToStartDebugSession = localize('aspire-vscode.strings.failedToStartDebugSession', 'Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => localize('aspire-vscode.strings.invalidLaunchConfiguration', 'Invalid launch configuration for {0}.', projectPath);
 export const noAppHostInWorkspace = localize('aspire-vscode.strings.noAppHostInWorkspace', 'No apphost found in the current workspace.');
+export const selectApphostToLaunch = localize('aspire-vscode.strings.selectApphost', 'Select an apphost to launch');
