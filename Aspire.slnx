@@ -353,7 +353,6 @@
     <File Path="spelling.dic" />
     <File Path="src/Schema/aspire-8.0.json" />
   </Folder>
-  <Folder Name="/src/" />
   <Folder Name="/Testing/">
     <Project Path="src/Aspire.Hosting.Testing/Aspire.Hosting.Testing.csproj" />
   </Folder>
