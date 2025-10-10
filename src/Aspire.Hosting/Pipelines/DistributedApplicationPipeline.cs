@@ -72,13 +72,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     {
         if (requiredBy is string stepName)
         {
-            step.IsRequiredBy(stepName);
+            step.RequiredBy(stepName);
         }
         else if (requiredBy is IEnumerable<string> stepNames)
         {
             foreach (var name in stepNames)
             {
-                step.IsRequiredBy(name);
+                step.RequiredBy(name);
             }
         }
         else
@@ -178,7 +178,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         foreach (var step in steps)
         {
-            foreach (var dependency in step.Dependencies)
+            foreach (var dependency in step.DependsOnSteps)
             {
                 if (!stepNames.Contains(dependency))
                 {
@@ -187,7 +187,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
             }
 
-            foreach (var requiredBy in step.RequiredBy)
+            foreach (var requiredBy in step.RequiredBySteps)
             {
                 if (!stepNames.Contains(requiredBy))
                 {
@@ -198,10 +198,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
+    /// <summary>
+    /// Resolves the dependencies among the steps and organizes them into levels for execution.
+    /// </summary>
+    /// <param name="steps">The complete set of pipeline steps populated from annotations and the builder</param>
+    /// <param name="stepsByName">A dictionary mapping step names to their corresponding step objects</param>
+    /// <returns>A list of lists where each list contains the steps to be executed at the same level</returns>
     private static List<List<PipelineStep>> ResolveDependencies(
         IEnumerable<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName)
     {
+        // Initial a graph that represents a step and its dependencies
+        // and an inDegree map to count the number of dependencies that
+        // each step has.
         var graph = new Dictionary<string, List<string>>();
         var inDegree = new Dictionary<string, int>();
 
@@ -211,9 +220,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             inDegree[step.Name] = 0;
         }
 
+        // Process all the `RequiredBy` relationships in the graph and adds
+        // the each `RequiredBy` step to the DependsOn list of the step that requires it.
         foreach (var step in steps)
         {
-            foreach (var requiredByStep in step.RequiredBy)
+            foreach (var requiredByStep in step.RequiredBySteps)
             {
                 if (!graph.ContainsKey(requiredByStep))
                 {
@@ -222,16 +233,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
 
                 if (stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj) &&
-                    !requiredByStepObj.Dependencies.Contains(step.Name))
+                    !requiredByStepObj.DependsOnSteps.Contains(step.Name))
                 {
-                    requiredByStepObj.Dependencies.Add(step.Name);
+                    requiredByStepObj.DependsOnSteps.Add(step.Name);
                 }
             }
         }
 
+        // Now that the `DependsOn` lists are fully populated, we can build the graph
+        // and the inDegree map based only on the DependOnSteps list.
         foreach (var step in steps)
         {
-            foreach (var dependency in step.Dependencies)
+            foreach (var dependency in step.DependsOnSteps)
             {
                 if (!graph.TryGetValue(dependency, out var dependents))
                 {
@@ -244,11 +257,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
         }
 
+        // Perform a topological sort to determine the levels of execution and
+        // initialize a queue with all steps that have no dependencies (inDegree of 0)
+        // and can be executed immediately as part of the first level.
         var levels = new List<List<PipelineStep>>();
         var queue = new Queue<string>(
             inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key)
         );
 
+        // Process the queue until all steps have been organized into levels.
+        // We start with the steps that have no dependencies and then iterate
+        // through all the steps that depend on them to build out the graph
+        // until no more steps are available to process.
         while (queue.Count > 0)
         {
             var currentLevel = new List<PipelineStep>();
@@ -260,6 +280,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 var step = stepsByName[stepName];
                 currentLevel.Add(step);
 
+                // For each dependent step, reduce its inDegree by 1
+                // in each iteration since its dependencies have been
+                // processed. Once a dependent step has an inDegree
+                // of 0, it means all its dependencies have been
+                // processed and it can be added to the queue so we
+                // can process the next level of dependencies.
                 foreach (var dependent in graph[stepName])
                 {
                     inDegree[dependent]--;
@@ -270,9 +296,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
             }
 
+            // Exhausting the queue means that we've resolved all
+            // steps that can run in parallel.
             levels.Add(currentLevel);
         }
 
+        // If the total number of steps in all levels does not equal
+        // the total number of steps in the pipeline, it indicates that
+        // there is a circular dependency in the graph. Steps are enqueued
+        // for processing into levels above when all their dependencies are
+        // resolved. When a cycle exists, the degrees of the steps in the cycle
+        // will never reach zero and won't be enqueued for processing so the
+        // total number of processed steps will be less than the total number
+        // of steps in the pipeline.
         if (levels.Sum(l => l.Count) != steps.Count())
         {
             var processedSteps = new HashSet<string>(levels.SelectMany(l => l.Select(s => s.Name)));
@@ -313,14 +349,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             sb.Append(CultureInfo.InvariantCulture, $"  - {step.Name}");
 
-            if (step.Dependencies.Count > 0)
+            if (step.DependsOnSteps.Count > 0)
             {
-                sb.Append(CultureInfo.InvariantCulture, $" [depends on: {string.Join(", ", step.Dependencies)}]");
+                sb.Append(CultureInfo.InvariantCulture, $" [depends on: {string.Join(", ", step.DependsOnSteps)}]");
             }
 
-            if (step.RequiredBy.Count > 0)
+            if (step.RequiredBySteps.Count > 0)
             {
-                sb.Append(CultureInfo.InvariantCulture, $" [required by: {string.Join(", ", step.RequiredBy)}]");
+                sb.Append(CultureInfo.InvariantCulture, $" [required by: {string.Join(", ", step.RequiredBySteps)}]");
             }
 
             sb.AppendLine();

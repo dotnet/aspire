@@ -9,7 +9,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// An annotation that creates a pipeline step for a resource during deployment.
+/// An annotation that creates pipeline steps for a resource during deployment.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PipelineStepAnnotation : IResourceAnnotation

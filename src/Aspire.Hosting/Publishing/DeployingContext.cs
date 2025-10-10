@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,7 +28,7 @@ public sealed class DeployingContext(
     string? outputPath)
 {
     private IPublishingActivityReporter? _activityReporter;
-    private readonly Dictionary<string, object> _pipelineOutputs = new();
+    private readonly ConcurrentDictionary<string, object> _pipelineOutputs = [];
 
     /// <summary>
     /// Gets the distributed application model to be deployed.

@@ -27,12 +27,12 @@ public class PipelineStep
     /// <summary>
     /// Gets the list of step names that this step depends on.
     /// </summary>
-    public List<string> Dependencies { get; } = [];
+    public List<string> DependsOnSteps { get; } = [];
 
     /// <summary>
     /// Gets the list of step names that require this step to complete before they can finish.
     /// </summary>
-    public List<string> RequiredBy { get; } = [];
+    public List<string> RequiredBySteps { get; } = [];
 
     /// <summary>
     /// Adds a dependency on another step.
@@ -40,7 +40,7 @@ public class PipelineStep
     /// <param name="stepName">The name of the step to depend on.</param>
     public void DependsOn(string stepName)
     {
-        Dependencies.Add(stepName);
+        DependsOnSteps.Add(stepName);
     }
 
     /// <summary>
@@ -49,24 +49,24 @@ public class PipelineStep
     /// <param name="step">The step to depend on.</param>
     public void DependsOn(PipelineStep step)
     {
-        Dependencies.Add(step.Name);
+        DependsOnSteps.Add(step.Name);
     }
 
     /// <summary>
     /// Specifies that this step is required by another step.
     /// </summary>
     /// <param name="stepName">The name of the step that requires this step.</param>
-    public void IsRequiredBy(string stepName)
+    public void RequiredBy(string stepName)
     {
-        RequiredBy.Add(stepName);
+        RequiredBySteps.Add(stepName);
     }
 
     /// <summary>
     /// Specifies that this step is required by another step.
     /// </summary>
     /// <param name="step">The step that requires this step.</param>
-    public void IsRequiredBy(PipelineStep step)
+    public void RequiredBy(PipelineStep step)
     {
-        RequiredBy.Add(step.Name);
+        RequiredBySteps.Add(step.Name);
     }
 }
