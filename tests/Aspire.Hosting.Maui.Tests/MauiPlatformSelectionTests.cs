@@ -126,8 +126,9 @@ public class MauiPlatformSelectionTests
         var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions { DisableDashboard = true });
         builder.Services.Add(new Microsoft.Extensions.DependencyInjection.ServiceDescriptor(typeof(Microsoft.Extensions.Logging.ILoggerProvider), new Microsoft.Extensions.Logging.Testing.TestLoggerProvider(testSink)));
         builder.AddMauiProject("maui", csproj).WithWindows(); // Explicit selection
-    using var app = builder.Build();
-    var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
+
+        using var app = builder.Build();
+        var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);
 
         var writes = testSink.Writes.ToArray();
         // Should not contain auto-detected warning
