@@ -77,7 +77,7 @@ public class MauiPlatformSelectionTests
     [Xunit.Fact]
     public async Task NoPlatformsConfigured_EmitsWarning()
     {
-        var csproj = MauiTestHelpers.CreateProject("net10.0-windows10.0.19041.0", "net10.0-maccatalyst", "net10.0-android");
+        var csproj = MauiTestHelpers.CreateProject("net10.0-windows10.0.19041.0", "net10.0-maccatalyst", "net10.0-android", "net10.0-ios");
         var testSink = new Microsoft.Extensions.Logging.Testing.TestSink();
         var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions
         {
@@ -95,26 +95,40 @@ public class MauiPlatformSelectionTests
         await builder.Eventing.PublishAsync(evt);
 
         var writes = testSink.Writes.ToArray();
-        var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
-        Assert.NotNull(warning);
         var modelResources = model.Resources.OfType<Hosting.ApplicationModel.ProjectResource>().ToList();
+
         if (OperatingSystem.IsWindows())
         {
+            // On Windows, auto-detection should add windows and android platforms
+            var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
+            Assert.NotNull(warning);
             Assert.Contains("windows", warning!.Message);
+            Assert.Contains("android", warning!.Message);
             Assert.Contains(modelResources, r => r.Name == "maui-windows");
-            // android may also be present if targeted
             Assert.Contains(modelResources, r => r.Name == "maui-android");
         }
         else if (OperatingSystem.IsMacOS())
         {
+            // On macOS, auto-detection should add maccatalyst, ios, and android platforms
+            var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && (w.Message?.Contains("Auto-detected .NET MAUI platform") ?? false));
+            Assert.NotNull(warning);
             Assert.Contains("maccatalyst", warning!.Message);
+            Assert.Contains("ios", warning!.Message);
+            Assert.Contains("android", warning!.Message);
             Assert.Contains(modelResources, r => r.Name == "maui-maccatalyst");
             Assert.Contains(modelResources, r => r.Name == "maui-ios");
+            Assert.Contains(modelResources, r => r.Name == "maui-android");
         }
         else
         {
-            // On other OS (Linux) we currently do not auto-detect; expecting original no-platform warning logic.
-            // Relax assertion: if we reached here auto-detect fired unexpectedly; allow future extension.
+            // On Linux (or other unsupported OS), auto-detect doesn't add platforms
+            // Should get the "No .NET MAUI platform resources were configured" warning instead
+            var warning = writes.SingleOrDefault(w => w.LogLevel == Microsoft.Extensions.Logging.LogLevel.Warning && 
+                (w.Message?.Contains("No .NET MAUI platform resources were configured") ?? false));
+            Assert.NotNull(warning);
+            // No platform resources should be added
+            var mauiPlatformResources = modelResources.Where(r => r.Name.StartsWith("maui-", StringComparison.OrdinalIgnoreCase)).ToList();
+            Assert.DoesNotContain(mauiPlatformResources, r => true); // Should be empty
         }
     }
 
