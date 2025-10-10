@@ -72,7 +72,13 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
         return builder.Build();
     }
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the Garnet server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>garnet://[:{password}@]{host}:{port}</c>. The password segment is omitted when no password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {

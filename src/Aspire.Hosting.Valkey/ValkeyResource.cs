@@ -72,7 +72,13 @@ public class ValkeyResource(string name) : ContainerResource(name), IResourceWit
         return builder.Build();
     }
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the Valkey server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>valkey://[:{password}@]{host}:{port}</c>. The password segment is omitted when no password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {

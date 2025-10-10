@@ -95,7 +95,13 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
         PasswordParameter = password;
     }
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the Redis server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>redis://[:{password}@]{host}:{port}</c>. The password segment is omitted when no password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {

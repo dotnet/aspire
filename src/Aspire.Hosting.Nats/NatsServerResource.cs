@@ -62,7 +62,13 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
-    internal ReferenceExpression UriExpression => BuildConnectionString();
+    /// <summary>
+    /// Gets the connection URI expression for the NATS server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>nats://[user:password@]{host}:{port}</c>. The credential segment is omitted when no credentials are configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression => BuildConnectionString();
 
     internal ReferenceExpression BuildConnectionString()
     {

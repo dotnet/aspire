@@ -52,7 +52,13 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
        ReferenceExpression.Create(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key=root:{ApiKeyParameter}");
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+    /// <summary>
+    /// Gets the connection URI expression for the Milvus gRPC endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>grpc://{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
     private readonly Dictionary<string, string> _databases = new Dictionary<string, string>(StringComparers.ResourceName);
 

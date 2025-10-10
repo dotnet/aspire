@@ -67,7 +67,13 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
        ReferenceExpression.Create(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+    /// <summary>
+    /// Gets the connection URI expression for the Qdrant gRPC endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>grpc://{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
     /// <summary>
     /// Gets the connection string expression for the Qdrant HTTP endpoint.
@@ -76,7 +82,13 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
         ReferenceExpression.Create(
             $"Endpoint={HttpEndpoint.Property(EndpointProperty.Url)};Key={ApiKeyParameter}");
 
-    internal ReferenceExpression HttpUriExpression => ReferenceExpression.Create($"{HttpEndpoint.Property(EndpointProperty.Url)}");
+    /// <summary>
+    /// Gets the connection URI expression for the Qdrant HTTP endpoint.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>http://{host}:{port}</c>. The scheme reflects the endpoint configuration and may be <c>https</c> when TLS is enabled.
+    /// </remarks>
+    public ReferenceExpression HttpUriExpression => ReferenceExpression.Create($"{HttpEndpoint.Property(EndpointProperty.Url)}");
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

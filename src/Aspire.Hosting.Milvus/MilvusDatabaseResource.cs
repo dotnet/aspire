@@ -26,7 +26,13 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}?database={DatabaseName:uri}");
+    /// <summary>
+    /// Gets the connection URI expression for the Milvus database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>grpc://{host}:{port}?database={database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}?database={DatabaseName:uri}");
 
     /// <summary>
     /// Gets the database name.

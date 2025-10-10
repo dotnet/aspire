@@ -34,7 +34,13 @@ public class SeqResource(string name) : ContainerResource(name), IResourceWithCo
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
+    /// <summary>
+    /// Gets the connection URI expression for the Seq server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>http://{host}:{port}</c>. The scheme reflects the endpoint configuration and may be <c>https</c> when TLS is enabled.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {

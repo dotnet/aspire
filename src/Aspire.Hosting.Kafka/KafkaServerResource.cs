@@ -57,7 +57,13 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the Kafka broker.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>kafka://{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {
