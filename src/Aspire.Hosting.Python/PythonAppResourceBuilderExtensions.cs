@@ -232,7 +232,8 @@ public static class PythonAppResourceBuilderExtensions
 
         var uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
             .WithArgs("sync")
-            .WithParentRelationship(builder);
+            .WithParentRelationship(builder)
+            .ExcludeFromManifest();
 
         builder.WaitForCompletion(uvBuilder);
 
