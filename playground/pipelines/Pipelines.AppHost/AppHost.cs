@@ -1,4 +1,5 @@
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIRECOMPUTE001
 
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -7,8 +8,13 @@ using Azure.Provisioning;
 using Azure.Provisioning.Storage;
 using Azure.Storage.Files.Shares;
 using Azure.Storage.Files.Shares.Models;
+using Pipelines.Library;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+builder.Pipeline.AddAppServiceZipDeploy();
+
+var aasEnv = builder.AddAzureAppServiceEnvironment("appservice-env");
 
 var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env")
     .ConfigureInfrastructure(infra =>
@@ -34,6 +40,7 @@ var acaEnv = builder.AddAzureContainerAppEnvironment("aca-env")
     });
 
 var withBindMount = builder.AddDockerfile("withBindMount", ".", "./Dockerfile.bindmount")
+    .WithComputeEnvironment(acaEnv)
     .WithBindMount("../data", "/data");
 
 // This step could also be modeled as a Bicep resource with the role assignment
@@ -344,6 +351,10 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (context) =>
             context.CancellationToken).ConfigureAwait(false);
     }
 }, requiredBy: WellKnownPipelineSteps.DeployCompute, dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
+
+builder.AddProject<Projects.Publishers_ApiService>("api-service")
+    .WithComputeEnvironment(aasEnv)
+    .WithExternalHttpEndpoints();
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

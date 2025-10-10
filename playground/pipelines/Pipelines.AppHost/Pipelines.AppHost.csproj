@@ -17,8 +17,14 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Storage" />
     <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppService" />
     <PackageReference Include="Azure.Storage.Files.Shares" />
     <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\publishers\Publishers.ApiService\Publishers.ApiService.csproj" />
+    <ProjectReference Include="..\Pipelines.Library\Pipelines.Library.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
 
 </Project>

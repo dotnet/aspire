@@ -213,7 +213,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-        
+
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
@@ -239,6 +239,11 @@ internal sealed class AzureAppServiceWebsiteContext(
                 UserAssignedIdentities = []
             },
         };
+
+        infra.Add(new ProvisioningOutput($"{Infrastructure.NormalizeBicepIdentifier(resource.Name)}_name", typeof(string))
+        {
+            Value = webSite.Name
+        });
 
         // Defining the main container for the app service
         var mainContainer = new SiteContainer("mainContainer")

@@ -96,7 +96,7 @@ public sealed class AzureEnvironmentResource : Resource
             deployStep.DependsOnStep(pushStep);
             deployStep.DependsOnStep(provisionStep);
 
-            return new[] { validateStep, provisionStep, buildStep, pushStep, deployStep };
+            return [validateStep, provisionStep, buildStep, pushStep, deployStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
