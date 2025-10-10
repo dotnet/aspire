@@ -5,6 +5,9 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -46,17 +49,27 @@ public static class DockerComposeFileResourceBuilderExtensions
         var resource = new DockerComposeFileResource(name, composeFilePath);
         var resourceBuilder = builder.AddResource(resource);
 
-        // Parse and import the compose file
-        ParseAndImportComposeFile(builder, resource, composeFilePath);
+        // Get a logger to report parsing issues without crashing the app
+        var loggerFactory = builder.Services.BuildServiceProvider().GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger("Aspire.Hosting.Docker.ComposeFileImport");
+
+        // Parse and import the compose file with error handling
+        ParseAndImportComposeFile(builder, resource, logger);
 
         return resourceBuilder;
     }
 
-    private static void ParseAndImportComposeFile(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string composeFilePath)
+    private static void ParseAndImportComposeFile(
+        IDistributedApplicationBuilder builder,
+        DockerComposeFileResource parentResource,
+        ILogger logger)
     {
+        var composeFilePath = parentResource.ComposeFilePath;
+
         if (!File.Exists(composeFilePath))
         {
-            throw new FileNotFoundException($"Docker Compose file not found: {composeFilePath}", composeFilePath);
+            logger.LogError("Docker Compose file not found: {ComposeFilePath}", composeFilePath);
+            return;
         }
 
         var yamlContent = File.ReadAllText(composeFilePath);
@@ -68,36 +81,62 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Failed to parse Docker Compose file: {composeFilePath}", ex);
+            logger.LogError(ex, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
+            return;
         }
 
         if (composeFile?.Services is null || composeFile.Services.Count == 0)
         {
+            logger.LogWarning("No services found in Docker Compose file: {ComposeFilePath}", composeFilePath);
             return;
         }
 
+        logger.LogInformation("Importing {ServiceCount} services from Docker Compose file: {ComposeFilePath}", composeFile.Services.Count, composeFilePath);
+
         foreach (var (serviceName, service) in composeFile.Services)
         {
-            ImportService(builder, parentResource, serviceName, service);
+            try
+            {
+                ImportService(builder, parentResource, serviceName, service, logger);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to import service '{ServiceName}' from Docker Compose file. Skipping.", serviceName);
+            }
         }
     }
 
-    private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service)
+    private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(service.Image))
         {
             // Skip services without an image - these likely have build configurations which aren't supported
+            logger.LogDebug("Skipping service '{ServiceName}' - no image specified", serviceName);
             return;
         }
 
-        // Parse image into name and tag
-        var imageParts = service.Image.Split(':', 2);
-        var imageName = imageParts[0];
-        var imageTag = imageParts.Length > 1 ? imageParts[1] : "latest";
+        // Parse image using ContainerReferenceParser
+        ContainerReference containerRef;
+        try
+        {
+            containerRef = ContainerReferenceParser.Parse(service.Image);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to parse image reference '{ImageReference}' for service '{ServiceName}'. Skipping.", service.Image, serviceName);
+            return;
+        }
+
+        var imageName = containerRef.Registry is null 
+            ? containerRef.Image 
+            : $"{containerRef.Registry}/{containerRef.Image}";
+        var imageTag = containerRef.Tag ?? "latest";
 
         // Create container resource and mark it as a child of the compose file resource
         var containerBuilder = builder.AddContainer(serviceName, imageName, imageTag)
             .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
+
+        logger.LogDebug("Imported service '{ServiceName}' with image '{Image}:{Tag}'", serviceName, imageName, imageTag);
 
         // Import environment variables
         if (service.Environment is not null && service.Environment.Count > 0)

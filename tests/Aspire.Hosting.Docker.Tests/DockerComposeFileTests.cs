@@ -38,7 +38,7 @@ services:
             Assert.Equal("mycompose", composeResource.Resource.Name);
             Assert.Equal(composeFilePath, composeResource.Resource.ComposeFilePath);
             
-            // Build the app to ensure resources are registered
+            // Build the app
             var app = builder.Build();
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
@@ -93,6 +93,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
             // Verify web service
@@ -116,16 +117,20 @@ services:
     }
     
     [Fact]
-    public void AddDockerComposeFile_ThrowsWhenFileNotFound()
+    public void AddDockerComposeFile_HandlesWhenFileNotFound()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         
-        var exception = Assert.Throws<FileNotFoundException>(() =>
-        {
-            builder.AddDockerComposeFile("mycompose", "/nonexistent/docker-compose.yml");
-        });
+        // This should not throw - it will log an error instead
+        var composeResource = builder.AddDockerComposeFile("mycompose", "/nonexistent/docker-compose.yml");
+        Assert.NotNull(composeResource);
         
-        Assert.Contains("Docker Compose file not found", exception.Message);
+        var app = builder.Build();
+        
+        // Verify the resource exists but no services were imported
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var composeFileResource = appModel.Resources.OfType<DockerComposeFileResource>().FirstOrDefault();
+        Assert.NotNull(composeFileResource);
     }
     
     [Fact]
@@ -154,6 +159,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
             // Verify that only cache service was created (app has build, no image)
@@ -200,6 +206,7 @@ services:
             builder.AddDockerComposeFile("mycompose", composeFilePath);
             
             var app = builder.Build();
+            
             var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
             
             var appResource = appModel.Resources.OfType<ContainerResource>()
@@ -233,6 +240,7 @@ services:
         builder.AddDockerComposeFile("testcompose", composeFilePath);
         
         var app = builder.Build();
+        
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
         // Verify all three services were created
@@ -270,4 +278,5 @@ services:
         var postgresVolumes = postgresResource.Annotations.OfType<ContainerMountAnnotation>();
         Assert.NotEmpty(postgresVolumes);
     }
+
 }
