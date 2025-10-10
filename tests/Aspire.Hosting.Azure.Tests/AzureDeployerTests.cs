@@ -923,6 +923,60 @@ public class AzureDeployerTests(ITestOutputHelper output)
         }
     }
 
+    [Fact]
+    public async Task DeployAsync_ShowsEndpointOnlyForExternalEndpoints()
+    {
+        // Arrange
+        var activityReporter = new TestPublishingActivityReporter();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: activityReporter);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add container with external endpoint
+        var externalContainer = builder.AddContainer("external-api", "external-image:latest")
+            .WithHttpEndpoint(port: 80, name: "http")
+            .WithExternalHttpEndpoints();
+
+        // Add container with internal endpoint only
+        var internalContainer = builder.AddContainer("internal-api", "internal-image:latest")
+            .WithHttpEndpoint(port: 80, name: "http");
+
+        // Add container with no endpoints
+        var noEndpointContainer = builder.AddContainer("worker", "worker-image:latest");
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert - Verify that external container shows URL in completion message
+        var externalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("external-api"));
+        Assert.NotNull(externalTask.CompletionMessage);
+        Assert.Contains("https://external-api.test.westus.azurecontainerapps.io", externalTask.CompletionMessage);
+
+        // Assert - Verify that internal container does NOT show URL in completion message
+        var internalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("internal-api"));
+        Assert.NotNull(internalTask.CompletionMessage);
+        Assert.DoesNotContain("https://", internalTask.CompletionMessage);
+        Assert.Equal("Successfully deployed internal-api", internalTask.CompletionMessage);
+
+        // Assert - Verify that container with no endpoints does NOT show URL in completion message
+        var noEndpointTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("worker"));
+        Assert.NotNull(noEndpointTask.CompletionMessage);
+        Assert.DoesNotContain("https://", noEndpointTask.CompletionMessage);
+        Assert.Equal("Successfully deployed worker", noEndpointTask.CompletionMessage);
+    }
+
     private sealed class Project : IProjectMetadata
     {
         public string ProjectPath => "project";
