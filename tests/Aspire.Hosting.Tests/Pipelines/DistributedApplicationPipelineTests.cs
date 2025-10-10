@@ -241,7 +241,7 @@ public class DistributedApplicationPipelineTests
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(context => new PipelineStep
+            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) =>
@@ -273,7 +273,7 @@ public class DistributedApplicationPipelineTests
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(context => new[]
+            .WithAnnotation(new PipelineStepAnnotation(() => new[]
             {
                 new PipelineStep
                 {
@@ -305,18 +305,15 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithDuplicateStepNames_ThrowsInvalidOperationException()
+    public void AddStep_WithDuplicateStepNames_ThrowsInvalidOperationException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
 
         pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
-        pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
 
-        var context = CreateDeployingContext(builder.Build());
-
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
-        Assert.Contains("Duplicate step name", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => pipeline.AddStep("step1", async (context) => await Task.CompletedTask));
+        Assert.Contains("A step with the name 'step1' has already been added", ex.Message);
         Assert.Contains("step1", ex.Message);
     }
 
@@ -586,6 +583,19 @@ public class DistributedApplicationPipelineTests
             pipeline.AddStep("step1", async (context) => await Task.CompletedTask, requiredBy: 123));
 
         Assert.Contains("The requiredBy parameter must be a string or IEnumerable<string>", exception.Message);
+    }
+
+    [Fact]
+    public void AddStep_WithDuplicateName_ThrowsInvalidOperationException()
+    {
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            pipeline.AddStep("step1", async (context) => await Task.CompletedTask));
+
+        Assert.Contains("A step with the name 'step1' has already been added to the pipeline", exception.Message);
     }
 
     private static DeployingContext CreateDeployingContext(DistributedApplication app)

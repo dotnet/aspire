@@ -146,8 +146,8 @@ internal class Publisher(
                 Path.GetFullPath(options.Value.OutputPath) : null);
 
             // Execute the pipeline - it will collect steps from PipelineStepAnnotation on resources
-            var builder = serviceProvider.GetRequiredService<IDistributedApplicationBuilder>();
-            await builder.Pipeline.ExecuteAsync(deployingContext).ConfigureAwait(false);
+            var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
+            await pipeline.ExecuteAsync(deployingContext).ConfigureAwait(false);
         }
         else
         {

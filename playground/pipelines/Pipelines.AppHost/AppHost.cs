@@ -58,8 +58,7 @@ builder.Pipeline.AddStep("assign-storage-role", async (context) =>
         return;
     }
 
-    var targetEnv = acaEnv.Resource;
-    var storageAccountName = targetEnv.Outputs["storagE_VOLUME_ACCOUNT_NAME"]?.ToString();
+    var storageAccountName = await acaEnv.GetOutput("storagE_VOLUME_ACCOUNT_NAME").GetValueAsync();
 
     if (string.IsNullOrEmpty(storageAccountName))
     {
@@ -261,8 +260,7 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (context) =>
     {
         var totalUploads = 0;
 
-        var targetEnv = acaEnv.Resource;
-        var storageAccountName = targetEnv.Outputs["storagE_VOLUME_ACCOUNT_NAME"]?.ToString();
+        var storageAccountName = await acaEnv.GetOutput("storagE_VOLUME_ACCOUNT_NAME").GetValueAsync();
         var resource = withBindMount.Resource;
 
         if (!resource.TryGetContainerMounts(out var mounts))
@@ -282,7 +280,7 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (context) =>
                 continue;
             }
 
-            var fileShareName = targetEnv.Outputs[$"shareS_{i}_NAME"]?.ToString();
+            var fileShareName = await acaEnv.GetOutput($"shareS_{i}_NAME").GetValueAsync();
 
             var uploadTask = await uploadStep
                 .CreateTaskAsync($"Uploading {Path.GetFileName(sourcePath)} to {fileShareName}", context.CancellationToken)

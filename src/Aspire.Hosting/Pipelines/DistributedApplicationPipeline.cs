@@ -4,10 +4,14 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREPIPELINES001
 
+using System.Diagnostics;
+using System.Globalization;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
+[DebuggerDisplay("{ToString(),nq}")]
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
     private readonly List<PipelineStep> _steps = [];
@@ -17,6 +21,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         object? dependsOn = null,
         object? requiredBy = null)
     {
+        if (_steps.Any(s => s.Name == name))
+        {
+            throw new InvalidOperationException(
+                $"A step with the name '{name}' has already been added to the pipeline.");
+        }
+
         var step = new PipelineStep
         {
             Name = name,
@@ -80,6 +90,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     public void AddStep(PipelineStep step)
     {
+        if (_steps.Any(s => s.Name == step.Name))
+        {
+            throw new InvalidOperationException(
+                $"A step with the name '{step.Name}' has already been added to the pipeline.");
+        }
+
         _steps.Add(step);
     }
 
@@ -94,9 +110,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         ValidateSteps(allSteps);
 
-        var registry = new PipelineRegistry(allSteps);
+        var stepsByName = allSteps.ToDictionary(s => s.Name);
 
-        var levels = ResolveDependencies(allSteps, registry);
+        var levels = ResolveDependencies(allSteps, stepsByName);
 
         foreach (var level in levels)
         {
@@ -114,7 +130,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             foreach (var annotation in annotations)
             {
-                foreach (var step in annotation.CreateSteps(context))
+                foreach (var step in annotation.CreateSteps())
                 {
                     yield return step;
                 }
@@ -159,7 +175,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     private static List<List<PipelineStep>> ResolveDependencies(
         IEnumerable<PipelineStep> steps,
-        IPipelineRegistry registry)
+        Dictionary<string, PipelineStep> stepsByName)
     {
         var graph = new Dictionary<string, List<string>>();
         var inDegree = new Dictionary<string, int>();
@@ -180,8 +196,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
-                var requiredByStepObj = registry.GetStep(requiredByStep);
-                if (requiredByStepObj != null && !requiredByStepObj.Dependencies.Contains(step.Name))
+                if (stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj) &&
+                    !requiredByStepObj.Dependencies.Contains(step.Name))
                 {
                     requiredByStepObj.Dependencies.Add(step.Name);
                 }
@@ -216,7 +232,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             for (var i = 0; i < levelSize; i++)
             {
                 var stepName = queue.Dequeue();
-                var step = registry.GetStep(stepName)!;
+                var step = stepsByName[stepName];
                 currentLevel.Add(step);
 
                 foreach (var dependent in graph[stepName])
@@ -254,13 +270,33 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private sealed class PipelineRegistry(IEnumerable<PipelineStep> steps) : IPipelineRegistry
+    public override string ToString()
     {
-        private readonly Dictionary<string, PipelineStep> _stepsByName = steps.ToDictionary(s => s.Name);
+        if (_steps.Count == 0)
+        {
+            return "Pipeline: (empty)";
+        }
 
-        public IEnumerable<PipelineStep> GetAllSteps() => _stepsByName.Values;
+        var sb = new StringBuilder();
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Pipeline with {_steps.Count} step(s):");
 
-        public PipelineStep? GetStep(string name) =>
-            _stepsByName.TryGetValue(name, out var step) ? step : null;
+        foreach (var step in _steps)
+        {
+            sb.Append(CultureInfo.InvariantCulture, $"  - {step.Name}");
+
+            if (step.Dependencies.Count > 0)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $" [depends on: {string.Join(", ", step.Dependencies)}]");
+            }
+
+            if (step.RequiredBy.Count > 0)
+            {
+                sb.Append(CultureInfo.InvariantCulture, $" [required by: {string.Join(", ", step.RequiredBy)}]");
+            }
+
+            sb.AppendLine();
+        }
+
+        return sb.ToString();
     }
 }

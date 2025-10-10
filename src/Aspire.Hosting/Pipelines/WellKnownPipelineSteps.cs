@@ -17,9 +17,9 @@ public static class WellKnownPipelineSteps
     public const string ProvisionInfrastructure = "provision-infra";
 
     /// <summary>
-    /// The step that builds container images.
+    /// The step that builds compute resources.
     /// </summary>
-    public const string BuildImages = "build-images";
+    public const string BuildCompute = "build-compute";
 
     /// <summary>
     /// The step that deploys to compute infrastructure.

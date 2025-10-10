@@ -418,7 +418,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
         _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
-        _innerBuilder.Services.AddSingleton<IPipelineOutputs, InMemoryPipelineOutputs>();
+        _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)

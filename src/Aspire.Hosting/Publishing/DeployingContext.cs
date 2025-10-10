@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,7 +27,7 @@ public sealed class DeployingContext(
     string? outputPath)
 {
     private IPublishingActivityReporter? _activityReporter;
-    private IPipelineOutputs? _pipelineOutputs;
+    private readonly Dictionary<string, object> _pipelineOutputs = new();
 
     /// <summary>
     /// Gets the distributed application model to be deployed.
@@ -67,12 +66,6 @@ public sealed class DeployingContext(
     public string? OutputPath { get; } = outputPath;
 
     /// <summary>
-    /// Gets the pipeline outputs manager for passing data between pipeline steps.
-    /// </summary>
-    internal IPipelineOutputs PipelineOutputs => _pipelineOutputs ??=
-        Services.GetService<IPipelineOutputs>() ?? new InMemoryPipelineOutputs();
-
-    /// <summary>
     /// Sets an output value that can be consumed by dependent pipeline steps.
     /// </summary>
     /// <typeparam name="T">The type of the output value.</typeparam>
@@ -80,7 +73,8 @@ public sealed class DeployingContext(
     /// <param name="value">The value to store.</param>
     public void SetPipelineOutput<T>(string key, T value)
     {
-        PipelineOutputs.Set(key, value);
+        ArgumentNullException.ThrowIfNull(value);
+        _pipelineOutputs[key] = value;
     }
 
     /// <summary>
@@ -92,7 +86,13 @@ public sealed class DeployingContext(
     /// <returns>True if the output was found and is of the expected type; otherwise, false.</returns>
     public bool TryGetPipelineOutput<T>(string key, [NotNullWhen(true)] out T? value)
     {
-        return PipelineOutputs.TryGet(key, out value);
+        if (_pipelineOutputs.TryGetValue(key, out var obj) && obj is T typed)
+        {
+            value = typed;
+            return true;
+        }
+        value = default;
+        return false;
     }
 
     /// <summary>

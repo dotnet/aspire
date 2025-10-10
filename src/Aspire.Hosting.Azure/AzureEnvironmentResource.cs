@@ -59,31 +59,31 @@ public sealed class AzureEnvironmentResource : Resource
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
 
-        Annotations.Add(new PipelineStepAnnotation(context =>
+        Annotations.Add(new PipelineStepAnnotation(() =>
         {
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
-                Action = ctx => ValidateAzureCliLoginAsync(ctx, context)
+                Action = ctx => ValidateAzureCliLoginAsync(ctx)
             };
 
             var provisionStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.ProvisionInfrastructure,
-                Action = ctx => ProvisionAzureBicepResourcesAsync(context.Model, ctx, context)
+                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx)
             };
             provisionStep.DependsOn(validateStep);
 
             var buildStep = new PipelineStep
             {
-                Name = WellKnownPipelineSteps.BuildImages,
-                Action = ctx => BuildContainerImagesAsync(context.Model, ctx, context)
+                Name = WellKnownPipelineSteps.BuildCompute,
+                Action = ctx => BuildContainerImagesAsync(ctx)
             };
 
             var pushStep = new PipelineStep
             {
                 Name = "push-container-images",
-                Action = ctx => PushContainerImagesAsync(context.Model, ctx, context)
+                Action = ctx => PushContainerImagesAsync(ctx)
             };
             pushStep.DependsOn(buildStep);
             pushStep.DependsOn(provisionStep);
@@ -91,12 +91,19 @@ public sealed class AzureEnvironmentResource : Resource
             var deployStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.DeployCompute,
-                Action = ctx => DeployComputeResourcesAsync(context.Model, ctx, context)
+                Action = ctx => DeployComputeResourcesAsync(ctx)
             };
             deployStep.DependsOn(pushStep);
             deployStep.DependsOn(provisionStep);
 
-            return [validateStep, provisionStep, buildStep, pushStep, deployStep];
+            var printDashboardUrlStep = new PipelineStep
+            {
+                Name = "print-dashboard-url",
+                Action = ctx => PrintDashboardUrlAsync(ctx)
+            };
+            printDashboardUrlStep.DependsOn(deployStep);
+
+            return [validateStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -119,9 +126,9 @@ public sealed class AzureEnvironmentResource : Resource
         return publishingContext.WriteModelAsync(context.Model, this);
     }
 
-    private static async Task ValidateAzureCliLoginAsync(DeployingContext context, DeployingContext resourceContext)
+    private static async Task ValidateAzureCliLoginAsync(DeployingContext context)
     {
-        var tokenCredentialProvider = resourceContext.Services.GetRequiredService<ITokenCredentialProvider>();
+        var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
         if (tokenCredentialProvider.TokenCredential is not AzureCliCredential azureCliCredential)
         {
@@ -154,15 +161,12 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(
-        DistributedApplicationModel model,
-        DeployingContext context,
-        DeployingContext resourceContext)
+    private static async Task ProvisionAzureBicepResourcesAsync(DeployingContext context)
     {
-        var provisioningContextProvider = resourceContext.Services.GetRequiredService<IProvisioningContextProvider>();
-        var deploymentStateManager = resourceContext.Services.GetRequiredService<IDeploymentStateManager>();
-        var bicepProvisioner = resourceContext.Services.GetRequiredService<IBicepProvisioner>();
-        var configuration = resourceContext.Services.GetRequiredService<IConfiguration>();
+        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
 
         var userSecrets = await deploymentStateManager.LoadStateAsync(context.CancellationToken)
             .ConfigureAwait(false);
@@ -180,7 +184,7 @@ public sealed class AzureEnvironmentResource : Resource
 
         context.SetPipelineOutput("ProvisioningContext", provisioningContext);
 
-        var bicepResources = model.Resources.OfType<AzureBicepResource>()
+        var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
             .Where(r => r.ProvisioningTaskCompletionSource == null ||
                        !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
@@ -259,14 +263,11 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task BuildContainerImagesAsync(
-        DistributedApplicationModel model,
-        DeployingContext context,
-        DeployingContext resourceContext)
+    private static async Task BuildContainerImagesAsync(DeployingContext context)
     {
-        var containerImageBuilder = resourceContext.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
-        var computeResources = model.GetComputeResources()
+        var computeResources = context.Model.GetComputeResources()
             .Where(r => r.RequiresImageBuildAndPush())
             .ToList();
 
@@ -295,16 +296,13 @@ public sealed class AzureEnvironmentResource : Resource
             context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task PushContainerImagesAsync(
-        DistributedApplicationModel model,
-        DeployingContext context,
-        DeployingContext resourceContext)
+    private static async Task PushContainerImagesAsync(DeployingContext context)
     {
-        var containerImageBuilder = resourceContext.Services.GetRequiredService<IResourceContainerImageBuilder>();
-        var processRunner = resourceContext.Services.GetRequiredService<IProcessRunner>();
-        var configuration = resourceContext.Services.GetRequiredService<IConfiguration>();
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var processRunner = context.Services.GetRequiredService<IProcessRunner>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
 
-        var computeResources = model.GetComputeResources()
+        var computeResources = context.Model.GetComputeResources()
             .Where(r => r.RequiresImageBuildAndPush())
             .ToList();
 
@@ -334,15 +332,11 @@ public sealed class AzureEnvironmentResource : Resource
             .ConfigureAwait(false);
     }
 
-    private static async Task DeployComputeResourcesAsync(
-        DistributedApplicationModel model,
-        DeployingContext context,
-        DeployingContext resourceContext)
+    private static async Task DeployComputeResourcesAsync(DeployingContext context)
     {
-        var bicepProvisioner = resourceContext.Services.GetRequiredService<IBicepProvisioner>();
-
         var provisioningContext = context.GetPipelineOutput<ProvisioningContext>("ProvisioningContext");
-        var computeResources = model.GetComputeResources().ToList();
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var computeResources = context.Model.GetComputeResources().ToList();
 
         if (computeResources.Count == 0)
         {
@@ -678,5 +672,49 @@ public sealed class AzureEnvironmentResource : Resource
         }
 
         return string.Empty;
+    }
+
+    private static async Task PrintDashboardUrlAsync(DeployingContext context)
+    {
+        var dashboardUrl = TryGetDashboardUrl(context.Model);
+
+        if (dashboardUrl != null)
+        {
+            var urlStep = await context.ActivityReporter
+                .CreateStepAsync("Dashboard URL available", context.CancellationToken)
+                .ConfigureAwait(false);
+
+            await using (urlStep.ConfigureAwait(false))
+            {
+                await urlStep.SucceedAsync(
+                    $"Dashboard available at: {dashboardUrl}",
+                    context.CancellationToken).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private static string? TryGetDashboardUrl(DistributedApplicationModel model)
+    {
+        foreach (var resource in model.Resources)
+        {
+            if (resource is IAzureComputeEnvironmentResource &&
+                resource is AzureBicepResource environmentBicepResource)
+            {
+                // If the resource is a compute environment, we can use its properties
+                // to construct the dashboard URL.
+                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
+                {
+                    return $"https://aspire-dashboard.ext.{domainValue}";
+                }
+                // If the resource is a compute environment (app service), we can use its properties
+                // to get the dashboard URL.
+                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_APP_SERVICE_DASHBOARD_URI", out var dashboardUri))
+                {
+                    return (string?)dashboardUri;
+                }
+            }
+        }
+
+        return null;
     }
 }

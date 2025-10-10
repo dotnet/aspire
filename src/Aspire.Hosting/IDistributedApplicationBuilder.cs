@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPIPELINES001
 
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
@@ -132,6 +133,7 @@ public interface IDistributedApplicationBuilder
     /// The pipeline allows adding custom deployment steps that execute during the deploy process.
     /// Steps can declare dependencies on other steps to control execution order.
     /// </remarks>
+    [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public IDistributedApplicationPipeline Pipeline { get; }
 
     /// <summary>
