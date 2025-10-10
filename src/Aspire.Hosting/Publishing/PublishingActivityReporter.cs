@@ -372,16 +372,25 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                         if (responses is not null)
                         {
                             var dtos = new List<InputDto>();
-                            foreach (var responseAnswer in responses)
+                            for (var i = 0; i < responses.Length; i++)
                             {
-                                if (responseAnswer.Name != null && inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out var matchingInput))
+                                var responseAnswer = responses[i];
+                                InteractionInput? matchingInput;
+
+                                if (responseAnswer.Name != null)
                                 {
-                                    dtos.Add(new InputDto(matchingInput.Name, responseAnswer.Value ?? "", matchingInput.InputType));
+                                    if (!inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out matchingInput))
+                                    {
+                                        _logger.LogWarning("Unable to match answer with name '{InputName}' to an input.", responseAnswer.Name);
+                                        continue;
+                                    }
                                 }
                                 else
                                 {
-                                    _logger.LogWarning("Unable to match answer with name '{InputName}' to an input.", responseAnswer.Name);
+                                    matchingInput = inputsInfo.Inputs[i];
                                 }
+
+                                dtos.Add(new InputDto(matchingInput.Name, responseAnswer.Value ?? "", matchingInput.InputType));
                             }
 
                             DashboardServiceData.ProcessInputs(

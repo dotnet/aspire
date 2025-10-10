@@ -334,6 +334,10 @@ message WatchInteractionsRequestUpdate {
         InteractionInputsDialog inputs_dialog = 4;
         InteractionNotification notification = 5;
     }
+
+    // A flag indicating that the message is an update and shouldn't complete the interaction.
+    // Currently only used for inputs dialog updates.
+    optional bool response_update = 6;
 }
 // A message received from the server when watching interactions. Has multiple types of payload.
 message WatchInteractionsResponseUpdate {
@@ -373,7 +377,6 @@ message InteractionNotification {
 // Represents a dialog that collects inputs from the user.
 message InteractionInputsDialog {
     repeated InteractionInput input_items = 1;
-    optional bool depend_on_change = 2;
 }
 // Represents an input item in an interaction dialog.
 message InteractionInput {

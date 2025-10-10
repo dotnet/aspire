@@ -143,8 +143,7 @@ public partial class InteractionsInputDialog
 
             if (inputModel.Input.UpdateStateOnChange)
             {
-                Content.Interaction.InputsDialog?.DependOnChange = true;
-                _ = Content.OnSubmitCallback(Content.Interaction);
+                _ = Content.OnSubmitCallback(Content.Interaction, true);
             }
         }
 
@@ -178,8 +177,7 @@ public partial class InteractionsInputDialog
         // 4. If validation fails, the server sends back validation errors which are displayed in the dialog.
         if (_editContext.Validate())
         {
-            Content.Interaction.InputsDialog?.DependOnChange = false;
-            await Content.OnSubmitCallback(Content.Interaction);
+            await Content.OnSubmitCallback(Content.Interaction, false);
         }
     }
 

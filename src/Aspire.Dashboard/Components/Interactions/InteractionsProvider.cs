@@ -231,12 +231,13 @@ public class InteractionsProvider : ComponentBase, IAsyncDisposable
                     {
                         Interaction = item,
                         Message = GetMessageHtml(item),
-                        OnSubmitCallback = async savedInteraction =>
+                        OnSubmitCallback = async (savedInteraction, update) =>
                         {
                             var request = new WatchInteractionsRequestUpdate
                             {
                                 InteractionId = savedInteraction.InteractionId,
-                                InputsDialog = savedInteraction.InputsDialog
+                                InputsDialog = savedInteraction.InputsDialog,
+                                ResponseUpdate = update
                             };
 
                             await DashboardClient.SendInteractionRequestAsync(request, _cts.Token).ConfigureAwait(false);

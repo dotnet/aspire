@@ -618,10 +618,12 @@ internal abstract class PublishCommandBase : BaseCommand
         if (!sendUpdateResponse)
         {
             promptState.InputIndex = 0;
+            await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
         }
-
-        // Send all results as an array
-        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers.ToArray(), updateResponse: sendUpdateResponse, cancellationToken);
+        else
+        {
+            await backchannel.UpdatePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
+        }
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)

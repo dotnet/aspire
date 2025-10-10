@@ -177,11 +177,11 @@ internal sealed class DashboardServiceData : IDisposable
                             logger,
                             inputsInfo,
                             request.InputsDialog.InputItems.Select(i => new InputDto(i.Name, i.Value, DashboardService.MapInputType(i.InputType))).ToList(),
-                            request.InputsDialog.DependOnChange,
+                            request.ResponseUpdate,
                             interaction.CancellationToken);
 
                         // If the interaction was sent to the server because an input changed, don't try to complete the interaction.
-                        return new InteractionCompletionState { Complete = !request.InputsDialog.DependOnChange, State = inputsInfo.Inputs };
+                        return new InteractionCompletionState { Complete = !request.ResponseUpdate, State = inputsInfo.Inputs };
                     default:
                         return new InteractionCompletionState { Complete = true };
                 }

@@ -465,7 +465,7 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task CompleteInteractionAsync_ProcessesUserResponsesCorrectly()
+    public async Task CompleteInteractionAsync_WithName_ProcessesUserResponsesCorrectly()
     {
         // Arrange
         var reporter = CreatePublishingReporter();
@@ -483,6 +483,35 @@ public class PublishingActivityReporterTests
         Assert.Equal("Text", input.InputType);
 
         var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Name = "text_label", Value = "user-response" } };
+
+        // Act
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
+
+        // The prompt task should complete with the user's response
+        var promptResult = await promptTask.DefaultTimeout();
+        Assert.False(promptResult.Canceled);
+        Assert.Equal("user-response", promptResult.Data?.Value);
+    }
+
+    [Fact]
+    public async Task CompleteInteractionAsync_WithoutName_ProcessesUserResponsesCorrectly()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        // Start a prompt interaction
+        var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
+
+        // Get the interaction ID from the activity that was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var promptId = activity.Data.Id;
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("text-label", input.Label);
+        Assert.Equal("Text", input.InputType);
+
+        var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
         await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
