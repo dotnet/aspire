@@ -336,64 +336,77 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
             Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
-            // Add projects to solution
-            initContext.AddProjectsToSolutionOutputCollector = new OutputCollector();
-            var addResult = await InteractionService.ShowStatusAsync(
-                InitCommandStrings.AddingProjectsToSolution,
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+
+            // Add AppHost project to solution
+            initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
+            var addAppHostResult = await InteractionService.ShowStatusAsync(
+                "Adding AppHost project to solution...",
                 async () =>
                 {
-                    var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-                    var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
-
                     var options = new DotNetCliRunnerInvocationOptions
                     {
-                        StandardOutputCallback = initContext.AddProjectsToSolutionOutputCollector.AppendOutput,
-                        StandardErrorCallback = initContext.AddProjectsToSolutionOutputCollector.AppendError
+                        StandardOutputCallback = initContext.AddAppHostToSolutionOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.AddAppHostToSolutionOutputCollector.AppendError
                     };
 
-                    var addAppHostResult = await _runner.AddProjectToSolutionAsync(
+                    return await _runner.AddProjectToSolutionAsync(
                         solutionFile, 
                         appHostProjectFile, 
                         options, 
                         cancellationToken);
-                    
-                    if (addAppHostResult != 0)
-                    {
-                        return addAppHostResult;
-                    }
+                });
+            
+            if (addAppHostResult != 0)
+            {
+                InteractionService.DisplayLines(initContext.AddAppHostToSolutionOutputCollector.GetLines());
+                InteractionService.DisplayError($"Failed to add AppHost project to solution. Exit code: {addAppHostResult}");
+                return addAppHostResult;
+            }
 
-                    var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
+            // Add ServiceDefaults project to solution
+            initContext.AddServiceDefaultsToSolutionOutputCollector = new OutputCollector();
+            var addServiceDefaultsResult = await InteractionService.ShowStatusAsync(
+                "Adding ServiceDefaults project to solution...",
+                async () =>
+                {
+                    var options = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = initContext.AddServiceDefaultsToSolutionOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.AddServiceDefaultsToSolutionOutputCollector.AppendError
+                    };
+
+                    return await _runner.AddProjectToSolutionAsync(
                         solutionFile, 
                         serviceDefaultsProjectFile, 
                         options, 
                         cancellationToken);
-                    
-                    return addServiceDefaultsResult;
                 });
             
-            if (addResult != 0)
+            if (addServiceDefaultsResult != 0)
             {
-                InteractionService.DisplayLines(initContext.AddProjectsToSolutionOutputCollector.GetLines());
-                InteractionService.DisplayError($"Failed to add projects to solution. Exit code: {addResult}");
-                return addResult;
+                InteractionService.DisplayLines(initContext.AddServiceDefaultsToSolutionOutputCollector.GetLines());
+                InteractionService.DisplayError($"Failed to add ServiceDefaults project to solution. Exit code: {addServiceDefaultsResult}");
+                return addServiceDefaultsResult;
             }
-
-            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
 
             // Add selected projects to appHost
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
-                initContext.AddProjectReferenceOutputCollector = new OutputCollector();
+                initContext.AddProjectReferenceOutputCollectors = new List<OutputCollector>();
                 foreach(var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
+                    var outputCollector = new OutputCollector();
+                    initContext.AddProjectReferenceOutputCollectors.Add(outputCollector);
+
                     var addRefResult = await InteractionService.ShowStatusAsync(
                         $"Adding {project.ProjectFile.Name} to AppHost...", async () =>
                         {
                             var options = new DotNetCliRunnerInvocationOptions
                             {
-                                StandardOutputCallback = initContext.AddProjectReferenceOutputCollector.AppendOutput,
-                                StandardErrorCallback = initContext.AddProjectReferenceOutputCollector.AppendError
+                                StandardOutputCallback = outputCollector.AppendOutput,
+                                StandardErrorCallback = outputCollector.AppendError
                             };
 
                             return await _runner.AddProjectReferenceAsync(
@@ -405,7 +418,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayLines(initContext.AddProjectReferenceOutputCollector.GetLines());
+                        InteractionService.DisplayLines(outputCollector.GetLines());
                         InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
@@ -415,16 +428,19 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Add ServiceDefaults references to selected projects
             if (initContext.ProjectsToAddServiceDefaultsTo.Count > 0)
             {
-                initContext.AddServiceDefaultsReferenceOutputCollector = new OutputCollector();
+                initContext.AddServiceDefaultsReferenceOutputCollectors = new List<OutputCollector>();
                 foreach (var project in initContext.ProjectsToAddServiceDefaultsTo)
                 {
+                    var outputCollector = new OutputCollector();
+                    initContext.AddServiceDefaultsReferenceOutputCollectors.Add(outputCollector);
+
                     var addRefResult = await InteractionService.ShowStatusAsync(
                         $"Adding ServiceDefaults reference to {project.ProjectFile.Name}...", async () =>
                         {
                             var options = new DotNetCliRunnerInvocationOptions
                             {
-                                StandardOutputCallback = initContext.AddServiceDefaultsReferenceOutputCollector.AppendOutput,
-                                StandardErrorCallback = initContext.AddServiceDefaultsReferenceOutputCollector.AppendError
+                                StandardOutputCallback = outputCollector.AppendOutput,
+                                StandardErrorCallback = outputCollector.AppendError
                             };
 
                             return await _runner.AddProjectReferenceAsync(
@@ -436,7 +452,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayLines(initContext.AddServiceDefaultsReferenceOutputCollector.GetLines());
+                        InteractionService.DisplayLines(outputCollector.GetLines());
                         InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
@@ -775,17 +791,22 @@ internal sealed class InitContext
     public OutputCollector? NewProjectOutputCollector { get; set; }
 
     /// <summary>
-    /// OutputCollector for AddProjectsToSolution operation.
+    /// OutputCollector for AddAppHostToSolution operation.
     /// </summary>
-    public OutputCollector? AddProjectsToSolutionOutputCollector { get; set; }
+    public OutputCollector? AddAppHostToSolutionOutputCollector { get; set; }
 
     /// <summary>
-    /// OutputCollector for AddProjectReference operations.
+    /// OutputCollector for AddServiceDefaultsToSolution operation.
     /// </summary>
-    public OutputCollector? AddProjectReferenceOutputCollector { get; set; }
+    public OutputCollector? AddServiceDefaultsToSolutionOutputCollector { get; set; }
 
     /// <summary>
-    /// OutputCollector for AddServiceDefaultsReference operations.
+    /// OutputCollectors for AddProjectReference operations (one per project reference added).
     /// </summary>
-    public OutputCollector? AddServiceDefaultsReferenceOutputCollector { get; set; }
+    public List<OutputCollector>? AddProjectReferenceOutputCollectors { get; set; }
+
+    /// <summary>
+    /// OutputCollectors for AddServiceDefaultsReference operations (one per ServiceDefaults reference added).
+    /// </summary>
+    public List<OutputCollector>? AddServiceDefaultsReferenceOutputCollectors { get; set; }
 }
