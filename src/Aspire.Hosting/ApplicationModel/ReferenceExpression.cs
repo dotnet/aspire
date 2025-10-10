@@ -12,8 +12,16 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
 {
+    /// <summary>
+    /// Represents an empty reference expression with no name, value providers, or arguments.
+    /// </summary>
+    /// <remarks>Use this field to represent a default or uninitialized reference expression. The instance has
+    /// an empty name and contains no value providers or arguments.</remarks>
+    public static readonly ReferenceExpression Empty = Create(string.Empty, Array.Empty<IValueProvider>(), Array.Empty<string>());
+
     private readonly string[] _manifestExpressions;
 
+    /// <inheritdoc/>
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions)
     {
         ArgumentNullException.ThrowIfNull(format);
@@ -113,8 +121,18 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a formatted value to the expression.
         /// </summary>
         /// <param name="value">The formatted string to be appended to the interpolated string.</param>
-        public readonly void AppendFormatted(string? value)
+        /// <param name="format"></param>
+        public readonly void AppendFormatted(string? value, string? format = null)
         {
+            if (format is not null)
+            {
+                value = format.ToLowerInvariant() switch
+                {
+                    "uri" => Uri.EscapeDataString(value ?? ""),
+                    _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
+                };
+            }
+
             // The value that comes in is a literal string that is not meant to be interpreted.
             // But the _builder later gets treated as a format string, so we just need to escape the braces.
             if (value is not null)
@@ -127,29 +145,45 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
+        public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
         {
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
-            _valueProviders.Add(valueProvider);
-            _manifestExpressions.Add(valueProvider.ValueExpression);
+            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            {
+                "uri" => new UrlEncoderProvider<T>(valueProvider),
+                null => new NullEncoderProvider<T>(valueProvider),
+                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
+            };
+
+            _valueProviders.Add(encoder);
+            _manifestExpressions.Add(encoder.ValueExpression);
         }
 
         /// <summary>
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
             where T : IResource, IValueProvider, IManifestExpressionProvider
         {
             var index = _valueProviders.Count;
             _builder.Append(CultureInfo.InvariantCulture, $"{{{index}}}");
 
-            _valueProviders.Add(valueProvider.Resource);
-            _manifestExpressions.Add(valueProvider.Resource.ValueExpression);
+            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            {
+                "uri" => new UrlEncoderProvider<T>(valueProvider.Resource),
+                null => new NullEncoderProvider<T>(valueProvider.Resource),
+                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
+            };
+
+            _valueProviders.Add(encoder);
+            _manifestExpressions.Add(encoder.ValueExpression);
         }
 
         internal readonly ReferenceExpression GetExpression() =>
@@ -291,21 +325,37 @@ public class ReferenceExpressionBuilder
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        public void AppendFormatted<T>(T valueProvider) where T : IValueProvider, IManifestExpressionProvider
+        public void AppendFormatted<T>(T valueProvider, string? format = null) where T : IValueProvider, IManifestExpressionProvider
         {
-            builder.AppendFormatted(valueProvider);
+            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            {
+                "uri" => new UrlEncoderProvider<T>(valueProvider),
+                null => new NullEncoderProvider<T>(valueProvider),
+                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
+            };
+
+            builder.AppendFormatted(encoder);
         }
 
         /// <summary>
         /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
         /// </summary>
         /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
+        /// <param name="format"></param>
         /// <exception cref="InvalidOperationException"></exception>
-        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider)
+        public void AppendFormatted<T>(IResourceBuilder<T> valueProvider, string? format = null)
             where T : IResource, IValueProvider, IManifestExpressionProvider
         {
-            builder.AppendFormatted(valueProvider.Resource);
+            IEncoderProvider encoder = format?.ToLowerInvariant() switch
+            {
+                "uri" => new UrlEncoderProvider<T>(valueProvider.Resource),
+                null => new NullEncoderProvider<T>(valueProvider.Resource),
+                _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
+            };
+
+            builder.AppendFormatted(encoder);
         }
     }
 }

@@ -33,21 +33,10 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     IEnumerable<object> IValueWithReferences.References => [ConnectionStringExpression];
 
     /// <summary>
-    /// Retrieves a read-only collection of key-value pairs that describe the current connection's properties.
+    /// Retrieves a collection of connection property name and value pairs associated with the current context.
     /// </summary>
-    /// <remarks>The returned dictionary may include provider-specific properties such as server version,
-    /// connection state, or authentication details. The set of available properties depends on the implementation and
-    /// the current connection context.</remarks>
-    /// <returns>An <see cref="IReadOnlyDictionary{String, Object}"/> containing the names and values of the connection
-    /// properties. The dictionary is empty if no properties are available.</returns>
-    IReadOnlyDictionary<string, ReferenceExpression> GetConnectionProperties() => new Dictionary<string, ReferenceExpression>();
-}
-
-/// <summary>
-/// Represents a resource that exposes a set of properties of type <typeparamref name="T"/> and provides access via a
-/// connection string.
-/// </summary>
-/// <typeparam name="T">The type of the properties associated with the resource.</typeparam>
-public interface IResourceWithConnectionProperties<T> : IResourceWithConnectionString where T : struct
-{
+    /// <returns>An enumerable collection of key/value pairs, where each key is the name of a connection property and each value
+    /// is its corresponding <see cref="ReferenceExpression"/>. The collection is empty if there are no connection
+    /// properties.</returns>
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> GetConnectionProperties() => [];
 }

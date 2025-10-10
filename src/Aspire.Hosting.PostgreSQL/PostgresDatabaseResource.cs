@@ -14,7 +14,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <param name="databaseName">The database name.</param>
 /// <param name="postgresParentResource">The PostgreSQL parent resource associated with this database.</param>
 public class PostgresDatabaseResource(string name, string databaseName, PostgresServerResource postgresParentResource)
-    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString, IResourceWithConnectionProperties<ProstresDatabaseConnectionProperties>
+    : Resource(name), IResourceWithParent<PostgresServerResource>, IResourceWithConnectionString
 {
     /// <summary>
     /// Gets the parent PostgresSQL container resource.
@@ -48,12 +48,12 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     }
 
     internal ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName}");
+        ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
 
-    IReadOnlyDictionary<string, ReferenceExpression> IResourceWithConnectionString.GetConnectionProperties() =>
-        new Dictionary<string, ReferenceExpression>(((IResourceWithConnectionString)Parent).GetConnectionProperties(), StringComparer.OrdinalIgnoreCase)
-        {
-            ["Database"] = ReferenceExpression.Create($"{DatabaseName}"),
-            ["Uri"] = ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName}"),
-        };
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
+            .Union([
+                new ("Database", ReferenceExpression.Create($"{DatabaseName}")),
+                new ("Uri", UriExpression),
+            ]);
 }

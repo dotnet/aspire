@@ -14,11 +14,6 @@ public class EnvironmentCallbackAnnotation : IResourceAnnotation
     private readonly string? _name;
 
     /// <summary>
-    /// Gets or sets the unique identifier associated with the object.
-    /// </summary>
-    public object Identifier { get; set; } = new();
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="EnvironmentCallbackAnnotation"/> class with the specified name and callback function.
     /// </summary>
     /// <param name="name">The name of the environment variable to set.</param>

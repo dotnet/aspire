@@ -460,101 +460,17 @@ public static class ResourceBuilderExtensions
             var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
 
             context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
-        })
-        .WithConnectionProperties(source);
-    }
 
-    /// <summary>
-    /// Configures the destination resource builder to include connection string properties from the specified source
-    /// resource builder, optionally using a prefix for environment variable names.
-    /// </summary>
-    /// <remarks>Use this method to propagate connection string properties from one resource to another, such
-    /// as when configuring dependent resources in an environment. The prefix parameter allows customization of
-    /// environment variable naming to avoid conflicts or to match expected naming conventions.</remarks>
-    /// <typeparam name="TDestination">The type of the destination resource, which must implement IResourceWithEnvironment.</typeparam>
-    /// <param name="builder">The resource builder for the destination resource to be configured.</param>
-    /// <param name="source">The resource builder that provides the connection string properties to be applied.</param>
-    /// <param name="prefix">An optional prefix to use for environment variable names. If null, the source resource's name in uppercase
-    /// followed by an underscore is used.</param>
-    /// <returns>A resource builder for the destination resource with the connection string properties applied from the source.</returns>
-    public static IResourceBuilder<TDestination> WithConnectionProperties<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? prefix = null)
-        where TDestination : IResourceWithEnvironment
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
-
-        const string annotationIdentifier = "WithConnectionProperties";
-
-        var resource = source.Resource;
-
-        builder.WithConnectionPropertiesRemoved(source);
-
-        var annotation = new EnvironmentCallbackAnnotation(context =>
-        {
-            var defaultPrefix = $"{resource.Name.ToUpperInvariant()}_";
-            var propertiesPrefix = prefix ?? defaultPrefix;
-
-            SplatConnectionProperties(resource, propertiesPrefix, context);
-        });
-
-        annotation.Identifier = annotationIdentifier;
-
-        return builder.WithAnnotation(annotation);
-    }
-
-    /// <summary>
-    /// Removes connection-related properties and associated environment callbacks from the resource builder.
-    /// </summary>
-    /// <remarks>Use this method to ensure that any connection string properties and their associated
-    /// environment callbacks are removed from the resource builder, typically when reconfiguring or sanitizing
-    /// resources before deployment or further customization.</remarks>
-    /// <typeparam name="TDestination">The type of the destination resource, which must implement IResourceWithEnvironment.</typeparam>
-    /// <param name="builder">The resource builder to modify by removing connection properties.</param>
-    /// <param name="source">The source resource builder containing the connection properties to be removed.</param>
-    /// <returns>The same resource builder instance with connection properties and related callbacks removed.</returns>
-    public static IResourceBuilder<TDestination> WithConnectionPropertiesRemoved<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source)
-        where TDestination : IResourceWithEnvironment
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(source);
-
-        const string annotationIdentifier = "WithConnectionProperties";
-
-        var resource = source.Resource;
-
-        // Remove existing callbacks to avoid duplicates. This could also be done by removing default existing keys.
-
-        if (builder.Resource.TryGetAnnotationsOfType<EnvironmentCallbackAnnotation>(out var existingAnnotations))
-        {
-            foreach (var existingAnnotation in existingAnnotations.Where(a => a.Identifier.Equals(annotationIdentifier)))
+            var prefix = connectionName switch
             {
-                builder.Resource.Annotations.Remove(existingAnnotation);
-            }
-        }
+                null => $"{resource.Name.ToUpperInvariant()}_",
+                "" => "",
+                _ => $"{connectionName.ToUpperInvariant()}_"
 
-        return builder;
-    }
+            };
 
-    /// <summary>
-    /// Retrieves the value of a connection property associated with the specified key from the resource.
-    /// </summary>
-    /// <remarks>If the resource implements IResourceWithConnectionString, the method attempts to retrieve the
-    /// property value using the string representation of the key. Otherwise, it returns an empty string.</remarks>
-    /// <typeparam name="T">The type of the key used to identify the connection property. Must be a value type.</typeparam>
-    /// <param name="resource">The resource that contains connection properties. Cannot be null.</param>
-    /// <param name="key">The key identifying the connection property to retrieve.</param>
-    /// <returns>The value of the connection property associated with the specified key, or an empty string if the resource does
-    /// not support connection string properties.</returns>
-    public static ReferenceExpression GetConnectionProperty<T>(this IResourceWithConnectionProperties<T> resource, T key) where T : struct
-    {
-        ArgumentNullException.ThrowIfNull(resource);
-
-        if (resource is IResourceWithConnectionString resourceWithConnectionString)
-        {
-            return resourceWithConnectionString.GetConnectionProperties()[key.ToString()!];
-        }
-
-        return ReferenceExpression.Create($"");
+            SplatConnectionProperties(resource, prefix, context);
+        });
     }
 
     /// <summary>
@@ -567,7 +483,15 @@ public static class ResourceBuilderExtensions
     /// <returns>The value associated with the specified connection property key.</returns>
     public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
     {
-        return resource.GetConnectionProperties()[key];
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return connectionProperty.Value;
+            }
+        }
+
+        return ReferenceExpression.Empty;
     }
 
     private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)

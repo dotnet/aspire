@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// A resource that represents a PostgreSQL container.
 /// </summary>
-public class PostgresServerResource : ContainerResource, IResourceWithConnectionString, IResourceWithConnectionProperties<ProstresServerConnectionProperties>
+public class PostgresServerResource : ContainerResource, IResourceWithConnectionString
 {
     internal const string PrimaryEndpointName = "tcp";
     private const string DefaultUserName = "postgres";
@@ -113,17 +113,14 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
 
     internal ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"postgresql://{UserNameReference}:{PasswordParameter}@{Host}:{Port}");
+        ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host:uri}:{Port:uri}");
 
-    IReadOnlyDictionary<string, ReferenceExpression> IResourceWithConnectionString.GetConnectionProperties() =>
-        new Dictionary<string, ReferenceExpression>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Host"] = ReferenceExpression.Create($"{Host}"),
-            ["Port"] = ReferenceExpression.Create($"{Port}"),
-            ["Username"] = ReferenceExpression.Create($"{UserNameReference}"),
-            ["Password"] = ReferenceExpression.Create($"{PasswordParameter}"),
-
-            // Optionally include a URI-style connection string
-            ["Uri"] = UriExpression,
-        };
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+    [
+        new ("Host", ReferenceExpression.Create($"{Host}")),
+        new ("Port", ReferenceExpression.Create($"{Port}")),
+        new ("Username", ReferenceExpression.Create($"{UserNameReference}")),
+        new ("Password", ReferenceExpression.Create($"{PasswordParameter}")),
+        new ("Uri", UriExpression),
+    ];
 }
