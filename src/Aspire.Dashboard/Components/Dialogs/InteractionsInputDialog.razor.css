@@ -7,7 +7,8 @@
 }
 
 .interaction-input-dialog .interaction-input ::deep fluent-text-field,
-.interaction-input-dialog .interaction-input ::deep fluent-select {
+.interaction-input-dialog .interaction-input ::deep fluent-select,
+.interaction-input-dialog .interaction-input ::deep fluent-combobox {
     width: 75%;
 }
 
@@ -21,4 +22,10 @@
 .interaction-input-dialog .interaction-input ::deep .input-description ul,
 .interaction-input-dialog .interaction-input ::deep .input-description ol {
     margin-bottom: 0.2em;
+}
+
+.interaction-input-dialog .interaction-input ::deep .input-choice-container {
+    display: flex;
+    column-gap: 12px;
+    align-items: center;
 }
