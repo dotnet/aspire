@@ -29,7 +29,7 @@ public sealed class CertificateAuthorityCollectionAnnotation(CertificateAuthorit
     /// <summary>
     /// Gets the <see cref="global::CertificateAuthorityCollection"/> that is being referenced.
     /// </summary>
-    public CertificateAuthorityCollection[] CertificateAuthorityCollections { get; internal set; } = certificateAuthorityCollections ?? [];
+    public List<CertificateAuthorityCollection> CertificateAuthorityCollections { get; } = certificateAuthorityCollections?.ToList() ?? new List<CertificateAuthorityCollection>();
 
     /// <summary>
     /// Gets a value indicating whether platform developer certificates should be considered trusted.
