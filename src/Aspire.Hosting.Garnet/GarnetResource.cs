@@ -76,14 +76,14 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
     /// Gets the connection URI expression for the Garnet server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>garnet://[:{password}@]{host}:{port}</c>. The password segment is omitted when no password is configured.
+    /// Format: <c>redis://[:{password}@]{host}:{port}</c>. The password segment is omitted when no password is configured.
     /// </remarks>
     public ReferenceExpression UriExpression
     {
         get
         {
             var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("garnet://");
+            builder.AppendLiteral("redis://");
 
             if (PasswordParameter is not null)
             {

@@ -23,16 +23,11 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     /// <summary>
     /// Gets the connection string expression for the Milvus database.
     /// </summary>
+    /// <remarks>
+    /// Format: <c>Endpoint={uri};Key={token};Database={DatabaseName}</c>.
+    /// </remarks>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{Parent};Database={DatabaseName}");
-
-    /// <summary>
-    /// Gets the connection URI expression for the Milvus database.
-    /// </summary>
-    /// <remarks>
-    /// Format: <c>grpc://{host}:{port}?database={database}</c>.
-    /// </remarks>
-    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}?database={DatabaseName:uri}");
 
     /// <summary>
     /// Gets the database name.
@@ -48,7 +43,6 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         ((IResourceWithConnectionString)Parent).GetConnectionProperties()
             .Union([
-                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
-                new("Uri", UriExpression),
+                new("Database", ReferenceExpression.Create($"{DatabaseName}"))
             ]);
 }

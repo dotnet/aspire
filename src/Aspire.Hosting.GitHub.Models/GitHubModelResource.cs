@@ -84,7 +84,6 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
-        yield return new("Endpoint", EndpointExpression);
         yield return new("Uri", UriExpression);
         yield return new("Key", ReferenceExpression.Create($"{Key}"));
         yield return new("Model", ReferenceExpression.Create($"{Model}"));

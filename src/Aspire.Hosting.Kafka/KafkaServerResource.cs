@@ -42,47 +42,14 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     public EndpointReference InternalEndpoint => _internalEndpoint ??= new(this, InternalEndpointName);
 
     /// <summary>
-    /// Gets the host endpoint reference for the internal endpoint.
-    /// </summary>
-    public EndpointReferenceExpression InternalHost => InternalEndpoint.Property(EndpointProperty.Host);
-
-    /// <summary>
-    /// Gets the port endpoint reference for the internal endpoint.
-    /// </summary>
-    public EndpointReferenceExpression InternalPort => InternalEndpoint.Property(EndpointProperty.Port);
-
-    /// <summary>
     /// Gets the connection string expression for the Kafka broker.
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
 
-    /// <summary>
-    /// Gets the connection URI expression for the Kafka broker.
-    /// </summary>
-    /// <remarks>
-    /// Format: <c>kafka://{host}:{port}</c>.
-    /// </remarks>
-    public ReferenceExpression UriExpression
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("kafka://");
-            builder.Append($"{Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
-
-            return builder.Build();
-        }
-    }
-
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Host", ReferenceExpression.Create($"{Host}"));
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
-        yield return new("InternalHost", ReferenceExpression.Create($"{InternalHost}"));
-        yield return new("InternalPort", ReferenceExpression.Create($"{InternalPort}"));
-        yield return new("Uri", UriExpression);
     }
 }

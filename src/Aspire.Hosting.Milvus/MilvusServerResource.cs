@@ -46,17 +46,25 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
 
     /// <summary>
+    /// Gets a valid access token to access the Milvus instance.
+    /// </summary>
+    public ReferenceExpression Token => ReferenceExpression.Create($"root:{ApiKeyParameter}");
+
+    /// <summary>
     /// Gets the connection string expression for the Milvus gRPC endpoint.
     /// </summary>
+    /// <remarks>
+    /// Format: <c>Endpoint={uri};Key={token}</c>.
+    /// </remarks>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
             $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key=root:{ApiKeyParameter}");
 
     /// <summary>
-    /// Gets the connection URI expression for the Milvus gRPC endpoint.
+    /// Gets URI expression for the Milvus instance.
     /// </summary>
     /// <remarks>
-    /// Format: <c>grpc://{host}:{port}</c>.
+    /// Format: <c>http://{host}:{port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
@@ -76,7 +84,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     {
         yield return new("Host", ReferenceExpression.Create($"{Host}"));
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
-        yield return new("ApiKey", ReferenceExpression.Create($"{ApiKeyParameter}"));
+        yield return new("Token", ReferenceExpression.Create($"{Token}"));
         yield return new("Uri", UriExpression);
     }
 }
