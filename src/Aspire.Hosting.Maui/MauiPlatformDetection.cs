@@ -53,6 +53,7 @@ internal static class MauiPlatformDetection
         {
             Try("maccatalyst");
             Try("ios");
+            Try("android");
         }
 
         void Try(string moniker)
