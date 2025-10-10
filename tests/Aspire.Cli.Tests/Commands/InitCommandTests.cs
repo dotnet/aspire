@@ -131,40 +131,46 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
             options.DotNetCliRunnerFactory = (sp) =>
             {
                 var runner = new TestDotNetCliRunner();
-                
+
                 runner.GetSolutionProjectsAsyncCallback = (solutionFile, invocationOptions, cancellationToken) =>
                 {
                     return (0, Array.Empty<FileInfo>());
                 };
-                
+
                 runner.GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, invocationOptions, cancellationToken) =>
                 {
                     return (0, null);
                 };
-                
+
                 runner.InstallTemplateAsyncCallback = (packageName, version, nugetSource, force, invocationOptions, cancellationToken) =>
                 {
                     return (0, "10.0.0");
                 };
-                
+
                 runner.NewProjectAsyncCallback = (templateName, projectName, outputPath, invocationOptions, cancellationToken) =>
                 {
                     // Verify that the OutputCollector callbacks are wired up
                     Assert.NotNull(invocationOptions.StandardOutputCallback);
                     Assert.NotNull(invocationOptions.StandardErrorCallback);
-                    
+
                     // Simulate calling the callbacks to verify they work
                     invocationOptions.StandardOutputCallback?.Invoke("Some output");
                     standardOutputCallbackInvoked = true;
-                    
+
                     invocationOptions.StandardErrorCallback?.Invoke(testErrorMessage);
                     standardErrorCallbackInvoked = true;
-                    
+
                     // Return a non-zero exit code to trigger the error path
                     return 1;
                 };
-                
+
                 return runner;
+            };
+
+            options.InteractionServiceFactory = (sp) =>
+            {
+                var interactionService = new TestConsoleInteractionService();
+                return interactionService;
             };
             
             // Mock packaging service
