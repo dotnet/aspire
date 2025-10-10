@@ -56,7 +56,13 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
 
     private static ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the MySQL server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mysql://root:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {
@@ -69,6 +75,30 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
             builder.Append($"{Host:uri}");
             builder.AppendLiteral(":");
             builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
+
+    /// <summary>
+    /// Gets the JDBC connection string for the MySQL server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:mysql://{host}:{port}/?user={user}&amp;password={password}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:mysql://");
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+            builder.AppendLiteral("/?user=");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral("&password=");
+            builder.Append($"{PasswordParameter:uri}");
 
             return builder.Build();
         }
@@ -94,5 +124,6 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
         yield return new("Uri", UriExpression);
+        yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

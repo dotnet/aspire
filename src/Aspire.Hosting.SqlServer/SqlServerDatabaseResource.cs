@@ -37,7 +37,22 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
         }
     }
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+    /// <summary>
+    /// Gets the connection URI expression for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>sqlserver://sa:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the SQL Server database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true;databaseName={database}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString =>
+        ReferenceExpression.Create($"{Parent.JdbcConnectionString};databaseName={DatabaseName}");
 
     /// <summary>
     /// Gets the database name.
@@ -55,5 +70,6 @@ public class SqlServerDatabaseResource(string name, string databaseName, SqlServ
             .Union([
                 new("Database", ReferenceExpression.Create($"{DatabaseName}")),
                 new("Uri", UriExpression),
+                new("JdbcConnectionString", JdbcConnectionString),
             ]);
 }

@@ -37,7 +37,38 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
         }
     }
 
-    internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+    /// <summary>
+    /// Gets the connection URI expression for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mysql://root:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:mysql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:mysql://");
+            builder.Append($"{Parent.Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Parent.Port:uri}");
+            builder.AppendLiteral("/");
+            var databaseNameExpression = ReferenceExpression.Create($"{DatabaseName}");
+            builder.Append($"{databaseNameExpression:uri}");
+            builder.AppendLiteral("?user=root&password=");
+            builder.Append($"{Parent.PasswordParameter:uri}");
+
+            return builder.Build();
+        }
+    }
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -54,5 +85,6 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
             .Union([
                 new("Database", ReferenceExpression.Create($"{DatabaseName}")),
                 new("Uri", UriExpression),
+                new("JdbcConnectionString", JdbcConnectionString),
             ]);
 }

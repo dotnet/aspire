@@ -50,7 +50,13 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
 
     private static ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
-    internal ReferenceExpression UriExpression
+    /// <summary>
+    /// Gets the connection URI expression for the SQL Server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>sqlserver://sa:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression
     {
         get
         {
@@ -63,6 +69,31 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
             builder.Append($"{Host:uri}");
             builder.AppendLiteral(":");
             builder.Append($"{Port:uri}");
+
+            return builder.Build();
+        }
+    }
+
+    /// <summary>
+    /// Gets the JDBC connection string for the SQL Server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:sqlserver://");
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+            builder.AppendLiteral(";user=");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral(";password=");
+            builder.Append($"{PasswordParameter:uri}");
+            builder.AppendLiteral(";trustServerCertificate=true");
 
             return builder.Build();
         }
@@ -129,5 +160,6 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
         yield return new("Uri", UriExpression);
+        yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

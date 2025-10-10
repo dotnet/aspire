@@ -20,7 +20,13 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => Parent.BuildConnectionString(DatabaseName);
 
-    internal ReferenceExpression UriExpression => Parent.BuildConnectionString(DatabaseName);
+    /// <summary>
+    /// Gets the connection URI expression for the MongoDB database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mongodb://[user:password@]{host}:{port}/{database}[?authSource=admin&amp;authMechanism=SCRAM-SHA-256]</c>. The credential and query segments are included only when a password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.BuildConnectionString(DatabaseName);
 
     /// <summary>
     /// Gets the parent MongoDB container resource.

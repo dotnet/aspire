@@ -112,8 +112,38 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
 
-    internal ReferenceExpression UriExpression =>
+    /// <summary>
+    /// Gets the connection URI expression for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>postgresql://{user}:{password}@{host}:{port}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
         ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host:uri}:{Port:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the PostgreSQL server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:postgresql://{host}:{port}/?user={user}&amp;password={password}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:postgresql://");
+            builder.Append($"{Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Port:uri}");
+            builder.AppendLiteral("/?user=");
+            builder.Append($"{UserNameReference:uri}");
+            builder.AppendLiteral("&password=");
+            builder.Append($"{PasswordParameter:uri}");
+
+            return builder.Build();
+        }
+    }
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
     [
@@ -122,5 +152,6 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
         new ("Username", ReferenceExpression.Create($"{UserNameReference}")),
         new ("Password", ReferenceExpression.Create($"{PasswordParameter}")),
         new ("Uri", UriExpression),
+        new ("JdbcConnectionString", JdbcConnectionString),
     ];
 }

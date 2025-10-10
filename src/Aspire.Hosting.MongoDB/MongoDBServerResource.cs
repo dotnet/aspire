@@ -63,7 +63,13 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// </summary>
     public ReferenceExpression ConnectionStringExpression => BuildConnectionString();
 
-    internal ReferenceExpression UriExpression => BuildConnectionString();
+    /// <summary>
+    /// Gets the connection URI expression for the MongoDB server.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mongodb://[user:password@]{host}:{port}[?authSource=admin&amp;authMechanism=SCRAM-SHA-256]</c>. The credential and query segments are included only when a password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression => BuildConnectionString();
 
     private static ReferenceExpression AuthenticationDatabaseReference => ReferenceExpression.Create($"{DefaultAuthenticationDatabase}");
 

@@ -47,13 +47,47 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
         return argument;
     }
 
-    internal ReferenceExpression UriExpression =>
+    /// <summary>
+    /// Gets the connection URI expression for the PostgreSQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>postgresql://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression =>
         ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the PostgreSQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:postgresql://");
+            builder.Append($"{Parent.Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Parent.Port:uri}");
+            builder.AppendLiteral("/");
+            var databaseNameExpression = ReferenceExpression.Create($"{DatabaseName}");
+            builder.Append($"{databaseNameExpression:uri}");
+            builder.AppendLiteral("?user=");
+            builder.Append($"{Parent.UserNameReference:uri}");
+            builder.AppendLiteral("&password=");
+            builder.Append($"{Parent.PasswordParameter:uri}");
+
+            return builder.Build();
+        }
+    }
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         ((IResourceWithConnectionString)Parent).GetConnectionProperties()
             .Union([
                 new ("Database", ReferenceExpression.Create($"{DatabaseName}")),
                 new ("Uri", UriExpression),
+                new ("JdbcConnectionString", JdbcConnectionString),
             ]);
 }

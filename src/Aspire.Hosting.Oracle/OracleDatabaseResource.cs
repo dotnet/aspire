@@ -29,6 +29,31 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     internal ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
 
     /// <summary>
+    /// Gets the JDBC connection string for the Oracle Database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:oracle:thin:{user}/{password}@//{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString
+    {
+        get
+        {
+            var builder = new ReferenceExpressionBuilder();
+            builder.AppendLiteral("jdbc:oracle:thin:system/");
+            builder.Append($"{Parent.PasswordParameter:uri}");
+            builder.AppendLiteral("@//");
+            builder.Append($"{Parent.Host:uri}");
+            builder.AppendLiteral(":");
+            builder.Append($"{Parent.Port:uri}");
+            builder.AppendLiteral("/");
+            var databaseNameExpression = ReferenceExpression.Create($"{DatabaseName}");
+            builder.Append($"{databaseNameExpression:uri}");
+
+            return builder.Build();
+        }
+    }
+
+    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
@@ -44,5 +69,6 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
             .Union([
                 new("Database", ReferenceExpression.Create($"{DatabaseName}")),
                 new("Uri", UriExpression),
+                new("JdbcConnectionString", JdbcConnectionString),
             ]);
 }
