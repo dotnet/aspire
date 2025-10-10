@@ -623,7 +623,7 @@ public sealed class MauiProjectBuilder
         {
             var notificationService = evt.Services.GetService<ResourceNotificationService>();
             var loggerService = evt.Services.GetService<ResourceLoggerService>();
-            
+
             if (notificationService is not null)
             {
                 _ = notificationService.PublishUpdateAsync(resource, s => s with
@@ -650,6 +650,8 @@ public sealed class MauiProjectBuilder
             var logger = loggerService?.GetLogger(res);
 
             logger?.LogWarning("Cannot start platform '{Platform}' because it is not included in the project's TargetFrameworks.", platformMoniker);
+
+            return Task.CompletedTask;
         });
 
         _platformResources.Add(builder);
