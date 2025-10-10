@@ -228,14 +228,35 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
-        var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
+        
+        // Check if the UV environment resource already exists
+        var existingResource = builder.ApplicationBuilder.Resources
+            .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
+        
+        IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
+        
+        if (existingResource is not null)
+        {
+            // Resource already exists, return a builder for it
+            if (existingResource is not PythonUvEnvironmentResource uvEnvironmentResource)
+            {
+                throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
+            }
+            
+            uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
+        }
+        else
+        {
+            // Resource doesn't exist, create it
+            var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
 
-        var uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
-            .WithArgs("sync")
-            .WithParentRelationship(builder)
-            .ExcludeFromManifest();
+            uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
+                .WithArgs("sync")
+                .WithParentRelationship(builder)
+                .ExcludeFromManifest();
 
-        builder.WaitForCompletion(uvBuilder);
+            builder.WaitForCompletion(uvBuilder);
+        }
 
         return builder;
     }
