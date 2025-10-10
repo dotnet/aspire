@@ -9,7 +9,6 @@ using Aspire.Hosting.Maui.Platforms.iOS;
 using Aspire.Hosting.Maui.DevTunnels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
-// Android provisioning removed for now.
 
 namespace Aspire.Hosting.Maui;
 

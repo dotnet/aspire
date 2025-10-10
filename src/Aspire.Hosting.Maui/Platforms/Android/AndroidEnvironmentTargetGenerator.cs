@@ -83,7 +83,10 @@ internal static class AndroidEnvironmentTargetGenerator
                         return;
                     }
 
-                    // Android environment variables must be uppercase to be properly read by the runtime
+                    // Android environment variables must be uppercase to be properly read by the runtime.
+                    // See: https://developer.android.com/reference/java/lang/System#getenv(java.lang.String)
+                    // and https://github.com/xamarin/xamarin-android/issues/7536
+                    // Many Android tools and the Mono runtime expect environment variable names to be uppercase.
                     var normalizedKey = key.ToUpperInvariant();
 
                     var encodedValue = EncodeSemicolons(value, out var wasEncoded);
