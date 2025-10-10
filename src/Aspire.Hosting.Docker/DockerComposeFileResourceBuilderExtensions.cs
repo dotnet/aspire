@@ -5,8 +5,6 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace Aspire.Hosting;
 
@@ -62,15 +60,11 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         var yamlContent = File.ReadAllText(composeFilePath);
-        var deserializer = new DeserializerBuilder()
-            .WithNamingConvention(UnderscoredNamingConvention.Instance)
-            .IgnoreUnmatchedProperties()
-            .Build();
-
-        ComposeFile? composeFile;
+        
+        ComposeFile composeFile;
         try
         {
-            composeFile = deserializer.Deserialize<ComposeFile>(yamlContent);
+            composeFile = ComposeFile.FromYaml(yamlContent);
         }
         catch (Exception ex)
         {
