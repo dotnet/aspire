@@ -460,6 +460,58 @@ public class WithReferenceTests
     }
 
     [Fact]
+    public async Task NpmAppResourceWithReferenceGetsConnectionStringAndProperties()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+        var executable = builder.AddNpmApp("NpmApp", ".\\app")
+                                .WithReference(resource);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are present (from the annotation - ExecutableResource has All flag)
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT" && kvp.Value == "5432");
+    }
+
+    [Fact]
+    public async Task PythonAppResourceWithReferenceGetsConnectionStringAndProperties()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a test resource with connection properties
+        var resource = builder.AddResource(new TestResourceWithProperties("resource")
+        {
+            ConnectionString = "Server=localhost;Database=mydb"
+        });
+
+#pragma warning disable ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        var executable = builder.AddPythonApp("PythonApp", ".\\app", "app.py")
+                                .WithReference(resource);
+#pragma warning restore ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        // Verify connection string is present
+        Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
+
+        // Verify connection properties are present (from the annotation - ExecutableResource has All flag)
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST" && kvp.Value == "localhost");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT" && kvp.Value == "5432");
+    }
+
+    [Fact]
     public async Task ContainerResourceWithReferenceGetsOnlyConnectionString()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

@@ -71,7 +71,7 @@ public class QdrantServerResource : ContainerResource, IResourceWithConnectionSt
     /// Gets the connection URI expression for the Qdrant gRPC endpoint.
     /// </summary>
     /// <remarks>
-    /// Format: <c>grpc://{host}:{port}</c>.
+    /// Format: <c>http://{host}:{port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression => ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.Url)}");
 
