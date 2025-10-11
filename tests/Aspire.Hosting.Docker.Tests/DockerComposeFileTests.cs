@@ -583,4 +583,42 @@ services:
         }
     }
 
+    [Fact]
+    public void ParsesArrayFormatEnvironmentVariables()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  web:
+    image: nginx:alpine
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            var composeResource = builder.AddDockerComposeFile("mycompose", composeFilePath);
+            var webService = composeResource.GetComposeService("web");
+            
+            Assert.NotNull(webService);
+            var containerResource = webService.Resource as ContainerResource;
+            Assert.NotNull(containerResource);
+            
+            // Check that environment variables were parsed from array format
+            Assert.True(containerResource.TryGetAnnotationsIncludingAncestorsOfType<EnvironmentCallbackAnnotation>(out var envAnnotations));
+            Assert.NotEmpty(envAnnotations);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
 }

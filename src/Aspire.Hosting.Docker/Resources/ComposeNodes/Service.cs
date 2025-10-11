@@ -73,6 +73,7 @@ public sealed class Service : NamedComposeMember
     /// The property allows for specifying environment variables as key-value pairs.
     /// These variables can be used to configure the behavior of the container
     /// or pass information to the application running inside the container.
+    /// Supports both array format (["KEY=value"]) and dictionary format ({KEY: value}).
     /// </remarks>
     [YamlMember(Alias = "environment", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
     public Dictionary<string, string> Environment { get; set; } = [];
