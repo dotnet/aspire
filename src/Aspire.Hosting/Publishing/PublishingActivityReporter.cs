@@ -249,7 +249,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         {
             await foreach (var interaction in _interactionService.SubscribeInteractionUpdates(cancellationToken).ConfigureAwait(false))
             {
-                await HandleInteractionUpdateAsync(interaction, cancellationToken).ConfigureAwait(false);
+                await WriteInteractionUpdateToClientAsync(interaction, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -258,7 +258,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         }
     }
 
-    private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
+    private async Task WriteInteractionUpdateToClientAsync(Interaction interaction, CancellationToken cancellationToken)
     {
         if (interaction.State == Interaction.InteractionState.InProgress)
         {
