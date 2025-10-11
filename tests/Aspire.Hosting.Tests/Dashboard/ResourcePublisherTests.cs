@@ -205,7 +205,8 @@ public class ResourcePublisherTests
             IsHidden = false,
             SupportsDetailedTelemetry = false,
             IconName = null,
-            IconVariant = null
+            IconVariant = null,
+            CustomIconData = null
         };
     }
 

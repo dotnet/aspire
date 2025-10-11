@@ -7,6 +7,17 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
+/// <summary>
+/// Represents a custom resource icon using SVG content or data URI.
+/// </summary>
+internal sealed class CustomResourceIcon : Icon
+{
+    public CustomResourceIcon(IconSize size, string iconContent) 
+        : base(string.Empty, IconVariant.Regular, size, iconContent)
+    {
+    }
+}
+
 internal static class ResourceIconHelpers
 {
     /// <summary>
@@ -14,7 +25,13 @@ internal static class ResourceIconHelpers
     /// </summary>
     public static Icon GetIconForResource(IconResolver iconResolver, ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
     {
-        // Check if the resource has a custom icon specified
+        // Check if the resource has custom icon data (takes highest precedence)
+        if (!string.IsNullOrWhiteSpace(resource.CustomIconData))
+        {
+            return new CustomResourceIcon(desiredSize, resource.CustomIconData);
+        }
+
+        // Check if the resource has a custom icon name specified
         if (!string.IsNullOrWhiteSpace(resource.IconName))
         {
             var customIcon = iconResolver.ResolveIconName(resource.IconName, desiredSize, resource.IconVariant ?? IconVariant.Filled);

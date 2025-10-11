@@ -32,6 +32,11 @@ partial class Resource
             resource.IconVariant = MapIconVariant(snapshot.IconVariant);
         }
 
+        if (snapshot.CustomIconData is not null)
+        {
+            resource.CustomIconData = snapshot.CustomIconData;
+        }
+
         if (snapshot.CreationTimeStamp.HasValue)
         {
             resource.CreatedAt = Timestamp.FromDateTime(snapshot.CreationTimeStamp.Value.ToUniversalTime());

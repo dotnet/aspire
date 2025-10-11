@@ -2339,6 +2339,45 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Specifies a custom icon to display for the resource in the dashboard using custom icon data.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="iconData">The icon data, which can be SVG content or a data URI (e.g., data:image/png;base64,...).</param>
+    /// <param name="iconName">Optional name for the icon for reference purposes.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows specifying custom icon data directly, useful for embedding resources or dynamic icon generation.
+    /// The icon data should be either raw SVG content or a data URI for bitmap formats.
+    /// </para>
+    /// <example>
+    /// Use a custom SVG icon from an embedded resource:
+    /// <code lang="C#">
+    /// var svgContent = "&lt;svg width='24' height='24'&gt;&lt;circle cx='12' cy='12' r='10'/&gt;&lt;/svg&gt;";
+    /// var myService = builder.AddContainer("myservice", "myimage")
+    ///                        .WithIconName(svgContent, "MyIcon");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Use a custom PNG icon from an embedded resource:
+    /// <code lang="C#">
+    /// var iconBytes = Resources.MyIcon; // Embedded resource bytes
+    /// var dataUri = $"data:image/png;base64,{Convert.ToBase64String(iconBytes)}";
+    /// var myService = builder.AddContainer("myservice", "myimage")
+    ///                        .WithIconName(dataUri, "MyIcon");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithIconName<T>(this IResourceBuilder<T> builder, string iconData, string? iconName) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(iconData);
+
+        return builder.WithAnnotation(new ResourceIconAnnotation(iconData, iconName));
+    }
+
+    /// <summary>
     /// Configures the compute environment for the compute resource.
     /// </summary>
     /// <param name="builder">The compute resource builder.</param>
@@ -2511,4 +2550,79 @@ public static class ResourceBuilderExtensions
 
         return builder.WithAnnotation(probeAnnotation);
     }
+
+    /// <summary>
+    /// Specifies a custom icon to display for the resource in the dashboard using an icon file.
+    /// </summary>
+    /// <typeparam name="T">The resource type.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="iconPath">The path to the icon file (SVG, PNG, ICO, JPG, etc.). Relative paths are resolved relative to the app host project directory.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method loads an icon file and configures it to be displayed for the resource in the dashboard.
+    /// The icon file can be in SVG format (preferred) or bitmap formats (PNG, ICO, JPG).
+    /// Bitmap formats are automatically encoded as data URIs.
+    /// </para>
+    /// <example>
+    /// Use a custom SVG icon from a file:
+    /// <code lang="C#">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var myService = builder.AddContainer("myservice", "myimage")
+    ///                        .WithResourceIcon("./icons/myicon.svg");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<T> WithResourceIcon<T>(this IResourceBuilder<T> builder, string iconPath) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(iconPath);
+
+        string fullPath;
+        if (Path.IsPathRooted(iconPath))
+        {
+            fullPath = iconPath;
+        }
+        else
+        {
+            // Resolve relative paths against the app host directory
+            var appHostDirectory = builder.ApplicationBuilder.AppHostDirectory;
+            fullPath = Path.GetFullPath(Path.Combine(appHostDirectory, iconPath));
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            throw new FileNotFoundException($"Icon file not found: {fullPath}", fullPath);
+        }
+
+        var extension = Path.GetExtension(fullPath).ToLowerInvariant();
+        string iconData;
+
+        if (extension == ".svg")
+        {
+            // Read SVG content directly
+            iconData = File.ReadAllText(fullPath);
+        }
+        else
+        {
+            // For bitmap formats, encode as data URI
+            var bytes = File.ReadAllBytes(fullPath);
+            var mimeType = extension switch
+            {
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".ico" => "image/x-icon",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => throw new NotSupportedException($"Unsupported icon file format: {extension}")
+            };
+
+            var base64 = Convert.ToBase64String(bytes);
+            iconData = $"data:{mimeType};base64,{base64}";
+        }
+
+        var iconName = Path.GetFileNameWithoutExtension(iconPath);
+        return builder.WithAnnotation(new ResourceIconAnnotation(iconData, iconName));
+    }
+
 }

@@ -59,7 +59,8 @@ internal sealed class DashboardServiceData : IDisposable
                     IsHidden = snapshot.IsHidden,
                     SupportsDetailedTelemetry = snapshot.SupportsDetailedTelemetry,
                     IconName = snapshot.IconName,
-                    IconVariant = snapshot.IconVariant
+                    IconVariant = snapshot.IconVariant,
+                    CustomIconData = snapshot.CustomIconData
                 };
             }
 

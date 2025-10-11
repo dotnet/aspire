@@ -252,6 +252,10 @@ message Resource {
 
     // Optional icon variant for the custom icon.
     optional IconVariant icon_variant = 24;
+
+    // Optional custom icon data. This can be SVG content or a data URI (e.g., data:image/png;base64,...).
+    // When specified, this takes precedence over icon_name for rendering the icon.
+    optional string custom_icon_data = 25;
 }
 
 ////////////////////////////////////////////

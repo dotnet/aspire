@@ -32,6 +32,7 @@ internal abstract class ResourceSnapshot
     public required bool SupportsDetailedTelemetry { get; init; }
     public required string? IconName { get; init; }
     public required IconVariant? IconVariant { get; init; }
+    public required string? CustomIconData { get; init; }
 
     protected abstract IEnumerable<(string Key, Value Value, bool IsSensitive)> GetProperties();
 
