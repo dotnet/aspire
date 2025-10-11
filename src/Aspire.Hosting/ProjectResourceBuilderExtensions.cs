@@ -238,6 +238,7 @@ public static class ProjectResourceBuilderExtensions
 
         var project = new ProjectResource(name);
         return builder.AddResource(project)
+                      .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.All))
                       .WithAnnotation(new TProject())
                       .WithProjectDefaults(options);
     }
@@ -282,6 +283,7 @@ public static class ProjectResourceBuilderExtensions
         projectPath = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
 
         return builder.AddResource(project)
+                      .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.All))
                       .WithAnnotation(new ProjectMetadata(projectPath))
                       .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);

@@ -1,8 +1,12 @@
-﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var cache = builder.AddRedis("cache");
+var pass = builder.AddParameter("pass", "p@ssw0rd1");
+
+var cache = builder
+    .AddRedis("cache")
+    .WithPassword(pass);
 
 var weatherapi = builder.AddProject<Projects.AspireWithNode_AspNetCoreApi>("weatherapi");
 

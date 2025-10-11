@@ -50,8 +50,47 @@ public class GitHubModelResource : Resource, IResourceWithConnectionString
     /// <summary>
     /// Gets the connection string expression for the GitHub Models resource.
     /// </summary>
+    private ReferenceExpression EndpointExpression
+    {
+        get
+        {
+            if (Organization is not null)
+            {
+                var builder = new ReferenceExpressionBuilder();
+                builder.AppendLiteral("https://models.github.ai/orgs/");
+                builder.Append($"{Organization:uri}");
+                builder.AppendLiteral("/inference");
+
+                return builder.Build();
+            }
+
+            return ReferenceExpression.Create($"https://models.github.ai/inference");
+        }
+    }
+
+    /// <summary>
+    /// Gets the connection string expression for the GitHub Models resource.
+    /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
-        Organization is not null
-            ? ReferenceExpression.Create($"Endpoint=https://models.github.ai/orgs/{Organization}/inference;Key={Key};Model={Model}")
-            : ReferenceExpression.Create($"Endpoint=https://models.github.ai/inference;Key={Key};Model={Model}");
+        ReferenceExpression.Create($"Endpoint={EndpointExpression};Key={Key};Model={Model}");
+
+    /// <summary>
+    /// Gets the endpoint URI expression for the GitHub Models resource.
+    /// </summary>
+    /// <remarks>
+    /// Format matches the configured endpoint, for example <c>https://models.github.ai/inference</c> or <c>https://models.github.ai/orgs/{organization}/inference</c> when an organization is specified.
+    /// </remarks>
+    public ReferenceExpression UriExpression => EndpointExpression;
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Uri", UriExpression);
+        yield return new("Key", ReferenceExpression.Create($"{Key}"));
+        yield return new("Model", ReferenceExpression.Create($"{Model}"));
+
+        if (Organization is not null)
+        {
+            yield return new("Organization", ReferenceExpression.Create($"{Organization}"));
+        }
+    }
 }
