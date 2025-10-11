@@ -144,7 +144,7 @@ internal sealed class ResourceContainerImageBuilder(
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         var step = await activityReporter.CreateStepAsync(
-            "Building container images for resources",
+            "build-images",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))

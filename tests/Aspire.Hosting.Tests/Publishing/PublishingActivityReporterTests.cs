@@ -449,19 +449,30 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task HandleInteractionUpdateAsync_BlocksInteractionWhenStepsInProgress()
+    public async Task HandleInteractionUpdateAsync_AllowsInteractionWhenStepsInProgress()
     {
-        // Arrange
         var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
-        // Clear previous activities
         var activityReader = reporter.ActivityItemUpdated.Reader;
         while (activityReader.TryRead(out _)) { }
 
-        // Assert that requesting an input while steps are in progress results in an error
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder"));
-        Assert.Equal("Cannot prompt interaction while steps are in progress.", exception.Message);
+        var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
+
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var promptId = activity.Data.Id;
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("text-label", input.Label);
+        Assert.Equal("Text", input.InputType);
+
+        PublishingPromptInputAnswer[] responses = [new() { Value = "user-response" }];
+
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, cancellationToken: CancellationToken.None).DefaultTimeout();
+
+        var promptResult = await promptTask.DefaultTimeout();
+        Assert.False(promptResult.Canceled);
+        Assert.Equal("user-response", promptResult.Data?.Value);
     }
 
     [Fact]

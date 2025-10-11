@@ -584,8 +584,8 @@ public class AzureDeployerTests(ITestOutputHelper output)
                    cmd.Arguments == "acr login --name testregistry");
 
         // Assert that deploying steps executed
-        Assert.Contains("Deploying compute resources", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("Deploying compute resources", "Deploying cache"), mockActivityReporter.CreatedTasks);
+        Assert.Contains("deploy-compute", mockActivityReporter.CreatedSteps);
+        Assert.Contains(("deploy-compute", "Deploying cache"), mockActivityReporter.CreatedTasks);
     }
 
     [Fact]
