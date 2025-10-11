@@ -579,8 +579,12 @@ public sealed class AzureEnvironmentResource : Resource
         if (azureComputeEnv is AzureProvisioningResource provisioningResource &&
             provisioningResource.Outputs.TryGetValue("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
         {
-            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
-            return $" to {endpoint}";
+            // Only produce endpoints for resources that have external endpoints
+            if (computeResource.TryGetEndpoints(out var endpoints) && endpoints.Any(e => e.IsExternal))
+            {
+                var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
+                return $" to {endpoint}";
+            }
         }
 
         return string.Empty;
