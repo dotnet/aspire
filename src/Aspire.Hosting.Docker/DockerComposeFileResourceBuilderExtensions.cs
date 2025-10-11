@@ -110,7 +110,6 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         // First pass: Create all container resources
-        var containerBuilders = new Dictionary<string, IResourceBuilder<ContainerResource>>();
         foreach (var (serviceName, service) in composeFile.Services)
         {
             try
@@ -118,7 +117,7 @@ public static class DockerComposeFileResourceBuilderExtensions
                 var containerBuilder = ImportService(builder, parentResource, serviceName, service, warnings);
                 if (containerBuilder is not null)
                 {
-                    containerBuilders[serviceName] = containerBuilder;
+                    parentResource.ServiceBuilders[serviceName] = containerBuilder;
                 }
             }
             catch (Exception ex)
@@ -135,14 +134,14 @@ public static class DockerComposeFileResourceBuilderExtensions
                 continue;
             }
 
-            if (!containerBuilders.TryGetValue(serviceName, out var containerBuilder))
+            if (!parentResource.ServiceBuilders.TryGetValue(serviceName, out var containerBuilder))
             {
                 continue; // Service was skipped
             }
 
             foreach (var (dependencyName, dependency) in service.DependsOn)
             {
-                if (!containerBuilders.TryGetValue(dependencyName, out var dependencyBuilder))
+                if (!parentResource.ServiceBuilders.TryGetValue(dependencyName, out var dependencyBuilder))
                 {
                     warnings.Add($"Service '{serviceName}' depends on '{dependencyName}', but '{dependencyName}' was not imported.");
                     continue;
@@ -357,5 +356,40 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Gets a container resource builder for a specific service defined in the Docker Compose file.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{DockerComposeFileResource}"/>.</param>
+    /// <param name="serviceName">The name of the service as defined in the docker-compose.yml file.</param>
+    /// <returns>The <see cref="IResourceBuilder{ContainerResource}"/> for the specified service.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the service is not found in the compose file.</exception>
+    /// <example>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var compose = builder.AddDockerComposeFile("mycompose", "./docker-compose.yml");
+    /// 
+    /// // Get a reference to a specific service to configure it further
+    /// var webService = compose.GetComposeService("web");
+    /// webService.WithEnvironment("ADDITIONAL_VAR", "value");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ContainerResource> GetComposeService(
+        this IResourceBuilder<DockerComposeFileResource> builder,
+        string serviceName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+
+        if (!builder.Resource.ServiceBuilders.TryGetValue(serviceName, out var serviceBuilder))
+        {
+            throw new InvalidOperationException($"Service '{serviceName}' not found in Docker Compose file '{builder.Resource.ComposeFilePath}'. Available services: {string.Join(", ", builder.Resource.ServiceBuilders.Keys)}");
+        }
+
+        return serviceBuilder;
     }
 }

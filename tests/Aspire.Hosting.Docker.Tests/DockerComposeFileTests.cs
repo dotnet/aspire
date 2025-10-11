@@ -488,4 +488,99 @@ services:
         }
     }
 
+    [Fact]
+    public void GetComposeService_ReturnsServiceBuilder()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - ""8080:80""
+  api:
+    image: node:18-alpine
+    ports:
+      - ""3000:3000""
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            var composeResource = builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            // Get specific services using GetComposeService
+            var webService = composeResource.GetComposeService("web");
+            var apiService = composeResource.GetComposeService("api");
+            
+            // Verify we got the correct services
+            Assert.NotNull(webService);
+            Assert.Equal("web", webService.Resource.Name);
+            Assert.NotNull(apiService);
+            Assert.Equal("api", apiService.Resource.Name);
+            
+            // Further configure the services
+            webService.WithEnvironment("NGINX_HOST", "example.com");
+            apiService.WithEnvironment("NODE_ENV", "production");
+            
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify the additional environment variables were added
+            var webResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "web");
+            Assert.NotNull(webResource);
+            var webEnvVars = webResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+            Assert.NotEmpty(webEnvVars);
+            
+            var apiResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "api");
+            Assert.NotNull(apiResource);
+            var apiEnvVars = apiResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
+            Assert.NotEmpty(apiEnvVars);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void GetComposeService_ThrowsWhenServiceNotFound()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  web:
+    image: nginx:alpine
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            var composeResource = builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            // Try to get a service that doesn't exist
+            var exception = Assert.Throws<InvalidOperationException>(() => 
+                composeResource.GetComposeService("nonexistent"));
+            
+            Assert.Contains("Service 'nonexistent' not found", exception.Message);
+            Assert.Contains("Available services: web", exception.Message);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
 }

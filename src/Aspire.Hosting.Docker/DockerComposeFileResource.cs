@@ -16,4 +16,9 @@ public class DockerComposeFileResource(string name, string composeFilePath) : Re
     /// Gets the path to the docker-compose.yml file.
     /// </summary>
     public string ComposeFilePath { get; } = composeFilePath;
+
+    /// <summary>
+    /// Gets the mapping of service names to their container resource builders.
+    /// </summary>
+    internal Dictionary<string, IResourceBuilder<ContainerResource>> ServiceBuilders { get; } = new(StringComparer.OrdinalIgnoreCase);
 }
