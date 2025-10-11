@@ -17,6 +17,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 {
     private readonly List<PipelineStep> _steps = [];
 
+    public bool HasSteps => _steps.Count > 0;
+
     public void AddStep(string name,
         Func<DeployingContext, Task> action,
         object? dependsOn = null,

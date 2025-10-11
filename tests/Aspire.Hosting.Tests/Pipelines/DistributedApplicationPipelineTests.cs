@@ -6,7 +6,10 @@
 #pragma warning disable IDE0005
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -858,6 +861,258 @@ public class DistributedApplicationPipelineTests
         // Only failures should be in the exception
         Assert.Equal(2, exception.InnerExceptions.Count);
         Assert.All(exception.InnerExceptions, e => Assert.IsType<InvalidOperationException>(e));
+    }
+
+    [Fact]
+    public async Task PublishAsync_Deploy_WithNoResourcesAndNoPipelineSteps_ReturnsError()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+
+        // Act
+        await publisher.PublishAsync(app.Services.GetRequiredService<DistributedApplicationModel>(), CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundErrorActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                activity.Data.IsError &&
+                activity.Data.CompletionMessage == "No deployment steps found in the application pipeline.")
+            {
+                foundErrorActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundErrorActivity, "Expected to find a task activity with error about no deployment steps found");
+    }
+
+    [Fact]
+    public async Task PublishAsync_Deploy_WithNoResourcesButHasPipelineSteps_Succeeds()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+        pipeline.AddStep("test-step", async (context) => await Task.CompletedTask);
+
+        builder.Services.AddSingleton<IDistributedApplicationPipeline>(pipeline);
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundSuccessActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage == "Found deployment steps in the application pipeline.")
+            {
+                foundSuccessActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundSuccessActivity, "Expected to find a task activity with message about deployment steps in the application pipeline");
+    }
+
+    [Fact]
+    public async Task PublishAsync_Deploy_WithResourcesAndPipelineSteps_ShowsStepsMessage()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            {
+                Name = "annotated-step",
+                Action = async (ctx) => await Task.CompletedTask
+            }));
+
+        var pipeline = new DistributedApplicationPipeline();
+        pipeline.AddStep("direct-step", async (context) => await Task.CompletedTask);
+
+        builder.Services.AddSingleton<IDistributedApplicationPipeline>(pipeline);
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundSuccessActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage == "Found deployment steps in the application pipeline.")
+            {
+                foundSuccessActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundSuccessActivity, "Expected to find a task activity with message about deployment steps in the application pipeline");
+    }
+
+    [Fact]
+    public async Task PublishAsync_Deploy_WithOnlyResources_ShowsStepsMessage()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            {
+                Name = "annotated-step",
+                Action = async (ctx) => await Task.CompletedTask
+            }));
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundSuccessActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage == "Found deployment steps in the application pipeline.")
+            {
+                foundSuccessActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundSuccessActivity, "Expected to find a task activity with message about deployment steps in the application pipeline");
+    }
+
+    [Fact]
+    public async Task PublishAsync_Publish_WithNoResources_ReturnsError()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: false);
+
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.OutputPath = Path.GetTempPath();
+        });
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundErrorActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                activity.Data.IsError &&
+                activity.Data.CompletionMessage == "No resources in the distributed application model support publishing.")
+            {
+                foundErrorActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundErrorActivity, "Expected to find a task activity with error about no resources supporting publishing");
+    }
+
+    [Fact]
+    public async Task PublishAsync_Publish_WithResources_ShowsResourceCount()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: false);
+
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.OutputPath = Path.GetTempPath();
+        });
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithAnnotation(new PublishingCallbackAnnotation(async (context) => await Task.CompletedTask));
+
+        var app = builder.Build();
+        var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Act
+        await publisher.PublishAsync(model, CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundSuccessActivity = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Task &&
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage?.StartsWith("Found 1 resources that support publishing.") == true)
+            {
+                foundSuccessActivity = true;
+                break;
+            }
+        }
+
+        Assert.True(foundSuccessActivity, "Expected to find a task activity with message about resources supporting publishing");
     }
 
     private static void ThrowHelperMethod()

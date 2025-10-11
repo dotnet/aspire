@@ -80,28 +80,41 @@ internal class Publisher(
                 cancellationToken)
                 .ConfigureAwait(false);
 
-            var targetResources = new List<IResource>();
+            string message;
+            CompletionState state;
 
-            foreach (var resource in model.Resources)
+            if (options.Value.Deploy)
             {
-                if (options.Value.Deploy)
+                var hasResourcesWithSteps = model.Resources.Any(r => r.HasAnnotationOfType<PipelineStepAnnotation>());
+                var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
+                var hasDirectlyRegisteredSteps = pipeline is DistributedApplicationPipeline concretePipeline && concretePipeline.HasSteps;
+
+                if (!hasResourcesWithSteps && !hasDirectlyRegisteredSteps)
                 {
-                    if (resource.HasAnnotationOfType<PipelineStepAnnotation>())
-                    {
-                        targetResources.Add(resource);
-                    }
+                    message = "No deployment steps found in the application pipeline.";
+                    state = CompletionState.CompletedWithError;
                 }
                 else
                 {
-                    if (resource.HasAnnotationOfType<PublishingCallbackAnnotation>())
-                    {
-                        targetResources.Add(resource);
-                    }
+                    message = "Found deployment steps in the application pipeline.";
+                    state = CompletionState.Completed;
                 }
-
             }
+            else
+            {
+                var targetResources = model.Resources.Where(r => r.HasAnnotationOfType<PublishingCallbackAnnotation>()).ToList();
 
-            var (message, state) = GetTaskInfo(targetResources, options.Value.Deploy);
+                if (targetResources.Count == 0)
+                {
+                    message = "No resources in the distributed application model support publishing.";
+                    state = CompletionState.CompletedWithError;
+                }
+                else
+                {
+                    message = $"Found {targetResources.Count} resources that support publishing. ({string.Join(", ", targetResources.Select(r => r.GetType().Name))})";
+                    state = CompletionState.Completed;
+                }
+            }
 
             await task.CompleteAsync(
                         message,
@@ -155,15 +168,5 @@ internal class Publisher(
             var publishingContext = new PublishingContext(model, executionContext, serviceProvider, logger, cancellationToken, outputPath);
             await publishingContext.WriteModelAsync(model).ConfigureAwait(false);
         }
-    }
-
-    private static (string Message, CompletionState State) GetTaskInfo(List<IResource> targetResources, bool isDeploy)
-    {
-        var operation = isDeploy ? "deployment" : "publishing";
-        return targetResources.Count switch
-        {
-            0 => ($"No resources in the distributed application model support {operation}.", CompletionState.CompletedWithError),
-            _ => ($"Found {targetResources.Count} resources that support {operation}. ({string.Join(", ", targetResources.Select(r => r.GetType().Name))})", CompletionState.Completed)
-        };
     }
 }
