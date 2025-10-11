@@ -4,6 +4,7 @@ import { mergeEnvs } from "../../utils/environment";
 import { extensionLogOutputChannel } from "../../utils/logging";
 import { AspireTerminalProvider } from "../../utils/AspireTerminalProvider";
 import * as readline from 'readline';
+import * as vscode from 'vscode';
 
 export interface SpawnProcessOptions {
     stdoutCallback?: (data: string) => void;
@@ -15,18 +16,16 @@ export interface SpawnProcessOptions {
     workingDirectory?: string;
     debugSessionId?: string,
     noDebug?: boolean;
-    noProcessEnv?: boolean;
+    noExtensionVariables?: boolean;
 }
 
 export function spawnCliProcess(terminalProvider: AspireTerminalProvider, command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
-    const workingDirectory = options?.workingDirectory ?? process.cwd();
+    const workingDirectory = options?.workingDirectory ?? vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? process.cwd();
 
     extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);
 
     const env = {};
-    if (options?.noProcessEnv !== true) {
-        Object.assign(env, terminalProvider.createEnvironment(options?.debugSessionId, options?.noDebug));
-    }
+    Object.assign(env, terminalProvider.createEnvironment(options?.debugSessionId, options?.noDebug, options?.noExtensionVariables));
 
     if (options?.env) {
         Object.assign(env, Object.fromEntries(options.env.map(e => [e.name, e.value])));

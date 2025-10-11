@@ -8,7 +8,16 @@ import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
 
 interface ActiveDocumentState {
     uri: vscode.Uri;
-    documentAppHosts: string[] | null;
+    appHostSearchResult: AppHostProjectSearchResult | null;
+}
+
+interface AppHostProjectSearchResult {
+    selected_project_file: string | null;
+    all_project_file_candidates: string[];
+}
+
+function isAppHostProjectSearchResult(obj: any): obj is AppHostProjectSearchResult {
+    return obj && (typeof obj.selected_project_file === 'string' || obj.selected_project_file === null) && Array.isArray(obj.all_project_file_candidates);
 }
 
 export class AspireEditorCommandProvider implements vscode.Disposable {
@@ -49,66 +58,63 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
         }
 
         const appHosts = await this.computeDocumentAppHosts(document.uri);
-        this._activeDocumentState = { uri: document.uri, documentAppHosts: appHosts };
-        await vscode.commands.executeCommand('setContext', 'aspire.documentHasAppHost', appHosts !== null && appHosts.length > 0);
+        this._activeDocumentState = { uri: document.uri, appHostSearchResult: appHosts };
+        await vscode.commands.executeCommand('setContext', 'aspire.documentHasAppHost', appHosts !== null && appHosts.selected_project_file);
     }
 
-    private async computeDocumentAppHosts(uri: vscode.Uri): Promise<string[] | null> {
+    private async computeDocumentAppHosts(uri: vscode.Uri): Promise<AppHostProjectSearchResult | null> {
         // Check if the current file is AppHost.cs
         const isAppHostFile = path.basename(uri.fsPath).toLowerCase() === 'apphost.cs';
         if (isAppHostFile) {
-            return [uri.fsPath];
+            return { selected_project_file: uri.fsPath, all_project_file_candidates: [uri.fsPath] };
         }
 
         const fileExtension = path.extname(uri.fsPath).toLowerCase();
         if (!getResourceDebuggerExtensions().some(extension => extension.getSupportedFileTypes().includes(fileExtension))) {
             return null;
         }
-        
-        const appHosts = await new Promise<string[] | null>((resolve) => {
-            this._activeProcessDocumentGetAppHosts = spawnCliProcess(this._terminalProvider, 'aspire', ['extension', 'get-apphosts', '--directory', path.dirname(uri.fsPath)], {
+
+        const appHosts = await new Promise<AppHostProjectSearchResult | null>((resolve) => {
+            this._activeProcessDocumentGetAppHosts = spawnCliProcess(this._terminalProvider, 'aspire', ['extension', 'get-apphosts', '--project', path.dirname(uri.fsPath)], {
                 errorCallback: _ => resolve(null),
                 exitCallback: _ => resolve(null),
                 lineCallback: line => {
                     try {
                         const parsed = JSON.parse(line);
-                        if (Array.isArray(parsed)) {
+                        if (isAppHostProjectSearchResult(parsed)) {
                             resolve(parsed);
                         }
                     }
                     catch {
                     }
                 },
-                noProcessEnv: true
+                noExtensionVariables: true
             });
         });
 
         this._activeProcessDocumentGetAppHosts?.kill();
         this._activeProcessDocumentGetAppHosts = undefined;
+
         return appHosts;
     }
 
     public async tryExecuteRunAppHost(noDebug: boolean, uri: vscode.Uri): Promise<void> {
         if (!this._activeDocumentState || this._activeDocumentState.uri.fsPath !== uri.fsPath) {
-            this._activeDocumentState = { uri, documentAppHosts: await this.computeDocumentAppHosts(uri) };
+            this._activeDocumentState = { uri, appHostSearchResult: await this.computeDocumentAppHosts(uri) };
         }
 
-        const appHosts = this._activeDocumentState.documentAppHosts;
-        if (appHosts === null || appHosts.length === 0) {
+        const result = this._activeDocumentState.appHostSearchResult;
+        if (result === null || result.all_project_file_candidates.length === 0) {
             return;
         }
 
-        let selectedApphost: string | undefined;
-
-        if (appHosts.length > 1) {
-            selectedApphost = await vscode.window.showQuickPick(appHosts, {
+        let selectedApphost = result.selected_project_file;
+        if (!selectedApphost && result.all_project_file_candidates.length > 1) {
+            selectedApphost = await vscode.window.showQuickPick(result.all_project_file_candidates, {
                 placeHolder: selectApphostToLaunch,
                 canPickMany: false,
                 ignoreFocusOut: true
-            });
-        }
-        else {
-            selectedApphost = appHosts[0];
+            }) || null;
         }
 
         if (!selectedApphost) {

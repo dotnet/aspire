@@ -3,6 +3,7 @@
 
 using System.CommandLine;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Aspire.Cli.Backchannel;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Interaction;
@@ -35,8 +36,8 @@ internal sealed class ExtensionInternalCommand : BaseCommand
         {
             _projectLocator = projectLocator;
 
-            var directoryOption = new Option<string?>("--directory");
-            directoryOption.Description = "The directory to search for AppHost projects. Defaults to the current directory.";
+            var directoryOption = new Option<string?>("--project");
+            directoryOption.Description = "The project file or directory to search for AppHost projects.";
             Options.Add(directoryOption);
         }
 
@@ -44,10 +45,32 @@ internal sealed class ExtensionInternalCommand : BaseCommand
 
         protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
         {
-            var files = await _projectLocator.FindAppHostProjectFilesAsync(parseResult.GetValue<string?>("--directory") ?? Environment.CurrentDirectory, cancellationToken);
-            var jsonContent = JsonSerializer.Serialize(files.Select(f => f.FullName).ToList(), BackchannelJsonSerializerContext.Default.ListString);
-            Console.WriteLine(jsonContent);
-            return ExitCodeConstants.Success;
+            var projectArgument = parseResult.GetValue<string?>("--project");
+            var projectFile = projectArgument is not null ? new FileInfo(projectArgument) : new FileInfo(Environment.CurrentDirectory);
+            try
+            {
+                var result = await _projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, MultipleAppHostProjectsFoundBehavior.First, cancellationToken);
+
+                Console.WriteLine(JsonSerializer.Serialize(new AppHostProjectSearchResultPoco
+                {
+                    SelectedProjectFile = result.SelectedProjectFile?.FullName,
+                    AllProjectFileCandidates = result.AllProjectFileCandidates.Select(f => f.FullName).ToList()
+                }, BackchannelJsonSerializerContext.Default.AppHostProjectSearchResultPoco));
+                return ExitCodeConstants.Success;
+            }
+            catch
+            {
+                return ExitCodeConstants.FailedToFindProject;
+            }
         }
+    }
+
+    internal class AppHostProjectSearchResultPoco
+    {
+        [JsonPropertyName("selected_project_file")]
+        public string? SelectedProjectFile { get; init; }
+
+        [JsonPropertyName("all_project_file_candidates")]
+        public required List<string> AllProjectFileCandidates { get; init; }
     }
 }

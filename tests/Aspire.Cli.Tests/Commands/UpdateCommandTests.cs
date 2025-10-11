@@ -33,9 +33,9 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
 
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            options.ProjectLocatorFactory = _ => new TestProjectLocator()
+            options.ProjectLocatorFactory = _ => new TestProjectLocator
             {
-                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, cancellationToken) =>
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _) =>
                 {
                     Assert.NotNull(projectFile);
                     return Task.FromResult<FileInfo?>(projectFile);
