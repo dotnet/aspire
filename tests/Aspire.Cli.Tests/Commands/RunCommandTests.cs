@@ -90,17 +90,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
@@ -148,17 +143,12 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class NoProjectFileProjectLocator : IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
@@ -166,27 +156,14 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class MultipleProjectFilesProjectLocator : IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            return Task.FromResult(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
     }
     private async IAsyncEnumerable<BackchannelLogEntry> ReturnLogEntriesUntilCancelledAsync([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -539,7 +516,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Make a backchannel and return it
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
-                
+
                 // Don't run indefinitely for the test
                 await Task.Delay(100, ct);
                 return 0;
@@ -572,7 +549,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
         var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
-        
+
         Assert.False(watchModeUsed, "Expected watch mode to be disabled for single file apps even when DefaultWatchEnabled feature flag is true");
     }
 
@@ -600,7 +577,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Make a backchannel and return it
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
-                
+
                 // Don't run indefinitely for the test
                 await Task.Delay(100, ct);
                 return 0;
@@ -635,7 +612,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
         var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
-        
+
         Assert.True(watchModeUsed, "Expected watch mode to be enabled when defaultWatchEnabled feature flag is true");
     }
 
@@ -663,7 +640,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Make a backchannel and return it
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
-                
+
                 // Don't run indefinitely for the test
                 await Task.Delay(100, ct);
                 return 0;
@@ -698,7 +675,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
         var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
-        
+
         Assert.False(watchModeUsed, "Expected watch mode to be disabled when defaultWatchEnabled feature flag is false");
     }
 
@@ -726,7 +703,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Make a backchannel and return it
                 var backchannel = sp.GetRequiredService<IAppHostBackchannel>();
                 backchannelCompletionSource!.SetResult(backchannel);
-                
+
                 // Don't run indefinitely for the test
                 await Task.Delay(100, ct);
                 return 0;
@@ -761,7 +738,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         cts.CancelAfter(TimeSpan.FromSeconds(2));
 
         var exitCode = await result.InvokeAsync(cancellationToken: cts.Token);
-        
+
         Assert.False(watchModeUsed, "Expected watch mode to be disabled by default when defaultWatchEnabled feature flag is not set");
     }
 
@@ -798,7 +775,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Verify that --non-interactive is included when watch mode is enabled
                 Assert.Contains("watch", args);
                 Assert.Contains("--non-interactive", args);
-                
+
                 // Verify the order: watch should come before --non-interactive
                 var watchIndex = Array.IndexOf(args, "watch");
                 var nonInteractiveIndex = Array.IndexOf(args, "--non-interactive");
@@ -906,7 +883,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
                 // Verify that --verbose is included when watch mode and debug are both enabled
                 Assert.Contains("watch", args);
                 Assert.Contains("--verbose", args);
-                
+
                 // Verify the order: watch should come before --verbose
                 var watchIndex = Array.IndexOf(args, "watch");
                 var verboseIndex = Array.IndexOf(args, "--verbose");
@@ -1139,20 +1116,15 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
 
     private sealed class SingleFileAppHostProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(new AppHostProjectSearchResult(new FileInfo("/tmp/apphost.cs"), [new FileInfo("/tmp/apphost.cs")]));
+        }
+
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
             // Return a .cs file to simulate single file AppHost
             return Task.FromResult<FileInfo?>(new FileInfo("/tmp/apphost.cs"));
-        }
-
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(new List<FileInfo> { new("/tmp/apphost.cs") });
-        }
-
-        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo> { new("/tmp/apphost.cs") });
         }
     }
 }

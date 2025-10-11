@@ -15,19 +15,12 @@ namespace Aspire.Cli.Projects;
 
 internal interface IProjectLocator
 {
-    Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default);
-    Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken);
-    Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken);
+    Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken = default);
+    Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken);
 }
 
 internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
 {
-    public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
-    {
-        var allCandidates = await FindAppHostProjectFilesAsync(new DirectoryInfo(searchDirectory), cancellationToken);
-        return [..allCandidates.BuildableAppHost, ..allCandidates.UnbuildableSuspectedAppHostProjects];
-    }
-
     private async Task<(List<FileInfo> BuildableAppHost, List<FileInfo> UnbuildableSuspectedAppHostProjects)> FindAppHostProjectFilesAsync(DirectoryInfo searchDirectory, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
@@ -45,7 +38,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             };
 
             interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
-            
+
             // Scan for *.csproj files (existing logic)
             var projectFiles = searchDirectory.GetFiles("*.csproj", enumerationOptions);
             logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory.FullName);
@@ -93,7 +86,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 await Parallel.ForEachAsync(candidateAppHostFiles, parallelOptions, async (candidateFile, ct) =>
                 {
                     logger.LogDebug("Checking single-file apphost candidate {CandidateFile}", candidateFile.FullName);
-                    
+
                     if (await IsValidSingleFileAppHostAsync(candidateFile, ct))
                     {
                         logger.LogDebug("Found single-file apphost candidate {CandidateFile} in {SearchDirectory}", candidateFile.FullName, searchDirectory.FullName);
@@ -211,7 +204,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         }
     }
 
-    public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken = default)
+    public async Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken = default)
     {
         logger.LogDebug("Finding project file in {CurrentDirectory}", executionContext.WorkingDirectory);
 
@@ -222,7 +215,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             {
                 logger.LogDebug("Provided path {Path} is a directory, searching for project files recursively", projectFile.FullName);
                 var directory = new DirectoryInfo(projectFile.FullName);
-                
+
                 // Search recursively for .csproj files and validate they are AppHost projects
                 // Use ShowStatusAsync and parallel processing similar to FindAppHostProjectFilesAsync
                 var appHostProjects = await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
@@ -232,27 +225,27 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                         RecurseSubdirectories = true,
                         IgnoreInaccessible = true
                     };
-                    
+
                     interactionService.DisplayMessage("magnifying_glass_tilted_left", InteractionServiceStrings.FindingAppHosts);
-                    
+
                     var allProjectFiles = directory.GetFiles("*.csproj", enumerationOptions);
                     logger.LogDebug("Found {ProjectFileCount} project files in {Directory}", allProjectFiles.Length, directory.FullName);
-                    
+
                     var foundProjects = new List<FileInfo>();
                     var lockObject = new object();
-                    
+
                     var parallelOptions = new ParallelOptions
                     {
                         CancellationToken = cancellationToken,
                         MaxDegreeOfParallelism = Environment.ProcessorCount
                     };
-                    
+
                     // Validate each project to see if it's an AppHost in parallel
                     await Parallel.ForEachAsync(allProjectFiles, parallelOptions, async (candidateProject, ct) =>
                     {
                         logger.LogDebug("Checking project file {ProjectFile}", candidateProject.FullName);
                         var information = await runner.GetAppHostInformationAsync(candidateProject, new DotNetCliRunnerInvocationOptions(), ct);
-                        
+
                         if (information.ExitCode == 0 && information.IsAspireHost)
                         {
                             logger.LogDebug("Found AppHost project file {ProjectFile}", candidateProject.FullName);
@@ -264,17 +257,17 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                             }
                         }
                     });
-                    
+
                     // If no .csproj AppHost files found and single-file apphost is enabled, check for apphost.cs
                     if (foundProjects.Count == 0 && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
                     {
                         var appHostFiles = directory.GetFiles("apphost.cs", enumerationOptions);
                         logger.LogDebug("Found {CandidateFileCount} single-file apphost candidates", appHostFiles.Length);
-                        
+
                         await Parallel.ForEachAsync(appHostFiles, parallelOptions, async (candidateFile, ct) =>
                         {
                             logger.LogDebug("Checking single-file apphost candidate {CandidateFile}", candidateFile.FullName);
-                            
+
                             if (await IsValidSingleFileAppHostAsync(candidateFile, ct))
                             {
                                 logger.LogDebug("Found valid single-file apphost {AppHostFile}", candidateFile.FullName);
@@ -287,10 +280,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                             }
                         });
                     }
-                    
+
                     // Sort for deterministic results
                     foundProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
-                    
+
                     return foundProjects;
                 });
 
@@ -308,13 +301,26 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
                 else
                 {
-                    logger.LogDebug("Multiple AppHost project files found in directory {Directory}, prompting user to select", directory.FullName);
-                    projectFile = await interactionService.PromptForSelectionAsync(
-                        InteractionServiceStrings.SelectAppHostToUse,
-                        appHostProjects,
-                        file => $"{file.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName)})",
-                        cancellationToken
+                    if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.Prompt)
+                    {
+                        logger.LogDebug("Multiple AppHost project files found in directory {Directory}, prompting user to select", directory.FullName);
+                        projectFile = await interactionService.PromptForSelectionAsync(
+                            InteractionServiceStrings.SelectAppHostToUse,
+                            appHostProjects,
+                            file => $"{file.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, file.FullName)})",
+                            cancellationToken
                         );
+                    }
+                    else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.First)
+                    {
+                        logger.LogDebug("Multiple AppHost project files found in directory {Directory}, selecting first one", directory.FullName);
+                        projectFile = appHostProjects[0];
+                    }
+                    else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.Throw)
+                    {
+                        logger.LogError("Multiple AppHost project files found in directory {Directory}, throwing exception", directory.FullName);
+                        throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound);
+                    }
                 }
             }
 
@@ -333,7 +339,12 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     if (await IsValidSingleFileAppHostAsync(projectFile, cancellationToken))
                     {
                         logger.LogDebug("Using single-file apphost {ProjectFile}", projectFile.FullName);
-                        return projectFile;
+                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                    }
+                    else if (projectFile.Directory is { } parentDirectory)
+                    {
+                        // File exists but we are not in a single file apphost. Search in the parent directory for a valid apphost csproj
+                        return await UseOrFindAppHostProjectFileAsync(new FileInfo(parentDirectory.FullName), multipleAppHostProjectsFoundBehavior, createSettingsFile, cancellationToken);
                     }
                     else
                     {
@@ -349,7 +360,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             else if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
             {
                 logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
-                return projectFile;
+                return new AppHostProjectSearchResult(projectFile, [projectFile]);
             }
             // Reject other extensions
             else
@@ -362,7 +373,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
 
         if (projectFile is not null)
         {
-            return projectFile;
+            return new AppHostProjectSearchResult(projectFile, [projectFile]);
         }
 
         logger.LogDebug("No project file specified, searching for *.csproj files in {CurrentDirectory}", executionContext.WorkingDirectory);
@@ -387,16 +398,27 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         }
         else if (results.BuildableAppHost.Count > 1)
         {
-            selectedAppHost = await interactionService.PromptForSelectionAsync(
-                InteractionServiceStrings.SelectAppHostToUse,
-                results.BuildableAppHost,
-                projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})",
-                cancellationToken
-                );
+            selectedAppHost = multipleAppHostProjectsFoundBehavior switch
+            {
+                MultipleAppHostProjectsFoundBehavior.Throw => throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound),
+                MultipleAppHostProjectsFoundBehavior.Prompt => await interactionService.PromptForSelectionAsync(InteractionServiceStrings.SelectAppHostToUse, results.BuildableAppHost, projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})", cancellationToken),
+                MultipleAppHostProjectsFoundBehavior.First => results.BuildableAppHost[0],
+                _ => selectedAppHost
+            };
         }
 
-        await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
-        return selectedAppHost;
+        if (createSettingsFile)
+        {
+            await CreateSettingsFileAsync(selectedAppHost!, cancellationToken);
+        }
+
+        return new AppHostProjectSearchResult(selectedAppHost, results.BuildableAppHost);
+    }
+
+    public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken = default)
+    {
+        var result = await UseOrFindAppHostProjectFileAsync(projectFile, MultipleAppHostProjectsFoundBehavior.Prompt, createSettingsFile, cancellationToken);
+        return result.SelectedProjectFile;
     }
 
     private async Task CreateSettingsFileAsync(FileInfo projectFile, CancellationToken cancellationToken)
@@ -414,74 +436,18 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
         var relativeSettingsFilePath = Path.GetRelativePath(executionContext.WorkingDirectory.FullName, settingsFile.FullName).Replace(Path.DirectorySeparatorChar, '/');
         interactionService.DisplayMessage("file_cabinet", string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.CreatedSettingsFile, $"[bold]'{relativeSettingsFilePath}'[/]"));
     }
-
-    public async Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
-    {
-        using var activity = telemetry.ActivitySource.StartActivity();
-
-        return await interactionService.ShowStatusAsync(InteractionServiceStrings.SearchingProjects, async () =>
-        {
-            var executableProjects = new List<FileInfo>();
-            var lockObject = new object();
-            logger.LogDebug("Searching for executable project files in {SearchDirectory}", searchDirectory);
-            
-            var enumerationOptions = new EnumerationOptions
-            {
-                RecurseSubdirectories = true,
-                IgnoreInaccessible = true
-            };
-
-            var searchDir = new DirectoryInfo(searchDirectory);
-            var projectFiles = searchDir.GetFiles("*.csproj", enumerationOptions);
-            logger.LogDebug("Found {ProjectFileCount} project files in {SearchDirectory}", projectFiles.Length, searchDirectory);
-
-            var parallelOptions = new ParallelOptions
-            {
-                CancellationToken = cancellationToken,
-                MaxDegreeOfParallelism = Environment.ProcessorCount
-            };
-
-            await Parallel.ForEachAsync(projectFiles, parallelOptions, async (projectFile, ct) =>
-            {
-                logger.LogDebug("Checking project file {ProjectFile} for OutputType", projectFile.FullName);
-                
-                var (exitCode, jsonDocument) = await runner.GetProjectItemsAndPropertiesAsync(
-                    projectFile,
-                    [],
-                    ["OutputType"],
-                    new DotNet.DotNetCliRunnerInvocationOptions(),
-                    ct);
-
-                if (exitCode == 0 && jsonDocument != null)
-                {
-                    var rootElement = jsonDocument.RootElement;
-                    if (rootElement.TryGetProperty("Properties", out var properties))
-                    {
-                        if (properties.TryGetProperty("OutputType", out var outputTypeElement))
-                        {
-                            var outputType = outputTypeElement.GetString();
-                            if (outputType == "Exe" || outputType == "WinExe")
-                            {
-                                logger.LogDebug("Found executable project file {ProjectFile} with OutputType {OutputType}", projectFile.FullName, outputType);
-                                lock (lockObject)
-                                {
-                                    executableProjects.Add(projectFile);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Sort for deterministic results
-            executableProjects.Sort((x, y) => x.FullName.CompareTo(y.FullName));
-
-            return executableProjects;
-        });
-    }
 }
 
 internal class ProjectLocatorException : System.Exception
 {
     public ProjectLocatorException(string message) : base(message) { }
+}
+
+internal record AppHostProjectSearchResult(FileInfo? SelectedProjectFile, List<FileInfo> AllProjectFileCandidates);
+
+internal enum MultipleAppHostProjectsFoundBehavior
+{
+    Prompt,
+    Throw,
+    First
 }
