@@ -413,4 +413,79 @@ services:
         }
     }
 
+    [Fact]
+    public void AddDockerComposeFile_HandlesDependsOn()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  database:
+    image: postgres:15
+    ports:
+      - ""5432:5432""
+  
+  cache:
+    image: redis:7.0
+    ports:
+      - ""6379:6379""
+  
+  app:
+    image: myapp:latest
+    depends_on:
+      database:
+        condition: service_started
+      cache:
+        condition: service_healthy
+    ports:
+      - ""8080:80""
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            var app = builder.Build();
+            
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify all services were created
+            var databaseResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "database");
+            Assert.NotNull(databaseResource);
+            
+            var cacheResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "cache");
+            Assert.NotNull(cacheResource);
+            
+            var appResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "app");
+            Assert.NotNull(appResource);
+            
+            // Verify app has WaitAnnotations for dependencies
+            var waitAnnotations = appResource.Annotations.OfType<WaitAnnotation>().ToList();
+            Assert.NotEmpty(waitAnnotations);
+            Assert.Equal(2, waitAnnotations.Count);
+            
+            // Verify database dependency (service_started -> WaitUntilStarted)
+            var dbWait = waitAnnotations.FirstOrDefault(w => w.Resource.Name == "database");
+            Assert.NotNull(dbWait);
+            Assert.Equal(WaitType.WaitUntilStarted, dbWait.WaitType);
+            
+            // Verify cache dependency (service_healthy -> WaitUntilHealthy)
+            var cacheWait = waitAnnotations.FirstOrDefault(w => w.Resource.Name == "cache");
+            Assert.NotNull(cacheWait);
+            Assert.Equal(WaitType.WaitUntilHealthy, cacheWait.WaitType);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
 }

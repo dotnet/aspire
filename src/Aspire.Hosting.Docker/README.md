@@ -49,8 +49,10 @@ This will parse the Docker Compose file and create Aspire container resources fo
 - **Volumes**: Both bind mounts and named volumes
 - **Command**: Container command arguments
 - **Entrypoint**: Container entrypoint
+- **Build**: Services with build configurations are imported using `AddDockerfile`
+- **Depends On**: Service dependencies are mapped to `WaitFor`, `WaitForStart`, or `WaitForCompletion` based on the condition
 
-**Note**: Services that use `build` instead of `image` are skipped, as Aspire focuses on pre-built container images. Other Docker Compose features like networks, health checks, and restart policies are not automatically imported but can be configured manually on the created resources.
+**Note**: Other Docker Compose features like networks, health checks, and restart policies are not automatically imported but can be configured manually on the created resources.
 
 ## Feedback & contributing
 

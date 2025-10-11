@@ -70,13 +70,12 @@ public static class DockerComposeFileResourceBuilderExtensions
                 await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
                 return;
             }
-            else if (warnings.Count > 0)
+
+            foreach (var warning in warnings)
             {
-                foreach (var warning in warnings)
-                {
-                    e.Logger.LogWarning("{Warning}", warning);
-                }
+                e.Logger.LogWarning("{Warning}", warning);
             }
+
             await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
         });
     }
@@ -110,20 +109,80 @@ public static class DockerComposeFileResourceBuilderExtensions
             return;
         }
 
+        // First pass: Create all container resources
+        var containerBuilders = new Dictionary<string, IResourceBuilder<ContainerResource>>();
         foreach (var (serviceName, service) in composeFile.Services)
         {
             try
             {
-                ImportService(builder, parentResource, serviceName, service, warnings);
+                var containerBuilder = ImportService(builder, parentResource, serviceName, service, warnings);
+                if (containerBuilder is not null)
+                {
+                    containerBuilders[serviceName] = containerBuilder;
+                }
             }
             catch (Exception ex)
             {
                 warnings.Add($"Failed to import service '{serviceName}' from Docker Compose file: {ex.Message}");
             }
         }
+
+        // Second pass: Set up dependencies (depends_on)
+        foreach (var (serviceName, service) in composeFile.Services)
+        {
+            if (service.DependsOn is null || service.DependsOn.Count == 0)
+            {
+                continue;
+            }
+
+            if (!containerBuilders.TryGetValue(serviceName, out var containerBuilder))
+            {
+                continue; // Service was skipped
+            }
+
+            foreach (var (dependencyName, dependency) in service.DependsOn)
+            {
+                if (!containerBuilders.TryGetValue(dependencyName, out var dependencyBuilder))
+                {
+                    warnings.Add($"Service '{serviceName}' depends on '{dependencyName}', but '{dependencyName}' was not imported.");
+                    continue;
+                }
+
+                try
+                {
+                    // Map Docker Compose condition to Aspire WaitFor methods
+                    var condition = dependency.Condition?.ToLowerInvariant();
+                    switch (condition)
+                    {
+                        case "service_started":
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                        case "service_healthy":
+                            containerBuilder.WaitFor(dependencyBuilder);
+                            break;
+                        case "service_completed_successfully":
+                            containerBuilder.WaitForCompletion(dependencyBuilder);
+                            break;
+                        case null:
+                        case "":
+                            // Default behavior: wait for service to start
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                        default:
+                            warnings.Add($"Unknown depends_on condition '{dependency.Condition}' for service '{serviceName}' -> '{dependencyName}'. Using default (service_started).");
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    warnings.Add($"Failed to set up dependency for service '{serviceName}' -> '{dependencyName}': {ex.Message}");
+                }
+            }
+        }
     }
 
-    private static void ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, List<string> warnings)
+    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, List<string> warnings)
     {
         IResourceBuilder<ContainerResource> containerBuilder;
 
@@ -159,7 +218,7 @@ public static class DockerComposeFileResourceBuilderExtensions
             catch (Exception ex)
             {
                 warnings.Add($"Failed to parse image reference '{service.Image}' for service '{serviceName}': {ex.Message}");
-                return;
+                return null;
             }
 
             var imageName = containerRef.Registry is null 
@@ -174,7 +233,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         {
             // Skip services without an image or build configuration
             warnings.Add($"Service '{serviceName}' has neither image nor build configuration. Skipping.");
-            return;
+            return null;
         }
 
         // Import environment variables
@@ -204,7 +263,8 @@ public static class DockerComposeFileResourceBuilderExtensions
                         scheme: scheme,
                         port: hostPort,
                         targetPort: containerPort,
-                        isExternal: true);
+                        isExternal: true,
+                        isProxied: false);
                 }
             }
         }
@@ -241,6 +301,8 @@ public static class DockerComposeFileResourceBuilderExtensions
             // WithEntrypoint expects a single string, so join them with space
             containerBuilder.WithEntrypoint(string.Join(" ", service.Entrypoint));
         }
+
+        return containerBuilder;
     }
 
     private static bool TryParsePortMapping(string portMapping, out int? hostPort, out int? containerPort, out string? protocol)
