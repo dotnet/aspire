@@ -41,6 +41,20 @@
       "env": {
         "DOCKER_BUILDKIT": "1"
       }
+    },
+    "dynamic-sync": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-sync.Dockerfile"
+      }
+    },
+    "dynamic-async": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-async.Dockerfile"
+      }
     }
   }
 }
