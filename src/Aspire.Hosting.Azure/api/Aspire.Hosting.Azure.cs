@@ -255,7 +255,7 @@ namespace Aspire.Hosting.Azure
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class AzurePublishingContext
     {
-        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, Microsoft.Extensions.Logging.ILogger logger, Publishing.IPublishingActivityReporter activityReporter) { }
+        public AzurePublishingContext(string outputPath, AzureProvisioningOptions provisioningOptions, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, Publishing.IPublishingActivityReporter activityReporter) { }
 
         public global::Azure.Provisioning.Infrastructure MainInfrastructure { get { throw null; } }
 

@@ -93,4 +93,11 @@ namespace Aspire.Hosting.Azure.AppContainers
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
     }
+
+    public partial class AzureContainerAppResource : AzureProvisioningResource
+    {
+        public AzureContainerAppResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure, ApplicationModel.IResource targetResource) : base(default!, default!) { }
+
+        public ApplicationModel.IResource TargetResource { get { throw null; } }
+    }
 }
