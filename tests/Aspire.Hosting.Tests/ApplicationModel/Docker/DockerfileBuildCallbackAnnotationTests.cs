@@ -19,8 +19,19 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
 
         // Assert
-        Assert.NotNull(annotation.Callback);
-        Assert.Same(callback, annotation.Callback);
+        Assert.NotNull(annotation.Callbacks);
+        Assert.Single(annotation.Callbacks);
+    }
+
+    [Fact]
+    public void DockerfileBuildCallbackAnnotation_DefaultConstructor_CreatesEmptyAnnotation()
+    {
+        // Arrange & Act
+        var annotation = new DockerfileBuildCallbackAnnotation();
+
+        // Assert
+        Assert.NotNull(annotation.Callbacks);
+        Assert.Empty(annotation.Callbacks);
     }
 
     [Fact]
@@ -43,7 +54,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", "production", builder, services);
 
         // Act
-        await annotation.Callback(context);
+        await annotation.Callbacks[0](context);
 
         // Assert
         Assert.True(callbackInvoked);
@@ -70,7 +81,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
 
         // Act
-        await annotation.Callback(context);
+        await annotation.Callbacks[0](context);
 
         // Assert
         Assert.True(callbackCompleted);
@@ -97,7 +108,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
 
         // Act
-        await annotation.Callback(context);
+        await annotation.Callbacks[0](context);
 
         // Assert
         Assert.True(builderModified);
@@ -127,9 +138,94 @@ public class DockerfileBuildCallbackAnnotationTests
         var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
 
         // Act
-        await annotation.Callback(context);
+        await annotation.Callbacks[0](context);
 
         // Assert
         Assert.True(serviceAccessed);
+    }
+
+    [Fact]
+    public void DockerfileBuildCallbackAnnotation_AddCallback_AddsCallback()
+    {
+        // Arrange
+        var annotation = new DockerfileBuildCallbackAnnotation();
+        Func<DockerfileBuildCallbackContext, Task> callback1 = context => Task.CompletedTask;
+        Func<DockerfileBuildCallbackContext, Task> callback2 = context => Task.CompletedTask;
+
+        // Act
+        annotation.AddCallback(callback1);
+        annotation.AddCallback(callback2);
+
+        // Assert
+        Assert.Equal(2, annotation.Callbacks.Count);
+    }
+
+    [Fact]
+    public async Task DockerfileBuildCallbackAnnotation_MultipleCallbacks_AllInvoked()
+    {
+        // Arrange
+        var callback1Invoked = false;
+        var callback2Invoked = false;
+
+        var annotation = new DockerfileBuildCallbackAnnotation();
+        annotation.AddCallback(context =>
+        {
+            callback1Invoked = true;
+            return Task.CompletedTask;
+        });
+        annotation.AddCallback(context =>
+        {
+            callback2Invoked = true;
+            return Task.CompletedTask;
+        });
+
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection().BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", null, builder, services);
+
+        // Act
+        foreach (var callback in annotation.Callbacks)
+        {
+            await callback(context);
+        }
+
+        // Assert
+        Assert.True(callback1Invoked);
+        Assert.True(callback2Invoked);
+    }
+
+    [Fact]
+    public async Task DockerfileBuildCallbackAnnotation_MultipleCallbacks_BuildInSequence()
+    {
+        // Arrange
+        var annotation = new DockerfileBuildCallbackAnnotation();
+        
+        annotation.AddCallback(context =>
+        {
+            context.Builder.From("alpine", "latest")
+                .WorkDir("/app");
+            return Task.CompletedTask;
+        });
+        
+        annotation.AddCallback(context =>
+        {
+            context.Builder.Stages[0].Run("apk add curl")
+                .Copy(".", ".");
+            return Task.CompletedTask;
+        });
+
+        var builder = new DockerfileBuilder();
+        var services = new ServiceCollection().BuildServiceProvider();
+        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", null, builder, services);
+
+        // Act
+        foreach (var callback in annotation.Callbacks)
+        {
+            await callback(context);
+        }
+
+        // Assert
+        Assert.Single(context.Builder.Stages);
+        Assert.Equal(4, context.Builder.Stages[0].Statements.Count); // FROM + WORKDIR + RUN + COPY
     }
 }

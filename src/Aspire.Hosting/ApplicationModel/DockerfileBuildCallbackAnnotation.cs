@@ -4,13 +4,41 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents an annotation for providing a callback to programmatically modify Dockerfile builds.
+/// Represents an annotation for providing callbacks to programmatically modify Dockerfile builds.
 /// </summary>
-/// <param name="callback">The callback function that will be invoked during the Dockerfile build process.</param>
-public class DockerfileBuildCallbackAnnotation(Func<DockerfileBuildCallbackContext, Task> callback) : IResourceAnnotation
+public class DockerfileBuildCallbackAnnotation : IResourceAnnotation
 {
+    private readonly List<Func<DockerfileBuildCallbackContext, Task>> _callbacks = [];
+
     /// <summary>
-    /// Gets the callback function that will be invoked during the Dockerfile build process.
+    /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class.
     /// </summary>
-    public Func<DockerfileBuildCallbackContext, Task> Callback => callback;
+    public DockerfileBuildCallbackAnnotation()
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class with an initial callback.
+    /// </summary>
+    /// <param name="callback">The initial callback function that will be invoked during the Dockerfile build process.</param>
+    public DockerfileBuildCallbackAnnotation(Func<DockerfileBuildCallbackContext, Task> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        _callbacks.Add(callback);
+    }
+
+    /// <summary>
+    /// Gets the list of callback functions that will be invoked during the Dockerfile build process.
+    /// </summary>
+    public IReadOnlyList<Func<DockerfileBuildCallbackContext, Task>> Callbacks => _callbacks.AsReadOnly();
+
+    /// <summary>
+    /// Adds a callback function to be invoked during the Dockerfile build process.
+    /// </summary>
+    /// <param name="callback">The callback function to add.</param>
+    public void AddCallback(Func<DockerfileBuildCallbackContext, Task> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        _callbacks.Add(callback);
+    }
 }
