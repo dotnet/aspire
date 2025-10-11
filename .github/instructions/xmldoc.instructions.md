@@ -18,16 +18,31 @@ XML documentation comments serve multiple purposes:
 
 ## General Principles
 
+### Scope: Public vs Internal APIs
+
+**Public APIs require comprehensive documentation:**
+- All public classes, interfaces, methods, properties, and events must be well-documented
+- Include detailed `<summary>`, `<remarks>`, `<example>`, and other appropriate tags
+- Focus on explaining purpose, usage patterns, and providing practical examples
+- This documentation will be published to Microsoft Learn and shown in IntelliSense
+
+**Internal APIs require minimal documentation:**
+- Internal classes and members should have brief `<summary>` tags only
+- Avoid verbose `<remarks>`, `<example>`, or detailed parameter descriptions for internal APIs
+- Keep internal documentation concise and focused on what the code does
+- Internal documentation is for maintainers, not public consumption
+
 ### Quality Standards
 
 High-quality XML documentation should:
 
 1. **Be Complete**: Document all public APIs (classes, interfaces, methods, properties, events)
-2. **Be Clear**: Use plain language that developers can understand
-3. **Be Accurate**: Ensure documentation matches the actual behavior of the code
-4. **Provide Context**: Explain why something exists and how it should be used
-5. **Include Examples**: Show practical usage when appropriate
-6. **Reference Related APIs**: Link to related types and members using `<see cref=""/>` and `<seealso cref=""/>`
+2. **Be Concise for Internal APIs**: Internal types should have minimal documentation
+3. **Be Clear**: Use plain language that developers can understand
+4. **Be Accurate**: Ensure documentation matches the actual behavior of the code
+5. **Provide Context**: Explain why something exists and how it should be used (public APIs only)
+6. **Include Examples**: Show practical usage when appropriate (public APIs only)
+7. **Reference Related APIs**: Link to related types and members using `<see cref=""/>` and `<seealso cref=""/>`
 
 ### What Makes Good Documentation
 
@@ -445,9 +460,67 @@ public string Name { get; set; }
 /// </summary>
 ```
 
-❌ **Don't document internal or private members** (unless they're complex and need explanation for maintainers)
+❌ **Don't add verbose documentation to internal APIs**
+
+```csharp
+// BAD - Too verbose for an internal class
+/// <summary>
+/// Provides utilities for managing virtual environments.
+/// </summary>
+/// <remarks>
+/// <para>
+/// This class handles platform-specific directory structures...
+/// </para>
+/// <para>
+/// Used internally by the Python hosting infrastructure...
+/// </para>
+/// </remarks>
+internal class VirtualEnvironment
+
+// GOOD - Brief and concise for internal class
+/// <summary>
+/// Handles location of files within the virtual environment.
+/// </summary>
+internal class VirtualEnvironment
+```
 
 ❌ **Don't include HTML tags** (except `<c>`, `<code>`, `<para>` which are standard XML doc tags)
+
+## Documentation for Internal APIs
+
+Internal classes, methods, and properties should have minimal documentation:
+
+**DO:**
+- ✅ Provide brief `<summary>` tags that explain what the code does
+- ✅ Document parameters and return values concisely
+- ✅ Keep it short and to the point
+
+**DON'T:**
+- ❌ Add verbose `<remarks>` sections
+- ❌ Include `<example>` sections
+- ❌ Write detailed explanations of usage patterns
+- ❌ Add extensive parameter descriptions
+
+**Example of good internal API documentation:**
+
+```csharp
+/// <summary>
+/// Handles location of files within the virtual environment of a python app.
+/// </summary>
+/// <param name="virtualEnvironmentPath">The path to the virtual environment directory.</param>
+internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
+{
+    /// <summary>
+    /// Locates an executable in the virtual environment.
+    /// </summary>
+    /// <param name="name">The name of the executable.</param>
+    /// <returns>The path to the executable.</returns>
+    public string GetExecutable(string name)
+    {
+        // Implementation...
+    }
+}
+```
 
 ## Special Cases
 
