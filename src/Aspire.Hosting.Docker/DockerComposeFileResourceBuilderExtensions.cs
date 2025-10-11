@@ -75,12 +75,8 @@ public static class DockerComposeFileResourceBuilderExtensions
                 {
                     e.Logger.LogWarning("{Warning}", warning);
                 }
-                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
             }
-            else
-            {
-                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
-            }
+            await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
         });
     }
 
