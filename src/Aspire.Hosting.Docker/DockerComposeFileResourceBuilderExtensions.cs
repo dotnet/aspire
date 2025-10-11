@@ -45,7 +45,10 @@ public static class DockerComposeFileResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(composeFilePath);
 
-        var resource = new DockerComposeFileResource(name, composeFilePath);
+        // Resolve the compose file path to a full physical path relative to the app host directory
+        var fullComposeFilePath = Path.GetFullPath(composeFilePath, builder.AppHostDirectory);
+
+        var resource = new DockerComposeFileResource(name, fullComposeFilePath);
         
         // Parse and import the compose file synchronously to add resources to the model
         // Capture any exceptions to report during initialization
@@ -54,7 +57,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         
         try
         {
-            ParseAndImportComposeFile(builder, resource, composeFilePath, warnings);
+            ParseAndImportComposeFile(builder, resource, fullComposeFilePath, warnings);
         }
         catch (Exception ex)
         {
@@ -114,7 +117,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         {
             try
             {
-                var containerBuilder = ImportService(builder, parentResource, serviceName, service, warnings);
+                var containerBuilder = ImportService(builder, parentResource, serviceName, service, composeFilePath, warnings);
                 if (containerBuilder is not null)
                 {
                     parentResource.ServiceBuilders[serviceName] = containerBuilder;
@@ -181,7 +184,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
     }
 
-    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, List<string> warnings)
+    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, string composeFilePath, List<string> warnings)
     {
         IResourceBuilder<ContainerResource> containerBuilder;
 
@@ -189,11 +192,15 @@ public static class DockerComposeFileResourceBuilderExtensions
         if (service.Build is not null)
         {
             // Use AddDockerfile for services with build configurations
+            // Resolve context path relative to the compose file's directory
             var contextPath = service.Build.Context ?? ".";
+            var composeFileDirectory = Path.GetDirectoryName(composeFilePath)!;
+            var resolvedContextPath = Path.GetFullPath(contextPath, composeFileDirectory);
+            
             var dockerfilePath = service.Build.Dockerfile;
             var stage = service.Build.Target;
 
-            containerBuilder = builder.AddDockerfile(serviceName, contextPath, dockerfilePath, stage)
+            containerBuilder = builder.AddDockerfile(serviceName, resolvedContextPath, dockerfilePath, stage)
                 .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
             
             // Add build args if present
