@@ -234,7 +234,8 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
                 const runApiOutput = await dotNetService.getDotNetRunApiOutput(projectPath);
                 applyRunApiOutputToDebugConfiguration(runApiOutput, debugConfiguration);
             }
-        }
+        },
+        getSupportedFileTypes: () => [".cs"]
     };
 }
 

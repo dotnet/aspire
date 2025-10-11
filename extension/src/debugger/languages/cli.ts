@@ -3,34 +3,51 @@ import { EnvVar } from "../../dcp/types";
 import { mergeEnvs } from "../../utils/environment";
 import { extensionLogOutputChannel } from "../../utils/logging";
 import { AspireTerminalProvider } from "../../utils/AspireTerminalProvider";
+import * as readline from 'readline';
 
 export interface SpawnProcessOptions {
     stdoutCallback?: (data: string) => void;
     stderrCallback?: (data: string) => void;
     exitCallback?: (code: number | null) => void;
     errorCallback?: (error: Error) => void;
+    lineCallback?: (line: string) => void;
     env?: EnvVar[];
     workingDirectory?: string;
     debugSessionId?: string,
     noDebug?: boolean;
+    noProcessEnv?: boolean;
 }
 
 export function spawnCliProcess(terminalProvider: AspireTerminalProvider, command: string, args?: string[], options?: SpawnProcessOptions): ChildProcessWithoutNullStreams {
-    const envVars = mergeEnvs(process.env, options?.env);
-    const additionalEnv = terminalProvider.createEnvironment(options?.debugSessionId, options?.noDebug);
     const workingDirectory = options?.workingDirectory ?? process.cwd();
 
     extensionLogOutputChannel.info(`Spawning CLI process: ${command} ${args?.join(" ")} (working directory: ${workingDirectory})`);
 
+    const env = {};
+    if (options?.noProcessEnv !== true) {
+        Object.assign(env, terminalProvider.createEnvironment(options?.debugSessionId, options?.noDebug));
+    }
+
+    if (options?.env) {
+        Object.assign(env, Object.fromEntries(options.env.map(e => [e.name, e.value])));
+    }
+
     const child = spawn(command, args ?? [], {
         cwd: workingDirectory,
-        env: { ...envVars, ...additionalEnv },
+        env: env,
         shell: false
     });
 
     child.stdout.on("data", (data) => {
         options?.stdoutCallback?.(new String(data).toString());
     });
+
+    if (options?.lineCallback) {
+        const rl = readline.createInterface(child.stdout);
+        rl.on('line', line => {
+            options?.lineCallback?.(line);
+        });
+    }
 
     child.stderr.on("data", (data) => {
         options?.stderrCallback?.(new String(data).toString());
