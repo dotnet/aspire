@@ -128,6 +128,8 @@ output name string = env_asplan.name
 
 output planId string = env_asplan.id
 
+output webSiteSuffix string = uniqueString(resourceGroup().id)
+
 output AZURE_CONTAINER_REGISTRY_NAME string = env_acr.name
 
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer

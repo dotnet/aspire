@@ -35,7 +35,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     // Naming the app service is globally unique (doman names), so we use the resource group ID to create a unique name
     // within the naming spec for the app service.
     public BicepValue<string> HostName => BicepFunction.Take(
-        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}"), 60);
+        BicepFunction.Interpolate($"{BicepFunction.ToLower(resource.Name)}-{AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()}"), 60);
 
     public async Task ProcessAsync(CancellationToken cancellationToken)
     {

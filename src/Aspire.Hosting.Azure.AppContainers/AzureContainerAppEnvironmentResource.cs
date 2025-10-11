@@ -65,6 +65,25 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+        if (resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this) is null)
+        {
+            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
+        }
+
+        var builder = new ReferenceExpressionBuilder();
+        builder.Append($"{resource.Name.ToLowerInvariant()}");
+        if (!endpointReference.EndpointAnnotation.IsExternal)
+        {
+            builder.AppendLiteral(".internal");
+        }
+        builder.Append($".{ContainerAppDomain}");
+
+        return builder.Build();
+    }
+
     internal BicepOutputReference GetVolumeStorage(IResource resource, ContainerMountAnnotation volume, int volumeIndex)
     {
         var prefix = volume.Type switch
