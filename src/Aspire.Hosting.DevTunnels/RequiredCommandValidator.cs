@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.DevTunnels;
@@ -131,7 +132,7 @@ internal abstract class RequiredCommandValidator(IInteractionService interaction
     /// <returns>Full path if resolved; otherwise null.</returns>
     protected static string? ResolveCommand(string command)
     {
-        return Aspire.Hosting.ApplicationModel.CommandResolver.ResolveCommand(command);
+        return CommandResolver.ResolveCommand(command);
     }
 }
 #pragma warning restore ASPIREINTERACTION001
