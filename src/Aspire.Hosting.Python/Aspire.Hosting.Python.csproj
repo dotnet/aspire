@@ -12,6 +12,12 @@
     <Compile Include="$(SharedDir)OverloadResolutionPriorityAttribute.cs" Link="Utils\OverloadResolutionPriorityAttribute.cs" />
   </ItemGroup>
 
+  <!-- Docker files as embedded resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="default.Dockerfile" LogicalName="default.Dockerfile" />
+    <EmbeddedResource Include="uv.Dockerfile" LogicalName="uv.Dockerfile" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
   </ItemGroup>

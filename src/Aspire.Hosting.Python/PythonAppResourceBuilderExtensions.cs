@@ -162,7 +162,22 @@ public static class PythonAppResourceBuilderExtensions
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
         });
 
-        resourceBuilder.PublishAsDockerFile();
+        resourceBuilder.PublishAsDockerFile(c =>
+        {
+            // Only generate a Dockerfile if one doesn't already exist in the app directory
+            if (File.Exists(Path.Combine(appDirectory, "Dockerfile")))
+            {
+                return;
+            }
+
+            var entry = Path.GetFileName(scriptPath);
+            var dockerFile = c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _) ?
+                "uv" : "default";
+
+            c.WithDockerfile(appDirectory,
+                context => DockerFileCache.GetDockerFile(dockerFile))
+            .WithBuildArg("SCRIPT_NAME", entry);
+        });
 
         return resourceBuilder;
     }
@@ -269,13 +284,13 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
-        
+
         // Check if the UV environment resource already exists
         var existingResource = builder.ApplicationBuilder.Resources
             .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
-        
+
         IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
-        
+
         if (existingResource is not null)
         {
             // Resource already exists, return a builder for it
@@ -283,7 +298,7 @@ public static class PythonAppResourceBuilderExtensions
             {
                 throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
             }
-            
+
             uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
         }
         else
@@ -296,9 +311,34 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder)
                 .ExcludeFromManifest();
 
-            builder.WaitForCompletion(uvBuilder);
+            builder.WaitForCompletion(uvBuilder)
+                   .WithAnnotation(new PythonUvAnnotation());
         }
 
         return builder;
+    }
+
+    private static class DockerFileCache
+    {
+        private static readonly Lazy<string> s_dockerFileUv = new(() => LoadDockerFile("uv.Dockerfile"), isThreadSafe: true);
+        private static readonly Lazy<string> s_dockerFileDefault = new(() => LoadDockerFile("default.Dockerfile"), isThreadSafe: true);
+
+        private static string LoadDockerFile(string resourceName)
+        {
+            var assembly = typeof(DockerFileCache).Assembly;
+            using var stream = assembly.GetManifestResourceStream(resourceName)
+                ?? throw new InvalidOperationException($"Could not find embedded resource '{resourceName}'");
+            using var reader = new StreamReader(stream);
+            return reader.ReadToEnd();
+        }
+
+        public static string GetDockerFile(string name)
+        {
+            return name switch
+            {
+                "uv" => s_dockerFileUv.Value,
+                _ => s_dockerFileDefault.Value
+            };
+        }
     }
 }
