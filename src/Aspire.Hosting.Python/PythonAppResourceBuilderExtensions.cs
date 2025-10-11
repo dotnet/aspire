@@ -162,7 +162,107 @@ public static class PythonAppResourceBuilderExtensions
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
         });
 
-        resourceBuilder.PublishAsDockerFile();
+        resourceBuilder.PublishAsDockerFile(c =>
+        {
+            // Only generate a Dockerfile if one doesn't already exist in the app directory
+            if (File.Exists(Path.Combine(appDirectory, "Dockerfile")))
+            {
+                return;
+            }
+
+            c.WithDockerfile(appDirectory, context =>
+            {
+                // TODO: Put this in a docker file
+                var entry = Path.GetFileName(scriptPath);
+                return
+                $$"""
+                # syntax=docker/dockerfile:1.7
+                # -----------------------------------------------------------------------------
+                # Multi-stage Dockerfile for Python apps using uv
+                # - Stage 1 (builder): installs uv and resolves dependencies into a .venv
+                # - Stage 2 (runtime): copies only the venv + app code for a slimmer image
+                # -----------------------------------------------------------------------------
+
+                # ------------------------------
+                # 🔧 Builder stage
+                # ------------------------------
+                ARG PYTHON_VERSION=3.12
+                ARG UV_VERSION=0.4.29
+                ARG TARGETOS
+                ARG TARGETARCH
+                FROM python:${PYTHON_VERSION}-slim AS builder
+
+                # Minimal base image setup (curl + certs only)
+                RUN apt-get update && apt-get install -y --no-install-recommends \
+                    ca-certificates curl && \
+                    rm -rf /var/lib/apt/lists/*
+
+                WORKDIR /src
+
+                # Install uv (pinned) for reproducible builds
+                # Cache downloads/wheels across builds for speed (BuildKit required)
+                RUN --mount=type=cache,target=/root/.cache \
+                    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/uv-${TARGETOS}-${TARGETARCH}.tar.gz" \
+                    | tar -xz -C /usr/local/bin uv
+
+                # Environment: deterministic Python behavior
+                ENV PYTHONDONTWRITEBYTECODE=1 \
+                    PYTHONUNBUFFERED=1 \
+                    UV_LINK_MODE=copy \
+                    UV_PYTHON_PREFERENCE=only-managed
+
+                # Copy dependency files first to maximize layer caching
+                COPY pyproject.toml uv.lock* ./
+
+                # Resolve & install dependencies into a project-local virtualenv (.venv)
+                # - If uv.lock exists: frozen, reproducible installs
+                # - If not: resolve from pyproject.toml
+                RUN --mount=type=cache,target=/root/.cache/uv \
+                    test -f pyproject.toml && \
+                    if [ -f uv.lock ]; then \
+                        uv sync --frozen --no-dev; \
+                    else \
+                        uv sync --no-dev; \
+                    fi
+
+                # Copy the rest of the application source (after deps to preserve cache)
+                COPY . ./
+
+                # (Optional) If your project needs compiled assets at build time, do it here.
+                # Example: uv run python -m compileall -q .
+
+                # ------------------------------
+                # 🚀 Runtime stage
+                # ------------------------------
+                FROM python:${PYTHON_VERSION}-slim AS app
+
+                # Create non-root user early; keep runtime image minimal
+                RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+                && rm -rf /var/lib/apt/lists/* \
+                && useradd -m -u 10001 appuser
+
+                # Working directory under the non-root user's home
+                WORKDIR /home/appuser/app
+
+                # Copy only the resolved virtual environment from the builder
+                # We relocate .venv to /opt/venv and put it on PATH
+                COPY --from=builder /src/.venv /opt/venv
+                ENV PATH="/opt/venv/bin:${PATH}" \
+                    PYTHONDONTWRITEBYTECODE=1 \
+                    PYTHONUNBUFFERED=1
+
+                # Copy the application source (owned by non-root user)
+                COPY --chown=appuser:appuser . ./
+
+                # Drop privileges for runtime
+                USER appuser
+
+                # Entrypoint + default script (overridable with `docker run IMAGE other.py`)
+                ENTRYPOINT ["python"]
+                CMD ["{{entry}}"]
+                """;
+            });
+        });
 
         return resourceBuilder;
     }
@@ -228,13 +328,13 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
-        
+
         // Check if the UV environment resource already exists
         var existingResource = builder.ApplicationBuilder.Resources
             .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
-        
+
         IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
-        
+
         if (existingResource is not null)
         {
             // Resource already exists, return a builder for it
@@ -242,7 +342,7 @@ public static class PythonAppResourceBuilderExtensions
             {
                 throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
             }
-            
+
             uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
         }
         else
