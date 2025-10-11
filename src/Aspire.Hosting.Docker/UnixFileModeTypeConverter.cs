@@ -39,6 +39,23 @@ internal class UnixFileModeTypeConverter : IYamlTypeConverter
 }
 
 /// <summary>
+/// Represents environment variables that can be specified in either array or dictionary format.
+/// </summary>
+public class EnvironmentVariables : Dictionary<string, string>
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EnvironmentVariables"/> class.
+    /// </summary>
+    public EnvironmentVariables() : base() { }
+    
+    /// <summary>
+    /// Initializes a new instance of the <see cref="EnvironmentVariables"/> class from an existing dictionary.
+    /// </summary>
+    /// <param name="dictionary">The dictionary to copy from.</param>
+    public EnvironmentVariables(IDictionary<string, string> dictionary) : base(dictionary) { }
+}
+
+/// <summary>
 /// Converts Docker Compose environment variables from both array and dictionary formats to a dictionary.
 /// Supports both "KEY=value" array format and "KEY: value" dictionary format.
 /// </summary>
@@ -46,12 +63,12 @@ internal class EnvironmentVariablesTypeConverter : IYamlTypeConverter
 {
     public bool Accepts(Type type)
     {
-        return type == typeof(Dictionary<string, string>);
+        return type == typeof(EnvironmentVariables);
     }
 
     public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
     {
-        var result = new Dictionary<string, string>();
+        var result = new EnvironmentVariables();
 
         if (parser.Current is SequenceStart)
         {
@@ -106,7 +123,7 @@ internal class EnvironmentVariablesTypeConverter : IYamlTypeConverter
 
     public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
     {
-        if (value is Dictionary<string, string> dict)
+        if (value is EnvironmentVariables dict)
         {
             serializer(dict);
         }

@@ -76,7 +76,7 @@ public sealed class Service : NamedComposeMember
     /// Supports both array format (["KEY=value"]) and dictionary format ({KEY: value}).
     /// </remarks>
     [YamlMember(Alias = "environment", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
-    public Dictionary<string, string> Environment { get; set; } = [];
+    public EnvironmentVariables Environment { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of paths to environment variable files used by the service.
