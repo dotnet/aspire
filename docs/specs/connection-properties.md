@@ -16,17 +16,20 @@
 ## Property Catalog
 
 ### Network Identity
+
 | Key | Description | Provided By | Notes |
 | --- | --- | --- | --- |
 | Host | Primary hostname or address for the resource. | PostgreSQL, MySQL, SQL Server, Oracle, Redis, Garnet, Valkey, RabbitMQ, NATS, Kafka, MongoDB, Milvus. | Derived from `EndpointProperty.Host` of the primary endpoint. |
 | Port | Primary TCP port number. | Same set as `Host`. | Derived from `EndpointProperty.Port`. |
 
 ### URIs and URLs
+
 | Key | Description | Provided By | Notes |
 | --- | --- | --- | --- |
 | Uri | Service specific URI built from host, port, credentials, and scheme. | PostgreSQL, PostgresDatabase, MySQL, MySqlDatabase, Redis, Garnet, Valkey, RabbitMQ, NATS, Seq, MongoDBDatabase, Milvus, Qdrant (gRPC), GitHubModel, OpenAI. | Formatting rules per resource are listed in [URI Construction](#uri-construction). |
 
 ### Credentials and Secrets
+
 | Key | Description | Provided By | Notes |
 | --- | --- | --- | --- |
 | Username | Login user for the primary endpoint. | PostgreSQL, MySQL, SQL Server, Oracle, RabbitMQ, NATS, MongoDB. | Defaults align with respective containers (`postgres`, `root`, `sa`, etc.). |
@@ -34,6 +37,7 @@
 | Key | API key or token parameter. | OpenAI, GitHubModel, Qdrant. | For GitHub Models the key is a PAT or minted token. |
 
 ### Database Specific Metadata
+
 | Key | Description | Provided By | Notes |
 | --- | --- | --- | --- |
 | Database | Logical database name associated with the resource. | PostgresDatabase, MySqlDatabase, SqlServerDatabase, OracleDatabase, MongoDBDatabase, MilvusDatabase. | Added on top of the parent server keys. |
@@ -56,12 +60,14 @@ URI components should be url-encoded to prevent parsing issues. This is importan
 All URIs are composed with `:uri` formatting to ensure values are escaped correctly when rendered at deploy time.
 
 ## JDBC Formats
+
 - PostgreSQL: `jdbc:postgresql://{Host}:{Port}[/{Database}]` (database resources append the database segment).
 - MySQL: `jdbc:mysql://{Host}:{Port}[/{Database}]?user={Username}&password={Password}`.
 - SQL Server: `jdbc:sqlserver://{Host}:{Port};user={Username};password={Password};trustServerCertificate=true[;databaseName={Database}]`.
 - Oracle: `jdbc:oracle:thin:{Username}/{Password}@//{Host}:{Port}[/{Database}]`.
 
 ## Implementation Guidance
+
 - Reuse existing key names whenever possible; introduce new keys only for data that is unique or disambiguates multiple endpoints.
 - When a resource inherits another resource's connection properties, merge the parent set first to preserve overrides and annotations.
 - Prefer emitting a single URI per endpoint type; if multiple endpoints exist, use a suffix that clarifies the transport (`HttpUri`, `GrpcUri`).
