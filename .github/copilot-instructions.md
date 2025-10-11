@@ -110,7 +110,7 @@ dotnet test tests/Project.Tests/Project.Tests.csproj -- --filter-method "TestNam
 Never run all tests without the quarantine and outerloop filters in automated environments, as this will include flaky tests that are known to fail intermittently and long-running tests that slow down CI.
 
 Valid test filter switches include: --filter-class, --filter-not-class, --filter-method, --filter-not-method, --filter-namespace, --filter-not-namespace, --filter-not-trait, --filter-trait
-The switches `--filter-class` and `--filter-method` expect fully qualified names, unless a filter is used as a prefix like `--filter-class *.SomeClassName` or `--filter-method *.SomeMethodName`
+The switches `--filter-class` and `--filter-method` expect fully qualified names, unless a filter is used as a prefix like `--filter-class "*.SomeClassName"` or `--filter-method "*.SomeMethodName"`
 
 ### Test Verification Commands
 - **Single Test Project**: Typical runtime ~10-60 seconds per test project
