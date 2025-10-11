@@ -68,6 +68,7 @@ public static class DockerComposeFileResourceBuilderExtensions
             {
                 e.Logger.LogError(parseException, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
                 await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
+                return;
             }
             else if (warnings.Count > 0)
             {
