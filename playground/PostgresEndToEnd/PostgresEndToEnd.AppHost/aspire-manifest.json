@@ -1,34 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
-    "password": {
-      "type": "parameter.v0",
-      "value": "{password.inputs.value}",
-      "inputs": {
-        "value": {
-          "type": "string",
-          "secret": true
-        }
-      }
-    },
     "pg": {
-      "type": "container.v0",
-      "connectionString": "Host={pg.bindings.tcp.host};Port={pg.bindings.tcp.port};Username=postgres;Password={password.value}",
-      "image": "docker.io/library/postgres:17.6",
-      "env": {
-        "POSTGRES_HOST_AUTH_METHOD": "scram-sha-256",
-        "POSTGRES_INITDB_ARGS": "--auth-host=scram-sha-256 --auth-local=scram-sha-256",
-        "POSTGRES_USER": "postgres",
-        "POSTGRES_PASSWORD": "{password.value}"
-      },
-      "bindings": {
-        "tcp": {
-          "scheme": "tcp",
-          "protocol": "tcp",
-          "transport": "tcp",
-          "targetPort": 5432
-        }
-      }
+      "type": "azure.bicep.v0",
+      "connectionString": "{pg.outputs.connectionString}",
+      "path": "pg.module.bicep"
     },
     "db1": {
       "type": "value.v0",
@@ -43,26 +19,31 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__db1": "{db1.connectionString}",
-        "DB1_HOST": "{pg.bindings.tcp.host}",
-        "DB1_PORT": "{pg.bindings.tcp.port}",
-        "DB1_USERNAME": "postgres",
-        "DB1_PASSWORD": "{password.value}",
-        "DB1_URI": "postgresql://postgres:{password.value:uri}@{pg.bindings.tcp.host:uri}:{pg.bindings.tcp.port:uri}/db1",
-        "DB1_DATABASE": "db1",
-        "DB": "{pg.bindings.tcp.host}:{pg.bindings.tcp.port}"
+        "ConnectionStrings__db1": "{db1.connectionString}"
       },
       "bindings": {
         "http": {
           "scheme": "http",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         },
         "https": {
           "scheme": "https",
           "protocol": "tcp",
-          "transport": "http"
+          "transport": "http",
+          "external": true
         }
+      }
+    },
+    "pg-roles": {
+      "type": "azure.bicep.v0",
+      "path": "pg-roles.module.bicep",
+      "params": {
+        "pg_outputs_name": "{pg.outputs.name}",
+        "principalType": "",
+        "principalId": "",
+        "principalName": ""
       }
     }
   }

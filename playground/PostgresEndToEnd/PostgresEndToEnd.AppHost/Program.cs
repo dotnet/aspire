@@ -3,28 +3,13 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var password = builder.AddParameter("password", "a@b/c=d&e:f", secret: true);
-
-var db1 = builder.AddPostgres("pg", password: password)
+var db1 = builder.AddAzurePostgresFlexibleServer("pg")
+                 .RunAsContainer()
                  .AddDatabase("db1");
 
-// 1- Invoking WithReference automatically renders environment variables for each connection property
 builder.AddProject<Projects.PostgresEndToEnd_ApiService>("api")
-       .WithReference(db1).WaitFor(db1)
-
-// 4- WithEnvironment allows custom environment variable configuration
-       .WithEnvironment(context =>
-       {
-           // Connection property references can also be used directly to configure environment variables
-           var host = db1.Resource.GetConnectionProperty("Host");
-
-           // Using exposed properties
-           var port = db1.Resource.Parent.Port;
-
-           // Configure a custom environment variable using the connection properties
-           // When building URIs we should have tools for encoding/escaping values
-           context.EnvironmentVariables["DB"] = ReferenceExpression.Create($"{host}:{port}");
-       });
+       .WithExternalHttpEndpoints()
+       .WithReference(db1).WaitFor(db1);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
