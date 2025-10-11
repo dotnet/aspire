@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yarp;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -37,10 +38,19 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            // YARP will not trust the cert used by Aspire otlp endpoint when running locally
-            // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
-            // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
-            yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+            yarpBuilder.WithEnvironment(ctx =>
+            {
+                var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+                if (!developerCertificateService.SupportsContainerTrust)
+                {
+                    // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used
+                    // by Aspire otlp endpoint when running locally. The Aspire otlp endpoint uses the dev cert, and prior to
+                    // .NET 10, it was only valid for localhost, but from the container perspective, the url will be something
+                    // like https://docker.host.internal, so it will NOT be valid. This is not necessary when using the latest
+                    // dev cert.
+                    ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
+                }
+            });
         }
 
         yarpBuilder.WithEnvironment(ctx =>
