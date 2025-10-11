@@ -17,6 +17,8 @@ namespace Aspire.Hosting
     public static partial class AzureAppServiceEnvironmentExtensions
     {
         public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> AddAzureAppServiceEnvironment(this IDistributedApplicationBuilder builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> WithDashboard(this ApplicationModel.IResourceBuilder<Azure.AzureAppServiceEnvironmentResource> builder, bool enable = true) { throw null; }
     }
 }
 
@@ -32,6 +34,8 @@ namespace Aspire.Hosting.Azure
 
         ApplicationModel.ReferenceExpression IAzureContainerRegistry.ManagedIdentityId { get { throw null; } }
 
+        public BicepOutputReference DashboardUriReference { get { throw null; } }
+
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
@@ -42,5 +46,12 @@ namespace Aspire.Hosting.Azure
         public AzureAppServiceWebsiteCustomizationAnnotation(System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> configure) { }
 
         public System.Action<AzureResourceInfrastructure, global::Azure.Provisioning.AppService.WebSite> Configure { get { throw null; } }
+    }
+
+    public partial class AzureAppServiceWebSiteResource : AzureProvisioningResource
+    {
+        public AzureAppServiceWebSiteResource(string name, System.Action<AzureResourceInfrastructure> configureInfrastructure, ApplicationModel.IResource targetResource) : base(default!, default!) { }
+
+        public ApplicationModel.IResource TargetResource { get { throw null; } }
     }
 }

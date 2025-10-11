@@ -28,6 +28,10 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddContainer(this IDistributedApplicationBuilder builder, string name, string image) { throw null; }
 
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, System.Func<ApplicationModel.DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, System.Func<ApplicationModel.DockerfileFactoryContext, System.Threading.Tasks.Task<string>> dockerfileFactory, string? stage = null) { throw null; }
+
         public static ApplicationModel.IResourceBuilder<ApplicationModel.ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, string name, string contextPath, string? dockerfilePath = null, string? stage = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> PublishAsContainer<T>(this ApplicationModel.IResourceBuilder<T> builder)
@@ -64,6 +68,12 @@ namespace Aspire.Hosting
             where T : ApplicationModel.ContainerResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithContainerRuntimeArgs<T>(this ApplicationModel.IResourceBuilder<T> builder, params string[] args)
+            where T : ApplicationModel.ContainerResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithDockerfile<T>(this ApplicationModel.IResourceBuilder<T> builder, string contextPath, System.Func<ApplicationModel.DockerfileFactoryContext, string> dockerfileFactory, string? stage = null)
+            where T : ApplicationModel.ContainerResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithDockerfile<T>(this ApplicationModel.IResourceBuilder<T> builder, string contextPath, System.Func<ApplicationModel.DockerfileFactoryContext, System.Threading.Tasks.Task<string>> dockerfileFactory, string? stage = null)
             where T : ApplicationModel.ContainerResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithDockerfile<T>(this ApplicationModel.IResourceBuilder<T> builder, string contextPath, string? dockerfilePath = null, string? stage = null)
@@ -268,6 +278,18 @@ namespace Aspire.Hosting
         public bool DisableDashboard { get { throw null; } set { } }
 
         public bool EnableResourceLogging { get { throw null; } set { } }
+
+        public string? ProjectDirectory { get { throw null; } set { } }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class DynamicInputOptions
+    {
+        public bool AlwaysUpdateOnStart { get { throw null; } init { } }
+
+        public System.Collections.Generic.IReadOnlyList<string>? DependsOnInputs { get { throw null; } init { } }
+
+        public required System.Func<UpdateInputContext, System.Threading.Tasks.Task> UpdateInputCallback { get { throw null; } init { } }
     }
 
     public static partial class EmulatorResourceExtensions
@@ -392,9 +414,16 @@ namespace Aspire.Hosting
     }
 
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    [System.Diagnostics.DebuggerDisplay("Name = {Name}, InputType = {InputType}, Required = {Required}, Value = {Value}")]
     public sealed partial class InteractionInput
     {
+        public bool AllowCustomChoice { get { throw null; } init { } }
+
         public string? Description { get { throw null; } init { } }
+
+        public bool Disabled { get { throw null; } set { } }
+
+        public DynamicInputOptions? DynamicOptions { get { throw null; } init { } }
 
         public bool EnableDescriptionMarkdown { get { throw null; } init { } }
 
@@ -402,13 +431,13 @@ namespace Aspire.Hosting
 
         public string? Label { get { throw null; } init { } }
 
-        public int? MaxLength { get { throw null; } set { } }
+        public int? MaxLength { get { throw null; } init { } }
 
         public required string Name { get { throw null; } init { } }
 
-        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, string>>? Options { get { throw null; } init { } }
+        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, string>>? Options { get { throw null; } set { } }
 
-        public string? Placeholder { get { throw null; } set { } }
+        public string? Placeholder { get { throw null; } init { } }
 
         public bool Required { get { throw null; } init { } }
 
@@ -570,7 +599,7 @@ namespace Aspire.Hosting
     [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public sealed partial class ParameterProcessor
     {
-        public ParameterProcessor(ApplicationModel.ResourceNotificationService notificationService, ApplicationModel.ResourceLoggerService loggerService, IInteractionService interactionService, Microsoft.Extensions.Logging.ILogger<ParameterProcessor> logger, DistributedApplicationOptions options, DistributedApplicationExecutionContext executionContext) { }
+        public ParameterProcessor(ApplicationModel.ResourceNotificationService notificationService, ApplicationModel.ResourceLoggerService loggerService, IInteractionService interactionService, Microsoft.Extensions.Logging.ILogger<ParameterProcessor> logger, DistributedApplicationExecutionContext executionContext, Publishing.IDeploymentStateManager deploymentStateManager) { }
 
         public System.Threading.Tasks.Task InitializeParametersAsync(ApplicationModel.DistributedApplicationModel model, bool waitForResolution = false, System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
@@ -681,6 +710,12 @@ namespace Aspire.Hosting
 
         public static ApplicationModel.IResourceBuilder<T> WithArgs<T>(this ApplicationModel.IResourceBuilder<T> builder, params string[] args)
             where T : ApplicationModel.IResourceWithArgs { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithChildRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResource child)
+            where T : ApplicationModel.IResource { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<T> WithChildRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> child)
+            where T : ApplicationModel.IResource { throw null; }
 
         public static ApplicationModel.IResourceBuilder<T> WithCommand<T>(this ApplicationModel.IResourceBuilder<T> builder, string name, string displayName, System.Func<ApplicationModel.ExecuteCommandContext, System.Threading.Tasks.Task<ApplicationModel.ExecuteCommandResult>> executeCommand, ApplicationModel.CommandOptions? commandOptions = null)
             where T : ApplicationModel.IResource { throw null; }
@@ -844,9 +879,21 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithUrls<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<ApplicationModel.ResourceUrlsCallbackContext, System.Threading.Tasks.Task> callback)
             where T : ApplicationModel.IResource { throw null; }
 
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREEXTENSION001")]
-        public static ApplicationModel.IResourceBuilder<T> WithVSCodeDebugSupport<T>(this ApplicationModel.IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, System.Action<ApplicationModel.CommandLineArgsCallbackContext>? argsCallback = null)
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, System.Action<ApplicationModel.CommandLineArgsCallbackContext>? argsCallback = null)
             where T : ApplicationModel.IResource { throw null; }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREINTERACTION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class UpdateInputContext
+    {
+        public required InteractionInputCollection AllInputs { get { throw null; } init { } }
+
+        public required System.Threading.CancellationToken CancellationToken { get { throw null; } init { } }
+
+        public required InteractionInput Input { get { throw null; } init { } }
+
+        public required System.IServiceProvider ServiceProvider { get { throw null; } init { } }
     }
 
     public static partial class VolumeNameGenerator
@@ -1338,9 +1385,24 @@ namespace Aspire.Hosting.ApplicationModel
 
         public string ContextPath { get { throw null; } }
 
+        public System.Func<DockerfileFactoryContext, System.Threading.Tasks.Task<string>>? DockerfileFactory { get { throw null; } init { } }
+
         public string DockerfilePath { get { throw null; } }
 
+        public string? ImageName { get { throw null; } set { } }
+
+        public string? ImageTag { get { throw null; } set { } }
+
         public string? Stage { get { throw null; } }
+    }
+
+    public sealed partial class DockerfileFactoryContext
+    {
+        public System.Threading.CancellationToken CancellationToken { get { throw null; } init { } }
+
+        public required IResource Resource { get { throw null; } init { } }
+
+        public required System.IServiceProvider Services { get { throw null; } init { } }
     }
 
     public sealed partial class EmulatorResourceAnnotation : IResourceAnnotation
@@ -1353,6 +1415,8 @@ namespace Aspire.Hosting.ApplicationModel
         public EndpointAnnotation(System.Net.Sockets.ProtocolType protocol, string? uriScheme = null, string? transport = null, string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true) { }
 
         public AllocatedEndpoint? AllocatedEndpoint { get { throw null; } set { } }
+
+        public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get { throw null; } }
 
         public bool IsExternal { get { throw null; } set { } }
 
@@ -1405,6 +1469,7 @@ namespace Aspire.Hosting.ApplicationModel
         HostAndPort = 6
     }
 
+    [System.Diagnostics.DebuggerDisplay("Resource = {Resource.Name}, EndpointName = {EndpointName}, IsAllocated = {IsAllocated}")]
     public sealed partial class EndpointReference : IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint) { }
@@ -1417,7 +1482,11 @@ namespace Aspire.Hosting.ApplicationModel
 
         public string ContainerHost { get { throw null; } }
 
+        public EndpointAnnotation EndpointAnnotation { get { throw null; } }
+
         public string EndpointName { get { throw null; } }
+
+        public string? ErrorMessage { get { throw null; } init { } }
 
         public bool Exists { get { throw null; } }
 
@@ -1435,7 +1504,7 @@ namespace Aspire.Hosting.ApplicationModel
 
         public string Url { get { throw null; } }
 
-        System.Threading.Tasks.ValueTask<string?> IValueProvider.GetValueAsync(System.Threading.CancellationToken cancellationToken) { throw null; }
+        public System.Threading.Tasks.ValueTask<string?> GetValueAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
         public EndpointReferenceExpression Property(EndpointProperty property) { throw null; }
     }
@@ -1572,6 +1641,7 @@ namespace Aspire.Hosting.ApplicationModel
     [System.Diagnostics.DebuggerDisplay("{Status}", Name = "{Name}")]
     public sealed partial record HealthReportSnapshot(string Name, Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? Status, string? Description, string? ExceptionText)
     {
+        public System.DateTime? LastRunAt { get { throw null; } init { } }
     }
 
     public partial record HostUrl(string Url) : IValueProvider, IManifestExpressionProvider
@@ -2213,6 +2283,8 @@ namespace Aspire.Hosting.ApplicationModel
         public static bool TryGetAnnotationsOfType<T>(this IResource resource, out System.Collections.Generic.IEnumerable<T>? result)
             where T : IResourceAnnotation { throw null; }
 
+        public static bool TryGetContainerImageName(this IResource resource, bool useBuiltImage, out string? imageName) { throw null; }
+
         public static bool TryGetContainerImageName(this IResource resource, out string? imageName) { throw null; }
 
         public static bool TryGetContainerMounts(this IResource resource, out System.Collections.Generic.IEnumerable<ContainerMountAnnotation>? volumeMounts) { throw null; }
@@ -2277,7 +2349,7 @@ namespace Aspire.Hosting.ApplicationModel
     {
         public ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<ResourceNotificationService> logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime hostApplicationLifetime, System.IServiceProvider serviceProvider, ResourceLoggerService resourceLoggerService) { }
 
-        [System.Obsolete("ResourceNotificationService now requires an IServiceProvider and ResourceLoggerService.\r\nUse the constructor that accepts an ILogger<ResourceNotificationService>, IHostApplicationLifetime, IServiceProvider and ResourceLoggerService.\r\nThis constructor will be removed in the next major version of Aspire.")]
+        [System.Obsolete("ResourceNotificationService now requires an IServiceProvider and ResourceLoggerService.\nUse the constructor that accepts an ILogger<ResourceNotificationService>, IHostApplicationLifetime, IServiceProvider and ResourceLoggerService.\nThis constructor will be removed in the next major version of Aspire.")]
         public ResourceNotificationService(Microsoft.Extensions.Logging.ILogger<ResourceNotificationService> logger, Microsoft.Extensions.Hosting.IHostApplicationLifetime hostApplicationLifetime) { }
 
         public void Dispose() { }
@@ -2396,19 +2468,6 @@ namespace Aspire.Hosting.ApplicationModel
         public EndpointReference? GetEndpoint(string name) { throw null; }
     }
 
-    [System.Diagnostics.DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}, Type = {Type}")]
-    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREEXTENSION001")]
-    public sealed partial class SupportsDebuggingAnnotation : IResourceAnnotation
-    {
-        public SupportsDebuggingAnnotation(string projectPath, string debugAdapterId, string? requiredExtensionId) { }
-
-        public string DebugAdapterId { get { throw null; } }
-
-        public string ProjectPath { get { throw null; } }
-
-        public string? RequiredExtensionId { get { throw null; } }
-    }
-
     public sealed partial class UpdateCommandStateContext
     {
         public required CustomResourceSnapshot ResourceSnapshot { get { throw null; } init { } }
@@ -2432,6 +2491,17 @@ namespace Aspire.Hosting.ApplicationModel
         public UrlDisplayPropertiesSnapshot DisplayProperties { get { throw null; } init { } }
 
         public bool IsInactive { get { throw null; } init { } }
+    }
+
+    public sealed partial class ValueSnapshot<T>
+    {
+        public bool IsValueSet { get { throw null; } }
+
+        public System.Threading.Tasks.Task<T> GetValueAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
+
+        public void SetException(System.Exception exception) { }
+
+        public void SetValue(T value) { }
     }
 
     [System.Diagnostics.DebuggerDisplay("{Source}", Name = "{Target}")]
@@ -2464,6 +2534,20 @@ namespace Aspire.Hosting.ApplicationModel
         WaitUntilHealthy = 0,
         WaitForCompletion = 1,
         WaitUntilStarted = 2
+    }
+}
+
+namespace Aspire.Hosting.Dcp.Model
+{
+    public partial class ExecutableLaunchConfiguration
+    {
+        public ExecutableLaunchConfiguration(string type) { }
+
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        public string Mode { get { throw null; } set { } }
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get { throw null; } set { } }
     }
 }
 
@@ -2533,6 +2617,21 @@ namespace Aspire.Hosting.Eventing
 
 namespace Aspire.Hosting.Lifecycle
 {
+    public static partial class EventingSubscriberServiceCollectionExtensions
+    {
+        public static void AddEventingSubscriber<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+            where T : class, IDistributedApplicationEventingSubscriber { }
+
+        public static void TryAddEventingSubscriber<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+            where T : class, IDistributedApplicationEventingSubscriber { }
+    }
+
+    public partial interface IDistributedApplicationEventingSubscriber
+    {
+        System.Threading.Tasks.Task SubscribeAsync(Eventing.IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, System.Threading.CancellationToken cancellationToken);
+    }
+
+    [System.Obsolete("Use IDistributedApplicationEventingSubscriber instead.")]
     public partial interface IDistributedApplicationLifecycleHook
     {
         System.Threading.Tasks.Task AfterEndpointsAllocatedAsync(ApplicationModel.DistributedApplicationModel appModel, System.Threading.CancellationToken cancellationToken = default);
@@ -2542,15 +2641,19 @@ namespace Aspire.Hosting.Lifecycle
 
     public static partial class LifecycleHookServiceCollectionExtensions
     {
+        [System.Obsolete("Use EventingSubscriberServiceCollectionExtensions.AddEventingSubscriber instead.")]
         public static void AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<System.IServiceProvider, T> implementationFactory)
             where T : class, IDistributedApplicationLifecycleHook { }
 
+        [System.Obsolete("Use EventingSubscriberServiceCollectionExtensions.AddEventingSubscriber instead.")]
         public static void AddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services)
             where T : class, IDistributedApplicationLifecycleHook { }
 
+        [System.Obsolete("Use EventingSubscriberServiceCollectionExtensions.TryAddEventingSubscriber instead.")]
         public static void TryAddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<System.IServiceProvider, T> implementationFactory)
             where T : class, IDistributedApplicationLifecycleHook { }
 
+        [System.Obsolete("Use EventingSubscriberServiceCollectionExtensions.TryAddEventingSubscriber instead.")]
         public static void TryAddLifecycleHook<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection services)
             where T : class, IDistributedApplicationLifecycleHook { }
     }
@@ -2611,6 +2714,15 @@ namespace Aspire.Hosting.Publishing
         Linux386 = 3,
         WindowsAmd64 = 4,
         WindowsArm64 = 5
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public partial interface IDeploymentStateManager
+    {
+        string? StateFilePath { get; }
+
+        System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonObject> LoadStateAsync(System.Threading.CancellationToken cancellationToken = default);
+        System.Threading.Tasks.Task SaveStateAsync(System.Text.Json.Nodes.JsonObject state, System.Threading.CancellationToken cancellationToken = default);
     }
 
     public partial interface IDistributedApplicationPublisher
@@ -2705,10 +2817,40 @@ namespace Aspire.Hosting.Publishing
     {
         public const string Publishing = "Publishing";
         [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public bool ClearCache { get { throw null; } set { } }
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public bool Deploy { get { throw null; } set { } }
 
         public string? OutputPath { get { throw null; } set { } }
 
         public string? Publisher { get { throw null; } set { } }
+    }
+}
+
+namespace Aspire.Hosting.Publishing.Internal
+{
+    public sealed partial class FileDeploymentStateManager : IDeploymentStateManager
+    {
+        public FileDeploymentStateManager(Microsoft.Extensions.Logging.ILogger<FileDeploymentStateManager> logger, Microsoft.Extensions.Configuration.IConfiguration configuration, Microsoft.Extensions.Hosting.IHostEnvironment hostEnvironment, Microsoft.Extensions.Options.IOptions<PublishingOptions> publishingOptions) { }
+
+        public string? StateFilePath { get { throw null; } }
+
+        public System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonObject> LoadStateAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
+
+        public System.Threading.Tasks.Task SaveStateAsync(System.Text.Json.Nodes.JsonObject state, System.Threading.CancellationToken cancellationToken = default) { throw null; }
+    }
+
+    public sealed partial class UserSecretsDeploymentStateManager : IDeploymentStateManager
+    {
+        public UserSecretsDeploymentStateManager(Microsoft.Extensions.Logging.ILogger<UserSecretsDeploymentStateManager> logger) { }
+
+        public string? StateFilePath { get { throw null; } }
+
+        public static System.Text.Json.Nodes.JsonObject FlattenJsonObject(System.Text.Json.Nodes.JsonObject source) { throw null; }
+
+        public System.Threading.Tasks.Task<System.Text.Json.Nodes.JsonObject> LoadStateAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
+
+        public System.Threading.Tasks.Task SaveStateAsync(System.Text.Json.Nodes.JsonObject state, System.Threading.CancellationToken cancellationToken = default) { throw null; }
     }
 }
