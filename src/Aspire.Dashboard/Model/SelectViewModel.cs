@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Aspire.Dashboard.Model.Otlp;
+namespace Aspire.Dashboard.Model;
 
 [DebuggerDisplay(@"Name = {Name}, Id = \{{Id}\}")]
 public class SelectViewModel<T> : IEquatable<SelectViewModel<T>>
