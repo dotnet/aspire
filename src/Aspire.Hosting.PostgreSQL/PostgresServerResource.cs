@@ -121,29 +121,31 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     public ReferenceExpression UriExpression =>
         ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host:uri}:{Port:uri}");
 
+    internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("jdbc:postgresql://");
+        builder.Append($"{Host:uri}");
+        builder.AppendLiteral(":");
+        builder.Append($"{Port:uri}");
+
+        if (databaseName is not null)
+        {
+            builder.AppendLiteral("/");
+            var databaseNameExpression = ReferenceExpression.Create($"{databaseName}");
+            builder.Append($"{databaseNameExpression:uri}");
+        }
+
+        return builder.Build();
+    }
+    
     /// <summary>
     /// Gets the JDBC connection string for the PostgreSQL server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>jdbc:postgresql://{host}:{port}/?user={user}&amp;password={password}</c>.
+    /// Format: <c>jdbc:postgresql://{host}:{port}</c>.
     /// </remarks>
-    public ReferenceExpression JdbcConnectionString
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("jdbc:postgresql://");
-            builder.Append($"{Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
-            builder.AppendLiteral("/?user=");
-            builder.Append($"{UserNameReference:uri}");
-            builder.AppendLiteral("&password=");
-            builder.Append($"{PasswordParameter:uri}");
-
-            return builder.Build();
-        }
-    }
+    public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
     [

@@ -47,13 +47,19 @@ public class MongoDBServerResource(string name) : ContainerResource(name), IReso
     /// Gets the parameter that contains the MongoDb server password.
     /// </summary>
     public ParameterResource? PasswordParameter { get; }
-        
+
     /// <summary>
     /// Gets the parameter that contains the MongoDb server username.
     /// </summary>
     public ParameterResource? UserNameParameter { get; }
 
-    internal ReferenceExpression UserNameReference =>
+    /// <summary>
+    /// Gets a reference to the user name for the MongoDB server.
+    /// </summary>
+    /// <remarks>
+    /// Returns the user name parameter if specified, otherwise returns the default user name "admin".
+    /// </remarks>
+    public ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");

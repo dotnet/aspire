@@ -40,18 +40,9 @@ public class OpenAIModelResource : Resource, IResourceWithParent<OpenAIResource>
     public ReferenceExpression ConnectionStringExpression =>
         ReferenceExpression.Create($"{Parent};Model={Model}");
 
-    /// <summary>
-    /// Gets the endpoint URI expression for the OpenAI model.
-    /// </summary>
-    /// <remarks>
-    /// Format: <c>{endpoint}?model={model}</c>, for example <c>https://api.openai.com/v1?model=gpt-4o-mini</c>.
-    /// </remarks>
-    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}?model={Model:uri}");
-
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         ((IResourceWithConnectionString)Parent).GetConnectionProperties()
             .Union([
                 new("Model", ReferenceExpression.Create($"{Model}")),
-                new("Uri", UriExpression),
             ]);
 }

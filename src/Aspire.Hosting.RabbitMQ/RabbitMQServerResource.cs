@@ -53,7 +53,13 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
     /// </summary>
     public ParameterResource? UserNameParameter { get; }
 
-    internal ReferenceExpression UserNameReference =>
+    /// <summary>
+    /// Gets a reference to the user name for the RabbitMQ server.
+    /// </summary>
+    /// <remarks>
+    /// Returns the user name parameter if specified, otherwise returns the default user name "guest".
+    /// </remarks>
+    public ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");

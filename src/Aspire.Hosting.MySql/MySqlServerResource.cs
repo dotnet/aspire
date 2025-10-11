@@ -60,7 +60,7 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// Gets the connection URI expression for the MySQL server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>mysql://root:{password}@{host}:{port}</c>.
+    /// Format: <c>mysql://{user}:{password}@{host}:{port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression
     {
@@ -80,29 +80,36 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
         }
     }
 
+    internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("jdbc:mysql://");
+        builder.Append($"{Host:uri}");
+        builder.AppendLiteral(":");
+        builder.Append($"{Port:uri}");
+
+        if (databaseName is not null)
+        {
+            var databaseExpression = ReferenceExpression.Create($"{databaseName}");
+            builder.AppendLiteral("/");
+            builder.Append($"{databaseExpression:uri}");
+        }
+
+        builder.AppendLiteral("?user=");
+        builder.Append($"{UserNameReference:uri}");
+        builder.AppendLiteral("&password=");
+        builder.Append($"{PasswordParameter:uri}");
+
+        return builder.Build();
+    }
+
     /// <summary>
     /// Gets the JDBC connection string for the MySQL server.
     /// </summary>
     /// <remarks>
     /// Format: <c>jdbc:mysql://{host}:{port}/?user={user}&amp;password={password}</c>.
     /// </remarks>
-    public ReferenceExpression JdbcConnectionString
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("jdbc:mysql://");
-            builder.Append($"{Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
-            builder.AppendLiteral("/?user=");
-            builder.Append($"{UserNameReference:uri}");
-            builder.AppendLiteral("&password=");
-            builder.Append($"{PasswordParameter:uri}");
-
-            return builder.Build();
-        }
-    }
+    public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
     /// <summary>
     /// A dictionary where the key is the resource name and the value is the database name.

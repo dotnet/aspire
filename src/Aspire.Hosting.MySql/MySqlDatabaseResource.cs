@@ -41,7 +41,7 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// Gets the connection URI expression for the MySQL database.
     /// </summary>
     /// <remarks>
-    /// Format: <c>mysql://root:{password}@{host}:{port}/{database}</c>.
+    /// Format: <c>mysql://{user}:{password}@{host}:{port}/{database}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
 
@@ -51,24 +51,8 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
     /// <remarks>
     /// Format: <c>jdbc:mysql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
     /// </remarks>
-    public ReferenceExpression JdbcConnectionString
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("jdbc:mysql://");
-            builder.Append($"{Parent.Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Parent.Port:uri}");
-            builder.AppendLiteral("/");
-            var databaseNameExpression = ReferenceExpression.Create($"{DatabaseName}");
-            builder.Append($"{databaseNameExpression:uri}");
-            builder.AppendLiteral("?user=root&password=");
-            builder.Append($"{Parent.PasswordParameter:uri}");
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
-            return builder.Build();
-        }
-    }
     /// <summary>
     /// Gets the database name.
     /// </summary>

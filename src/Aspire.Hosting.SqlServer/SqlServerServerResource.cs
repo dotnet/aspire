@@ -48,30 +48,36 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         ReferenceExpression.Create(
             $"Server={PrimaryEndpoint.Property(EndpointProperty.IPV4Host)},{PrimaryEndpoint.Property(EndpointProperty.Port)};User ID={DefaultUserName};Password={PasswordParameter};TrustServerCertificate=true");
 
-    private static ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
-
     /// <summary>
-    /// Gets the connection URI expression for the SQL Server.
+    /// Gets a reference to the user name for the SQL Server.
     /// </summary>
     /// <remarks>
-    /// Format: <c>sqlserver://sa:{password}@{host}:{port}</c>.
+    /// Returns the user name parameter if specified, otherwise returns the default user name "sa".
     /// </remarks>
-    public ReferenceExpression UriExpression
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("sqlserver://");
-            builder.Append($"{UserNameReference:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{PasswordParameter:uri}");
-            builder.AppendLiteral("@");
-            builder.Append($"{Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
+    public ReferenceExpression UserNameReference => ReferenceExpression.Create($"{DefaultUserName}");
 
-            return builder.Build();
+    internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        builder.AppendLiteral("jdbc:sqlserver://");
+        builder.Append($"{Host:uri}");
+        builder.AppendLiteral(":");
+        builder.Append($"{Port:uri}");
+        builder.AppendLiteral(";user=");
+        builder.Append($"{UserNameReference:uri}");
+        builder.AppendLiteral(";password=");
+        builder.Append($"{PasswordParameter:uri}");
+
+        if (!string.IsNullOrEmpty(databaseName))
+        {
+            var databaseNameReference = ReferenceExpression.Create($"{databaseName:uri}");
+            builder.AppendLiteral(";databaseName=");
+            builder.Append($"{databaseNameReference:uri}");
         }
+
+        builder.AppendLiteral(";trustServerCertificate=true");
+
+        return builder.Build();
     }
 
     /// <summary>
@@ -80,24 +86,7 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     /// <remarks>
     /// Format: <c>jdbc:sqlserver://{host}:{port};user={user};password={password};trustServerCertificate=true</c>.
     /// </remarks>
-    public ReferenceExpression JdbcConnectionString
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("jdbc:sqlserver://");
-            builder.Append($"{Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
-            builder.AppendLiteral(";user=");
-            builder.Append($"{UserNameReference:uri}");
-            builder.AppendLiteral(";password=");
-            builder.Append($"{PasswordParameter:uri}");
-            builder.AppendLiteral(";trustServerCertificate=true");
-
-            return builder.Build();
-        }
-    }
+    public ReferenceExpression JdbcConnectionString => BuildJdbcConnectionString();
 
     /// <summary>
     /// Gets the connection string expression for the SQL Server.
@@ -159,7 +148,6 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
         yield return new("Port", ReferenceExpression.Create($"{Port}"));
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
-        yield return new("Uri", UriExpression);
         yield return new("JdbcConnectionString", JdbcConnectionString);
     }
 }

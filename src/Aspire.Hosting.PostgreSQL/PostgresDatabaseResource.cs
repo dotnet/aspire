@@ -62,26 +62,7 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     /// <remarks>
     /// Format: <c>jdbc:postgresql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
     /// </remarks>
-    public ReferenceExpression JdbcConnectionString
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("jdbc:postgresql://");
-            builder.Append($"{Parent.Host:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Parent.Port:uri}");
-            builder.AppendLiteral("/");
-            var databaseNameExpression = ReferenceExpression.Create($"{DatabaseName}");
-            builder.Append($"{databaseNameExpression:uri}");
-            builder.AppendLiteral("?user=");
-            builder.Append($"{Parent.UserNameReference:uri}");
-            builder.AppendLiteral("&password=");
-            builder.Append($"{Parent.PasswordParameter:uri}");
-
-            return builder.Build();
-        }
-    }
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
         ((IResourceWithConnectionString)Parent).GetConnectionProperties()

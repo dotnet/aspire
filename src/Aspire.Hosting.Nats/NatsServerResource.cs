@@ -47,7 +47,13 @@ public class NatsServerResource(string name) : ContainerResource(name), IResourc
     /// </summary>
     public ParameterResource? UserNameParameter { get; set; }
 
-    internal ReferenceExpression UserNameReference =>
+    /// <summary>
+    /// Gets a reference to the user name for the NATS server.
+    /// </summary>
+    /// <remarks>
+    /// Returns the user name parameter if specified, otherwise returns the default user name "nats".
+    /// </remarks>
+    public ReferenceExpression UserNameReference =>
         UserNameParameter is not null ?
             ReferenceExpression.Create($"{UserNameParameter}") :
             ReferenceExpression.Create($"{DefaultUserName}");
