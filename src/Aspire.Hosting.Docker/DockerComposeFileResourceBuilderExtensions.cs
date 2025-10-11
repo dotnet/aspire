@@ -62,7 +62,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
         
         // Use OnInitializeResource to report any issues that occurred during parsing
-        return builder.AddResource(resource).OnInitializeResource(async (resource, e, ct) =>
+        return builder.AddResource(resource).ExcludeFromManifest().OnInitializeResource(async (resource, e, ct) =>
         {
             if (parseException is not null)
             {
