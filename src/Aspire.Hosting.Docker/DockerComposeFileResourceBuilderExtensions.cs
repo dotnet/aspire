@@ -67,14 +67,20 @@ public static class DockerComposeFileResourceBuilderExtensions
             if (parseException is not null)
             {
                 e.Logger.LogError(parseException, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
+                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
             }
-            
-            foreach (var warning in warnings)
+            else if (warnings.Count > 0)
             {
-                e.Logger.LogWarning("{Warning}", warning);
+                foreach (var warning in warnings)
+                {
+                    e.Logger.LogWarning("{Warning}", warning);
+                }
+                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
             }
-            
-            await Task.CompletedTask.ConfigureAwait(false);
+            else
+            {
+                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
+            }
         });
     }
 
@@ -135,12 +141,12 @@ public static class DockerComposeFileResourceBuilderExtensions
             containerBuilder = builder.AddDockerfile(serviceName, contextPath, dockerfilePath, stage)
                 .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
             
-            // Add build args as environment variables if present
+            // Add build args if present
             if (service.Build.Args is not null && service.Build.Args.Count > 0)
             {
                 foreach (var (key, value) in service.Build.Args)
                 {
-                    containerBuilder.WithEnvironment(key, value);
+                    containerBuilder.WithBuildArg(key, value);
                 }
             }
         }
@@ -188,10 +194,17 @@ public static class DockerComposeFileResourceBuilderExtensions
         {
             foreach (var portMapping in service.Ports)
             {
-                if (TryParsePortMapping(portMapping, out var hostPort, out var containerPort, out _))
+                if (TryParsePortMapping(portMapping, out var hostPort, out var containerPort, out var protocol))
                 {
+                    // Determine scheme based on protocol
+                    var scheme = protocol?.ToLowerInvariant() == "tcp" ? "tcp" : "http";
+                    
+                    // Create endpoint name from port mapping
+                    var endpointName = hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}";
+                    
                     containerBuilder.WithEndpoint(
-                        scheme: "http",
+                        name: endpointName,
+                        scheme: scheme,
                         port: hostPort,
                         targetPort: containerPort,
                         isExternal: true);

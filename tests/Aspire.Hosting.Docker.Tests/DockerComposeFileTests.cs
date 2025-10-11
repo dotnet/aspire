@@ -58,6 +58,7 @@ services:
             var endpoints = redisResource.Annotations.OfType<EndpointAnnotation>();
             Assert.NotEmpty(endpoints);
             var endpoint = endpoints.First();
+            Assert.Equal("port6379", endpoint.Name);
             Assert.Equal(6379, endpoint.Port);
             Assert.Equal(6379, endpoint.TargetPort);
         }
@@ -339,15 +340,72 @@ services:
             Assert.EndsWith("Dockerfile", buildAnnotation.DockerfilePath?.Replace('\\', '/'));
             Assert.Equal("production", buildAnnotation.Stage);
             
-            // Verify build args are added as environment variables
-            var envAnnotations = webappResource.Annotations.OfType<EnvironmentCallbackAnnotation>();
-            Assert.NotEmpty(envAnnotations);
+            // Verify build args are added using WithBuildArg
+            Assert.NotEmpty(buildAnnotation.BuildArguments);
+            Assert.True(buildAnnotation.BuildArguments.ContainsKey("NODE_ENV"));
+            Assert.True(buildAnnotation.BuildArguments.ContainsKey("API_URL"));
             
-            // Verify the endpoint was created
+            // Verify the endpoint was created with proper name
             var endpoints = webappResource.Annotations.OfType<EndpointAnnotation>();
             Assert.NotEmpty(endpoints);
             var endpoint = endpoints.First();
+            Assert.Equal("port3000", endpoint.Name);
             Assert.Equal(3000, endpoint.Port);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void AddDockerComposeFile_HandlesTcpProtocol()
+    {
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  tcpservice:
+    image: myapp:latest
+    ports:
+      - ""5000:5000/tcp""
+      - ""8080:8080""
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify tcpservice was imported
+            var tcpResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "tcpservice");
+            Assert.NotNull(tcpResource);
+            
+            // Verify endpoints were created
+            var endpoints = tcpResource.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Equal(2, endpoints.Count);
+            
+            // Verify TCP endpoint
+            var tcpEndpoint = endpoints.FirstOrDefault(e => e.Port == 5000);
+            Assert.NotNull(tcpEndpoint);
+            Assert.Equal("port5000", tcpEndpoint.Name);
+            Assert.Equal("tcp", tcpEndpoint.UriScheme);
+            Assert.Equal(5000, tcpEndpoint.TargetPort);
+            
+            // Verify HTTP endpoint (default when no protocol specified)
+            var httpEndpoint = endpoints.FirstOrDefault(e => e.Port == 8080);
+            Assert.NotNull(httpEndpoint);
+            Assert.Equal("port8080", httpEndpoint.Name);
+            Assert.Equal("http", httpEndpoint.UriScheme);
+            Assert.Equal(8080, httpEndpoint.TargetPort);
         }
         finally
         {
