@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +27,6 @@ public sealed class DeployingContext(
     string? outputPath)
 {
     private IPublishingActivityReporter? _activityReporter;
-    private readonly ConcurrentDictionary<string, object> _pipelineOutputs = [];
 
     /// <summary>
     /// Gets the distributed application model to be deployed.
@@ -65,51 +63,4 @@ public sealed class DeployingContext(
     /// Gets the output path for deployment artifacts.
     /// </summary>
     public string? OutputPath { get; } = outputPath;
-
-    /// <summary>
-    /// Sets an output value that can be consumed by dependent pipeline steps.
-    /// </summary>
-    /// <typeparam name="T">The type of the output value.</typeparam>
-    /// <param name="key">The key to identify the output.</param>
-    /// <param name="value">The value to store.</param>
-    public void SetPipelineOutput<T>(string key, T value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        _pipelineOutputs[key] = value;
-    }
-
-    /// <summary>
-    /// Attempts to retrieve an output value set by a previous pipeline step.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the output value.</typeparam>
-    /// <param name="key">The key identifying the output.</param>
-    /// <param name="value">The retrieved value if found.</param>
-    /// <returns>True if the output was found and is of the expected type; otherwise, false.</returns>
-    public bool TryGetPipelineOutput<T>(string key, [NotNullWhen(true)] out T? value)
-    {
-        if (_pipelineOutputs.TryGetValue(key, out var obj) && obj is T typed)
-        {
-            value = typed;
-            return true;
-        }
-        value = default;
-        return false;
-    }
-
-    /// <summary>
-    /// Retrieves an output value set by a previous pipeline step.
-    /// </summary>
-    /// <typeparam name="T">The expected type of the output value.</typeparam>
-    /// <param name="key">The key identifying the output.</param>
-    /// <returns>The output value.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the output is not found or is not of the expected type.</exception>
-    public T GetPipelineOutput<T>(string key)
-    {
-        if (!TryGetPipelineOutput<T>(key, out var value))
-        {
-            throw new InvalidOperationException(
-                $"Pipeline output '{key}' not found or is not of type {typeof(T).Name}");
-        }
-        return value;
-    }
 }

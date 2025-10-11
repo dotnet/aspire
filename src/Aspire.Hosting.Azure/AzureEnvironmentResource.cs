@@ -61,18 +61,27 @@ public sealed class AzureEnvironmentResource : Resource
 
         Annotations.Add(new PipelineStepAnnotation(() =>
         {
+            ProvisioningContext? provisioningContext = null;
+
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
                 Action = ctx => ValidateAzureCliLoginAsync(ctx)
             };
 
+            var createContextStep = new PipelineStep
+            {
+                Name = "create-provisioning-context",
+                Action = async ctx => provisioningContext = await CreateProvisioningContextAsync(ctx).ConfigureAwait(false)
+            };
+            createContextStep.DependsOn(validateStep);
+
             var provisionStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.ProvisionInfrastructure,
-                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx)
+                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!)
             };
-            provisionStep.DependsOn(validateStep);
+            provisionStep.DependsOn(createContextStep);
 
             var buildStep = new PipelineStep
             {
@@ -91,7 +100,7 @@ public sealed class AzureEnvironmentResource : Resource
             var deployStep = new PipelineStep
             {
                 Name = WellKnownPipelineSteps.DeployCompute,
-                Action = ctx => DeployComputeResourcesAsync(ctx)
+                Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!)
             };
             deployStep.DependsOn(pushStep);
             deployStep.DependsOn(provisionStep);
@@ -103,7 +112,7 @@ public sealed class AzureEnvironmentResource : Resource
             };
             printDashboardUrlStep.DependsOn(deployStep);
 
-            return [validateStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            return [validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -161,11 +170,10 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(DeployingContext context)
+    private static async Task<ProvisioningContext> CreateProvisioningContextAsync(DeployingContext context)
     {
         var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
         var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
-        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
 
         var userSecrets = await deploymentStateManager.LoadStateAsync(context.CancellationToken)
@@ -182,7 +190,14 @@ public sealed class AzureEnvironmentResource : Resource
                 context.CancellationToken).ConfigureAwait(false);
         }
 
-        context.SetPipelineOutput("ProvisioningContext", provisioningContext);
+        return provisioningContext;
+    }
+
+    private static async Task ProvisionAzureBicepResourcesAsync(DeployingContext context, ProvisioningContext provisioningContext)
+    {
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
 
         var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
             .Where(r => !r.IsExcludedFromPublish())
@@ -255,6 +270,7 @@ public sealed class AzureEnvironmentResource : Resource
             await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
         }
 
+        var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
         if (!clearCache)
         {
             await deploymentStateManager.SaveStateAsync(
@@ -332,9 +348,8 @@ public sealed class AzureEnvironmentResource : Resource
             .ConfigureAwait(false);
     }
 
-    private static async Task DeployComputeResourcesAsync(DeployingContext context)
+    private static async Task DeployComputeResourcesAsync(DeployingContext context, ProvisioningContext provisioningContext)
     {
-        var provisioningContext = context.GetPipelineOutput<ProvisioningContext>("ProvisioningContext");
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var computeResources = context.Model.GetComputeResources().ToList();
 
