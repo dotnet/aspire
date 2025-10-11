@@ -461,6 +461,10 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
             
+            // Create or update NuGet.config for explicit channels
+            var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+            await nugetConfigPrompter.PromptToCreateOrUpdateAsync(initContext.SolutionDirectory, selectedTemplateDetails.Channel, cancellationToken);
+            
             InteractionService.DisplaySuccess(InitCommandStrings.AspireInitializationComplete);
             return ExitCodeConstants.Success;
         }
