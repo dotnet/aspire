@@ -1,35 +1,51 @@
 version: '3.8'
 
 services:
-  web:
-    image: nginx:alpine
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "8080:80"
+      - "3000:3000"
     environment:
-      NGINX_HOST: localhost
-      NGINX_PORT: 80
+      - VITE_API_URL=http://localhost:8000
     volumes:
-      - type: bind
-        source: ./html
-        target: /usr/share/nginx/html
-        read_only: true
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/appdb
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
-    restart: always
-
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_PASSWORD: example
-      POSTGRES_USER: admin
-      POSTGRES_DB: myapp
     volumes:
-      - type: volume
-        source: pgdata
-        target: /var/lib/postgresql/data
+      - redis_data:/data
 
 volumes:
-  pgdata:
+  postgres_data:
+  redis_data:

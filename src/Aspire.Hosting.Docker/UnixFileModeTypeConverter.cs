@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Docker.Resources.ServiceNodes;
 using YamlDotNet.Core;
 using YamlDotNet.Core.Events;
 using YamlDotNet.Serialization;
@@ -376,6 +377,53 @@ internal class VolumesListTypeConverter : IYamlTypeConverter
         if (value is List<Resources.ServiceNodes.Volume> volumes)
         {
             serializer(volumes);
+        }
+    }
+}
+
+/// <summary>
+/// Type converter for Docker Compose build configuration that handles both short (string) and long (object) syntax.
+/// </summary>
+internal sealed class BuildTypeConverter : IYamlTypeConverter
+{
+    public bool Accepts(Type type) => type == typeof(Build);
+
+    public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+    {
+        if (parser.TryConsume<Scalar>(out var scalar))
+        {
+            // Short syntax: just a context path string
+            return new Build { Context = scalar.Value };
+        }
+
+        if (parser.Current is MappingStart)
+        {
+            // Long syntax: full Build object
+            return rootDeserializer(typeof(Build));
+        }
+
+        return null;
+    }
+
+    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
+    {
+        if (value is Build build)
+        {
+            // If only context is set, use short syntax
+            if (!string.IsNullOrEmpty(build.Context) &&
+                string.IsNullOrEmpty(build.Dockerfile) &&
+                string.IsNullOrEmpty(build.Target) &&
+                build.Args.Count == 0 &&
+                build.CacheFrom.Count == 0 &&
+                build.Labels.Count == 0)
+            {
+                emitter.Emit(new Scalar(build.Context));
+            }
+            else
+            {
+                // Use long syntax
+                serializer(build, typeof(Build));
+            }
         }
     }
 }

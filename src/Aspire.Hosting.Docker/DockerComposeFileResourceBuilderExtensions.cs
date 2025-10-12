@@ -259,7 +259,14 @@ public static class DockerComposeFileResourceBuilderExtensions
                 if (TryParsePortMapping(portMapping, out var hostPort, out var containerPort, out var protocol))
                 {
                     // Determine scheme based on protocol
-                    var scheme = protocol?.ToLowerInvariant() == "tcp" ? "tcp" : "http";
+                    // For tcp and no protocol specified, default to http (common web scenario)
+                    // For udp, use udp scheme
+                    var scheme = protocol?.ToLowerInvariant() switch
+                    {
+                        "udp" => "udp",
+                        "tcp" => "tcp",
+                        _ => "http" // Default for null or empty protocol
+                    };
                     
                     // Create endpoint name from port mapping
                     var endpointName = hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}";
