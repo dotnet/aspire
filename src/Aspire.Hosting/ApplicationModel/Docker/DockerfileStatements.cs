@@ -184,3 +184,23 @@ internal class DockerfileCmdStatement : DockerfileStatement
         await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 }
+
+/// <summary>
+/// Represents a USER statement in a Dockerfile.
+/// </summary>
+internal class DockerfileUserStatement : DockerfileStatement
+{
+    private readonly string _user;
+
+    public DockerfileUserStatement(string user)
+    {
+        _user = user;
+    }
+
+    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    {
+        var statement = $"USER {_user}";
+        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
+        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+    }
+}

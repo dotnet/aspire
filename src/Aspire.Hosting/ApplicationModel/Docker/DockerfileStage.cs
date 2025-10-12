@@ -129,6 +129,18 @@ public class DockerfileStage : DockerfileStatement
         return this;
     }
 
+    /// <summary>
+    /// Adds a USER statement to set the user for subsequent commands.
+    /// </summary>
+    /// <param name="user">The user name or UID.</param>
+    /// <returns>The current stage.</returns>
+    public DockerfileStage User(string user)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(user);
+        _statements.Add(new DockerfileUserStatement(user));
+        return this;
+    }
+
     /// <inheritdoc />
     public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
     {

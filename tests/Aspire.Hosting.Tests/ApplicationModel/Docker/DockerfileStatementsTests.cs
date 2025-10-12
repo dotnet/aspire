@@ -216,4 +216,52 @@ public class DockerfileStatementsTests
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Equal("FROM caddy\n" + """CMD ["cmd","run","--config","/etc/caddy/caddy.json"]""" + "\n", result);
     }
+
+    [Fact]
+    public async Task UserStatement_WritesCorrectFormat()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node").User("appuser");
+        using var stream = new MemoryStream();
+
+        // Act
+        await stage.WriteStatementAsync(stream);
+
+        // Assert
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Equal("FROM node\nUSER appuser\n", result);
+    }
+
+    [Fact]
+    public async Task UserStatement_WithUID_WritesCorrectFormat()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine").User("1000");
+        using var stream = new MemoryStream();
+
+        // Act
+        await stage.WriteStatementAsync(stream);
+
+        // Assert
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Equal("FROM alpine\nUSER 1000\n", result);
+    }
+
+    [Fact]
+    public async Task UserStatement_WithUIDAndGID_WritesCorrectFormat()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine").User("1000:1000");
+        using var stream = new MemoryStream();
+
+        // Act
+        await stage.WriteStatementAsync(stream);
+
+        // Assert
+        var result = Encoding.UTF8.GetString(stream.ToArray());
+        Assert.Equal("FROM alpine\nUSER 1000:1000\n", result);
+    }
 }

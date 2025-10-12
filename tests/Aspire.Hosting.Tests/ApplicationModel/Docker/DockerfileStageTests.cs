@@ -225,6 +225,33 @@ public class DockerfileStageTests
     }
 
     [Fact]
+    public void User_WithValidUser_AddsStatement()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node");
+
+        // Act
+        var result = stage.User("appuser");
+
+        // Assert
+        Assert.Same(stage, result);
+        Assert.Equal(2, stage.Statements.Count); // FROM + USER
+    }
+
+    [Fact]
+    public void User_WithNullOrEmptyUser_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node");
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => stage.User(""));
+        Assert.Throws<ArgumentNullException>(() => stage.User(null!));
+    }
+
+    [Fact]
     public void FluentChaining_WorksCorrectly()
     {
         // Arrange
@@ -241,5 +268,22 @@ public class DockerfileStageTests
 
         // Assert
         Assert.Equal(7, stage.Statements.Count); // FROM + WORKDIR + COPY + RUN + ENV + EXPOSE + CMD
+    }
+
+    [Fact]
+    public void FluentChaining_WithUser_WorksCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+
+        // Act
+        var stage = builder.From("node")
+            .WorkDir("/app")
+            .Copy(".", ".")
+            .User("appuser")
+            .Cmd(["node", "server.js"]);
+
+        // Assert
+        Assert.Equal(5, stage.Statements.Count); // FROM + WORKDIR + COPY + USER + CMD
     }
 }
