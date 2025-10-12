@@ -17,7 +17,7 @@ public class DockerfileBuilderCallbackContextTests
         var services = new ServiceCollection().BuildServiceProvider();
 
         // Act
-        var context = new DockerfileBuilderCallbackContext(resource, builder, services);
+        var context = new DockerfileBuilderCallbackContext(resource, builder, services, CancellationToken.None);
 
         // Assert
         Assert.Same(resource, context.Resource);
@@ -33,7 +33,7 @@ public class DockerfileBuilderCallbackContextTests
         var services = new ServiceCollection().BuildServiceProvider();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(null!, builder, services));
+        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(null!, builder, services, CancellationToken.None));
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public class DockerfileBuilderCallbackContextTests
         var services = new ServiceCollection().BuildServiceProvider();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(resource, null!, services));
+        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(resource, null!, services, CancellationToken.None));
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class DockerfileBuilderCallbackContextTests
         var builder = new DockerfileBuilder();
 
         // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(resource, builder, null!));
+        Assert.Throws<ArgumentNullException>(() => new DockerfileBuilderCallbackContext(resource, builder, null!, CancellationToken.None));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class DockerfileBuilderCallbackContextTests
         var resource = new ContainerResource("test");
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(resource, builder, services);
+        var context = new DockerfileBuilderCallbackContext(resource, builder, services, CancellationToken.None);
 
         // Act & Assert - Properties should have getters only
         Assert.Same(resource, context.Resource);
@@ -88,7 +88,7 @@ public class DockerfileBuilderCallbackContextTests
         var resource = new ContainerResource("test");
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(resource, builder, services);
+        var context = new DockerfileBuilderCallbackContext(resource, builder, services, CancellationToken.None);
 
         // Act
         context.Builder.From("node:18")
@@ -109,7 +109,7 @@ public class DockerfileBuilderCallbackContextTests
             .AddSingleton<string>("test-service")
             .BuildServiceProvider();
         var builder = new DockerfileBuilder();
-        var context = new DockerfileBuilderCallbackContext(resource, builder, services);
+        var context = new DockerfileBuilderCallbackContext(resource, builder, services, CancellationToken.None);
 
         // Act
         var retrievedService = context.Services.GetService<string>();
@@ -125,7 +125,7 @@ public class DockerfileBuilderCallbackContextTests
         var resource = new ContainerResource("mycontainer");
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(resource, builder, services);
+        var context = new DockerfileBuilderCallbackContext(resource, builder, services, CancellationToken.None);
 
         // Act & Assert
         Assert.Equal("mycontainer", context.Resource.Name);

@@ -50,7 +50,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -77,7 +77,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -104,7 +104,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -134,7 +134,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var services = new ServiceCollection()
             .AddSingleton(testService)
             .BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -180,7 +180,7 @@ public class DockerfileBuildCallbackAnnotationTests
 
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         foreach (var callback in annotation.Callbacks)
@@ -215,7 +215,7 @@ public class DockerfileBuildCallbackAnnotationTests
 
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
 
         // Act
         foreach (var callback in annotation.Callbacks)
