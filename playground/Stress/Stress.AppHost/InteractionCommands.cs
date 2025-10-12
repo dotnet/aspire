@@ -63,6 +63,47 @@ internal static class InteractionCommands
 
                return CommandResults.Success();
            })
+           .WithCommand("long-content-interaction", "Long content interactions", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success });
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
+
+               var inputHasMarkdown = new InteractionInput { Name = "Name", Label = "<strong>Name</strong>", InputType = InputType.Text, Placeholder = "Enter <strong>your</strong> name.", Description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.", EnableDescriptionMarkdown = true };
+               var choiceWithLongContent = new InteractionInput
+               {
+                   Name = "Choice",
+                   InputType = InputType.Choice,
+                   Label = "Choice with long content",
+                   Placeholder = "Select a value. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.",
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui."),
+                       KeyValuePair.Create("option2", "Option 2 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.")
+                   ]
+               };
+               var choiceCustomOptionsWithLongContent = new InteractionInput
+               {
+                   Name = "Combobox",
+                   InputType = InputType.Choice,
+                   Label = "Choice with long content",
+                   AllowCustomChoice = true,
+                   Placeholder = "Select a value. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.",
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui."),
+                       KeyValuePair.Create("option2", "Option 2 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.")
+                   ]
+               };
+
+               _ = await interactionService.PromptInputsAsync(
+                   "Text <strong>request</strong>",
+                   "Provide **your** name. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, neque id efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui. For more information about the `IInteractionService`, see https://learn.microsoft.com.",
+                   [inputHasMarkdown, choiceWithLongContent, choiceCustomOptionsWithLongContent],
+                   new InputsDialogInteractionOptions { EnableMessageMarkdown = true });
+
+               return CommandResults.Success();
+           })
            .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
