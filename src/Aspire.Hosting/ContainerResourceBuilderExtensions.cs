@@ -1314,14 +1314,6 @@ public static class ContainerResourceBuilderExtensions
             using var reader = new StreamReader(memoryStream);
             var dockerfileContent = await reader.ReadToEndAsync(factoryContext.CancellationToken).ConfigureAwait(false);
 
-            // Log the generated Dockerfile content if in run mode
-            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-            {
-                var loggerService = factoryContext.Services.GetRequiredService<ResourceLoggerService>();
-                var logger = loggerService.GetLogger(factoryContext.Resource);
-                logger.LogInformation("Generated Dockerfile:\n{DockerfileContent}", dockerfileContent);
-            }
-
             return dockerfileContent;
         };
 
