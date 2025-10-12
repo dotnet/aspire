@@ -94,7 +94,7 @@ public class DockerfileBuildCallbackAnnotationTests
 
         Func<DockerfileBuilderCallbackContext, Task> callback = context =>
         {
-            context.Builder.From("alpine", "latest")
+            context.Builder.From("alpine:latest")
                 .WorkDir("/workspace")
                 .Run("apk add curl");
             builderModified = true;
@@ -201,7 +201,7 @@ public class DockerfileBuildCallbackAnnotationTests
         
         annotation.AddCallback(context =>
         {
-            context.Builder.From("alpine", "latest")
+            context.Builder.From("alpine:latest")
                 .WorkDir("/app");
             return Task.CompletedTask;
         });

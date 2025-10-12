@@ -91,7 +91,7 @@ public class DockerfileBuilderCallbackContextTests
         var context = new DockerfileBuilderCallbackContext(resource, builder, services);
 
         // Act
-        context.Builder.From("node", "18")
+        context.Builder.From("node:18")
             .WorkDir("/app")
             .Run("npm install");
 

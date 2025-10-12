@@ -19,7 +19,7 @@ public class DockerfileBuilderTests
     }
 
     [Fact]
-    public void From_WithRepositoryOnly_CreatesStage()
+    public void From_WithImageOnly_CreatesStage()
     {
         // Arrange
         var builder = new DockerfileBuilder();
@@ -35,13 +35,13 @@ public class DockerfileBuilderTests
     }
 
     [Fact]
-    public void From_WithRepositoryAndTag_CreatesStage()
+    public void From_WithImageAndTag_CreatesStage()
     {
         // Arrange
         var builder = new DockerfileBuilder();
 
         // Act
-        var stage = builder.From("node", "20-bullseye");
+        var stage = builder.From("node:20-bullseye");
 
         // Assert
         Assert.NotNull(stage);
@@ -51,13 +51,13 @@ public class DockerfileBuilderTests
     }
 
     [Fact]
-    public void From_WithStageParameter_CreatesNamedStage()
+    public void From_WithImageAndStageName_CreatesNamedStage()
     {
         // Arrange
         var builder = new DockerfileBuilder();
 
         // Act
-        var stage = builder.From("node", "20-bullseye", "builder");
+        var stage = builder.From("node:20-bullseye", "builder");
 
         // Assert
         Assert.NotNull(stage);
@@ -67,7 +67,7 @@ public class DockerfileBuilderTests
     }
 
     [Fact]
-    public void From_WithNullOrEmptyRepository_ThrowsArgumentException()
+    public void From_WithNullOrEmptyImage_ThrowsArgumentException()
     {
         // Arrange
         var builder = new DockerfileBuilder();
@@ -78,14 +78,25 @@ public class DockerfileBuilderTests
     }
 
     [Fact]
+    public void From_WithNullOrEmptyStageName_ThrowsArgumentException()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+
+        // Act & Assert
+        Assert.Throws<ArgumentException>(() => builder.From("node", ""));
+        Assert.Throws<ArgumentException>(() => builder.From("node", null!));
+    }
+
+    [Fact]
     public void MultipleFromStatements_CreateMultipleStages()
     {
         // Arrange
         var builder = new DockerfileBuilder();
 
         // Act
-        var stage1 = builder.From("node", "20-bullseye", "builder");
-        var stage2 = builder.From("caddy", "2.7.4-alpine");
+        var stage1 = builder.From("node:20-bullseye", "builder");
+        var stage2 = builder.From("caddy:2.7.4-alpine");
 
         // Assert
         Assert.Equal(2, builder.Stages.Count);
@@ -100,7 +111,7 @@ public class DockerfileBuilderTests
     {
         // Arrange
         var builder = new DockerfileBuilder();
-        var stage = builder.From("node", "20-bullseye");
+        var stage = builder.From("node:20-bullseye");
         stage.WorkDir("/app");
         stage.Run("npm install");
         stage.Expose(3000);
@@ -128,13 +139,13 @@ public class DockerfileBuilderTests
         // Arrange
         var builder = new DockerfileBuilder();
         
-        var stage1 = builder.From("node", "20-bullseye", "builder");
+        var stage1 = builder.From("node:20-bullseye", "builder");
         stage1.WorkDir("/app");
         stage1.Copy("package*.json", "./");
         stage1.Run("npm ci --silent");
         stage1.Env("NODE_ENV", "production");
 
-        var stage2 = builder.From("caddy", "2.7.4-alpine");
+        var stage2 = builder.From("caddy:2.7.4-alpine");
         stage2.CopyFrom("builder", "/app/dist", "/srv");
         stage2.Copy("caddy.json", "/etc/caddy/caddy.json");
         stage2.Expose(80);

@@ -1139,7 +1139,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("path/to/context", context => 
     ///        {
-    ///            context.Builder.From("alpine", "latest")
+    ///            context.Builder.From("alpine:latest")
     ///                .WorkDir("/app")
     ///                .Run("apk add curl")
     ///                .Copy(".", ".")
@@ -1234,7 +1234,7 @@ public static class ContainerResourceBuilderExtensions
     /// builder.AddContainer("mycontainer", "myimage")
     ///        .WithDockerfile("path/to/context", context => 
     ///        {
-    ///            context.Builder.From("node", "18")
+    ///            context.Builder.From("node:18")
     ///                .WorkDir("/app")
     ///                .Copy("package*.json", "./")
     ///                .Run("npm ci");

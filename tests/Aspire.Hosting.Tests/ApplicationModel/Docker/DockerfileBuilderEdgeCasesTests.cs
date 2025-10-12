@@ -100,9 +100,9 @@ public class DockerfileBuilderEdgeCasesTests
         var builder = new DockerfileBuilder();
         
         // Add stages in specific order
-        _ = builder.From("alpine", "3.16", "first");
-        _ = builder.From("node", "18", "second");
-        _ = builder.From("nginx", stage: "third");
+        _ = builder.From("alpine:3.16", "first");
+        _ = builder.From("node:18", "second");
+        _ = builder.From("nginx", "third");
 
         using var stream = new MemoryStream();
 
@@ -188,7 +188,7 @@ public class DockerfileBuilderEdgeCasesTests
     {
         // Arrange
         var builder = new DockerfileBuilder();
-        var stage = builder.From("ubuntu", "20.04");
+        var stage = builder.From("ubuntu:20.04");
         
         // Add many statements to test performance and correctness
         for (var i = 0; i < 100; i++)

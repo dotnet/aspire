@@ -25,18 +25,31 @@ public class DockerfileBuilder
     public IReadOnlyList<DockerfileStage> Stages => _stages.AsReadOnly();
 
     /// <summary>
+    /// Adds a FROM statement to start a new named stage.
+    /// </summary>
+    /// <param name="image">The image reference (e.g., 'node:18' or 'alpine:latest').</param>
+    /// <param name="stageName">The stage name for multi-stage builds.</param>
+    /// <returns>A stage builder for the new stage.</returns>
+    public DockerfileStage From(string image, string stageName)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(image);
+        ArgumentException.ThrowIfNullOrEmpty(stageName);
+
+        var stageBuilder = new DockerfileStage(stageName, image);
+        _stages.Add(stageBuilder);
+        return stageBuilder;
+    }
+
+    /// <summary>
     /// Adds a FROM statement to start a new stage.
     /// </summary>
-    /// <param name="repository">The image repository.</param>
-    /// <param name="tag">The image tag.</param>
-    /// <param name="stage">The optional stage name for multi-stage builds.</param>
+    /// <param name="image">The image reference (e.g., 'node:18' or 'alpine:latest').</param>
     /// <returns>A stage builder for the new stage.</returns>
-    public DockerfileStage From(string repository, string? tag = null, string? stage = null)
+    public DockerfileStage From(string image)
     {
-        ArgumentException.ThrowIfNullOrEmpty(repository);
+        ArgumentException.ThrowIfNullOrEmpty(image);
 
-        var imageReference = tag is not null ? $"{repository}:{tag}" : repository;
-        var stageBuilder = new DockerfileStage(stage, imageReference);
+        var stageBuilder = new DockerfileStage(null, image);
         _stages.Add(stageBuilder);
         return stageBuilder;
     }

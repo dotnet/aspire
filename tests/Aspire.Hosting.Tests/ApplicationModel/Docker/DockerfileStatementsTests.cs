@@ -29,7 +29,7 @@ public class DockerfileStatementsTests
     {
         // Arrange - test via public API
         var builder = new DockerfileBuilder();
-        var stage = builder.From("node:20-bullseye", stage: "builder");
+        var stage = builder.From("node:20-bullseye", "builder");
         using var stream = new MemoryStream();
 
         // Act

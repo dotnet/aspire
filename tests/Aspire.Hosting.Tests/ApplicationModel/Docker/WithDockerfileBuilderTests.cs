@@ -17,7 +17,7 @@ public class WithDockerfileBuilderTests
         // Act
         container.WithDockerfile("context", context =>
         {
-            context.Builder.From("alpine", "latest");
+            context.Builder.From("alpine:latest");
         });
 
         // Assert
@@ -36,7 +36,7 @@ public class WithDockerfileBuilderTests
         // Act
         container.WithDockerfile("context", context =>
         {
-            context.Builder.From("alpine", "latest");
+            context.Builder.From("alpine:latest");
         });
 
         container.WithDockerfile("context", context =>
@@ -60,7 +60,7 @@ public class WithDockerfileBuilderTests
         // Act
         container.WithDockerfile("context", context =>
         {
-            context.Builder.From("alpine", "latest");
+            context.Builder.From("alpine:latest");
         });
 
         // Assert
@@ -78,7 +78,7 @@ public class WithDockerfileBuilderTests
 
         container.WithDockerfile("context", context =>
         {
-            context.Builder.From("alpine", "latest")
+            context.Builder.From("alpine:latest")
                 .WorkDir("/app")
                 .Run("apk add curl")
                 .Copy(".", ".")
@@ -117,7 +117,7 @@ public class WithDockerfileBuilderTests
         // First callback - base setup
         container.WithDockerfile("context", context =>
         {
-            context.Builder.From("node", "18")
+            context.Builder.From("node:18")
                 .WorkDir("/app");
         });
 
@@ -169,7 +169,7 @@ public class WithDockerfileBuilderTests
         container.WithDockerfile("context", async context =>
         {
             await Task.Delay(10); // Simulate async work
-            context.Builder.From("alpine", "latest")
+            context.Builder.From("alpine:latest")
                 .Run("echo test");
         });
 
@@ -203,7 +203,7 @@ public class WithDockerfileBuilderTests
         container.WithDockerfile("context", context =>
         {
             var config = context.Services.GetService<string>();
-            context.Builder.From("alpine", "latest")
+            context.Builder.From("alpine:latest")
                 .Env("CONFIG", config ?? "default");
         });
 
@@ -234,7 +234,7 @@ public class WithDockerfileBuilderTests
         container.WithDockerfile("context", context =>
         {
             // Builder stage
-            var builder = context.Builder.From("node", "18", "builder");
+            var builder = context.Builder.From("node:18", "builder");
             builder.WorkDir("/build")
                 .Copy("package*.json", "./")
                 .Run("npm ci")
@@ -242,7 +242,7 @@ public class WithDockerfileBuilderTests
                 .Run("npm run build");
 
             // Runtime stage
-            var runtime = context.Builder.From("node", "18-alpine");
+            var runtime = context.Builder.From("node:18-alpine");
             runtime.WorkDir("/app")
                 .CopyFrom("builder", "/build/dist", "./")
                 .Cmd(["node", "index.js"]);

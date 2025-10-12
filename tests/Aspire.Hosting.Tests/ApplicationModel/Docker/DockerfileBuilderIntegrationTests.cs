@@ -13,14 +13,14 @@ public class DockerfileBuilderIntegrationTests
     {
         // Arrange - this is the exact example from the problem statement
         var dockerfileBuilder = new DockerfileBuilder();
-        var baseStage = dockerfileBuilder.From(repository: "node", tag: "20-bullseye", stage: "builder");
+        var baseStage = dockerfileBuilder.From("node:20-bullseye", "builder");
         baseStage.WorkDir("/");
         baseStage.Run("apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*");
         baseStage.Copy("package*.json", "./");
         baseStage.Run("npm ci --silent");
         baseStage.Env("NODE_ENV", "production");
 
-        var output = dockerfileBuilder.From(repository: "caddy", tag: "2.7.4-alpine");
+        var output = dockerfileBuilder.From("caddy:2.7.4-alpine");
         output.CopyFrom("builder", "/app/dist", "/srv");
         output.Copy("caddy.json", "/etc/caddy/caddy.json");
         output.Expose(80);
@@ -80,7 +80,7 @@ public class DockerfileBuilderIntegrationTests
         var builder = new DockerfileBuilder();
         
         // Stage 1: Build stage
-        var buildStage = builder.From("golang", "1.20", "build");
+        var buildStage = builder.From("golang:1.20", "build");
         buildStage.WorkDir("/src");
         buildStage.Copy("go.mod", "./");
         buildStage.Copy("go.sum", "./");
@@ -89,7 +89,7 @@ public class DockerfileBuilderIntegrationTests
         buildStage.Run("CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server");
 
         // Stage 2: Runtime stage
-        var runtimeStage = builder.From("alpine", "latest");
+        var runtimeStage = builder.From("alpine:latest");
         runtimeStage.Run("apk --no-cache add ca-certificates");
         runtimeStage.WorkDir("/root/");
         runtimeStage.CopyFrom("build", "/app/server", "./");
@@ -131,7 +131,7 @@ public class DockerfileBuilderIntegrationTests
         var builder = new DockerfileBuilder();
 
         // Act - demonstrate fluent API works correctly
-        var stage = builder.From("node", "18")
+        var stage = builder.From("node:18")
             .WorkDir("/app")
             .Copy("package.json", "./")
             .Run("npm install")
