@@ -16,41 +16,65 @@ builder.AddDockerfile("mycontainer", "qots")
 
 // Example: Dynamic Dockerfile generation with sync factory
 builder.AddContainer("dynamic-sync", "dynamic-sync-image")
-       .WithDockerfile("qots", context =>
-       {
-           var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-           return $"""
-               FROM golang:1.22-alpine AS builder
-               WORKDIR /app
-               COPY . .
-               RUN echo "Built at {timestamp}" > /build-info.txt
-               RUN go build -o qots .
-               
-               FROM alpine:latest
-               COPY --from=builder /app/qots /qots
-               COPY --from=builder /build-info.txt /build-info.txt
-               ENTRYPOINT ["/qots"]
-               """;
-       });
+    .WithDockerfile("qots", context =>
+    {
+        var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        return $"""
+            FROM golang:1.22-alpine AS builder
+            WORKDIR /app
+            COPY . .
+            RUN echo "Built at {timestamp}" > /build-info.txt
+            RUN go build -o qots .
+            
+            FROM alpine:latest
+            COPY --from=builder /app/qots /qots
+            COPY --from=builder /build-info.txt /build-info.txt
+            ENTRYPOINT ["/qots"]
+            """;
+    });
 
 // Example: Dynamic Dockerfile generation with async factory
 builder.AddContainer("dynamic-async", "dynamic-async-image")
-       .WithDockerfile("qots", async context =>
-       {
-           // Simulate reading from a template or external source
-           await Task.Delay(1, context.CancellationToken);
-           var baseImage = Environment.GetEnvironmentVariable("BASE_IMAGE") ?? "golang:1.22-alpine";
-           return $"""
-               FROM {baseImage} AS builder
-               WORKDIR /app
-               COPY . .
-               RUN go build -o qots .
-               
-               FROM alpine:latest
-               COPY --from=builder /app/qots /qots
-               ENTRYPOINT ["/qots"]
-               """;
-       });
+    .WithDockerfile("qots", async context =>
+    {
+        // Simulate reading from a template or external source
+        await Task.Delay(1, context.CancellationToken);
+        var baseImage = Environment.GetEnvironmentVariable("BASE_IMAGE") ?? "golang:1.22-alpine";
+        return $"""
+            FROM {baseImage} AS builder
+            WORKDIR /app
+            COPY . .
+            RUN go build -o qots .
+            
+            FROM alpine:latest
+            COPY --from=builder /app/qots /qots
+            ENTRYPOINT ["/qots"]
+            """;
+    });
+
+builder.AddRedis("builder-sync")
+    .WithDockerfile(".", context =>
+    {
+        if (!context.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName))
+        {
+            throw new InvalidOperationException("Container image name not found.");
+        }
+
+        context.Builder.From(imageName);
+    });
+
+builder.AddRedis("builder-async")
+    .WithDockerfile(".", async context =>
+    {
+        await Task.Delay(1, context.CancellationToken);
+
+        if (!context.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName))
+        {
+            throw new InvalidOperationException("Container image name not found.");
+        }
+
+        context.Builder.From(imageName);
+    });
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

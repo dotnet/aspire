@@ -1183,7 +1183,8 @@ public static class ContainerResourceBuilderExtensions
             var callbackContext = new DockerfileBuilderCallbackContext(
                 resource: factoryContext.Resource,
                 builder: dockerfileBuilder,
-                services: factoryContext.Services
+                services: factoryContext.Services,
+                cancellationToken: factoryContext.CancellationToken
             );
 
             // Invoke all callbacks

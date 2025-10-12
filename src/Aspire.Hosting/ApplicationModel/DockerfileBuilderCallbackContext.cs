@@ -16,11 +16,13 @@ public class DockerfileBuilderCallbackContext
     /// <param name="resource">The resource being built.</param>
     /// <param name="builder">The Dockerfile builder instance.</param>
     /// <param name="services">The service provider for dependency injection.</param>
-    public DockerfileBuilderCallbackContext(IResource resource, DockerfileBuilder builder, IServiceProvider services)
+    /// <param name="cancellationToken">The cancellation token to observe while waiting for the task to complete.</param>
+    public DockerfileBuilderCallbackContext(IResource resource, DockerfileBuilder builder, IServiceProvider services, CancellationToken cancellationToken)
     {
         Resource = resource ?? throw new ArgumentNullException(nameof(resource));
         Builder = builder ?? throw new ArgumentNullException(nameof(builder));
         Services = services ?? throw new ArgumentNullException(nameof(services));
+        CancellationToken = cancellationToken;
     }
 
     /// <summary>
@@ -37,4 +39,9 @@ public class DockerfileBuilderCallbackContext
     /// Gets the service provider for dependency injection.
     /// </summary>
     public IServiceProvider Services { get; }
+
+    /// <summary>
+    /// Gets the cancellation token to observe while waiting for the task to complete.
+    /// </summary>
+    public CancellationToken CancellationToken { get; }
 }
