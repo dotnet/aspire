@@ -140,6 +140,52 @@ Links to related APIs or documentation.
 /// <seealso href="https://learn.microsoft.com/azure/cosmos-db/">Azure Cosmos DB documentation</seealso>
 ```
 
+#### `<list>`
+Creates lists in XML documentation. Use `type="bullet"` for bulleted lists, `type="number"` for numbered lists, or `type="table"` for tables.
+
+**Bulleted list:**
+```csharp
+/// <summary>
+/// Supports multiple environments:
+/// <list type="bullet">
+/// <item>Development environment</item>
+/// <item>Staging environment</item>
+/// <item>Production environment</item>
+/// </list>
+/// </summary>
+```
+
+**Numbered list:**
+```csharp
+/// <summary>
+/// Follow these steps:
+/// <list type="number">
+/// <item>Initialize the resource</item>
+/// <item>Configure the settings</item>
+/// <item>Start the resource</item>
+/// </list>
+/// </summary>
+```
+
+**List with descriptions:**
+```csharp
+/// <summary>
+/// Configuration options:
+/// <list type="bullet">
+/// <item>
+/// <term>Development</term>
+/// <description>Uses local emulator with debug logging enabled</description>
+/// </item>
+/// <item>
+/// <term>Production</term>
+/// <description>Connects to Azure with optimized performance settings</description>
+/// </item>
+/// </list>
+/// </summary>
+```
+
+**Important:** Do not use markdown-style lists with hyphens (`-`) or asterisks (`*`) in XML documentation, as they will not render correctly. Always use the `<list>` tag with appropriate `<item>` elements.
+
 ## Templates by Construct Type
 
 ### Classes
@@ -457,6 +503,28 @@ public string Name { get; set; }
 // GOOD
 /// <summary>
 /// Gets the connection string for the database.
+/// </summary>
+```
+
+❌ **Don't use markdown-style lists in XML documentation**
+
+```csharp
+// BAD - Markdown lists don't render in XML docs
+/// <summary>
+/// Supports:
+/// - Option 1
+/// - Option 2
+/// - Option 3
+/// </summary>
+
+// GOOD - Use XML list tags
+/// <summary>
+/// Supports:
+/// <list type="bullet">
+/// <item>Option 1</item>
+/// <item>Option 2</item>
+/// <item>Option 3</item>
+/// </list>
 /// </summary>
 ```
 

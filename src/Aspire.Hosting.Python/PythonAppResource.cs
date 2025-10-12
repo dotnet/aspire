@@ -21,10 +21,12 @@ namespace Aspire.Hosting.Python;
 /// </para>
 /// <para>
 /// This resource supports various Python execution environments including:
-/// - System Python installations
-/// - Virtual environments (venv)
-/// - Conda environments  
-/// - UV-based Python environments
+/// <list type="bullet">
+/// <item>System Python installations</item>
+/// <item>Virtual environments (venv)</item>
+/// <item>Conda environments</item>
+/// <item>UV-based Python environments</item>
+/// </list>
 /// </para>
 /// </remarks>
 /// <example>
@@ -45,9 +47,11 @@ namespace Aspire.Hosting.Python;
 /// <param name="name">The name of the resource in the application model.</param>
 /// <param name="executablePath">
 /// The path to the Python executable. This can be:
-/// - An absolute path: "/usr/bin/python3"
-/// - A relative path: "./venv/bin/python"
-/// - A command on the PATH: "python" or "python3"
+/// <list type="bullet">
+/// <item>An absolute path: "/usr/bin/python3"</item>
+/// <item>A relative path: "./venv/bin/python"</item>
+/// <item>A command on the PATH: "python" or "python3"</item>
+/// </list>
 /// The executable is typically located in a virtual environment's bin (Linux/macOS) or Scripts (Windows) directory.
 /// </param>
 /// <param name="appDirectory">
