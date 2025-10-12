@@ -74,7 +74,7 @@ public class DockerfileBuilderTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => builder.From(""));
-        Assert.Throws<ArgumentException>(() => builder.From(null!));
+        Assert.Throws<ArgumentNullException>(() => builder.From(null!));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public class DockerfileBuilderTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => builder.From("node", ""));
-        Assert.Throws<ArgumentException>(() => builder.From("node", null!));
+        Assert.Throws<ArgumentNullException>(() => builder.From("node", null!));
     }
 
     [Fact]
@@ -128,7 +128,8 @@ public class DockerfileBuilderTests
             WORKDIR /app
             RUN npm install
             EXPOSE 3000
-            """;
+
+            """.ReplaceLineEndings("\n");
         
         Assert.Equal(expectedContent, content);
     }
@@ -170,8 +171,9 @@ public class DockerfileBuilderTests
             COPY caddy.json /etc/caddy/caddy.json
             EXPOSE 80
             CMD ["cmd","run","--config","/etc/caddy/caddy.json"]
-            """;
-        
+
+            """.ReplaceLineEndings("\n");
+
         Assert.Equal(expectedContent, content);
     }
 

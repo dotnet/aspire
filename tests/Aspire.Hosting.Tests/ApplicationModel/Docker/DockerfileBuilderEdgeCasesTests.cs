@@ -68,7 +68,8 @@ public class DockerfileBuilderEdgeCasesTests
         var expectedContent = """
             FROM alpine
             ENV EMPTY_VAR=
-            """;
+
+            """.ReplaceLineEndings("\n");
         Assert.Equal(expectedContent, content);
     }
 
@@ -89,7 +90,8 @@ public class DockerfileBuilderEdgeCasesTests
         var expectedContent = """
             FROM node
             CMD ["node","-e","console.log('Hello, World!')","--port","3000"]
-            """;
+
+            """.ReplaceLineEndings("\n");
         Assert.Equal(expectedContent, content);
     }
 
@@ -117,7 +119,8 @@ public class DockerfileBuilderEdgeCasesTests
             FROM node:18 AS second
 
             FROM nginx AS third
-            """;
+
+            """.ReplaceLineEndings("\n");
         Assert.Equal(expectedContent, content);
     }
 
@@ -155,7 +158,7 @@ public class DockerfileBuilderEdgeCasesTests
                 wget \
                 vim && \
             rm -rf /var/lib/apt/lists/*
-            """;
+            """.ReplaceLineEndings("\n");
         stage.Run(multiLineCommand);
         using var stream = new MemoryStream();
 
@@ -167,7 +170,8 @@ public class DockerfileBuilderEdgeCasesTests
         var expectedContent = $$"""
             FROM ubuntu
             RUN {{multiLineCommand}}
-            """;
+
+            """.ReplaceLineEndings("\n");
         Assert.Equal(expectedContent, content);
     }
 

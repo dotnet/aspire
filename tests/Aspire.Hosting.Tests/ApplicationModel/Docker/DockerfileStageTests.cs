@@ -31,7 +31,7 @@ public class DockerfileStageTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => stage.WorkDir(""));
-        Assert.Throws<ArgumentException>(() => stage.WorkDir(null!));
+        Assert.Throws<ArgumentNullException>(() => stage.WorkDir(null!));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class DockerfileStageTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => stage.Run(""));
-        Assert.Throws<ArgumentException>(() => stage.Run(null!));
+        Assert.Throws<ArgumentNullException>(() => stage.Run(null!));
     }
 
     [Fact]
@@ -85,9 +85,9 @@ public class DockerfileStageTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => stage.Copy("", "./"));
-        Assert.Throws<ArgumentException>(() => stage.Copy(null!, "./"));
+        Assert.Throws<ArgumentNullException>(() => stage.Copy(null!, "./"));
         Assert.Throws<ArgumentException>(() => stage.Copy("src/", ""));
-        Assert.Throws<ArgumentException>(() => stage.Copy("src/", null!));
+        Assert.Throws<ArgumentNullException>(() => stage.Copy("src/", null!));
     }
 
     [Fact]
@@ -114,11 +114,11 @@ public class DockerfileStageTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => stage.CopyFrom("", "/app", "/dest"));
-        Assert.Throws<ArgumentException>(() => stage.CopyFrom(null!, "/app", "/dest"));
+        Assert.Throws<ArgumentNullException>(() => stage.CopyFrom(null!, "/app", "/dest"));
         Assert.Throws<ArgumentException>(() => stage.CopyFrom("builder", "", "/dest"));
-        Assert.Throws<ArgumentException>(() => stage.CopyFrom("builder", null!, "/dest"));
+        Assert.Throws<ArgumentNullException>(() => stage.CopyFrom("builder", null!, "/dest"));
         Assert.Throws<ArgumentException>(() => stage.CopyFrom("builder", "/app", ""));
-        Assert.Throws<ArgumentException>(() => stage.CopyFrom("builder", "/app", null!));
+        Assert.Throws<ArgumentNullException>(() => stage.CopyFrom("builder", "/app", null!));
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class DockerfileStageTests
 
         // Act & Assert
         Assert.Throws<ArgumentException>(() => stage.Env("", "value"));
-        Assert.Throws<ArgumentException>(() => stage.Env(null!, "value"));
+        Assert.Throws<ArgumentNullException>(() => stage.Env(null!, "value"));
     }
 
     [Fact]

@@ -46,7 +46,8 @@ public class DockerfileBuilderIntegrationTests
             COPY caddy.json /etc/caddy/caddy.json
             EXPOSE 80
             CMD ["cmd","run","--config","/etc/caddy/caddy.json"]
-            """;
+
+            """.ReplaceLineEndings("\n");
         
         Assert.Equal(expectedContent, content);
     }
@@ -107,7 +108,8 @@ public class DockerfileBuilderIntegrationTests
         var expectedContent = """
             FROM golang:1.20 AS build
             WORKDIR /src
-            COPY go.mod go.sum ./
+            COPY go.mod ./
+            COPY go.sum ./
             RUN go mod download
             COPY . .
             RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server
@@ -119,7 +121,8 @@ public class DockerfileBuilderIntegrationTests
             ENV PORT=8080
             EXPOSE 8080
             CMD ["./server"]
-            """;
+
+            """.ReplaceLineEndings("\n");
         
         Assert.Equal(expectedContent, content);
     }

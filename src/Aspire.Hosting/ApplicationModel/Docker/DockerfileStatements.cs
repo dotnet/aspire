@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Aspire.Hosting.ApplicationModel.Docker;
@@ -173,7 +174,11 @@ internal class DockerfileCmdStatement : DockerfileStatement
 
     public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        var commandJson = JsonSerializer.Serialize(_command);
+        var options = new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+        var commandJson = JsonSerializer.Serialize(_command, options);
         var statement = $"CMD {commandJson}";
         var bytes = Encoding.UTF8.GetBytes(statement + "\n");
         await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
