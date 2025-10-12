@@ -8,7 +8,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// </summary>
 public class DockerfileBuildCallbackAnnotation : IResourceAnnotation
 {
-    private readonly List<Func<DockerfileBuildCallbackContext, Task>> _callbacks = [];
+    private readonly List<Func<DockerfileBuilderCallbackContext, Task>> _callbacks = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class.
@@ -21,7 +21,7 @@ public class DockerfileBuildCallbackAnnotation : IResourceAnnotation
     /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class with an initial callback.
     /// </summary>
     /// <param name="callback">The initial callback function that will be invoked during the Dockerfile build process.</param>
-    public DockerfileBuildCallbackAnnotation(Func<DockerfileBuildCallbackContext, Task> callback)
+    public DockerfileBuildCallbackAnnotation(Func<DockerfileBuilderCallbackContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
         _callbacks.Add(callback);
@@ -30,13 +30,13 @@ public class DockerfileBuildCallbackAnnotation : IResourceAnnotation
     /// <summary>
     /// Gets the list of callback functions that will be invoked during the Dockerfile build process.
     /// </summary>
-    public IReadOnlyList<Func<DockerfileBuildCallbackContext, Task>> Callbacks => _callbacks.AsReadOnly();
+    public IReadOnlyList<Func<DockerfileBuilderCallbackContext, Task>> Callbacks => _callbacks.AsReadOnly();
 
     /// <summary>
     /// Adds a callback function to be invoked during the Dockerfile build process.
     /// </summary>
     /// <param name="callback">The callback function to add.</param>
-    public void AddCallback(Func<DockerfileBuildCallbackContext, Task> callback)
+    public void AddCallback(Func<DockerfileBuilderCallbackContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
         _callbacks.Add(callback);

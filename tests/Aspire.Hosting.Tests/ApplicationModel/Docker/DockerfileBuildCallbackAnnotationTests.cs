@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +12,7 @@ public class DockerfileBuildCallbackAnnotationTests
     public void DockerfileBuildCallbackAnnotation_Constructor_CreatesAnnotation()
     {
         // Arrange
-        Func<DockerfileBuildCallbackContext, Task> callback = context => Task.CompletedTask;
+        Func<DockerfileBuilderCallbackContext, Task> callback = context => Task.CompletedTask;
 
         // Act
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
@@ -39,9 +38,9 @@ public class DockerfileBuildCallbackAnnotationTests
     {
         // Arrange
         var callbackInvoked = false;
-        DockerfileBuildCallbackContext? capturedContext = null;
+        DockerfileBuilderCallbackContext? capturedContext = null;
 
-        Func<DockerfileBuildCallbackContext, Task> callback = context =>
+        Func<DockerfileBuilderCallbackContext, Task> callback = context =>
         {
             callbackInvoked = true;
             capturedContext = context;
@@ -51,7 +50,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", "production", builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -69,7 +68,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var delay = TimeSpan.FromMilliseconds(10);
         var callbackCompleted = false;
 
-        Func<DockerfileBuildCallbackContext, Task> callback = async context =>
+        Func<DockerfileBuilderCallbackContext, Task> callback = async context =>
         {
             await Task.Delay(delay);
             callbackCompleted = true;
@@ -78,7 +77,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -93,7 +92,7 @@ public class DockerfileBuildCallbackAnnotationTests
         // Arrange
         var builderModified = false;
 
-        Func<DockerfileBuildCallbackContext, Task> callback = context =>
+        Func<DockerfileBuilderCallbackContext, Task> callback = context =>
         {
             context.Builder.From("alpine", "latest")
                 .WorkDir("/workspace")
@@ -105,7 +104,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var annotation = new DockerfileBuildCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -123,7 +122,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var serviceAccessed = false;
         var testService = "test-service-value";
 
-        Func<DockerfileBuildCallbackContext, Task> callback = context =>
+        Func<DockerfileBuilderCallbackContext, Task> callback = context =>
         {
             var retrievedService = context.Services.GetService<string>();
             serviceAccessed = retrievedService == testService;
@@ -135,7 +134,7 @@ public class DockerfileBuildCallbackAnnotationTests
         var services = new ServiceCollection()
             .AddSingleton(testService)
             .BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("node", "18", "/src", null, builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         await annotation.Callbacks[0](context);
@@ -149,8 +148,8 @@ public class DockerfileBuildCallbackAnnotationTests
     {
         // Arrange
         var annotation = new DockerfileBuildCallbackAnnotation();
-        Func<DockerfileBuildCallbackContext, Task> callback1 = context => Task.CompletedTask;
-        Func<DockerfileBuildCallbackContext, Task> callback2 = context => Task.CompletedTask;
+        Func<DockerfileBuilderCallbackContext, Task> callback1 = context => Task.CompletedTask;
+        Func<DockerfileBuilderCallbackContext, Task> callback2 = context => Task.CompletedTask;
 
         // Act
         annotation.AddCallback(callback1);
@@ -181,7 +180,7 @@ public class DockerfileBuildCallbackAnnotationTests
 
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", null, builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         foreach (var callback in annotation.Callbacks)
@@ -216,7 +215,7 @@ public class DockerfileBuildCallbackAnnotationTests
 
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
-        var context = new DockerfileBuildCallbackContext("alpine", "latest", "/app", null, builder, services);
+        var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services);
 
         // Act
         foreach (var callback in annotation.Callbacks)

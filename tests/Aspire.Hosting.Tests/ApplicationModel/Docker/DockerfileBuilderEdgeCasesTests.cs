@@ -100,9 +100,9 @@ public class DockerfileBuilderEdgeCasesTests
         var builder = new DockerfileBuilder();
         
         // Add stages in specific order
-        var stage1 = builder.From("alpine", "3.16", "first");
-        var stage2 = builder.From("node", "18", "second");
-        var stage3 = builder.From("nginx", stage: "third");
+        _ = builder.From("alpine", "3.16", "first");
+        _ = builder.From("node", "18", "second");
+        _ = builder.From("nginx", stage: "third");
 
         using var stream = new MemoryStream();
 

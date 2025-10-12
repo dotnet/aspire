@@ -82,7 +82,8 @@ public class DockerfileBuilderIntegrationTests
         // Stage 1: Build stage
         var buildStage = builder.From("golang", "1.20", "build");
         buildStage.WorkDir("/src");
-        buildStage.Copy("go.mod", "go.sum", "./");
+        buildStage.Copy("go.mod", "./");
+        buildStage.Copy("go.sum", "./");
         buildStage.Run("go mod download");
         buildStage.Copy(".", ".");
         buildStage.Run("CGO_ENABLED=0 GOOS=linux go build -o /app/server ./cmd/server");

@@ -1151,7 +1151,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuildCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(contextPath);
@@ -1179,17 +1179,9 @@ public static class ContainerResourceBuilderExtensions
         {
             var dockerfileBuilder = new ApplicationModel.Docker.DockerfileBuilder();
 
-            // Get the base image from ContainerImageAnnotation if available
-            var imageAnnotation = factoryContext.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault();
-            var baseRepository = imageAnnotation?.Image ?? "alpine";
-            var baseTag = imageAnnotation?.Tag;
-
             // Create the context for callbacks
-            var callbackContext = new DockerfileBuildCallbackContext(
-                baseStageRepository: baseRepository,
-                baseStageTag: baseTag,
-                defaultContextPath: fullyQualifiedContextPath,
-                targetStage: stage,
+            var callbackContext = new DockerfileBuilderCallbackContext(
+                resource: factoryContext.Resource,
                 builder: dockerfileBuilder,
                 services: factoryContext.Services
             );
@@ -1252,7 +1244,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuildCallbackContext> callback, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(callback);
 
