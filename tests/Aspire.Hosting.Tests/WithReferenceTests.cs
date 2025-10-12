@@ -495,10 +495,10 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-#pragma warning disable ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREHOSTINGPYTHON001, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var executable = builder.AddPythonApp("PythonApp", ".\\app", "app.py")
                                 .WithReference(resource);
-#pragma warning restore ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore ASPIREHOSTINGPYTHON001, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
@@ -537,7 +537,7 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public async Task ResourceWithCustomAnnotationRespectsFlags()
+    public async Task ResourceWithConnectionPropertiesExtensionRespectsFlags()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -547,9 +547,9 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-        // Create a container and explicitly add the annotation for properties only
+        // Create a container and explicitly configure it to emit only connection properties
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+                               .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionProperties)
                                .WithReference(resource);
 
         // Call environment variable callbacks.
@@ -564,7 +564,7 @@ public class WithReferenceTests
     }
 
     [Fact]
-    public async Task ResourceWithCustomAnnotationOverridesDefault()
+    public async Task ResourceWithConnectionPropertiesExtensionOverridesDefault()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
 
@@ -574,11 +574,11 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-        // Create a project resource and add a custom annotation that differs from the default
+        // Create a project resource and override the default injection flags
         // ProjectResource defaults to ReferenceEnvironmentInjectionFlags.All
-        // Here we override it to only inject ConnectionString (not ConnectionProperties)
+        // Here we configure it to only inject ConnectionString (not ConnectionProperties)
         var projectB = builder.AddProject<ProjectB>("projectb")
-                              .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.ConnectionString))
+                              .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionString)
                               .WithReference(resource);
 
         // Call environment variable callbacks.
