@@ -6,22 +6,22 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation for providing callbacks to programmatically modify Dockerfile builds.
 /// </summary>
-public class DockerfileBuildCallbackAnnotation : IResourceAnnotation
+public class DockerfileBuilderCallbackAnnotation : IResourceAnnotation
 {
     private readonly List<Func<DockerfileBuilderCallbackContext, Task>> _callbacks = [];
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class.
+    /// Initializes a new instance of the <see cref="DockerfileBuilderCallbackAnnotation"/> class.
     /// </summary>
-    public DockerfileBuildCallbackAnnotation()
+    public DockerfileBuilderCallbackAnnotation()
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="DockerfileBuildCallbackAnnotation"/> class with an initial callback.
+    /// Initializes a new instance of the <see cref="DockerfileBuilderCallbackAnnotation"/> class with an initial callback.
     /// </summary>
     /// <param name="callback">The initial callback function that will be invoked during the Dockerfile build process.</param>
-    public DockerfileBuildCallbackAnnotation(Func<DockerfileBuilderCallbackContext, Task> callback)
+    public DockerfileBuilderCallbackAnnotation(Func<DockerfileBuilderCallbackContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
         _callbacks.Add(callback);

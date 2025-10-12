@@ -4,6 +4,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -618,9 +620,26 @@ public static class ContainerResourceBuilderExtensions
 
         var imageName = ImageNameGenerator.GenerateImageName(builder);
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
+        
+        // Wrap the factory to add logging
+        Func<DockerfileFactoryContext, Task<string>> wrappedFactory = async context =>
+        {
+            var dockerfileContent = await dockerfileFactory(context).ConfigureAwait(false);
+            
+            // Log the generated Dockerfile content if in run mode
+            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+            {
+                var loggerService = context.Services.GetRequiredService<ResourceLoggerService>();
+                var logger = loggerService.GetLogger(context.Resource);
+                logger.LogInformation("Generated Dockerfile:\n{DockerfileContent}", dockerfileContent);
+            }
+            
+            return dockerfileContent;
+        };
+        
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, tempDockerfilePath, stage)
         {
-            DockerfileFactory = dockerfileFactory
+            DockerfileFactory = wrappedFactory
         };
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
@@ -735,6 +754,97 @@ public static class ContainerResourceBuilderExtensions
 
         return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, dockerfileFactory, stage);
+    }
+
+    /// <summary>
+    /// Adds a Dockerfile to the application model that can be treated like a container resource, with the Dockerfile generated programmatically using the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="contextPath">Path to be used as the context for the container image build.</param>
+    /// <param name="callback">A callback that uses the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API to construct the Dockerfile.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method provides a programmatic way to build Dockerfiles using the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API
+    /// instead of string manipulation.
+    /// </para>
+    /// <para>
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is fully qualified.
+    /// </para>
+    /// <example>
+    /// Creates a container with a programmatically built Dockerfile:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddDockerfile("mycontainer", "path/to/context", context => 
+    /// {
+    ///     context.Builder.From("alpine:latest")
+    ///         .WorkDir("/app")
+    ///         .Copy(".", ".")
+    ///         .Cmd(["./myapp"]);
+    ///     return Task.CompletedTask;
+    /// });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(contextPath);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
+                      .WithDockerfile(contextPath, callback, stage);
+    }
+
+    /// <summary>
+    /// Adds a Dockerfile to the application model that can be treated like a container resource, with the Dockerfile generated programmatically using the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="contextPath">Path to be used as the context for the container image build.</param>
+    /// <param name="callback">A synchronous callback that uses the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API to construct the Dockerfile.</param>
+    /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
+    /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method provides a programmatic way to build Dockerfiles using the <see cref="ApplicationModel.Docker.DockerfileBuilder"/> API
+    /// instead of string manipulation.
+    /// </para>
+    /// <para>
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is fully qualified.
+    /// </para>
+    /// <example>
+    /// Creates a container with a programmatically built Dockerfile:
+    /// <code language="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddDockerfile("mycontainer", "path/to/context", context => 
+    /// {
+    ///     context.Builder.From("node:18")
+    ///         .WorkDir("/app")
+    ///         .Copy("package*.json", "./")
+    ///         .Run("npm ci");
+    /// });
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(contextPath);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
+                      .WithDockerfile(contextPath, callback, stage);
     }
 
     /// <summary>
@@ -1160,8 +1270,8 @@ public static class ContainerResourceBuilderExtensions
         var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
                                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-        // Check if there's already a DockerfileBuildCallbackAnnotation
-        var callbackAnnotation = builder.Resource.Annotations.OfType<DockerfileBuildCallbackAnnotation>().LastOrDefault();
+        // Check if there's already a DockerfileBuilderCallbackAnnotation
+        var callbackAnnotation = builder.Resource.Annotations.OfType<DockerfileBuilderCallbackAnnotation>().LastOrDefault();
 
         if (callbackAnnotation is not null)
         {
@@ -1171,7 +1281,7 @@ public static class ContainerResourceBuilderExtensions
         }
 
         // Create new callback annotation
-        callbackAnnotation = new DockerfileBuildCallbackAnnotation(callback);
+        callbackAnnotation = new DockerfileBuilderCallbackAnnotation(callback);
         builder.WithAnnotation(callbackAnnotation);
 
         // Create a factory that will invoke all callbacks and generate the Dockerfile
@@ -1188,7 +1298,7 @@ public static class ContainerResourceBuilderExtensions
             );
 
             // Invoke all callbacks
-            var annotation = factoryContext.Resource.Annotations.OfType<DockerfileBuildCallbackAnnotation>().LastOrDefault();
+            var annotation = factoryContext.Resource.Annotations.OfType<DockerfileBuilderCallbackAnnotation>().LastOrDefault();
             if (annotation is not null)
             {
                 foreach (var cb in annotation.Callbacks)
@@ -1202,7 +1312,17 @@ public static class ContainerResourceBuilderExtensions
             await dockerfileBuilder.WriteAsync(memoryStream, factoryContext.CancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
             using var reader = new StreamReader(memoryStream);
-            return await reader.ReadToEndAsync(factoryContext.CancellationToken).ConfigureAwait(false);
+            var dockerfileContent = await reader.ReadToEndAsync(factoryContext.CancellationToken).ConfigureAwait(false);
+
+            // Log the generated Dockerfile content if in run mode
+            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
+            {
+                var loggerService = factoryContext.Services.GetRequiredService<ResourceLoggerService>();
+                var logger = loggerService.GetLogger(factoryContext.Resource);
+                logger.LogInformation("Generated Dockerfile:\n{DockerfileContent}", dockerfileContent);
+            }
+
+            return dockerfileContent;
         };
 
         // Use the existing WithDockerfile overload that takes a factory

@@ -6,16 +6,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 
-public class DockerfileBuildCallbackAnnotationTests
+public class DockerfileBuilderCallbackAnnotationTests
 {
     [Fact]
-    public void DockerfileBuildCallbackAnnotation_Constructor_CreatesAnnotation()
+    public void DockerfileBuilderCallbackAnnotation_Constructor_CreatesAnnotation()
     {
         // Arrange
         Func<DockerfileBuilderCallbackContext, Task> callback = context => Task.CompletedTask;
 
         // Act
-        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var annotation = new DockerfileBuilderCallbackAnnotation(callback);
 
         // Assert
         Assert.NotNull(annotation.Callbacks);
@@ -23,10 +23,10 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public void DockerfileBuildCallbackAnnotation_DefaultConstructor_CreatesEmptyAnnotation()
+    public void DockerfileBuilderCallbackAnnotation_DefaultConstructor_CreatesEmptyAnnotation()
     {
         // Arrange & Act
-        var annotation = new DockerfileBuildCallbackAnnotation();
+        var annotation = new DockerfileBuilderCallbackAnnotation();
 
         // Assert
         Assert.NotNull(annotation.Callbacks);
@@ -34,7 +34,7 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_CallbackCanBeInvoked()
+    public async Task DockerfileBuilderCallbackAnnotation_CallbackCanBeInvoked()
     {
         // Arrange
         var callbackInvoked = false;
@@ -47,7 +47,7 @@ public class DockerfileBuildCallbackAnnotationTests
             return Task.CompletedTask;
         };
 
-        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var annotation = new DockerfileBuilderCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
         var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
@@ -62,7 +62,7 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_CallbackWithAsyncOperation()
+    public async Task DockerfileBuilderCallbackAnnotation_CallbackWithAsyncOperation()
     {
         // Arrange
         var delay = TimeSpan.FromMilliseconds(10);
@@ -74,7 +74,7 @@ public class DockerfileBuildCallbackAnnotationTests
             callbackCompleted = true;
         };
 
-        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var annotation = new DockerfileBuilderCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
         var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
@@ -87,7 +87,7 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_CallbackCanModifyDockerfileBuilder()
+    public async Task DockerfileBuilderCallbackAnnotation_CallbackCanModifyDockerfileBuilder()
     {
         // Arrange
         var builderModified = false;
@@ -101,7 +101,7 @@ public class DockerfileBuildCallbackAnnotationTests
             return Task.CompletedTask;
         };
 
-        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var annotation = new DockerfileBuilderCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection().BuildServiceProvider();
         var context = new DockerfileBuilderCallbackContext(new ContainerResource("test"), builder, services, CancellationToken.None);
@@ -116,7 +116,7 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_CallbackCanAccessServices()
+    public async Task DockerfileBuilderCallbackAnnotation_CallbackCanAccessServices()
     {
         // Arrange
         var serviceAccessed = false;
@@ -129,7 +129,7 @@ public class DockerfileBuildCallbackAnnotationTests
             return Task.CompletedTask;
         };
 
-        var annotation = new DockerfileBuildCallbackAnnotation(callback);
+        var annotation = new DockerfileBuilderCallbackAnnotation(callback);
         var builder = new DockerfileBuilder();
         var services = new ServiceCollection()
             .AddSingleton(testService)
@@ -144,10 +144,10 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public void DockerfileBuildCallbackAnnotation_AddCallback_AddsCallback()
+    public void DockerfileBuilderCallbackAnnotation_AddCallback_AddsCallback()
     {
         // Arrange
-        var annotation = new DockerfileBuildCallbackAnnotation();
+        var annotation = new DockerfileBuilderCallbackAnnotation();
         Func<DockerfileBuilderCallbackContext, Task> callback1 = context => Task.CompletedTask;
         Func<DockerfileBuilderCallbackContext, Task> callback2 = context => Task.CompletedTask;
 
@@ -160,13 +160,13 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_MultipleCallbacks_AllInvoked()
+    public async Task DockerfileBuilderCallbackAnnotation_MultipleCallbacks_AllInvoked()
     {
         // Arrange
         var callback1Invoked = false;
         var callback2Invoked = false;
 
-        var annotation = new DockerfileBuildCallbackAnnotation();
+        var annotation = new DockerfileBuilderCallbackAnnotation();
         annotation.AddCallback(context =>
         {
             callback1Invoked = true;
@@ -194,10 +194,10 @@ public class DockerfileBuildCallbackAnnotationTests
     }
 
     [Fact]
-    public async Task DockerfileBuildCallbackAnnotation_MultipleCallbacks_BuildInSequence()
+    public async Task DockerfileBuilderCallbackAnnotation_MultipleCallbacks_BuildInSequence()
     {
         // Arrange
-        var annotation = new DockerfileBuildCallbackAnnotation();
+        var annotation = new DockerfileBuilderCallbackAnnotation();
         
         annotation.AddCallback(context =>
         {
