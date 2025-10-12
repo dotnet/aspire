@@ -166,6 +166,7 @@ public sealed class ComposeFile
             .WithTypeConverter(new UnixFileModeTypeConverter())
             .WithTypeConverter(new EnvironmentVariablesTypeConverter())
             .WithTypeConverter(new VolumesListTypeConverter())
+            .WithTypeConverter(new PortsListTypeConverter())
             .IgnoreUnmatchedProperties()
             .Build();
 

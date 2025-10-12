@@ -98,8 +98,12 @@ public sealed class Service : NamedComposeMember
     /// Represents a collection of port mappings for the service.
     /// Each mapping specifies how a container port is bound to a host port.
     /// </summary>
+    /// <summary>
+    /// Gets or sets the list of port mappings for the service.
+    /// Supports both short syntax (e.g., "8080:80") and long syntax (object with target, published, protocol, host_ip).
+    /// </summary>
     [YamlMember(Alias = "ports", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
-    public List<string> Ports { get; set; } = [];
+    public PortsList Ports { get; set; } = [];
 
     /// <summary>
     /// Gets or sets a list of ports to expose from the container without publishing them to the host machine.

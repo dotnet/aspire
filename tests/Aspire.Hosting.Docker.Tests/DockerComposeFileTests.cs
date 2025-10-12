@@ -741,4 +741,73 @@ volumes:
         }
     }
 
+    [Fact]
+    public void AddDockerComposeFile_ParsesLongSyntaxPorts()
+    {
+        // Create a temp docker-compose.yml file with long syntax ports
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+services:
+  web:
+    image: nginx:alpine
+    ports:
+      - target: 80
+        published: 8080
+        protocol: tcp
+      - target: 443
+        published: 8443
+        protocol: tcp
+        host_ip: 127.0.0.1
+      - ""9000:9000""
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            // Add the docker compose file
+            var composeResource = builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            // Build the app to trigger initialization
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify that web container was created
+            var webResource = appModel.Resources.OfType<ContainerResource>()
+                .FirstOrDefault(r => r.Name == "web");
+            Assert.NotNull(webResource);
+            
+            // Verify endpoints were created (should have 3 ports)
+            var endpoints = webResource.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Equal(3, endpoints.Count);
+            
+            // Verify first port (long syntax: 8080:80/tcp)
+            var endpoint1 = endpoints.FirstOrDefault(e => e.Name == "port8080");
+            Assert.NotNull(endpoint1);
+            Assert.Equal(80, endpoint1.TargetPort);
+            Assert.Equal(8080, endpoint1.Port);
+            Assert.Equal("http", endpoint1.UriScheme); // tcp defaults to http
+            
+            // Verify second port (long syntax with host_ip: 127.0.0.1:8443:443/tcp)
+            var endpoint2 = endpoints.FirstOrDefault(e => e.Name == "port8443");
+            Assert.NotNull(endpoint2);
+            Assert.Equal(443, endpoint2.TargetPort);
+            Assert.Equal(8443, endpoint2.Port);
+            
+            // Verify third port (short syntax: 9000:9000)
+            var endpoint3 = endpoints.FirstOrDefault(e => e.Name == "port9000");
+            Assert.NotNull(endpoint3);
+            Assert.Equal(9000, endpoint3.TargetPort);
+            Assert.Equal(9000, endpoint3.Port);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
 }

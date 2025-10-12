@@ -56,6 +56,25 @@ public class EnvironmentVariables : Dictionary<string, string>
 }
 
 /// <summary>
+/// Represents a list of port mappings for a Docker Compose service.
+/// Supports both short syntax (e.g., "8080:80", "127.0.0.1:8080:80/tcp") 
+/// and long syntax (objects with target, published, protocol, host_ip properties).
+/// </summary>
+public class PortsList : List<string>
+{
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PortsList"/> class.
+    /// </summary>
+    public PortsList() : base() { }
+    
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PortsList"/> class from an existing list.
+    /// </summary>
+    /// <param name="collection">The collection to copy from.</param>
+    public PortsList(IEnumerable<string> collection) : base(collection) { }
+}
+
+/// <summary>
 /// Converts Docker Compose environment variables from both array and dictionary formats to a dictionary.
 /// Supports both "KEY=value" array format and "KEY: value" dictionary format.
 /// </summary>
@@ -126,6 +145,127 @@ internal class EnvironmentVariablesTypeConverter : IYamlTypeConverter
         if (value is EnvironmentVariables dict)
         {
             serializer(dict);
+        }
+    }
+}
+
+/// <summary>
+/// Converts Docker Compose ports from both short and long formats.
+/// Supports both short syntax (e.g., "3000", "3000:3000", "127.0.0.1:3000:3000/tcp") 
+/// and long syntax (target, published, protocol, host_ip properties).
+/// </summary>
+internal class PortsListTypeConverter : IYamlTypeConverter
+{
+    public bool Accepts(Type type)
+    {
+        return type == typeof(PortsList);
+    }
+
+    public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+    {
+        var result = new PortsList();
+
+        if (parser.Current is not SequenceStart)
+        {
+            return result;
+        }
+
+        parser.MoveNext();
+        while (parser.Current is not SequenceEnd)
+        {
+            if (parser.Current is Scalar scalar)
+            {
+                // Short syntax: "3000", "3000:3000", "127.0.0.1:3000:3000/tcp"
+                result.Add(scalar.Value);
+                parser.MoveNext();
+            }
+            else if (parser.Current is MappingStart)
+            {
+                // Long syntax: {target: 3000, published: 8080, protocol: tcp, host_ip: 127.0.0.1}
+                parser.MoveNext(); // Move past MappingStart
+
+                int? target = null;
+                int? published = null;
+                string? protocol = null;
+                string? hostIp = null;
+
+                while (parser.Current is not MappingEnd)
+                {
+                    if (parser.Current is Scalar keyScalar)
+                    {
+                        var key = keyScalar.Value;
+                        parser.MoveNext();
+
+                        if (parser.Current is Scalar valueScalar)
+                        {
+                            switch (key)
+                            {
+                                case "target":
+                                    if (int.TryParse(valueScalar.Value, out var t))
+                                    {
+                                        target = t;
+                                    }
+                                    break;
+                                case "published":
+                                    if (int.TryParse(valueScalar.Value, out var p))
+                                    {
+                                        published = p;
+                                    }
+                                    break;
+                                case "protocol":
+                                    protocol = valueScalar.Value;
+                                    break;
+                                case "host_ip":
+                                    hostIp = valueScalar.Value;
+                                    break;
+                                    // mode is ignored (host vs ingress)
+                            }
+                        }
+                        parser.MoveNext();
+                    }
+                    else
+                    {
+                        parser.MoveNext();
+                    }
+                }
+
+                parser.MoveNext(); // Move past MappingEnd
+
+                // Convert long syntax to short syntax string
+                if (target.HasValue)
+                {
+                    var portString = published.HasValue ? $"{published}:{target}" : $"{target}";
+                    if (!string.IsNullOrEmpty(hostIp))
+                    {
+                        portString = $"{hostIp}:{portString}";
+                    }
+                    if (!string.IsNullOrEmpty(protocol))
+                    {
+                        portString = $"{portString}/{protocol}";
+                    }
+                    result.Add(portString);
+                }
+            }
+            else
+            {
+                parser.MoveNext();
+            }
+        }
+
+        parser.MoveNext(); // Skip SequenceEnd
+        return result;
+    }
+
+    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
+    {
+        if (value is List<string> ports)
+        {
+            emitter.Emit(new SequenceStart(null, null, false, SequenceStyle.Block));
+            foreach (var port in ports)
+            {
+                emitter.Emit(new Scalar(port));
+            }
+            emitter.Emit(new SequenceEnd());
         }
     }
 }
