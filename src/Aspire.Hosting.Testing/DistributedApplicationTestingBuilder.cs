@@ -1,10 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
+
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -238,6 +242,8 @@ public static class DistributedApplicationTestingBuilder
 
             public IDistributedApplicationEventing Eventing => innerBuilder.Eventing;
 
+            public IDistributedApplicationPipeline Pipeline => innerBuilder.Pipeline;
+
             public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => innerBuilder.AddResource(resource);
 
             public DistributedApplication Build() => BuildAsync(CancellationToken.None).Result;
@@ -388,6 +394,8 @@ public static class DistributedApplicationTestingBuilder
 
         public IDistributedApplicationEventing Eventing => _innerBuilder.Eventing;
 
+        public IDistributedApplicationPipeline Pipeline => _innerBuilder.Pipeline;
+
         public IResourceBuilder<T> AddResource<T>(T resource) where T : IResource => _innerBuilder.AddResource(resource);
 
         [MemberNotNull(nameof(_app))]
@@ -471,6 +479,9 @@ public interface IDistributedApplicationTestingBuilder : IDistributedApplication
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Eventing" />
     new IDistributedApplicationEventing Eventing => ((IDistributedApplicationBuilder)this).Eventing;
+
+    /// <inheritdoc cref="IDistributedApplicationBuilder.Pipeline" />
+    new IDistributedApplicationPipeline Pipeline => ((IDistributedApplicationBuilder)this).Pipeline;
 
     /// <inheritdoc cref="IDistributedApplicationBuilder.Resources" />
     new IResourceCollection Resources => ((IDistributedApplicationBuilder)this).Resources;

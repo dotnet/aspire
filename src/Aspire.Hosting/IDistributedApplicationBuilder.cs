@@ -1,8 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Microsoft.Extensions.Configuration;
@@ -38,7 +42,7 @@ namespace Aspire.Hosting;
 /// methods are used to add Redis and PostgreSQL container resources. The results of the methods are stored in variables for
 /// later use.
 /// </para>
-/// 
+///
 /// <code lang="csharp">
 /// var builder = DistributedApplication.CreateBuilder(args);
 /// var cache = builder.AddRedis("cache");
@@ -106,7 +110,7 @@ public interface IDistributedApplicationBuilder
     ///             context.EnvironmentVariables["RABBITMQ_NODENAME"] = nodeName;
     ///         });
     ///     }
-    /// 
+    ///
     ///     return builder;
     /// }
     /// </code>
@@ -121,6 +125,16 @@ public interface IDistributedApplicationBuilder
     /// This can be mutated by adding more resources, which will update its current view.
     /// </remarks>
     public IResourceCollection Resources { get; }
+
+    /// <summary>
+    /// Gets the deployment pipeline for this distributed application.
+    /// </summary>
+    /// <remarks>
+    /// The pipeline allows adding custom deployment steps that execute during the deploy process.
+    /// Steps can declare dependencies on other steps to control execution order.
+    /// </remarks>
+    [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public IDistributedApplicationPipeline Pipeline { get; }
 
     /// <summary>
     /// Adds a resource of type <typeparamref name="T"/> to the distributed application.
@@ -201,7 +215,7 @@ public interface IDistributedApplicationBuilder
     ///     },
     ///     secret: true,
     ///     connectionString: true);
-    /// 
+    ///
     ///     var surrogate = new ConnectionStringParameterResource(parameterBuilder.Resource, environmentVariableName);
     ///     return builder.CreateResourceBuilder(surrogate);
     /// }
