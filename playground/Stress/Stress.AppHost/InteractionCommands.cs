@@ -67,10 +67,6 @@ internal static class InteractionCommands
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
 
-               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success });
-               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "The **command** successfully executed.", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
-               _ = interactionService.PromptNotificationAsync("Success <strong>bar</strong>", "Multiline 1\r\n\r\nMultiline 2", new NotificationInteractionOptions { Intent = MessageIntent.Success, EnableMessageMarkdown = true });
-
                var inputHasMarkdown = new InteractionInput { Name = "Name", Label = "<strong>Name</strong>", InputType = InputType.Text, Placeholder = "Enter <strong>your</strong> name.", Description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.", EnableDescriptionMarkdown = true };
                var choiceWithLongContent = new InteractionInput
                {
