@@ -621,4 +621,124 @@ services:
         }
     }
 
+    [Fact]
+    public void AddDockerComposeFile_ParsesComplexRealWorldExample()
+    {
+        // Test the exact format reported by the user
+        var tempDir = Directory.CreateTempSubdirectory(".docker-compose-file-test");
+        output.WriteLine($"Temp directory: {tempDir.FullName}");
+        
+        var composeFilePath = Path.Combine(tempDir.FullName, "docker-compose.yml");
+        File.WriteAllText(composeFilePath, @"
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - ""3000:3000""
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - ""8000:8000""
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/appdb
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=appdb
+    ports:
+      - ""5432:5432""
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - ""6379:6379""
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+");
+
+        try
+        {
+            using var builder = TestDistributedApplicationBuilder.Create();
+            
+            // Add the docker compose file
+            var composeResource = builder.AddDockerComposeFile("mycompose", composeFilePath);
+            
+            // Build the app
+            var app = builder.Build();
+            var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+            
+            // Verify all services were imported
+            var containerResources = appModel.Resources.OfType<ContainerResource>().ToList();
+            Assert.Equal(4, containerResources.Count); // frontend, backend, db, redis
+            
+            // Verify frontend service
+            var frontend = containerResources.FirstOrDefault(r => r.Name == "frontend");
+            Assert.NotNull(frontend);
+            // Should be a Dockerfile resource since it has build config
+            var frontendEndpoints = frontend.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Single(frontendEndpoints);
+            Assert.Equal(3000, frontendEndpoints[0].Port);
+            
+            // Verify backend service
+            var backend = containerResources.FirstOrDefault(r => r.Name == "backend");
+            Assert.NotNull(backend);
+            var backendEndpoints = backend.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Single(backendEndpoints);
+            Assert.Equal(8000, backendEndpoints[0].Port);
+            
+            // Verify db service
+            var db = containerResources.FirstOrDefault(r => r.Name == "db");
+            Assert.NotNull(db);
+            var dbEndpoints = db.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Single(dbEndpoints);
+            Assert.Equal(5432, dbEndpoints[0].Port);
+            
+            // Verify redis service  
+            var redis = containerResources.FirstOrDefault(r => r.Name == "redis");
+            Assert.NotNull(redis);
+            var redisEndpoints = redis.Annotations.OfType<EndpointAnnotation>().ToList();
+            Assert.Single(redisEndpoints);
+            Assert.Equal(6379, redisEndpoints[0].Port);
+            
+            // Verify volumes were parsed (check on frontend which has 2 volumes)
+            var frontendMounts = frontend.Annotations.OfType<ContainerMountAnnotation>().ToList();
+            Assert.Equal(2, frontendMounts.Count);
+            
+            // Verify environment variables were parsed (check db which has 3 env vars in array format)
+            Assert.True(db.TryGetAnnotationsIncludingAncestorsOfType<EnvironmentCallbackAnnotation>(out var dbEnvAnnotations));
+            Assert.NotEmpty(dbEnvAnnotations);
+        }
+        finally
+        {
+            try { tempDir.Delete(recursive: true); } catch { }
+        }
+    }
+
 }

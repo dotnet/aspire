@@ -165,6 +165,7 @@ public sealed class ComposeFile
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .WithTypeConverter(new UnixFileModeTypeConverter())
             .WithTypeConverter(new EnvironmentVariablesTypeConverter())
+            .WithTypeConverter(new VolumesListTypeConverter())
             .IgnoreUnmatchedProperties()
             .Build();
 

@@ -129,3 +129,113 @@ internal class EnvironmentVariablesTypeConverter : IYamlTypeConverter
         }
     }
 }
+
+/// <summary>
+/// Converts Docker Compose volumes from both short and long formats.
+/// Supports both short syntax (e.g., "./source:/target:ro") and long syntax (type, source, target properties).
+/// </summary>
+internal class VolumesListTypeConverter : IYamlTypeConverter
+{
+    public bool Accepts(Type type)
+    {
+        return type == typeof(List<Resources.ServiceNodes.Volume>);
+    }
+
+    public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
+    {
+        var result = new List<Resources.ServiceNodes.Volume>();
+
+        if (parser.Current is not SequenceStart)
+        {
+            return result;
+        }
+
+        parser.MoveNext();
+        while (parser.Current is not SequenceEnd)
+        {
+            if (parser.Current is Scalar scalar)
+            {
+                // Short syntax: "./source:/target" or "/target" or "./source:/target:ro"
+                var volume = ParseShortSyntax(scalar.Value);
+                if (volume is not null)
+                {
+                    result.Add(volume);
+                }
+                parser.MoveNext();
+            }
+            else if (parser.Current is MappingStart)
+            {
+                // Long syntax: type, source, target, etc.
+                var volume = (Resources.ServiceNodes.Volume?)rootDeserializer(typeof(Resources.ServiceNodes.Volume));
+                if (volume is not null)
+                {
+                    result.Add(volume);
+                }
+            }
+            else
+            {
+                parser.MoveNext();
+            }
+        }
+        parser.MoveNext(); // Skip SequenceEnd
+
+        return result;
+    }
+
+    private static Resources.ServiceNodes.Volume? ParseShortSyntax(string volumeString)
+    {
+        if (string.IsNullOrWhiteSpace(volumeString))
+        {
+            return null;
+        }
+
+        var volume = new Resources.ServiceNodes.Volume
+        {
+            Name = string.Empty // Short syntax doesn't have a name
+        };
+        
+        // Parse: [SOURCE:]TARGET[:MODE]
+        var parts = volumeString.Split(':');
+        
+        if (parts.Length == 1)
+        {
+            // Just a target path (anonymous volume)
+            volume.Target = parts[0];
+            volume.Type = "volume";
+        }
+        else if (parts.Length == 2)
+        {
+            // SOURCE:TARGET
+            volume.Source = parts[0];
+            volume.Target = parts[1];
+            // Determine type: if source starts with . or / it's a bind mount, otherwise it's a named volume
+            volume.Type = parts[0].StartsWith('.') || parts[0].StartsWith('/') ? "bind" : "volume";
+        }
+        else if (parts.Length >= 3)
+        {
+            // SOURCE:TARGET:MODE (or possibly SOURCE:TARGET:ro or SOURCE:TARGET:rw,etc)
+            volume.Source = parts[0];
+            volume.Target = parts[1];
+            volume.Type = parts[0].StartsWith('.') || parts[0].StartsWith('/') ? "bind" : "volume";
+            
+            // Parse mode options (ro, rw, etc.)
+            for (int i = 2; i < parts.Length; i++)
+            {
+                if (parts[i] == "ro")
+                {
+                    volume.ReadOnly = true;
+                }
+            }
+        }
+
+        return volume;
+    }
+
+    public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
+    {
+        if (value is List<Resources.ServiceNodes.Volume> volumes)
+        {
+            serializer(volumes);
+        }
+    }
+}
