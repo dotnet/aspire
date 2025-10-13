@@ -179,4 +179,73 @@ internal abstract partial class BaseProvisioningContextProvider(
     }
 
     protected abstract string GetDefaultResourceGroupName();
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? subscriptionOptions = null;
+        var fetchSucceeded = false;
+
+        try
+        {
+            var credential = _tokenCredentialProvider.TokenCredential;
+            var armClient = _armClientProvider.GetArmClient(credential);
+            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            var subscriptionList = availableSubscriptions.ToList();
+
+            if (subscriptionList.Count > 0)
+            {
+                subscriptionOptions = [.. subscriptionList
+                                .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
+                                .OrderBy(kvp => kvp.Value)];
+                fetchSucceeded = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Falling back to manual input.");
+        }
+
+        return (subscriptionOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? locationOptions = null;
+
+        try
+        {
+            var credential = _tokenCredentialProvider.TokenCredential;
+            var armClient = _armClientProvider.GetArmClient(credential);
+            var availableLocations = await armClient.GetAvailableLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+            var locationList = availableLocations.ToList();
+
+            if (locationList.Count > 0)
+            {
+                locationOptions = locationList
+                    .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
+        }
+
+        return locationOptions is not null
+            ? (locationOptions, true)
+            : (GetStaticAzureLocations(), false);
+    }
+
+    /// <summary>
+    /// Gets static Azure locations as fallback when dynamic loading fails.
+    /// </summary>
+    private static List<KeyValuePair<string, string>> GetStaticAzureLocations()
+    {
+        return typeof(AzureLocation).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(p => p.PropertyType == typeof(AzureLocation))
+            .Select(p => (AzureLocation)p.GetValue(null)!)
+            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+            .OrderBy(kvp => kvp.Value)
+            .ToList();
+    }
 }
