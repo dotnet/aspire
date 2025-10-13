@@ -170,7 +170,7 @@ internal sealed class RunModeProvisioningContextProvider(
                              Name = LocationName,
                              InputType = InputType.Choice,
                              Label = AzureProvisioningStrings.LocationLabel,
-                             Placeholder = "Select location",
+                             Placeholder = AzureProvisioningStrings.LocationPlaceholder,
                              Required = true,
                              Disabled = true,
                              DynamicOptions = new DynamicInputOptions
