@@ -3,12 +3,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -100,13 +98,6 @@ internal sealed class RunModeProvisioningContextProvider(
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
-        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                            .Where(p => p.PropertyType == typeof(AzureLocation))
-                            .Select(p => (AzureLocation)p.GetValue(null)!)
-                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
-                            .OrderBy(kvp => kvp.Value)
-                            .ToList();
-
         while (_options.Location == null || _options.SubscriptionId == null)
         {
             var messageBarResult = await _interactionService.PromptNotificationAsync(
@@ -133,9 +124,106 @@ internal sealed class RunModeProvisioningContextProvider(
                     AzureProvisioningStrings.InputsTitle,
                     AzureProvisioningStrings.InputsMessage,
                     [
-                        new InteractionInput { Name = LocationName, InputType = InputType.Choice, Label = AzureProvisioningStrings.LocationLabel, Placeholder = AzureProvisioningStrings.LocationPlaceholder, Required = true, Options = [..locations] },
-                        new InteractionInput { Name = SubscriptionIdName, InputType = InputType.SecretText, Label = AzureProvisioningStrings.SubscriptionIdLabel, Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder, Required = true },
-                        new InteractionInput { Name = ResourceGroupName, InputType = InputType.Text, Label = AzureProvisioningStrings.ResourceGroupLabel, Value = GetDefaultResourceGroupName() },
+                        new InteractionInput
+                         {
+                             Name = SubscriptionIdName,
+                             InputType = InputType.Choice,
+                             Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                             Required = true,
+                             AllowCustomChoice = true,
+                             Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                             DynamicOptions = new DynamicInputOptions
+                             {
+                                 UpdateInputCallback = async (context) =>
+                                 {
+                                     try
+                                     {
+                                         var credential = _tokenCredentialProvider.TokenCredential;
+                                         var armClient = _armClientProvider.GetArmClient(credential);
+                                         var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(context.CancellationToken).ConfigureAwait(false);
+                                         var subscriptionList = availableSubscriptions.ToList();
+
+                                         if (subscriptionList.Count > 0)
+                                         {
+                                             var subscriptionOptions = subscriptionList
+                                                 .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
+                                                 .OrderBy(kvp => kvp.Value)
+                                                 .ToList();
+
+                                             context.Input.Options = subscriptionOptions;
+                                         }
+                                         else
+                                         {
+                                             context.Input.Options = [];
+                                         }
+                                     }
+                                     catch (Exception ex)
+                                     {
+                                         _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Allowing manual input.");
+                                         context.Input.Options = [];
+                                     }
+                                 }
+                             }
+                         },
+                         new InteractionInput
+                         {
+                             Name = LocationName,
+                             InputType = InputType.Choice,
+                             Label = AzureProvisioningStrings.LocationLabel,
+                             Placeholder = "Select location",
+                             Required = true,
+                             Disabled = true,
+                             DynamicOptions = new DynamicInputOptions
+                             {
+                                 UpdateInputCallback = async (context) =>
+                                 {
+                                     try
+                                     {
+                                         var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+
+                                         var credential = _tokenCredentialProvider.TokenCredential;
+                                         var armClient = _armClientProvider.GetArmClient(credential);
+                                         var availableLocations = await armClient.GetAvailableLocationsAsync(subscriptionId, context.CancellationToken).ConfigureAwait(false);
+                                         var locationList = availableLocations.ToList();
+
+                                         if (locationList.Count > 0)
+                                         {
+                                             var locationOptions = locationList
+                                                 .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
+                                                 .OrderBy(kvp => kvp.Value)
+                                                 .ToList();
+
+                                             context.Input.Options = locationOptions;
+                                             context.Input.Disabled = false;
+                                         }
+                                         else
+                                         {
+                                             // Fall back to static locations from AzureLocation
+                                             var staticLocations = GetStaticAzureLocations();
+                                             context.Input.Options = staticLocations;
+                                             context.Input.Disabled = false;
+                                         }
+                                     }
+                                     catch (Exception ex)
+                                     {
+                                         _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to static locations.");
+
+                                         // Fall back to static locations from AzureLocation
+                                         var staticLocations = GetStaticAzureLocations();
+                                         context.Input.Options = staticLocations;
+                                         context.Input.Disabled = false;
+                                     }
+                                 },
+                                 DependsOnInputs = [SubscriptionIdName]
+                             }
+                         },
+                         new InteractionInput
+                         {
+                             Name = ResourceGroupName,
+                             InputType = InputType.Text,
+                             Label = AzureProvisioningStrings.ResourceGroupLabel,
+                             Value = GetDefaultResourceGroupName()
+                         }
                     ],
                     new InputsDialogInteractionOptions
                     {
@@ -143,7 +231,7 @@ internal sealed class RunModeProvisioningContextProvider(
                         ValidationCallback = static (validationContext) =>
                         {
                             var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
-                            if (!Guid.TryParse(subscriptionInput.Value, out var _))
+                            if (!string.IsNullOrWhiteSpace(subscriptionInput.Value) && !Guid.TryParse(subscriptionInput.Value, out _))
                             {
                                 validationContext.AddValidationError(subscriptionInput, AzureProvisioningStrings.ValidationSubscriptionIdInvalid);
                             }

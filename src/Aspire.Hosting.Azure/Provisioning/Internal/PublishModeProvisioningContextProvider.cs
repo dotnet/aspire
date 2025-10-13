@@ -4,12 +4,10 @@
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPUBLISHERS001
 
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
-using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -102,7 +100,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "fetch-subscription",
@@ -116,25 +114,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
-                        var subscriptionList = availableSubscriptions.ToList();
-
-                        if (subscriptionList.Count > 0)
-                        {
-                            subscriptionOptions = [.. subscriptionList
-                                .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
-                                .OrderBy(kvp => kvp.Value)];
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Falling back to manual input.");
-                    }
+                    (subscriptionOptions, fetchSucceeded) = await TryGetSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)
@@ -219,7 +199,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "fetch-regions",
@@ -233,25 +213,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableLocations = await armClient.GetAvailableLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
-                        var locationList = availableLocations.ToList();
-
-                        if (locationList.Count > 0)
-                        {
-                            locationOptions = locationList
-                                .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
-                                .ToList();
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
-                    }
+                    (locationOptions, fetchSucceeded) = await TryGetLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)
@@ -317,12 +279,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
         }
 
-        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                            .Where(p => p.PropertyType == typeof(AzureLocation))
-                            .Select(p => (AzureLocation)p.GetValue(null)!)
-                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
-                            .OrderBy(kvp => kvp.Value)
-                            .ToList();
+        var locations = GetStaticAzureLocations();
 
         var manualResult = await _interactionService.PromptInputsAsync(
             AzureProvisioningStrings.LocationDialogTitle,
