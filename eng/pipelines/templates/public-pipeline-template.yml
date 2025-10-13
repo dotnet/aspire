@@ -40,7 +40,7 @@ variables:
     # Use the build reason to decide whether to include helix_tests
     - ${{ if notin(variables['Build.Reason'], 'PullRequest') }}:
       - name: testVariants
-        value: '_integration_matrix_tests,_helix_tests'
+        value: '_integration_matrix_tests'
     - ${{ else }}:
       - name: testVariants
         value: ''

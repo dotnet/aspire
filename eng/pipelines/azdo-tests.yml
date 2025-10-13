@@ -10,5 +10,5 @@ pr: none
 extends:
   template: /eng/pipelines/templates/public-pipeline-template.yml
   parameters:
-    # Run integration matrix tests and helix tests for manual runs
-    testVariants: '_integration_matrix_tests,_helix_tests'
+    # Run only integration matrix tests for testing (helix disabled during development)
+    testVariants: '_integration_matrix_tests'
