@@ -8,14 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Yarp.ReverseProxy" />
+    <PackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
   </ItemGroup>
 
   <ItemGroup>
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Abstractions" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Yarp" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery" />
-    <AspireProjectOrPackageReference Include="Microsoft.Extensions.ServiceDiscovery.Dns" />
     <ProjectReference Include="..\TestShop.ServiceDefaults\TestShop.ServiceDefaults.csproj" />
   </ItemGroup>
 

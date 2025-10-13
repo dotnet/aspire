@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using Aspire.Dashboard.Otlp.Model;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
@@ -14,26 +15,42 @@ public static class TraceHelpers
     /// </summary>
     public static void VisitSpans<TState>(OtlpTrace trace, Func<OtlpSpan, TState, TState> spanAction, TState state)
     {
-        // TODO: Investigate performance.
-        // A trace's spans are stored in one collection and recursively iterated by matching the span id to its parent.
-        // This behavior could cause excessive iteration over the span collection in large traces. Consider improving if this causes performance issues.
+        // Calculate span hierarchy.
+        var spanLookup = new Dictionary<OtlpSpan, List<OtlpSpan>>();
+        var unrootedSpans = new List<OtlpSpan>();
+        foreach (var item in trace.Spans)
+        {
+            if (string.IsNullOrEmpty(item.ParentSpanId) || !trace.Spans.TryGetValue(item.ParentSpanId, out var parentSpan))
+            {
+                unrootedSpans.Add(item);
+            }
+            else
+            {
+                ref var childSpans = ref CollectionsMarshal.GetValueRefOrAddDefault(spanLookup, parentSpan, out _);
+                childSpans ??= [];
+                childSpans.Add(item);
+            }
+        }
 
         var orderByFunc = static (OtlpSpan s) => s.StartTime;
 
-        foreach (var unrootedSpan in trace.Spans.Where(s => s.GetParentSpan() == null).OrderBy(orderByFunc))
+        foreach (var unrootedSpan in unrootedSpans.OrderBy(orderByFunc))
         {
             var newState = spanAction(unrootedSpan, state);
 
-            Visit(trace.Spans, unrootedSpan, spanAction, newState, orderByFunc);
+            Visit(spanLookup, unrootedSpan, spanAction, newState, orderByFunc);
         }
 
-        static void Visit(OtlpSpanCollection allSpans, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
+        static void Visit(Dictionary<OtlpSpan, List<OtlpSpan>> spanLookup, OtlpSpan span, Func<OtlpSpan, TState, TState> spanAction, TState state, Func<OtlpSpan, DateTime> orderByFunc)
         {
-            foreach (var childSpan in OtlpSpan.GetChildSpans(span, allSpans).OrderBy(orderByFunc))
+            if (spanLookup.TryGetValue(span, out var childSpans))
             {
-                var newState = spanAction(childSpan, state);
+                foreach (var childSpan in childSpans.OrderBy(orderByFunc))
+                {
+                    var newState = spanAction(childSpan, state);
 
-                Visit(allSpans, childSpan, spanAction, newState, orderByFunc);
+                    Visit(spanLookup, childSpan, spanAction, newState, orderByFunc);
+                }
             }
         }
     }

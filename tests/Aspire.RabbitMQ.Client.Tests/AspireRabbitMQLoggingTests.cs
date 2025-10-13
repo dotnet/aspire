@@ -32,6 +32,7 @@ public class AspireRabbitMQLoggingTests
     /// </summary>
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11820", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task EndToEndLoggingTest()
     {
         await using var rabbitMqContainer = new RabbitMqBuilder()

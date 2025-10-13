@@ -26,7 +26,7 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.Name);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
+        Assert.NotNull(context.DeploymentState);
     }
 
     [Fact]
@@ -113,8 +113,8 @@ public class ProvisioningContextTests
         // Act
         var deployments = context.ResourceGroup.GetArmDeployments();
         var operation = await deployments.CreateOrUpdateAsync(
-            WaitUntil.Started, 
-            "test-deployment", 
+            WaitUntil.Started,
+            "test-deployment",
             new ArmDeploymentContent(
                 new ArmDeploymentProperties(ArmDeploymentMode.Incremental)));
 
@@ -155,7 +155,7 @@ public class ProvisioningContextTests
 
         // Assert
         Assert.Equal("custom@example.com", context.Principal.Name);
-        Assert.Equal("value", context.UserSecrets["test"]?.ToString());
+        Assert.Equal("value", context.DeploymentState["test"]?.ToString());
     }
 }
 
@@ -190,7 +190,7 @@ public class ProvisioningServicesTests
         Assert.NotNull(result);
         Assert.Contains("contentVersion", result);
         Assert.Contains("resources", result);
-        
+
         // Verify it's valid JSON
         var parsed = JsonNode.Parse(result);
         Assert.NotNull(parsed);
@@ -204,8 +204,8 @@ public class ProvisioningServicesTests
         var secrets = new JsonObject { ["Azure"] = new JsonObject { ["SubscriptionId"] = "test-id" } };
 
         // Act
-        await manager.SaveUserSecretsAsync(secrets);
-        var loaded = await manager.LoadUserSecretsAsync();
+        await manager.SaveStateAsync(secrets);
+        var loaded = await manager.LoadStateAsync();
 
         // Assert
         Assert.NotNull(loaded);

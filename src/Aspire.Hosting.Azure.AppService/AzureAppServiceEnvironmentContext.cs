@@ -41,7 +41,7 @@ internal sealed class AzureAppServiceEnvironmentContext(
             await context.ProcessAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var provisioningResource = new AzureProvisioningResource(resource.Name, context.BuildWebSite)
+        var provisioningResource = new AzureAppServiceWebSiteResource(resource.Name, context.BuildWebSite, resource)
         {
             ProvisioningBuildOptions = provisioningOptions.ProvisioningBuildOptions
         };

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
@@ -15,7 +16,7 @@ public class PublishingExtensionsTests
     public async Task PublishingStepExtensions_CreateTask_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -34,7 +35,7 @@ public class PublishingExtensionsTests
     public async Task PublishingStepExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -52,7 +53,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_UpdateStatus_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -71,7 +72,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Succeed_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -89,7 +90,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Warn_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -107,7 +108,7 @@ public class PublishingExtensionsTests
     public async Task PublishingTaskExtensions_Fail_WorksCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
 
@@ -118,5 +119,10 @@ public class PublishingExtensionsTests
         var taskInternal = Assert.IsType<PublishingTask>(task);
         Assert.Equal(CompletionState.CompletedWithError, taskInternal.CompletionState);
         Assert.Equal("Error message", taskInternal.CompletionMessage);
+    }
+
+    private PublishingActivityReporter CreatePublishingReporter()
+    {
+        return new PublishingActivityReporter(_interactionService, NullLogger<PublishingActivityReporter>.Instance);
     }
 }

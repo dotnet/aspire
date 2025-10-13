@@ -5,6 +5,7 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Bunit;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;

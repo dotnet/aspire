@@ -1,9 +1,25 @@
 import { randomBytes, X509Certificate } from 'crypto';
 import forge from 'node-forge';
 
-export function createSelfSignedCert(commonName: string = 'localhost') {
+interface SelfSignedCert {
+    key: string;
+    cert: string;
+    certBase64: string;
+}
+
+export async function createSelfSignedCertAsync(commonName: string = 'localhost'): Promise<SelfSignedCert> {
   const pki = forge.pki;
-  const keys = pki.rsa.generateKeyPair(2048);
+  const keys = await new Promise<forge.pki.rsa.KeyPair>((resolve, reject) => {
+    // 4096 bits provides enough entropy. Follows modern industry practice
+    pki.rsa.generateKeyPair({ bits: 4096, workers: -1 }, (err, keypair) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(keypair);
+      }
+    });
+  });
+
   const cert = pki.createCertificate();
   cert.publicKey = keys.publicKey;
   cert.serialNumber = (Math.floor(Math.random() * 1e16)).toString();

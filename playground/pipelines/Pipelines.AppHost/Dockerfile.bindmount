@@ -1,0 +1,20 @@
+FROM mcr.microsoft.com/dotnet/runtime:9.0
+
+# Create a directory for the bind mount
+RUN mkdir -p /data
+
+# Set the working directory
+WORKDIR /app
+
+# Create a simple script that reads and returns the file size
+RUN printf '#!/bin/sh\n\
+if [ -f /data/sample.txt ]; then\n\
+    SIZE=$(stat -f%%z /data/sample.txt 2>/dev/null || stat -c%%s /data/sample.txt 2>/dev/null)\n\
+    echo "File size of sample.txt: $SIZE bytes"\n\
+else\n\
+    echo "sample.txt not found at /data/sample.txt"\n\
+    exit 1\n\
+fi\n' > /app/check-file-size.sh && chmod +x /app/check-file-size.sh
+
+# Run the script when container starts
+ENTRYPOINT ["/app/check-file-size.sh"]

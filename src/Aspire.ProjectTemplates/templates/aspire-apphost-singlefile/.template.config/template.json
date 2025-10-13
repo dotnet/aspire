@@ -35,6 +35,11 @@
       "source": "./9.5",
       "target": "./",
       "condition": "AspireVersionActual == 9.5 && Framework == net10.0"
+    },
+    {
+      "source": "./13.0",
+      "target": "./",
+      "condition": "AspireVersionActual == 13.0 && Framework == net10.0"
     }
   ],
   "symbols": {
