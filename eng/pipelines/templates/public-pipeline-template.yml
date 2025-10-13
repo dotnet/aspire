@@ -177,12 +177,12 @@ stages:
               - script: dotnet dev-certs https
                 displayName: 'Install dev-certs'
                 continueOnError: true
-                condition: and(success(), eq(variables['platformName'], 'Windows'))
+                condition: and(succeeded(), eq(variables['platformName'], 'Windows'))
 
               - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
                 displayName: 'Install devcerts'
                 continueOnError: true
-                condition: and(success(), ne(variables['platformName'], 'Windows'))
+                condition: and(succeeded(), ne(variables['platformName'], 'Windows'))
 
               # FIXME: script name can be a variable instead of duplicating the pwsh block
               - pwsh: |

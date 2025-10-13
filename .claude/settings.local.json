@@ -8,7 +8,9 @@
       "Bash(./eng/scripts/azdo-pipeline-helper.sh status:*)",
       "Bash(azpublic feature/matrix-session2)",
       "Bash(./eng/scripts/azdo-pipeline-helper.sh:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(az pipelines build list:*)",
+      "Bash(az pipelines build queue:*)"
     ],
     "deny": [],
     "ask": []
