@@ -185,6 +185,7 @@ public sealed class ParameterProcessor(
         }
         catch (Exception ex)
         {
+            string stateStyle;
             // Missing parameter values throw a MissingParameterValueException.
             if (interactionService.IsAvailable && ex is MissingParameterValueException)
             {
@@ -194,6 +195,7 @@ public sealed class ParameterProcessor(
 
                 loggerService.GetLogger(parameterResource)
                     .LogWarning("Parameter resource {ResourceName} could not be initialized. Waiting for user input.", parameterResource.Name);
+                stateStyle = KnownResourceStateStyles.Warn;
             }
             else
             {
@@ -202,6 +204,7 @@ public sealed class ParameterProcessor(
 
                 loggerService.GetLogger(parameterResource)
                     .LogError(ex, "Failed to initialize parameter resource {ResourceName}.", parameterResource.Name);
+                stateStyle = KnownResourceStateStyles.Error;
             }
 
             var stateText = ex is MissingParameterValueException ?
@@ -212,7 +215,7 @@ public sealed class ParameterProcessor(
             {
                 return s with
                 {
-                    State = new(stateText, KnownResourceStateStyles.Error),
+                    State = new(stateText, stateStyle),
                     Properties = s.Properties.SetResourceProperty(KnownProperties.Parameter.Value, ex.Message)
                 };
             })

@@ -74,7 +74,7 @@ internal class ResourceStateViewModel(string text, Icon icon, Color color)
         {
             (icon, color) = resource.StateStyle switch
             {
-                "warning" => ((Icon)new Icons.Filled.Size16.Warning(), Color.Warning),
+                "warn" => ((Icon)new Icons.Filled.Size16.Warning(), Color.Warning),
                 "error" => (new Icons.Filled.Size16.ErrorCircle(), Color.Error),
                 "success" => (new Icons.Filled.Size16.CheckmarkCircle(), Color.Success),
                 "info" => (new Icons.Filled.Size16.Info(), Color.Info),
