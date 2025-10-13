@@ -21,24 +21,21 @@ public enum CustomCertificateAuthoritiesScope
 /// <summary>
 /// An annotation that indicates a resource is referencing a certificate authority collection.
 /// </summary>
-/// <param name="certificateAuthorityCollections">Additional certificate authority collections to include.</param>
-/// <param name="trustDeveloperCertificates">A value indicating whether platform developer certificates should be considered trusted.</param>
-/// <param name="scope">The <see cref="CustomCertificateAuthoritiesScope"/> of the custom certificate authorities.</param>
-public sealed class CertificateAuthorityCollectionAnnotation(CertificateAuthorityCollection[]? certificateAuthorityCollections = null, bool? trustDeveloperCertificates = null, CustomCertificateAuthoritiesScope? scope = null) : IResourceAnnotation
+public sealed class CertificateAuthorityCollectionAnnotation : IResourceAnnotation
 {
     /// <summary>
     /// Gets the <see cref="global::CertificateAuthorityCollection"/> that is being referenced.
     /// </summary>
-    public List<CertificateAuthorityCollection> CertificateAuthorityCollections { get; } = certificateAuthorityCollections?.ToList() ?? new List<CertificateAuthorityCollection>();
+    public List<CertificateAuthorityCollection> CertificateAuthorityCollections { get; internal set; } = new List<CertificateAuthorityCollection>();
 
     /// <summary>
     /// Gets a value indicating whether platform developer certificates should be considered trusted.
     /// </summary>
-    public bool? TrustDeveloperCertificates { get; internal set; } = trustDeveloperCertificates;
+    public bool? TrustDeveloperCertificates { get; internal set; }
 
     /// <summary>
     /// Gets a value indicating whether the resource should attempt to override its default CA trust behavior in
     /// favor of the provided certificates (not all resources will support this).
     /// </summary>
-    public CustomCertificateAuthoritiesScope? Scope { get; internal set; } = scope;
+    public CustomCertificateAuthoritiesScope? Scope { get; internal set; }
 }

@@ -59,15 +59,15 @@ public static class CertificateAuthorityCollectionResourceExtensions
     /// Adds certificates from a PEM file to the <see cref="CertificateAuthorityCollection.Certificates"/> collection.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{CertificateAuthorityCollection}"/>.</param>
-    /// <param name="filePath">The path to the PEM file.</param>
+    /// <param name="pemFilePath">The path to the PEM file.</param>
     /// <returns>The updated <see cref="IResourceBuilder{CertificateAuthorityCollection}"/>.</returns>
-    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromFile(this IResourceBuilder<CertificateAuthorityCollection> builder, string filePath)
+    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromFile(this IResourceBuilder<CertificateAuthorityCollection> builder, string pemFilePath)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(filePath);
+        ArgumentNullException.ThrowIfNull(pemFilePath);
 
         var certificates = new X509Certificate2Collection();
-        certificates.ImportFromPemFile(filePath);
+        certificates.ImportFromPemFile(pemFilePath);
         builder.Resource.Certificates.AddRange(certificates);
         return builder;
     }

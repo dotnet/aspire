@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
 
@@ -12,31 +13,43 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
 
-    public DeveloperCertificateService()
+    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger)
     {
         _certificates = new Lazy<ImmutableList<X509Certificate2>>(() =>
         {
-            using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadOnly);
-            var devCert = store.Certificates
-                .Where(c => c.IsAspNetCoreDevelopmentCertificate())
-                .Where(c => c.NotAfter > DateTime.UtcNow)
-                .OrderByDescending(c => c.GetCertificateVersion())
-                .ThenByDescending(c => c.NotAfter)
-                .FirstOrDefault();
-
-            var devCerts = new List<X509Certificate2>();
-            if (devCert != null)
+            try
             {
-                devCerts.Add(devCert);
-            }
+                var devCerts = new List<X509Certificate2>();
 
-            return devCerts.ToImmutableList();
+                using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
+                store.Open(OpenFlags.ReadOnly);
+                devCerts.AddRange(
+                    store.Certificates
+                    .Where(c => c.IsAspNetCoreDevelopmentCertificate())
+                    .Where(c => c.NotAfter > DateTime.UtcNow)
+                    .OrderByDescending(c => c.GetCertificateVersion())
+                    .ThenByDescending(c => c.NotAfter));
+
+                if (devCerts.Count == 0)
+                {
+                    logger.LogInformation("No ASP.NET Core developer certificates found in the CurrentUser/My certificate store.");
+                    return ImmutableList<X509Certificate2>.Empty;
+                }
+
+                return devCerts.ToImmutableList();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning("Failed to load developer certificates from the CurrentUser/My certificate store. Automatic trust of development certificates will not be available. Reason: {Message}", ex.Message);
+                return ImmutableList<X509Certificate2>.Empty;
+            }
         });
 
         _supportsContainerTrust = new Lazy<bool>(() =>
         {
-            return Certificates.Any(c => c.GetCertificateVersion() >= X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust);
+            var containerTrustAvailable = Certificates.Any(c => c.GetCertificateVersion() >= X509Certificate2Extensions.MinimumCertificateVersionSupportingContainerTrust);
+            logger.LogDebug("Container trust for developer certificates is {Status}.", containerTrustAvailable ? "available" : "not available");
+            return containerTrustAvailable;
         });
     }
 

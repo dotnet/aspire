@@ -2024,7 +2024,10 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(certificateAuthorityCollection);
 
-        var annotation = new CertificateAuthorityCollectionAnnotation([certificateAuthorityCollection.Resource]);
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            CertificateAuthorityCollections = { certificateAuthorityCollection.Resource },
+        };
         if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
         {
             annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
@@ -2054,7 +2057,11 @@ public static class ResourceBuilderExtensions
     /// <example>
     /// Disable automatic trust for app host managed developer certificate(s), but explicitly enable it for a specific resource.
     /// <code lang="csharp">
-    /// builder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = "false";
+    /// var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions()
+    /// {
+    ///     Args = args,
+    ///     TrustDeveloperCertificate = false,
+    /// });
     /// var project = builder.AddProject&lt;MyService&gt;("my-service")
     ///    .WithDeveloperCertificateTrust(true);
     /// </code>
@@ -2065,7 +2072,10 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new CertificateAuthorityCollectionAnnotation(trustDeveloperCertificates: trust);
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            TrustDeveloperCertificates = trust,
+        };
         if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
         {
             annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
@@ -2108,7 +2118,10 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        var annotation = new CertificateAuthorityCollectionAnnotation(scope: scope);
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            Scope = scope,
+        };
         if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
         {
             annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);

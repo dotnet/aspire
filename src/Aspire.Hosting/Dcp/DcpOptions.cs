@@ -65,12 +65,6 @@ internal sealed class DcpOptions
     /// </summary>
     public bool RandomizePorts { get; set; }
 
-    /// <summary>
-    /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate)
-    /// by default.
-    /// </summary>
-    public bool TrustDeveloperCertificate { get; set; } = true;
-
     public int KubernetesConfigReadRetryCount { get; set; } = 300;
 
     public int KubernetesConfigReadRetryIntervalMilliseconds { get; set; } = 100;
@@ -203,7 +197,6 @@ internal class ConfigureDefaultDcpOptions(
         options.ServiceStartupWatchTimeout = configuration.GetValue(KnownConfigNames.ServiceStartupWatchTimeout, KnownConfigNames.Legacy.ServiceStartupWatchTimeout, options.ServiceStartupWatchTimeout);
         options.ContainerRuntimeInitializationTimeout = dcpPublisherConfiguration.GetValue(nameof(options.ContainerRuntimeInitializationTimeout), options.ContainerRuntimeInitializationTimeout);
         options.LogFileNameSuffix = dcpPublisherConfiguration[nameof(options.LogFileNameSuffix)];
-        options.TrustDeveloperCertificate = dcpPublisherConfiguration.GetValue(nameof(options.TrustDeveloperCertificate), options.TrustDeveloperCertificate);
     }
 
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key)
