@@ -233,13 +233,11 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
         }
 
-        if (locationOptions?.Count > 0)
-        {
-            var result = await _interactionService.PromptInputsAsync(
-                AzureProvisioningStrings.LocationDialogTitle,
-                AzureProvisioningStrings.LocationSelectionMessage,
-                [
-                    new InteractionInput
+        var result = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.LocationDialogTitle,
+            AzureProvisioningStrings.LocationSelectionMessage,
+            [
+                new InteractionInput
                     {
                         Name = LocationName,
                         InputType = InputType.Choice,
@@ -254,52 +252,6 @@ internal sealed class PublishModeProvisioningContextProvider(
                         Label = AzureProvisioningStrings.ResourceGroupLabel,
                         Value = GetDefaultResourceGroupName()
                     }
-                ],
-                new InputsDialogInteractionOptions
-                {
-                    EnableMessageMarkdown = false,
-                    ValidationCallback = static (validationContext) =>
-                    {
-                        var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
-                        if (!IsValidResourceGroupName(resourceGroupInput.Value))
-                        {
-                            validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
-                        }
-                        return Task.CompletedTask;
-                    }
-                },
-                cancellationToken).ConfigureAwait(false);
-
-            if (!result.Canceled)
-            {
-                _options.Location = result.Data[LocationName].Value;
-                _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                _options.AllowResourceGroupCreation = true;
-                return;
-            }
-        }
-
-        var locations = GetStaticAzureLocations();
-
-        var manualResult = await _interactionService.PromptInputsAsync(
-            AzureProvisioningStrings.LocationDialogTitle,
-            AzureProvisioningStrings.LocationSelectionMessage,
-            [
-                new InteractionInput
-                {
-                    Name = LocationName,
-                    InputType = InputType.Choice,
-                    Label = AzureProvisioningStrings.LocationLabel,
-                    Required = true,
-                    Options = [..locations]
-                },
-                new InteractionInput
-                {
-                    Name = ResourceGroupName,
-                    InputType = InputType.Text,
-                    Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
-                }
             ],
             new InputsDialogInteractionOptions
             {
@@ -316,10 +268,10 @@ internal sealed class PublishModeProvisioningContextProvider(
             },
             cancellationToken).ConfigureAwait(false);
 
-        if (!manualResult.Canceled)
+        if (!result.Canceled)
         {
-            _options.Location = manualResult.Data[LocationName].Value;
-            _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
+            _options.Location = result.Data[LocationName].Value;
+            _options.ResourceGroup = result.Data[ResourceGroupName].Value;
             _options.AllowResourceGroupCreation = true;
         }
     }

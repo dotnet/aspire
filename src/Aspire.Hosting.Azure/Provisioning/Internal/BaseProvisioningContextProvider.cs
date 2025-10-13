@@ -208,10 +208,9 @@ internal abstract partial class BaseProvisioningContextProvider(
         return (subscriptionOptions, fetchSucceeded);
     }
 
-    protected async Task<(List<KeyValuePair<string, string>>? locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)
+    protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
-        var fetchSucceeded = false;
 
         try
         {
@@ -225,7 +224,6 @@ internal abstract partial class BaseProvisioningContextProvider(
                 locationOptions = locationList
                     .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
                     .ToList();
-                fetchSucceeded = true;
             }
         }
         catch (Exception ex)
@@ -233,13 +231,15 @@ internal abstract partial class BaseProvisioningContextProvider(
             _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
         }
 
-        return (locationOptions, fetchSucceeded);
+        return locationOptions is not null
+            ? (locationOptions, true)
+            : (GetStaticAzureLocations(), false);
     }
 
     /// <summary>
     /// Gets static Azure locations as fallback when dynamic loading fails.
     /// </summary>
-    protected static List<KeyValuePair<string, string>> GetStaticAzureLocations()
+    private static List<KeyValuePair<string, string>> GetStaticAzureLocations()
     {
         return typeof(AzureLocation).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
             .Where(p => p.PropertyType == typeof(AzureLocation))
