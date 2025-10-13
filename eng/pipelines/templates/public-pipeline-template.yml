@@ -205,9 +205,9 @@ stages:
 
               - script: |
                   if [ "$(platformName)" = "Windows" ]; then
-                    ./dotnet.cmd dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" /maxcpucount:1 /p:BuildInParallel=false"
+                    ./dotnet.cmd dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter \"Category!=quarantined&Category!=outerloop\""
                   else
-                    ./dotnet.sh dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter-not-trait \"quarantined=true\" --filter-not-trait \"outerloop=true\" /maxcpucount:1 /p:BuildInParallel=false"
+                    ./dotnet.sh dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter \"Category!=quarantined&Category!=outerloop\""
                   fi
                 displayName: 'Run $(testShortName) tests on $(platformName)'
                 env:
