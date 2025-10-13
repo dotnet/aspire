@@ -252,7 +252,11 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
         // Create or update NuGet.config for explicit channels in the solution directory
         // This matches the behavior of 'aspire new' when creating in-place
-        await PromptToCreateOrUpdateNuGetConfigAsync(selectedTemplateDetails.Channel, ExecutionContext.WorkingDirectory, cancellationToken);
+        var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(
+            ExecutionContext.WorkingDirectory,
+            selectedTemplateDetails.Channel,
+            cancellationToken);
         
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
@@ -599,34 +603,6 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             "net10.0" => true,
             _ => false
         };
-    }
-
-    /// <summary>
-    /// Prompts to create or update a NuGet.config for explicit channels in the target directory.
-    /// This ensures consistent behavior with the DotNetTemplateFactory approach.
-    /// </summary>
-    /// <param name="channel">The package channel.</param>
-    /// <param name="targetDirectory">The target directory where NuGet.config should be created or updated.</param>
-    /// <param name="cancellationToken">A cancellation token.</param>
-    private async Task PromptToCreateOrUpdateNuGetConfigAsync(PackageChannel channel, DirectoryInfo targetDirectory, CancellationToken cancellationToken)
-    {
-        if (channel.Type is not PackageChannelType.Explicit)
-        {
-            return;
-        }
-
-        var mappings = channel.Mappings;
-        if (mappings is null || mappings.Length == 0)
-        {
-            return;
-        }
-
-        var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
-        
-        // For solution-based init, we're creating projects in the solution directory
-        // This is equivalent to "in-place creation" in DotNetTemplateFactory terms
-        // We should prompt the user before creating/updating the NuGet.config
-        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(targetDirectory, channel, cancellationToken);
     }
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
