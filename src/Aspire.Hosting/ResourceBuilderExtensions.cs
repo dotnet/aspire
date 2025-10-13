@@ -10,7 +10,6 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -1150,7 +1149,7 @@ public static class ResourceBuilderExtensions
     /// <para>Some resources automatically register health checks with the application host container. For these
     /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource})"/> also results
     /// in the resource being blocked from starting until the health checks associated with the dependency resource
-    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// return <see cref="Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy"/>.</para>
     /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
     /// additional health checks with a resource.</para>
     /// <example>
@@ -1186,7 +1185,7 @@ public static class ResourceBuilderExtensions
     /// <para>Some resources automatically register health checks with the application host container. For these
     /// resources, calling <see cref="WaitFor{T}(IResourceBuilder{T}, IResourceBuilder{IResource}, WaitBehavior)"/> also results
     /// in the resource being blocked from starting until the health checks associated with the dependency resource
-    /// return <see cref="HealthStatus.Healthy"/>.</para>
+    /// return <see cref="Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy"/>.</para>
     /// <para>The <see cref="WithHealthCheck{T}(IResourceBuilder{T}, string)"/> method can be used to associate
     /// additional health checks with a resource.</para>
     /// <para>The <paramref name="waitBehavior"/> parameter can be used to control the behavior of the
@@ -2363,16 +2362,15 @@ public static class ResourceBuilderExtensions
     /// Adds support for debugging the resource in VS Code when running in an extension host.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="projectPath">The path to the project file.</param>
-    /// <param name="debugAdapterId">The debug adapter ID to use. Ie, coreclr</param>
-    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
+    /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
-    [Experimental("ASPIREEXTENSION001")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T>(this IResourceBuilder<T> builder, string projectPath, string debugAdapterId, string? requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null) where T : IResource
+    [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+        where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentException.ThrowIfNullOrWhiteSpace(projectPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(debugAdapterId);
+        ArgumentNullException.ThrowIfNull(launchConfigurationProducer);
 
         if (!builder.ApplicationBuilder.ExecutionContext.IsRunMode)
         {
@@ -2391,7 +2389,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(new SupportsDebuggingAnnotation(projectPath, debugAdapterId, requiredExtensionId));
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
     }
 
     /// <summary>

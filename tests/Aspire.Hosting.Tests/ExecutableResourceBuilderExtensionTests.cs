@@ -4,7 +4,7 @@
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable IDE0005 // Using directive is unnecessary.
 
-using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Tests;
@@ -75,14 +75,19 @@ public class ExecutableResourceBuilderExtensionTests
     public void WithVSCodeDebugSupportAddsAnnotationInRunMode()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        var launchConfig = new ExecutableLaunchConfiguration("python");
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
-            .WithVSCodeDebugSupport("project.py", "python", "ms-python.python");
+            .WithVSCodeDebugSupport(_ => launchConfig, "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.NotNull(annotation);
-        Assert.Equal("project.py", annotation.ProjectPath);
-        Assert.Equal("python", annotation.DebugAdapterId);
-        Assert.Equal("ms-python.python", annotation.RequiredExtensionId);
+        var exe = new Executable(new ExecutableSpec());
+        annotation.LaunchConfigurationAnnotator(exe, "NoDebug");
+        Assert.Equal("ms-python.python", annotation.LaunchConfigurationType);
+
+        Assert.True(exe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
+        Assert.Equal(launchConfig.Mode, annotations.Single().Mode);
+        Assert.Equal(launchConfig.Type, annotations.Single().Type);
     }
 
     [Fact]
@@ -90,7 +95,7 @@ public class ExecutableResourceBuilderExtensionTests
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         var executable = builder.AddExecutable("myexe", "command", "workingdirectory")
-            .WithVSCodeDebugSupport("project.py", "python", "ms-python.python");
+            .WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("python"), "ms-python.python");
 
         var annotation = executable.Resource.Annotations.OfType<SupportsDebuggingAnnotation>().SingleOrDefault();
         Assert.Null(annotation);

@@ -1,0 +1,21 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+
+namespace Aspire.Hosting.Azure;
+
+/// <summary>
+/// Represents an Azure App Service Web Site resource.
+/// </summary>
+/// <param name="name">The name of the resource in the Aspire application model.</param>
+/// <param name="configureInfrastructure">Callback to configure the Azure resources.</param>
+/// <param name="targetResource">The target resource that this Azure Web Site is being created for.</param>
+public class AzureAppServiceWebSiteResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure, IResource targetResource)
+    : AzureProvisioningResource(name, configureInfrastructure)
+{
+    /// <summary>
+    /// Gets the target resource that this Azure Web Site is being created for.
+    /// </summary>
+    public IResource TargetResource { get; } = targetResource;
+}

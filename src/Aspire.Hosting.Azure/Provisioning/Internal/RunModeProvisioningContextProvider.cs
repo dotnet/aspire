@@ -61,7 +61,7 @@ internal sealed class RunModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}-{suffix}";
     }
 
-    private void EnsureProvisioningOptions(JsonObject userSecrets)
+    private void EnsureProvisioningOptions()
     {
         if (!_interactionService.IsAvailable ||
             (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
@@ -77,7 +77,7 @@ internal sealed class RunModeProvisioningContextProvider(
         {
             try
             {
-                await RetrieveAzureProvisioningOptions(userSecrets).ConfigureAwait(false);
+                await RetrieveAzureProvisioningOptions().ConfigureAwait(false);
 
                 _logger.LogDebug("Azure provisioning options have been handled successfully.");
             }
@@ -91,14 +91,14 @@ internal sealed class RunModeProvisioningContextProvider(
 
     public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        EnsureProvisioningOptions(userSecrets);
+        EnsureProvisioningOptions();
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
         return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task RetrieveAzureProvisioningOptions(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)
     {
         var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
                             .Where(p => p.PropertyType == typeof(AzureLocation))
@@ -165,13 +165,6 @@ internal sealed class RunModeProvisioningContextProvider(
                     _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
                     _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                     _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
-
-                    var azureSection = userSecrets.Prop("Azure");
-
-                    // Persist the parameter value to user secrets so they can be reused in the future
-                    azureSection["Location"] = _options.Location;
-                    azureSection["SubscriptionId"] = _options.SubscriptionId;
-                    azureSection["ResourceGroup"] = _options.ResourceGroup;
 
                     _provisioningOptionsAvailable.SetResult();
                 }
