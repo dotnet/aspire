@@ -78,13 +78,14 @@ stages:
       jobs:
 
       # Integration Tests Matrix - replaces old pipeline tests
-      - ${{ if contains(variables.testVariants, '_integration_matrix_tests') }}:
-        - template: /eng/pipelines/templates/integration-tests-matrix.yml
-          parameters:
-            buildConfig: $(_BuildConfig)
-            repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-            repoLogPath: $(Build.Arcade.LogsPath)
-            repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
+        - ${{ if contains(testVariant, '_integration_matrix_tests') }}:
+          - template: /eng/pipelines/templates/integration-tests-matrix.yml
+            parameters:
+              buildConfig: $(_BuildConfig)
+              repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+              repoLogPath: $(Build.Arcade.LogsPath)
+              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
 
       # Helix jobs (Templates, EndToEnd - temporarily preserved)
       - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
