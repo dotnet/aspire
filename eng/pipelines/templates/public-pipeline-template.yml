@@ -168,25 +168,6 @@ stages:
                 fetchDepth: 1
                 clean: true
 
-              - pwsh: |
-                  if ("$(platformName)" -eq "Windows") {
-                    ./restore.cmd
-                  } else {
-                    ./restore.sh
-                  }
-                displayName: 'Restore .NET SDK'
-
-              - pwsh: |
-                  if ("$(platformName)" -eq "Windows") {
-                    ./build.cmd -ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
-                  } else {
-                    ./build.sh --ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
-                  }
-                displayName: 'Build solution'
-                env:
-                  DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-                condition: eq('$(_BuildConfig)', 'Release')
-
               - task: DockerInstaller@0
                 inputs:
                   dockerVersion: '28.0.0'
@@ -196,18 +177,19 @@ stages:
               - script: dotnet dev-certs https
                 displayName: 'Install dev-certs'
                 continueOnError: true
-                condition: eq(variables['platformName'], 'Windows')
+                condition: and(success(), eq(variables['platformName'], 'Windows'))
 
               - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
                 displayName: 'Install devcerts'
                 continueOnError: true
-                condition: ne(variables['platformName'], 'Windows')
+                condition: and(success(), ne(variables['platformName'], 'Windows'))
 
+              # FIXME: script name can be a variable instead of duplicating the pwsh block
               - pwsh: |
                   if ("$(platformName)" -eq "Windows") {
-                    ./dotnet.cmd dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger `"trx;LogFileName=$(testShortName)-$(platformName).trx`" --logger `"console;verbosity=normal`" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter `"Category!=quarantined&Category!=outerloop`""
+                    ./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
                   } else {
-                    ./dotnet.sh dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger `"trx;LogFileName=$(testShortName)-$(platformName).trx`" --logger `"console;verbosity=normal`" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter `"Category!=quarantined&Category!=outerloop`""
+                    ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
                   }
                 displayName: 'Run $(testShortName) tests on $(platformName)'
                 env:
