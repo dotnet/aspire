@@ -96,13 +96,11 @@ stages:
                 displayName: 'Restore .NET SDK'
 
               - script: |
-                  dotnet build tests/Shared/GetTestProjects.proj \
+                  ./dotnet.sh build tests/Shared/GetTestProjects.proj \
                     /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog \
                     /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list \
                     /p:ContinuousIntegrationBuild=true
                 displayName: 'Generate integration tests list'
-                env:
-                  DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
 
               - pwsh: |
                   $testsListFile = "$(Build.Arcade.ArtifactsPath)/IntegrationTests.list"
@@ -197,9 +195,9 @@ stages:
                 condition: ne(variables['platformName'], 'Windows')
 
               - script: |
-                  $(scriptName) dotnet-coverage collect \
+                  ./$(scriptName) dotnet-coverage collect \
                     --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml \
-                    "$(scriptName) test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj \
+                    "./$(scriptName) test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj \
                       --configuration $(_BuildConfig) \
                       --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" \
                       --logger \"console;verbosity=normal\" \
