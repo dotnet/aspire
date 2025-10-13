@@ -1305,7 +1305,6 @@ public static class ContainerResourceBuilderExtensions
                 cancellationToken: factoryContext.CancellationToken
             );
 
-            // Invoke all callbacks
             var annotation = factoryContext.Resource.Annotations.OfType<DockerfileBuilderCallbackAnnotation>().LastOrDefault();
             if (annotation is not null)
             {
