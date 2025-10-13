@@ -137,7 +137,7 @@ stages:
                         platformName = $platform.name
                         agentImage = $platform.image
                         scriptName = $platform.script
-                        jobDisplayName = "$testName / $($platform.name)"
+                        jobDisplayName = "$testName-$($platform.name)"
                       }
                     }
                   }
