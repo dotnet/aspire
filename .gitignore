@@ -158,3 +158,5 @@ playground/**/publish/
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
 tools/ReleaseNotes/release-notes-*.md
+tags
+azdo-log
