@@ -130,18 +130,6 @@ public static class PythonAppResourceBuilderExtensions
 
         resourceBuilder.WithOtlpExporter();
 
-        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
-        {
-            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
-            {
-                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
-                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
-            }
-
-            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
-            return Task.CompletedTask;
-        });
-
         // Configure OpenTelemetry exporters using environment variables
         // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
         resourceBuilder.WithEnvironment(context =>
@@ -153,6 +141,36 @@ public static class PythonAppResourceBuilderExtensions
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
             context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+        });
+
+        // Configure required environment variables for custom certificate trust when running as an executable
+        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
+        {
+            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+            {
+                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
+                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+            }
+
+            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+
+            return Task.CompletedTask;
+        });
+
+        // Configure required environment variables for custom certificate trust when running as a container
+        resourceBuilder.WithContainerCertificateTrustCallback(ctx =>
+        {
+            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+            {
+                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
+                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+                ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+            }
+
+            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+            ctx.CertificatesDirectoryEnvironment.Add("SSL_CERT_DIR");
+
+            return Task.CompletedTask;
         });
 
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
