@@ -461,27 +461,27 @@ internal abstract class PublishCommandBase : BaseCommand
                 AnsiConsole.WriteLine();
                 var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
-                // Use emojis instead of coloring the entire success/failure text green.
+                // Use the same symbols as ConsoleActivityLogger: ✓ success, ✗ failure, ⚠ warning.
                 var operationPrefix = hasErrors ? OperationFailedPrefix : OperationCompletedPrefix;
-                var statusEmoji = hasErrors ? "❌" : hasWarnings ? "⚠️" : "✅";
+                var statusSymbol = hasErrors ? "✗" : hasWarnings ? "⚠" : "✓";
                 var statusText = publishingActivity.Data.StatusText.EscapeMarkup();
 
-                // Keep red/yellow coloring for failures/warnings, but leave successes uncolored to avoid solid green blocks.
                 if (hasErrors)
                 {
-                    AnsiConsole.MarkupLine(
-                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [red]{statusEmoji} {statusText}[/]");
+                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [red]{statusSymbol} {statusText}[/]");
                 }
                 else if (hasWarnings)
                 {
-                    AnsiConsole.MarkupLine(
-                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [yellow]{statusEmoji} {statusText}[/]");
+                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [yellow]{statusSymbol} {statusText}[/]");
                 }
                 else
                 {
-                    AnsiConsole.MarkupLine(
-                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] {statusEmoji} {statusText}");
+                    // Color the final successful deployment line in green (symbol + message)
+                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [green]{statusSymbol} {statusText}[/]");
                 }
+
+                // Extra blank line after final deployment status for readability.
+                AnsiConsole.WriteLine();
 
                 // Send visual bell notification when operation is complete
                 Console.Write("\a");
@@ -496,6 +496,7 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             await logger.StopSpinnerAsync();
         }
+
     }
 
     private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
@@ -701,106 +702,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string? CompletionMessage { get; set; }
     }
 
-    private class ProgressContextInfo
-    {
-        public StepInfo? Step { get; set; }
-    }
-
-    private class PublishingOutputRenderer
-    {
-        private readonly HashSet<string> _seenSteps = [];
-        private readonly Dictionary<string, string> _stepColors = [];
-        private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
-        private int _colorIndex;
-        private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
-        private volatile bool _isSpinning;
-        private Task? _spinnerTask;
-
-        public void StartSpinner()
-        {
-            if (_isSpinning)
-            {
-                return;
-            }
-
-            _isSpinning = true;
-            _spinnerTask = Task.Run(async () =>
-            {
-                var spinnerIndex = 0;
-
-                while (_isSpinning)
-                {
-                    AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[spinnerIndex]);
-                    AnsiConsole.Write("\b");
-                    spinnerIndex = (spinnerIndex + 1) % _spinnerChars.Length;
-                    await Task.Delay(150);
-                }
-
-                AnsiConsole.Write(" \b");
-            });
-        }
-
-        public async Task StopSpinnerAsync()
-        {
-            _isSpinning = false;
-            if (_spinnerTask is not null)
-            {
-                await _spinnerTask.ConfigureAwait(false);
-            }
-            _spinnerTask = null;
-        }
-
-        public async Task WriteStepMessageAsync(string stepId, string stepTitle, string message,
-            bool isSuccess = false, bool isFailure = false)
-        {
-            var wasSpinning = _isSpinning;
-            if (wasSpinning)
-            {
-                _isSpinning = false;
-                if (_spinnerTask is not null)
-                {
-                    await _spinnerTask.ConfigureAwait(false);
-                }
-            }
-
-            if (!_seenSteps.Contains(stepId))
-            {
-                AnsiConsole.WriteLine();
-                _seenSteps.Add(stepId);
-            }
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-            var stepColor = GetStepColor(stepId);
-
-            var formattedMessage = message.EscapeMarkup();
-            if (isSuccess)
-            {
-                formattedMessage = $"✅ {formattedMessage}"; // No full-line green coloring, just an emoji indicator.
-            }
-            else if (isFailure)
-            {
-                formattedMessage = $"[red]❌ {formattedMessage}[/]"; // Retain red for failures plus emoji.
-            }
-
-            AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]({stepTitle})[/] {formattedMessage}");
-
-            if (wasSpinning)
-            {
-                StartSpinner();
-            }
-        }
-
-        private string GetStepColor(string stepId)
-        {
-            if (!_stepColors.TryGetValue(stepId, out var color))
-            {
-                color = _availableColors[_colorIndex % _availableColors.Length];
-                _stepColors[stepId] = color;
-                _colorIndex++;
-            }
-            return color;
-        }
-    }
+    // Removed legacy PublishingOutputRenderer and ProgressContextInfo (spinner & step coloring now handled by ConsoleActivityLogger).
 
     /// <summary>
     /// Starts the terminal infinite progress bar.
