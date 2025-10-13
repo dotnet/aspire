@@ -3,9 +3,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -1279,7 +1278,7 @@ public static class ContainerResourceBuilderExtensions
         // Create a factory that will invoke all callbacks and generate the Dockerfile
         Func<DockerfileFactoryContext, Task<string>> dockerfileFactory = async factoryContext =>
         {
-            var dockerfileBuilder = new ApplicationModel.Docker.DockerfileBuilder();
+            var dockerfileBuilder = new DockerfileBuilder();
 
             // Create the context for callbacks
             var callbackContext = new DockerfileBuilderCallbackContext(
