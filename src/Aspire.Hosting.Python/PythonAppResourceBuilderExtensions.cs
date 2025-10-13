@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
-using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
 using Aspire.Hosting.Utils;
