@@ -47,6 +47,62 @@ public class DcpExecutorTests
     }
 
     [Fact]
+    public async Task ContainerNetworkAliasesAreApplied()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("mycontainer", "myimage")
+            .WithNetworkAlias("alias1")
+            .WithNetworkAlias("alias2");
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.NotNull(container.Spec.Networks);
+        var network = Assert.Single(container.Spec.Networks);
+        Assert.NotNull(network.Aliases);
+        Assert.Equal(3, network.Aliases.Count);
+        Assert.Contains("mycontainer", network.Aliases); // Default alias is the resource name
+        Assert.Contains("alias1", network.Aliases);
+        Assert.Contains("alias2", network.Aliases);
+    }
+
+    [Fact]
+    public async Task ContainerWithoutNetworkAliasesUsesDefaultAlias()
+    {
+        // Arrange
+        var builder = DistributedApplication.CreateBuilder();
+        builder.AddContainer("mycontainer", "myimage");
+
+        var kubernetesService = new TestKubernetesService();
+
+        using var app = builder.Build();
+        var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService);
+
+        // Act
+        await appExecutor.RunApplicationAsync();
+
+        // Assert
+        var container = Assert.Single(kubernetesService.CreatedResources.OfType<Container>());
+        Assert.NotNull(container.Spec.Networks);
+        var network = Assert.Single(container.Spec.Networks);
+        Assert.NotNull(network.Aliases);
+        var alias = Assert.Single(network.Aliases);
+        Assert.Equal("mycontainer", alias); // Default alias is the resource name
+    }
+
+    [Fact]
     public async Task ResourceStarted_ProjectHasReplicas_EventRaisedOnce()
     {
         var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
