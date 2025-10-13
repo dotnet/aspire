@@ -345,10 +345,9 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var renderer = new PublishingOutputRenderer();
+        var logger = new ConsoleActivityLogger();
+        logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
-
-        renderer.StartSpinner();
 
         try
         {
@@ -374,34 +373,29 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         steps[activity.Data.Id] = stepInfo;
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            $"Starting {stepInfo.Title}...");
+                        logger.StartTask(stepInfo.Title, $"Starting {stepInfo.Title}...");
                     }
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
                         stepInfo.CompletionText = activity.Data.StatusText;
-
-                        var isSuccess = !IsCompletionStateError(stepInfo.CompletionState) &&
-                                       !IsCompletionStateWarning(stepInfo.CompletionState);
-                        var isFailure = IsCompletionStateError(stepInfo.CompletionState);
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            stepInfo.CompletionText,
-                            isSuccess,
-                            isFailure);
+                        if (IsCompletionStateError(stepInfo.CompletionState))
+                        {
+                            logger.Failure(stepInfo.Title, stepInfo.CompletionText);
+                        }
+                        else if (IsCompletionStateWarning(stepInfo.CompletionState))
+                        {
+                            logger.Warning(stepInfo.Title, stepInfo.CompletionText);
+                        }
+                        else
+                        {
+                            logger.Success(stepInfo.Title, stepInfo.CompletionText);
+                        }
                     }
                 }
                 else if (activity.Type == PublishingActivityTypes.Prompt)
                 {
-                    await renderer.StopSpinnerAsync();
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
-                    renderer.StartSpinner();
                 }
                 else
                 {
@@ -426,11 +420,7 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         tasks[activity.Data.Id] = task;
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            activity.Data.StatusText);
+                        logger.Progress(stepInfo.Title, activity.Data.StatusText);
                     }
 
                     task.StatusText = activity.Data.StatusText;
@@ -440,53 +430,58 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         task.CompletionMessage = activity.Data.CompletionMessage;
 
-                        var isSuccess = !IsCompletionStateError(task.CompletionState) &&
-                                       !IsCompletionStateWarning(task.CompletionState);
-                        var isFailure = IsCompletionStateError(task.CompletionState);
-
                         var duration = DateTime.UtcNow - task.StartTime;
                         var durationStr = $"({duration.TotalSeconds:F1}s)";
 
-                        var message = task.StatusText;
-                        if (!string.IsNullOrEmpty(task.CompletionMessage))
+                        var message = !string.IsNullOrEmpty(task.CompletionMessage)
+                            ? $"{task.StatusText}: {task.CompletionMessage} {durationStr}"
+                            : $"{task.StatusText} {durationStr}";
+
+                        if (IsCompletionStateError(task.CompletionState))
                         {
-                            message = $"{task.StatusText}: {task.CompletionMessage} {durationStr}";
+                            logger.Failure(stepInfo.Title, message);
+                        }
+                        else if (IsCompletionStateWarning(task.CompletionState))
+                        {
+                            logger.Warning(stepInfo.Title, message);
                         }
                         else
                         {
-                            message = $"{task.StatusText} {durationStr}";
+                            logger.Success(stepInfo.Title, message);
                         }
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            message,
-                            isSuccess,
-                            isFailure);
                     }
                 }
             }
 
             if (publishingActivity is not null)
             {
-                await renderer.StopSpinnerAsync();
-                Console.Write("\r");          // Move to start of line
-                Console.Write("     ");       // Write multiple spaces to clear
-                Console.Write("\r");          // Move back to start of line
-                Console.Out.Flush();
-
                 var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
                 var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
 
                 AnsiConsole.WriteLine();
                 var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 
-                var prefix = hasErrors ? "[red]" : hasWarnings ? "[yellow]" : "[green]";
+                // Use emojis instead of coloring the entire success/failure text green.
                 var operationPrefix = hasErrors ? OperationFailedPrefix : OperationCompletedPrefix;
+                var statusEmoji = hasErrors ? "❌" : hasWarnings ? "⚠️" : "✅";
+                var statusText = publishingActivity.Data.StatusText.EscapeMarkup();
 
-                AnsiConsole.MarkupLine(
-                    $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] " +
-                    $"{prefix}{publishingActivity.Data.StatusText.EscapeMarkup()}[/]");
+                // Keep red/yellow coloring for failures/warnings, but leave successes uncolored to avoid solid green blocks.
+                if (hasErrors)
+                {
+                    AnsiConsole.MarkupLine(
+                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [red]{statusEmoji} {statusText}[/]");
+                }
+                else if (hasWarnings)
+                {
+                    AnsiConsole.MarkupLine(
+                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [yellow]{statusEmoji} {statusText}[/]");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine(
+                        $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] {statusEmoji} {statusText}");
+                }
 
                 // Send visual bell notification when operation is complete
                 Console.Write("\a");
@@ -499,11 +494,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
-            await renderer.StopSpinnerAsync();
-            Console.Write("\r");          // Move to start of line
-            Console.Write("     ");       // Write multiple spaces to clear
-            Console.Write("\r");          // Move back to start of line
-            Console.Out.Flush();
+            await logger.StopSpinnerAsync();
         }
     }
 
@@ -784,11 +775,11 @@ internal abstract class PublishCommandBase : BaseCommand
             var formattedMessage = message.EscapeMarkup();
             if (isSuccess)
             {
-                formattedMessage = $"[green]{formattedMessage}[/]";
+                formattedMessage = $"✅ {formattedMessage}"; // No full-line green coloring, just an emoji indicator.
             }
             else if (isFailure)
             {
-                formattedMessage = $"[red]{formattedMessage}[/]";
+                formattedMessage = $"[red]❌ {formattedMessage}[/]"; // Retain red for failures plus emoji.
             }
 
             AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]({stepTitle})[/] {formattedMessage}");
