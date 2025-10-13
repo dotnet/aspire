@@ -1348,12 +1348,19 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             ctr.Annotate(CustomResource.OtelServiceInstanceIdAnnotation, containerObjectInstance.Suffix);
             SetInitialResourceState(container, ctr);
 
+            var aliases = new List<string> { container.Name };
+            var networkAliasAnnotations = container.Annotations.OfType<ContainerNetworkAliasAnnotation>();
+            foreach (var aliasAnnotation in networkAliasAnnotations)
+            {
+                aliases.Add(aliasAnnotation.Alias);
+            }
+
             ctr.Spec.Networks = new List<ContainerNetworkConnection>
             {
                 new ContainerNetworkConnection
                 {
                     Name = DefaultAspireNetworkResourceName,
-                    Aliases = new List<string> { container.Name },
+                    Aliases = aliases,
                 }
             };
 
