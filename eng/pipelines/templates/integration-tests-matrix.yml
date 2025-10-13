@@ -1,0 +1,199 @@
+parameters:
+  - name: buildConfig
+    type: string
+    default: 'Release'
+  - name: repoArtifactsPath
+    type: string
+  - name: repoLogPath
+    type: string
+  - name: repoTestResultsPath
+    type: string
+  - name: platforms
+    type: object
+    default:
+      - name: 'Linux'
+        image: 'build.ubuntu.2204.amd64.open'
+        script: 'dotnet.sh'
+      - name: 'Windows'
+        image: 'windows.vs2022preview.amd64.open'
+        script: 'dotnet.cmd'
+
+jobs:
+  # Step 1: Enumerate test projects to create matrix
+  - job: EnumerateIntegrationTests
+    displayName: 'Enumerate Integration Tests'
+    pool:
+      name: $(DncEngPublicBuildPool)
+      demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+
+    steps:
+      - checkout: self
+        fetchDepth: 1
+        clean: true
+
+      - script: |
+          dotnet build tests/Shared/GetTestProjects.proj \
+            /bl:${{ parameters.repoLogPath }}/GetTestProjects.binlog \
+            /p:TestsListOutputPath=${{ parameters.repoArtifactsPath }}/IntegrationTests.list \
+            /p:ContinuousIntegrationBuild=true
+        displayName: 'Generate integration tests list'
+        env:
+          DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+
+      - pwsh: |
+          $testsListFile = "${{ parameters.repoArtifactsPath }}/IntegrationTests.list"
+          if (-not (Test-Path $testsListFile)) {
+            throw "Tests list file not found: $testsListFile"
+          }
+
+          $testNames = Get-Content $testsListFile | Where-Object { $_.Trim() -ne "" } | Sort-Object
+          if ($testNames.Count -eq 0) {
+            throw "No integration tests found"
+          }
+
+          Write-Host "Found $($testNames.Count) integration test projects:"
+          $testNames | ForEach-Object { Write-Host "  - $_" }
+
+          # Create matrix for each test x platform combination
+          $matrix = @{}
+
+          $platforms = @(
+            @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' },
+            @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
+          )
+
+          foreach ($testName in $testNames) {
+            foreach ($platform in $platforms) {
+              $key = "$testName`_$($platform.name)"
+              $matrix[$key] = @{
+                testShortName = $testName
+                platformName = $platform.name
+                agentImage = $platform.image
+                scriptName = $platform.script
+              }
+            }
+          }
+
+          $matrixJson = $matrix | ConvertTo-Json -Compress
+          Write-Host "Generated matrix: $matrixJson"
+
+          # Set pipeline variable for the matrix
+          Write-Host "##vso[task.setVariable variable=integrationTestsMatrix;isOutput=true]$matrixJson"
+        displayName: 'Generate test matrix'
+        name: 'GenerateMatrix'
+
+  # Step 2: Run integration tests using the generated matrix
+  - job: RunIntegrationTests
+    displayName: 'Integration Tests'
+    dependsOn: EnumerateIntegrationTests
+    condition: succeeded()
+
+    strategy:
+      matrix: $[ dependencies.EnumerateIntegrationTests.outputs['GenerateMatrix.integrationTestsMatrix'] ]
+
+    # Individual test timeout - much shorter than the current 90 minutes for all tests
+    timeoutInMinutes: 20
+
+    pool:
+      name: $(DncEngPublicBuildPool)
+      demands: ImageOverride -equals $(agentImage)
+
+    variables:
+      - name: _buildScript
+        ${{ if eq(variables['platformName'], 'Windows') }}:
+          value: $(Build.SourcesDirectory)/build.cmd -ci
+        ${{ else }}:
+          value: $(Build.SourcesDirectory)/build.sh --ci
+
+    steps:
+      - checkout: self
+        fetchDepth: 1
+        clean: true
+
+      # Build the solution first (without running tests)
+      - script: ${{ parameters.buildConfig == 'Release' && variables['_buildScript'] || 'echo Skipping build for debug' }}
+                -restore -build
+                -configuration ${{ parameters.buildConfig }}
+                /bl:${{ parameters.repoLogPath }}/build-$(testShortName)-$(platformName).binlog
+                /p:SkipTestProjects=true
+        displayName: 'Build solution'
+        env:
+          DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+        condition: eq('${{ parameters.buildConfig }}', 'Release')
+
+      # Install Docker CLI for Linux tests (some tests need Docker)
+      - ${{ if ne(variables['platformName'], 'Windows') }}:
+        - task: DockerInstaller@0
+          inputs:
+            dockerVersion: '28.0.0'
+          displayName: 'Install Docker CLI'
+
+      # Install dev certificates
+      - ${{ if eq(variables['platformName'], 'Windows') }}:
+        - script: dotnet dev-certs https
+          displayName: 'Install dev-certs'
+          continueOnError: true
+
+      - ${{ if ne(variables['platformName'], 'Windows') }}:
+        - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
+          displayName: 'Install devcerts'
+          continueOnError: true
+
+      # Show Docker state before tests (Linux only)
+      - ${{ if ne(variables['platformName'], 'Windows') }}:
+        - script: |
+            docker info
+            docker container ls
+            docker volume ls
+            docker network ls
+            docker network prune -f
+          displayName: 'Docker state before tests'
+          condition: always()
+          continueOnError: true
+
+      # Run the specific integration test project
+      - script: |
+          $(scriptName) dotnet-coverage collect \
+            --output ${{ parameters.repoTestResultsPath }}/$(testShortName)-$(platformName).cobertura.xml \
+            "$(scriptName) test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj \
+              --configuration ${{ parameters.buildConfig }} \
+              --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" \
+              --logger \"console;verbosity=normal\" \
+              --results-directory ${{ parameters.repoTestResultsPath }} \
+              --no-build \
+              --filter-not-trait \"quarantined=true\" \
+              --filter-not-trait \"outerloop=true\" \
+              /maxcpucount:1 \
+              /p:BuildInParallel=false"
+        displayName: 'Run $(testShortName) tests on $(platformName)'
+        env:
+          DOCKER_BUILDKIT: 1
+          DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+          DCP_PRESERVE_EXECUTABLE_LOGS: 1
+          DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+        timeoutInMinutes: 15
+
+      # Show Docker state after tests (Linux only)
+      - ${{ if ne(variables['platformName'], 'Windows') }}:
+        - script: |
+            docker info
+            docker container ls
+            docker volume ls
+            docker network ls
+            docker network prune -f
+          displayName: 'Docker state after tests'
+          condition: always()
+          continueOnError: true
+
+      # Publish test results
+      - task: PublishTestResults@2
+        displayName: 'Publish $(testShortName) test results'
+        condition: always()
+        inputs:
+          testResultsFormat: 'VSTest'
+          testResultsFiles: '${{ parameters.repoTestResultsPath }}/$(testShortName)-$(platformName).trx'
+          testRunTitle: 'Integration Tests $(testShortName) $(platformName)'
+          mergeTestResults: false
+          failTaskOnFailedTests: true
