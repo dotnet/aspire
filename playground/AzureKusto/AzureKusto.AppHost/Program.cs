@@ -1,46 +1,43 @@
-using Kusto.Data;
-using Kusto.Data.Net.Client;
+using Kusto.Data.Common;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddAzureContainerAppEnvironment("infra");
 
-var kusto = builder.AddAzureKustoCluster("kusto")
-    .RunAsEmulator();
+var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator();
 var db = kusto.AddReadWriteDatabase("testdb");
 
 builder.AddProject<Projects.AzureKusto_Worker>("worker")
     .WithReference(db)
     .WaitFor(db);
 
-// Option 1: Seed as part of AppHost startup
-// Works well for local development and Aspire-based testing, but doesn't support seeding
-// in production or other scenarios.
-db.OnResourceReady(async (dbResource, evt, ct) =>
-{
-    if (!kusto.Resource.IsEmulator)
-    {
-        Console.WriteLine("Skipping Kusto DB seeding for non emulator.");
-        return;
-    }
+// Option: Ingest using a control command
+//
+// Works well for local development and Aspire-based testing of queries, but .ingest
+// commands are not recommended for production scenarios.
+db.WithControlCommand(
+    """
+    .execute database script with (ThrowOnErrors=true) <|
+        .create-merge table TestTable (Id: int, Name: string)
+        .ingest inline into table TestTable <|
+            1,"Alice"
+            2,"Bob"
+            3,"Charlie"
+    """
+);
 
-    var connectionString = await dbResource.ConnectionStringExpression.GetValueAsync(ct);
-    var kcsb = new KustoConnectionStringBuilder(connectionString);
-
-    var admin = KustoClientFactory.CreateCslAdminProvider(kcsb);
-
-    const string command =
-        """
-        .execute database script with (ThrowOnErrors=true) <|
-            .create-merge table TestTable (Id: int, Name: string, Timestamp: datetime)
-            .ingest inline into table TestTable <|
-                1,"Alice",datetime(2024-01-01T10:00:00Z)
-                2,"Bob",datetime(2024-01-01T11:00:00Z)
-                3,"Charlie",datetime(2024-01-01T12:00:00Z)
-        """;
-
-    await admin.ExecuteControlCommandAsync(admin.DefaultDatabaseName, command);
-});
+// Option: Ingest using streaming ingestion
+//
+// The Kusto emulator also supports streaming ingestion (see IngestionWorker).
+// The emulator does not support ingestion methods that use the dedicated ingestion endpoint. See
+// https://learn.microsoft.com/en-us/azure/data-explorer/kusto-emulator-overview#limitations for
+// full details.
+//
+// To use streaming ingestion in the emulator, the target table must have streaming ingestion enabled.
+// Additionally, we flush the ingestion cache before starting ingestion to prevent race conditions
+// where ingestion may start before the emulator is ready.
+db.WithControlCommand(CslCommandGenerator.GenerateTableAlterStreamingIngestionPolicyCommand("TestTable", isEnabled: true));
+db.WithControlCommand(CslCommandGenerator.GenerateDatabaseStreamingIngestionCacheClearCommand());
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

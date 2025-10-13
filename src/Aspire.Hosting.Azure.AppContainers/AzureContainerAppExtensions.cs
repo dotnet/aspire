@@ -42,7 +42,7 @@ public static class AzureContainerAppExtensions
         // so Azure resources don't need to add the default role assignments themselves
         builder.Services.Configure<AzureProvisioningOptions>(o => o.SupportsTargetedRoleAssignments = true);
 
-        builder.Services.TryAddLifecycleHook<AzureContainerAppsInfrastructure>();
+        builder.Services.TryAddEventingSubscriber<AzureContainerAppsInfrastructure>();
 
         return builder;
     }
@@ -177,7 +177,8 @@ public static class AzureContainerAppExtensions
                     Tags = tags,
                     Sku = new StorageSku() { Name = StorageSkuName.StandardLrs },
                     Kind = StorageKind.StorageV2,
-                    LargeFileSharesState = LargeFileSharesState.Enabled
+                    LargeFileSharesState = LargeFileSharesState.Enabled,
+                    MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2,
                 };
 
                 infra.Add(storageVolume);

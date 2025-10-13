@@ -356,9 +356,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private static bool IsUpdatablePackage(string packageId)
     {
-        return packageId.StartsWith("Aspire.")
-            || packageId.StartsWith("Microsoft.Extensions.ServiceDiscovery.")
-            || packageId.Equals("Microsoft.Extensions.ServiceDiscovery");
+        return packageId.StartsWith("Aspire.");
     }
 
     private static CentralPackageManagementInfo DetectCentralPackageManagement(FileInfo projectFile)

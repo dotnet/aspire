@@ -26,8 +26,8 @@ public static class AzureProvisionerExtensions
         builder.AddAzureEnvironment();
 #pragma warning restore ASPIREAZURE001
 
-        builder.Services.TryAddLifecycleHook<AzureResourcePreparer>();
-        builder.Services.TryAddLifecycleHook<AzureProvisioner>();
+        builder.Services.TryAddEventingSubscriber<AzureResourcePreparer>();
+        builder.Services.TryAddEventingSubscriber<AzureProvisioner>();
 
         // Attempt to read azure configuration from configuration
         builder.Services.AddOptions<AzureProvisionerOptions>()
@@ -44,8 +44,8 @@ public static class AzureProvisionerExtensions
         builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
         builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
         builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
-        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
         builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+
         if (builder.ExecutionContext.IsPublishMode)
         {
             builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();

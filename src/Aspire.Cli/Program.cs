@@ -111,6 +111,7 @@ public class Program
         builder.Services.AddSingleton(BuildAnsiConsole);
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
+        builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
         builder.Services.AddSingleton<FallbackProjectParser>();
         builder.Services.AddSingleton<IProjectUpdater, ProjectUpdater>();
         builder.Services.AddSingleton<INewCommandPrompter, NewCommandPrompter>();
@@ -137,6 +138,7 @@ public class Program
 
         // Commands.
         builder.Services.AddTransient<NewCommand>();
+        builder.Services.AddTransient<InitCommand>();
         builder.Services.AddTransient<RunCommand>();
         builder.Services.AddTransient<AddCommand>();
         builder.Services.AddTransient<PublishCommand>();
@@ -268,7 +270,7 @@ public class Program
 
             // If the CLI is being launched from the aspire extension, we don't want to use the console logger that's used when including --debug.
             // Instead, we will log to the extension backchannel.
-            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Information);
+            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Trace);
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ExtensionLoggerProvider>());
         }
         else

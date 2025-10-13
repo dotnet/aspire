@@ -16,6 +16,8 @@ using Aspire.Dashboard.Components;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
+using Aspire.Dashboard.Model.Assistant.Prompts;
 using Aspire.Dashboard.Otlp;
 using Aspire.Dashboard.Otlp.Grpc;
 using Aspire.Dashboard.Otlp.Http;
@@ -39,6 +41,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
 
 namespace Aspire.Dashboard;
 
@@ -261,6 +264,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddSingleton<DashboardTelemetryService>();
         builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
         builder.Services.AddSingleton<ILoggerProvider, TelemetryLoggerProvider>();
+        builder.Services.AddSingleton<ITelemetryErrorRecorder, TelemetryErrorRecorder>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -271,11 +275,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddTransient<OtlpTraceService>();
         builder.Services.AddTransient<OtlpMetricsService>();
 
+        // AI assistant services.
+        builder.Services.AddTransient<AssistantChatViewModel>();
+        builder.Services.AddTransient<AssistantChatDataContext>();
+
         builder.Services.AddTransient<TracesViewModel>();
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, ResourceOutgoingPeerResolver>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<IOutgoingPeerResolver, BrowserLinkOutgoingPeerResolver>());
 
         builder.Services.AddFluentUIComponents();
+
+        builder.Services.AddSingleton<IconResolver>();
 
         builder.Services.AddScoped<IThemeResolver, BrowserThemeResolver>();
         builder.Services.AddScoped<ThemeManager>();
@@ -283,6 +293,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.AddScoped<ShortcutManager>();
         builder.Services.AddScoped<ConsoleLogsManager>();
         builder.Services.AddSingleton<IInstrumentUnitResolver, DefaultInstrumentUnitResolver>();
+
+        builder.Services.AddScoped<IAIContextProvider, AIContextProvider>();
+        builder.Services.AddScoped<IceBreakersBuilder>();
+        builder.Services.AddSingleton<ChatClientFactory>();
 
         // Time zone is set by the browser.
         builder.Services.AddScoped<BrowserTimeProvider>();
@@ -788,6 +802,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
+
+                    // Configure additional ClaimActions
+                    var claimActions = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
+                    if (claimActions.Count > 0)
+                    {
+                        foreach (var claimAction in claimActions)
+                        {
+                            var configureAction = GetOidcClaimActionConfigure(claimAction);
+                            configureAction(options);
+                        }
+                    }
                 });
                 break;
             case FrontendAuthMode.BrowserToken:
@@ -863,6 +888,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _ => CookieAuthenticationDefaults.AuthenticationScheme
             };
         }
+    }
+
+    internal static Action<OpenIdConnectOptions> GetOidcClaimActionConfigure(ClaimAction action)
+    {
+        Action<OpenIdConnectOptions> configureAction = (action.SubKey is null, action.IsUnique) switch
+        {
+            (true, true) => options => options.ClaimActions.MapUniqueJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (true, _) => options => options.ClaimActions.MapJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (false, _) => options => options.ClaimActions.MapJsonSubKey(action.ClaimType, action.JsonKey, action.SubKey!, action.ValueType ?? ClaimValueTypes.String)
+        };
+
+        return configureAction;
     }
 
     public int Run()

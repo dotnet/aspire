@@ -25,9 +25,11 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.25.0" />
     <PackageVersion Include="Azure.Storage.Files.DataLake" Version="12.23.0" />
+    <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.22.0" />
     <PackageVersion Include="Azure.Storage.Queues" Version="12.23.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.53.1" />
     <PackageVersion Include="Microsoft.Azure.Kusto.Data" Version="14.0.1" />
+    <PackageVersion Include="Microsoft.Azure.Kusto.Ingest" Version="14.0.1" />
     <PackageVersion Include="Microsoft.Azure.SignalR" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.SignalR.Management" Version="1.32.0" />
     <PackageVersion Include="Microsoft.Azure.StackExchangeRedis" Version="3.2.1" />
@@ -175,6 +177,8 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="$(MicrosoftExtensionsDependencyInjectionAutoActivationVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="$(MicrosoftExtensionsDiagnosticsTestingVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsHttpResilienceVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsServiceDiscoveryVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="$(MicrosoftExtensionsServiceDiscoveryYarpVersion)" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="$(MicrosoftExtensionsTimeProviderTestingVersion)" />
     <!-- EF -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Cosmos" Version="$(MicrosoftEntityFrameworkCoreCosmosLTSVersion)" />
@@ -207,7 +211,6 @@
     <PackageVersion Include="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpLTSVersion)" />
     <PackageVersion Include="System.Formats.Asn1" Version="$(SystemFormatsAsn1LTSVersion)" />
     <PackageVersion Include="System.Text.Json" Version="$(SystemTextJsonLTSVersion)" />
-    <PackageVersion Include="System.Threading.Channels" Version="$(SystemThreadingChannelsLTSVersion)" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
     <!-- EF -->
@@ -240,12 +243,5 @@
     <PackageVersion Update="Microsoft.Extensions.Http" Version="$(MicrosoftExtensionsHttpVersion)" />
     <PackageVersion Update="System.Formats.Asn1" Version="$(SystemFormatsAsn1Version)" />
     <PackageVersion Update="System.Text.Json" Version="$(SystemTextJsonVersion)" />
-    <PackageVersion Update="System.Threading.Channels" Version="$(SystemThreadingChannelsVersion)" />
-  </ItemGroup>
-
-  <!-- These are 9.x versions which are STS so should ONLY be referenced by netfx projects -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net462' OR '$(TargetFramework)' == 'net472' OR '$(TargetFramework)' == 'netstandard2.0' ">
-    <PackageVersion Include="Microsoft.Bcl.Memory" Version="$(MicrosoftBclMemoryVersion)" />
-    <PackageVersion Include="Microsoft.Bcl.TimeProvider" Version="$(MicrosoftBclTimeProviderVersion)" />
   </ItemGroup>
 </Project>

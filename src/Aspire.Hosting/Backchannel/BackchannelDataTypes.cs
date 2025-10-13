@@ -133,6 +133,12 @@ internal sealed class PublishingActivityData
 internal sealed class PublishingPromptInput
 {
     /// <summary>
+    /// Gets the name for the input.
+    /// Nullable for backwards compatibility with Aspire 9.5 and older app hosts.
+    /// </summary>
+    public string? Name { get; init; }
+
+    /// <summary>
     /// Gets the label for the input.
     /// </summary>
     public required string Label { get; init; }
@@ -166,6 +172,15 @@ internal sealed class PublishingPromptInput
     /// Gets or sets a value indicating whether a custom choice is allowed.
     /// </summary>
     public bool AllowCustomChoice { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the state should be updated when the input value changes.
+    /// </summary>
+    public bool UpdateStateOnChange { get; init; }
+
+    public bool Loading { get; init; }
+
+    public bool Disabled { get; init; }
 }
 
 /// <summary>
@@ -215,5 +230,6 @@ internal class CommandOutput
 
 internal class PublishingPromptInputAnswer
 {
+    public string? Name { get; set; }
     public string? Value { get; set; }
 }

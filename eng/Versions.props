@@ -1,8 +1,8 @@
 <Project>
   <PropertyGroup>
     <!-- This repo version -->
-    <MajorVersion>9</MajorVersion>
-    <MinorVersion>6</MinorVersion>
+    <MajorVersion>13</MajorVersion>
+    <MinorVersion>0</MinorVersion>
     <PatchVersion>0</PatchVersion>
     <VersionPrefix>$(MajorVersion).$(MinorVersion).$(PatchVersion)</VersionPrefix>
     <PreReleaseVersionLabel>preview.1</PreReleaseVersionLabel>
@@ -28,14 +28,14 @@
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
     <!-- DCP -->
-    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.17.2</MicrosoftDeveloperControlPlanedarwinamd64Version>
-    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.17.2</MicrosoftDeveloperControlPlanedarwinarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.17.2</MicrosoftDeveloperControlPlanelinuxamd64Version>
-    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.17.2</MicrosoftDeveloperControlPlanelinuxarm64Version>
-    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.17.2</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
-    <MicrosoftDeveloperControlPlanewindows386Version>0.17.2</MicrosoftDeveloperControlPlanewindows386Version>
-    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.17.2</MicrosoftDeveloperControlPlanewindowsamd64Version>
-    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.17.2</MicrosoftDeveloperControlPlanewindowsarm64Version>
+    <MicrosoftDeveloperControlPlanedarwinamd64Version>0.18.0</MicrosoftDeveloperControlPlanedarwinamd64Version>
+    <MicrosoftDeveloperControlPlanedarwinarm64Version>0.18.0</MicrosoftDeveloperControlPlanedarwinarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxamd64Version>0.18.0</MicrosoftDeveloperControlPlanelinuxamd64Version>
+    <MicrosoftDeveloperControlPlanelinuxarm64Version>0.18.0</MicrosoftDeveloperControlPlanelinuxarm64Version>
+    <MicrosoftDeveloperControlPlanelinuxmuslamd64Version>0.18.0</MicrosoftDeveloperControlPlanelinuxmuslamd64Version>
+    <MicrosoftDeveloperControlPlanewindows386Version>0.18.0</MicrosoftDeveloperControlPlanewindows386Version>
+    <MicrosoftDeveloperControlPlanewindowsamd64Version>0.18.0</MicrosoftDeveloperControlPlanewindowsamd64Version>
+    <MicrosoftDeveloperControlPlanewindowsarm64Version>0.18.0</MicrosoftDeveloperControlPlanewindowsarm64Version>
     <!-- Other -->
     <MicrosoftDotNetRemoteExecutorVersion>11.0.0-beta.25477.2</MicrosoftDotNetRemoteExecutorVersion>
     <MicrosoftDotNetXUnitV3ExtensionsVersion>11.0.0-beta.25477.2</MicrosoftDotNetXUnitV3ExtensionsVersion>
@@ -47,9 +47,8 @@
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>9.9.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.9.0</MicrosoftExtensionsDiagnosticsTestingVersion>
     <MicrosoftExtensionsTimeProviderTestingVersion>9.9.0</MicrosoftExtensionsTimeProviderTestingVersion>
-    <!-- dotnet/runtime BCL compat packages for netfx -->
-    <MicrosoftBclMemoryVersion>9.0.9</MicrosoftBclMemoryVersion>
-    <MicrosoftBclTimeProviderVersion>9.0.9</MicrosoftBclTimeProviderVersion>
+    <MicrosoftExtensionsServiceDiscoveryVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryVersion>
+    <MicrosoftExtensionsServiceDiscoveryYarpVersion>9.5.0</MicrosoftExtensionsServiceDiscoveryYarpVersion>
     <!-- for templates -->
     <MicrosoftAspNetCorePackageVersionForNet9>9.0.9</MicrosoftAspNetCorePackageVersionForNet9>
     <MicrosoftAspNetCorePackageVersionForNet10>10.0.0-rc.1.25451.107</MicrosoftAspNetCorePackageVersionForNet10>
@@ -89,7 +88,6 @@
     <MicrosoftExtensionsHttpVersion>9.0.9</MicrosoftExtensionsHttpVersion>
     <SystemFormatsAsn1Version>9.0.9</SystemFormatsAsn1Version>
     <SystemTextJsonVersion>9.0.9</SystemTextJsonVersion>
-    <SystemThreadingChannelsVersion>9.0.9</SystemThreadingChannelsVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryInstrumentationAspNetCoreVersion>1.12.0</OpenTelemetryInstrumentationAspNetCoreVersion>
     <OpenTelemetryInstrumentationHttpVersion>1.12.0</OpenTelemetryInstrumentationHttpVersion>
@@ -129,7 +127,6 @@
     <MicrosoftExtensionsHttpLTSVersion>8.0.1</MicrosoftExtensionsHttpLTSVersion>
     <SystemFormatsAsn1LTSVersion>8.0.2</SystemFormatsAsn1LTSVersion>
     <SystemTextJsonLTSVersion>8.0.6</SystemTextJsonLTSVersion>
-    <SystemThreadingChannelsLTSVersion>8.0.0</SystemThreadingChannelsLTSVersion>
     <!-- OpenTelemetry (OTel) -->
     <OpenTelemetryNet8Version>1.9.0</OpenTelemetryNet8Version>
     <OpenTelemetryInstrumentationGrpcNetClientNet8Version>1.9.0-beta.1</OpenTelemetryInstrumentationGrpcNetClientNet8Version>
