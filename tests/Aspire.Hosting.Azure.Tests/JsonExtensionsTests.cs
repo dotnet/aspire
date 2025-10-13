@@ -8,53 +8,6 @@ namespace Aspire.Hosting.Azure.Tests;
 public class JsonExtensionsTests
 {
     [Fact]
-    public async Task Prop_ConcurrentAccess_DoesNotThrow()
-    {
-        // Arrange
-        var rootJson = new JsonObject();
-        const int threadCount = 10;
-        const int iterationsPerThread = 100;
-        var tasks = new Task[threadCount];
-
-        // Act - Multiple threads accessing the same property concurrently
-        for (int i = 0; i < threadCount; i++)
-        {
-            int threadId = i;
-            tasks[i] = Task.Run(() =>
-            {
-                for (int j = 0; j < iterationsPerThread; j++)
-                {
-                    // All threads try to get or create the same "Azure" property
-                    var azureNode = rootJson.Prop("Azure");
-                    
-                    // Each thread also creates a unique property
-                    var threadNode = azureNode.Prop($"Thread{threadId}");
-                    
-                    // And a shared property under Azure
-                    var deploymentsNode = azureNode.Prop("Deployments");
-                    
-                    // Access a deeper nested property
-                    var resourceNode = deploymentsNode.Prop($"Resource{j % 5}");
-                }
-            });
-        }
-
-        // Assert - Should complete without exceptions
-        await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(10));
-
-        // Verify the structure was created correctly
-        Assert.NotNull(rootJson["Azure"]);
-        var azureObj = rootJson["Azure"]!.AsObject();
-        Assert.NotNull(azureObj["Deployments"]);
-        
-        // Check that all thread-specific nodes were created
-        for (int i = 0; i < threadCount; i++)
-        {
-            Assert.NotNull(azureObj[$"Thread{i}"]);
-        }
-    }
-
-    [Fact]
     public void Prop_ReturnsExistingNode_WhenNodeAlreadyExists()
     {
         // Arrange
@@ -104,3 +57,4 @@ public class JsonExtensionsTests
         Assert.Same(deeply, rootJson["Level1"]!["Level2"]!["Level3"]!["Level4"]);
     }
 }
+

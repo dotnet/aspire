@@ -218,38 +218,41 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into deployment state
-        var az = context.DeploymentState.Prop("Azure");
-        az["Tenant"] = context.Tenant.DefaultDomain;
-
-        var resourceConfig = context.DeploymentState
-            .Prop("Azure")
-            .Prop("Deployments")
-            .Prop(resource.Name);
-
-        // Clear the entire section
-        resourceConfig.AsObject().Clear();
-
-        // Save the deployment id to the configuration
-        resourceConfig["Id"] = deployment.Id.ToString();
-
-        // Stash all parameters as a single JSON string
-        resourceConfig["Parameters"] = parameters.ToJsonString();
-
-        if (outputObj is not null)
+        // Populate values into deployment state with thread-safe synchronization
+        context.WithDeploymentState(deploymentState =>
         {
-            // Same for outputs
-            resourceConfig["Outputs"] = outputObj.ToJsonString();
-        }
+            var az = deploymentState.Prop("Azure");
+            az["Tenant"] = context.Tenant.DefaultDomain;
 
-        // Write resource scope to config for consistent checksums
-        if (scope is not null)
-        {
-            resourceConfig["Scope"] = scope.ToJsonString();
-        }
+            var resourceConfig = deploymentState
+                .Prop("Azure")
+                .Prop("Deployments")
+                .Prop(resource.Name);
 
-        // Save the checksum to the configuration
-        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+            // Clear the entire section
+            resourceConfig.AsObject().Clear();
+
+            // Save the deployment id to the configuration
+            resourceConfig["Id"] = deployment.Id.ToString();
+
+            // Stash all parameters as a single JSON string
+            resourceConfig["Parameters"] = parameters.ToJsonString();
+
+            if (outputObj is not null)
+            {
+                // Same for outputs
+                resourceConfig["Outputs"] = outputObj.ToJsonString();
+            }
+
+            // Write resource scope to config for consistent checksums
+            if (scope is not null)
+            {
+                resourceConfig["Scope"] = scope.ToJsonString();
+            }
+
+            // Save the checksum to the configuration
+            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+        });
 
         if (outputObj is not null)
         {
