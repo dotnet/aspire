@@ -253,6 +253,15 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             return (AllocateParameter(output, secretType: secretType), secretType);
         }
 
+        if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
+        {
+            var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
+            return (UriComponent(((BicepValue<string>)innerValue).Compile()), secret);
+
+            static FunctionCallExpression UriComponent(BicepExpression args) =>
+                new(new IdentifierExpression("uriComponent"), args);
+        }
+
 #pragma warning disable CS0618 // Type or member is obsolete
         if (value is BicepSecretOutputReference)
         {

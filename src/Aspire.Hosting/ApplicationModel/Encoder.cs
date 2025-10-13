@@ -3,11 +3,18 @@
 
 namespace Aspire.Hosting.ApplicationModel;
 
-internal interface IEncoderProvider : IValueWithReferences, IValueProvider, IManifestExpressionProvider
+/// <summary>
+/// Represents a service that can format an expression.
+/// </summary>
+public interface IUrlEncoderProvider : IValueWithReferences, IValueProvider, IManifestExpressionProvider
 {
+    /// <summary>
+    /// The value provider.
+    /// </summary>
+    object ValueProvider { get; }
 }
 
-internal class UrlEncoderProvider<T> : IEncoderProvider where T : IValueProvider, IManifestExpressionProvider
+internal class UrlEncoderProvider<T> : IUrlEncoderProvider where T : IValueProvider, IManifestExpressionProvider
 {
     private readonly T _valueProvider;
 
@@ -16,6 +23,8 @@ internal class UrlEncoderProvider<T> : IEncoderProvider where T : IValueProvider
         _valueProvider = valueProvider;
     }
 
+    public object ValueProvider => _valueProvider;
+    
     public string ValueExpression
     {
         get
