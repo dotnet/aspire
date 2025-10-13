@@ -11,25 +11,22 @@ internal static class JsonExtensions
     {
         var jsonObj = obj.AsObject();
 
-        // Try to get the existing node
-        var node = jsonObj[key];
-        if (node is not null)
+        // Lock on the JsonObject to ensure thread-safe access when multiple
+        // bicep resources are being provisioned in parallel
+        lock (jsonObj)
         {
+            // Try to get the existing node
+            var node = jsonObj[key];
+            if (node is not null)
+            {
+                return node;
+            }
+
+            // Create a new node and add it
+            node = new JsonObject();
+            jsonObj.Add(key, node);
+
             return node;
         }
-
-        // Create a new node and try to add it
-        node = new JsonObject();
-
-        if (!jsonObj.TryAdd(key, node))
-        {
-            node = jsonObj[key];
-            if (node is null)
-            {
-                throw new InvalidOperationException($"Failed to get or create property '{key}'");
-            }
-        }
-
-        return node;
     }
 }
