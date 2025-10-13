@@ -709,7 +709,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11823", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11823")]
     public async Task CanResolveBuildArgumentsWithDifferentValueTypes()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
