@@ -92,6 +92,10 @@ stages:
                 clean: true
 
               - script: |
+                  ./restore.sh
+                displayName: 'Restore .NET SDK'
+
+              - script: |
                   dotnet build tests/Shared/GetTestProjects.proj \
                     /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog \
                     /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list \
@@ -162,10 +166,14 @@ stages:
                 clean: true
 
               - script: |
+                  ./restore.sh
+                displayName: 'Restore .NET SDK'
+
+              - script: |
                   if [ "$(platformName)" = "Windows" ]; then
-                    $(Build.SourcesDirectory)/build.cmd -ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
+                    ./build.cmd -ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
                   else
-                    $(Build.SourcesDirectory)/build.sh --ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
+                    ./build.sh --ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
                   fi
                 displayName: 'Build solution'
                 env:
