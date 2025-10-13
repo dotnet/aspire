@@ -5,7 +5,9 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(yamllint:*)",
-      "Bash(./eng/scripts/azdo-pipeline-helper.sh status:*)"
+      "Bash(./eng/scripts/azdo-pipeline-helper.sh status:*)",
+      "Bash(azpublic feature/matrix-session2)",
+      "Bash(./eng/scripts/azdo-pipeline-helper.sh:*)"
     ],
     "deny": [],
     "ask": []

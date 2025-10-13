@@ -100,10 +100,7 @@ jobs:
 
     variables:
       - name: _buildScript
-        ${{ if eq(variables['platformName'], 'Windows') }}:
-          value: $(Build.SourcesDirectory)/build.cmd -ci
-        ${{ else }}:
-          value: $(Build.SourcesDirectory)/build.sh --ci
+        value: $(Build.SourcesDirectory)/build.sh --ci
 
     steps:
       - checkout: self
@@ -111,45 +108,45 @@ jobs:
         clean: true
 
       # Build the solution first (without running tests)
-      - script: ${{ parameters.buildConfig == 'Release' && variables['_buildScript'] || 'echo Skipping build for debug' }}
-                -restore -build
-                -configuration ${{ parameters.buildConfig }}
-                /bl:${{ parameters.repoLogPath }}/build-$(testShortName)-$(platformName).binlog
-                /p:SkipTestProjects=true
+      - script: |
+          if [ "$(platformName)" = "Windows" ]; then
+            $(Build.SourcesDirectory)/build.cmd -ci -restore -build -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
+          else
+            $(Build.SourcesDirectory)/build.sh --ci -restore -build -configuration ${{ parameters.buildConfig }} /bl:${{ parameters.repoLogPath }}/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
+          fi
         displayName: 'Build solution'
         env:
           DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
         condition: eq('${{ parameters.buildConfig }}', 'Release')
 
       # Install Docker CLI for Linux tests (some tests need Docker)
-      - ${{ if ne(variables['platformName'], 'Windows') }}:
-        - task: DockerInstaller@0
-          inputs:
-            dockerVersion: '28.0.0'
-          displayName: 'Install Docker CLI'
+      - task: DockerInstaller@0
+        inputs:
+          dockerVersion: '28.0.0'
+        displayName: 'Install Docker CLI'
+        condition: ne(variables['platformName'], 'Windows')
 
       # Install dev certificates
-      - ${{ if eq(variables['platformName'], 'Windows') }}:
-        - script: dotnet dev-certs https
-          displayName: 'Install dev-certs'
-          continueOnError: true
+      - script: dotnet dev-certs https
+        displayName: 'Install dev-certs'
+        continueOnError: true
+        condition: eq(variables['platformName'], 'Windows')
 
-      - ${{ if ne(variables['platformName'], 'Windows') }}:
-        - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
-          displayName: 'Install devcerts'
-          continueOnError: true
+      - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
+        displayName: 'Install devcerts'
+        continueOnError: true
+        condition: ne(variables['platformName'], 'Windows')
 
       # Show Docker state before tests (Linux only)
-      - ${{ if ne(variables['platformName'], 'Windows') }}:
-        - script: |
-            docker info
-            docker container ls
-            docker volume ls
-            docker network ls
-            docker network prune -f
-          displayName: 'Docker state before tests'
-          condition: always()
-          continueOnError: true
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: 'Docker state before tests'
+        condition: and(always(), ne(variables['platformName'], 'Windows'))
+        continueOnError: true
 
       # Run the specific integration test project
       - script: |
@@ -176,16 +173,15 @@ jobs:
         timeoutInMinutes: 15
 
       # Show Docker state after tests (Linux only)
-      - ${{ if ne(variables['platformName'], 'Windows') }}:
-        - script: |
-            docker info
-            docker container ls
-            docker volume ls
-            docker network ls
-            docker network prune -f
-          displayName: 'Docker state after tests'
-          condition: always()
-          continueOnError: true
+      - script: |
+          docker info
+          docker container ls
+          docker volume ls
+          docker network ls
+          docker network prune -f
+        displayName: 'Docker state after tests'
+        condition: and(always(), ne(variables['platformName'], 'Windows'))
+        continueOnError: true
 
       # Publish test results
       - task: PublishTestResults@2
