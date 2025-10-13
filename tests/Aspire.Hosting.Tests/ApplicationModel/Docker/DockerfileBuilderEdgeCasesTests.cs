@@ -35,6 +35,7 @@ public class DockerfileBuilderEdgeCasesTests
         builder.From("ubuntu");
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);
@@ -66,6 +67,7 @@ public class DockerfileBuilderEdgeCasesTests
         stage.Env("EMPTY_VAR", "");
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);
@@ -90,6 +92,7 @@ public class DockerfileBuilderEdgeCasesTests
         stage.Cmd(["node", "-e", "console.log('Hello, World!')", "--port", "3000"]);
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);
@@ -118,6 +121,7 @@ public class DockerfileBuilderEdgeCasesTests
 
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);
@@ -174,6 +178,7 @@ public class DockerfileBuilderEdgeCasesTests
         stage.Run(multiLineCommand);
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);

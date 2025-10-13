@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.ApplicationModel.Docker;
 using Aspire.Hosting.Utils;
@@ -1302,6 +1303,8 @@ public static class ContainerResourceBuilderExtensions
             // Use UTF8 encoding without BOM
             var utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             using var writer = new StreamWriter(memoryStream, utf8WithoutBom, leaveOpen: true);
+            writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
+            
             await dockerfileBuilder.WriteAsync(writer, factoryContext.CancellationToken).ConfigureAwait(false);
             await writer.FlushAsync(factoryContext.CancellationToken).ConfigureAwait(false);
             

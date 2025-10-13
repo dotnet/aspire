@@ -30,6 +30,7 @@ public class DockerfileBuilderIntegrationTests
 
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await dockerfileBuilder.WriteAsync(writer);
@@ -104,6 +105,7 @@ public class DockerfileBuilderIntegrationTests
 
         using var stream = new MemoryStream();
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
 
         // Act
         await builder.WriteAsync(writer);
