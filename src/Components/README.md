@@ -24,12 +24,11 @@ Each client integration is in its own NuGet package, and can version independent
 
 The Aspire client integration must support the [latest LTS version of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) and may optionally support a higher STS version, if one exists. For example:
 
-| .NET Aspire Version | Targets                         |
-|---------------------|---------------------------------|
-| 8.x                 | `net8.0`                        |
-| 9.x                 | `net8.0` (+`net9.0` optional)   |
-| 10.x                | `net10.0`                       |
-| 11.x                | `net10.0` (+`net11.0` optional) |
+| .NET Aspire Version | Targets                       |
+|---------------------|-------------------------------|
+| 8.x                 | `net8.0`                      |
+| 9.x                 | `net8.0` (+`net9.0` optional) |
+| 13.x                | `net10.0`                     |
 
 ### Dependency Versioning
 

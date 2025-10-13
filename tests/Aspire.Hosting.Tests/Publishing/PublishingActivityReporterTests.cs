@@ -9,6 +9,7 @@ using Aspire.Hosting.Publishing;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
@@ -20,7 +21,7 @@ public class PublishingActivityReporterTests
     public async Task CreateStepAsync_CreatesStepAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var title = "Test Step";
 
         // Act
@@ -51,7 +52,7 @@ public class PublishingActivityReporterTests
     public async Task CreateTaskAsync_CreatesTaskAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var statusText = "Test Task";
 
         // Create parent step first
@@ -90,7 +91,7 @@ public class PublishingActivityReporterTests
     public async Task CreateTaskAsync_ThrowsWhenStepDoesNotExist()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var nonExistentStep = new PublishingStep(reporter, "non-existent-step", "Non-existent Step");
 
         // Act & Assert
@@ -104,7 +105,7 @@ public class PublishingActivityReporterTests
     public async Task CreateTaskAsync_ThrowsWhenStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         // Create and complete step
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -124,7 +125,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteStepAsync_CompletesStepWithCorrectErrorStateAndEmitsActivity(bool isError, string completionText, bool expectedIsError)
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
@@ -154,7 +155,7 @@ public class PublishingActivityReporterTests
     public async Task UpdateTaskAsync_UpdatesTaskAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var newStatusText = "Updated status";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -186,7 +187,7 @@ public class PublishingActivityReporterTests
     public async Task UpdateTaskAsync_ThrowsWhenParentStepDoesNotExist()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
@@ -208,7 +209,7 @@ public class PublishingActivityReporterTests
     public async Task UpdateTaskAsync_ThrowsWhenParentStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Initial status", CancellationToken.None);
@@ -226,7 +227,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteTaskAsync_CompletesTaskWithCorrectStateAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var completionMessage = "Task completed";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -262,7 +263,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteTaskAsync_ThrowsWhenParentStepIsComplete()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
@@ -283,7 +284,7 @@ public class PublishingActivityReporterTests
     public async Task CompletePublishAsync_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         // Act
         await reporter.CompletePublishAsync(null, completionState, isDeploy: false, CancellationToken.None);
@@ -303,7 +304,7 @@ public class PublishingActivityReporterTests
     public async Task CompletePublishAsync_EmitsCorrectActivity_WithCompletionMessage()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var expectedStatusText = "Some error occurred";
 
         // Act
@@ -323,7 +324,7 @@ public class PublishingActivityReporterTests
     public async Task CompletePublishAsync_AggregatesStateFromSteps()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         // Create multiple steps with different completion states
         var step1 = await reporter.CreateStepAsync("Step 1", CancellationToken.None);
@@ -361,7 +362,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteTaskAsync_WithNullCompletionMessage_SetsEmptyString()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
@@ -378,7 +379,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteTaskAsync_ThrowsWhenTaskAlreadyCompleted()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
@@ -398,7 +399,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteStepAsync_ThrowsWhenStepAlreadyCompleted()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
@@ -417,7 +418,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteStepAsync_KeepsStepInDictionaryForAggregation()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
@@ -448,26 +449,66 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
-    public async Task HandleInteractionUpdateAsync_BlocksInteractionWhenStepsInProgress()
+    public async Task HandleInteractionUpdateAsync_AllowsInteractionWhenStepsInProgress()
     {
-        // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         await using var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
-        // Clear previous activities
         var activityReader = reporter.ActivityItemUpdated.Reader;
         while (activityReader.TryRead(out _)) { }
 
-        // Assert that requesting an input while steps are in progress results in an error
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder"));
-        Assert.Equal("Cannot prompt interaction while steps are in progress.", exception.Message);
+        var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
+
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var promptId = activity.Data.Id;
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("text-label", input.Label);
+        Assert.Equal("Text", input.InputType);
+
+        PublishingPromptInputAnswer[] responses = [new() { Value = "user-response" }];
+
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, cancellationToken: CancellationToken.None).DefaultTimeout();
+
+        var promptResult = await promptTask.DefaultTimeout();
+        Assert.False(promptResult.Canceled);
+        Assert.Equal("user-response", promptResult.Data?.Value);
     }
 
     [Fact]
-    public async Task CompleteInteractionAsync_ProcessesUserResponsesCorrectly()
+    public async Task CompleteInteractionAsync_WithName_ProcessesUserResponsesCorrectly()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
+
+        // Start a prompt interaction
+        var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
+
+        // Get the interaction ID from the activity that was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var activity = await activityReader.ReadAsync().DefaultTimeout();
+        var promptId = activity.Data.Id;
+        Assert.NotNull(activity.Data.Inputs);
+        var input = Assert.Single(activity.Data.Inputs);
+        Assert.Equal("text-label", input.Label);
+        Assert.Equal("Text", input.InputType);
+
+        var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Name = "text_label", Value = "user-response" } };
+
+        // Act
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
+
+        // The prompt task should complete with the user's response
+        var promptResult = await promptTask.DefaultTimeout();
+        Assert.False(promptResult.Canceled);
+        Assert.Equal("user-response", promptResult.Data?.Value);
+    }
+
+    [Fact]
+    public async Task CompleteInteractionAsync_WithoutName_ProcessesUserResponsesCorrectly()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
 
         // Start a prompt interaction
         var promptTask = _interactionService.PromptInputAsync("Test Prompt", "test-description", "text-label", "test-placeholder");
@@ -484,7 +525,7 @@ public class PublishingActivityReporterTests
         var responses = new PublishingPromptInputAnswer[] { new PublishingPromptInputAnswer { Value = "user-response" } };
 
         // Act
-        await reporter.CompleteInteractionAsync(promptId, responses, CancellationToken.None).DefaultTimeout();
+        await reporter.CompleteInteractionAsync(promptId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The prompt task should complete with the user's response
         var promptResult = await promptTask.DefaultTimeout();
@@ -496,7 +537,7 @@ public class PublishingActivityReporterTests
     public async Task PromptNotificationAsync_EmitsCorrectActivityAndHandlesCompletion()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var notificationOptions = new NotificationInteractionOptions
         {
             Intent = MessageIntent.Information,
@@ -524,7 +565,7 @@ public class PublishingActivityReporterTests
 
         // Act - Complete the notification with a true response
         PublishingPromptInputAnswer[] responses = [new() { Value = "true" }];
-        await reporter.CompleteInteractionAsync(notificationId, responses, CancellationToken.None).DefaultTimeout();
+        await reporter.CompleteInteractionAsync(notificationId, responses, updateResponse: false, CancellationToken.None).DefaultTimeout();
 
         // The notification task should complete with the user's response
         var notificationResult = await notificationTask.DefaultTimeout();
@@ -536,7 +577,7 @@ public class PublishingActivityReporterTests
     public async Task CalculateAggregatedState_WithNoTasks_ReturnsCompleted()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
@@ -551,7 +592,7 @@ public class PublishingActivityReporterTests
     public async Task DisposeAsync_StepWithNoTasks_CompletesWithSuccessState()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Clear the step creation activity
@@ -579,7 +620,7 @@ public class PublishingActivityReporterTests
     public async Task DisposeAsync_StepWithCompletedTasks_CompletesWithSuccessState()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
         var task1 = await step.CreateTaskAsync("Task 1", CancellationToken.None);
         var task2 = await step.CreateTaskAsync("Task 2", CancellationToken.None);
@@ -613,7 +654,7 @@ public class PublishingActivityReporterTests
     public async Task DisposeAsync_StepAlreadyCompleted_DoesNotCompleteAgain()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Complete the step explicitly first
@@ -636,7 +677,7 @@ public class PublishingActivityReporterTests
     public async Task CompleteWithWarningAsync_CompletesTaskWithWarningAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var completionMessage = "Task completed with warning";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -671,7 +712,7 @@ public class PublishingActivityReporterTests
     public async Task FailAsync_CompletesTaskWithErrorAndEmitsActivity()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var completionMessage = "Task failed with error";
 
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
@@ -709,7 +750,7 @@ public class PublishingActivityReporterTests
     public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity(CompletionState completionState, string expectedStatusText, bool expectedIsError)
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
 
         // Act
         await reporter.CompletePublishAsync(null, completionState, isDeploy: true, CancellationToken.None);
@@ -729,7 +770,7 @@ public class PublishingActivityReporterTests
     public async Task CompletePublishAsync_WithDeployFlag_EmitsCorrectActivity_WithCompletionMessage()
     {
         // Arrange
-        var reporter = new PublishingActivityReporter(_interactionService);
+        var reporter = CreatePublishingReporter();
         var expectedStatusText = "Some deployment error occurred";
 
         // Act
@@ -743,6 +784,11 @@ public class PublishingActivityReporterTests
         Assert.Equal(expectedStatusText, activity.Data.StatusText);
         Assert.True(activity.Data.IsComplete);
         Assert.True(activity.Data.IsError);
+    }
+
+    private PublishingActivityReporter CreatePublishingReporter()
+    {
+        return new PublishingActivityReporter(_interactionService, NullLogger<PublishingActivityReporter>.Instance);
     }
 
     internal static InteractionService CreateInteractionService()

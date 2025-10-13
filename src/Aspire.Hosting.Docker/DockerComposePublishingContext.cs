@@ -148,7 +148,7 @@ internal sealed class DockerComposePublishingContext(
         }
 
         var step = await activityReporter.CreateStepAsync(
-            "Writing Docker Compose file.",
+            "write-compose",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -177,14 +177,14 @@ internal sealed class DockerComposePublishingContext(
                     foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                     {
                         var (key, (description, defaultValue, source)) = entry;
-                        
+
                         // If the source is a parameter and there's no explicit default value,
                         // resolve the parameter's default value asynchronously
                         if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
                         {
                             defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                         }
-                        
+
                         envFile.AddIfMissing(key, defaultValue, description);
                     }
 

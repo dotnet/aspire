@@ -974,7 +974,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             if (executable.TryGetLastAnnotation<SupportsDebuggingAnnotation>(out var supportsDebuggingAnnotation)
                 && !string.IsNullOrEmpty(_configuration[DebugSessionPortVar])
-                && (supportsDebuggingAnnotation.RequiredExtensionId is null || supportedLaunchConfigurations is null || supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.RequiredExtensionId)))
+                && supportedLaunchConfigurations is not null
+                && supportedLaunchConfigurations.Contains(supportsDebuggingAnnotation.LaunchConfigurationType))
             {
                 exe.Spec.ExecutionType = ExecutionType.IDE;
                 supportsDebuggingAnnotation.LaunchConfigurationAnnotator(exe, _configuration[KnownConfigNames.DebugSessionRunMode] ?? ExecutableLaunchMode.NoDebug);

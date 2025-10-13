@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Primitives;
 
@@ -74,7 +75,9 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         };
 
         // REVIEW: Should we use the same naming algorithm as azd?
-        var outputName = $"{prefix}_{resource.Name}_{volumeIndex}";
+        // Normalize the resource name to ensure it's compatible with Bicep identifiers (only letters, numbers, and underscores)
+        var normalizedResourceName = Infrastructure.NormalizeBicepIdentifier(resource.Name);
+        var outputName = $"{prefix}_{normalizedResourceName}_{volumeIndex}";
 
         if (!VolumeNames.TryGetValue(outputName, out var volumeName))
         {

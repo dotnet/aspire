@@ -60,7 +60,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
@@ -257,7 +257,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
