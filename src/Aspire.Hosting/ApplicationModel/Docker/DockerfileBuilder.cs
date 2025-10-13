@@ -59,16 +59,14 @@ public class DockerfileBuilder
     }
 
     /// <summary>
-    /// Writes the Dockerfile content to the specified stream.
+    /// Writes the Dockerfile content to the specified <see cref="StreamWriter"/>.
     /// </summary>
-    /// <param name="stream">The stream to write to.</param>
+    /// <param name="writer">The <see cref="StreamWriter"/> to write to.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task representing the asynchronous write operation.</returns>
-    public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
+    public async Task WriteAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(stream);
-
-        using var writer = new StreamWriter(stream, Encoding.UTF8, leaveOpen: true);
+        ArgumentNullException.ThrowIfNull(writer);
         
         foreach (var stage in _stages)
         {

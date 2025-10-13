@@ -119,9 +119,11 @@ public class DockerfileBuilderTests
         stage.Expose(3000);
 
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -155,9 +157,11 @@ public class DockerfileBuilderTests
         stage2.Cmd(["cmd", "run", "--config", "/etc/caddy/caddy.json"]);
 
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -196,9 +200,11 @@ public class DockerfileBuilderTests
         // Arrange
         var builder = new DockerfileBuilder();
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         Assert.Equal(0, stream.Length);

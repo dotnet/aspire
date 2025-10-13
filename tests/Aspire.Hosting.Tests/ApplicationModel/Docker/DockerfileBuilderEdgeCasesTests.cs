@@ -17,9 +17,11 @@ public class DockerfileBuilderEdgeCasesTests
         // Arrange
         var builder = new DockerfileBuilder();
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         Assert.Equal(0, stream.Length);
@@ -32,9 +34,11 @@ public class DockerfileBuilderEdgeCasesTests
         var builder = new DockerfileBuilder();
         builder.From("ubuntu");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -61,9 +65,11 @@ public class DockerfileBuilderEdgeCasesTests
         var stage = builder.From("alpine");
         stage.Env("EMPTY_VAR", "");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -83,9 +89,11 @@ public class DockerfileBuilderEdgeCasesTests
         var stage = builder.From("node");
         stage.Cmd(["node", "-e", "console.log('Hello, World!')", "--port", "3000"]);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -109,9 +117,11 @@ public class DockerfileBuilderEdgeCasesTests
         _ = builder.From("nginx", "third");
 
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -163,9 +173,11 @@ public class DockerfileBuilderEdgeCasesTests
             """.ReplaceLineEndings("\n");
         stage.Run(multiLineCommand);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -203,9 +215,11 @@ public class DockerfileBuilderEdgeCasesTests
         }
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());

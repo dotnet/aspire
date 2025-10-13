@@ -1299,7 +1299,12 @@ public static class ContainerResourceBuilderExtensions
 
             // Convert DockerfileBuilder to string
             using var memoryStream = new MemoryStream();
-            await dockerfileBuilder.WriteAsync(memoryStream, factoryContext.CancellationToken).ConfigureAwait(false);
+            // Use UTF8 encoding without BOM
+            var utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            using var writer = new StreamWriter(memoryStream, utf8WithoutBom, leaveOpen: true);
+            await dockerfileBuilder.WriteAsync(writer, factoryContext.CancellationToken).ConfigureAwait(false);
+            await writer.FlushAsync(factoryContext.CancellationToken).ConfigureAwait(false);
+            
             memoryStream.Position = 0;
             using var reader = new StreamReader(memoryStream);
             var dockerfileContent = await reader.ReadToEndAsync(factoryContext.CancellationToken).ConfigureAwait(false);

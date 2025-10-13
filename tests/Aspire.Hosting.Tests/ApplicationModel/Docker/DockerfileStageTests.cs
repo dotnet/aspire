@@ -315,9 +315,11 @@ public class DockerfileStageTests
         stage.Run("echo hello");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -346,9 +348,11 @@ public class DockerfileStageTests
         stage.Run("echo hello");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -379,9 +383,11 @@ public class DockerfileStageTests
         stage.Run("echo hello");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -407,9 +413,11 @@ public class DockerfileStageTests
         stage.Run("echo hello");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -446,9 +454,11 @@ public class DockerfileStageTests
         stage.Run("echo second");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -501,9 +511,11 @@ public class DockerfileStageTests
         stage.Run("apk add build-base");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -533,9 +545,11 @@ public class DockerfileStageTests
         stage.WorkDir("/app");
         
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());

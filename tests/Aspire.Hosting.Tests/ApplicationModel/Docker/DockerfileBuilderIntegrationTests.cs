@@ -29,9 +29,11 @@ public class DockerfileBuilderIntegrationTests
         output.Cmd(["cmd", "run", "--config", "/etc/caddy/caddy.json"]);
 
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await dockerfileBuilder.WriteAsync(stream);
+        await dockerfileBuilder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
@@ -101,9 +103,11 @@ public class DockerfileBuilderIntegrationTests
         runtimeStage.Cmd(["./server"]);
 
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         // Act
-        await builder.WriteAsync(stream);
+        await builder.WriteAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var content = Encoding.UTF8.GetString(stream.ToArray());
