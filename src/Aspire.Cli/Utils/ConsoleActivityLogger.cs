@@ -23,6 +23,7 @@ internal sealed class ConsoleActivityLogger
     private readonly Dictionary<string, string> _stepColors = new();
     private readonly Dictionary<string, ActivityState> _stepStates = new(); // Track final state per step for summary
     private readonly Dictionary<string, string> _displayNames = new(); // Optional friendly display names for step keys
+    private List<StepDurationRecord>? _durationRecords; // Optional per-step duration breakdown
     private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
     private int _colorIndex;
 
@@ -210,14 +211,39 @@ internal sealed class ConsoleActivityLogger
             summaryParts.Add($"Total time: {totalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s");
             AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
 
+            if (_durationRecords is { Count: > 0 })
+            {
+                AnsiConsole.WriteLine();
+                AnsiConsole.MarkupLine("Steps Summary:");
+                foreach (var rec in _durationRecords)
+                {
+                    var durStr = rec.Duration.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture).PadLeft(4);
+                    var symbol = rec.State switch
+                    {
+                        ActivityState.Success => _enableColor ? "[green]" + SuccessSymbol + "[/]" : SuccessSymbol,
+                        ActivityState.Warning => _enableColor ? "[yellow]" + WarningSymbol + "[/]" : WarningSymbol,
+                        ActivityState.Failure => _enableColor ? "[red]" + FailureSymbol + "[/]" : FailureSymbol,
+                        _ => _enableColor ? "[cyan]" + InProgressSymbol + "[/]" : InProgressSymbol
+                    };
+                    var name = rec.DisplayName.EscapeMarkup();
+                    var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
+                        ? ( _enableColor ? $" [red]— {HighlightAndEscape(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        : string.Empty;
+                    var lineSb = new StringBuilder();
+                    lineSb.Append("  ")
+                        .Append(durStr).Append(" s  ")
+                        .Append(symbol).Append(' ')
+                        .Append("[dim]").Append(name).Append("[/]")
+                        .Append(reason);
+                    AnsiConsole.MarkupLine(lineSb.ToString());
+                }
+                AnsiConsole.WriteLine();
+            }
+
             // If a caller provided a final status line via SetFinalResult, print it now
             if (!string.IsNullOrEmpty(_finalStatusHeader))
             {
                 AnsiConsole.MarkupLine(_finalStatusHeader!);
-                if (!string.IsNullOrEmpty(_finalStatusDetail))
-                {
-                    AnsiConsole.MarkupLine(_finalStatusDetail!);
-                }
             }
             if (!string.IsNullOrEmpty(dashboardUrl))
             {
@@ -231,33 +257,37 @@ internal sealed class ConsoleActivityLogger
     }
 
     private string? _finalStatusHeader;
-    private string? _finalStatusDetail;
 
     /// <summary>
     /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
     /// Optional usage so existing callers remain compatible.
     /// </summary>
-    public void SetFinalResult(bool succeeded, string? failureStep, string? failureMessage)
+    public void SetFinalResult(bool succeeded)
     {
+        // Always show only a single final header line with symbol; no per-step duplication.
         if (succeeded)
         {
-            _finalStatusHeader = _enableColor ? "[green]DEPLOYMENT SUCCEEDED[/]" : "DEPLOYMENT SUCCEEDED";
-            _finalStatusDetail = null; // No detail line on success per spec
+            _finalStatusHeader = _enableColor
+                ? $"[green]{SuccessSymbol} DEPLOYMENT SUCCEEDED[/]"
+                : $"{SuccessSymbol} DEPLOYMENT SUCCEEDED";
         }
         else
         {
-            var header = _enableColor ? "[red]DEPLOYMENT FAILED[/]" : "DEPLOYMENT FAILED";
-            _finalStatusHeader = header;
-            if (!string.IsNullOrEmpty(failureStep) && !string.IsNullOrEmpty(failureMessage))
-            {
-                var step = failureStep!.EscapeMarkup();
-                var msg = HighlightAndEscape(failureMessage!);
-                _finalStatusDetail = _enableColor
-                    ? $"[red]{FailureSymbol} Step '{step}' failed: {msg}[/]"
-                    : $"{FailureSymbol} Step '{step}' failed: {failureMessage}";
-            }
+            _finalStatusHeader = _enableColor
+                ? $"[red]{FailureSymbol} DEPLOYMENT FAILED[/]"
+                : $"{FailureSymbol} DEPLOYMENT FAILED";
         }
     }
+
+    /// <summary>
+    /// Provides per-step duration data (already sorted) for inclusion in the summary.
+    /// </summary>
+    public void SetStepDurations(IEnumerable<StepDurationRecord> records)
+    {
+        _durationRecords = records.ToList();
+    }
+
+    public readonly record struct StepDurationRecord(string Key, string DisplayName, ActivityState State, TimeSpan Duration, string? FailureReason);
 
     private void WriteCompletion(string taskKey, string symbol, string message, ActivityState state, double? seconds)
     {

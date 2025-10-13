@@ -380,6 +380,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
                         stepInfo.CompletionText = activity.Data.StatusText;
+                        stepInfo.EndTime = DateTime.UtcNow;
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
                             logger.Failure(stepInfo.Id, stepInfo.CompletionText);
@@ -450,6 +451,12 @@ internal abstract class PublishCommandBase : BaseCommand
                         {
                             logger.Success(stepInfo.Id, message);
                         }
+
+                        // If this task caused the step to fail, record a candidate failure reason if not already set.
+                        if (IsCompletionStateError(task.CompletionState) && string.IsNullOrEmpty(stepInfo.FailureReason))
+                        {
+                            stepInfo.FailureReason = task.CompletionMessage ?? task.StatusText;
+                        }
                     }
                 }
             }
@@ -467,12 +474,35 @@ internal abstract class PublishCommandBase : BaseCommand
                     if (failedStep is not null)
                     {
                         failedStepTitle = failedStep.Title;
-                        failedStepMessage = failedStep.CompletionText;
+                        failedStepMessage = failedStep.FailureReason ?? failedStep.CompletionText;
                     }
                 }
 
+                // Build duration breakdown (sorted by duration desc)
+                var now = DateTime.UtcNow;
+                var durationRecords = steps.Values.Select(s =>
+                {
+                    var end = s.EndTime ?? now;
+                    var state = s.CompletionState switch
+                    {
+                        var cs when IsCompletionStateError(cs) => ConsoleActivityLogger.ActivityState.Failure,
+                        var cs when IsCompletionStateWarning(cs) => ConsoleActivityLogger.ActivityState.Warning,
+                        var cs when cs == CompletionStates.Completed => ConsoleActivityLogger.ActivityState.Success,
+                        _ => ConsoleActivityLogger.ActivityState.InProgress
+                    };
+                    return new ConsoleActivityLogger.StepDurationRecord(
+                        s.Id,
+                        s.Title,
+                        state,
+                        end - s.StartTime,
+                        s.FailureReason);
+                })
+                .OrderByDescending(r => r.Duration)
+                .ToList();
+                logger.SetStepDurations(durationRecords);
+
                 // Provide final result to logger and print its structured summary.
-                logger.SetFinalResult(!hasErrors, failedStepTitle, failedStepMessage);
+                logger.SetFinalResult(!hasErrors);
                 logger.WriteSummary();
 
                 // Visual bell
@@ -679,8 +709,10 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
         public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string CompletionText { get; set; } = string.Empty;
+        public string? FailureReason { get; set; }
         public Dictionary<string, TaskInfo> Tasks { get; } = [];
     }
 
