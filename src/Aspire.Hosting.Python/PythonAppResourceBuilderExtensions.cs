@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
+using System.Security.Cryptography.X509Certificates;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
 using Aspire.Hosting.Utils;
@@ -130,6 +131,18 @@ public static class PythonAppResourceBuilderExtensions
 
         resourceBuilder.WithOtlpExporter();
 
+        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
+        {
+            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+            {
+                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
+                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+            }
+
+            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+            return Task.CompletedTask;
+        });
+
         // Configure OpenTelemetry exporters using environment variables
         // https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/#exporter-selection
         resourceBuilder.WithEnvironment(context =>
@@ -146,14 +159,6 @@ public static class PythonAppResourceBuilderExtensions
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
         {
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
-        });
-
-        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
-        {
-            // TODO: Invoke the python interpreter from the virtual environment to get the certifi bundle path
-            // and then combine that with any extra certs the user might have added.
-            ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
-            return Task.CompletedTask;
         });
 
         resourceBuilder.PublishAsDockerFile();

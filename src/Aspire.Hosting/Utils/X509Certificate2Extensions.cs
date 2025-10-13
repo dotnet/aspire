@@ -65,7 +65,7 @@ internal static class X509Certificate2Extensions
     /// </summary>
     /// <param name="certificate">The certificate to check.</param>
     /// <returns>True if the certificate supports CA trust scenarios in containers; otherwise, false.</returns>
-    public static bool SupportsContainerTrust(this X509Certificate2? certificate)
+    public static bool SupportsContainerTrust(this X509Certificate2 certificate)
     {
         ArgumentNullException.ThrowIfNull(certificate);
 
