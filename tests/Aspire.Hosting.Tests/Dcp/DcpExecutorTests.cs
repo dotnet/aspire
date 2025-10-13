@@ -1720,7 +1720,7 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            new DeveloperCertificateService());
+            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance));
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
