@@ -373,7 +373,8 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         steps[activity.Data.Id] = stepInfo;
-                        logger.StartTask(stepInfo.Title, $"Starting {stepInfo.Title}...");
+                        // Use the stable step Id for logger state tracking (prevents duplicate counting when titles repeat)
+                        logger.StartTask(stepInfo.Id, stepInfo.Title, $"Starting {stepInfo.Title}...");
                     }
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
@@ -381,15 +382,15 @@ internal abstract class PublishCommandBase : BaseCommand
                         stepInfo.CompletionText = activity.Data.StatusText;
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
-                            logger.Failure(stepInfo.Title, stepInfo.CompletionText);
+                            logger.Failure(stepInfo.Id, stepInfo.CompletionText);
                         }
                         else if (IsCompletionStateWarning(stepInfo.CompletionState))
                         {
-                            logger.Warning(stepInfo.Title, stepInfo.CompletionText);
+                            logger.Warning(stepInfo.Id, stepInfo.CompletionText);
                         }
                         else
                         {
-                            logger.Success(stepInfo.Title, stepInfo.CompletionText);
+                            logger.Success(stepInfo.Id, stepInfo.CompletionText);
                         }
                     }
                 }
@@ -420,7 +421,7 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         tasks[activity.Data.Id] = task;
-                        logger.Progress(stepInfo.Title, activity.Data.StatusText);
+                        logger.Progress(stepInfo.Id, activity.Data.StatusText);
                     }
 
                     task.StatusText = activity.Data.StatusText;
@@ -439,15 +440,15 @@ internal abstract class PublishCommandBase : BaseCommand
 
                         if (IsCompletionStateError(task.CompletionState))
                         {
-                            logger.Failure(stepInfo.Title, message);
+                            logger.Failure(stepInfo.Id, message);
                         }
                         else if (IsCompletionStateWarning(task.CompletionState))
                         {
-                            logger.Warning(stepInfo.Title, message);
+                            logger.Warning(stepInfo.Id, message);
                         }
                         else
                         {
-                            logger.Success(stepInfo.Title, message);
+                            logger.Success(stepInfo.Id, message);
                         }
                     }
                 }
@@ -457,36 +458,26 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
                 var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
-
-                AnsiConsole.WriteLine();
-                var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-
-                // Use the same symbols as ConsoleActivityLogger: ✓ success, ✗ failure, ⚠ warning.
-                var operationPrefix = hasErrors ? OperationFailedPrefix : OperationCompletedPrefix;
-                var statusSymbol = hasErrors ? "✗" : hasWarnings ? "⚠" : "✓";
-                var statusText = publishingActivity.Data.StatusText.EscapeMarkup();
-
+                // Determine first failed step (if any) for failure detail.
+                string? failedStepTitle = null;
+                string? failedStepMessage = null;
                 if (hasErrors)
                 {
-                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [red]{statusSymbol} {statusText}[/]");
-                }
-                else if (hasWarnings)
-                {
-                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [yellow]{statusSymbol} {statusText}[/]");
-                }
-                else
-                {
-                    // Color the final successful deployment line in green (symbol + message)
-                    AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] [green]{statusSymbol} {statusText}[/]");
+                    var failedStep = steps.Values.FirstOrDefault(s => IsCompletionStateError(s.CompletionState));
+                    if (failedStep is not null)
+                    {
+                        failedStepTitle = failedStep.Title;
+                        failedStepMessage = failedStep.CompletionText;
+                    }
                 }
 
-                // Extra blank line after final deployment status for readability.
-                AnsiConsole.WriteLine();
+                // Provide final result to logger and print its structured summary.
+                logger.SetFinalResult(!hasErrors, failedStepTitle, failedStepMessage);
+                logger.WriteSummary();
 
-                // Send visual bell notification when operation is complete
+                // Visual bell
                 Console.Write("\a");
                 Console.Out.Flush();
-
                 return !hasErrors;
             }
 

@@ -17,11 +17,12 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal sealed class ConsoleActivityLogger
 {
-    private const int TaskWidth = 20; // Reserved for potential fixed width alignment (currently not truncating)
     private readonly bool _enableColor;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
+    private readonly Dictionary<string, ActivityState> _stepStates = new(); // Track final state per step for summary
+    private readonly Dictionary<string, string> _displayNames = new(); // Optional friendly display names for step keys
     private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
     private int _colorIndex;
 
@@ -57,7 +58,28 @@ internal sealed class ConsoleActivityLogger
 
     public void StartTask(string taskKey, string? startingMessage = null)
     {
+        lock (_lock)
+        {
+            // Initialize step state as InProgress if first time seen
+            if (!_stepStates.ContainsKey(taskKey))
+            {
+                _stepStates[taskKey] = ActivityState.InProgress;
+            }
+        }
         WriteLine(taskKey, InProgressSymbol, startingMessage ?? "Starting...", ActivityState.InProgress);
+    }
+
+    public void StartTask(string taskKey, string displayName, string? startingMessage = null)
+    {
+        lock (_lock)
+        {
+            if (!_stepStates.ContainsKey(taskKey))
+            {
+                _stepStates[taskKey] = ActivityState.InProgress;
+            }
+            _displayNames[taskKey] = displayName;
+        }
+        WriteLine(taskKey, InProgressSymbol, startingMessage ?? ($"Starting {displayName}..."), ActivityState.InProgress);
     }
 
     public void StartSpinner()
@@ -103,6 +125,7 @@ internal sealed class ConsoleActivityLogger
         lock (_lock)
         {
             _successCount++;
+            _stepStates[taskKey] = ActivityState.Success;
         }
         WriteCompletion(taskKey, SuccessSymbol, message, ActivityState.Success, seconds);
     }
@@ -112,6 +135,7 @@ internal sealed class ConsoleActivityLogger
         lock (_lock)
         {
             _warningCount++;
+            _stepStates[taskKey] = ActivityState.Warning;
         }
         WriteCompletion(taskKey, WarningSymbol, message, ActivityState.Warning, seconds);
     }
@@ -121,6 +145,7 @@ internal sealed class ConsoleActivityLogger
         lock (_lock)
         {
             _failureCount++;
+            _stepStates[taskKey] = ActivityState.Failure;
         }
         WriteCompletion(taskKey, FailureSymbol, message, ActivityState.Failure, seconds);
     }
@@ -134,10 +159,11 @@ internal sealed class ConsoleActivityLogger
     {
         lock (_lock)
         {
-            var indent = new string(' ', 8 /* time */ + 3 /* gap */ + TaskWidth + 2 /* gap */ + 2 /* symbol + space */);
+            // Continuation lines: indent with two spaces relative to the symbol column for readability
+            const string continuationPrefix = "  ";
             foreach (var line in SplitLinesPreserve(message))
             {
-                Console.Write(indent);
+                Console.Write(continuationPrefix);
                 Console.WriteLine(line);
             }
         }
@@ -150,35 +176,49 @@ internal sealed class ConsoleActivityLogger
             var totalSeconds = _stopwatch.Elapsed.TotalSeconds;
             var line = new string('-', 60);
             AnsiConsole.MarkupLine(line);
-
-            var parts = new List<string>();
+            var totalSteps = _stepStates.Count;
+            // Derive per-step outcome counts from _stepStates (not task-level counters) for accurate X/Y display.
+            var succeededSteps = _stepStates.Values.Count(v => v == ActivityState.Success);
+            var warningSteps = _stepStates.Values.Count(v => v == ActivityState.Warning);
+            var failedSteps = _stepStates.Values.Count(v => v == ActivityState.Failure);
+            var summaryParts = new List<string>();
+            var succeededSegment = totalSteps > 0 ? $"{succeededSteps}/{totalSteps} steps succeeded" : $"{succeededSteps} steps succeeded";
             if (_enableColor)
             {
-                parts.Add($"[green]{SuccessSymbol} {_successCount} succeeded[/]");
-                if (_warningCount > 0)
+                summaryParts.Add($"[green]{SuccessSymbol} {succeededSegment}[/]");
+                if (warningSteps > 0)
                 {
-                    parts.Add($"[yellow]{WarningSymbol} {_warningCount} warning{(_warningCount == 1 ? string.Empty : "s")}[/]");
+                    summaryParts.Add($"[yellow]{WarningSymbol} {warningSteps} warning{(warningSteps == 1 ? string.Empty : "s")}[/]");
                 }
-                if (_failureCount > 0)
+                if (failedSteps > 0)
                 {
-                    parts.Add($"[red]{FailureSymbol} {_failureCount} failed[/]");
+                    summaryParts.Add($"[red]{FailureSymbol} {failedSteps} failed[/]");
                 }
             }
             else
             {
-                parts.Add($"{SuccessSymbol} {_successCount} succeeded");
-                if (_warningCount > 0)
+                summaryParts.Add($"{SuccessSymbol} {succeededSegment}");
+                if (warningSteps > 0)
                 {
-                    parts.Add($"{WarningSymbol} {_warningCount} warning{(_warningCount == 1 ? string.Empty : "s")}");
+                    summaryParts.Add($"{WarningSymbol} {warningSteps} warning{(warningSteps == 1 ? string.Empty : "s")}");
                 }
-                if (_failureCount > 0)
+                if (failedSteps > 0)
                 {
-                    parts.Add($"{FailureSymbol} {_failureCount} failed");
+                    summaryParts.Add($"{FailureSymbol} {failedSteps} failed");
                 }
             }
+            summaryParts.Add($"Total time: {totalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s");
+            AnsiConsole.MarkupLine(string.Join(" • ", summaryParts));
 
-            parts.Add($"Total time: {totalSeconds.ToString("0.0", CultureInfo.InvariantCulture)}s");
-            AnsiConsole.MarkupLine(string.Join(" • ", parts));
+            // If a caller provided a final status line via SetFinalResult, print it now
+            if (!string.IsNullOrEmpty(_finalStatusHeader))
+            {
+                AnsiConsole.MarkupLine(_finalStatusHeader!);
+                if (!string.IsNullOrEmpty(_finalStatusDetail))
+                {
+                    AnsiConsole.MarkupLine(_finalStatusDetail!);
+                }
+            }
             if (!string.IsNullOrEmpty(dashboardUrl))
             {
                 // Render dashboard URL as clickable link
@@ -187,6 +227,35 @@ internal sealed class ConsoleActivityLogger
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
+        }
+    }
+
+    private string? _finalStatusHeader;
+    private string? _finalStatusDetail;
+
+    /// <summary>
+    /// Sets the final deployment result lines to be displayed in the summary (e.g., DEPLOYMENT FAILED ...).
+    /// Optional usage so existing callers remain compatible.
+    /// </summary>
+    public void SetFinalResult(bool succeeded, string? failureStep, string? failureMessage)
+    {
+        if (succeeded)
+        {
+            _finalStatusHeader = _enableColor ? "[green]DEPLOYMENT SUCCEEDED[/]" : "DEPLOYMENT SUCCEEDED";
+            _finalStatusDetail = null; // No detail line on success per spec
+        }
+        else
+        {
+            var header = _enableColor ? "[red]DEPLOYMENT FAILED[/]" : "DEPLOYMENT FAILED";
+            _finalStatusHeader = header;
+            if (!string.IsNullOrEmpty(failureStep) && !string.IsNullOrEmpty(failureMessage))
+            {
+                var step = failureStep!.EscapeMarkup();
+                var msg = HighlightAndEscape(failureMessage!);
+                _finalStatusDetail = _enableColor
+                    ? $"[red]{FailureSymbol} Step '{step}' failed: {msg}[/]"
+                    : $"{FailureSymbol} Step '{step}' failed: {failureMessage}";
+            }
         }
     }
 
@@ -202,13 +271,14 @@ internal sealed class ConsoleActivityLogger
         {
             var time = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
             var stepColor = GetOrAssignStepColor(taskKey);
+            var displayKey = _displayNames.TryGetValue(taskKey, out var dn) ? dn : taskKey;
             var coloredSymbol = _enableColor ? ColorizeSymbol(symbol, state) : symbol;
 
             foreach (var line in SplitLinesPreserve(message))
             {
                 // Format: dim timestamp, colored step tag, symbol, escaped message
                 var escapedLine = HighlightAndEscape(line);
-                var escapedTask = taskKey.EscapeMarkup();
+                var escapedTask = displayKey.EscapeMarkup();
                 var markup = new StringBuilder();
                 markup.Append("[dim]").Append(time).Append("[/] ");
                 markup.Append('[').Append(stepColor).Append(']').Append('(').Append(escapedTask).Append(')').Append("[/] ");
