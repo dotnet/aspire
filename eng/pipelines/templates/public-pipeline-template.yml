@@ -91,20 +91,20 @@ stages:
                 fetchDepth: 1
                 clean: true
 
-              - script: |
-                  if [ "$(Agent.OS)" = "Windows_NT" ]; then
+              - pwsh: |
+                  if ($env:AGENT_OS -eq "Windows_NT") {
                     ./restore.cmd
-                  else
+                  } else {
                     ./restore.sh
-                  fi
+                  }
                 displayName: 'Restore .NET SDK'
 
-              - script: |
-                  if [ "$(Agent.OS)" = "Windows_NT" ]; then
+              - pwsh: |
+                  if ($env:AGENT_OS -eq "Windows_NT") {
                     ./dotnet.cmd build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
-                  else
+                  } else {
                     ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
-                  fi
+                  }
                 displayName: 'Generate integration tests list'
 
               - pwsh: |
@@ -168,20 +168,20 @@ stages:
                 fetchDepth: 1
                 clean: true
 
-              - script: |
-                  if [ "$(platformName)" = "Windows" ]; then
+              - pwsh: |
+                  if ("$(platformName)" -eq "Windows") {
                     ./restore.cmd
-                  else
+                  } else {
                     ./restore.sh
-                  fi
+                  }
                 displayName: 'Restore .NET SDK'
 
-              - script: |
-                  if [ "$(platformName)" = "Windows" ]; then
+              - pwsh: |
+                  if ("$(platformName)" -eq "Windows") {
                     ./build.cmd -ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
-                  else
+                  } else {
                     ./build.sh --ci -restore -build -configuration $(_BuildConfig) /bl:$(Build.Arcade.LogsPath)/build-$(testShortName)-$(platformName).binlog /p:SkipTestProjects=true
-                  fi
+                  }
                 displayName: 'Build solution'
                 env:
                   DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
@@ -203,12 +203,12 @@ stages:
                 continueOnError: true
                 condition: ne(variables['platformName'], 'Windows')
 
-              - script: |
-                  if [ "$(platformName)" = "Windows" ]; then
-                    ./dotnet.cmd dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter \"Category!=quarantined&Category!=outerloop\""
-                  else
-                    ./dotnet.sh dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger \"trx;LogFileName=$(testShortName)-$(platformName).trx\" --logger \"console;verbosity=normal\" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter \"Category!=quarantined&Category!=outerloop\""
-                  fi
+              - pwsh: |
+                  if ("$(platformName)" -eq "Windows") {
+                    ./dotnet.cmd dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger `"trx;LogFileName=$(testShortName)-$(platformName).trx`" --logger `"console;verbosity=normal`" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter `"Category!=quarantined&Category!=outerloop`""
+                  } else {
+                    ./dotnet.sh dotnet-coverage collect --output $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).cobertura.xml "./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger `"trx;LogFileName=$(testShortName)-$(platformName).trx`" --logger `"console;verbosity=normal`" --results-directory $(Build.Arcade.TestResultsPath) --no-build --filter `"Category!=quarantined&Category!=outerloop`""
+                  }
                 displayName: 'Run $(testShortName) tests on $(platformName)'
                 env:
                   DOCKER_BUILDKIT: 1
