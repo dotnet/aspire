@@ -204,3 +204,29 @@ internal class DockerfileUserStatement : DockerfileStatement
         await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
     }
 }
+
+/// <summary>
+/// Represents a comment in a Dockerfile.
+/// </summary>
+internal class DockerfileCommentStatement : DockerfileStatement
+{
+    private readonly string _comment;
+
+    public DockerfileCommentStatement(string comment)
+    {
+        _comment = comment;
+    }
+
+    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    {
+        // Split by newlines to handle multi-line comments
+        var lines = _comment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
+        
+        foreach (var line in lines)
+        {
+            var statement = $"# {line}";
+            var bytes = Encoding.UTF8.GetBytes(statement + "\n");
+            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        }
+    }
+}

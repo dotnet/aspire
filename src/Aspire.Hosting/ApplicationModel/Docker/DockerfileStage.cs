@@ -141,6 +141,22 @@ public class DockerfileStage : DockerfileStatement
         return this;
     }
 
+    /// <summary>
+    /// Adds a comment to the Dockerfile. Multi-line comments are supported.
+    /// </summary>
+    /// <param name="comment">The comment text. Can be single-line or multi-line.</param>
+    /// <returns>The current stage.</returns>
+    /// <remarks>
+    /// When a multi-line comment is provided, each line will be prefixed with '#'.
+    /// Empty lines in multi-line comments are preserved as comment lines.
+    /// </remarks>
+    public DockerfileStage Comment(string comment)
+    {
+        ArgumentNullException.ThrowIfNull(comment);
+        _statements.Add(new DockerfileCommentStatement(comment));
+        return this;
+    }
+
     /// <inheritdoc />
     public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
     {

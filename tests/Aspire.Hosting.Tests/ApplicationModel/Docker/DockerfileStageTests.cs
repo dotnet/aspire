@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Hosting.ApplicationModel.Docker;
 
 namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
@@ -285,5 +286,264 @@ public class DockerfileStageTests
 
         // Assert
         Assert.Equal(5, stage.Statements.Count); // FROM + WORKDIR + COPY + USER + CMD
+    }
+
+    [Fact]
+    public void Comment_WithSingleLineComment_AddsStatement()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node");
+
+        // Act
+        var result = stage.Comment("This is a comment");
+
+        // Assert
+        Assert.Same(stage, result);
+        Assert.Equal(2, stage.Statements.Count); // FROM + COMMENT
+    }
+
+    [Fact]
+    public async Task Comment_WithSingleLineComment_WritesCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        stage.Comment("This is a single-line comment");
+        stage.Run("echo hello");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # This is a single-line comment
+            RUN echo hello
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task Comment_WithMultiLineComment_SplitsCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        var multiLineComment = """
+            This is line 1
+            This is line 2
+            This is line 3
+            """;
+        stage.Comment(multiLineComment);
+        stage.Run("echo hello");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # This is line 1
+            # This is line 2
+            # This is line 3
+            RUN echo hello
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task Comment_WithEmptyLinesInMultiLineComment_PreservesEmptyLines()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        var multiLineComment = """
+            Section 1 comment
+
+            Section 2 comment
+            """;
+        stage.Comment(multiLineComment);
+        stage.Run("echo hello");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # Section 1 comment
+            # 
+            # Section 2 comment
+            RUN echo hello
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task Comment_WithEmptyString_WritesCommentPrefix()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        stage.Comment("");
+        stage.Run("echo hello");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # 
+            RUN echo hello
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public void Comment_WithNull_ThrowsArgumentNullException()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("node");
+
+        // Act & Assert
+        Assert.Throws<ArgumentNullException>(() => stage.Comment(null!));
+    }
+
+    [Fact]
+    public async Task Comment_MultipleComments_WritesSequentially()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        stage.Comment("First comment");
+        stage.Run("echo first");
+        stage.Comment("Second comment");
+        stage.Run("echo second");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # First comment
+            RUN echo first
+            # Second comment
+            RUN echo second
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public void FluentChaining_WithComment_WorksCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+
+        // Act
+        var stage = builder.From("node")
+            .Comment("Install dependencies")
+            .WorkDir("/app")
+            .Copy("package*.json", "./")
+            .Run("npm ci")
+            .Comment("Copy application files")
+            .Copy(".", ".")
+            .Cmd(["node", "server.js"]);
+
+        // Assert
+        Assert.Equal(8, stage.Statements.Count); // FROM + COMMENT + WORKDIR + COPY + RUN + COMMENT + COPY + CMD
+    }
+
+    [Fact]
+    public async Task Comment_WithComplexMultiLineComment_FormatsCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        var stage = builder.From("alpine");
+        var complexComment = """
+            ==========================================
+            Build Stage 1: Dependencies
+            ==========================================
+            Install all required system packages
+            and configure the build environment
+            """;
+        stage.Comment(complexComment);
+        stage.Run("apk add build-base");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            FROM alpine
+            # ==========================================
+            # Build Stage 1: Dependencies
+            # ==========================================
+            # Install all required system packages
+            # and configure the build environment
+            RUN apk add build-base
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
+    }
+
+    [Fact]
+    public async Task Comment_AsDockerfileHeader_WorksCorrectly()
+    {
+        // Arrange
+        var builder = new DockerfileBuilder();
+        
+        // Add comment before FROM
+        var stage = builder.From("node:18");
+        stage.Statements.Insert(0, new DockerfileCommentStatement("Generated Dockerfile for Node.js application"));
+        stage.WorkDir("/app");
+        
+        using var stream = new MemoryStream();
+
+        // Act
+        await builder.WriteAsync(stream);
+
+        // Assert
+        var content = Encoding.UTF8.GetString(stream.ToArray());
+        var expectedContent = """
+            # Generated Dockerfile for Node.js application
+            FROM node:18
+            WORKDIR /app
+
+            """.ReplaceLineEndings("\n");
+        
+        Assert.Equal(expectedContent, content);
     }
 }
