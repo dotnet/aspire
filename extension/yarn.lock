@@ -5401,9 +5401,9 @@ tapable@^2.1.1, tapable@^2.2.0:
   integrity sha1-q0mENA0wy5mJpJADLwhtu4tW2HI=
 
 tar-fs@^2.0.0:
-  version "2.1.3"
-  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/tar-fs/-/tar-fs-2.1.3.tgz"
-  integrity sha1-+zuIQ6JrbxOgjmBveSKHXrH7v5I=
+  version "2.1.4"
+  resolved "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-public-npm/npm/registry/tar-fs/-/tar-fs-2.1.4.tgz#800824dbf4ef06ded9afea4acafe71c67c76b930"
+  integrity sha1-gAgk2/TvBt7Zr+pKyv5xxnx2uTA=
   dependencies:
     chownr "^1.1.1"
     mkdirp-classic "^0.5.2"
