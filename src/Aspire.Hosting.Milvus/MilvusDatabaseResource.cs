@@ -41,8 +41,7 @@ public class MilvusDatabaseResource(string name, string databaseName, MilvusServ
     }
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
-        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
-            .Union([
-                new("Database", ReferenceExpression.Create($"{DatabaseName}"))
-            ]);
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}"))
+        ]);
 }

@@ -46,9 +46,8 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
     }
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
-        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
-            .Union([
-                new("Database", ReferenceExpression.Create($"{DatabaseName}")),
-                new("JdbcConnectionString", JdbcConnectionString),
-            ]);
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

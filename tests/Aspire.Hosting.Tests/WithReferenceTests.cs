@@ -495,10 +495,10 @@ public class WithReferenceTests
             ConnectionString = "Server=localhost;Database=mydb"
         });
 
-#pragma warning disable ASPIREHOSTINGPYTHON001, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         var executable = builder.AddPythonApp("PythonApp", ".\\app", "app.py")
                                 .WithReference(resource);
-#pragma warning restore ASPIREHOSTINGPYTHON001, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning restore ASPIREHOSTINGPYTHON001, CS0612, CS0618, CS0619 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         // Call environment variable callbacks.
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(executable.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();

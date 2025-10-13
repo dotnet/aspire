@@ -41,8 +41,7 @@ public class OpenAIModelResource : Resource, IResourceWithParent<OpenAIResource>
         ReferenceExpression.Create($"{Parent};Model={Model}");
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
-        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
-            .Union([
-                new("Model", ReferenceExpression.Create($"{Model}")),
-            ]);
+        Parent.CombineProperties([
+            new("Model", ReferenceExpression.Create($"{Model}")),
+        ]);
 }

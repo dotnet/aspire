@@ -65,10 +65,9 @@ public class PostgresDatabaseResource(string name, string databaseName, Postgres
     public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
 
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
-        ((IResourceWithConnectionString)Parent).GetConnectionProperties()
-            .Union([
-                new ("Database", ReferenceExpression.Create($"{DatabaseName}")),
-                new ("Uri", UriExpression),
-                new ("JdbcConnectionString", JdbcConnectionString),
-            ]);
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }
