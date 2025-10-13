@@ -47,6 +47,19 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             ApplyTemplateWithNoExtraArgsAsync
             );
 
+        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
+        // and should be surfaced to the user when the single-file AppHost feature is enabled.
+        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            yield return new CallbackTemplate(
+                "aspire-apphost-singlefile",
+                TemplatingStrings.AspireAppHostSingleFile_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplySingleFileTemplate
+                );
+        }
+
         if (showAllTemplates)
         {
             yield return new CallbackTemplate(
@@ -63,19 +76,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplyTemplateWithNoExtraArgsAsync
-                );
-        }
-
-        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
-        // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-        {
-            yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
                 );
         }
 
