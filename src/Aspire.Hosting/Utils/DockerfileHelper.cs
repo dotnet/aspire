@@ -35,13 +35,18 @@ internal static class DockerfileHelper
             var dockerfileContent = await annotation.DockerfileFactory(context).ConfigureAwait(false);
             await File.WriteAllTextAsync(annotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
 
-            var rls = serviceProvider.GetRequiredService<ResourceLoggerService>();
-            var logger = rls.GetLogger(resource);
-            logger.LogInformation(
-                "Wrote generated Dockerfile at {DockerfilePath} using factory for resource {ResourceName}:\n{DockerfileContent}",
-                annotation.DockerfilePath,
-                resource.Name,
-                dockerfileContent);
+            var executionContext = serviceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
+
+            if (executionContext.IsRunMode)
+            {
+                var rls = serviceProvider.GetRequiredService<ResourceLoggerService>();
+                var logger = rls.GetLogger(resource);
+                logger.LogInformation(
+                    "Wrote generated Dockerfile at {DockerfilePath} using factory for resource {ResourceName}:\n{DockerfileContent}",
+                    annotation.DockerfilePath,
+                    resource.Name,
+                    dockerfileContent);
+            }
         }
     }
 }
