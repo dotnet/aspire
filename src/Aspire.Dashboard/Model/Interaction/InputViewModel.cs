@@ -46,6 +46,13 @@ public sealed class InputViewModel
                 .ToList();
 
             SelectOptions = optionsVM;
+
+            // Default to the first option if no placeholder is set, the value is empty, and custom choice is disabled.
+            // This is done so the input model value matches frontend behavior (FluentSelect defaults to the first option)
+            if (string.IsNullOrEmpty(input.Placeholder) && string.IsNullOrEmpty(input.Value) && optionsVM.Count > 0 && !input.AllowCustomChoice)
+            {
+                input.Value = optionsVM[0].Id;
+            }
         }
     }
 
