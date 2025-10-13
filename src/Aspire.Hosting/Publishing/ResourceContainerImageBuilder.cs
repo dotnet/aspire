@@ -435,7 +435,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    internal static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
         try
         {
