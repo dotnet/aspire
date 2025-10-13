@@ -551,7 +551,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfile("path/to/context", context => 
+    ///        .WithDockerfileFactory("path/to/context", context => 
     ///        {
     ///            return "FROM alpine:latest\nRUN echo 'Hello World'";
     ///        });
@@ -560,12 +560,12 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfileFactory<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(dockerfileFactory);
 
-        return builder.WithDockerfile(contextPath, context => Task.FromResult(dockerfileFactory(context)), stage);
+        return builder.WithDockerfileFactory(contextPath, context => Task.FromResult(dockerfileFactory(context)), stage);
     }
 
     /// <summary>
@@ -596,7 +596,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfile("path/to/context", async context => 
+    ///        .WithDockerfileFactory("path/to/context", async context => 
     ///        {
     ///            var template = await File.ReadAllTextAsync("template.dockerfile", context.CancellationToken);
     ///            return template.Replace("{{VERSION}}", "1.0");
@@ -606,7 +606,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfileFactory<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(contextPath);
@@ -700,15 +700,15 @@ public static class ContainerResourceBuilderExtensions
     /// The output is trusted and not validated.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null)
+    public static IResourceBuilder<ContainerResource> AddDockerfileFactory(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, string> dockerfileFactory, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(contextPath);
         ArgumentNullException.ThrowIfNull(dockerfileFactory);
 
-        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
-                      .WithDockerfile(contextPath, dockerfileFactory, stage);
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfileFactory.
+                      .WithDockerfileFactory(contextPath, dockerfileFactory, stage);
     }
 
     /// <summary>
@@ -729,15 +729,15 @@ public static class ContainerResourceBuilderExtensions
     /// The output is trusted and not validated.
     /// </para>
     /// </remarks>
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null)
+    public static IResourceBuilder<ContainerResource> AddDockerfileFactory(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileFactoryContext, Task<string>> dockerfileFactory, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(contextPath);
         ArgumentNullException.ThrowIfNull(dockerfileFactory);
 
-        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
-                      .WithDockerfile(contextPath, dockerfileFactory, stage);
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfileFactory.
+                      .WithDockerfileFactory(contextPath, dockerfileFactory, stage);
     }
 
     /// <summary>
@@ -762,7 +762,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfile("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
     /// {
     ///     context.Builder.From("alpine:latest")
     ///         .WorkDir("/app")
@@ -776,7 +776,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
+    public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -784,8 +784,8 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(callback);
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
-        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
-                      .WithDockerfile(contextPath, callback, stage);
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfileBuilder.
+                      .WithDockerfileBuilder(contextPath, callback, stage);
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
     }
 
@@ -811,7 +811,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfile("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
     /// {
     ///     context.Builder.From("node:18")
     ///         .WorkDir("/app")
@@ -824,7 +824,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
+    public static IResourceBuilder<ContainerResource> AddDockerfileBuilder(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -832,8 +832,8 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(callback);
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
-        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
-                      .WithDockerfile(contextPath, callback, stage);
+        return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfileBuilder.
+                      .WithDockerfileBuilder(contextPath, callback, stage);
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
     }
 
@@ -1237,7 +1237,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfile("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context => 
     ///        {
     ///            context.Builder.From("alpine:latest")
     ///                .WorkDir("/app")
@@ -1252,7 +1252,7 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(contextPath);
@@ -1316,8 +1316,8 @@ public static class ContainerResourceBuilderExtensions
         };
 #pragma warning restore ASPIREDOCKERFILEBUILDER001
 
-        // Use the existing WithDockerfile overload that takes a factory
-        return builder.WithDockerfile(contextPath, dockerfileFactory, stage);
+        // Use the existing WithDockerfileFactory overload that takes a factory
+        return builder.WithDockerfileFactory(contextPath, dockerfileFactory, stage);
     }
 
     /// <summary>
@@ -1344,7 +1344,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfile("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context => 
     ///        {
     ///            context.Builder.From("node:18")
     ///                .WorkDir("/app")
@@ -1357,12 +1357,12 @@ public static class ContainerResourceBuilderExtensions
     /// </example>
     /// </remarks>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
+    public static IResourceBuilder<T> WithDockerfileBuilder<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(callback);
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
-        return builder.WithDockerfile(contextPath, context =>
+        return builder.WithDockerfileBuilder(contextPath, context =>
         {
             callback(context);
             return Task.CompletedTask;
