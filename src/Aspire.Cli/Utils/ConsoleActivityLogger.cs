@@ -284,7 +284,20 @@ internal sealed class ConsoleActivityLogger
                 markup.Append('[').Append(stepColor).Append(']').Append('(').Append(escapedTask).Append(')').Append("[/] ");
                 if (_enableColor)
                 {
-                    markup.Append(coloredSymbol).Append(' ').Append(escapedLine);
+                    if (state == ActivityState.Failure)
+                    {
+                        // Make the entire failure segment (symbol + message) red, not just the symbol
+                        markup.Append("[red]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                    }
+                    else if (state == ActivityState.Warning)
+                    {
+                        // Optionally color whole warning message (improves scanability)
+                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                    }
+                    else
+                    {
+                        markup.Append(coloredSymbol).Append(' ').Append(escapedLine);
+                    }
                 }
                 else
                 {
