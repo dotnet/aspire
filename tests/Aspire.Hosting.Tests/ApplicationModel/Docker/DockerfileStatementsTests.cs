@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates
+
 using System.Text;
 using Aspire.Hosting.ApplicationModel.Docker;
 
@@ -15,9 +17,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node:20-bullseye");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -31,9 +35,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node:20-bullseye", "builder");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -47,9 +53,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").WorkDir("/app");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -63,9 +71,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").Run("npm install");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -80,9 +90,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("ubuntu").Run(command);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -96,9 +108,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").Copy("package*.json", "./");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -112,9 +126,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("nginx").CopyFrom("builder", "/app/dist", "/srv");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -128,9 +144,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").Env("NODE_ENV", "production");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -144,9 +162,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("alpine").Env("PATH", "");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -160,9 +180,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").Expose(3000);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -176,9 +198,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").Cmd(["node", "server.js"]);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -192,9 +216,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("nginx").Cmd(["nginx"]);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -208,9 +234,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("caddy").Cmd(["cmd", "run", "--config", "/etc/caddy/caddy.json"]);
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -224,9 +252,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("node").User("appuser");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -240,9 +270,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("alpine").User("1000");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());
@@ -256,9 +288,11 @@ public class DockerfileStatementsTests
         var builder = new DockerfileBuilder();
         var stage = builder.From("alpine").User("1000:1000");
         using var stream = new MemoryStream();
+        using var writer = new StreamWriter(stream, leaveOpen: true);
 
         // Act
-        await stage.WriteStatementAsync(stream);
+        await stage.WriteStatementAsync(writer);
+        await writer.FlushAsync();
 
         // Assert
         var result = Encoding.UTF8.GetString(stream.ToArray());

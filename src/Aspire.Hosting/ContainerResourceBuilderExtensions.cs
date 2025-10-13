@@ -791,6 +791,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -798,8 +799,10 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(contextPath);
         ArgumentNullException.ThrowIfNull(callback);
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
         return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, callback, stage);
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
     }
 
     /// <summary>
@@ -836,6 +839,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ContainerResource> AddDockerfile(this IDistributedApplicationBuilder builder, [ResourceName] string name, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -843,8 +847,10 @@ public static class ContainerResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(contextPath);
         ArgumentNullException.ThrowIfNull(callback);
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
         return builder.AddContainer(name, "placeholder") // Image name will be replaced by WithDockerfile.
                       .WithDockerfile(contextPath, callback, stage);
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
     }
 
     /// <summary>
@@ -1261,6 +1267,7 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Func<DockerfileBuilderCallbackContext, Task> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -1270,6 +1277,7 @@ public static class ContainerResourceBuilderExtensions
         var fullyQualifiedContextPath = Path.GetFullPath(contextPath, builder.ApplicationBuilder.AppHostDirectory)
                                            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
         // Check if there's already a DockerfileBuilderCallbackAnnotation
         var callbackAnnotation = builder.Resource.Annotations.OfType<DockerfileBuilderCallbackAnnotation>().LastOrDefault();
 
@@ -1316,6 +1324,7 @@ public static class ContainerResourceBuilderExtensions
 
             return dockerfileContent;
         };
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
 
         // Use the existing WithDockerfile overload that takes a factory
         return builder.WithDockerfile(contextPath, dockerfileFactory, stage);
@@ -1357,15 +1366,18 @@ public static class ContainerResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<T> WithDockerfile<T>(this IResourceBuilder<T> builder, string contextPath, Action<DockerfileBuilderCallbackContext> callback, string? stage = null) where T : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(callback);
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only
         return builder.WithDockerfile(contextPath, context =>
         {
             callback(context);
             return Task.CompletedTask;
         }, stage);
+#pragma warning restore ASPIREDOCKERFILEBUILDER001
     }
 }
 

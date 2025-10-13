@@ -1,7 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text;
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates
+
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
@@ -21,14 +22,13 @@ internal class DockerfileFromStatement : DockerfileStatement
         _stageName = stageName;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
         var statement = _stageName is not null 
             ? $"FROM {_imageReference} AS {_stageName}" 
             : $"FROM {_imageReference}";
         
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync(statement).ConfigureAwait(false);
     }
 }
 
@@ -44,11 +44,9 @@ internal class DockerfileWorkDirStatement : DockerfileStatement
         _path = path;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"WORKDIR {_path}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"WORKDIR {_path}").ConfigureAwait(false);
     }
 }
 
@@ -64,11 +62,9 @@ internal class DockerfileRunStatement : DockerfileStatement
         _command = command;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"RUN {_command}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"RUN {_command}").ConfigureAwait(false);
     }
 }
 
@@ -86,11 +82,9 @@ internal class DockerfileCopyStatement : DockerfileStatement
         _destination = destination;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"COPY {_source} {_destination}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"COPY {_source} {_destination}").ConfigureAwait(false);
     }
 }
 
@@ -110,11 +104,9 @@ internal class DockerfileCopyFromStatement : DockerfileStatement
         _destination = destination;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"COPY --from={_stage} {_source} {_destination}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"COPY --from={_stage} {_source} {_destination}").ConfigureAwait(false);
     }
 }
 
@@ -132,11 +124,9 @@ internal class DockerfileEnvStatement : DockerfileStatement
         _value = value;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"ENV {_name}={_value}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"ENV {_name}={_value}").ConfigureAwait(false);
     }
 }
 
@@ -152,11 +142,9 @@ internal class DockerfileExposeStatement : DockerfileStatement
         _port = port;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"EXPOSE {_port}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"EXPOSE {_port}").ConfigureAwait(false);
     }
 }
 
@@ -172,16 +160,14 @@ internal class DockerfileCmdStatement : DockerfileStatement
         _command = command;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
         var options = new JsonSerializerOptions
         {
             Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
         var commandJson = JsonSerializer.Serialize(_command, options);
-        var statement = $"CMD {commandJson}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"CMD {commandJson}").ConfigureAwait(false);
     }
 }
 
@@ -197,11 +183,9 @@ internal class DockerfileUserStatement : DockerfileStatement
         _user = user;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
-        var statement = $"USER {_user}";
-        var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        await writer.WriteLineAsync($"USER {_user}").ConfigureAwait(false);
     }
 }
 
@@ -217,16 +201,14 @@ internal class DockerfileCommentStatement : DockerfileStatement
         _comment = comment;
     }
 
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
         // Split by newlines to handle multi-line comments
         var lines = _comment.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
         
         foreach (var line in lines)
         {
-            var statement = $"# {line}";
-            var bytes = Encoding.UTF8.GetBytes(statement + "\n");
-            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+            await writer.WriteLineAsync($"# {line}").ConfigureAwait(false);
         }
     }
 }

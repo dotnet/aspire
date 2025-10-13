@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Aspire.Hosting.ApplicationModel.Docker;
@@ -8,6 +9,7 @@ namespace Aspire.Hosting.ApplicationModel.Docker;
 /// <summary>
 /// Builder for creating Dockerfiles programmatically.
 /// </summary>
+[Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class DockerfileBuilder
 {
     private readonly List<DockerfileStage> _stages = [];
@@ -30,6 +32,7 @@ public class DockerfileBuilder
     /// <param name="image">The image reference (e.g., 'node:18' or 'alpine:latest').</param>
     /// <param name="stageName">The stage name for multi-stage builds.</param>
     /// <returns>A stage builder for the new stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage From(string image, string stageName)
     {
         ArgumentException.ThrowIfNullOrEmpty(image);
@@ -45,6 +48,7 @@ public class DockerfileBuilder
     /// </summary>
     /// <param name="image">The image reference (e.g., 'node:18' or 'alpine:latest').</param>
     /// <returns>A stage builder for the new stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage From(string image)
     {
         ArgumentException.ThrowIfNullOrEmpty(image);
@@ -64,21 +68,19 @@ public class DockerfileBuilder
     {
         ArgumentNullException.ThrowIfNull(stream);
 
+        using var writer = new StreamWriter(stream, Encoding.UTF8, leaveOpen: true);
+        
         foreach (var stage in _stages)
         {
-            await stage.WriteStatementAsync(stream, cancellationToken).ConfigureAwait(false);
+            await stage.WriteStatementAsync(writer, cancellationToken).ConfigureAwait(false);
             
             // Add a blank line between stages
             if (stage != _stages.Last())
             {
-                await WriteLineAsync(stream, "", cancellationToken).ConfigureAwait(false);
+                await writer.WriteLineAsync().ConfigureAwait(false);
             }
         }
-    }
-
-    private static async Task WriteLineAsync(Stream stream, string content, CancellationToken cancellationToken)
-    {
-        var bytes = Encoding.UTF8.GetBytes(content + "\n");
-        await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
+        
+        await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
     }
 }

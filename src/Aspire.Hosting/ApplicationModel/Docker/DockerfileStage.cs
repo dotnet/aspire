@@ -1,11 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace Aspire.Hosting.ApplicationModel.Docker;
 
 /// <summary>
 /// Represents a stage within a multi-stage Dockerfile.
 /// </summary>
+[Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class DockerfileStage : DockerfileStatement
 {
     private readonly List<DockerfileStatement> _statements = [];
@@ -38,6 +41,7 @@ public class DockerfileStage : DockerfileStatement
     /// </summary>
     /// <param name="path">The working directory path.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage WorkDir(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -50,6 +54,7 @@ public class DockerfileStage : DockerfileStatement
     /// </summary>
     /// <param name="command">The command to execute.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Run(string command)
     {
         ArgumentException.ThrowIfNullOrEmpty(command);
@@ -63,6 +68,7 @@ public class DockerfileStage : DockerfileStatement
     /// <param name="source">The source path or pattern.</param>
     /// <param name="destination">The destination path.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Copy(string source, string destination)
     {
         ArgumentException.ThrowIfNullOrEmpty(source);
@@ -78,6 +84,7 @@ public class DockerfileStage : DockerfileStatement
     /// <param name="source">The source path in the stage.</param>
     /// <param name="destination">The destination path.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage CopyFrom(string stage, string source, string destination)
     {
         ArgumentException.ThrowIfNullOrEmpty(stage);
@@ -93,6 +100,7 @@ public class DockerfileStage : DockerfileStatement
     /// <param name="name">The environment variable name.</param>
     /// <param name="value">The environment variable value.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Env(string name, string value)
     {
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -106,6 +114,7 @@ public class DockerfileStage : DockerfileStatement
     /// </summary>
     /// <param name="port">The port number to expose.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Expose(int port)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(port);
@@ -118,6 +127,7 @@ public class DockerfileStage : DockerfileStatement
     /// </summary>
     /// <param name="command">The command to execute.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Cmd(string[] command)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -134,6 +144,7 @@ public class DockerfileStage : DockerfileStatement
     /// </summary>
     /// <param name="user">The user name or UID.</param>
     /// <returns>The current stage.</returns>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage User(string user)
     {
         ArgumentException.ThrowIfNullOrEmpty(user);
@@ -150,6 +161,7 @@ public class DockerfileStage : DockerfileStatement
     /// When a multi-line comment is provided, each line will be prefixed with '#'.
     /// Empty lines in multi-line comments are preserved as comment lines.
     /// </remarks>
+    [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public DockerfileStage Comment(string comment)
     {
         ArgumentNullException.ThrowIfNull(comment);
@@ -158,11 +170,11 @@ public class DockerfileStage : DockerfileStatement
     }
 
     /// <inheritdoc />
-    public override async Task WriteStatementAsync(Stream stream, CancellationToken cancellationToken = default)
+    public override async Task WriteStatementAsync(StreamWriter writer, CancellationToken cancellationToken = default)
     {
         foreach (var statement in _statements)
         {
-            await statement.WriteStatementAsync(stream, cancellationToken).ConfigureAwait(false);
+            await statement.WriteStatementAsync(writer, cancellationToken).ConfigureAwait(false);
         }
     }
 }
