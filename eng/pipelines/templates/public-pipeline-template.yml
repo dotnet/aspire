@@ -150,7 +150,7 @@ stages:
                 name: 'GenerateMatrix'
 
           - job: RunIntegrationTests
-            displayName: '$(platformName) / $(testShortName)'
+            displayName: 'Integration Tests'
             dependsOn: EnumerateIntegrationTests
             condition: succeeded()
 
