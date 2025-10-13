@@ -115,13 +115,24 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                         {
                             change.InputsDialog = new InteractionInputsDialog();
 
+                            // Find all the inputs that are depended on.
+                            // These inputs value changing will cause the interaction to be sent to the server.
+                            var updateStateOnChangeInputs = inputs.Inputs
+                                .SelectMany(i => i.DynamicOptions?.DependsOnInputs ?? [])
+                                .ToList();
+
                             var inputInstances = inputs.Inputs.Select(input =>
                             {
+                                var updateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName));
+
                                 var dto = new Aspire.DashboardService.Proto.V1.InteractionInput
                                 {
+                                    Name = input.Name,
                                     InputType = MapInputType(input.InputType),
                                     Required = input.Required,
                                     AllowCustomChoice = input.AllowCustomChoice,
+                                    UpdateStateOnChange = updateStateOnChange,
+                                    Disabled = input.Disabled
                                 };
                                 if (input.EffectiveLabel != null)
                                 {
@@ -143,6 +154,10 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 if (input.Options != null)
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
+                                }
+                                if (input.DynamicState is { } providerState)
+                                {
+                                    dto.Loading = providerState.Loading;
                                 }
                                 if (input.MaxLength != null)
                                 {
@@ -214,6 +229,20 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
             _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
         };
     }
+
+    public static Aspire.Hosting.InputType MapInputType(Aspire.DashboardService.Proto.V1.InputType inputType)
+    {
+        return inputType switch
+        {
+            Aspire.DashboardService.Proto.V1.InputType.Text => InputType.Text,
+            Aspire.DashboardService.Proto.V1.InputType.SecretText => InputType.SecretText,
+            Aspire.DashboardService.Proto.V1.InputType.Choice => InputType.Choice,
+            Aspire.DashboardService.Proto.V1.InputType.Boolean => InputType.Boolean,
+            Aspire.DashboardService.Proto.V1.InputType.Number => InputType.Number,
+            _ => throw new InvalidOperationException($"Unexpected input type: {inputType}"),
+        };
+    }
+
 #pragma warning restore ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
     public override async Task WatchResources(

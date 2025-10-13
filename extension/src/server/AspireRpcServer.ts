@@ -5,7 +5,7 @@ import { invalidTokenProvided, rpcServerAddressError, rpcServerError } from '../
 import { addInteractionServiceEndpoints, IInteractionService } from './interactionService';
 import { ICliRpcClient } from './rpcClient';
 import * as tls from 'tls';
-import { createSelfSignedCert, generateToken } from '../utils/security';
+import { createSelfSignedCertAsync, generateToken } from '../utils/security';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { getSupportedCapabilities } from '../capabilities';
 import { timingSafeEqual } from 'crypto';
@@ -51,9 +51,9 @@ export default class AspireRpcServer {
         this.server.close();
     }
 
-    static create(rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => ICliRpcClient): Promise<AspireRpcServer> {
+    static async create(rpcClientFactory: (rpcServerConnectionInfo: RpcServerConnectionInfo, connection: MessageConnection, token: string, debugSessionId: string | null) => ICliRpcClient): Promise<AspireRpcServer> {
         const token = generateToken();
-        const { key, cert } = createSelfSignedCert();
+        const { key, cert } = await createSelfSignedCertAsync();
 
         function withAuthentication(callback: (...params: any[]) => any) {
             return (...params: any[]) => {

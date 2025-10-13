@@ -60,6 +60,22 @@ app.MapGet("/write-console", () =>
     return "Console written";
 });
 
+app.MapGet("/write-console-large", () =>
+{
+    var random = new Random();
+
+    for (var i = 0; i < 5000; i++)
+    {
+        var data = new byte[i];
+        random.NextBytes(data);
+        var payload = Convert.ToHexString(data);
+
+        Console.Out.WriteLine($"{i} Out. Payload: {payload}");
+    }
+
+    return "Console written";
+});
+
 app.MapGet("/increment-counter", (TestMetrics metrics) =>
 {
     metrics.IncrementCounter(1, new TagList([new KeyValuePair<string, object?>("add-tag", "1")]));
@@ -161,6 +177,43 @@ app.MapGet("/log-message-limit", async ([FromServices] ILogger<Program> logger) 
     }
 
     return $"Created {LogCount} logs.";
+});
+
+app.MapGet("/log-message-limit-large", async ([FromServices] ILogger<Program> logger) =>
+{
+    const int LogCount = 10_000;
+    const int BatchSize = 100;
+
+    var random = new Random();
+
+    for (var i = 0; i < LogCount / BatchSize; i++)
+    {
+        for (var j = 0; j < BatchSize; j++)
+        {
+            var size = (i + 1) * (j + 1) / 10;
+            var data = new byte[size];
+            random.NextBytes(data);
+            var payload = Convert.ToHexString(data);
+
+            logger.LogInformation("Log entry {BatchIndex}-{LogEntryIndex}: {Payload}", i, j, payload);
+        }
+
+        await Task.Delay(50);
+    }
+
+    return $"Created {LogCount} logs.";
+
+    static async Task RecurseToError(int current, int depth)
+    {
+        await Task.Yield();
+
+        if (current == depth)
+        {
+            throw new InvalidOperationException($"Recursed to depth {depth}");
+        }
+
+        await RecurseToError(++current, depth);
+    }
 });
 
 app.MapGet("/log-message", ([FromServices] ILogger<Program> logger) =>
@@ -400,6 +453,15 @@ app.MapGet("/genai-trace", async () =>
                 ]
               },
               {
+                "role": "assistant",
+                "parts": [
+                  {
+                    "type": "text",
+                    "content": "Assistant content"
+                  }
+                ]
+              },
+              {
                 "role": "user",
                 "parts": [
                   {
@@ -441,6 +503,45 @@ app.MapGet("/genai-trace-display-error", async () =>
     activity?.Stop();
 
     return "Created GenAI trace";
+});
+
+async Task SimulateWorkAsync(ActivitySource source, int index, int millisecondsDelay = 2)
+{
+    using var activity = source.StartActivity($"WorkIteration{index + 1}");
+    // Simulate some work in each iteration.
+    await Task.Delay(millisecondsDelay);
+}
+
+app.MapGet("/big-nested-trace", async (HttpContext context) =>
+{
+    var source = new ActivitySource("Services.Api", "1.0.0");
+
+    // Start activity as before.
+    using var activity = source.StartActivity("HereActivity");
+
+    // Prepare response for simple streaming text.
+    context.Response.Headers["Content-Type"] = "text/plain; charset=utf-8";
+    context.Response.Headers["Cache-Control"] = "no-cache";
+
+    // Try to disable buffering if the server/proxy supports it.
+    context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>()?.DisableBuffering();
+
+    for (var i = 0; i < 10000; i++)
+    {
+        await SimulateWorkAsync(source, i);
+
+        // Every 100 iterations, write a progress chunk and flush so the client receives it incrementally.
+        if ((i + 1) % 100 == 0)
+        {
+            var msg = $"Progress: completed {i + 1} iterations\n";
+            await context.Response.WriteAsync(msg);
+            await context.Response.Body.FlushAsync();
+        }
+    }
+
+    // Final message
+    await context.Response.WriteAsync("Done\n");
+    await context.Response.Body.FlushAsync();
 });
 
 app.Run();

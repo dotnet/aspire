@@ -132,7 +132,7 @@
                     },
                     "ConnectionString": {
                       "type": "string",
-                      "description": "Gets or sets the connection string used to connect to the blob service."
+                      "description": "Gets or sets the connection string used to connect to the queue service."
                     },
                     "DisableHealthChecks": {
                       "type": "boolean",

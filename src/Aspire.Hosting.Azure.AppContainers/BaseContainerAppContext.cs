@@ -75,6 +75,13 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                 Name = "AZURE_CLIENT_ID",
                 Value = AllocateParameter(appIdentityResource.ClientId)
             });
+
+            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+            env.Add(new ContainerAppEnvironmentVariable
+            {
+                Name = "AZURE_TOKEN_CREDENTIALS",
+                Value = "ManagedIdentityCredential"
+            });
         }
     }
 

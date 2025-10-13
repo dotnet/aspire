@@ -8,10 +8,12 @@ using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Dashboard.Tests;
+using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Aspire.Hosting.ConsoleLogs;
 using Aspire.Tests.Shared.DashboardModel;
@@ -840,6 +842,7 @@ public partial class ConsoleLogsTests : DashboardTestContext
         Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.AddSingleton<PauseManager>();
+        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
     }
 
     private static string GetFluentFile(string filePath, Version version)

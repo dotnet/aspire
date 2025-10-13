@@ -12,7 +12,7 @@ import {
     LaunchSettings,
     LaunchProfile
 } from '../debugger/launchProfiles';
-import { LaunchConfiguration, EnvVar } from '../dcp/types';
+import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 
 suite('Launch Profile Tests', () => {
     suite('determineBaseLaunchProfile', () => {
@@ -32,7 +32,7 @@ suite('Launch Profile Tests', () => {
         };
 
         test('returns null when disable_launch_profile is true', () => {
-            const launchConfig: LaunchConfiguration = {
+            const launchConfig: ProjectLaunchConfiguration = {
                 type: 'project',
                 project_path: '/test/project.csproj',
                 disable_launch_profile: true
@@ -45,7 +45,7 @@ suite('Launch Profile Tests', () => {
         });
 
         test('returns null when no launch settings available', () => {
-            const launchConfig: LaunchConfiguration = {
+            const launchConfig: ProjectLaunchConfiguration = {
                 type: 'project',
                 project_path: '/test/project.csproj'
             };
@@ -57,7 +57,7 @@ suite('Launch Profile Tests', () => {
         });
 
         test('returns explicit launch profile when specified and exists', () => {
-            const launchConfig: LaunchConfiguration = {
+            const launchConfig: ProjectLaunchConfiguration = {
                 type: 'project',
                 project_path: '/test/project.csproj',
                 launch_profile: 'Development'
@@ -70,7 +70,7 @@ suite('Launch Profile Tests', () => {
         });
 
         test('returns null when explicit launch profile specified but does not exist', () => {
-            const launchConfig: LaunchConfiguration = {
+            const launchConfig: ProjectLaunchConfiguration = {
                 type: 'project',
                 project_path: '/test/project.csproj',
                 launch_profile: 'NonExistent'

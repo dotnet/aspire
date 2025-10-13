@@ -2,7 +2,7 @@ import * as assert from 'assert';
 import * as sinon from 'sinon';
 import * as vscode from 'vscode';
 import { createProjectDebuggerExtension, projectDebuggerExtension } from '../debugger/languages/dotnet';
-import { AspireResourceExtendedDebugConfiguration, LaunchConfiguration } from '../dcp/types';
+import { AspireResourceExtendedDebugConfiguration, ExecutableLaunchConfiguration, ProjectLaunchConfiguration } from '../dcp/types';
 import * as io from '../utils/io';
 import { ResourceDebuggerExtension } from '../debugger/debuggerExtensions';
 
@@ -37,6 +37,10 @@ class TestDotNetService {
     getAndActivateDevKit(): Promise<boolean> {
         return Promise.resolve(this._hasDevKit);
     }
+
+    getDotNetRunApiOutput(projectPath: string): Promise<string> {
+        return Promise.resolve('');
+    }
 }
 
 suite('Dotnet Debugger Extension Tests', () => {
@@ -51,7 +55,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, false);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -64,7 +68,7 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
         assert.strictEqual(dotNetService.buildDotNetProjectStub.called, true);
@@ -76,7 +80,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, false, false);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -89,7 +93,7 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
         assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
@@ -100,7 +104,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
         const projectPath = 'C:\\temp\\TestProject.csproj';
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath
         };
@@ -113,7 +117,7 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, [], [], { debug: true, runId: '1', debugSessionId: '1', isApphost: false }, debugConfig);
 
         assert.strictEqual(debugConfig.program, outputPath);
         assert.strictEqual(dotNetService.buildDotNetProjectStub.notCalled, true);
@@ -153,7 +157,7 @@ suite('Dotnet Debugger Extension Tests', () => {
         const outputPath = path.join(projectDir, 'bin', 'Debug', 'net7.0', 'TestProject.dll');
         const { extension, dotNetService } = createDebuggerExtension(outputPath, null, true, true);
 
-        const launchConfig: LaunchConfiguration = {
+        const launchConfig: ProjectLaunchConfiguration = {
             type: 'project',
             project_path: projectPath,
             launch_profile: 'Development'
@@ -173,7 +177,7 @@ suite('Dotnet Debugger Extension Tests', () => {
             request: 'launch'
         };
 
-        await extension.createDebugSessionConfigurationCallback!(launchConfig, undefined, runEnv, { debug: true, runId: '1', debugSessionId: '1' }, debugConfig);
+        await extension.createDebugSessionConfigurationCallback!(launchConfig, undefined, runEnv, { debug: true, runId: '1', debugSessionId: '1', isApphost: false }, debugConfig);
 
         // program should be set
         assert.strictEqual(debugConfig.program, outputPath);

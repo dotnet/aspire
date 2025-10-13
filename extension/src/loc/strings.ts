@@ -57,3 +57,4 @@ export const defaultConfigurationName = localize('extension.debug.defaultConfigu
 export const debugSessionAlreadyExists = (id: string) => localize('aspire-vscode.strings.debugSessionAlreadyExists', 'A debug session is already active for id {0}.', id);
 export const processExceptionOccurred = (error: string, command: string) => localize('aspire-vscode.strings.processExceptionOccurred', 'Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = localize('aspire-vscode.strings.failedToStartDebugSession', 'Failed to start debug session.');
+export const invalidLaunchConfiguration = (projectPath: string) => localize('aspire-vscode.strings.invalidLaunchConfiguration', 'Invalid launch configuration for {0}.', projectPath);

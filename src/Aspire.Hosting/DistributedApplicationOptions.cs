@@ -16,6 +16,7 @@ public sealed class DistributedApplicationOptions
     private readonly Lazy<string?> _configurationLazy;
     // This is for testing
     private string? _projectDirectory;
+    private bool _projectDirectorySet;
     private string? _projectName;
 
     /// <summary>
@@ -59,10 +60,17 @@ public sealed class DistributedApplicationOptions
 
     internal string? Configuration => _configurationLazy.Value;
 
-    internal string? ProjectDirectory
+    /// <summary>
+    /// The directory containing the AppHost project file. If not set, defaults to the directory resolved from assembly metadata.
+    /// </summary>
+    public string? ProjectDirectory
     {
-        get => _projectDirectory ?? _projectDirectoryLazy.Value;
-        set => _projectDirectory = value;
+        get => _projectDirectorySet ? _projectDirectory : _projectDirectoryLazy.Value;
+        set
+        {
+            _projectDirectory = value;
+            _projectDirectorySet = true;
+        }
     }
 
     internal string? ProjectName
