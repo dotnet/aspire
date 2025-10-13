@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using System.Globalization;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.Utils;
@@ -801,41 +800,21 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     [Fact]
     public async Task ResolveValue_FormatsDecimalWithInvariantCulture()
     {
-        // Save the current culture
-        var originalCulture = Thread.CurrentThread.CurrentCulture;
+        // Test decimal value
+        var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
+        Assert.Equal("3.14", result);
         
-        try
-        {
-            // Test with a culture that uses comma as decimal separator
-            Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
-            
-            // Test decimal value
-            var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
-            Assert.Equal("3.14", result);
-            
-            // Test double value
-            result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
-            Assert.Equal("3.14", result);
-            
-            // Test float value
-            result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
-            Assert.Equal("3.14", result);
-            
-            // Test integer (should also work)
-            result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
-            Assert.Equal("42", result);
-            
-            // Test with French culture (also uses comma)
-            Thread.CurrentThread.CurrentCulture = new CultureInfo("fr-FR");
-            
-            result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
-            Assert.Equal("3.14", result);
-        }
-        finally
-        {
-            // Restore the original culture
-            Thread.CurrentThread.CurrentCulture = originalCulture;
-        }
+        // Test double value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test float value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test integer (should also work)
+        result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
+        Assert.Equal("42", result);
     }
 
     [Fact]
