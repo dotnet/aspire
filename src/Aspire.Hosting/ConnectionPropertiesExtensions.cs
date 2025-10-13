@@ -18,6 +18,9 @@ public static class ConnectionPropertiesExtensions
     /// <returns>A sequence that contains the combined set of connection properties with duplicate keys resolved in favor of <paramref name="additional"/>.</returns>
     public static IEnumerable<KeyValuePair<string, ReferenceExpression>> CombineProperties(this IResourceWithConnectionString source, IEnumerable<KeyValuePair<string, ReferenceExpression>> additional)
     {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(additional);
+
         var dict = new Dictionary<string, ReferenceExpression>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var kv in source.GetConnectionProperties())
