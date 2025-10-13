@@ -621,25 +621,9 @@ public static class ContainerResourceBuilderExtensions
         var imageName = ImageNameGenerator.GenerateImageName(builder);
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
         
-        // Wrap the factory to add logging
-        Func<DockerfileFactoryContext, Task<string>> wrappedFactory = async context =>
-        {
-            var dockerfileContent = await dockerfileFactory(context).ConfigureAwait(false);
-            
-            // Log the generated Dockerfile content if in run mode
-            if (builder.ApplicationBuilder.ExecutionContext.IsRunMode)
-            {
-                var loggerService = context.Services.GetRequiredService<ResourceLoggerService>();
-                var logger = loggerService.GetLogger(context.Resource);
-                logger.LogInformation("Generated Dockerfile:\n{DockerfileContent}", dockerfileContent);
-            }
-            
-            return dockerfileContent;
-        };
-        
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, tempDockerfilePath, stage)
         {
-            DockerfileFactory = wrappedFactory
+            DockerfileFactory = dockerfileFactory
         };
 
         // If there's already a ContainerImageAnnotation, don't overwrite it.
