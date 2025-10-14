@@ -1,5 +1,7 @@
 # Azure Client SDK Connection Reference (Restructured)
 
+> **Note:** This is a working draft for collaborative editing. This document is intended to help contributors working on Azure client SDK integration features and documentation. Please feel free to improve and expand this reference.
+
 This document organizes Azure client SDK connection information by resource, then language, then client library, with all connection details listed under each combination.
 
 ## Azure SQL Server (Azure SQL Database)
@@ -285,6 +287,27 @@ conn = psycopg.connect(
 	sslmode="require"
 )
 ```
+
+**Variant C — password-less with Azure Identity (recommended for production):**
+```python
+import psycopg
+from azure.identity import DefaultAzureCredential
+
+# Get Azure AD access token
+credential = DefaultAzureCredential()
+token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
+
+conn = psycopg.connect(
+	dbname="DB",
+	user="USER@SRV",  # Use Azure AD user/managed identity name
+	password=token.token,
+	host="SRV.postgres.database.azure.com",
+	port=5432,
+	sslmode="require"
+)
+```
+
+> **Note:** For password-less authentication with Azure AD, install `azure-identity` package and use `DefaultAzureCredential` to obtain an access token. The token is used as the password. See [Microsoft Learn documentation](https://learn.microsoft.com/azure/postgresql/flexible-server/connect-python?tabs=cmd%2Cpasswordless) for more details.
 
 ### Go
 
