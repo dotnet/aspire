@@ -310,7 +310,7 @@ stages:
           # Arcade build variables needed for test result paths
           _BuildConfig: Release
           Build.Arcade.ArtifactsPath: $(Build.SourcesDirectory)/artifacts/
-          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release/
+          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release
 
         steps:
           - checkout: self
@@ -426,7 +426,7 @@ stages:
           # Arcade build variables needed for test result paths
           _BuildConfig: Release
           Build.Arcade.ArtifactsPath: $(Build.SourcesDirectory)/artifacts/
-          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release/
+          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release
 
         steps:
           - checkout: self
