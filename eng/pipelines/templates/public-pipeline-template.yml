@@ -151,6 +151,7 @@ stages:
 - ${{ if contains(variables.testVariants, '_integration_matrix_tests') }}:
   - stage: SetupLinux
     displayName: 'Setup Linux'
+    dependsOn: []  # Explicit parallel execution
     jobs:
       - job: SetupDotNetLinux
         displayName: 'Setup .NET SDK - Linux'
@@ -231,6 +232,7 @@ stages:
 
   - stage: SetupWindows
     displayName: 'Setup Windows'
+    dependsOn: []  # Explicit parallel execution
     jobs:
       - job: SetupDotNetWindows
         displayName: 'Setup .NET SDK - Windows'
