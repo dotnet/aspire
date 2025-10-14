@@ -358,9 +358,20 @@ stages:
               }
               Write-Host "Running test project: $testProject"
 
-              # Use the downloaded .NET SDK directly
+              # Use the downloaded .NET SDK directly with Microsoft Testing Platform
               $filter = "Category!=quarantined&Category!=outerloop"
-              & "$(Build.SourcesDirectory)/.dotnet/dotnet" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
+              & "$(Build.SourcesDirectory)/.dotnet/dotnet" test $testProject `
+                /p:ContinuousIntegrationBuild=true `
+                /p:TrxFileNamePrefix="$(testShortName)" `
+                --configuration $(_BuildConfig) `
+                --no-restore `
+                --no-build `
+                -- `
+                --ignore-exit-code 8 `
+                --report-trx `
+                --results-directory "$(Build.Arcade.TestResultsPath)" `
+                --timeout 15m `
+                --filter $filter
             displayName: 'Run tests'
             timeoutInMinutes: 15
 
@@ -466,9 +477,20 @@ stages:
               }
               Write-Host "Running test project: $testProject"
 
-              # Use the downloaded .NET SDK directly, escape the filter properly for PowerShell
+              # Use the downloaded .NET SDK directly with Microsoft Testing Platform, escape the filter properly for PowerShell
               $filter = "Category!=quarantined`&Category!=outerloop"
-              & "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
+              & "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" test $testProject `
+                /p:ContinuousIntegrationBuild=true `
+                /p:TrxFileNamePrefix="$(testShortName)" `
+                --configuration $(_BuildConfig) `
+                --no-restore `
+                --no-build `
+                -- `
+                --ignore-exit-code 8 `
+                --report-trx `
+                --results-directory "$(Build.Arcade.TestResultsPath)" `
+                --timeout 15m `
+                --filter $filter
             displayName: 'Run tests'
             timeoutInMinutes: 15
 
