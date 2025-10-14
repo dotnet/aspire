@@ -144,6 +144,10 @@ public static class PythonAppResourceBuilderExtensions
             context.Args.Add(scriptPath);
         });
 
+        resourceBuilder.WithPythonEnvironment(env =>
+        {
+            env.VirtualEnvironment = virtualEnvironment;
+        });
         resourceBuilder.WithIconName("CodePyRectangle");
 
         resourceBuilder.WithOtlpExporter();
@@ -182,7 +186,86 @@ public static class PythonAppResourceBuilderExtensions
             ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
         });
 
-        resourceBuilder.PublishAsDockerFile();
+        resourceBuilder.PublishAsDockerFile(c =>
+        {
+            // Only generate a Dockerfile if one doesn't already exist in the app directory
+            if (File.Exists(Path.Combine(appDirectory, "Dockerfile")))
+            {
+                return;
+            }
+
+            var entry = Path.GetFileName(scriptPath);
+
+            c.WithDockerfileBuilder(appDirectory,
+                context =>
+                {
+                    if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
+                        !pythonEnvironmentAnnotation.Uv)
+                    {
+                        // Use the default Dockerfile if not using UV
+                        return;
+                    }
+
+                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
+
+                    if (pythonVersion is null)
+                    {
+                        // Could not detect Python version, skip Dockerfile generation
+                        return;
+                    }
+
+                    var builderStage = context.Builder
+                        .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
+                        .EmptyLine()
+                        .Comment("Enable bytecode compilation and copy mode for the virtual environment")
+                        .Env("UV_COMPILE_BYTECODE", "1")
+                        .Env("UV_LINK_MODE", "copy")
+                        .EmptyLine()
+                        .WorkDir("/app")
+                        .EmptyLine()
+                        .Comment("Install dependencies first for better layer caching")
+                        .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                        .RunWithMounts(
+                            "uv sync --locked --no-install-project --no-dev",
+                            "type=cache,target=/root/.cache/uv",
+                            "type=bind,source=uv.lock,target=uv.lock",
+                            "type=bind,source=pyproject.toml,target=pyproject.toml")
+                        .EmptyLine()
+                        .Comment("Copy the rest of the application source and install the project")
+                        .Copy(".", "/app")
+                        .RunWithMounts(
+                            "uv sync --locked --no-dev",
+                            "type=cache,target=/root/.cache/uv");
+
+                    context.Builder
+                        .From($"python:{pythonVersion}-slim-bookworm", "app")
+                        .EmptyLine()
+                        .Comment("------------------------------")
+                        .Comment("🚀 Runtime stage")
+                        .Comment("------------------------------")
+                        .Comment("Create non-root user for security")
+                        .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+                        .EmptyLine()
+                        .Comment("Copy the application and virtual environment from builder")
+                        .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
+                        .EmptyLine()
+                        .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
+                        .Env("PATH", "/app/.venv/bin:${PATH}")
+                        .Env("VIRTUAL_ENV", "/app/.venv")
+                        .Env("PYTHONDONTWRITEBYTECODE", "1")
+                        .Env("PYTHONUNBUFFERED", "1")
+                        .EmptyLine()
+                        .Comment("Use the non-root user to run the application")
+                        .User("appuser")
+                        .EmptyLine()
+                        .Comment("Set working directory")
+                        .WorkDir("/app")
+                        .EmptyLine()
+                        .Comment("Run the application")
+                        .Entrypoint(["python"])
+                        .Cmd([entry]);
+                });
+        });
 
         return resourceBuilder;
     }
@@ -240,8 +323,13 @@ public static class PythonAppResourceBuilderExtensions
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
             : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
+
         // Update the command to use the new virtual environment
         builder.WithCommand(virtualEnvironment.GetExecutable("python"));
+        builder.WithPythonEnvironment(env =>
+        {
+            env.VirtualEnvironment = virtualEnvironment;
+        });
 
         return builder;
     }
@@ -316,8 +404,25 @@ public static class PythonAppResourceBuilderExtensions
                 .WithParentRelationship(builder)
                 .ExcludeFromManifest();
 
-            builder.WaitForCompletion(uvBuilder);
+            builder.WaitForCompletion(uvBuilder)
+                   .WithPythonEnvironment(env => env.Uv = true);
         }
+
+        return builder;
+    }
+
+    internal static IResourceBuilder<PythonAppResource> WithPythonEnvironment(this IResourceBuilder<PythonAppResource> builder, Action<PythonEnvironmentAnnotation> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var existing))
+        {
+            existing = new PythonEnvironmentAnnotation();
+            builder.WithAnnotation(existing);
+        }
+
+        configure(existing);
 
         return builder;
     }
