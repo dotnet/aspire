@@ -332,6 +332,7 @@ stages:
               DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
               DCP_PRESERVE_EXECUTABLE_LOGS: 1
               DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
@@ -400,6 +401,7 @@ stages:
               DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
               DCP_PRESERVE_EXECUTABLE_LOGS: 1
               DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
