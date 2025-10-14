@@ -8,7 +8,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 builder.AddDockerComposeEnvironment("docker-compose");
 
 // Just for validating parameter handling in Dockerfile builds.
-var goVersion = builder.AddParameter("goversion", "1.22");
+var goVersion = builder.AddParameter("goversion", "1.23");
 var secret = builder.AddParameter("secret", secret: true);
 
 builder.AddDockerfile("mycontainer", "qots")
