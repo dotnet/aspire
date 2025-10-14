@@ -249,6 +249,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
      
         // Get template version/channel selection using the same logic as NewCommand
         var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
+
+        // Create or update NuGet.config for explicit channels in the solution directory
+        // This matches the behavior of 'aspire new' when creating in-place
+        var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(
+            ExecutionContext.WorkingDirectory,
+            selectedTemplateDetails.Channel,
+            cancellationToken);
         
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
