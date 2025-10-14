@@ -22,11 +22,7 @@ internal static partial class PythonVersionDetector
             if (!string.IsNullOrWhiteSpace(version))
             {
                 // Extract major.minor (e.g., "3.13" from "3.13.0" or "3.13")
-                var parts = version.Split('.');
-                if (parts.Length >= 2)
-                {
-                    return $"{parts[0]}.{parts[1]}";
-                }
+                return version;
             }
         }
 

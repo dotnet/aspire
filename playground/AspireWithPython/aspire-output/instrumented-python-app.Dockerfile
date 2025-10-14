@@ -1,29 +1,14 @@
-# syntax=docker/dockerfile:1
-# -----------------------------------------------------------------------------
-# Multi-stage Dockerfile for Python apps using uv
-# Based on https://github.com/astral-sh/uv-docker-example
-# - Stage 1 (builder): uses uv pre-installed image to install dependencies
-# - Stage 2 (runtime): copies only the venv + app code for a slimmer image
-# -----------------------------------------------------------------------------
-
-# ------------------------------
-# 🔧 Builder stage
-# ------------------------------
-ARG PYTHON_VERSION
-ARG SCRIPT_NAME
-FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim AS builder
 
 # Enable bytecode compilation and copy mode for the virtual environment
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
 # Install dependencies first for better layer caching
 # Uses BuildKit cache mounts to speed up repeated builds
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=uv.lock,target=uv.lock --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project --no-dev
 
 # Copy the rest of the application source and install the project
@@ -31,22 +16,21 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
+FROM python:3.13-slim-bookworm AS app
+
 # ------------------------------
 # 🚀 Runtime stage
 # ------------------------------
-FROM python:${PYTHON_VERSION}-slim-bookworm AS app
-
 # Create non-root user for security
-RUN groupadd --system --gid 999 appuser \
-    && useradd --system --gid 999 --uid 999 --create-home appuser
+RUN groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser
 
 # Copy the application and virtual environment from builder
 COPY --from=builder --chown=appuser:appuser /app /app
 
 # Add virtual environment to PATH
-ENV PATH="/app/.venv/bin:${PATH}" \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+ENV PATH=/app/.venv/bin:${PATH}
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 # Use the non-root user to run the application
 USER appuser
@@ -56,4 +40,4 @@ WORKDIR /app
 
 # Run the application
 ENTRYPOINT ["python"]
-CMD ${SCRIPT_NAME}
+CMD ["app.py"]

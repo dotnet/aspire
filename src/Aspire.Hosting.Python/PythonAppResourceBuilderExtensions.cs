@@ -172,21 +172,67 @@ public static class PythonAppResourceBuilderExtensions
 
             var entry = Path.GetFileName(scriptPath);
 
-            c.WithDockerfileFactory(appDirectory,
+            c.WithDockerfileBuilder(appDirectory,
                 context =>
                 {
-                    var dockerFile = c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _) ?
-                        "uv" : "default";
-                    return DockerFileCache.GetDockerFile(dockerFile);
-                })
-            .WithBuildArg("SCRIPT_NAME", entry);
+                    if (!c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _))
+                    {
+                        // Use the default Dockerfile if not using UV
+                        return;
+                    }
 
-            // Auto-detect Python version from .python-version or pyproject.toml
-            var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory);
-            if (pythonVersion is not null)
-            {
-                c.WithBuildArg("PYTHON_VERSION", pythonVersion);
-            }
+                    var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory);
+
+                    var builderStage = context.Builder
+                        .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
+                        .EmptyLine()
+                        .Comment("Enable bytecode compilation and copy mode for the virtual environment")
+                        .Env("UV_COMPILE_BYTECODE", "1")
+                        .Env("UV_LINK_MODE", "copy")
+                        .EmptyLine()
+                        .WorkDir("/app")
+                        .EmptyLine()
+                        .Comment("Install dependencies first for better layer caching")
+                        .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                        .RunWithMounts(
+                            "uv sync --locked --no-install-project --no-dev",
+                            "type=cache,target=/root/.cache/uv",
+                            "type=bind,source=uv.lock,target=uv.lock",
+                            "type=bind,source=pyproject.toml,target=pyproject.toml")
+                        .EmptyLine()
+                        .Comment("Copy the rest of the application source and install the project")
+                        .Copy(".", "/app")
+                        .RunWithMounts(
+                            "uv sync --locked --no-dev",
+                            "type=cache,target=/root/.cache/uv");
+
+                    var runtimeStage = context.Builder
+                        .From($"python:{pythonVersion}-slim-bookworm", "app")
+                        .EmptyLine()
+                        .Comment("------------------------------")
+                        .Comment("🚀 Runtime stage")
+                        .Comment("------------------------------")
+                        .Comment("Create non-root user for security")
+                        .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
+                        .EmptyLine()
+                        .Comment("Copy the application and virtual environment from builder")
+                        .CopyFrom("builder", "/app", "/app", "appuser:appuser")
+                        .EmptyLine()
+                        .Comment("Add virtual environment to PATH")
+                        .Env("PATH", "/app/.venv/bin:${PATH}")
+                        .Env("PYTHONDONTWRITEBYTECODE", "1")
+                        .Env("PYTHONUNBUFFERED", "1")
+                        .EmptyLine()
+                        .Comment("Use the non-root user to run the application")
+                        .User("appuser")
+                        .EmptyLine()
+                        .Comment("Set working directory")
+                        .WorkDir("/app")
+                        .EmptyLine()
+                        .Comment("Run the application")
+                        .Entrypoint(["python"])
+                        .Cmd([entry]);
+                });
         });
 
         return resourceBuilder;
@@ -326,29 +372,5 @@ public static class PythonAppResourceBuilderExtensions
         }
 
         return builder;
-    }
-
-    private static class DockerFileCache
-    {
-        private static readonly Lazy<string> s_dockerFileUv = new(() => LoadDockerFile("uv.Dockerfile"), isThreadSafe: true);
-        private static readonly Lazy<string> s_dockerFileDefault = new(() => LoadDockerFile("default.Dockerfile"), isThreadSafe: true);
-
-        private static string LoadDockerFile(string resourceName)
-        {
-            var assembly = typeof(DockerFileCache).Assembly;
-            using var stream = assembly.GetManifestResourceStream(resourceName)
-                ?? throw new InvalidOperationException($"Could not find embedded resource '{resourceName}'");
-            using var reader = new StreamReader(stream);
-            return reader.ReadToEnd();
-        }
-
-        public static string GetDockerFile(string name)
-        {
-            return name switch
-            {
-                "uv" => s_dockerFileUv.Value,
-                _ => s_dockerFileDefault.Value
-            };
-        }
     }
 }
