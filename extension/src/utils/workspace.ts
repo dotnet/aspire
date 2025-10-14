@@ -93,7 +93,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
             workingDirectory: rootFolder.uri.fsPath
         });
     })
-        .then(result => promptToAddAppHostPathToSettingsFile(result, settingsFileExists, settingsFileLocation))
+        .then(result => promptToAddAppHostPathToSettingsFile(result, settingsFileExists, settingsFileLocation, rootFolder))
         .finally(() => proc?.kill());
 
     return {
@@ -103,7 +103,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     };
 }
 
-async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearchResult, settingsFileExists: boolean, settingsFileLocation: vscode.Uri) {
+async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearchResult, settingsFileExists: boolean, settingsFileLocation: vscode.Uri, rootFolder: vscode.WorkspaceFolder) {
     if (!result.selected_project_file && result.all_project_file_candidates.length === 0) {
         // There are no apphosts in this workspace
         return;
@@ -121,11 +121,14 @@ async function promptToAddAppHostPathToSettingsFile(result: AppHostProjectSearch
 
     let appHostToUse: string | null = result.selected_project_file;
     if (!appHostToUse) {
-        appHostToUse = await vscode.window.showQuickPick(result.all_project_file_candidates, {
+        result.all_project_file_candidates = result.all_project_file_candidates.map(p => path.relative(rootFolder.uri.fsPath, p));
+        const selected = await vscode.window.showQuickPick(result.all_project_file_candidates, {
             placeHolder: selectDefaultLaunchApphost,
             canPickMany: false,
             ignoreFocusOut: true
         }) ?? null;
+
+        appHostToUse = selected ? path.join(rootFolder.uri.fsPath, selected) : null;
     }
 
     if (!appHostToUse) {
