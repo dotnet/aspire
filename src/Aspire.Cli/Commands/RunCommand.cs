@@ -333,7 +333,6 @@ internal sealed class RunCommand : BaseCommand
 
             if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
-                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
                 extensionInteractionService.NotifyAppHostStartupCompleted();
             }
@@ -439,9 +438,9 @@ internal sealed class RunCommand : BaseCommand
             {
                 if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
                 {
-                    if (entry.LogLevel is not LogLevel.Information and not LogLevel.Debug)
+                    if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
                     {
-                        // Send only warning+ level logs to the extension host.
+                        // Send only information+ level logs to the extension host.
                         extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
                     }
                 }
