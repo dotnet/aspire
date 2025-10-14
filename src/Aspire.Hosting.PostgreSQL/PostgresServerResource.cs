@@ -119,15 +119,15 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     /// Format: <c>postgresql://{user}:{password}@{host}:{port}</c>.
     /// </remarks>
     public ReferenceExpression UriExpression =>
-        ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host:uri}:{Port:uri}");
+        ReferenceExpression.Create($"postgresql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
 
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {
         var builder = new ReferenceExpressionBuilder();
         builder.AppendLiteral("jdbc:postgresql://");
-        builder.Append($"{Host:uri}");
+        builder.Append($"{Host}");
         builder.AppendLiteral(":");
-        builder.Append($"{Port:uri}");
+        builder.Append($"{Port}");
 
         if (databaseName is not null)
         {

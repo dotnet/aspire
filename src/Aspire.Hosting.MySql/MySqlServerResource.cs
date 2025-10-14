@@ -72,9 +72,9 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
             builder.AppendLiteral(":");
             builder.Append($"{PasswordParameter:uri}");
             builder.AppendLiteral("@");
-            builder.Append($"{Host:uri}");
+            builder.Append($"{Host}");
             builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
+            builder.Append($"{Port}");
 
             return builder.Build();
         }
@@ -84,9 +84,9 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     {
         var builder = new ReferenceExpressionBuilder();
         builder.AppendLiteral("jdbc:mysql://");
-        builder.Append($"{Host:uri}");
+        builder.Append($"{Host}");
         builder.AppendLiteral(":");
-        builder.Append($"{Port:uri}");
+        builder.Append($"{Port}");
 
         if (databaseName is not null)
         {

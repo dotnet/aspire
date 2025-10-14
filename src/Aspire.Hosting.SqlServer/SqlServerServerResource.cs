@@ -60,9 +60,9 @@ public class SqlServerServerResource : ContainerResource, IResourceWithConnectio
     {
         var builder = new ReferenceExpressionBuilder();
         builder.AppendLiteral("jdbc:sqlserver://");
-        builder.Append($"{Host:uri}");
+        builder.Append($"{Host}");
         builder.AppendLiteral(":");
-        builder.Append($"{Port:uri}");
+        builder.Append($"{Port}");
         builder.AppendLiteral(";user=");
         builder.Append($"{UserNameReference:uri}");
         builder.AppendLiteral(";password=");

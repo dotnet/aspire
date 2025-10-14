@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a service that can format an expression.
+/// Represents a service that can url-encode a ReferenceExpression.
 /// </summary>
 public interface IUrlEncoderProvider : IValueWithReferences, IValueProvider, IManifestExpressionProvider
 {

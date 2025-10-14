@@ -113,9 +113,9 @@ public class RedisResource(string name) : ContainerResource(name), IResourceWith
                 builder.Append($":{PasswordParameter:uri}@");
             }
 
-            builder.Append($"{Host:uri}");
+            builder.Append($"{Host}");
             builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
+            builder.Append($"{Port}");
 
             return builder.Build();
         }

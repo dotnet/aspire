@@ -90,9 +90,9 @@ public class GarnetResource(string name) : ContainerResource(name), IResourceWit
                 builder.Append($":{PasswordParameter:uri}@");
             }
 
-            builder.Append($"{Host:uri}");
+            builder.Append($"{Host}");
             builder.AppendLiteral(":");
-            builder.Append($"{Port:uri}");
+            builder.Append($"{Port}");
 
             return builder.Build();
         }

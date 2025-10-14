@@ -72,6 +72,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         var args = new object?[ValueProviders.Count];
         for (var i = 0; i < ValueProviders.Count; i++)
         {
+            // TODO: convert format uri
             args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
         }
 

@@ -67,9 +67,9 @@ public class OracleDatabaseServerResource : ContainerResource, IResourceWithConn
         builder.AppendLiteral("/");
         builder.Append($"{PasswordParameter:uri}");
         builder.AppendLiteral("@//");
-        builder.Append($"{Host:uri}");
+        builder.Append($"{Host}");
         builder.AppendLiteral(":");
-        builder.Append($"{Port:uri}");
+        builder.Append($"{Port}");
 
         if (!string.IsNullOrEmpty(databaseName))
         {

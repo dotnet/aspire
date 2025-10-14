@@ -255,11 +255,17 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
         if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
         {
+            // Evaluate the inner value to get the bicep expression
             var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
-            return (UriComponent(((BicepValue<string>)innerValue).Compile()), secret);
 
-            static FunctionCallExpression UriComponent(BicepExpression args) =>
-                new(new IdentifierExpression("uriComponent"), args);
+            var innerExpression = innerValue switch
+            {
+                ProvisioningParameter p => p.Value.Compile(),
+                IBicepValue b => b.Compile(),
+                _ => throw new ArgumentException($"Invalid expression type for url-encoding: {innerValue.GetType()}")
+            };
+
+            return (new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression), secret);
         }
 
 #pragma warning disable CS0618 // Type or member is obsolete
