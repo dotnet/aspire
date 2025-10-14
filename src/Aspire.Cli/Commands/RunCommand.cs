@@ -441,7 +441,7 @@ internal sealed class RunCommand : BaseCommand
                 {
                     if (entry.LogLevel is not LogLevel.Information and not LogLevel.Debug)
                     {
-                        // Send only information+ level logs to the extension host.
+                        // Send only warning+ level logs to the extension host.
                         extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
                     }
                 }
