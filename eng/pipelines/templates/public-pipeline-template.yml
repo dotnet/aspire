@@ -337,6 +337,10 @@ stages:
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
           DCP_PRESERVE_EXECUTABLE_LOGS: 1
+          # Arcade build variables needed for test result paths
+          _BuildConfig: Release
+          Build.Arcade.ArtifactsPath: $(Build.SourcesDirectory)/artifacts/
+          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release/
 
         steps:
           - checkout: self
@@ -365,6 +369,13 @@ stages:
               # Set environment variables
               $env:DOTNET_ROOT = "$(Build.SourcesDirectory)/.dotnet"
               $env:PATH = "$(Build.SourcesDirectory)/.dotnet:$env:PATH"
+
+              # Ensure test results directory exists
+              $testResultsPath = "$(Build.Arcade.TestResultsPath)"
+              if (-not (Test-Path $testResultsPath)) {
+                New-Item -ItemType Directory -Path $testResultsPath -Force
+                Write-Host "Created test results directory: $testResultsPath"
+              }
 
               # Handle both Aspire.*.Tests and *.Tests naming patterns
               $testShortName = "$(testShortName)"
@@ -419,6 +430,10 @@ stages:
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
           DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
           DCP_PRESERVE_EXECUTABLE_LOGS: 1
+          # Arcade build variables needed for test result paths
+          _BuildConfig: Release
+          Build.Arcade.ArtifactsPath: $(Build.SourcesDirectory)/artifacts/
+          Build.Arcade.TestResultsPath: $(Build.SourcesDirectory)/artifacts/TestResults/Release/
 
         steps:
           - checkout: self
@@ -439,6 +454,13 @@ stages:
               # Set environment variables
               $env:DOTNET_ROOT = "$(Build.SourcesDirectory)/.dotnet"
               $env:PATH = "$(Build.SourcesDirectory)/.dotnet;$env:PATH"
+
+              # Ensure test results directory exists
+              $testResultsPath = "$(Build.Arcade.TestResultsPath)"
+              if (-not (Test-Path $testResultsPath)) {
+                New-Item -ItemType Directory -Path $testResultsPath -Force
+                Write-Host "Created test results directory: $testResultsPath"
+              }
 
               # Handle both Aspire.*.Tests and *.Tests naming patterns
               $testShortName = "$(testShortName)"
