@@ -143,7 +143,7 @@ public sealed class IconResolverTests
 
         // Assert
         Assert.NotNull(icon);
-        // Should successfully resolve icons at various sizes
+        Assert.Equal(size, icon.Size);
     }
 
     [Fact]
@@ -175,6 +175,6 @@ public sealed class IconResolverTests
 
         // Assert
         Assert.NotNull(icon);
-        // Should fall back to available smaller size if larger size doesn't exist
+        Assert.Equal(IconSize.Size16, icon.Size);
     }
 }
