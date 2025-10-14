@@ -42,6 +42,11 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal bool EnableApplicationInsights { get; set; } = true;
 
     /// <summary>
+    /// Location for the Application Insights resource.
+    /// </summary>
+    internal string? ApplicationInsightsLocation { get; set; }
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);

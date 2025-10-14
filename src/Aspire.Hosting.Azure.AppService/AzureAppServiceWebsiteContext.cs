@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Azure.Core;
 using Azure.Provisioning;
 using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.AppService;
@@ -356,20 +357,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (environmentContext.Environment.EnableApplicationInsights)
         {
-            ApplicationInsightsComponent? applicationInsights = null;
-
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            if (infra.AspireResource.TryGetLastAnnotation<AzureApplicationInsightsReferenceAnnotation>(out var applicationInsightsReferenceAnnotation) && applicationInsightsReferenceAnnotation.ApplicationInsightsResource is AzureProvisioningResource applicationInsightsResource)
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-            {
-                applicationInsights = (ApplicationInsightsComponent)applicationInsightsResource.AddAsExistingResource(infra);
-            }
-            else
-            {
-                applicationInsights = CreateApplicationInsightsResource();
-            }
-            infra.Add(applicationInsights);
-            ConfigureWebSiteForApplicationInsights(webSite, applicationInsights);
+            EnableApplicationInsightsForWebSite(webSite);
         }
 
         infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_URI", typeof(string))
@@ -445,9 +433,10 @@ internal sealed class AzureAppServiceWebsiteContext(
         };
     }
 
-    private ApplicationInsightsComponent CreateApplicationInsightsResource()
+    private void EnableApplicationInsightsForWebSite(WebSite webSite)
     {
-        var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace("law_" + Infra.BicepName)// AspireResource.GetBicepIdentifier())
+        // Create Log Analytics workspace
+        var logAnalyticsWorkspace = new OperationalInsightsWorkspace("law_" + Infra.BicepName)// AspireResource.GetBicepIdentifier())
         {
             Sku = new OperationalInsightsWorkspaceSku()
             {
@@ -455,23 +444,27 @@ internal sealed class AzureAppServiceWebsiteContext(
             }
         };
 
-        Infra.Add(autoInjectedLogAnalyticsWorkspace);
+        Infra.Add(logAnalyticsWorkspace);
+
+        // Create Application Insights resource linked to the Log Analytics workspace
         var applicationInsights = new ApplicationInsightsComponent("ai_" + Infra.BicepName)
         {
             ApplicationType = ApplicationInsightsApplicationType.Web,
             Kind = "web",
-            WorkspaceResourceId = autoInjectedLogAnalyticsWorkspace.Id,
+            WorkspaceResourceId = logAnalyticsWorkspace.Id,
             IngestionMode = ComponentIngestionMode.LogAnalytics
         };
 
-        applicationInsights.WorkspaceResourceId = autoInjectedLogAnalyticsWorkspace.Id;
-        return applicationInsights;
-    }
+        applicationInsights.WorkspaceResourceId = logAnalyticsWorkspace.Id;
 
-    private void ConfigureWebSiteForApplicationInsights(WebSite webSite, ApplicationInsightsComponent applicationInsights)
-    {   
+        if (environmentContext.Environment.ApplicationInsightsLocation is not null)
+        {
+            applicationInsights.Location = new AzureLocation(environmentContext.Environment.ApplicationInsightsLocation);
+        }
+
         Infra.Add(applicationInsights);
 
+        // Website configuration for Application Insights
         webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
         {
             Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
