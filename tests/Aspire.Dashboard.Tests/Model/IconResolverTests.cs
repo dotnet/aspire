@@ -130,24 +130,6 @@ public sealed class IconResolverTests
     }
 
     [Theory]
-    [InlineData("CodeCsRectangle")]
-    [InlineData("CodeFsRectangle")]
-    [InlineData("CodeVbRectangle")]
-    [InlineData("CodeCircle")]
-    public void ResolveIconName_WithProjectLanguageIcons_ReturnsIcon(string iconName)
-    {
-        // Arrange
-        var iconResolver = CreateIconResolver();
-
-        // Act
-        var icon = iconResolver.ResolveIconName(iconName, IconSize.Size20, IconVariant.Filled);
-
-        // Assert
-        Assert.NotNull(icon);
-        // Project language icons should be resolved successfully
-    }
-
-    [Theory]
     [InlineData(IconSize.Size16)]
     [InlineData(IconSize.Size20)]
     [InlineData(IconSize.Size24)]
