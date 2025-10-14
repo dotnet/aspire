@@ -17,7 +17,7 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// </summary>
     /// <remarks>Use this field to represent a default or uninitialized reference expression. The instance has
     /// an empty name and contains no value providers or arguments.</remarks>
-    public static readonly ReferenceExpression Empty = Create(string.Empty, Array.Empty<IValueProvider>(), Array.Empty<string>());
+    public static readonly ReferenceExpression Empty = Create(string.Empty, [], []);
 
     private readonly string[] _manifestExpressions;
 

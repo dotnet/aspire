@@ -61,6 +61,6 @@ public class ConnectionPropertiesTests
         Assert.Contains(
             properties,
             property => property.Key == "JdbcConnectionString" &&
-                        property.Value.ValueExpression == "jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={password.value};trustServerCertificate=true;databaseName=Orders");
+                        property.Value.ValueExpression == "jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={password.value};databaseName=Orders;trustServerCertificate=true");
     }
 }
