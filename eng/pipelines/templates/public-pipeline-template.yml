@@ -310,7 +310,8 @@ stages:
             continueOnError: true
 
           - pwsh: |
-              ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
+              $filter = "Category!=quarantined&Category!=outerloop"
+              ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter $filter
             displayName: 'Run tests'
             env:
               DOCKER_BUILDKIT: 1
@@ -366,7 +367,8 @@ stages:
             continueOnError: true
 
           - pwsh: |
-              & ./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter 'Category!=quarantined&Category!=outerloop'
+              $filter = "Category!=quarantined&Category!=outerloop"
+              & ./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter $filter
             displayName: 'Run tests'
             env:
               DOCKER_BUILDKIT: 1
