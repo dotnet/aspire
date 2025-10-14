@@ -394,6 +394,29 @@ stages:
             displayName: 'Run tests'
             timeoutInMinutes: 15
 
+          - pwsh: |
+              Write-Host "=== TRX File Debug - Linux ==="
+              Write-Host "Test results path: $(Build.Arcade.TestResultsPath)"
+              Write-Host "Expected TRX file: $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx"
+
+              if (Test-Path "$(Build.Arcade.TestResultsPath)") {
+                Write-Host "Test results directory exists. Contents:"
+                Get-ChildItem "$(Build.Arcade.TestResultsPath)" -Recurse | ForEach-Object {
+                  Write-Host "  $($_.FullName) (Size: $($_.Length) bytes)"
+                }
+              } else {
+                Write-Host "❌ Test results directory does not exist: $(Build.Arcade.TestResultsPath)"
+              }
+
+              Write-Host "`nChecking artifacts directory structure:"
+              if (Test-Path "$(Build.SourcesDirectory)/artifacts") {
+                Get-ChildItem "$(Build.SourcesDirectory)/artifacts" -Recurse -File | Where-Object { $_.Extension -eq ".trx" } | ForEach-Object {
+                  Write-Host "  Found TRX: $($_.FullName) (Size: $($_.Length) bytes)"
+                }
+              }
+            displayName: 'Debug: Check TRX file generation'
+            condition: always()
+
           - task: PublishTestResults@2
             displayName: 'Publish test results'
             condition: always()
@@ -478,6 +501,29 @@ stages:
               & "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
             displayName: 'Run tests'
             timeoutInMinutes: 15
+
+          - pwsh: |
+              Write-Host "=== TRX File Debug - Windows ==="
+              Write-Host "Test results path: $(Build.Arcade.TestResultsPath)"
+              Write-Host "Expected TRX file: $(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx"
+
+              if (Test-Path "$(Build.Arcade.TestResultsPath)") {
+                Write-Host "Test results directory exists. Contents:"
+                Get-ChildItem "$(Build.Arcade.TestResultsPath)" -Recurse | ForEach-Object {
+                  Write-Host "  $($_.FullName) (Size: $($_.Length) bytes)"
+                }
+              } else {
+                Write-Host "❌ Test results directory does not exist: $(Build.Arcade.TestResultsPath)"
+              }
+
+              Write-Host "`nChecking artifacts directory structure:"
+              if (Test-Path "$(Build.SourcesDirectory)/artifacts") {
+                Get-ChildItem "$(Build.SourcesDirectory)/artifacts" -Recurse -File | Where-Object { $_.Extension -eq ".trx" } | ForEach-Object {
+                  Write-Host "  Found TRX: $($_.FullName) (Size: $($_.Length) bytes)"
+                }
+              }
+            displayName: 'Debug: Check TRX file generation'
+            condition: always()
 
           - task: PublishTestResults@2
             displayName: 'Publish test results'
