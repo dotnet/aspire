@@ -221,6 +221,10 @@ stages:
                   artifactName: 'dotnet-sdk-linux'
                   targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
+              - script: chmod +x $(Build.SourcesDirectory)/.dotnet/dotnet
+                displayName: 'Fix .NET permissions'
+                condition: eq(variables['platformName'], 'Linux')
+
               - task: DockerInstaller@0
                 inputs:
                   dockerVersion: '28.0.0'
