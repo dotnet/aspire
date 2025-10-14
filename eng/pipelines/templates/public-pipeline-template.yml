@@ -327,7 +327,7 @@ stages:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
 
-        variables:
+        env:
           DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
           PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
           DOCKER_BUILDKIT: 1
@@ -405,7 +405,7 @@ stages:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
 
-        variables:
+        env:
           DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
           PATH: $(Build.SourcesDirectory)/.dotnet;$(PATH)
           DOCKER_BUILDKIT: 1
