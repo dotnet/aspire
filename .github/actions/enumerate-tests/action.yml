@@ -26,9 +26,14 @@ runs:
     - name: Cache .NET SDK
       uses: ./.github/actions/cache-dotnet-sdk-for-arcade
       with:
-        cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
+        cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
         restore-keys: |
-          dotnet-sdk-${{ runner.os }}-
+          dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Add .dotnet to PATH
+      shell: pwsh
+      run: |
+        "${{ github.workspace }}/.dotnet" >> $env:GITHUB_PATH
 
     - name: Get list of integration tests
       if: ${{ inputs.includeIntegrations }}
