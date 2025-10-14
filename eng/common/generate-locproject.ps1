@@ -81,8 +81,11 @@ $langXlfFiles | ForEach-Object {
     $xlfFiles += Copy-Item "$($_.FullName)" -Destination $destinationFile -PassThru
 }
 
-$extensionXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\extension\*.xlf" | Where-Object { ($_.Name -split '\.').Count -eq 2 }
-$xlfFiles += $extensionXlfFiles
+# Add only the specific extension/loc/xlf/aspire-vscode.xlf file
+$aspireVsCodeXlf = Join-Path $SourcesDirectory 'extension/loc/xlf/aspire-vscode.xlf'
+if (Test-Path $aspireVsCodeXlf) {
+    $xlfFiles += Get-Item $aspireVsCodeXlf
+}
 
 $locFiles = $jsonFiles + $jsonWinformsTemplateFiles + $xlfFiles
 
