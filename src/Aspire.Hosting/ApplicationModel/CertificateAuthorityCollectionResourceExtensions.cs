@@ -56,6 +56,44 @@ public static class CertificateAuthorityCollectionResourceExtensions
     }
 
     /// <summary>
+    /// Adds a collection of certificates to the <see cref="CertificateAuthorityCollection.Certificates"/> collection.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/>.</param>
+    /// <param name="certificates">The collection of certificates to add.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/>.</returns>
+    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificates(this IResourceBuilder<CertificateAuthorityCollection> builder, IEnumerable<X509Certificate2> certificates)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(certificates);
+
+        builder.Resource.Certificates.AddRange(certificates.ToArray());
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds certificates from a certificate store to the <see cref="CertificateAuthorityCollection.Certificates"/> collection.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/>.</param>
+    /// <param name="storeName">The name of the certificate store.</param>
+    /// <param name="storeLocation">The location of the certificate store.</param>
+    /// <param name="filter">An optional filter to apply to the certificates.</param>
+    /// <returns>The updated <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/>.</returns>
+    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromStore(this IResourceBuilder<CertificateAuthorityCollection> builder, StoreName storeName, StoreLocation storeLocation, Func<X509Certificate2, bool>? filter = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        using var store = new X509Store(storeName, storeLocation);
+        store.Open(OpenFlags.ReadOnly);
+        var certificates = store.Certificates as IEnumerable<X509Certificate2>;
+        if (filter != null)
+        {
+            certificates = certificates.Where(filter);
+        }
+        builder.Resource.Certificates.AddRange(certificates.ToArray());
+        return builder;
+    }
+
+    /// <summary>
     /// Adds certificates from a PEM file to the <see cref="CertificateAuthorityCollection.Certificates"/> collection.
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{CertificateAuthorityCollection}"/>.</param>
