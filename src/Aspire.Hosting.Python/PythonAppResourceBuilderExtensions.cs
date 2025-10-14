@@ -191,8 +191,29 @@ public static class PythonAppResourceBuilderExtensions
     /// Configures a custom virtual environment path for the Python application.
     /// </summary>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="virtualEnvironmentPath">The path to the virtual environment. Can be absolute or relative to the app directory.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <param name="virtualEnvironmentPath">
+    /// The path to the virtual environment. Can be absolute or relative to the app directory.
+    /// When relative, it is resolved from the working directory of the Python application.
+    /// Common values include ".venv", "venv", or "myenv".
+    /// </param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method updates the Python executable path to use the specified virtual environment.
+    /// The virtual environment must already exist and be properly initialized before the application runs.
+    /// </para>
+    /// <para>
+    /// Virtual environments allow Python applications to have isolated dependencies separate from
+    /// the system Python installation. This is the recommended approach for Python applications.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Configure a Python app to use a custom virtual environment:
+    /// <code lang="csharp">
+    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
+    ///     .WithVirtualEnvironment("myenv");
+    /// </code>
+    /// </example>
     public static IResourceBuilder<PythonAppResource> WithVirtualEnvironment(
         this IResourceBuilder<PythonAppResource> builder, string virtualEnvironmentPath)
     {
@@ -204,6 +225,82 @@ public static class PythonAppResourceBuilderExtensions
             : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
         // Update the command to use the new virtual environment
         builder.WithCommand(virtualEnvironment.GetExecutable("python"));
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Adds a UV environment setup task to ensure the virtual environment exists before running the Python application.
+    /// </summary>
+    /// <typeparam name="T">The type of the Python application resource, must derive from <see cref="PythonAppResource"/>.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method creates a child resource that runs <c>uv sync</c> in the working directory of the Python application.
+    /// The Python application will wait for this resource to complete successfully before starting.
+    /// </para>
+    /// <para>
+    /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
+    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual 
+    /// environment exists and all dependencies specified in pyproject.toml are installed and synchronized.
+    /// </para>
+    /// <para>
+    /// This method is idempotent - calling it multiple times on the same resource will not create duplicate UV environment resources.
+    /// If a UV environment resource already exists for the Python application, it will be reused.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a Python app with automatic UV environment setup:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
+    ///     .WithUvEnvironment()  // Automatically runs 'uv sync' before starting the app
+    ///     .WithHttpEndpoint(port: 5000);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> is null.</exception>
+    /// <exception cref="DistributedApplicationException">
+    /// Thrown when a resource with the UV environment name already exists but is not a <see cref="PythonUvEnvironmentResource"/>.
+    /// </exception>
+    public static IResourceBuilder<T> WithUvEnvironment<T>(this IResourceBuilder<T> builder)
+        where T : PythonAppResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
+        
+        // Check if the UV environment resource already exists
+        var existingResource = builder.ApplicationBuilder.Resources
+            .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
+        
+        IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
+        
+        if (existingResource is not null)
+        {
+            // Resource already exists, return a builder for it
+            if (existingResource is not PythonUvEnvironmentResource uvEnvironmentResource)
+            {
+                throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
+            }
+            
+            uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
+        }
+        else
+        {
+            // Resource doesn't exist, create it
+            var uvEnvironmentResource = new PythonUvEnvironmentResource(uvEnvironmentName, builder.Resource);
+
+            uvBuilder = builder.ApplicationBuilder.AddResource(uvEnvironmentResource)
+                .WithArgs("sync")
+                .WithParentRelationship(builder)
+                .ExcludeFromManifest();
+
+            builder.WaitForCompletion(uvBuilder);
+        }
 
         return builder;
     }

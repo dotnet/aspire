@@ -134,8 +134,9 @@ internal sealed class PublishingPromptInput
 {
     /// <summary>
     /// Gets the name for the input.
+    /// Nullable for backwards compatibility with Aspire 9.5 and older app hosts.
     /// </summary>
-    public required string Name { get; init; }
+    public string? Name { get; init; }
 
     /// <summary>
     /// Gets the label for the input.

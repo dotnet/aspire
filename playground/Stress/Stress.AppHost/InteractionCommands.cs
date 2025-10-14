@@ -63,6 +63,43 @@ internal static class InteractionCommands
 
                return CommandResults.Success();
            })
+           .WithCommand("long-content-interaction", "Long content interactions", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+
+               var inputHasMarkdown = new InteractionInput { Name = "Name", Label = "<strong>Name</strong>", InputType = InputType.Text, Placeholder = "Enter <strong>your</strong> name.", Description = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.", EnableDescriptionMarkdown = true };
+               var choiceWithLongContent = new InteractionInput
+               {
+                   Name = "Choice",
+                   InputType = InputType.Choice,
+                   Label = "Choice with long content",
+                   Placeholder = "Select a value. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.",
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui."),
+                       KeyValuePair.Create("option2", "Option 2 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.")
+                   ]
+               };
+               var choiceCustomOptionsWithLongContent = new InteractionInput
+               {
+                   Name = "Combobox",
+                   InputType = InputType.Choice,
+                   Label = "Choice with long content",
+                   AllowCustomChoice = true,
+                   Placeholder = "Select a value. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.",
+                   Options = [
+                       KeyValuePair.Create("option1", "Option 1 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui."),
+                       KeyValuePair.Create("option2", "Option 2 - Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, **neque id** efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui.")
+                   ]
+               };
+
+               _ = await interactionService.PromptInputsAsync(
+                   "Text <strong>request</strong>",
+                   "Provide **your** name. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Fusce id massa arcu. Morbi ac risus eget augue venenatis hendrerit. Morbi posuere, neque id efficitur ultrices, velit augue suscipit ante, vitae lacinia elit risus nec dui. For more information about the `IInteractionService`, see https://learn.microsoft.com.",
+                   [inputHasMarkdown, choiceWithLongContent, choiceCustomOptionsWithLongContent],
+                   new InputsDialogInteractionOptions { EnableMessageMarkdown = true });
+
+               return CommandResults.Success();
+           })
            .WithCommand("value-interaction", "Value interactions", executeCommand: async commandContext =>
            {
                var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
@@ -95,6 +132,58 @@ internal static class InteractionCommands
 
                var input = result.Data;
                logger.LogInformation("Input: {Name} = {Value}", input.Name, input.Value);
+
+               return CommandResults.Success();
+           })
+           .WithCommand("choice-no-placeholder", "Choice with no placeholder", executeCommand: async commandContext =>
+           {
+               var interactionService = commandContext.ServiceProvider.GetRequiredService<IInteractionService>();
+               var dinnerInput = new InteractionInput
+               {
+                   Name = "Dinner",
+                   InputType = InputType.Choice,
+                   Label = "Dinner",
+                   Required = true,
+                   Options =
+                   [
+                       KeyValuePair.Create("pizza", "Pizza"),
+                       KeyValuePair.Create("fried-chicken", "Fried chicken"),
+                       KeyValuePair.Create("burger", "Burger")
+                   ]
+               };
+               var requirementsInput = new InteractionInput
+               {
+                   Name = "Requirements",
+                   InputType = InputType.Choice,
+                   Label = "Requirements",
+                   AllowCustomChoice = true,
+                   Options =
+                   [
+                       KeyValuePair.Create("vegetarian", "Vegetarian"),
+                       KeyValuePair.Create("vegan", "Vegan")
+                   ]
+               };
+               var result = await interactionService.PromptInputsAsync(
+                   title: "Text request",
+                   message: "Provide your name",
+                   inputs: [
+                       dinnerInput,
+                       requirementsInput
+                   ],
+                   cancellationToken: commandContext.CancellationToken);
+
+               if (result.Canceled)
+               {
+                   return CommandResults.Failure("Canceled");
+               }
+
+               var resourceLoggerService = commandContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+               var logger = resourceLoggerService.GetLogger(commandContext.ResourceName);
+
+               foreach (var updatedInput in result.Data)
+               {
+                   logger.LogInformation("Input: {Label} = {Value}", updatedInput.Label, updatedInput.Value);
+               }
 
                return CommandResults.Success();
            })

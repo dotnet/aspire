@@ -255,15 +255,18 @@ internal sealed class RunCommand : BaseCommand
             var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
                 .Max(s => s.Length);
 
-            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+            // +1 -> accommodates the colon (:) that gets appended to each localized string
+            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
+
+            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
             }
 
             topGrid.AddRow(Text.Empty, Text.Empty);
@@ -278,7 +281,7 @@ internal sealed class RunCommand : BaseCommand
             var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
                               && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
-            AppendCtrlCMessage(longestLocalizedLength);
+            AppendCtrlCMessage(longestLocalizedLengthWithColon);
 
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
@@ -301,7 +304,7 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
+                            endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
                             if (firstEndpoint)
                             {
@@ -317,7 +320,7 @@ internal sealed class RunCommand : BaseCommand
                             _ansiConsole.Write(endpointsPadder);
                             firstEndpoint = false;
 
-                            AppendCtrlCMessage(longestLocalizedLength);
+                            AppendCtrlCMessage(longestLocalizedLengthWithColon);
                         });
                     }
                 }
@@ -386,7 +389,7 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private void AppendCtrlCMessage(int longestLocalizedLength)
+    private void AppendCtrlCMessage(int longestLocalizedLengthWithColon)
     {
         if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
         {
@@ -396,7 +399,7 @@ internal sealed class RunCommand : BaseCommand
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
         ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLength;
+        ctrlCGrid.Columns[0].Width = longestLocalizedLengthWithColon;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
         ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 

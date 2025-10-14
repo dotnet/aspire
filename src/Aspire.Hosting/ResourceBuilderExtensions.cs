@@ -2427,10 +2427,10 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2453,7 +2453,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(requiredExtensionId, launchConfigurationProducer));
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
     }
 
     /// <summary>

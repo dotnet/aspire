@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.CommandLine;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,7 +14,6 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Spectre.Console;
-using Spectre.Console.Rendering;
 
 namespace Aspire.Cli.Commands;
 
@@ -81,9 +79,14 @@ internal abstract class PublishCommandBase : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
+        // Send terminal infinite progress bar start sequence
+        StartTerminalProgressBar();
+
         // Check if the .NET SDK is available
         if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
         {
+            // Send terminal progress bar stop sequence
+            StopTerminalProgressBar();
             return ExitCodeConstants.SdkNotInstalled;
         }
 
@@ -101,6 +104,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (effectiveAppHostFile is null)
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 return ExitCodeConstants.FailedToFindProject;
             }
 
@@ -109,6 +114,8 @@ internal abstract class PublishCommandBase : BaseCommand
             // Validate that single file AppHost feature is enabled if we detected a .cs file
             if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
                 return ExitCodeConstants.FailedToFindProject;
             }
@@ -133,6 +140,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
             if (!appHostCompatibilityCheck?.IsCompatibleAppHost ?? throw new InvalidOperationException("IsCompatibleAppHost is null"))
             {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
                 return ExitCodeConstants.AppHostIncompatible;
             }
 
@@ -148,6 +157,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
                 if (buildExitCode != 0)
                 {
+                    // Send terminal progress bar stop sequence
+                    StopTerminalProgressBar();
                     InteractionService.DisplayLines(buildOutputCollector.GetLines());
                     InteractionService.DisplayError(InteractionServiceStrings.ProjectCouldNotBeBuilt);
                     return ExitCodeConstants.FailedToBuildArtifacts;
@@ -201,6 +212,9 @@ internal abstract class PublishCommandBase : BaseCommand
                 false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
             };
 
+            // Send terminal progress bar stop sequence
+            StopTerminalProgressBar();
+
             await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
             var exitCode = await pendingRun;
 
@@ -218,15 +232,21 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (OperationCanceledException)
         {
+            // Send terminal progress bar stop sequence on cancellation
+            StopTerminalProgressBar();
             InteractionService.DisplayError(GetCanceledMessage());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (ProjectLocatorException ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             return HandleProjectLocatorException(ex, InteractionService);
         }
         catch (AppHostIncompatibleException ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             return InteractionService.DisplayIncompatibleVersionError(
                 ex,
                 appHostCompatibilityCheck?.AspireHostingVersion ?? throw new InvalidOperationException(ErrorStrings.AspireHostingVersionNull)
@@ -234,25 +254,19 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         catch (FailedToConnectBackchannelConnection ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.ErrorConnectingToAppHost, ex.Message));
             InteractionService.DisplayLines(operationOutputCollector.GetLines());
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
         catch (Exception ex)
         {
+            // Send terminal progress bar stop sequence on exception
+            StopTerminalProgressBar();
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
-    }
-
-    internal class PromptState
-    {
-        public required string ActivityId { get; init; }
-        public int InputIndex { get; set; }
-        public bool DisplayedStatusText { get; set; }
-        public Status? Status { get; set; }
-        public TaskCompletionSource? CompleteStatusTcs { get; set; }
-        public Task? LoadingTask { get; set; }
     }
 
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
@@ -260,10 +274,10 @@ internal abstract class PublishCommandBase : BaseCommand
         var stepCounter = 1;
         var steps = new Dictionary<string, string>();
         PublishingActivity? publishingActivity = null;
-        PromptState? promptState = null;
 
         await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
         {
+            StartTerminalProgressBar();
             if (activity.Type == PublishingActivityTypes.PublishComplete)
             {
                 publishingActivity = activity;
@@ -288,12 +302,7 @@ internal abstract class PublishCommandBase : BaseCommand
             }
             else if (activity.Type == PublishingActivityTypes.Prompt)
             {
-                if (promptState == null || promptState.ActivityId != activity.Data.Id)
-                {
-                    promptState = new PromptState { ActivityId = activity.Data.Id };
-                }
-
-                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
+                await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
             }
             else
             {
@@ -323,6 +332,10 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
             InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+
+            // Send visual bell notification when operation is complete
+            Console.Write("\a");
+            Console.Out.Flush();
         }
 
         return !hasErrors;
@@ -332,171 +345,166 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
+        var renderer = new PublishingOutputRenderer();
         PublishingActivity? publishingActivity = null;
-        var currentStepProgress = new ProgressContextInfo();
-        PromptState? promptState = null;
 
-        await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
+        renderer.StartSpinner();
+
+        try
         {
-            // PublishComplete is emitted at the end of the publishing process
-            // by the DistributedApplicationRunner. Display the final status and
-            // cancel any in-progress tasks when this happens.
-            if (activity.Type == PublishingActivityTypes.PublishComplete)
+            await foreach (var activity in publishingActivities.WithCancellation(cancellationToken))
             {
-                publishingActivity = activity;
-
-                break;
-            }
-            else if (activity.Type == PublishingActivityTypes.Step)
-            {
-                // If this is our first time encountering this step, initialize it by
-                // display the step header and configuring a new ProgressContext for the
-                // tasks that will be parented to this step.
-                if (!steps.TryGetValue(activity.Data.Id, out var stepInfo))
+                StartTerminalProgressBar();
+                if (activity.Type == PublishingActivityTypes.PublishComplete)
                 {
-                    if (currentStepProgress.Step is not null)
-                    {
-                        throw new InvalidOperationException($"Step activity with ID '{currentStepProgress.Step?.Id}' is not complete. Expected it to be complete before processing tasks.");
-                    }
-
-                    stepInfo = new StepInfo
-                    {
-                        Id = activity.Data.Id,
-                        Title = activity.Data.StatusText,
-                        Number = stepCounter++,
-                        StartTime = DateTime.UtcNow,
-                        CompletionState = activity.Data.CompletionState
-                    };
-
-                    steps[activity.Data.Id] = stepInfo;
-
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine($"[bold]Step {stepInfo.Number}: {stepInfo.Title.EscapeMarkup()}[/]");
-
-                    currentStepProgress = new ProgressContextInfo { Step = stepInfo };
+                    publishingActivity = activity;
+                    break;
                 }
-                // If the step is complete, update the step info, clear out any pending progress tasks, and
-                // display the completion status associated with the the step.
-                else if (IsCompletionStateComplete(activity.Data.CompletionState))
+                else if (activity.Type == PublishingActivityTypes.Step)
                 {
-                    stepInfo.CompletionState = activity.Data.CompletionState;
-                    stepInfo.CompletionText = activity.Data.StatusText;
-
-                    await currentStepProgress.DisposeAsync();
-
-                    if (IsCompletionStateError(stepInfo.CompletionState))
+                    if (!steps.TryGetValue(activity.Data.Id, out var stepInfo))
                     {
-                        AnsiConsole.MarkupLine($"[red bold]❌ FAILED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
-                    }
-                    else if (IsCompletionStateWarning(stepInfo.CompletionState))
-                    {
-                        AnsiConsole.MarkupLine($"[yellow bold]⚠ WARNING:[/] {stepInfo.CompletionText.EscapeMarkup()}");
-                    }
-                    else
-                    {
-                        AnsiConsole.MarkupLine($"[green bold]✅ COMPLETED:[/] {stepInfo.CompletionText.EscapeMarkup()}");
-                    }
+                        stepInfo = new StepInfo
+                        {
+                            Id = activity.Data.Id,
+                            Title = activity.Data.StatusText,
+                            Number = stepCounter++,
+                            StartTime = DateTime.UtcNow,
+                            CompletionState = activity.Data.CompletionState
+                        };
 
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.Write(new Rule().RuleStyle(Style.Parse("grey")).DoubleBorder().LeftJustified());
-                    AnsiConsole.WriteLine();
+                        steps[activity.Data.Id] = stepInfo;
 
-                    // Clean up the current progress context and reset the step ID so that it
-                    // can be reused by the next step.
-                    currentStepProgress = new ProgressContextInfo();
+                        await renderer.WriteStepMessageAsync(
+                            stepInfo.Id,
+                            stepInfo.Title,
+                            $"Starting {stepInfo.Title}...");
+                    }
+                    else if (IsCompletionStateComplete(activity.Data.CompletionState))
+                    {
+                        stepInfo.CompletionState = activity.Data.CompletionState;
+                        stepInfo.CompletionText = activity.Data.StatusText;
+
+                        var isSuccess = !IsCompletionStateError(stepInfo.CompletionState) &&
+                                       !IsCompletionStateWarning(stepInfo.CompletionState);
+                        var isFailure = IsCompletionStateError(stepInfo.CompletionState);
+
+                        await renderer.WriteStepMessageAsync(
+                            stepInfo.Id,
+                            stepInfo.Title,
+                            stepInfo.CompletionText,
+                            isSuccess,
+                            isFailure);
+                    }
+                }
+                else if (activity.Type == PublishingActivityTypes.Prompt)
+                {
+                    await renderer.StopSpinnerAsync();
+                    await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+                    renderer.StartSpinner();
                 }
                 else
                 {
-                    throw new InvalidOperationException($"Step activity with ID '{activity.Data.Id}' is not complete. Expected it to be complete before processing tasks.");
-                }
-            }
-            else if (activity.Type == PublishingActivityTypes.Prompt)
-            {
-                if (promptState == null || promptState.ActivityId != activity.Data.Id)
-                {
-                    promptState = new PromptState { ActivityId = activity.Data.Id };
-                }
+                    var stepId = activity.Data.StepId;
+                    Debug.Assert(stepId != null, "Activity data should have a StepId for task activities.");
 
-                await HandlePromptActivityAsync(activity, backchannel, promptState, cancellationToken);
-            }
-            else
-            {
-                var stepId = activity.Data.StepId;
-                Debug.Assert(stepId != null, "Activity data should have a StepId for task activities.");
-
-                if (currentStepProgress.Step?.Id != stepId)
-                {
-                    throw new InvalidOperationException($"Task activity with ID '{activity.Data.Id}' is not associated with the current step '{currentStepProgress.Step?.Id}'.");
-                }
-
-                var tasks = currentStepProgress.Step.Tasks;
-
-                await StartProgressForStep(currentStepProgress, cancellationToken);
-
-                if (!tasks.TryGetValue(activity.Data.Id, out var task))
-                {
-                    task = new TaskInfo
+                    if (!steps.TryGetValue(stepId, out var stepInfo))
                     {
-                        Id = activity.Data.Id,
-                        StatusText = activity.Data.StatusText,
-                        StartTime = DateTime.UtcNow,
-                        CompletionState = activity.Data.CompletionState
-                    };
-
-                    tasks[activity.Data.Id] = task;
-
-                    // Start progress context on first task for this step
-                    task.ProgressTask = currentStepProgress.Ctx!.AddTask($"  {activity.Data.StatusText.EscapeMarkup()}");
-                    task.ProgressTask.IsIndeterminate = true;
-                }
-
-                if (task.ProgressTask is null)
-                {
-                    throw new InvalidOperationException($"Task with ID '{activity.Data.Id}' does not have an associated ProgressTask.");
-                }
-
-                task.StatusText = activity.Data.StatusText;
-                task.CompletionState = activity.Data.CompletionState;
-
-                if (IsCompletionStateComplete(activity.Data.CompletionState))
-                {
-                    var prefix = IsCompletionStateError(task.CompletionState) ? "[red]✗ FAILED:[/]" :
-                        IsCompletionStateWarning(task.CompletionState) ? "[yellow]⚠ WARNING:[/]" : "[green]✓ DONE:[/]";
-                    task.ProgressTask.Description = $"  {prefix} {task.StatusText.EscapeMarkup()}";
-                    task.CompletionMessage = activity.Data.CompletionMessage;
-
-                    // Add completion message to the shared dictionary so that it can be displayed after the status text in the column view.
-                    if (currentStepProgress.TaskCompletionMessages != null && !string.IsNullOrEmpty(activity.Data.CompletionMessage))
-                    {
-                        currentStepProgress.TaskCompletionMessages[task.ProgressTask.Id] = activity.Data.CompletionMessage;
+                        throw new InvalidOperationException($"Step '{stepId}' not found for task '{activity.Data.Id}'");
                     }
 
-                    // We don't set hasErrors = true on task errors to avoid early exits. We only
-                    // process errors captured at the step-level or publish complete level.
-                    task.ProgressTask.StopTask();
-                }
-                else
-                {
-                    task.ProgressTask.Description = $"  {task.StatusText.EscapeMarkup()}";
+                    var tasks = stepInfo.Tasks;
+
+                    if (!tasks.TryGetValue(activity.Data.Id, out var task))
+                    {
+                        task = new TaskInfo
+                        {
+                            Id = activity.Data.Id,
+                            StatusText = activity.Data.StatusText,
+                            StartTime = DateTime.UtcNow,
+                            CompletionState = activity.Data.CompletionState
+                        };
+
+                        tasks[activity.Data.Id] = task;
+
+                        await renderer.WriteStepMessageAsync(
+                            stepInfo.Id,
+                            stepInfo.Title,
+                            activity.Data.StatusText);
+                    }
+
+                    task.StatusText = activity.Data.StatusText;
+                    task.CompletionState = activity.Data.CompletionState;
+
+                    if (IsCompletionStateComplete(activity.Data.CompletionState))
+                    {
+                        task.CompletionMessage = activity.Data.CompletionMessage;
+
+                        var isSuccess = !IsCompletionStateError(task.CompletionState) &&
+                                       !IsCompletionStateWarning(task.CompletionState);
+                        var isFailure = IsCompletionStateError(task.CompletionState);
+
+                        var duration = DateTime.UtcNow - task.StartTime;
+                        var durationStr = $"({duration.TotalSeconds:F1}s)";
+
+                        var message = task.StatusText;
+                        if (!string.IsNullOrEmpty(task.CompletionMessage))
+                        {
+                            message = $"{task.StatusText}: {task.CompletionMessage} {durationStr}";
+                        }
+                        else
+                        {
+                            message = $"{task.StatusText} {durationStr}";
+                        }
+
+                        await renderer.WriteStepMessageAsync(
+                            stepInfo.Id,
+                            stepInfo.Title,
+                            message,
+                            isSuccess,
+                            isFailure);
+                    }
                 }
             }
+
+            if (publishingActivity is not null)
+            {
+                await renderer.StopSpinnerAsync();
+                Console.Write("\r");          // Move to start of line
+                Console.Write("     ");       // Write multiple spaces to clear
+                Console.Write("\r");          // Move back to start of line
+                Console.Out.Flush();
+
+                var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
+                var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
+
+                AnsiConsole.WriteLine();
+                var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+
+                var prefix = hasErrors ? "[red]" : hasWarnings ? "[yellow]" : "[green]";
+                var operationPrefix = hasErrors ? OperationFailedPrefix : OperationCompletedPrefix;
+
+                AnsiConsole.MarkupLine(
+                    $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] " +
+                    $"{prefix}{publishingActivity.Data.StatusText.EscapeMarkup()}[/]");
+
+                // Send visual bell notification when operation is complete
+                Console.Write("\a");
+                Console.Out.Flush();
+
+                return !hasErrors;
+            }
+
+            return true;
         }
-
-        var hasErrors = publishingActivity is not null && IsCompletionStateError(publishingActivity.Data.CompletionState);
-        var hasWarnings = publishingActivity is not null && IsCompletionStateWarning(publishingActivity.Data.CompletionState);
-
-        if (publishingActivity is not null)
+        finally
         {
-            var prefix = hasErrors
-                ? $"[red]✗ {OperationFailedPrefix}:[/]"
-                : hasWarnings
-                    ? $"[yellow]⚠ {OperationCompletedPrefix}:[/]"
-                    : $"[green]✓ {OperationCompletedPrefix}:[/]";
-
-            AnsiConsole.MarkupLine($"{prefix} {publishingActivity.Data.StatusText.EscapeMarkup()}");
+            await renderer.StopSpinnerAsync();
+            Console.Write("\r");          // Move to start of line
+            Console.Write("     ");       // Write multiple spaces to clear
+            Console.Write("\r");          // Move back to start of line
+            Console.Out.Flush();
         }
-
-        return !hasErrors;
     }
 
     private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
@@ -524,7 +532,7 @@ internal abstract class PublishCommandBase : BaseCommand
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
-    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, PromptState promptState, CancellationToken cancellationToken)
+    private async Task HandlePromptActivityAsync(PublishingActivity activity, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         if (activity.Data.IsComplete)
         {
@@ -538,92 +546,47 @@ internal abstract class PublishCommandBase : BaseCommand
             throw new InvalidOperationException("Prompt provided without input data.");
         }
 
-        // If any inputs are still loading then display a loading status until they're available.
-        if (inputs.Any(input => input.Loading))
-        {
-            var tcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            promptState.Status = AnsiConsole.Status();
-            promptState.CompleteStatusTcs = tcs;
-            promptState.LoadingTask = promptState.Status.StartAsync(PublishCommandStrings.InputPromptLoading, c => tcs.Task);
-            return;
-        }
-        else
-        {
-            promptState.CompleteStatusTcs?.TrySetResult();
-            promptState.CompleteStatusTcs = null;
-
-            if (promptState.LoadingTask is { } task)
-            {
-                await task;
-                promptState.LoadingTask = null;
-            }
-        }
+        // Check for validation errors. If there are errors then this isn't the first time the user has been prompted.
+        var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
 
         // For multiple inputs, display the activity status text as a header.
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
-        if (!promptState.DisplayedStatusText && inputs.Count > 1)
+        if (!hasValidationErrors && inputs.Count > 1)
         {
             var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
-
-            promptState.DisplayedStatusText = true;
         }
 
         // Handle multiple inputs
-        var answers = new List<PublishingPromptInputAnswer>();
-        var sendUpdateResponse = false;
-        for (var i = promptState.InputIndex; i < inputs.Count; i++)
+        var answers = new PublishingPromptInputAnswer[inputs.Count];
+        for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
-
-            if (input.Disabled)
-            {
-                // Skip disabled inputs in the CLI.
-                continue;
-            }
 
             string? result;
 
             // Get prompt for input if there are no validation errors (first time we've asked)
             // or there are validation errors and this input has an error.
-            var hasValidationErrors = inputs.Any(input => input.ValidationErrors is { Count: > 0 });
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
                 // Build the prompt text based on number of inputs
                 var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
-
-                sendUpdateResponse = input.UpdateStateOnChange;
             }
             else
             {
                 result = input.Value;
             }
 
-            answers.Add(new PublishingPromptInputAnswer
+            answers[i] = new PublishingPromptInputAnswer
             {
-                Name = input.Name,
                 Value = result
-            });
-
-            if (sendUpdateResponse)
-            {
-                promptState.InputIndex = i + 1;
-                break;
-            }
+            };
         }
 
-        // All inputs processed. Reset index to the first prompt.
-        if (!sendUpdateResponse)
-        {
-            promptState.InputIndex = 0;
-            await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
-        }
-        else
-        {
-            await backchannel.UpdatePromptResponseAsync(activity.Data.Id, answers.ToArray(), cancellationToken);
-        }
+        // Send all results as an array
+        await backchannel.CompletePromptResponseAsync(activity.Data.Id, answers, cancellationToken);
     }
 
     private async Task<string?> HandleSingleInputAsync(PublishingPromptInput input, string promptText, CancellationToken cancellationToken)
@@ -727,44 +690,6 @@ internal abstract class PublishCommandBase : BaseCommand
         return bool.TryParse(value, out var result) && result;
     }
 
-    private static async Task StartProgressForStep(ProgressContextInfo progressContext, CancellationToken cancellationToken)
-    {
-        if (progressContext.Context is not null)
-        {
-            // If the context is already started, we don't need to do anything.
-            return;
-        }
-
-        progressContext.Context = AnsiConsole.Progress()
-            .AutoClear(false)
-            .HideCompleted(false)
-            .Columns(
-            [
-                new SpinnerColumn(Spinner.Known.BouncingBar) { Style = Style.Parse("yellow") },
-                new TaskDescriptionWithCompletionColumn(progressContext.TaskCompletionMessages),
-                new ElapsedTimeColumn() { Style = Style.Parse("grey") }
-            ]);
-
-        // Use a TaskCompletionSource to signal when the context is ready
-        var contextReadySource = new TaskCompletionSource<ProgressContext>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        progressContext.ContextTask = progressContext.Context.StartAsync(async ctx =>
-        {
-            // Signal that the context is ready so that the invoker can start to populate
-            // it with tasks
-            progressContext.Ctx = ctx;
-            contextReadySource.SetResult(ctx);
-
-            // Cancel the Spectre progress context when a cancellation is requested
-            // explicitly by the ProgressContext.CancellationTokenSource.
-            await progressContext.KeepProgressContextAliveTcs.Task.WaitAsync(cancellationToken)
-                .ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        });
-
-        // Wait for the context to be ready before returning
-        await contextReadySource.Task;
-    }
-
     private class StepInfo
     {
         public string Id { get; set; } = string.Empty;
@@ -783,52 +708,122 @@ internal abstract class PublishCommandBase : BaseCommand
         public DateTime StartTime { get; set; }
         public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string? CompletionMessage { get; set; }
-        public ProgressTask? ProgressTask { get; set; }
     }
 
-    private class ProgressContextInfo : IAsyncDisposable
+    private class ProgressContextInfo
     {
         public StepInfo? Step { get; set; }
-        public Progress? Context { get; set; }
-        public Task? ContextTask { get; set; }
-        public ProgressContext? Ctx { get; set; }
-        public TaskCompletionSource KeepProgressContextAliveTcs { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        // Dictionary to track completion messages for tasks so that they can be rendered
-        // below the task description in the progress view using the custom column implementation.
-        public ConcurrentDictionary<int, string> TaskCompletionMessages { get; } = [];
+    }
 
-        public async ValueTask DisposeAsync()
+    private class PublishingOutputRenderer
+    {
+        private readonly HashSet<string> _seenSteps = [];
+        private readonly Dictionary<string, string> _stepColors = [];
+        private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
+        private int _colorIndex;
+        private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
+        private volatile bool _isSpinning;
+        private Task? _spinnerTask;
+
+        public void StartSpinner()
         {
-            KeepProgressContextAliveTcs.TrySetResult();
-
-            if (ContextTask is not null)
+            if (_isSpinning)
             {
-                await ContextTask.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                return;
             }
+
+            _isSpinning = true;
+            _spinnerTask = Task.Run(async () =>
+            {
+                var spinnerIndex = 0;
+
+                while (_isSpinning)
+                {
+                    AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[spinnerIndex]);
+                    AnsiConsole.Write("\b");
+                    spinnerIndex = (spinnerIndex + 1) % _spinnerChars.Length;
+                    await Task.Delay(150);
+                }
+
+                AnsiConsole.Write(" \b");
+            });
+        }
+
+        public async Task StopSpinnerAsync()
+        {
+            _isSpinning = false;
+            if (_spinnerTask is not null)
+            {
+                await _spinnerTask.ConfigureAwait(false);
+            }
+            _spinnerTask = null;
+        }
+
+        public async Task WriteStepMessageAsync(string stepId, string stepTitle, string message,
+            bool isSuccess = false, bool isFailure = false)
+        {
+            var wasSpinning = _isSpinning;
+            if (wasSpinning)
+            {
+                _isSpinning = false;
+                if (_spinnerTask is not null)
+                {
+                    await _spinnerTask.ConfigureAwait(false);
+                }
+            }
+
+            if (!_seenSteps.Contains(stepId))
+            {
+                AnsiConsole.WriteLine();
+                _seenSteps.Add(stepId);
+            }
+
+            var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+            var stepColor = GetStepColor(stepId);
+
+            var formattedMessage = message.EscapeMarkup();
+            if (isSuccess)
+            {
+                formattedMessage = $"[green]{formattedMessage}[/]";
+            }
+            else if (isFailure)
+            {
+                formattedMessage = $"[red]{formattedMessage}[/]";
+            }
+
+            AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]({stepTitle})[/] {formattedMessage}");
+
+            if (wasSpinning)
+            {
+                StartSpinner();
+            }
+        }
+
+        private string GetStepColor(string stepId)
+        {
+            if (!_stepColors.TryGetValue(stepId, out var color))
+            {
+                color = _availableColors[_colorIndex % _availableColors.Length];
+                _stepColors[stepId] = color;
+                _colorIndex++;
+            }
+            return color;
         }
     }
 
-    // Custom column type to display the status text associated with task
-    // and the optional completion message if the task has completed below
-    // it.
-    private class TaskDescriptionWithCompletionColumn(ConcurrentDictionary<int, string> completionMessages) : ProgressColumn
+    /// <summary>
+    /// Starts the terminal infinite progress bar.
+    /// </summary>
+    private static void StartTerminalProgressBar()
     {
-        public override IRenderable Render(RenderOptions options, ProgressTask task, TimeSpan deltaTime)
-        {
-            var description = task.Description ?? string.Empty;
+        Console.Write("\u001b]9;4;3\u001b\\");
+    }
 
-            if (completionMessages.TryGetValue(task.Id, out var completionMessage) && !string.IsNullOrEmpty(completionMessage))
-            {
-                List<IRenderable> items =
-                [
-                    new Markup(description),
-                    new Markup($"    [dim]{completionMessage.EscapeMarkup()}[/]")
-                ];
-
-                return new Rows(items);
-            }
-
-            return new Markup(description);
-        }
+    /// <summary>
+    /// Stops the terminal progress bar.
+    /// </summary>
+    private static void StopTerminalProgressBar()
+    {
+        Console.Write("\u001b]9;4;0\u001b\\");
     }
 }
