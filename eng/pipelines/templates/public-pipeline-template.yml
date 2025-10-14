@@ -327,6 +327,15 @@ stages:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
 
+        variables:
+          DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+          PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
+          DOCKER_BUILDKIT: 1
+          DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+          DCP_PRESERVE_EXECUTABLE_LOGS: 1
+
         steps:
           - checkout: self
             fetchDepth: 1
@@ -366,14 +375,6 @@ stages:
               $filter = "Category!=quarantined&Category!=outerloop"
               & "$(Build.SourcesDirectory)/.dotnet/dotnet" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
             displayName: 'Run tests'
-            env:
-              DOCKER_BUILDKIT: 1
-              DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-              DCP_DIAGNOSTICS_LOG_LEVEL: debug
-              DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-              DCP_PRESERVE_EXECUTABLE_LOGS: 1
-              DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
@@ -403,6 +404,15 @@ stages:
         pool:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
+
+        variables:
+          DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+          PATH: $(Build.SourcesDirectory)/.dotnet;$(PATH)
+          DOCKER_BUILDKIT: 1
+          DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+          DCP_DIAGNOSTICS_LOG_LEVEL: debug
+          DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+          DCP_PRESERVE_EXECUTABLE_LOGS: 1
 
         steps:
           - checkout: self
@@ -435,14 +445,6 @@ stages:
               $filter = "Category!=quarantined`&Category!=outerloop"
               & "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
             displayName: 'Run tests'
-            env:
-              DOCKER_BUILDKIT: 1
-              DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-              DCP_DIAGNOSTICS_LOG_LEVEL: debug
-              DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-              DCP_PRESERVE_EXECUTABLE_LOGS: 1
-              DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
