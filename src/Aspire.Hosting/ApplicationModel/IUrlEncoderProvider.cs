@@ -31,15 +31,6 @@ internal class UrlEncoderProvider<T> : IUrlEncoderProvider where T : IValueProvi
         {
             var expression = _valueProvider.ValueExpression;
 
-            // Renders a custom operation in the manifest expression to indicate that
-            // the value should be URI-encoded.
-
-            // if (expression.StartsWith('{') &&
-            //     expression.EndsWith('}'))
-            // {
-            //     return $"{{{expression[1..^1]}:uri}}";
-            // }
-
             return expression;
         }
     }

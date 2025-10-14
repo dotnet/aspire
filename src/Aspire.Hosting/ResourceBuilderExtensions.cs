@@ -472,7 +472,7 @@ public static class ResourceBuilderExtensions
 
         // Determine what to inject based on the annotation on the destination resource
         var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
-        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.ConnectionString;
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         return builder.WithEnvironment(context =>
         {
@@ -486,7 +486,6 @@ public static class ResourceBuilderExtensions
             {
                 var prefix = connectionName switch
                 {
-                    null => $"{resource.Name.ToUpperInvariant()}_",
                     "" => "",
                     _ => $"{connectionName.ToUpperInvariant()}_"
                 };

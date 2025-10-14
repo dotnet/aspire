@@ -139,7 +139,6 @@ public static class PythonAppResourceBuilderExtensions
 
         var resourceBuilder = builder
             .AddResource(resource)
-            .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.All))
             .WithArgs(context =>
         {
             context.Args.Add(scriptPath);

@@ -162,7 +162,7 @@ public static class QdrantBuilderExtensions
 
         // Determine what to inject based on the annotation on the destination resource
         var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
-        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.ConnectionString;
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
         {

@@ -56,7 +56,6 @@ public static class ExecutableResourceBuilderExtensions
 
         var executable = new ExecutableResource(name, command, workingDirectory);
         return builder.AddResource(executable)
-                      .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.All))
                       .WithArgs(context =>
                       {
                           if (args is not null)

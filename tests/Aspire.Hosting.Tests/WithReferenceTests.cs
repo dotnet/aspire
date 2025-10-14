@@ -531,9 +531,9 @@ public class WithReferenceTests
         // Verify connection string is present
         Assert.Contains(config, kvp => kvp.Key == "ConnectionStrings__resource" && kvp.Value == "Server=localhost;Database=mydb");
 
-        // Verify connection properties are NOT present (no annotation - defaults to connection string only)
-        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_HOST");
-        Assert.DoesNotContain(config, kvp => kvp.Key == "RESOURCE_PORT");
+        // Verify connection properties are present (no annotation - defaults to has All flag)
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_HOST");
+        Assert.Contains(config, kvp => kvp.Key == "RESOURCE_PORT");
     }
 
     [Fact]

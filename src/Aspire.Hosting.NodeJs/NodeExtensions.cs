@@ -63,7 +63,6 @@ public static class NodeAppHostingExtension
         var resource = new NodeAppResource(name, "npm", workingDirectory);
 
         return builder.AddResource(resource)
-                      .WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(ReferenceEnvironmentInjectionFlags.All))
                       .WithNodeDefaults()
                       .WithArgs(allArgs);
     }

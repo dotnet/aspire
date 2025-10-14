@@ -96,14 +96,6 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
         }
     }
 
-    /// <summary>
-    /// Gets the management endpoint URI expression for the RabbitMQ server.
-    /// </summary>
-    /// <remarks>
-    /// Format: <c>http://{host}:{port}</c>. The scheme reflects the endpoint configuration and may be <c>https</c> when TLS is enabled.
-    /// </remarks>
-    public ReferenceExpression ManagementUriExpression => ReferenceExpression.Create($"{ManagementEndpoint.Property(EndpointProperty.Url)}");
-
     IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
     {
         yield return new("Host", ReferenceExpression.Create($"{Host}"));
@@ -111,6 +103,5 @@ public class RabbitMQServerResource : ContainerResource, IResourceWithConnection
         yield return new("Username", UserNameReference);
         yield return new("Password", ReferenceExpression.Create($"{PasswordParameter}"));
         yield return new("Uri", UriExpression);
-        yield return new("ManagementUri", ManagementUriExpression);
     }
 }

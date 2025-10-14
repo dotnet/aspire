@@ -58,7 +58,7 @@ public class MilvusServerResource : ContainerResource, IResourceWithConnectionSt
     /// </remarks>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create(
-            $"Endpoint={PrimaryEndpoint.Property(EndpointProperty.Url)};Key=root:{ApiKeyParameter}");
+            $"Endpoint={UriExpression};Key={Token}");
 
     /// <summary>
     /// Gets URI expression for the Milvus instance.

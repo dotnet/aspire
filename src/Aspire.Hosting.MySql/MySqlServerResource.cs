@@ -62,23 +62,8 @@ public class MySqlServerResource : ContainerResource, IResourceWithConnectionStr
     /// <remarks>
     /// Format: <c>mysql://{user}:{password}@{host}:{port}</c>.
     /// </remarks>
-    public ReferenceExpression UriExpression
-    {
-        get
-        {
-            var builder = new ReferenceExpressionBuilder();
-            builder.AppendLiteral("mysql://");
-            builder.Append($"{UserNameReference:uri}");
-            builder.AppendLiteral(":");
-            builder.Append($"{PasswordParameter:uri}");
-            builder.AppendLiteral("@");
-            builder.Append($"{Host}");
-            builder.AppendLiteral(":");
-            builder.Append($"{Port}");
-
-            return builder.Build();
-        }
-    }
+    public ReferenceExpression UriExpression =>
+        ReferenceExpression.Create($"mysql://{UserNameReference:uri}:{PasswordParameter:uri}@{Host}:{Port}");
 
     internal ReferenceExpression BuildJdbcConnectionString(string? databaseName = null)
     {

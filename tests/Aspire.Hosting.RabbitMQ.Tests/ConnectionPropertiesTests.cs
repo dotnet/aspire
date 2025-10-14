@@ -42,11 +42,6 @@ public class ConnectionPropertiesTests
             {
                 Assert.Equal("Uri", property.Key);
                 Assert.Equal("amqp://{user.value}:{password.value}@{rabbit.bindings.tcp.host}:{rabbit.bindings.tcp.port}", property.Value.ValueExpression);
-            },
-            property =>
-            {
-                Assert.Equal("ManagementUri", property.Key);
-                Assert.Equal("{rabbit.bindings.management.url}", property.Value.ValueExpression);
             });
     }
 }
