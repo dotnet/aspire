@@ -117,16 +117,6 @@ jobs:
           restore-keys: |
             test-sdks-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Set up .NET Core
-        uses: actions/setup-dotnet@v4
-        # Used for running tests outside the repo
-        if: ${{ inputs.requiresNugets }}
-        with:
-          dotnet-version: |
-            8.x
-            9.x
-            10.x
-
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
