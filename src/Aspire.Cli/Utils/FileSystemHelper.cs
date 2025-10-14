@@ -22,21 +22,30 @@ internal static class FileSystemHelper
             throw new DirectoryNotFoundException($"Source directory not found: {sourceDir}");
         }
 
-        // Create the destination directory if it doesn't exist
-        Directory.CreateDirectory(destinationDir);
+        // Use a stack to avoid recursion and potential stack overflow with deep directory structures
+        var stack = new Stack<(DirectoryInfo Source, string Destination)>();
+        stack.Push((sourceDirInfo, destinationDir));
 
-        // Copy all files in the current directory
-        foreach (var file in sourceDirInfo.GetFiles())
+        while (stack.Count > 0)
         {
-            var targetFilePath = Path.Combine(destinationDir, file.Name);
-            file.CopyTo(targetFilePath, overwrite: false);
-        }
+            var (currentSource, currentDestination) = stack.Pop();
 
-        // Recursively copy all subdirectories
-        foreach (var subDir in sourceDirInfo.GetDirectories())
-        {
-            var targetSubDir = Path.Combine(destinationDir, subDir.Name);
-            CopyDirectory(subDir.FullName, targetSubDir);
+            // Create the destination directory if it doesn't exist
+            Directory.CreateDirectory(currentDestination);
+
+            // Copy all files in the current directory
+            foreach (var file in currentSource.GetFiles())
+            {
+                var targetFilePath = Path.Combine(currentDestination, file.Name);
+                file.CopyTo(targetFilePath, overwrite: false);
+            }
+
+            // Push all subdirectories onto the stack
+            foreach (var subDir in currentSource.GetDirectories())
+            {
+                var targetSubDir = Path.Combine(currentDestination, subDir.Name);
+                stack.Push((subDir, targetSubDir));
+            }
         }
     }
 }
