@@ -53,59 +53,34 @@ resources:
 stages:
 
 # ----------------------------------------------------------------
-# This stage performs build, test, packaging
+# Helix-based stages (for non-matrix tests)
 # ----------------------------------------------------------------
-- stage: build
-  displayName: Build
-  jobs:
-  - template: /eng/common/templates/jobs/jobs.yml
-    parameters:
-      artifacts:
-        publish:
-          artifacts: false
-          logs:
-            name: 'Logs_Build_$(Agent.JobName)_$(_BuildConfig)'
-          manifests: true
-      enableMicrobuild: true
-      enablePublishUsingPipelines: true
-      publishAssetsImmediately: true
-      enablePublishTestResults: true
-      testResultsFormat: vstest
-      enableSourceIndex: false
-      workspace:
-        clean: all
+- ${{ if not(contains(variables.testVariants, '_integration_matrix_tests')) }}:
+  - stage: build
+    displayName: Build
+    jobs:
+    - template: /eng/common/templates/jobs/jobs.yml
+      parameters:
+        artifacts:
+          publish:
+            artifacts: false
+            logs:
+              name: 'Logs_Build_$(Agent.JobName)_$(_BuildConfig)'
+            manifests: true
+        enableMicrobuild: true
+        enablePublishUsingPipelines: true
+        publishAssetsImmediately: true
+        enablePublishTestResults: true
+        testResultsFormat: vstest
+        enableSourceIndex: false
+        workspace:
+          clean: all
 
-      jobs:
+        jobs:
 
-      # Setup jobs that don't depend on anything (required for stage to be valid)
-      - job: Setup
-        displayName: Setup and Validation
-
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals build.ubuntu.2204.amd64.open
-
-        steps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-          - task: UseDotNet@2
-            displayName: 'Install .NET SDK'
-            inputs:
-              useGlobalJson: true
-
-          - script: |
-              echo "Setting up build environment..."
-              echo "Test variants: $(testVariants)"
-              echo "Build configuration: $(_BuildConfig)"
-            displayName: 'Environment Setup'
-
-      # Integration Tests Matrix moved to separate stages
-
-      # Helix jobs (Templates, EndToEnd - temporarily preserved)
-      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
-        - ${{ if contains(testVariant, '_helix') }}:
+        # Helix jobs (Templates, EndToEnd - temporarily preserved)
+        - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
+          - ${{ if contains(testVariant, '_helix') }}:
           - job: Windows${{ testVariant }}
 
             # timeout accounts for wait times for helix agents up to 30mins
