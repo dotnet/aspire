@@ -126,7 +126,6 @@ stages:
 
           - job: EnumerateIntegrationTests
             displayName: 'Enumerate Integration Tests'
-            dependsOn: SetupDotNetLinux
             pool:
               name: $(DncEngPublicBuildPool)
               demands: ImageOverride -equals build.ubuntu.2204.amd64.open
@@ -136,11 +135,9 @@ stages:
                 fetchDepth: 1
                 clean: true
 
-              - task: DownloadPipelineArtifact@2
-                displayName: 'Download .NET SDK'
-                inputs:
-                  artifactName: 'dotnet-sdk-linux'
-                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
+              - pwsh: |
+                  ./restore.sh
+                displayName: 'Restore .NET SDK'
 
               - pwsh: |
                   ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
