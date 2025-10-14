@@ -9,7 +9,7 @@
 # ------------------------------
 # 🔧 Builder stage
 # ------------------------------
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION
 ARG SCRIPT_NAME
 FROM ghcr.io/astral-sh/uv:python${PYTHON_VERSION}-bookworm-slim AS builder
 
