@@ -56,5 +56,5 @@ runs:
       run: |
         mkdir -p ./artifacts/tmp
         echo '<Project />' > ./artifacts/tmp/install-sdks.proj
-        ./eng/build.sh -restore -projects ./artifacts/tmp/install-sdks.proj
+        ./build.sh -restore -projects $PWD/artifacts/tmp/install-sdks.proj
         rm -f ./artifacts/tmp/install-sdks.proj
