@@ -146,11 +146,11 @@ stages:
                   runPipelineTests: false
 
 # ----------------------------------------------------------------
-# Setup Stage - .NET SDK setup and test enumeration
+# Setup Stages - Platform-specific .NET SDK setup and test enumeration
 # ----------------------------------------------------------------
 - ${{ if contains(variables.testVariants, '_integration_matrix_tests') }}:
-  - stage: Setup
-    displayName: 'Setup'
+  - stage: SetupLinux
+    displayName: 'Setup Linux'
     jobs:
       - job: SetupDotNetLinux
         displayName: 'Setup .NET SDK - Linux'
@@ -172,28 +172,6 @@ stages:
             inputs:
               targetPath: '$(Build.SourcesDirectory)/.dotnet'
               artifactName: 'dotnet-sdk-linux'
-              publishLocation: 'pipeline'
-
-      - job: SetupDotNetWindows
-        displayName: 'Setup .NET SDK - Windows'
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals windows.vs2022preview.amd64.open
-
-        steps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-          - pwsh: |
-              ./restore.cmd
-            displayName: 'Restore .NET SDK'
-
-          - task: PublishPipelineArtifact@1
-            displayName: 'Publish .NET SDK - Windows'
-            inputs:
-              targetPath: '$(Build.SourcesDirectory)/.dotnet'
-              artifactName: 'dotnet-sdk-windows'
               publishLocation: 'pipeline'
 
       - job: EnumerateIntegrationTests
@@ -268,17 +246,42 @@ stages:
             displayName: 'Generate test matrix'
             name: 'GenerateMatrix'
 
+  - stage: SetupWindows
+    displayName: 'Setup Windows'
+    jobs:
+      - job: SetupDotNetWindows
+        displayName: 'Setup .NET SDK - Windows'
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+          - pwsh: |
+              ./restore.cmd
+            displayName: 'Restore .NET SDK'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish .NET SDK - Windows'
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/.dotnet'
+              artifactName: 'dotnet-sdk-windows'
+              publishLocation: 'pipeline'
+
   # ----------------------------------------------------------------
   # Linux Tests Stage
   # ----------------------------------------------------------------
   - stage: LinuxTests
     displayName: 'Linux Integration Tests'
-    dependsOn: Setup
+    dependsOn: SetupLinux
     jobs:
       - job: RunIntegrationTestsLinux
         displayName: 'Test'
         strategy:
-          matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
+          matrix: $[ stageDependencies.SetupLinux.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
 
         timeoutInMinutes: 20
 
@@ -350,12 +353,14 @@ stages:
   # ----------------------------------------------------------------
   - stage: WindowsTests
     displayName: 'Windows Integration Tests'
-    dependsOn: Setup
+    dependsOn:
+      - SetupLinux  # For test matrix generation
+      - SetupWindows  # For .NET SDK artifacts
     jobs:
       - job: RunIntegrationTestsWindows
         displayName: 'Test'
         strategy:
-          matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
+          matrix: $[ stageDependencies.SetupLinux.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
 
         timeoutInMinutes: 20
 
