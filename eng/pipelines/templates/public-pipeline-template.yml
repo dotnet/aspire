@@ -80,8 +80,8 @@ stages:
       # Integration Tests Matrix - replaces old pipeline tests
       - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - ${{ if contains(testVariant, '_integration_matrix_tests') }}:
-          - job: SetupDotNet
-            displayName: 'Setup .NET SDK and Runtime'
+          - job: SetupDotNetLinux
+            displayName: 'Setup .NET SDK - Linux'
             pool:
               name: $(DncEngPublicBuildPool)
               demands: ImageOverride -equals build.ubuntu.2204.amd64.open
@@ -96,15 +96,37 @@ stages:
                 displayName: 'Restore .NET SDK'
 
               - task: PublishPipelineArtifact@1
-                displayName: 'Publish .NET SDK'
+                displayName: 'Publish .NET SDK - Linux'
                 inputs:
                   targetPath: '$(Build.SourcesDirectory)/.dotnet'
-                  artifactName: 'dotnet-sdk'
+                  artifactName: 'dotnet-sdk-linux'
+                  publishLocation: 'pipeline'
+
+          - job: SetupDotNetWindows
+            displayName: 'Setup .NET SDK - Windows'
+            pool:
+              name: $(DncEngPublicBuildPool)
+              demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+            steps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+              - pwsh: |
+                  ./restore.cmd
+                displayName: 'Restore .NET SDK'
+
+              - task: PublishPipelineArtifact@1
+                displayName: 'Publish .NET SDK - Windows'
+                inputs:
+                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
+                  artifactName: 'dotnet-sdk-windows'
                   publishLocation: 'pipeline'
 
           - job: EnumerateIntegrationTests
             displayName: 'Enumerate Integration Tests'
-            dependsOn: SetupDotNet
+            dependsOn: SetupDotNetLinux
             pool:
               name: $(DncEngPublicBuildPool)
               demands: ImageOverride -equals build.ubuntu.2204.amd64.open
@@ -117,15 +139,11 @@ stages:
               - task: DownloadPipelineArtifact@2
                 displayName: 'Download .NET SDK'
                 inputs:
-                  artifactName: 'dotnet-sdk'
+                  artifactName: 'dotnet-sdk-linux'
                   targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
               - pwsh: |
-                  if ($env:AGENT_OS -eq "Windows_NT") {
-                    ./dotnet.cmd build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
-                  } else {
-                    ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
-                  }
+                  ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
                 displayName: 'Generate integration tests list'
 
               - pwsh: |
@@ -173,7 +191,8 @@ stages:
           - job: RunIntegrationTests
             displayName: 'Test'
             dependsOn:
-              - SetupDotNet
+              - SetupDotNetLinux
+              - SetupDotNetWindows
               - EnumerateIntegrationTests
             condition: succeeded()
 
@@ -192,9 +211,17 @@ stages:
                 clean: true
 
               - task: DownloadPipelineArtifact@2
-                displayName: 'Download .NET SDK'
+                displayName: 'Download .NET SDK - Windows'
+                condition: eq(variables['platformName'], 'Windows')
                 inputs:
-                  artifactName: 'dotnet-sdk'
+                  artifactName: 'dotnet-sdk-windows'
+                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
+
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Download .NET SDK - Linux'
+                condition: eq(variables['platformName'], 'Linux')
+                inputs:
+                  artifactName: 'dotnet-sdk-linux'
                   targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
               - task: DockerInstaller@0
@@ -220,7 +247,7 @@ stages:
                   } else {
                     ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
                   }
-                displayName: 'Run $(testShortName) tests on $(platformName)'
+                displayName: 'Run tests'
                 env:
                   DOCKER_BUILDKIT: 1
                   DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
@@ -232,12 +259,12 @@ stages:
                 timeoutInMinutes: 15
 
               - task: PublishTestResults@2
-                displayName: 'Publish $(testShortName) test results'
+                displayName: 'Publish test results'
                 condition: always()
                 inputs:
                   testResultsFormat: 'VSTest'
                   testResultsFiles: '$(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx'
-                  testRunTitle: 'Integration Tests $(testShortName) $(platformName)'
+                  testRunTitle: 'Integration Tests'
                   mergeTestResults: false
                   failTaskOnFailedTests: true
 
