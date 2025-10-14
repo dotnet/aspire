@@ -21,6 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Cache .NET SDK
+        uses: ./.github/actions/cache-dotnet-sdk-for-arcade
+        with:
+          cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
+          restore-keys: |
+            dotnet-sdk-${{ runner.os }}-
+
       - name: Install VSCE tool
         run: npm i -g @vscode/vsce
 

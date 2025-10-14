@@ -23,6 +23,13 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Cache .NET SDK
+        uses: ./.github/actions/cache-dotnet-sdk-for-arcade
+        with:
+          cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
+          restore-keys: |
+            dotnet-sdk-${{ runner.os }}-
+
       # In order to build the solution, we need to install the SDK and the toolsets first
       # as defined in global.json. For this, create a temporary project file and run the
       # build command with the -restore option. This will install the SDK and toolsets.
@@ -64,6 +71,13 @@ jobs:
       runsheet: ${{ steps.generate_e2e_matrix.outputs.runsheet }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Cache .NET SDK
+        uses: ./.github/actions/cache-dotnet-sdk-for-arcade
+        with:
+          cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
+          restore-keys: |
+            dotnet-sdk-${{ runner.os }}-
 
       - name: Build with packages
         run: |
