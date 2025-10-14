@@ -174,7 +174,7 @@ public static class PythonAppResourceBuilderExtensions
             var dockerFile = c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _) ?
                 "uv" : "default";
 
-            c.WithDockerfile(appDirectory,
+            c.WithDockerfileFactory(appDirectory,
                 context => DockerFileCache.GetDockerFile(dockerFile))
             .WithBuildArg("SCRIPT_NAME", entry);
         });
