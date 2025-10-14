@@ -68,10 +68,10 @@ if ($macosHtmlEnFiles) {
 
 $xlfFiles = @()
 
-$allXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.xlf"
+$nonExtensionXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.xlf" | Where-Object { $_.FullName -notmatch "\\extension\\" -and $_.FullName -notmatch "\\artifacts\\" }
 $langXlfFiles = @()
-if ($allXlfFiles) {
-    $null = $allXlfFiles[3].FullName -Match "\.([\w-]+)\.xlf" # matches '[langcode].xlf'
+if ($nonExtensionXlfFiles) {
+    $null = $nonExtensionXlfFiles[0].FullName -Match "\.([\w-]+)\.xlf" # matches '[langcode].xlf'
     $firstLangCode = $Matches.1
     $langXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.$firstLangCode.xlf"
 }
@@ -81,6 +81,9 @@ $langXlfFiles | ForEach-Object {
     $destinationFile = "$($_.Directory.FullName)\$($Matches.1).xlf"
     $xlfFiles += Copy-Item "$($_.FullName)" -Destination $destinationFile -PassThru
 }
+
+$extensionXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\extension\*.xlf" | Where-Object { ($_.Name -split '\.').Count -eq 2 }
+$xlfFiles += $extensionXlfFiles
 
 $locFiles = $jsonFiles + $jsonWinformsTemplateFiles + $xlfFiles
 
