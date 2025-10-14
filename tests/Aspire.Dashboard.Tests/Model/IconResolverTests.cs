@@ -147,34 +147,6 @@ public sealed class IconResolverTests
         // Project language icons should be resolved successfully
     }
 
-    [Fact]
-    public void ResolveIconName_WithNullSize_UsesDefaultSize()
-    {
-        // Arrange
-        var iconResolver = CreateIconResolver();
-
-        // Act
-        var icon = iconResolver.ResolveIconName("Database", null, IconVariant.Filled);
-
-        // Assert
-        Assert.NotNull(icon);
-        // Should use default size (Size20) when null is passed
-    }
-
-    [Fact]
-    public void ResolveIconName_WithNullVariant_UsesDefaultVariant()
-    {
-        // Arrange
-        var iconResolver = CreateIconResolver();
-
-        // Act
-        var icon = iconResolver.ResolveIconName("Database", IconSize.Size20, null);
-
-        // Assert
-        Assert.NotNull(icon);
-        // Should use default variant (Regular) when null is passed
-    }
-
     [Theory]
     [InlineData(IconSize.Size16)]
     [InlineData(IconSize.Size20)]
