@@ -30,7 +30,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
-    /// The virtual environment must be initialized before running the app. To setup a virtual environment use the 
+    /// The virtual environment must be initialized before running the app. To setup a virtual environment use the
     /// <c>python -m venv .venv</c> command in the app directory.
     /// </para>
     /// <para>
@@ -137,7 +137,9 @@ public static class PythonAppResourceBuilderExtensions
 
         var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
 
-        var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
+        var resourceBuilder = builder
+            .AddResource(resource)
+            .WithArgs(context =>
         {
             context.Args.Add(scriptPath);
         });
@@ -146,6 +148,7 @@ public static class PythonAppResourceBuilderExtensions
         {
             env.VirtualEnvironment = virtualEnvironment;
         });
+        resourceBuilder.WithIconName("CodePyRectangle");
 
         resourceBuilder.WithOtlpExporter();
 
@@ -160,6 +163,22 @@ public static class PythonAppResourceBuilderExtensions
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
             context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+        });
+
+        // Configure required environment variables for custom certificate trust when running as an executable
+        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
+        {
+            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+            {
+                // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+            }
+
+            // Override default opentelemetry-python certificate bundle path
+            // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
+            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+
+            return Task.CompletedTask;
         });
 
         resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
@@ -328,7 +347,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
-    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual 
+    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
     /// environment exists and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
@@ -340,11 +359,11 @@ public static class PythonAppResourceBuilderExtensions
     /// Add a Python app with automatic UV environment setup:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithUvEnvironment()  // Automatically runs 'uv sync' before starting the app
     ///     .WithHttpEndpoint(port: 5000);
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>

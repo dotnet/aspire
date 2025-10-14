@@ -217,7 +217,7 @@ public static class ContainerResourceBuilderExtensions
         if (builder.Resource.Annotations.OfType<ContainerImageAnnotation>().LastOrDefault() is { } existingImageAnnotation)
         {
             existingImageAnnotation.Tag = tag;
-            
+
             // If there's a DockerfileBuildAnnotation with an image tag, update it as well
             // so that the user's explicit tag preference is respected
             if (builder.Resource.Annotations.OfType<DockerfileBuildAnnotation>().SingleOrDefault() is { } buildAnnotation &&
@@ -225,7 +225,7 @@ public static class ContainerResourceBuilderExtensions
             {
                 buildAnnotation.ImageTag = tag;
             }
-            
+
             return builder;
         }
 
@@ -620,7 +620,7 @@ public static class ContainerResourceBuilderExtensions
 
         var imageName = ImageNameGenerator.GenerateImageName(builder);
         var imageTag = ImageNameGenerator.GenerateImageTag(builder);
-        
+
         var annotation = new DockerfileBuildAnnotation(fullyQualifiedContextPath, tempDockerfilePath, stage)
         {
             DockerfileFactory = dockerfileFactory
@@ -1001,6 +1001,23 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
+    /// configure itself for custom certificate trust.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
+        where TResource : ContainerResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
     /// Creates or updates files and/or folders at the destination path in the container.
     /// </summary>
     /// <typeparam name="T">The type of container resource.</typeparam>
@@ -1057,9 +1074,7 @@ public static class ContainerResourceBuilderExtensions
             Umask = umask,
         };
 
-        builder.Resource.Annotations.Add(annotation);
-
-        return builder;
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
     /// <summary>
@@ -1130,9 +1145,7 @@ public static class ContainerResourceBuilderExtensions
             Umask = umask,
         };
 
-        builder.Resource.Annotations.Add(annotation);
-
-        return builder;
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
     }
 
     /// <summary>
@@ -1174,15 +1187,13 @@ public static class ContainerResourceBuilderExtensions
                 Umask = umask,
             };
 
-            builder.Resource.Annotations.Add(annotation);
+            return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Append);
         }
         else
         {
             // In publish mode, use a bind mount as it is better supported by publish targets
-            builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
+            return builder.WithBindMount(sourceFullPath, destinationPath, isReadOnly: true);
         }
-
-        return builder;
     }
 
     /// <summary>
@@ -1299,10 +1310,10 @@ public static class ContainerResourceBuilderExtensions
             var utf8WithoutBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             using var writer = new StreamWriter(memoryStream, utf8WithoutBom, leaveOpen: true);
             writer.NewLine = "\n"; // Use LF line endings for Dockerfiles
-            
+
             await dockerfileBuilder.WriteAsync(writer, factoryContext.CancellationToken).ConfigureAwait(false);
             await writer.FlushAsync(factoryContext.CancellationToken).ConfigureAwait(false);
-            
+
             memoryStream.Position = 0;
             using var reader = new StreamReader(memoryStream);
             var dockerfileContent = await reader.ReadToEndAsync(factoryContext.CancellationToken).ConfigureAwait(false);
