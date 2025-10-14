@@ -10,6 +10,7 @@ ORGANIZATION="dnceng-public"
 PROJECT="public"
 REPO_NAME="aspire"
 PIPELINE_NAME="aspire-tests"  # The manual test pipeline
+PIPELINE_ID="274"  # Direct pipeline ID for dnceng-public/public
 
 # Colors for output
 RED='\033[0;31m'
@@ -186,15 +187,8 @@ trigger_build() {
 
     log_info "Triggering pipeline build on branch: $branch"
 
-    # Get pipeline ID by calling the function and capturing only stderr for logs
-    local pipeline_id
-    pipeline_id=$(get_pipeline_id "$PIPELINE_NAME" 2>/dev/null)
-    local get_result=$?
-
-    if [ $get_result -ne 0 ] || [ -z "$pipeline_id" ]; then
-        get_pipeline_id "$PIPELINE_NAME" >&2  # Show error messages
-        return 1
-    fi
+    # Use direct pipeline ID to avoid output parsing issues
+    local pipeline_id="$PIPELINE_ID"
 
     log_info "Pipeline ID: $pipeline_id"
 

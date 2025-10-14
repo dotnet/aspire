@@ -77,6 +77,37 @@ stages:
 
       jobs:
 
+      # Always include a basic build job (required for stage to be valid)
+      - job: Build
+        displayName: Build and Package
+
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+
+        variables:
+          - name: _buildScript
+            value: $(Build.SourcesDirectory)/build.sh --ci --configuration $(_BuildConfig)
+
+        preSteps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+        steps:
+          - template: /eng/pipelines/templates/BuildAndTest.yml
+            parameters:
+              runAsPublic: true
+              dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+              buildScript: $(_buildScript)
+              buildConfig: $(_BuildConfig)
+              repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+              repoLogPath: $(Build.Arcade.LogsPath)
+              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+              isWindows: false
+              runHelixTests: false
+              runPipelineTests: false
+
       # Integration Tests Matrix moved to separate stages
 
       # Helix jobs (Templates, EndToEnd - temporarily preserved)
