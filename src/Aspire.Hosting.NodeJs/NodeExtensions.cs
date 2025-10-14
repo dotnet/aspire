@@ -36,7 +36,7 @@ public static class NodeAppHostingExtension
         return builder.AddResource(resource)
                       .WithNodeDefaults()
                       .WithArgs(effectiveArgs)
-                      .WithIconName("CodeJsRectangle", IconVariant.Regular);
+                      .WithIconName("CodeJsRectangle");
     }
 
     /// <summary>
@@ -66,7 +66,7 @@ public static class NodeAppHostingExtension
         return builder.AddResource(resource)
                       .WithNodeDefaults()
                       .WithArgs(allArgs)
-                      .WithIconName("CodeJsRectangle", IconVariant.Regular);
+                      .WithIconName("CodeJsRectangle");
     }
 
     private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>

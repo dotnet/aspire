@@ -142,7 +142,7 @@ public static class PythonAppResourceBuilderExtensions
             context.Args.Add(scriptPath);
         });
 
-        resourceBuilder.WithIconName("CodePyRectangle", IconVariant.Regular);
+        resourceBuilder.WithIconName("CodePyRectangle");
 
         resourceBuilder.WithOtlpExporter();
 
