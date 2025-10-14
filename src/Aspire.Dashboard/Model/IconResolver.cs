@@ -52,7 +52,7 @@ public sealed class IconResolver
 
             // Usually icons are always available in bigger sizes and smaller sizes are removed.
             // This is because it isn't possible to scale down the detail. For example, BrainCircuit has a size 20 icon, but not a size 16 icon.
-            // There are some rare icons that only have smaller sizes, For example, CodePyRetangle only has size 16 icon.
+            // There are some rare icons that only have smaller sizes, For example, CodePyRectangle only has size 16 icon.
             // To handle the situation where we ask for a bigger than available icon, fall back to try any remaining icon sizes, including smaller.
             foreach (var size in s_iconSizes)
             {
