@@ -27,8 +27,9 @@ RUN groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 
 # Copy the application and virtual environment from builder
 COPY --from=builder --chown=appuser:appuser /app /app
 
-# Add virtual environment to PATH
+# Add virtual environment to PATH and set VIRTUAL_ENV
 ENV PATH=/app/.venv/bin:${PATH}
+ENV VIRTUAL_ENV=/app/.venv
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
