@@ -11,10 +11,6 @@ internal static class FileSystemHelper
     /// <summary>
     /// Copies an entire directory and its contents to a new location.
     /// </summary>
-    /// <param name="sourceDir">The source directory to copy from.</param>
-    /// <param name="destinationDir">The destination directory to copy to.</param>
-    /// <exception cref="ArgumentNullException">Thrown when sourceDir or destinationDir is null.</exception>
-    /// <exception cref="DirectoryNotFoundException">Thrown when the source directory does not exist.</exception>
     internal static void CopyDirectory(string sourceDir, string destinationDir)
     {
         ArgumentException.ThrowIfNullOrEmpty(sourceDir);
