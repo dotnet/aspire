@@ -327,7 +327,7 @@ class ResourceGraph {
             .attr("class", "resource-node-border");
         var iconTransform = newNodesContainer
             .append("g")
-            .attr("transform", "translate(-24,-35)")
+            .attr("transform", "translate(-24,-37)")
         var iconPath = iconTransform
             .append("path");
         iconPath
