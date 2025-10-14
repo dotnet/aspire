@@ -9,7 +9,7 @@ set -euo pipefail
 ORGANIZATION="dnceng-public"
 PROJECT="public"
 REPO_NAME="aspire"
-PIPELINE_NAME="azdo-tests"  # The manual test pipeline
+PIPELINE_NAME="aspire-tests"  # The manual test pipeline
 
 # Colors for output
 RED='\033[0;31m'
@@ -175,7 +175,8 @@ get_pipeline_id() {
         return 1
     fi
 
-    echo "$pipeline_id"
+    # Return just the pipeline ID without any log output that could interfere
+    printf "%s" "$pipeline_id"
 }
 
 # Trigger pipeline build
@@ -185,9 +186,13 @@ trigger_build() {
 
     log_info "Triggering pipeline build on branch: $branch"
 
-    # Get pipeline ID
+    # Get pipeline ID by calling the function and capturing only stderr for logs
     local pipeline_id
-    if ! pipeline_id=$(get_pipeline_id "$PIPELINE_NAME"); then
+    pipeline_id=$(get_pipeline_id "$PIPELINE_NAME" 2>/dev/null)
+    local get_result=$?
+
+    if [ $get_result -ne 0 ] || [ -z "$pipeline_id" ]; then
+        get_pipeline_id "$PIPELINE_NAME" >&2  # Show error messages
         return 1
     fi
 
