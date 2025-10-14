@@ -78,6 +78,22 @@ public static class CertificateAuthorityCollectionResourceExtensions
     /// <param name="storeLocation">The location of the certificate store.</param>
     /// <param name="filter">An optional filter to apply to the certificates.</param>
     /// <returns>The updated <see cref="IResourceBuilder{CertificateAuthorityCollectionResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// This example adds all certificates from the "Root" store in the "LocalMachine" location.
+    /// <code language="csharp">
+    /// builder.AddCertificateAuthorityCollection("my-ca")
+    ///     .WithCertificatesFromStore(StoreName.Root, StoreLocation.LocalMachine);
+    /// </code>
+    /// </example>
+    /// <example>
+    /// This example adds only certificates that are not expired from the "My" store in the "CurrentUser" location.
+    /// <code language="csharp">
+    /// builder.AddCertificateAuthorityCollection("my-ca")
+    ///     .WithCertificatesFromStore(StoreName.My, StoreLocation.CurrentUser, c => c.NotAfter &gt; DateTime.UtcNow);
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromStore(this IResourceBuilder<CertificateAuthorityCollection> builder, StoreName storeName, StoreLocation storeLocation, Func<X509Certificate2, bool>? filter = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -98,15 +114,40 @@ public static class CertificateAuthorityCollectionResourceExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IResourceBuilder{CertificateAuthorityCollection}"/>.</param>
     /// <param name="pemFilePath">The path to the PEM file.</param>
+    /// <param name="filter">An optional filter to apply to the loaded certificates before they are added to the collection.</param>
     /// <returns>The updated <see cref="IResourceBuilder{CertificateAuthorityCollection}"/>.</returns>
-    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromFile(this IResourceBuilder<CertificateAuthorityCollection> builder, string pemFilePath)
+    /// <remarks>
+    /// <example>
+    /// This example adds certificates from a PEM file located at "../path/to/certificates.pem".
+    /// <code language="csharp">
+    /// builder.AddCertificateAuthorityCollection("my-ca")
+    ///     .WithCertificatesFromFile("../path/to/certificates.pem");
+    /// </code>
+    /// </example>
+    /// <example>
+    /// This example adds only certificates that are not expired from a PEM file located at "../path/to/certificates.pem".
+    /// <code language="csharp">
+    /// builder.AddCertificateAuthorityCollection("my-ca")
+    ///     .WithCertificatesFromFile("../path/to/certificates.pem", c => c.NotAfter &gt; DateTime.UtcNow);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<CertificateAuthorityCollection> WithCertificatesFromFile(this IResourceBuilder<CertificateAuthorityCollection> builder, string pemFilePath, Func<X509Certificate2, bool>? filter = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(pemFilePath);
 
         var certificates = new X509Certificate2Collection();
         certificates.ImportFromPemFile(pemFilePath);
-        builder.Resource.Certificates.AddRange(certificates);
+        if (filter != null)
+        {
+            builder.WithCertificates(certificates.Where(filter).ToArray());
+        }
+        else
+        {
+            builder.WithCertificates(certificates);
+        }
+
         return builder;
     }
 }
