@@ -164,31 +164,42 @@ stages:
                 Write-Host "Found $($testNames.Count) integration test projects:"
                 $testNames | ForEach-Object { Write-Host "  - $_" }
 
-                # Create matrix for each test x platform combination
-                $matrix = @{}
+                # Create separate matrices for Linux and Windows
+                $linuxMatrix = @{}
+                $windowsMatrix = @{}
 
-                $platforms = @(
-                  @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' },
-                  @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
-                )
+                $linuxPlatform = @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' }
+                $windowsPlatform = @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
 
                 foreach ($testName in $testNames) {
-                  foreach ($platform in $platforms) {
-                    $key = "$testName`_$($platform.name)"
-                    $matrix[$key] = @{
-                      testShortName = $testName
-                      platformName = $platform.name
-                      agentImage = $platform.image
-                      scriptName = $platform.script
-                    }
+                  # Linux matrix
+                  $linuxKey = "$testName`_Linux"
+                  $linuxMatrix[$linuxKey] = @{
+                    testShortName = $testName
+                    platformName = $linuxPlatform.name
+                    agentImage = $linuxPlatform.image
+                    scriptName = $linuxPlatform.script
+                  }
+
+                  # Windows matrix
+                  $windowsKey = "$testName`_Windows"
+                  $windowsMatrix[$windowsKey] = @{
+                    testShortName = $testName
+                    platformName = $windowsPlatform.name
+                    agentImage = $windowsPlatform.image
+                    scriptName = $windowsPlatform.script
                   }
                 }
 
-                $matrixJson = $matrix | ConvertTo-Json -Compress
-                Write-Host "Generated matrix: $matrixJson"
+                $linuxMatrixJson = $linuxMatrix | ConvertTo-Json -Compress
+                $windowsMatrixJson = $windowsMatrix | ConvertTo-Json -Compress
 
-                # Set pipeline variable for the matrix
-                Write-Host "##vso[task.setVariable variable=integrationTestsMatrix;isOutput=true]$matrixJson"
+                Write-Host "Generated Linux matrix: $linuxMatrixJson"
+                Write-Host "Generated Windows matrix: $windowsMatrixJson"
+
+                # Set separate pipeline variables for each matrix
+                Write-Host "##vso[task.setVariable variable=linuxTestsMatrix;isOutput=true]$linuxMatrixJson"
+                Write-Host "##vso[task.setVariable variable=windowsTestsMatrix;isOutput=true]$windowsMatrixJson"
               displayName: 'Generate test matrix'
               name: 'GenerateMatrix'
 
@@ -202,15 +213,13 @@ stages:
         - job: RunIntegrationTestsLinux
           displayName: 'Test'
           strategy:
-            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.integrationTestsMatrix'] ]
+            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
 
           timeoutInMinutes: 20
 
           pool:
             name: $(DncEngPublicBuildPool)
             demands: ImageOverride -equals $(agentImage)
-
-          condition: and(succeeded(), eq(variables['platformName'], 'Linux'))
 
           steps:
             - checkout: self
@@ -268,15 +277,13 @@ stages:
         - job: RunIntegrationTestsWindows
           displayName: 'Test'
           strategy:
-            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.integrationTestsMatrix'] ]
+            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
 
           timeoutInMinutes: 20
 
           pool:
             name: $(DncEngPublicBuildPool)
             demands: ImageOverride -equals $(agentImage)
-
-          condition: and(succeeded(), eq(variables['platformName'], 'Windows'))
 
           steps:
             - checkout: self
