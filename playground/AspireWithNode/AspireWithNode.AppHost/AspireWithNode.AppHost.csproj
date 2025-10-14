@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AspireWithNode.AspNetCoreApi\AspireWithNode.AspNetCoreApi.csproj" />
   </ItemGroup>
 
