@@ -77,36 +77,29 @@ stages:
 
       jobs:
 
-      # Always include a basic build job (required for stage to be valid)
-      - job: Build
-        displayName: Build and Package
+      # Setup jobs that don't depend on anything (required for stage to be valid)
+      - job: Setup
+        displayName: Setup and Validation
 
         pool:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals build.ubuntu.2204.amd64.open
 
-        variables:
-          - name: _buildScript
-            value: $(Build.SourcesDirectory)/build.sh --ci --configuration $(_BuildConfig)
-
-        preSteps:
+        steps:
           - checkout: self
             fetchDepth: 1
             clean: true
 
-        steps:
-          - template: /eng/pipelines/templates/BuildAndTest.yml
-            parameters:
-              runAsPublic: true
-              dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-              buildScript: $(_buildScript)
-              buildConfig: $(_BuildConfig)
-              repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-              repoLogPath: $(Build.Arcade.LogsPath)
-              repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-              isWindows: false
-              runHelixTests: false
-              runPipelineTests: false
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              useGlobalJson: true
+
+          - script: |
+              echo "Setting up build environment..."
+              echo "Test variants: $(testVariants)"
+              echo "Build configuration: $(_BuildConfig)"
+            displayName: 'Environment Setup'
 
       # Integration Tests Matrix moved to separate stages
 
