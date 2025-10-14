@@ -1,4 +1,4 @@
-name: 'Cache .NET SDK'
+name: 'Cache .NET SDK for Arcade'
 description: |
   Aggressively cache the .NET SDK in the .dotnet directory using actions/cache@v4.
   
@@ -47,10 +47,10 @@ runs:
       run: |
         if [ -f "./restore.sh" ]; then
           echo "Running restore.sh to install .NET SDK..."
-          ./restore.sh
+          ./restore.sh -p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false
         elif [ -f "./restore.cmd" ]; then
           echo "Running restore.cmd to install .NET SDK..."
-          ./restore.cmd
+          ./restore.cmd -p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false
         else
           echo "Error: No restore script found (restore.sh or restore.cmd)"
           exit 1

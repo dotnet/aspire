@@ -1,6 +1,6 @@
-name: Test Cache .NET SDK Action
+name: Test Cache .NET SDK for Arcade Action
 
-# This workflow demonstrates how to use the cache-dotnet-sdk action.
+# This workflow demonstrates how to use the cache-dotnet-sdk-for-arcade action.
 # It can be manually triggered from the Actions tab to verify the caching behavior.
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ jobs:
 
       - name: Cache .NET SDK
         id: cache-sdk
-        uses: ./.github/actions/cache-dotnet-sdk
+        uses: ./.github/actions/cache-dotnet-sdk-for-arcade
         with:
           cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
           restore-keys: |

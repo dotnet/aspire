@@ -1,10 +1,10 @@
-# Cache .NET SDK Action
+# Cache .NET SDK for Arcade Action
 
-A composite GitHub Action for aggressively caching the `.dotnet` directory used by the Aspire repository.
+A composite GitHub Action for aggressively caching the `.dotnet` directory used by the Aspire repository with Arcade SDK.
 
 ## Overview
 
-This action caches the `.dotnet` directory using `actions/cache@v4` and only runs the restore script on cache misses. This significantly speeds up CI/CD workflows by avoiding redundant SDK installations.
+This action caches the `.dotnet` directory using `actions/cache@v4` and only runs the restore script on cache misses. This significantly speeds up CI/CD workflows by avoiding redundant SDK installations. The restore script is run with parameters to skip building managed/native code and extensions, focusing only on SDK restoration.
 
 ## Why Not Use `actions/setup-dotnet`?
 
@@ -26,7 +26,7 @@ steps:
   - uses: actions/checkout@v4
 
   - name: Cache .NET SDK
-    uses: ./.github/actions/cache-dotnet-sdk
+    uses: ./.github/actions/cache-dotnet-sdk-for-arcade
     with:
       cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
       restore-keys: |
@@ -41,7 +41,7 @@ steps:
 
   - name: Cache .NET SDK
     id: cache-sdk
-    uses: ./.github/actions/cache-dotnet-sdk
+    uses: ./.github/actions/cache-dotnet-sdk-for-arcade
     with:
       cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
       restore-keys: |
@@ -94,7 +94,7 @@ cache-key: dotnet-sdk-${{ github.workflow }}-${{ runner.os }}-${{ hashFiles('glo
 
 1. **Cache Lookup**: Attempts to restore `.dotnet` directory from cache using `cache-key`
 2. **Cache Miss**: If no exact match, tries `restore-keys` prefixes for partial matches
-3. **Restore**: On cache miss, runs `restore.sh` (Linux/macOS) or `restore.cmd` (Windows)
+3. **Restore**: On cache miss, runs `restore.sh` (Linux/macOS) or `restore.cmd` (Windows) with `-p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false` to only restore the SDK
 4. **Save**: After workflow completion, cache action automatically saves the `.dotnet` directory
 
 ## Testing
