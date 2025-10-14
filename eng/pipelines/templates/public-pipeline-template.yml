@@ -149,243 +149,242 @@ stages:
 # ----------------------------------------------------------------
 # Setup Stage - .NET SDK setup and test enumeration
 # ----------------------------------------------------------------
-- ${{ each testVariant in split( variables.testVariants, ',' ) }}:
-  - ${{ if contains(testVariant, '_integration_matrix_tests') }}:
-    - stage: Setup
-      displayName: 'Setup'
-      jobs:
-        - job: SetupDotNetLinux
-          displayName: 'Setup .NET SDK - Linux'
-          pool:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+- ${{ if contains(variables.testVariants, '_integration_matrix_tests') }}:
+  - stage: Setup
+    displayName: 'Setup'
+    jobs:
+      - job: SetupDotNetLinux
+        displayName: 'Setup .NET SDK - Linux'
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2204.amd64.open
 
-          steps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-            - pwsh: |
-                ./restore.sh
-              displayName: 'Restore .NET SDK'
+          - pwsh: |
+              ./restore.sh
+            displayName: 'Restore .NET SDK'
 
-            - task: PublishPipelineArtifact@1
-              displayName: 'Publish .NET SDK - Linux'
-              inputs:
-                targetPath: '$(Build.SourcesDirectory)/.dotnet'
-                artifactName: 'dotnet-sdk-linux'
-                publishLocation: 'pipeline'
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish .NET SDK - Linux'
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/.dotnet'
+              artifactName: 'dotnet-sdk-linux'
+              publishLocation: 'pipeline'
 
-        - job: SetupDotNetWindows
-          displayName: 'Setup .NET SDK - Windows'
-          pool:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals windows.vs2022preview.amd64.open
+      - job: SetupDotNetWindows
+        displayName: 'Setup .NET SDK - Windows'
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals windows.vs2022preview.amd64.open
 
-          steps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-            - pwsh: |
-                ./restore.cmd
-              displayName: 'Restore .NET SDK'
+          - pwsh: |
+              ./restore.cmd
+            displayName: 'Restore .NET SDK'
 
-            - task: PublishPipelineArtifact@1
-              displayName: 'Publish .NET SDK - Windows'
-              inputs:
-                targetPath: '$(Build.SourcesDirectory)/.dotnet'
-                artifactName: 'dotnet-sdk-windows'
-                publishLocation: 'pipeline'
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish .NET SDK - Windows'
+            inputs:
+              targetPath: '$(Build.SourcesDirectory)/.dotnet'
+              artifactName: 'dotnet-sdk-windows'
+              publishLocation: 'pipeline'
 
-        - job: EnumerateIntegrationTests
-          displayName: 'Enumerate Integration Tests'
-          pool:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+      - job: EnumerateIntegrationTests
+        displayName: 'Enumerate Integration Tests'
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals build.ubuntu.2204.amd64.open
 
-          steps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-            - pwsh: |
-                ./restore.sh
-              displayName: 'Restore .NET SDK'
+          - pwsh: |
+              ./restore.sh
+            displayName: 'Restore .NET SDK'
 
-            - pwsh: |
-                ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
-              displayName: 'Generate integration tests list'
+          - pwsh: |
+              ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
+            displayName: 'Generate integration tests list'
 
-            - pwsh: |
-                $testsListFile = "$(Build.Arcade.ArtifactsPath)/IntegrationTests.list"
-                if (-not (Test-Path $testsListFile)) {
-                  throw "Tests list file not found: $testsListFile"
+          - pwsh: |
+              $testsListFile = "$(Build.Arcade.ArtifactsPath)/IntegrationTests.list"
+              if (-not (Test-Path $testsListFile)) {
+                throw "Tests list file not found: $testsListFile"
+              }
+
+              $testNames = Get-Content $testsListFile | Where-Object { $_.Trim() -ne "" } | Sort-Object
+              if ($testNames.Count -eq 0) {
+                throw "No integration tests found"
+              }
+
+              Write-Host "Found $($testNames.Count) integration test projects:"
+              $testNames | ForEach-Object { Write-Host "  - $_" }
+
+              # Create separate matrices for Linux and Windows
+              $linuxMatrix = @{}
+              $windowsMatrix = @{}
+
+              $linuxPlatform = @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' }
+              $windowsPlatform = @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
+
+              foreach ($testName in $testNames) {
+                # Linux matrix
+                $linuxKey = "$testName`_Linux"
+                $linuxMatrix[$linuxKey] = @{
+                  testShortName = $testName
+                  platformName = $linuxPlatform.name
+                  agentImage = $linuxPlatform.image
+                  scriptName = $linuxPlatform.script
                 }
 
-                $testNames = Get-Content $testsListFile | Where-Object { $_.Trim() -ne "" } | Sort-Object
-                if ($testNames.Count -eq 0) {
-                  throw "No integration tests found"
+                # Windows matrix
+                $windowsKey = "$testName`_Windows"
+                $windowsMatrix[$windowsKey] = @{
+                  testShortName = $testName
+                  platformName = $windowsPlatform.name
+                  agentImage = $windowsPlatform.image
+                  scriptName = $windowsPlatform.script
                 }
+              }
 
-                Write-Host "Found $($testNames.Count) integration test projects:"
-                $testNames | ForEach-Object { Write-Host "  - $_" }
+              $linuxMatrixJson = $linuxMatrix | ConvertTo-Json -Compress
+              $windowsMatrixJson = $windowsMatrix | ConvertTo-Json -Compress
 
-                # Create separate matrices for Linux and Windows
-                $linuxMatrix = @{}
-                $windowsMatrix = @{}
+              Write-Host "Generated Linux matrix: $linuxMatrixJson"
+              Write-Host "Generated Windows matrix: $windowsMatrixJson"
 
-                $linuxPlatform = @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' }
-                $windowsPlatform = @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
+              # Set separate pipeline variables for each matrix
+              Write-Host "##vso[task.setVariable variable=linuxTestsMatrix;isOutput=true]$linuxMatrixJson"
+              Write-Host "##vso[task.setVariable variable=windowsTestsMatrix;isOutput=true]$windowsMatrixJson"
+            displayName: 'Generate test matrix'
+            name: 'GenerateMatrix'
 
-                foreach ($testName in $testNames) {
-                  # Linux matrix
-                  $linuxKey = "$testName`_Linux"
-                  $linuxMatrix[$linuxKey] = @{
-                    testShortName = $testName
-                    platformName = $linuxPlatform.name
-                    agentImage = $linuxPlatform.image
-                    scriptName = $linuxPlatform.script
-                  }
+  # ----------------------------------------------------------------
+  # Linux Tests Stage
+  # ----------------------------------------------------------------
+  - stage: LinuxTests
+    displayName: 'Linux Integration Tests'
+    dependsOn: Setup
+    jobs:
+      - job: RunIntegrationTestsLinux
+        displayName: 'Test'
+        strategy:
+          matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
 
-                  # Windows matrix
-                  $windowsKey = "$testName`_Windows"
-                  $windowsMatrix[$windowsKey] = @{
-                    testShortName = $testName
-                    platformName = $windowsPlatform.name
-                    agentImage = $windowsPlatform.image
-                    scriptName = $windowsPlatform.script
-                  }
-                }
+        timeoutInMinutes: 20
 
-                $linuxMatrixJson = $linuxMatrix | ConvertTo-Json -Compress
-                $windowsMatrixJson = $windowsMatrix | ConvertTo-Json -Compress
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals $(agentImage)
 
-                Write-Host "Generated Linux matrix: $linuxMatrixJson"
-                Write-Host "Generated Windows matrix: $windowsMatrixJson"
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-                # Set separate pipeline variables for each matrix
-                Write-Host "##vso[task.setVariable variable=linuxTestsMatrix;isOutput=true]$linuxMatrixJson"
-                Write-Host "##vso[task.setVariable variable=windowsTestsMatrix;isOutput=true]$windowsMatrixJson"
-              displayName: 'Generate test matrix'
-              name: 'GenerateMatrix'
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET SDK - Linux'
+            inputs:
+              artifactName: 'dotnet-sdk-linux'
+              targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
-# ----------------------------------------------------------------
-# Linux Tests Stage
-# ----------------------------------------------------------------
-    - stage: LinuxTests
-      displayName: 'Linux Integration Tests'
-      dependsOn: Setup
-      jobs:
-        - job: RunIntegrationTestsLinux
-          displayName: 'Test'
-          strategy:
-            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
+          - script: chmod +x $(Build.SourcesDirectory)/.dotnet/dotnet
+            displayName: 'Fix .NET permissions'
 
-          timeoutInMinutes: 20
+          - task: DockerInstaller@0
+            inputs:
+              dockerVersion: '28.0.0'
+            displayName: 'Install Docker CLI'
 
-          pool:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals $(agentImage)
+          - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
+            displayName: 'Install devcerts'
+            continueOnError: true
 
-          steps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
+          - pwsh: |
+              ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
+            displayName: 'Run tests'
+            env:
+              DOCKER_BUILDKIT: 1
+              DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+              DCP_DIAGNOSTICS_LOG_LEVEL: debug
+              DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+              DCP_PRESERVE_EXECUTABLE_LOGS: 1
+              DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
+            timeoutInMinutes: 15
 
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET SDK - Linux'
-              inputs:
-                artifactName: 'dotnet-sdk-linux'
-                targetPath: '$(Build.SourcesDirectory)/.dotnet'
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '$(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx'
+              testRunTitle: 'Integration Tests'
+              mergeTestResults: false
+              failTaskOnFailedTests: true
 
-            - script: chmod +x $(Build.SourcesDirectory)/.dotnet/dotnet
-              displayName: 'Fix .NET permissions'
+  # ----------------------------------------------------------------
+  # Windows Tests Stage
+  # ----------------------------------------------------------------
+  - stage: WindowsTests
+    displayName: 'Windows Integration Tests'
+    dependsOn: Setup
+    jobs:
+      - job: RunIntegrationTestsWindows
+        displayName: 'Test'
+        strategy:
+          matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
 
-            - task: DockerInstaller@0
-              inputs:
-                dockerVersion: '28.0.0'
-              displayName: 'Install Docker CLI'
+        timeoutInMinutes: 20
 
-            - script: $(Build.SourcesDirectory)/tests/external-scripts/ubuntu-create-dotnet-devcert.sh
-              displayName: 'Install devcerts'
-              continueOnError: true
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals $(agentImage)
 
-            - pwsh: |
-                ./dotnet.sh test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter "Category!=quarantined&Category!=outerloop"
-              displayName: 'Run tests'
-              env:
-                DOCKER_BUILDKIT: 1
-                DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-                DCP_DIAGNOSTICS_LOG_LEVEL: debug
-                DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-                DCP_PRESERVE_EXECUTABLE_LOGS: 1
-                DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-                PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
-              timeoutInMinutes: 15
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
 
-            - task: PublishTestResults@2
-              displayName: 'Publish test results'
-              condition: always()
-              inputs:
-                testResultsFormat: 'VSTest'
-                testResultsFiles: '$(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx'
-                testRunTitle: 'Integration Tests'
-                mergeTestResults: false
-                failTaskOnFailedTests: true
+          - task: DownloadPipelineArtifact@2
+            displayName: 'Download .NET SDK - Windows'
+            inputs:
+              artifactName: 'dotnet-sdk-windows'
+              targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
-# ----------------------------------------------------------------
-# Windows Tests Stage
-# ----------------------------------------------------------------
-    - stage: WindowsTests
-      displayName: 'Windows Integration Tests'
-      dependsOn: Setup
-      jobs:
-        - job: RunIntegrationTestsWindows
-          displayName: 'Test'
-          strategy:
-            matrix: $[ stageDependencies.Setup.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
+          - script: dotnet dev-certs https
+            displayName: 'Install dev-certs'
+            continueOnError: true
 
-          timeoutInMinutes: 20
+          - pwsh: |
+              & ./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter 'Category!=quarantined&Category!=outerloop'
+            displayName: 'Run tests'
+            env:
+              DOCKER_BUILDKIT: 1
+              DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
+              DCP_DIAGNOSTICS_LOG_LEVEL: debug
+              DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
+              DCP_PRESERVE_EXECUTABLE_LOGS: 1
+              DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
+            timeoutInMinutes: 15
 
-          pool:
-            name: $(DncEngPublicBuildPool)
-            demands: ImageOverride -equals $(agentImage)
-
-          steps:
-            - checkout: self
-              fetchDepth: 1
-              clean: true
-
-            - task: DownloadPipelineArtifact@2
-              displayName: 'Download .NET SDK - Windows'
-              inputs:
-                artifactName: 'dotnet-sdk-windows'
-                targetPath: '$(Build.SourcesDirectory)/.dotnet'
-
-            - script: dotnet dev-certs https
-              displayName: 'Install dev-certs'
-              continueOnError: true
-
-            - pwsh: |
-                & ./dotnet.cmd test tests/Aspire.$(testShortName).Tests/Aspire.$(testShortName).Tests.csproj --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter 'Category!=quarantined&Category!=outerloop'
-              displayName: 'Run tests'
-              env:
-                DOCKER_BUILDKIT: 1
-                DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
-                DCP_DIAGNOSTICS_LOG_LEVEL: debug
-                DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
-                DCP_PRESERVE_EXECUTABLE_LOGS: 1
-                DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-                PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
-              timeoutInMinutes: 15
-
-            - task: PublishTestResults@2
-              displayName: 'Publish test results'
-              condition: always()
-              inputs:
-                testResultsFormat: 'VSTest'
-                testResultsFiles: '$(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx'
-                testRunTitle: 'Integration Tests'
-                mergeTestResults: false
-                failTaskOnFailedTests: true
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: always()
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '$(Build.Arcade.TestResultsPath)/$(testShortName)-$(platformName).trx'
+              testRunTitle: 'Integration Tests'
+              mergeTestResults: false
+              failTaskOnFailedTests: true
