@@ -181,7 +181,13 @@ public static class PythonAppResourceBuilderExtensions
                         return;
                     }
 
-                    var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory);
+                    var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
+
+                    if (pythonVersion is null)
+                    {
+                        // Could not detect Python version, skip Dockerfile generation
+                        return;
+                    }
 
                     var builderStage = context.Builder
                         .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
@@ -206,7 +212,7 @@ public static class PythonAppResourceBuilderExtensions
                             "uv sync --locked --no-dev",
                             "type=cache,target=/root/.cache/uv");
 
-                    var runtimeStage = context.Builder
+                    context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
                         .EmptyLine()
                         .Comment("------------------------------")
@@ -216,10 +222,11 @@ public static class PythonAppResourceBuilderExtensions
                         .Run("groupadd --system --gid 999 appuser && useradd --system --gid 999 --uid 999 --create-home appuser")
                         .EmptyLine()
                         .Comment("Copy the application and virtual environment from builder")
-                        .CopyFrom("builder", "/app", "/app", "appuser:appuser")
+                        .CopyFrom(builderStage.StageName!, "/app", "/app", "appuser:appuser")
                         .EmptyLine()
-                        .Comment("Add virtual environment to PATH")
+                        .Comment("Add virtual environment to PATH and set VIRTUAL_ENV")
                         .Env("PATH", "/app/.venv/bin:${PATH}")
+                        .Env("VIRTUAL_ENV", "/app/.venv")
                         .Env("PYTHONDONTWRITEBYTECODE", "1")
                         .Env("PYTHONUNBUFFERED", "1")
                         .EmptyLine()
