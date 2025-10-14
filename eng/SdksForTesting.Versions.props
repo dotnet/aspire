@@ -1,0 +1,14 @@
+<Project>
+  <!-- Versions used to install sdks for testing. This is used for running template tests, and end to end tests.
+       These are being kept in a separate file so it can GH Actions can cache sdks between runs based on this file changes.
+  -->
+  <PropertyGroup>
+    <!-- dotnet versions for running tests -->
+    <DotNetRuntimePreviousVersionForTesting>8.0.20</DotNetRuntimePreviousVersionForTesting>
+    <DotNetRuntimeCurrentVersionForTesting>9.0.9</DotNetRuntimeCurrentVersionForTesting>
+    <!-- dotnet 8.0 versions for running tests - used for templates tests -->
+    <DotNetSdkPreviousVersionForTesting>8.0.414</DotNetSdkPreviousVersionForTesting>
+    <!-- dotnet 9.0 versions for running tests - used for templates tests -->
+    <DotNetSdkCurrentVersionForTesting>9.0.305</DotNetSdkCurrentVersionForTesting>
+  </PropertyGroup>
+</Project>
