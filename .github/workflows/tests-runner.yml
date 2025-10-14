@@ -25,10 +25,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
 
       # In order to build the solution, we need to install the SDK and the toolsets first
       # as defined in global.json. For this, create a temporary project file and run the
@@ -74,10 +70,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Build with packages
         run: |
@@ -121,10 +113,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Trust HTTPS development certificate
         if: runner.os == 'Linux'
@@ -180,10 +168,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Trust HTTPS development certificate
         if: runner.os == 'Linux'

@@ -17,13 +17,10 @@ description: |
   and install SDKs to the local .dotnet directory.
 
 inputs:
-  cache-key:
-    description: 'Primary cache key for the .dotnet directory'
-    required: true
-  restore-keys:
-    description: 'Ordered list of prefix-matched keys to use for restoring stale cache if no cache hit occurred for cache-key'
+  key-prefix:
+    description: 'Prefix for the cache key'
     required: false
-    default: ''
+    default: 'dotnet-sdk'
 
 outputs:
   cache-hit:
@@ -38,8 +35,9 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: .dotnet
-        key: ${{ inputs.cache-key }}
-        restore-keys: ${{ inputs.restore-keys }}
+        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
+        restore-keys: |
+          ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Install Sdks (Windows)
       if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os == 'Windows'

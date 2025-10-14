@@ -25,10 +25,6 @@ runs:
 
     - name: Cache .NET SDK
       uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-      with:
-        cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-        restore-keys: |
-          dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Add .dotnet to PATH
       shell: pwsh

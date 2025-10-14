@@ -28,10 +28,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-
 
       - name: Build CLI packages (Windows)
         if: ${{ matrix.targets.os == 'windows-latest' }}

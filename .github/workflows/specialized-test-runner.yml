@@ -38,10 +38,6 @@ jobs:
 
       - name: Cache .NET SDK
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-        with:
-          cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
-          restore-keys: |
-            dotnet-sdk-${{ runner.os }}-
 
       # We need to build the whole solution, so that we can interrogate each test project
       # and find out whether it contains any tests of the specified type.
