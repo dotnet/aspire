@@ -345,10 +345,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
             FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
-            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            // Delete the temporary directory
+            Directory.Delete(tempProjectDir, recursive: true);
 
             // Add AppHost project to solution
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
             initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
             var addAppHostResult = await InteractionService.ShowStatusAsync(
                 InitCommandStrings.AddingAppHostProjectToSolution,
