@@ -17,8 +17,8 @@ var extensionGenerator = new ModelClassGenerator();
 var generatedCode = extensionGenerator.GenerateCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
-File.WriteAllText(Path.Combine("..", "AIFoundryModel.Generated.cs"), generatedCode);
-Console.WriteLine("Generated extension methods written to AIFoundryModel.Generated.cs");
+File.WriteAllText(Path.Combine("..", "AIFoundryLocalModel.Generated.cs"), generatedCode);
+Console.WriteLine("Generated extension methods written to AIFoundryLocalModel.Generated.cs");
 
 // Also serialize the strongly typed response for output with pretty printing
 var options = new JsonSerializerOptions
@@ -113,59 +113,27 @@ public class ModelClient : IDisposable
 
     public async Task<string> GetModelsAsync(string? continuationToken = null)
     {
-        var url = "https://ai.azure.com/api/westus2/ux/v1.0/entities/crossRegion";
+        var url = "https://ai.azure.com/api/eastus/ux/v1.0/entities/crossRegion";
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-        request.Headers.Add("x-ms-user-agent", "AzureMachineLearningWorkspacePortal/3.0");
+        request.Headers.Add("User-Agent", "AzureAiStudio");
 
         // Build the JSON payload with optional continuation token
         var basePayload = """
         {
             "resourceIds": [
-                {"resourceId": "azure-openai", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-openai-oss", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-msr", "entityContainerType": "Registry"},
-                {"resourceId": "azureml", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-routers", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-phi-prod", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-cogsvc", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-meta", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-mistral", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-gretel", "entityContainerType": "Registry"},
-                {"resourceId": "nvidia-ai", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-nvidia", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-ai21", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-nixtla", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-core42", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-cohere", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-restricted", "entityContainerType": "Registry"},
-                {"resourceId": "HuggingFace", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-paige", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-bria", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-nttdata", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-saifr", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-saifr-ipp", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-saifr-prod", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-rockwellautomation", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-bayer", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-cerence", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-sight-machine", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-deepseek", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-stabilityai", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-xai", "entityContainerType": "Registry"},
-                {"resourceId": "azureml-blackforestlabs", "entityContainerType": "Registry"}
+                {"resourceId": "azureml", "entityContainerType": "Registry"}
             ],
             "indexEntitiesRequest": {
                 "filters": [
                     {"field": "type", "operator": "eq", "values": ["models"]},
                     {"field": "kind", "operator": "eq", "values": ["Versioned"]},
-                    {"field": "properties/isAnonymous", "operator": "ne", "values": ["true"]},
-                    {"field": "annotations/archived", "operator": "ne", "values": ["true"]},
-                    {"field": "properties/userProperties/is-promptflow", "operator": "notexists"},
                     {"field": "labels", "operator": "eq", "values": ["latest"]},
-                    {"field": "annotations/tags/deploymentOptions", "operator": "contains", "values": ["UnifiedEndpointMaaS"]}
-
+                    {"field": "labels", "operator": "eq", "values": ["latest"]},
+                    {"field": "annotations/tags/foundryLocal", "operator": "eq", "values": [""]},
+                    {"field": "properties/variantInfo/variantMetadata/executionProvider", "operator": "eq",
+                        "values": ["CPUExecutionProvider", "QNNExecutionProvider", "CUDAExecutionProvider"]}
                 ],
                 "freeTextSearch": "",
                 "order": [{"field": "properties/name", "direction": "Asc"}],
@@ -550,7 +518,7 @@ public class ModelClassGenerator
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public partial class AIFoundryModel");
+        sb.AppendLine("public partial class AIFoundryLocalModel");
         sb.AppendLine("{");
 
         // Group models by publisher (only include models that are visible and have names & publishers)
@@ -570,9 +538,11 @@ public class ModelClassGenerator
             sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {publisherClassName}");
             sb.AppendLine("    {");
 
-            foreach (var model in publisherGroup.OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
+            foreach (var model in publisherGroup
+                .GroupBy(m => m.Annotations!.Tags!["alias"])
+                .Select(x => x.First()).OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var modelName = model.Annotations!.Name!;
+                var modelName = model.Annotations!.Tags!["alias"];
                 var descriptorName = GenerateMethodName(modelName); // Reuse method name logic for descriptor property name
                 var version = GetModelVersion(model);
                 var publisher = model.Annotations!.SystemCatalogData!.Publisher!;

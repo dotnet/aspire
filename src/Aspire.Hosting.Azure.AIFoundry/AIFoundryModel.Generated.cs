@@ -125,6 +125,11 @@ public partial class AIFoundryModel
         /// </summary>
         public static readonly AIFoundryModel DeepseekV30324 = new() { Name = "DeepSeek-V3-0324", Version = "1", Format = "DeepSeek" };
 
+        /// <summary>
+        /// DeepSeek-V3.1 is a hybrid model that enhances tool usage, thinking efficiency, and supports both thinking and non-thinking modes via chat template switching
+        /// </summary>
+        public static readonly AIFoundryModel DeepseekV31 = new() { Name = "DeepSeek-V3.1", Version = "1", Format = "DeepSeek" };
+
     }
 
     /// <summary>
@@ -210,11 +215,6 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel AzureAiLanguage = new() { Name = "Azure-AI-Language", Version = "1", Format = "Microsoft" };
 
         /// <summary>
-        /// ## Azure AI Speech ## Introduction The Speech service provides speech to text and text to speech capabilities with a Speech resource. You can transcribe speech to text with high accuracy, produce natural-sounding text to speech voices, translate spoken audio, and use speaker recognition during conversations. Create custom voices, add specific words to your base vocabulary, or build your own models. Run Speech anywhere, in the cloud or at the edge in containers. It&apos;s easy to speech enable your applications, tools, and devices with the [Speech CLI](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/spx-overview), [Speech SDK](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/speech-sdk), and [REST APIs](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/rest-speech-to-text). ## Core Features - **Speech To Text**  - **Description**: Use speech to text to transcribe audio into text, either in real-time or asynchronously with batch transcription. Convert audio to text from a range of sources, including microphones, audio files, and blob storage. Use speaker diarization to determine who said what and when. Get readable transcripts with automatic formatting and punctuation.   The base model might not be sufficient if the audio contains ambient noise or includes numerous industry and domain-specific jargon. In these cases, you can create and train custom speech models with acoustic, language, and pronunciation data. Custom speech models are private and can offer a competitive advantage.  - **Key Features**   - Real Time Speech To Text   - Transcriptions, captions, or subtitles for live meetings   - [Diarization](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/get-started-stt-diarization)   - [Pronunciation assessment](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-pronunciation-assessment)   - Contact center agents assist   - Dictation   - Voice agents   - Fast Transcription   - Quick audio or video transcription, subtitles, and edit   - Video translation   - Batch Transcription   - Transcriptions, captions, or subtitles for prerecorded audio   - Contact center post-call analytics   - Diarization   - Custom Speech   - Models with enhanced accuracy for specific domains and conditions. - **Text To Speech**  - **Description**: With [text to speech](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech), you can convert input text into human like synthesized speech. Use human-like prebuilt neural voices out of the box in more than 140 locales and 500 voices or create a custom neural voice that&apos;s unique to your product or brand. You can also enhance the voice experience by using together with Text to speech Avatar to convert text to life-like and high-quality synthetic talking avatar videos.   - **Prebuilt neural voice**: Highly natural out-of-the-box voices. Check the prebuilt neural voice samples the [Voice Gallery](https://speech.microsoft.com/portal/voicegallery) and determine the right voice for your business needs.   - **Custom neural voice**: Besides the prebuilt neural voices that come out of the box, you can also create a [custom neural voice](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/custom-neural-voice) that is recognizable and unique to your brand or product. Custom neural voices are private and can offer a competitive advantage. Check the custom neural voice samples [here](https://aka.ms/customvoice).   - **Text to speech Avatar**: You can convert text into a digital video of a photorealistic human (either a prebuilt avatar or a [custom text to speech avatar](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech-avatar/what-is-text-to-speech-avatar#custom-text-to-speech-avatar)) speaking with a natural-sounding voice. It works best with the Azure neural voices.  - **Key Features**   - **Prebuilt neural voice**    - Neural voice (incl. OpenAI-based voices)    - Neural HD voice (incl. OpenAI-based voices)   - **Custom neural voice**    - Professional voice    - Personal voice   - **TTS Avatar**    - Prebuilt avatar    - Custom avatar - **Speech Translation**  - **Description**: Speech Translation enables real-time, multi-language translation of speech, allowing you to add end-to-end, real-time, multi-language translation capabilities to your applications, tools, and devices.  - **Key Features**   - **Realtime Speech Translation**: This Speech service supports real-time, multi-language speech to speech and speech to text translation of audio streams.    - Support both audio and text output    - Automatic language detection    - Integrated customization built-in   - **Video Translation**: This end-to-end solution performs video translation covering global locales.    - End-to-end solution with both no-code and API support    - GPT built-in to optimize the translation content, augmented by content editing    - Personal voice (limited access) to keep the original timbre, emotions, intonation &amp; style intact ## Use cases **Speech To Text** | Use case | Scenario | Solution | | :---: | :--- | :--- | | Live meeting transcriptions and captions | A virtual event platform needs to provide real-time captions for webinars. | Integrate real-time speech to text using the Speech SDK to transcribe spoken content into captions displayed live during the event. | | Customer service enhancement | A call center wants to assist agents by providing real-time transcriptions of customer calls. | Use real-time speech to text via the Speech CLI to transcribe calls, enabling agents to better understand and respond to customer queries. | | Video subtitling | A video-hosting platform wants to quickly generate a set of subtitles for a video. | Use fast transcription to quickly get a set of subtitles for the entire video. | | Educational tools | An e-learning platform aims to provide transcriptions for video lectures. | Apply batch transcription through the speech to text REST API to process prerecorded lecture videos, generating text transcripts for students. | | Healthcare documentation | A healthcare provider needs to document patient consultations. | Use real-time speech to text for dictation, allowing healthcare professionals to speak their notes and have them transcribed instantly. Use a custom model to enhance recognition of specific medical terms. | | Media and entertainment | A media company wants to create subtitles for a large archive of videos. | Use batch transcription to process the video files in bulk, generating accurate subtitles for each video. | | Market research | A market research firm needs to analyze customer feedback from audio recordings. | Employ batch transcription to convert audio feedback into text, enabling easier analysis and insights extraction. | **Text To Speech** | Use case | Scenario | | :---: | :--- | | Educational or interactive learning | To create a fictional brand or character voice for reading or speaking educational materials, online learning, interactive lesson plans, simulation learning, or guided museum tours. | | Media Entertainment | To create a fictional brand or character voice for reading or speaking entertainment content for video games, movies, TV, recorded music, podcasts, audio books, or augmented or virtual reality. | | Media Marketing | To create a fictional brand or character voice for reading or speaking marketing and product or service media, product introductions, business promotion, or advertisements. | | Self-authored content | To create a voice for reading content authored by the voice talent. | | Accessibility Features | For use in audio description systems and narration, including any fictional brand or character voice, or to facilitate communication by people with speech impairments. | | Interactive Voice Response (IVR) Systems | To create voices, including any fictional brand or character voice, for call center operations, telephony systems, or responses for phone interactions. | | Public Service and Informational Announcements | To create a fictional brand or character voice for communicating public service information, including announcements for public venues, or for informational broadcasts such as traffic, weather, event information, and schedules. This use case is not intended for journalistic or news content. | | Translation and Localization | For use in translation applications for translating conversations in different languages or translating audio media. | | Virtual Assistant or Chatbot | To create a fictional brand or character voice for smart assistants in or for virtual web assistants, appliances, cars, home appliances, toys, control of IoT devices, navigation systems, reading out personal messages, virtual companions, or customer service scenarios. | **Speech Translation** | Use case | Scenario | | :---: | :--- | | Realtime translated caption/subtitle | Realtime translated captions /subtitles for meetings or audio/video content | | Realtime audio/video translation (speech-to-speech) | Translate audio/video into target language audio. The input can be short-form videos, live broadcasts, online or in-person conversations (e.g., Live Interpreter), etc. | | Batch Video Translation | Automated dubbing of spoken content in videos from one language to another | ## Benefits **Text To Speech** - **Global Reach with Extensive Locale and Voice Coverage**: Azure TTS supports more than 140 languages and dialects, along with 400+ unique neural voices. Its widespread data center coverage across 60+ Azure regions makes it highly accessible globally, ensuring low-latency voice services in key markets across North America, Europe, Asia Pacific, and emerging markets in Africa, South America, and the Middle East. - **Customization Capabilities**: Azure’s Custom Neural Voice enables businesses to create unique, branded voices in a low/no code self-serving portal that can speak in specific accents or styles, reflecting a company’s identity. This customization extends to creating regional variants and accents, making Azure ideal for multinational corporations seeking to tailor voices to specific local audiences. - **Flexible Deployment Options**: Azure TTS can be deployed in the cloud, on-premises, or at the edge. - **Security and Compliance**: Azure offers end-to-end encryption, comprehensive compliance certifications (like GDPR, HIPAA, ISO 27001, SOC), and a strong focus on privacy. - **TTS Avatar as a Differentiator**: Azure’s TTS avatars, combined with Custom Neural Voice, create immersive, interactive virtual characters. This innovation allows businesses to integrate human-like avatars in customer service, e-learning, and entertainment, providing visually engaging interactions that go beyond simple audio output. **Speech Translation** - **Multiple language detection**: Model will detect multiple languages among the supported languages in the same audio stream. - **Automatic language detection**: No need to specify input languages – model will detect them automatically. - **Integrated custom translation**: Adapt model to your domain-specific vocabulary. - **Simple &amp; Quick**: End-to-end solution that performs video translation covering global locales - **High quality**: GPT built-in to optimize the translation content, augmented by content editing - **Personalized (Limited Access)**: Keep the original timbre, emotions, intonation &amp; style intact ## Pricing Speech is available for many [languages](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support), [regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions), and [price points](https://azure.microsoft.com/pricing/details/cognitive-services/speech-services/).
-        /// </summary>
-        public static readonly AIFoundryModel AzureAiSpeech = new() { Name = "Azure-AI-Speech", Version = "1", Format = "Microsoft" };
-
-        /// <summary>
         /// ## Azure AI Translator Azure AI Translator, a part of the Azure AI services, is a cloud-based neural machine translation service that enables businesses to translate text and documents across multiple languages in real time and in batches. The service also offers customization options, enabling businesses to fine-tune translations to specific domain or industry contexts. Azure AI Translator supports more than 100 languages and dialects, and it scales automatically to handle both small-scale projects and enterprise-level translation needs.   Azure AI Translator powers many Microsoft products and services used by thousands of businesses and millions of users worldwide for language translation and other language-related operations. ## Core Features - **Text Translation**  - **Description**: Translates text across multiple languages in real time, making it easy to integrate translation into data process automation, facilitate conversation between speakers of different languages, perform live caption translation, and browse webpages in the language of your choice.  - **Key Features**   - **Translate**: Translates a single text phrase or an array of text phrases to multiple target-language texts. Users can specify whether to use standard or custom machine translation models in the request.   - **Transliterate**: Converts a single text phrase or an array of text phrases from native script to Latin script and vice versa.   - **Languages**: Returns a list of languages supported by Translate and Transliterate operations. This request does not require authentication. - **Document Translation**  - **Description**: Translates complex documents across all supported languages and dialects while preserving original document structure and data format. Documents can be translated using standard or custom machine translation models, with the option for users to provide glossaries to ensure that specific terms are translated consistently according to their preferences.  - **Key Features**   - **Batch translation**: Translates multiple documents and large files asynchronously across up to 10 target languages in a single request. The service retrieves source documents from an Azure blob storage container, processes and translates the textual content, and then places the translated documents into a target Azure blob storage container.   - **Single document translation**: Translates a small single document into one target language. It accepts the document as part of the request, processes and translates the textual content, and returns the translated document as part of the response. - **Custom Translator**  - **Description**: Custom Translator is a feature of the Azure AI Translator service that enables enterprises, app developers, and language service providers to build customized neural machine translation (NMT) systems.  - **Key Features**   - **Customize with parallel data**: Build translation systems using parallel documents that understand the terminologies used in your own business and industry.   - **Customize with dictionary data**: Build translation systems using bilingual dictionaries of terms used in your own business and industry. ## Use Cases - **Webpage translation**: Translate webpages to engage global audiences in their native language. - **Conversation translation**: Break communication barriers by enabling live multi-lingual conversations in chat applications, customer support, and conferencing tools by providing real-time text and speech translation. - **Document translation**: Translate manuals, marketing materials, documentation, product or service descriptions, specifications, instructions, contracts, etc. to execute business operations across the world. - **Accessibility**: Translate live captions in a TV program or an event for user to follow in their native language. - **Education**: Learn or teach a foreign language with ease. Facilitate cross-language communication in educational settings, enabling students, teachers, and parents to interact seamlessly in multiple languages. - **Social &amp; entertainment**: Engage with people worldwide on social media in your native language, learning new topics and sharing your thoughts. Join online gaming chats with players from different countries and watch movies or programs in foreign languages with subtitle translation. - **Digital investigation**: Translate business intelligence content into a target language for consumption and analysis. ## Benefits - **Global Reach**: Translate content into over 100 languages, enabling businesses to communicate effectively with customers, partners, and employees worldwide. - **Scalable and Reliable**: Built on Azure’s cloud infrastructure, the Translator service automatically scales to meet demand, from small business applications to global enterprise workloads. - **Security and Compliance**: Azure AI Translator runs on Azure’s secure cloud infrastructure, ensuring data privacy and compliance with global standards. User data is not stored after the translation process. - **Customization**: Customize translation models to suit your business-specific terminology and style, improving the accuracy of translations for specialized industries such as legal, medical, or technical fields. - **Easy Integration**: Azure AI Translator service can be easily integrated into various applications through REST APIs and SDKs, making it accessible for developers across platforms. - **Availability**: Azure AI Translator supports translation across over 100 languages. Enables translation of content in languages, for which native speakers and human translators are not available to you. - **Time**: Translate content within seconds, minutes, or a few hours, which otherwise takes several days with human translation. Enables adoption of translation in workflow automation and real-time conversations. - **Cost**: Translate large volumes of content at a fraction of the cost—up to 1,000 times less than traditional human translation—making it accessible even when high costs would normally be a barrier.  ## Technical Details - **Deployment**: Azure AI Translator is available both as cloud and container offering. Translator container offering is gated and is available in [connected (for billing only)](https://learn.microsoft.com/azure/ai-services/translator/containers/overview#connected-containers) and [disconnected (for air gapped network)](https://learn.microsoft.com/azure/ai-services/translator/containers/overview#disconnected-containers). - **Requirements**: Azure AI Translator prerequisites differ based on the core features and the deployment environment. Please refer to the document for more information – [Text Translation Overview](https://aka.ms/TranslatorText), [Document Translation Overview](https://aka.ms/DocumentTranslationDocs), [Translator Container Overview](https://aka.ms/TranslatorContainerDocs), and [Custom Translator Overview](https://aka.ms/CustomTranslator) for specific requirements. - **Support**: Azure AI Translator is part of Azure AI Services. Support options for AI Services can be found here: [Azure AI services support and help options](https://learn.microsoft.com/azure/ai-services/cognitive-services-support-options?context=%2Fazure%2Fai-services%2Fcomputer-vision%2Fcontext%2Fcontext). ## Pricing Azure AI Translator offers competitive pricing. The pricing model includes pay-as-go and discounts based on volume commitments. Explore [Azure AI Translator pricing options here](https://aka.ms/TranslatorPricing).
         /// </summary>
         public static readonly AIFoundryModel AzureAiTranslator = new() { Name = "Azure-AI-Translator", Version = "1", Format = "Microsoft" };
@@ -235,6 +235,51 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel ModelRouter = new() { Name = "model-router", Version = "2025-08-07", Format = "Microsoft" };
 
         /// <summary>
+        /// Same Phi-3-medium model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Medium128kInstruct = new() { Name = "Phi-3-medium-128k-instruct", Version = "7", Format = "Microsoft" };
+
+        /// <summary>
+        /// A 14B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Medium4kInstruct = new() { Name = "Phi-3-medium-4k-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// Same Phi-3-mini model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Mini128kInstruct = new() { Name = "Phi-3-mini-128k-instruct", Version = "13", Format = "Microsoft" };
+
+        /// <summary>
+        /// Tiniest member of the Phi-3 family. Optimized for both quality and low latency.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Mini4kInstruct = new() { Name = "Phi-3-mini-4k-instruct", Version = "15", Format = "Microsoft" };
+
+        /// <summary>
+        /// Same Phi-3-small model, but with a larger context size for RAG or few shot prompting.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Small128kInstruct = new() { Name = "Phi-3-small-128k-instruct", Version = "5", Format = "Microsoft" };
+
+        /// <summary>
+        /// A 7B parameters model, proves better quality than Phi-3-mini, with a focus on high-quality, reasoning-dense data.
+        /// </summary>
+        public static readonly AIFoundryModel Phi3Small8kInstruct = new() { Name = "Phi-3-small-8k-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// Refresh of Phi-3-mini model.
+        /// </summary>
+        public static readonly AIFoundryModel Phi35MiniInstruct = new() { Name = "Phi-3.5-mini-instruct", Version = "6", Format = "Microsoft" };
+
+        /// <summary>
+        /// A new mixture of experts model
+        /// </summary>
+        public static readonly AIFoundryModel Phi35MoeInstruct = new() { Name = "Phi-3.5-MoE-instruct", Version = "5", Format = "Microsoft" };
+
+        /// <summary>
+        /// Refresh of Phi-3-vision model.
+        /// </summary>
+        public static readonly AIFoundryModel Phi35VisionInstruct = new() { Name = "Phi-3.5-vision-instruct", Version = "2", Format = "Microsoft" };
+
+        /// <summary>
         /// Phi-4 14B, a highly capable model for low latency scenarios.
         /// </summary>
         public static readonly AIFoundryModel Phi4 = new() { Name = "Phi-4", Version = "7", Format = "Microsoft" };
@@ -248,6 +293,11 @@ public partial class AIFoundryModel
         /// Lightweight math reasoning model optimized for multi-step problem solving
         /// </summary>
         public static readonly AIFoundryModel Phi4MiniReasoning = new() { Name = "Phi-4-mini-reasoning", Version = "1", Format = "Microsoft" };
+
+        /// <summary>
+        /// First small multimodal model to have 3 modality inputs (text, audio, image), excelling in quality and efficiency
+        /// </summary>
+        public static readonly AIFoundryModel Phi4MultimodalInstruct = new() { Name = "Phi-4-multimodal-instruct", Version = "2", Format = "Microsoft" };
 
         /// <summary>
         /// State-of-the-art open-weight reasoning model.
@@ -319,6 +369,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel CodexMini = new() { Name = "codex-mini", Version = "2025-05-16", Format = "OpenAI" };
 
         /// <summary>
+        /// computer-use-preview is the model for Computer Use Agent for use in Responses API. You can use computer-use-preview model to get instructions to control a browser on your computer screen and take action on a user&apos;s behalf.
+        /// </summary>
+        public static readonly AIFoundryModel ComputerUsePreview = new() { Name = "computer-use-preview", Version = "2025-03-11", Format = "OpenAI" };
+
+        /// <summary>
         /// DALL-E 3 generates images from text prompts that are provided by the user. DALL-E 3 is generally available for use on Azure OpenAI. The image generation API creates an image from a text prompt. It does not edit existing images or create variations. Learn more at: &lt;https://learn.microsoft.com/azure/ai-services/openai/concepts/models#dall-e&gt;
         /// </summary>
         public static readonly AIFoundryModel DallE3 = new() { Name = "dall-e-3", Version = "3.0", Format = "OpenAI" };
@@ -369,6 +424,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt41Nano = new() { Name = "gpt-4.1-nano", Version = "2025-04-14", Format = "OpenAI" };
 
         /// <summary>
+        /// the largest and strongest general purpose model in the gpt model family up to date, best suited for diverse text and image tasks.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt45Preview = new() { Name = "gpt-4.5-preview", Version = "2025-02-27", Format = "OpenAI" };
+
+        /// <summary>
         /// OpenAI&apos;s most advanced multimodal model in the gpt-4o family. Can handle both text and image inputs.
         /// </summary>
         public static readonly AIFoundryModel Gpt4o = new() { Name = "gpt-4o", Version = "2024-11-20", Format = "OpenAI" };
@@ -414,9 +474,19 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt4oTranscribe = new() { Name = "gpt-4o-transcribe", Version = "2025-03-20", Format = "OpenAI" };
 
         /// <summary>
+        /// gpt-5 is designed for logic-heavy and multi-step tasks.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5 = new() { Name = "gpt-5", Version = "2025-08-07", Format = "OpenAI" };
+
+        /// <summary>
         /// gpt-5-chat (preview) is an advanced, natural, multimodal, and context-aware conversations for enterprise applications.
         /// </summary>
         public static readonly AIFoundryModel Gpt5Chat = new() { Name = "gpt-5-chat", Version = "2025-10-03", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-5-codex is designed for steerability, front end development, and interactivity.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5Codex = new() { Name = "gpt-5-codex", Version = "2025-09-15", Format = "OpenAI" };
 
         /// <summary>
         /// gpt-5-mini is a lightweight version for cost-sensitive applications.
@@ -429,9 +499,44 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt5Nano = new() { Name = "gpt-5-nano", Version = "2025-08-07", Format = "OpenAI" };
 
         /// <summary>
+        /// gpt-5-pro uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt5Pro = new() { Name = "gpt-5-pro", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
+        /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
+        /// </summary>
+        public static readonly AIFoundryModel GptAudio = new() { Name = "gpt-audio", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// Best suited for rich, asynchronous audio input/output interactions, such as creating spoken summaries from text.
+        /// </summary>
+        public static readonly AIFoundryModel GptAudioMini = new() { Name = "gpt-audio-mini", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
+        /// An efficient AI solution for diverse text and image tasks, including text to image, image to image, inpainting, and prompt transformation.
+        /// </summary>
+        public static readonly AIFoundryModel GptImage1 = new() { Name = "gpt-image-1", Version = "2025-04-15", Format = "OpenAI" };
+
+        /// <summary>
+        /// An efficient AI solution for diverse text and image tasks, including high quality, cheap text to image generation
+        /// </summary>
+        public static readonly AIFoundryModel GptImage1Mini = new() { Name = "gpt-image-1-mini", Version = "2025-10-06", Format = "OpenAI" };
+
+        /// <summary>
         /// Push the open model frontier with GPT-OSS models, released under the permissive Apache 2.0 license, allowing anyone to use, modify, and deploy them freely.
         /// </summary>
         public static readonly AIFoundryModel GptOss120b = new() { Name = "gpt-oss-120b", Version = "4", Format = "OpenAI" };
+
+        /// <summary>
+        /// A new S2S (speech to speech) model with improved instruction following.
+        /// </summary>
+        public static readonly AIFoundryModel GptRealtime = new() { Name = "gpt-realtime", Version = "2025-08-28", Format = "OpenAI" };
+
+        /// <summary>
+        /// gpt-realtime-mini is a smaller version of gpt-realtime S2S (speech to speech) model built on chive architecture. This model excels at instruction following and is optimized for cost efficiency.
+        /// </summary>
+        public static readonly AIFoundryModel GptRealtimeMini = new() { Name = "gpt-realtime-mini", Version = "2025-10-06", Format = "OpenAI" };
 
         /// <summary>
         /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
@@ -444,9 +549,29 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel O1Mini = new() { Name = "o1-mini", Version = "2024-09-12", Format = "OpenAI" };
 
         /// <summary>
+        /// Focused on advanced reasoning and solving complex problems, including math and science tasks. Ideal for applications that require deep contextual understanding and agentic workflows.
+        /// </summary>
+        public static readonly AIFoundryModel O1Preview = new() { Name = "o1-preview", Version = "1", Format = "OpenAI" };
+
+        /// <summary>
+        /// o3 includes significant improvements on quality and safety while supporting the existing features of o1 and delivering comparable or better performance.
+        /// </summary>
+        public static readonly AIFoundryModel O3 = new() { Name = "o3", Version = "2025-04-16", Format = "OpenAI" };
+
+        /// <summary>
+        /// The o3 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel O3DeepResearch = new() { Name = "o3-deep-research", Version = "2025-06-26", Format = "OpenAI" };
+
+        /// <summary>
         /// o3-mini includes the o1 features with significant cost-efficiencies for scenarios requiring high performance.
         /// </summary>
         public static readonly AIFoundryModel O3Mini = new() { Name = "o3-mini", Version = "2025-01-31", Format = "OpenAI" };
+
+        /// <summary>
+        /// The o3 series of models are trained with reinforcement learning to think before they answer and perform complex reasoning. The o1-pro model uses more compute to think harder and provide consistently better answers.
+        /// </summary>
+        public static readonly AIFoundryModel O3Pro = new() { Name = "o3-pro", Version = "2025-06-10", Format = "OpenAI" };
 
         /// <summary>
         /// o4-mini includes significant improvements on quality and safety while supporting the existing features of o3-mini and delivering comparable or better performance.
@@ -491,6 +616,28 @@ public partial class AIFoundryModel
     }
 
     /// <summary>
+    /// Models published by Stability AI.
+    /// </summary>
+    public static class StabilityAi
+    {
+        /// <summary>
+        /// At 8.1 billion parameters, with superior quality and prompt adherence, this base model is the most powerful in the Stable Diffusion family. This model is ideal for professional use cases at 1 megapixel resolution. Stable Diffusion 3.5 Large produces diverse outputs, creating images that are representative of the world, with different skin tones and features, all without requiring extensive prompting.  It also offers unmatched versatility, generating visuals in virtually any style, from 3D and photography to painting and line art. Our analysis shows that Stable Diffusion 3.5 Large leads the market in prompt adherence and rivals significantly larger models in image quality.
+        /// </summary>
+        public static readonly AIFoundryModel StableDiffusion35Large = new() { Name = "Stable-Diffusion-3.5-Large", Version = "1", Format = "Stability AI" };
+
+        /// <summary>
+        /// Leveraging an enhanced version of SDXL, Stable Image Core, delivers exceptional speed and efficiency while maintaining the high-quality output synonymous with Stable Diffusion models.
+        /// </summary>
+        public static readonly AIFoundryModel StableImageCore = new() { Name = "Stable-Image-Core", Version = "1", Format = "Stability AI" };
+
+        /// <summary>
+        /// Powered by the advanced capabilities of Stable Diffusion 3.5 Large, Stable Image Ultra sets a new standard in photorealism. Stable Image Ultra is ideal for product imagery in marketing and advertising. It also excels in typography, dynamic lighting, and vibrant color rendering.
+        /// </summary>
+        public static readonly AIFoundryModel StableImageUltra = new() { Name = "Stable-Image-Ultra", Version = "1", Format = "Stability AI" };
+
+    }
+
+    /// <summary>
     /// Models published by xAI.
     /// </summary>
     public static class XAI
@@ -504,6 +651,26 @@ public partial class AIFoundryModel
         /// Grok 3 Mini is a lightweight model that thinks before responding. Trained on mathematic and scientific problems, it is great for logic-based tasks.
         /// </summary>
         public static readonly AIFoundryModel Grok3Mini = new() { Name = "grok-3-mini", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok 4 is the latest reasoning model from xAI with advanced reasoning and tool-use capabilities, enabling it to achieve new state-of-the-art performance across challenging academic and industry benchmarks.
+        /// </summary>
+        public static readonly AIFoundryModel Grok4 = new() { Name = "grok-4", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok 4 Fast is an efficiency-focused large language model developed by xAI, pre-trained on general-purpose data and post-trained on task demonstrations and tool use, with built-in safety features including refusal behaviors, a fixed system prompt enforcing
+        /// </summary>
+        public static readonly AIFoundryModel Grok4FastNonReasoning = new() { Name = "grok-4-fast-non-reasoning", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok 4 Fast is an efficiency-focused large language model developed by xAI, pre-trained on general-purpose data and post-trained on task demonstrations and tool use, with built-in safety features including refusal behaviors, a fixed system prompt enforcing
+        /// </summary>
+        public static readonly AIFoundryModel Grok4FastReasoning = new() { Name = "grok-4-fast-reasoning", Version = "1", Format = "xAI" };
+
+        /// <summary>
+        /// Grok Code Fast 1 is a fast, economical AI model for agentic coding, built from scratch with a new architecture, trained on programming-rich data, and fine-tuned for real-world coding tasks like bug fixes and project setup.
+        /// </summary>
+        public static readonly AIFoundryModel GrokCodeFast1 = new() { Name = "grok-code-fast-1", Version = "1", Format = "xAI" };
 
     }
 
