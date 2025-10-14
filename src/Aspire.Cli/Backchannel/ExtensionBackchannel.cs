@@ -573,8 +573,6 @@ internal sealed class ExtensionBackchannel : IExtensionBackchannel
 
         var rpc = await _rpcTaskCompletionSource.Task;
 
-        _logger.LogDebug("Logging message at level {LogLevel}: {Message}", logLevel, message);
-
         await rpc.InvokeWithCancellationAsync(
             "logMessage",
             [_token, logLevel.ToString(), message],
