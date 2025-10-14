@@ -13,6 +13,7 @@ export const noCsprojFound = localize('aspire-vscode.strings.noCsprojFound', 'No
 export const errorMessage = (error: any) => localize('aspire-vscode.strings.error', 'Error: {0}', error);
 export const yesLabel = localize('aspire-vscode.strings.yes', 'Yes');
 export const noLabel = localize('aspire-vscode.strings.no', 'No');
+export const dontShowAgainLabel = localize('aspire-vscode.strings.dontShowAgainLabel', "Don't show again");
 export const directUrl = (url: string) => localize('aspire-vscode.strings.directUrl', 'Direct: {0}', url);
 export const codespacesUrl = (url: string) => localize('aspire-vscode.strings.codespacesUrl', 'Codespaces: {0}', url);
 export const directLink = localize('aspire-vscode.strings.directLink', 'Open local URL');
@@ -58,3 +59,5 @@ export const debugSessionAlreadyExists = (id: string) => localize('aspire-vscode
 export const processExceptionOccurred = (error: string, command: string) => localize('aspire-vscode.strings.processExceptionOccurred', 'Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = localize('aspire-vscode.strings.failedToStartDebugSession', 'Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => localize('aspire-vscode.strings.invalidLaunchConfiguration', 'Invalid launch configuration for {0}.', projectPath);
+export const selectDefaultLaunchApphost = localize('aspire-vscode.strings.selectDefaultLaunchApphost', 'Select an apphost to launch by default');
+export const doYouWantToSetDefaultApphost = localize('aspire-vscode.strings.doYouWantToSetDefaultApphost', 'Do you want to set an apphost as the default to launch in Aspire debug sessions?');

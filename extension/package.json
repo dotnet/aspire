@@ -24,12 +24,10 @@
     "apphost"
   ],
   "activationEvents": [
-    "onDebug",
     "onDebugResolve:aspire",
     "onDebugInitialConfigurations:aspire",
     "onDebugDynamicConfigurations:aspire",
     "workspaceContains:**/*.csproj",
-    "onStartupFinished",
     "onView:workbench.view.debug"
   ],
   "main": "./dist/extension.js",
@@ -125,7 +123,18 @@
         "title": "%command.configureLaunchJson%",
         "category": "Aspire"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Aspire",
+      "properties": {
+        "aspire.enableSettingsFileCreationPromptOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "%configuration.aspire.enableSettingsFileCreationPromptOnStartup%",
+          "scope": "window"
+        }
+      }
+    }
   },
   "repository": {
     "type": "git",

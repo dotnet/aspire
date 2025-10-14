@@ -311,10 +311,10 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                             cancellationToken
                         );
                     }
-                    else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.First)
+                    else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.None)
                     {
-                        logger.LogDebug("Multiple AppHost project files found in directory {Directory}, selecting first one", directory.FullName);
-                        projectFile = appHostProjects[0];
+                        logger.LogDebug("Multiple AppHost project files found in directory {Directory}, selecting none", directory.FullName);
+                        projectFile = null;
                     }
                     else if (multipleAppHostProjectsFoundBehavior is MultipleAppHostProjectsFoundBehavior.Throw)
                     {
@@ -324,48 +324,51 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
             }
 
-            // If the project file is passed, validate it.
-            if (!projectFile.Exists)
+            if (projectFile is not null)
             {
-                logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
-                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
-            }
-
-            // Handle explicit apphost.cs files
-            if (projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
-            {
-                if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+                // If the project file is passed, validate it.
+                if (!projectFile.Exists)
                 {
-                    if (await IsValidSingleFileAppHostAsync(projectFile, cancellationToken))
+                    logger.LogError("Project file {ProjectFile} does not exist.", projectFile.FullName);
+                    throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                }
+
+                // Handle explicit apphost.cs files
+                if (projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
                     {
-                        logger.LogDebug("Using single-file apphost {ProjectFile}", projectFile.FullName);
-                        return new AppHostProjectSearchResult(projectFile, [projectFile]);
-                    }
-                    else if (projectFile.Directory is { } parentDirectory)
-                    {
-                        // File exists but we are not in a single file apphost. Search in the parent directory for a valid apphost csproj
-                        return await UseOrFindAppHostProjectFileAsync(new FileInfo(parentDirectory.FullName), multipleAppHostProjectsFoundBehavior, createSettingsFile, cancellationToken);
+                        if (await IsValidSingleFileAppHostAsync(projectFile, cancellationToken))
+                        {
+                            logger.LogDebug("Using single-file apphost {ProjectFile}", projectFile.FullName);
+                            return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                        }
+                        else if (projectFile.Directory is { } parentDirectory)
+                        {
+                            // File exists but we are not in a single file apphost. Search in the parent directory for a valid apphost csproj
+                            return await UseOrFindAppHostProjectFileAsync(new FileInfo(parentDirectory.FullName), multipleAppHostProjectsFoundBehavior, createSettingsFile, cancellationToken);
+                        }
+                        else
+                        {
+                            throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
+                        }
                     }
                     else
                     {
                         throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
                     }
                 }
+                // Handle .csproj files
+                else if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+                {
+                    logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
+                    return new AppHostProjectSearchResult(projectFile, [projectFile]);
+                }
+                // Reject other extensions
                 else
                 {
                     throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
                 }
-            }
-            // Handle .csproj files
-            else if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
-                return new AppHostProjectSearchResult(projectFile, [projectFile]);
-            }
-            // Reject other extensions
-            else
-            {
-                throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
         }
 
@@ -402,7 +405,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
             {
                 MultipleAppHostProjectsFoundBehavior.Throw => throw new ProjectLocatorException(ErrorStrings.MultipleProjectFilesFound),
                 MultipleAppHostProjectsFoundBehavior.Prompt => await interactionService.PromptForSelectionAsync(InteractionServiceStrings.SelectAppHostToUse, results.BuildableAppHost, projectFile => $"{projectFile.Name} ({Path.GetRelativePath(executionContext.WorkingDirectory.FullName, projectFile.FullName)})", cancellationToken),
-                MultipleAppHostProjectsFoundBehavior.First => results.BuildableAppHost[0],
+                MultipleAppHostProjectsFoundBehavior.None => null,
                 _ => selectedAppHost
             };
         }
@@ -449,5 +452,5 @@ internal enum MultipleAppHostProjectsFoundBehavior
 {
     Prompt,
     Throw,
-    First
+    None
 }

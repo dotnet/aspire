@@ -46,6 +46,9 @@
     <trans-unit id="command.configureLaunchJson">
       <source xml:lang="en">Configure launch.json file</source>
     </trans-unit>
+    <trans-unit id="configuration.aspire.enableSettingsFileCreationPromptOnStartup">
+      <source xml:lang="en">Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
       <source xml:lang="en">No apphost found in the current workspace.</source>
     </trans-unit>
@@ -187,6 +190,21 @@
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
+      <source xml:lang="en">Select an apphost to launch by default</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
+      <source xml:lang="en">Do you want to set an apphost as the default to launch in Aspire debug sessions?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
+      <source xml:lang="en">Don't show again</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.yesLabel">
+      <source xml:lang="en">Yes</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noLabel">
+      <source xml:lang="en">No</source>
+    </trans-unit>
   </body></file>
   <file original=".localization/loc/strings" source-language="en" datatype="plaintext"><body>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
@@ -200,6 +218,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.no">
       <source xml:lang="en">No</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
+      <source xml:lang="en">Don't show again</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.directUrl">
       <source xml:lang="en">Direct: {0}</source>
@@ -335,6 +356,12 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
+      <source xml:lang="en">Select an apphost to launch by default</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
+      <source xml:lang="en">Do you want to set an apphost as the default to launch in Aspire debug sessions?</source>
     </trans-unit>
   </body></file>
 </xliff>
