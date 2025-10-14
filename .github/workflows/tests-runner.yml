@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Cache .NET SDK
+        if: ${{ github.repository_owner == 'dotnet' }}
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
 
       # In order to build the solution, we need to install the SDK and the toolsets first
@@ -69,6 +70,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Cache .NET SDK
+        if: ${{ github.repository_owner == 'dotnet' }}
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
 
       - name: Build with packages
@@ -167,6 +169,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Cache .NET SDK
+        if: ${{ github.repository_owner == 'dotnet' }}
         uses: ./.github/actions/cache-dotnet-sdk-for-arcade
 
       - name: Trust HTTPS development certificate
