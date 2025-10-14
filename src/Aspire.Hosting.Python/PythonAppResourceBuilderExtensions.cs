@@ -142,6 +142,11 @@ public static class PythonAppResourceBuilderExtensions
             context.Args.Add(scriptPath);
         });
 
+        resourceBuilder.WithPythonEnvironment(env =>
+        {
+            env.VirtualEnvironment = virtualEnvironment;
+        });
+
         resourceBuilder.WithOtlpExporter();
 
         // Configure OpenTelemetry exporters using environment variables
@@ -175,13 +180,14 @@ public static class PythonAppResourceBuilderExtensions
             c.WithDockerfileBuilder(appDirectory,
                 context =>
                 {
-                    if (!c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _))
+                    if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
+                        !pythonEnvironmentAnnotation.Uv)
                     {
                         // Use the default Dockerfile if not using UV
                         return;
                     }
 
-                    var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory, virtualEnvironment);
+                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
 
                     if (pythonVersion is null)
                     {
@@ -298,8 +304,13 @@ public static class PythonAppResourceBuilderExtensions
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
             : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
+
         // Update the command to use the new virtual environment
         builder.WithCommand(virtualEnvironment.GetExecutable("python"));
+        builder.WithPythonEnvironment(env =>
+        {
+            env.VirtualEnvironment = virtualEnvironment;
+        });
 
         return builder;
     }
@@ -375,8 +386,24 @@ public static class PythonAppResourceBuilderExtensions
                 .ExcludeFromManifest();
 
             builder.WaitForCompletion(uvBuilder)
-                   .WithAnnotation(new PythonUvAnnotation());
+                   .WithPythonEnvironment(env => env.Uv = true);
         }
+
+        return builder;
+    }
+
+    internal static IResourceBuilder<PythonAppResource> WithPythonEnvironment(this IResourceBuilder<PythonAppResource> builder, Action<PythonEnvironmentAnnotation> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var existing))
+        {
+            existing = new PythonEnvironmentAnnotation();
+            builder.WithAnnotation(existing);
+        }
+
+        configure(existing);
 
         return builder;
     }
