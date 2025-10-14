@@ -18,7 +18,6 @@ using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
-using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -619,8 +618,6 @@ public sealed class AzureEnvironmentResource : Resource
             }*/
             return $" to {appServiceUri}";
         }
-
-
 
         return string.Empty;
     }
