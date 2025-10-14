@@ -17,6 +17,7 @@
     <StabilizePackageVersion Condition="'$(StabilizePackageVersion)' == ''">false</StabilizePackageVersion>
     <DotNetFinalVersionKind Condition="'$(StabilizePackageVersion)' == 'true'">release</DotNetFinalVersionKind>
   </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)\SdksForTesting.Versions.props" />
   <PropertyGroup>
     <!-- Package versions defined directly in <reporoot>/Directory.Packages.props -->
     <MicrosoftDotnetSdkInternalVersion>8.0.100-rtm.23512.16</MicrosoftDotnetSdkInternalVersion>
