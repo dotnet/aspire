@@ -1,0 +1,57 @@
+name: 'Cache .NET SDK'
+description: |
+  Aggressively cache the .NET SDK in the .dotnet directory using actions/cache@v4.
+  
+  This action caches the .dotnet directory and only runs the restore script on cache misses.
+  
+  Why we can't use actions/setup-dotnet:
+  The Aspire repository has complex requirements in global.json that include:
+  - Custom SDK paths pointing to local .dotnet directory
+  - Multiple runtime versions with variable substitution (e.g., $(DotNetRuntimePreviousVersionForTesting))
+  - Architecture-specific runtimes (x64, arm64) for different platforms
+  - Custom error messages for missing SDK
+  
+  The actions/setup-dotnet action doesn't support these advanced global.json features,
+  particularly the "paths" array and variable substitution in the "runtimes" section.
+  Instead, we use the repository's restore scripts which properly handle these requirements
+  and install SDKs to the local .dotnet directory.
+
+inputs:
+  cache-key:
+    description: 'Primary cache key for the .dotnet directory'
+    required: true
+  restore-keys:
+    description: 'Ordered list of prefix-matched keys to use for restoring stale cache if no cache hit occurred for cache-key'
+    required: false
+    default: ''
+
+outputs:
+  cache-hit:
+    description: 'A boolean value to indicate an exact match was found for the cache-key'
+    value: ${{ steps.cache-dotnet.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache .dotnet directory
+      id: cache-dotnet
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: .dotnet
+        key: ${{ inputs.cache-key }}
+        restore-keys: ${{ inputs.restore-keys }}
+
+    - name: Restore .NET SDK
+      if: steps.cache-dotnet.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        if [ -f "./restore.sh" ]; then
+          echo "Running restore.sh to install .NET SDK..."
+          ./restore.sh
+        elif [ -f "./restore.cmd" ]; then
+          echo "Running restore.cmd to install .NET SDK..."
+          ./restore.cmd
+        else
+          echo "Error: No restore script found (restore.sh or restore.cmd)"
+          exit 1
+        fi
