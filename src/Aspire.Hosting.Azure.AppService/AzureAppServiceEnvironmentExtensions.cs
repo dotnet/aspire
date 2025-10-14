@@ -165,4 +165,30 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.Resource.EnableDashboard = enable;
         return builder;
     }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be included in the Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to include Azure Application Insights. Default is true.</param>
+    /// <param name="appInsightsBuilder">The AzureApplicationInsightsResource to associate with the App Service environment.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true, IResourceBuilder<AzureApplicationInsightsResource>? appInsightsBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(appInsightsBuilder);
+
+        builder.Resource.EnableApplicationInsights = enable;
+        if (!enable || appInsightsBuilder is null)
+        {
+            return builder;
+        }
+
+        // Add a LogAnalyticsWorkspaceReferenceAnnotation to indicate that the resource is using a specific workspace
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.WithAnnotation(new AzureApplicationInsightsReferenceAnnotation(appInsightsBuilder.Resource));
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        return builder;
+    }
 }

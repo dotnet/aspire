@@ -30,10 +30,16 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
 
     /// <summary>
-    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the app service environment.
     /// Default is true.
     /// </summary>
     internal bool EnableDashboard { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the app service environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableApplicationInsights { get; set; } = true;
 
     /// <summary>
     /// Gets the name of the App Service Plan.

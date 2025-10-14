@@ -6,9 +6,11 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Azure.Provisioning;
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure.AppService;
@@ -352,6 +354,29 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(webSiteRa);
         }
 
+        if (environmentContext.Environment.EnableApplicationInsights)
+        {
+            ApplicationInsightsComponent? applicationInsights = null;
+
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            if (infra.AspireResource.TryGetLastAnnotation<AzureApplicationInsightsReferenceAnnotation>(out var applicationInsightsReferenceAnnotation) && applicationInsightsReferenceAnnotation.ApplicationInsightsResource is AzureProvisioningResource applicationInsightsResource)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+            {
+                applicationInsights = (ApplicationInsightsComponent)applicationInsightsResource.AddAsExistingResource(infra);
+            }
+            else
+            {
+                applicationInsights = CreateApplicationInsightsResource();
+            }
+            infra.Add(applicationInsights);
+            ConfigureWebSiteForApplicationInsights(webSite, applicationInsights);
+        }
+
+        infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_URI", typeof(string))
+        {
+            Value = BicepFunction.Interpolate($"https://{webSite.Name}.azurewebsites.net")
+        });
+
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {
@@ -418,6 +443,52 @@ internal sealed class AzureAppServiceWebsiteContext(
             PrincipalId = contributorPrincipalId,
             RoleDefinitionId = websiteRaId,
         };
+    }
+
+    private ApplicationInsightsComponent CreateApplicationInsightsResource()
+    {
+        var autoInjectedLogAnalyticsWorkspace = new OperationalInsightsWorkspace("law_" + Infra.BicepName)// AspireResource.GetBicepIdentifier())
+        {
+            Sku = new OperationalInsightsWorkspaceSku()
+            {
+                Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+            }
+        };
+
+        Infra.Add(autoInjectedLogAnalyticsWorkspace);
+        var applicationInsights = new ApplicationInsightsComponent("ai_" + Infra.BicepName)
+        {
+            ApplicationType = ApplicationInsightsApplicationType.Web,
+            Kind = "web",
+            WorkspaceResourceId = autoInjectedLogAnalyticsWorkspace.Id,
+            IngestionMode = ComponentIngestionMode.LogAnalytics
+        };
+
+        applicationInsights.WorkspaceResourceId = autoInjectedLogAnalyticsWorkspace.Id;
+        return applicationInsights;
+    }
+
+    private void ConfigureWebSiteForApplicationInsights(WebSite webSite, ApplicationInsightsComponent applicationInsights)
+    {   
+        Infra.Add(applicationInsights);
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = applicationInsights.InstrumentationKey
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = applicationInsights.ConnectionString
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });
     }
 
     enum SecretType

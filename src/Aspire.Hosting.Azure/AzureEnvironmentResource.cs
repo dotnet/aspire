@@ -18,6 +18,7 @@ using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.Identity;
+using Azure.Provisioning.Expressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -601,6 +602,25 @@ public sealed class AzureEnvironmentResource : Resource
                 return $" to {endpoint}";
             }
         }
+
+        // Check if the compute environment has the app service URI output (for Azure App Service)
+        if (azureComputeEnv is AzureProvisioningResource appServiceResource &&
+            appServiceResource.Outputs.TryGetValue("AZURE_APP_SERVICE_URI", out var appServiceUri))
+        {
+            /*
+            if (computeResource.TryGetEndpoints(out var endpoints))
+            {
+                var endpoint = endpoints.FirstOrDefault(e => e.IsExternal);
+
+                if (endpoint != null)
+                {
+                    BicepFunction.Interpolate($"{endpoint.UriScheme}://{endpoint.TargetHost}.azurewebsites.net");
+                }
+            }*/
+            return $" to {appServiceUri}";
+        }
+
+
 
         return string.Empty;
     }
