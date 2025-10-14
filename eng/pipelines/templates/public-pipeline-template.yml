@@ -79,6 +79,73 @@ stages:
 
       # Integration Tests Matrix moved to separate stages
 
+      # Helix jobs (Templates, EndToEnd - temporarily preserved)
+      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
+        - ${{ if contains(testVariant, '_helix') }}:
+          - job: Windows${{ testVariant }}
+
+            # timeout accounts for wait times for helix agents up to 30mins
+            timeoutInMinutes: 90
+
+            pool:
+              name: $(DncEngPublicBuildPool)
+              demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+            variables:
+              - name: _buildScript
+                value: $(Build.SourcesDirectory)/build.cmd -ci
+
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+            steps:
+              - template: /eng/pipelines/templates/BuildAndTest.yml
+                parameters:
+                  runAsPublic: true
+                  dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
+                  buildScript: $(_buildScript)
+                  buildConfig: $(_BuildConfig)
+                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                  repoLogPath: $(Build.Arcade.LogsPath)
+                  repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                  isWindows: true
+                  runHelixTests: true
+                  runPipelineTests: false
+
+          - job: Linux${{ testVariant }}
+
+            # timeout accounts for wait times for helix agents up to 30mins
+            timeoutInMinutes: 90
+
+            pool:
+              name: $(DncEngPublicBuildPool)
+              demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+
+            variables:
+              - name: _buildScript
+                value: $(Build.SourcesDirectory)/build.sh --ci
+
+            preSteps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+            steps:
+              - template: /eng/pipelines/templates/BuildAndTest.yml
+                parameters:
+                  runAsPublic: true
+                  dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
+                  buildScript: $(_buildScript)
+                  buildConfig: $(_BuildConfig)
+                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
+                  repoLogPath: $(Build.Arcade.LogsPath)
+                  repoTestResultsPath: $(Build.Arcade.TestResultsPath)
+                  isWindows: false
+                  runHelixTests: true
+                  runPipelineTests: false
+
 # ----------------------------------------------------------------
 # Setup Stage - .NET SDK setup and test enumeration
 # ----------------------------------------------------------------
@@ -322,70 +389,3 @@ stages:
                 testRunTitle: 'Integration Tests'
                 mergeTestResults: false
                 failTaskOnFailedTests: true
-
-      # Helix jobs (Templates, EndToEnd - temporarily preserved)
-      - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
-        - ${{ if contains(testVariant, '_helix') }}:
-          - job: Windows${{ testVariant }}
-
-            # timeout accounts for wait times for helix agents up to 30mins
-            timeoutInMinutes: 90
-
-            pool:
-              name: $(DncEngPublicBuildPool)
-              demands: ImageOverride -equals windows.vs2022preview.amd64.open
-
-            variables:
-              - name: _buildScript
-                value: $(Build.SourcesDirectory)/build.cmd -ci
-
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
-
-            steps:
-              - template: /eng/pipelines/templates/BuildAndTest.yml
-                parameters:
-                  runAsPublic: true
-                  dotnetScript: $(Build.SourcesDirectory)/dotnet.cmd
-                  buildScript: $(_buildScript)
-                  buildConfig: $(_BuildConfig)
-                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-                  repoLogPath: $(Build.Arcade.LogsPath)
-                  repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-                  isWindows: true
-                  runHelixTests: true
-                  runPipelineTests: false
-
-          - job: Linux${{ testVariant }}
-
-            # timeout accounts for wait times for helix agents up to 30mins
-            timeoutInMinutes: 90
-
-            pool:
-              name: $(DncEngPublicBuildPool)
-              demands: ImageOverride -equals build.ubuntu.2204.amd64.open
-
-            variables:
-              - name: _buildScript
-                value: $(Build.SourcesDirectory)/build.sh --ci
-
-            preSteps:
-              - checkout: self
-                fetchDepth: 1
-                clean: true
-
-            steps:
-              - template: /eng/pipelines/templates/BuildAndTest.yml
-                parameters:
-                  runAsPublic: true
-                  dotnetScript: $(Build.SourcesDirectory)/dotnet.sh
-                  buildScript: $(_buildScript)
-                  buildConfig: $(_BuildConfig)
-                  repoArtifactsPath: $(Build.Arcade.ArtifactsPath)
-                  repoLogPath: $(Build.Arcade.LogsPath)
-                  repoTestResultsPath: $(Build.Arcade.TestResultsPath)
-                  isWindows: false
-                  runHelixTests: true
-                  runPipelineTests: false
