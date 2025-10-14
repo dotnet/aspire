@@ -33,12 +33,12 @@ await c.OpenAsync();
 ```csharp
 var b = new SqlConnectionStringBuilder
 {
-	DataSource = "SRV.database.windows.net,1433",
-	InitialCatalog = "DB",
-	UserID = "USER",
-	Password = "PWD",
-	Encrypt = true,
-	TrustServerCertificate = false
+    DataSource = "SRV.database.windows.net,1433",
+    InitialCatalog = "DB",
+    UserID = "USER",
+    Password = "PWD",
+    Encrypt = true,
+    TrustServerCertificate = false
 };
 
 await using var c = new SqlConnection(b.ConnectionString);
@@ -58,7 +58,7 @@ await c.OpenAsync();
 import sql from "mssql";
 
 const pool = await sql.connect(
-	"Server=tcp:SRV.database.windows.net,1433;Database=DB;User Id=USER;Password=PWD;Encrypt=True;TrustServerCertificate=False"
+    "Server=tcp:SRV.database.windows.net,1433;Database=DB;User Id=USER;Password=PWD;Encrypt=True;TrustServerCertificate=False"
 );
 ```
 
@@ -67,15 +67,15 @@ const pool = await sql.connect(
 import sql from "mssql";
 
 const pool = await sql.connect({
-	server: "SRV.database.windows.net",
-	port: 1433,
-	database: "DB",
-	user: "USER",
-	password: "PWD",
-	options: {
-		encrypt: true,
-		trustServerCertificate: false
-	}
+    server: "SRV.database.windows.net",
+    port: 1433,
+    database: "DB",
+    user: "USER",
+    password: "PWD",
+    options: {
+        encrypt: true,
+        trustServerCertificate: false
+    }
 });
 ```
 
@@ -97,7 +97,7 @@ const pool = await sql.connect({
 import pyodbc
 
 conn = pyodbc.connect(
-	"DRIVER={ODBC Driver 18 for SQL Server};SERVER=SRV.database.windows.net,1433;DATABASE=DB;UID=USER;PWD=PWD;Encrypt=yes;TrustServerCertificate=no;"
+    "DRIVER={ODBC Driver 18 for SQL Server};SERVER=SRV.database.windows.net,1433;DATABASE=DB;UID=USER;PWD=PWD;Encrypt=yes;TrustServerCertificate=no;"
 )
 ```
 
@@ -106,13 +106,13 @@ conn = pyodbc.connect(
 import pyodbc
 
 conn = pyodbc.connect(
-	driver="{ODBC Driver 18 for SQL Server}",
-	server="SRV.database.windows.net,1433",
-	database="DB",
-	uid="USER",
-	pwd="PWD",
-	Encrypt="yes",
-	TrustServerCertificate="no"
+    driver="{ODBC Driver 18 for SQL Server}",
+    server="SRV.database.windows.net,1433",
+    database="DB",
+    uid="USER",
+    pwd="PWD",
+    Encrypt="yes",
+    TrustServerCertificate="no"
 )
 ```
 
@@ -122,23 +122,23 @@ conn = pyodbc.connect(
 
 **Connection string / properties:**
 - Connection URL: `sqlserver://<user>:<pwd>@<server>.database.windows.net:1433?database=<db>&encrypt=true`
-- URL components: `Scheme` (sqlserver), `Host` (<server>.database.windows.net:1433), `User` (username:password)
+- URL components: `Scheme` (sqlserver), `Host` (`<server>.database.windows.net:1433`), `User` (username:password)
 - Query parameters: `database`, `encrypt` (true)
 
 **Variant A — URL / connection string:**
 ```go
 db, _ := sql.Open(
-	"sqlserver",
-	"sqlserver://USER:PWD@SRV.database.windows.net:1433?database=DB&encrypt=true",
+    "sqlserver",
+    "sqlserver://USER:PWD@SRV.database.windows.net:1433?database=DB&encrypt=true",
 )
 ```
 
 **Variant B — property / options object:**
 ```go
 u := &url.URL{
-	Scheme: "sqlserver",
-	Host:   "SRV.database.windows.net:1433",
-	User:   url.UserPassword("USER", "PWD"),
+    Scheme: "sqlserver",
+    Host:   "SRV.database.windows.net:1433",
+    User:   url.UserPassword("USER", "PWD"),
 }
 
 q := u.Query()
@@ -160,9 +160,9 @@ db, _ := sql.Open("sqlserver", u.String())
 **Variant A — URL / connection string:**
 ```java
 Connection c = DriverManager.getConnection(
-	"jdbc:sqlserver://SRV.database.windows.net:1433;databaseName=DB;encrypt=true;trustServerCertificate=false;",
-	"USER",
-	"PWD"
+    "jdbc:sqlserver://SRV.database.windows.net:1433;databaseName=DB;encrypt=true;trustServerCertificate=false;",
+    "USER",
+    "PWD"
 );
 ```
 
@@ -175,8 +175,8 @@ p.put("encrypt", "true");
 p.put("trustServerCertificate", "false");
 
 Connection c = DriverManager.getConnection(
-	"jdbc:sqlserver://SRV.database.windows.net:1433;databaseName=DB",
-	p
+    "jdbc:sqlserver://SRV.database.windows.net:1433;databaseName=DB",
+    p
 );
 ```
 
@@ -201,7 +201,7 @@ Connection c = DriverManager.getConnection(
 **Variant A — URL / connection string:**
 ```csharp
 await using var c = new NpgsqlConnection(
-	"Host=SRV.postgres.database.azure.com;Port=5432;Database=DB;Username=USER@SRV;Password=PWD;SslMode=Require"
+    "Host=SRV.postgres.database.azure.com;Port=5432;Database=DB;Username=USER@SRV;Password=PWD;SslMode=Require"
 );
 await c.OpenAsync();
 ```
@@ -210,12 +210,12 @@ await c.OpenAsync();
 ```csharp
 var b = new NpgsqlConnectionStringBuilder
 {
-	Host = "SRV.postgres.database.azure.com",
-	Port = 5432,
-	Database = "DB",
-	Username = "USER@SRV",
-	Password = "PWD",
-	SslMode = SslMode.Require
+    Host = "SRV.postgres.database.azure.com",
+    Port = 5432,
+    Database = "DB",
+    Username = "USER@SRV",
+    Password = "PWD",
+    SslMode = SslMode.Require
 };
 
 await using var c = new NpgsqlConnection(b.ConnectionString);
@@ -228,14 +228,14 @@ await c.OpenAsync();
 
 **Connection string / properties:**
 - Connection URL: `postgres://<user>@<server>:<pwd>@<server>.postgres.database.azure.com:5432/<db>?sslmode=require`
-- Options object: `host`, `port` (5432), `user` (<user>@<server>), `password`, `database`, `ssl.rejectUnauthorized` (true)
+- Options object: `host`, `port` (5432), `user` (`<user>@<server>`), `password`, `database`, `ssl.rejectUnauthorized` (true)
 
 **Variant A — URL / connection string:**
 ```javascript
 const { Client } = require("pg");
 
 const c = new Client({
-	connectionString: "postgres://USER@SRV:PWD@SRV.postgres.database.azure.com:5432/DB?sslmode=require"
+    connectionString: "postgres://USER@SRV:PWD@SRV.postgres.database.azure.com:5432/DB?sslmode=require"
 });
 
 await c.connect();
@@ -246,12 +246,12 @@ await c.connect();
 const { Client } = require("pg");
 
 const c = new Client({
-	host: "SRV.postgres.database.azure.com",
-	port: 5432,
-	user: "USER@SRV",
-	password: "PWD",
-	database: "DB",
-	ssl: { rejectUnauthorized: true }
+    host: "SRV.postgres.database.azure.com",
+    port: 5432,
+    user: "USER@SRV",
+    password: "PWD",
+    database: "DB",
+    ssl: { rejectUnauthorized: true }
 });
 
 await c.connect();
@@ -263,14 +263,14 @@ await c.connect();
 
 **Connection string / properties:**
 - Connection string: `dbname=<db> user=<user>@<server> password=<pwd> host=<server>.postgres.database.azure.com port=5432 sslmode=require`
-- Parameters: `dbname`, `user` (<user>@<server>), `password`, `host`, `port` (5432), `sslmode` (require)
+- Parameters: `dbname`, `user` (`<user>@<server>`), `password`, `host`, `port` (5432), `sslmode` (require)
 
 **Variant A — URL / connection string:**
 ```python
 import psycopg
 
 conn = psycopg.connect(
-	"dbname=DB user=USER@SRV password=PWD host=SRV.postgres.database.azure.com port=5432 sslmode=require"
+    "dbname=DB user=USER@SRV password=PWD host=SRV.postgres.database.azure.com port=5432 sslmode=require"
 )
 ```
 
@@ -279,12 +279,12 @@ conn = psycopg.connect(
 import psycopg
 
 conn = psycopg.connect(
-	dbname="DB",
-	user="USER@SRV",
-	password="PWD",
-	host="SRV.postgres.database.azure.com",
-	port=5432,
-	sslmode="require"
+    dbname="DB",
+    user="USER@SRV",
+    password="PWD",
+    host="SRV.postgres.database.azure.com",
+    port=5432,
+    sslmode="require"
 )
 ```
 
@@ -298,12 +298,12 @@ credential = DefaultAzureCredential()
 token = credential.get_token("https://ossrdbms-aad.database.windows.net/.default")
 
 conn = psycopg.connect(
-	dbname="DB",
-	user="USER@SRV",  # Use Azure AD user/managed identity name
-	password=token.token,
-	host="SRV.postgres.database.azure.com",
-	port=5432,
-	sslmode="require"
+    dbname="DB",
+    user="USER@SRV",  # Use Azure AD user/managed identity name
+    password=token.token,
+    host="SRV.postgres.database.azure.com",
+    port=5432,
+    sslmode="require"
 )
 ```
 
@@ -315,13 +315,13 @@ conn = psycopg.connect(
 
 **Connection string / properties:**
 - Connection URL: `postgres://<user>@<server>:<pwd>@<server>.postgres.database.azure.com:5432/<db>?sslmode=require`
-- Config object: `Host`, `Port` (5432), `User` (<user>@<server>), `Password`, `Database`, `TLSConfig`
+- Config object: `Host`, `Port` (5432), `User` (`<user>@<server>`), `Password`, `Database`, `TLSConfig`
 
 **Variant A — URL / connection string:**
 ```go
 pool, _ := pgxpool.New(
-	ctx,
-	"postgres://USER@SRV:PWD@SRV.postgres.database.azure.com:5432/DB?sslmode=require",
+    ctx,
+    "postgres://USER@SRV:PWD@SRV.postgres.database.azure.com:5432/DB?sslmode=require",
 )
 ```
 
@@ -344,14 +344,14 @@ pool, _ := pgxpool.NewWithConfig(ctx, cfg)
 
 **Connection string / properties:**
 - JDBC URL: `jdbc:postgresql://<server>.postgres.database.azure.com:5432/<db>?sslmode=require`
-- Properties object: `user` (<user>@<server>), `password`, `sslmode` (require)
+- Properties object: `user` (`<user>@<server>`), `password`, `sslmode` (require)
 
 **Variant A — URL / connection string:**
 ```java
 Connection c = DriverManager.getConnection(
-	"jdbc:postgresql://SRV.postgres.database.azure.com:5432/DB?sslmode=require",
-	"USER@SRV",
-	"PWD"
+    "jdbc:postgresql://SRV.postgres.database.azure.com:5432/DB?sslmode=require",
+    "USER@SRV",
+    "PWD"
 );
 ```
 
@@ -363,8 +363,8 @@ p.put("password", "PWD");
 p.put("sslmode", "require");
 
 Connection c = DriverManager.getConnection(
-	"jdbc:postgresql://SRV.postgres.database.azure.com:5432/DB",
-	p
+    "jdbc:postgresql://SRV.postgres.database.azure.com:5432/DB",
+    p
 );
 ```
 
@@ -386,7 +386,7 @@ Connection c = DriverManager.getConnection(
 **Variant A — URL / connection string:**
 ```csharp
 var mux = await ConnectionMultiplexer.ConnectAsync(
-	"SRV.redis.cache.windows.net:6380,password=PWD,ssl=True"
+    "SRV.redis.cache.windows.net:6380,password=PWD,ssl=True"
 );
 ```
 
@@ -394,8 +394,8 @@ var mux = await ConnectionMultiplexer.ConnectAsync(
 ```csharp
 var opt = new ConfigurationOptions
 {
-	Ssl = true,
-	Password = "PWD"
+    Ssl = true,
+    Password = "PWD"
 };
 
 opt.EndPoints.Add("SRV.redis.cache.windows.net", 6380);
@@ -423,11 +423,11 @@ const r = new Redis("rediss://:PWD@SRV.redis.cache.windows.net:6380/0");
 import Redis from "ioredis";
 
 const r = new Redis({
-	host: "SRV.redis.cache.windows.net",
-	port: 6380,
-	password: "PWD",
-	tls: {},
-	db: 0
+    host: "SRV.redis.cache.windows.net",
+    port: 6380,
+    password: "PWD",
+    tls: {},
+    db: 0
 });
 ```
 
@@ -451,11 +451,11 @@ r = Redis.from_url("rediss://:PWD@SRV.redis.cache.windows.net:6380/0")
 from redis import Redis
 
 r = Redis(
-	host="SRV.redis.cache.windows.net",
-	port=6380,
-	password="PWD",
-	ssl=True,
-	db=0
+    host="SRV.redis.cache.windows.net",
+    port=6380,
+    password="PWD",
+    ssl=True,
+    db=0
 )
 ```
 
@@ -464,7 +464,7 @@ r = Redis(
 #### go-redis
 
 **Connection string / properties:**
-- Options: `Addr` (<name>.redis.cache.windows.net:6380), `Password`, `DB` (0), `TLSConfig`
+- Options: `Addr` (`<name>.redis.cache.windows.net:6380`), `Password`, `DB` (0), `TLSConfig`
 
 **Variant A — URL / connection string:**
 N/A
@@ -472,10 +472,10 @@ N/A
 **Variant B — property / options object:**
 ```go
 rdb := redis.NewClient(&redis.Options{
-	Addr:      "SRV.redis.cache.windows.net:6380",
-	Password:  "PWD",
-	DB:        0,
-	TLSConfig: &tls.Config{},
+    Addr:      "SRV.redis.cache.windows.net:6380",
+    Password:  "PWD",
+    DB:        0,
+    TLSConfig: &tls.Config{},
 })
 ```
 
@@ -496,10 +496,10 @@ var conn = client.connect();
 **Variant B — property / options object:**
 ```java
 RedisURI uri = RedisURI.Builder.redis("SRV.redis.cache.windows.net", 6380)
-	.withSsl(true)
-	.withPassword("PWD")
-	.withDatabase(0)
-	.build();
+    .withSsl(true)
+    .withPassword("PWD")
+    .withDatabase(0)
+    .build();
 
 var conn = RedisClient.create(uri).connect();
 ```
@@ -544,8 +544,8 @@ N/A
 import { CosmosClient } from "@azure/cosmos";
 
 const c = new CosmosClient({
-	endpoint: "https://ACCT.documents.azure.com:443/",
-	key: "KEY"
+    endpoint: "https://ACCT.documents.azure.com:443/",
+    key: "KEY"
 });
 ```
 
@@ -562,7 +562,7 @@ const c = new CosmosClient({
 from azure.cosmos import CosmosClient
 
 c = CosmosClient.from_connection_string(
-	"AccountEndpoint=https://ACCT.documents.azure.com:443/;AccountKey=KEY;"
+    "AccountEndpoint=https://ACCT.documents.azure.com:443/;AccountKey=KEY;"
 )
 ```
 
@@ -571,8 +571,8 @@ c = CosmosClient.from_connection_string(
 from azure.cosmos import CosmosClient
 
 c = CosmosClient(
-	url="https://ACCT.documents.azure.com:443/",
-	credential="KEY"
+    url="https://ACCT.documents.azure.com:443/",
+    credential="KEY"
 )
 ```
 
@@ -591,9 +591,9 @@ N/A
 cred, _ := azcosmos.NewKeyCredential("KEY")
 
 client, _ := azcosmos.NewClientWithKey(
-	"https://ACCT.documents.azure.com:443/",
-	cred,
-	nil,
+    "https://ACCT.documents.azure.com:443/",
+    cred,
+    nil,
 )
 ```
 
@@ -610,9 +610,9 @@ N/A
 **Variant B — property / options object:**
 ```java
 CosmosClient c = new CosmosClientBuilder()
-	.endpoint("https://ACCT.documents.azure.com:443/")
-	.key("KEY")
-	.buildClient();
+    .endpoint("https://ACCT.documents.azure.com:443/")
+    .key("KEY")
+    .buildClient();
 ```
 
 ## Azure SignalR Service
@@ -633,18 +633,18 @@ CosmosClient c = new CosmosClientBuilder()
 **Variant A — URL / connection string:**
 ```csharp
 services
-	.AddSignalR()
-	.AddAzureSignalR("Endpoint=https://NAME.service.signalr.net;AccessKey=KEY;Version=1.0;");
+    .AddSignalR()
+    .AddAzureSignalR("Endpoint=https://NAME.service.signalr.net;AccessKey=KEY;Version=1.0;");
 ```
 
 **Variant B — property / options object:**
 ```csharp
 var mgr = new ServiceManagerBuilder()
-	.WithOptions(o =>
-	{
-		o.ConnectionString = "Endpoint=https://NAME.service.signalr.net;AccessKey=KEY;Version=1.0;";
-	})
-	.BuildServiceManager();
+    .WithOptions(o =>
+    {
+        o.ConnectionString = "Endpoint=https://NAME.service.signalr.net;AccessKey=KEY;Version=1.0;";
+    })
+    .BuildServiceManager();
 ```
 
 ### Node
@@ -735,7 +735,7 @@ var client = new ServiceBusClient("NS.servicebus.windows.net", cred);
 import { ServiceBusClient } from "@azure/service-bus";
 
 const sb = new ServiceBusClient(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;"
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;"
 );
 ```
 
@@ -745,8 +745,8 @@ import { ServiceBusClient } from "@azure/service-bus";
 import { DefaultAzureCredential } from "@azure/identity";
 
 const sb = new ServiceBusClient(
-	"NS.servicebus.windows.net",
-	new DefaultAzureCredential()
+    "NS.servicebus.windows.net",
+    new DefaultAzureCredential()
 );
 ```
 
@@ -763,7 +763,7 @@ const sb = new ServiceBusClient(
 from azure.servicebus import ServiceBusClient
 
 sb = ServiceBusClient.from_connection_string(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;"
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;"
 )
 ```
 
@@ -773,8 +773,8 @@ from azure.identity import DefaultAzureCredential
 from azure.servicebus import ServiceBusClient
 
 sb = ServiceBusClient(
-	"NS.servicebus.windows.net",
-	credential=DefaultAzureCredential()
+    "NS.servicebus.windows.net",
+    credential=DefaultAzureCredential()
 )
 ```
 
@@ -789,8 +789,8 @@ sb = ServiceBusClient(
 **Variant A — URL / connection string:**
 ```go
 client, _ := azservicebus.NewClientFromConnectionString(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;",
-	nil,
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;",
+    nil,
 )
 ```
 
@@ -812,14 +812,14 @@ client, _ := azservicebus.NewClient("NS.servicebus.windows.net", cred, nil)
 **Variant A — URL / connection string:**
 ```java
 ServiceBusClientBuilder b = new ServiceBusClientBuilder()
-	.connectionString("Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;");
+    .connectionString("Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;");
 ```
 
 **Variant B — property / options object:**
 ```java
 ServiceBusClientBuilder b = new ServiceBusClientBuilder()
-	.fullyQualifiedNamespace("NS.servicebus.windows.net")
-	.credential(new DefaultAzureCredentialBuilder().build());
+    .fullyQualifiedNamespace("NS.servicebus.windows.net")
+    .credential(new DefaultAzureCredentialBuilder().build());
 ```
 
 ## Azure Storage (Blobs)
@@ -839,15 +839,15 @@ ServiceBusClientBuilder b = new ServiceBusClientBuilder()
 **Variant A — URL / connection string:**
 ```csharp
 var svc = new BlobServiceClient(
-	"DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
+    "DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
 );
 ```
 
 **Variant B — property / options object:**
 ```csharp
 var svc = new BlobServiceClient(
-	new Uri("https://acct.blob.core.windows.net"),
-	new StorageSharedKeyCredential("acct", "KEY")
+    new Uri("https://acct.blob.core.windows.net"),
+    new StorageSharedKeyCredential("acct", "KEY")
 );
 ```
 
@@ -864,7 +864,7 @@ var svc = new BlobServiceClient(
 import { BlobServiceClient } from "@azure/storage-blob";
 
 const svc = BlobServiceClient.fromConnectionString(
-	"DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
+    "DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
 );
 ```
 
@@ -889,7 +889,7 @@ const svc = new BlobServiceClient("https://acct.blob.core.windows.net", cred);
 from azure.storage.blob import BlobServiceClient
 
 svc = BlobServiceClient.from_connection_string(
-	"DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
+    "DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net"
 )
 ```
 
@@ -899,8 +899,8 @@ from azure.storage.blob import BlobServiceClient, StorageSharedKeyCredential
 
 cred = StorageSharedKeyCredential("acct", "KEY")
 svc = BlobServiceClient(
-	account_url="https://acct.blob.core.windows.net",
-	credential=cred
+    account_url="https://acct.blob.core.windows.net",
+    credential=cred
 )
 ```
 
@@ -915,8 +915,8 @@ svc = BlobServiceClient(
 **Variant A — URL / connection string:**
 ```go
 svc, _ := azblob.NewClientFromConnectionString(
-	"DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net",
-	nil,
+    "DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net",
+    nil,
 )
 ```
 
@@ -925,9 +925,9 @@ svc, _ := azblob.NewClientFromConnectionString(
 cred, _ := azblob.NewSharedKeyCredential("acct", "KEY")
 
 svc, _ := azblob.NewClientWithSharedKeyCredential(
-	"https://acct.blob.core.windows.net",
-	cred,
-	nil,
+    "https://acct.blob.core.windows.net",
+    cred,
+    nil,
 )
 ```
 
@@ -942,16 +942,16 @@ svc, _ := azblob.NewClientWithSharedKeyCredential(
 **Variant A — URL / connection string:**
 ```java
 BlobServiceClient svc = new BlobServiceClientBuilder()
-	.connectionString("DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net")
-	.buildClient();
+    .connectionString("DefaultEndpointsProtocol=https;AccountName=acct;AccountKey=KEY;EndpointSuffix=core.windows.net")
+    .buildClient();
 ```
 
 **Variant B — property / options object:**
 ```java
 BlobServiceClient svc = new BlobServiceClientBuilder()
-	.endpoint("https://acct.blob.core.windows.net")
-	.credential(new StorageSharedKeyCredential("acct", "KEY"))
-	.buildClient();
+    .endpoint("https://acct.blob.core.windows.net")
+    .credential(new StorageSharedKeyCredential("acct", "KEY"))
+    .buildClient();
 ```
 
 ## Azure Event Hubs
@@ -971,7 +971,7 @@ BlobServiceClient svc = new BlobServiceClientBuilder()
 **Variant A — URL / connection string:**
 ```csharp
 var prod = new EventHubProducerClient(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
 );
 ```
 
@@ -995,7 +995,7 @@ var prod = new EventHubProducerClient("NS.servicebus.windows.net", "HUB", cred);
 import { EventHubProducerClient } from "@azure/event-hubs";
 
 const p = new EventHubProducerClient(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
 );
 ```
 
@@ -1005,9 +1005,9 @@ import { EventHubProducerClient } from "@azure/event-hubs";
 import { DefaultAzureCredential } from "@azure/identity";
 
 const p = new EventHubProducerClient(
-	"NS.servicebus.windows.net",
-	"HUB",
-	new DefaultAzureCredential()
+    "NS.servicebus.windows.net",
+    "HUB",
+    new DefaultAzureCredential()
 );
 ```
 
@@ -1024,7 +1024,7 @@ const p = new EventHubProducerClient(
 from azure.eventhub import EventHubProducerClient
 
 p = EventHubProducerClient.from_connection_string(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB"
 )
 ```
 
@@ -1034,9 +1034,9 @@ from azure.identity import DefaultAzureCredential
 from azure.eventhub import EventHubProducerClient
 
 p = EventHubProducerClient(
-	fully_qualified_namespace="NS.servicebus.windows.net",
-	eventhub_name="HUB",
-	credential=DefaultAzureCredential()
+    fully_qualified_namespace="NS.servicebus.windows.net",
+    eventhub_name="HUB",
+    credential=DefaultAzureCredential()
 )
 ```
 
@@ -1051,8 +1051,8 @@ p = EventHubProducerClient(
 **Variant A — URL / connection string:**
 ```go
 prod, _ := azeventhubs.NewProducerClientFromConnectionString(
-	"Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB",
-	nil,
+    "Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB",
+    nil,
 )
 ```
 
@@ -1074,17 +1074,17 @@ prod, _ := azeventhubs.NewProducerClient("NS.servicebus.windows.net", "HUB", cre
 **Variant A — URL / connection string:**
 ```java
 EventHubProducerClient p = new EventHubClientBuilder()
-	.connectionString("Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB")
-	.buildProducerClient();
+    .connectionString("Endpoint=sb://NS.servicebus.windows.net/;SharedAccessKeyName=NAME;SharedAccessKey=KEY;EntityPath=HUB")
+    .buildProducerClient();
 ```
 
 **Variant B — property / options object:**
 ```java
 EventHubProducerClient p = new EventHubClientBuilder()
-	.fullyQualifiedNamespace("NS.servicebus.windows.net")
-	.eventHubName("HUB")
-	.credential(new DefaultAzureCredentialBuilder().build())
-	.buildProducerClient();
+    .fullyQualifiedNamespace("NS.servicebus.windows.net")
+    .eventHubName("HUB")
+    .credential(new DefaultAzureCredentialBuilder().build())
+    .buildProducerClient();
 ```
 
 ## Azure Web PubSub
@@ -1104,8 +1104,8 @@ EventHubProducerClient p = new EventHubClientBuilder()
 **Variant A — URL / connection string:**
 ```csharp
 var svc = new WebPubSubServiceClient(
-	"Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
-	"hub"
+    "Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
+    "hub"
 );
 ```
 
@@ -1114,9 +1114,9 @@ var svc = new WebPubSubServiceClient(
 var cred = new AzureKeyCredential("KEY");
 
 var svc = new WebPubSubServiceClient(
-	new Uri("https://NAME.webpubsub.azure.com"),
-	cred,
-	"hub"
+    new Uri("https://NAME.webpubsub.azure.com"),
+    cred,
+    "hub"
 );
 ```
 
@@ -1133,8 +1133,8 @@ var svc = new WebPubSubServiceClient(
 import { WebPubSubServiceClient } from "@azure/web-pubsub";
 
 const s = new WebPubSubServiceClient(
-	"Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
-	"hub"
+    "Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
+    "hub"
 );
 ```
 
@@ -1144,11 +1144,11 @@ import { WebPubSubServiceClient } from "@azure/web-pubsub";
 import { AzureKeyCredential } from "@azure/core-auth";
 
 const s = new WebPubSubServiceClient(
-	{
-		endpoint: "https://NAME.webpubsub.azure.com",
-		credential: new AzureKeyCredential("KEY")
-	},
-	"hub"
+    {
+        endpoint: "https://NAME.webpubsub.azure.com",
+        credential: new AzureKeyCredential("KEY")
+    },
+    "hub"
 );
 ```
 
@@ -1165,8 +1165,8 @@ const s = new WebPubSubServiceClient(
 from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
 s = WebPubSubServiceClient.from_connection_string(
-	"Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
-	hub="hub"
+    "Endpoint=https://NAME.webpubsub.azure.com;AccessKey=KEY;Version=1.0;",
+    hub="hub"
 )
 ```
 
@@ -1176,9 +1176,9 @@ from azure.core.credentials import AzureKeyCredential
 from azure.messaging.webpubsubservice import WebPubSubServiceClient
 
 s = WebPubSubServiceClient(
-	endpoint="https://NAME.webpubsub.azure.com",
-	credential=AzureKeyCredential("KEY"),
-	hub="hub"
+    endpoint="https://NAME.webpubsub.azure.com",
+    credential=AzureKeyCredential("KEY"),
+    hub="hub"
 )
 ```
 
@@ -1207,10 +1207,10 @@ N/A
 **Variant B — property / options object:**
 ```java
 WebPubSubServiceClient s = new WebPubSubServiceClientBuilder()
-	.endpoint("https://NAME.webpubsub.azure.com")
-	.credential(new AzureKeyCredential("KEY"))
-	.hub("hub")
-	.buildClient();
+    .endpoint("https://NAME.webpubsub.azure.com")
+    .credential(new AzureKeyCredential("KEY"))
+    .hub("hub")
+    .buildClient();
 ```
 
 ## Azure Cognitive Search (Azure AI Search)
@@ -1249,9 +1249,9 @@ N/A
 import { SearchClient, AzureKeyCredential } from "@azure/search-documents";
 
 const c = new SearchClient(
-	"https://SERVICE.search.windows.net",
-	"index",
-	new AzureKeyCredential("KEY")
+    "https://SERVICE.search.windows.net",
+    "index",
+    new AzureKeyCredential("KEY")
 );
 ```
 
@@ -1271,9 +1271,9 @@ from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 
 c = SearchClient(
-	endpoint="https://SERVICE.search.windows.net",
-	index_name="index",
-	credential=AzureKeyCredential("KEY")
+    endpoint="https://SERVICE.search.windows.net",
+    index_name="index",
+    credential=AzureKeyCredential("KEY")
 )
 ```
 
