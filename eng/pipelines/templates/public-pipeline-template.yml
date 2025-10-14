@@ -310,7 +310,6 @@ stages:
             continueOnError: true
 
           - pwsh: |
-              $filter = "Category!=quarantined&Category!=outerloop"
               # Handle both Aspire.*.Tests and *.Tests naming patterns
               $testShortName = "$(testShortName)"
               $testProject = if (Test-Path "tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj") {
@@ -321,7 +320,10 @@ stages:
                 throw "Could not find test project for: $testShortName"
               }
               Write-Host "Running test project: $testProject"
-              ./dotnet.sh test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory $(Build.Arcade.TestResultsPath) --filter $filter
+
+              # Use the downloaded .NET SDK directly
+              $filter = "Category!=quarantined&Category!=outerloop"
+              & "$(Build.SourcesDirectory)/.dotnet/dotnet" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
             displayName: 'Run tests'
             env:
               DOCKER_BUILDKIT: 1
@@ -330,7 +332,6 @@ stages:
               DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
               DCP_PRESERVE_EXECUTABLE_LOGS: 1
               DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
@@ -388,26 +389,9 @@ stages:
               }
               Write-Host "Running test project: $testProject"
 
-              # Use PowerShell's Start-Process to avoid cmd.exe interpretation of special characters
-              $args = @(
-                "test"
-                $testProject
-                "--configuration"
-                "$(_BuildConfig)"
-                "--logger"
-                "trx;LogFileName=$(testShortName)-$(platformName).trx"
-                "--logger"
-                "console;verbosity=normal"
-                "--results-directory"
-                "$(Build.Arcade.TestResultsPath)"
-                "--filter"
-                "Category!=quarantined&Category!=outerloop"
-              )
-
-              $process = Start-Process -FilePath "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" -ArgumentList $args -Wait -PassThru -NoNewWindow
-              if ($process.ExitCode -ne 0) {
-                throw "Tests failed with exit code $($process.ExitCode)"
-              }
+              # Use the downloaded .NET SDK directly, escape the filter properly for PowerShell
+              $filter = "Category!=quarantined`&Category!=outerloop"
+              & "$(Build.SourcesDirectory)/.dotnet/dotnet.exe" test $testProject --configuration $(_BuildConfig) --logger "trx;LogFileName=$(testShortName)-$(platformName).trx" --logger "console;verbosity=normal" --results-directory "$(Build.Arcade.TestResultsPath)" --filter $filter
             displayName: 'Run tests'
             env:
               DOCKER_BUILDKIT: 1
@@ -416,7 +400,6 @@ stages:
               DCP_DIAGNOSTICS_LOG_FOLDER: $(Build.ArtifactStagingDirectory)/artifacts/log/dcp
               DCP_PRESERVE_EXECUTABLE_LOGS: 1
               DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-              PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
             timeoutInMinutes: 15
 
           - task: PublishTestResults@2
