@@ -137,7 +137,6 @@ stages:
                         platformName = $platform.name
                         agentImage = $platform.image
                         scriptName = $platform.script
-                        jobDisplayName = "$testName-$($platform.name)"
                       }
                     }
                   }
@@ -151,7 +150,7 @@ stages:
                 name: 'GenerateMatrix'
 
           - job: RunIntegrationTests
-            displayName: '$(jobDisplayName)'
+            displayName: 'Test'
             dependsOn: EnumerateIntegrationTests
             condition: succeeded()
 
