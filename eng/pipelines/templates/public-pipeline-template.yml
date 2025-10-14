@@ -207,15 +207,11 @@ stages:
               Write-Host "Found $($testNames.Count) integration test projects:"
               $testNames | ForEach-Object { Write-Host "  - $_" }
 
-              # Create separate matrices for Linux and Windows
+              # Create Linux matrix only
               $linuxMatrix = @{}
-              $windowsMatrix = @{}
-
               $linuxPlatform = @{ name = 'Linux'; image = 'build.ubuntu.2204.amd64.open'; script = 'dotnet.sh' }
-              $windowsPlatform = @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
 
               foreach ($testName in $testNames) {
-                # Linux matrix
                 $linuxKey = "$testName`_Linux"
                 $linuxMatrix[$linuxKey] = @{
                   testShortName = $testName
@@ -223,26 +219,13 @@ stages:
                   agentImage = $linuxPlatform.image
                   scriptName = $linuxPlatform.script
                 }
-
-                # Windows matrix
-                $windowsKey = "$testName`_Windows"
-                $windowsMatrix[$windowsKey] = @{
-                  testShortName = $testName
-                  platformName = $windowsPlatform.name
-                  agentImage = $windowsPlatform.image
-                  scriptName = $windowsPlatform.script
-                }
               }
 
               $linuxMatrixJson = $linuxMatrix | ConvertTo-Json -Compress
-              $windowsMatrixJson = $windowsMatrix | ConvertTo-Json -Compress
-
               Write-Host "Generated Linux matrix: $linuxMatrixJson"
-              Write-Host "Generated Windows matrix: $windowsMatrixJson"
 
-              # Set separate pipeline variables for each matrix
+              # Set pipeline variable for Linux matrix
               Write-Host "##vso[task.setVariable variable=linuxTestsMatrix;isOutput=true]$linuxMatrixJson"
-              Write-Host "##vso[task.setVariable variable=windowsTestsMatrix;isOutput=true]$windowsMatrixJson"
             displayName: 'Generate test matrix'
             name: 'GenerateMatrix'
 
@@ -270,6 +253,61 @@ stages:
               targetPath: '$(Build.SourcesDirectory)/.dotnet'
               artifactName: 'dotnet-sdk-windows'
               publishLocation: 'pipeline'
+
+      - job: EnumerateIntegrationTestsWindows
+        displayName: 'Enumerate Integration Tests - Windows'
+        pool:
+          name: $(DncEngPublicBuildPool)
+          demands: ImageOverride -equals windows.vs2022preview.amd64.open
+
+        steps:
+          - checkout: self
+            fetchDepth: 1
+            clean: true
+
+          - pwsh: |
+              ./restore.cmd
+            displayName: 'Restore .NET SDK'
+
+          - pwsh: |
+              ./dotnet.cmd build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
+            displayName: 'Generate integration tests list'
+
+          - pwsh: |
+              $testsListFile = "$(Build.Arcade.ArtifactsPath)/IntegrationTests.list"
+              if (-not (Test-Path $testsListFile)) {
+                throw "Tests list file not found: $testsListFile"
+              }
+
+              $testNames = Get-Content $testsListFile | Where-Object { $_.Trim() -ne "" } | Sort-Object
+              if ($testNames.Count -eq 0) {
+                throw "No integration tests found"
+              }
+
+              Write-Host "Found $($testNames.Count) integration test projects:"
+              $testNames | ForEach-Object { Write-Host "  - $_" }
+
+              # Create Windows matrix only
+              $windowsMatrix = @{}
+              $windowsPlatform = @{ name = 'Windows'; image = 'windows.vs2022preview.amd64.open'; script = 'dotnet.cmd' }
+
+              foreach ($testName in $testNames) {
+                $windowsKey = "$testName`_Windows"
+                $windowsMatrix[$windowsKey] = @{
+                  testShortName = $testName
+                  platformName = $windowsPlatform.name
+                  agentImage = $windowsPlatform.image
+                  scriptName = $windowsPlatform.script
+                }
+              }
+
+              $windowsMatrixJson = $windowsMatrix | ConvertTo-Json -Compress
+              Write-Host "Generated Windows matrix: $windowsMatrixJson"
+
+              # Set pipeline variable for Windows matrix
+              Write-Host "##vso[task.setVariable variable=windowsTestsMatrix;isOutput=true]$windowsMatrixJson"
+            displayName: 'Generate Windows test matrix'
+            name: 'GenerateMatrix'
 
   # ----------------------------------------------------------------
   # Linux Tests Stage
@@ -353,14 +391,12 @@ stages:
   # ----------------------------------------------------------------
   - stage: WindowsTests
     displayName: 'Windows Integration Tests'
-    dependsOn:
-      - SetupLinux  # For test matrix generation
-      - SetupWindows  # For .NET SDK artifacts
+    dependsOn: SetupWindows
     jobs:
       - job: RunIntegrationTestsWindows
         displayName: 'Test'
         strategy:
-          matrix: $[ stageDependencies.SetupLinux.EnumerateIntegrationTests.outputs['GenerateMatrix.windowsTestsMatrix'] ]
+          matrix: $[ stageDependencies.SetupWindows.EnumerateIntegrationTestsWindows.outputs['GenerateMatrix.windowsTestsMatrix'] ]
 
         timeoutInMinutes: 20
 
