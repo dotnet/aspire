@@ -171,12 +171,22 @@ public static class PythonAppResourceBuilderExtensions
             }
 
             var entry = Path.GetFileName(scriptPath);
-            var dockerFile = c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _) ?
-                "uv" : "default";
 
             c.WithDockerfileFactory(appDirectory,
-                context => DockerFileCache.GetDockerFile(dockerFile))
+                context =>
+                {
+                    var dockerFile = c.Resource.TryGetLastAnnotation<PythonUvAnnotation>(out _) ?
+                        "uv" : "default";
+                    return DockerFileCache.GetDockerFile(dockerFile);
+                })
             .WithBuildArg("SCRIPT_NAME", entry);
+
+            // Auto-detect Python version from .python-version or pyproject.toml
+            var pythonVersion = PythonVersionDetector.DetectVersion(appDirectory);
+            if (pythonVersion is not null)
+            {
+                c.WithBuildArg("PYTHON_VERSION", pythonVersion);
+            }
         });
 
         return resourceBuilder;
