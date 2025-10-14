@@ -7,6 +7,7 @@ export const pythonDebuggerExtension: ResourceDebuggerExtension = {
     debugAdapter: 'debugpy',
     extensionId: 'ms-python.python',
     displayName: 'Python',
+    getSupportedFileTypes: () => ['.py'],
     getProjectFile: (launchConfig) => {
         if (isPythonLaunchConfiguration(launchConfig)) {
             const programPath = launchConfig.program_path || launchConfig.project_path;

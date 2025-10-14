@@ -46,6 +46,12 @@
     <trans-unit id="command.configureLaunchJson">
       <source xml:lang="en">Configure launch.json file</source>
     </trans-unit>
+    <trans-unit id="command.runAppHost">
+      <source xml:lang="en">Run Aspire apphost</source>
+    </trans-unit>
+    <trans-unit id="command.debugAppHost">
+      <source xml:lang="en">Debug Aspire apphost</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
       <source xml:lang="en">No apphost found in the current workspace.</source>
     </trans-unit>
@@ -105,6 +111,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.runProject">
+      <source xml:lang="en">Run {0}</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.debugProject">
       <source xml:lang="en">Debug {0}</source>
@@ -187,6 +196,9 @@
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
+      <source xml:lang="en">No apphost found in the Aspire settings file.</source>
+    </trans-unit>
   </body></file>
   <file original=".localization/loc/strings" source-language="en" datatype="plaintext"><body>
     <trans-unit id="aspire-vscode.strings.noCsprojFound">
@@ -248,6 +260,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.fieldRequired">
       <source xml:lang="en">This field is required.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.runProject">
+      <source xml:lang="en">Run {0}</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.debugProject">
       <source xml:lang="en">Debug {0}</source>
@@ -335,6 +350,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
       <source xml:lang="en">Invalid launch configuration for {0}.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noAppHostInWorkspace">
+      <source xml:lang="en">No apphost found in the Aspire settings file.</source>
     </trans-unit>
   </body></file>
 </xliff>

@@ -29,6 +29,7 @@ export const requiredCapability = (capability: string) => localize('aspire-vscod
 export const aspireTerminalName = localize('aspire-vscode.strings.aspireTerminalName', 'Aspire terminal');
 export const aspireOutputChannelName = localize('aspire-vscode.strings.aspireOutputChannelName', 'Aspire Extension');
 export const fieldRequired = localize('aspire-vscode.strings.fieldRequired', 'This field is required.');
+export const runProject = (projectName: string) => localize('aspire-vscode.strings.runProject', 'Run {0}', projectName);
 export const debugProject = (projectName: string) => localize('aspire-vscode.strings.debugProject', 'Debug {0}', projectName);
 export const watchProject = (projectName: string, projectType: string) => localize('aspire-vscode.strings.watchProject', 'Watch {0} ({1})', projectName, projectType);
 export const noCsharpBuildTask = localize('aspire-vscode.strings.noCsharpBuildTask', 'No C# Dev Kit build task found.');
@@ -58,3 +59,4 @@ export const debugSessionAlreadyExists = (id: string) => localize('aspire-vscode
 export const processExceptionOccurred = (error: string, command: string) => localize('aspire-vscode.strings.processExceptionOccurred', 'Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = localize('aspire-vscode.strings.failedToStartDebugSession', 'Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => localize('aspire-vscode.strings.invalidLaunchConfiguration', 'Invalid launch configuration for {0}.', projectPath);
+export const noAppHostInWorkspace = localize('aspire-vscode.strings.noAppHostInWorkspace', 'No apphost found in the Aspire settings file.');

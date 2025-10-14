@@ -14,6 +14,8 @@
 	"command.config": "Manage configuration settings",
 	"command.deploy": "Deploy app",
 	"command.configureLaunchJson": "Configure launch.json file",
+  "command.runAppHost": "Run Aspire apphost",
+	"command.debugAppHost": "Debug Aspire apphost",
 	"aspire-vscode.strings.noCsprojFound": "No apphost found in the current workspace.",
 	"aspire-vscode.strings.error": "Error: {0}",
 	"aspire-vscode.strings.yes": "Yes",
@@ -34,6 +36,7 @@
 	"aspire-vscode.strings.rpcServerError": "RPC server error: {0}.",
 	"aspire-vscode.strings.aspireOutputChannelName": "Aspire Extension",
 	"aspire-vscode.strings.fieldRequired": "This field is required.",
+  "aspire-vscode.strings.runProject": "Run {0}",
 	"aspire-vscode.strings.debugProject": "Debug {0}",
 	"aspire-vscode.strings.watchProject": "Watch {0} ({1})",
 	"aspire-vscode.strings.noCsharpBuildTask": "No C# Dev Kit build task found.",
@@ -60,5 +63,6 @@
   "aspire-vscode.strings.debugSessionAlreadyExists": "A debug session is already active for id {0}.",
   "aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}.",
   "aspire-vscode.strings.failedToStartDebugSession": "Failed to start debug session.",
-  "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}."
+  "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}.",
+  "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file."
 }
