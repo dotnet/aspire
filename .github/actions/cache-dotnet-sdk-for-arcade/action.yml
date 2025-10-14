@@ -41,8 +41,20 @@ runs:
         key: ${{ inputs.cache-key }}
         restore-keys: ${{ inputs.restore-keys }}
 
-    - name: Install Sdks
-      if: steps.cache-dotnet.outputs.cache-hit != 'true'
+    - name: Install Sdks (Windows)
+      if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os == 'Windows'
       shell: pwsh
       run: |
-        ./eng/common/build.ps1 -restore
+        New-Item -ItemType Directory -Path ./artifacts/tmp -Force | Out-Null
+        '<Project />' | Out-File -FilePath ./artifacts/tmp/install-sdks.proj -Encoding utf8
+        ./eng/build.ps1 -restore -projects ./artifacts/tmp/install-sdks.proj
+        Remove-Item -Path ./artifacts/tmp/install-sdks.proj -Force
+
+    - name: Install Sdks (Linux/macOS)
+      if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
+      run: |
+        mkdir -p ./artifacts/tmp
+        echo '<Project />' > ./artifacts/tmp/install-sdks.proj
+        ./eng/build.sh -restore -projects ./artifacts/tmp/install-sdks.proj
+        rm -f ./artifacts/tmp/install-sdks.proj
