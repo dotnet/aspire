@@ -469,7 +469,7 @@ public class DockerComposePublisherTests(ITestOutputHelper outputHelper)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for docker compose'";
         var container = builder.AddContainer("testcontainer", "testimage")
-                               .WithDockerfile(".", context => dockerfileContent);
+                               .WithDockerfileFactory(".", context => dockerfileContent);
 
         var app = builder.Build();
         app.Run();

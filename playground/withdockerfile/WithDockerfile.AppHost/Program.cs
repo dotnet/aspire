@@ -18,7 +18,7 @@ builder.AddDockerfile("mycontainer", "qots")
 
 // Example: Dynamic Dockerfile generation with sync factory
 builder.AddContainer("dynamic-sync", "dynamic-sync-image")
-    .WithDockerfile("qots", context =>
+    .WithDockerfileFactory("qots", context =>
     {
         var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
         return $"""
@@ -37,7 +37,7 @@ builder.AddContainer("dynamic-sync", "dynamic-sync-image")
 
 // Example: Dynamic Dockerfile generation with async factory
 builder.AddContainer("dynamic-async", "dynamic-async-image")
-    .WithDockerfile("qots", async context =>
+    .WithDockerfileFactory("qots", async context =>
     {
         // Simulate reading from a template or external source
         await Task.Delay(1, context.CancellationToken);
@@ -55,7 +55,7 @@ builder.AddContainer("dynamic-async", "dynamic-async-image")
     });
 
 builder.AddRedis("builder-sync")
-    .WithDockerfile(".", context =>
+    .WithDockerfileBuilder(".", context =>
     {
         if (!context.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName))
         {
@@ -66,7 +66,7 @@ builder.AddRedis("builder-sync")
     });
 
 builder.AddRedis("builder-async")
-    .WithDockerfile(".", async context =>
+    .WithDockerfileBuilder(".", async context =>
     {
         await Task.Delay(1, context.CancellationToken);
 

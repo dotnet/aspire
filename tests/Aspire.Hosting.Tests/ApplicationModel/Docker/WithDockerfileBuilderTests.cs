@@ -10,14 +10,14 @@ namespace Aspire.Hosting.Tests.ApplicationModel.Docker;
 public class WithDockerfileBuilderTests
 {
     [Fact]
-    public void WithDockerfile_WithCallback_CreatesCallbackAnnotation()
+    public void WithDockerfileBuilder_WithCallback_CreatesCallbackAnnotation()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
         // Act
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.From("alpine:latest");
         });
@@ -29,19 +29,19 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void WithDockerfile_MultipleCallbacks_AppendsToAnnotation()
+    public void WithDockerfileBuilder_MultipleCallbacks_AppendsToAnnotation()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
         // Act
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.From("alpine:latest");
         });
 
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.Stages[0].WorkDir("/app");
         });
@@ -53,14 +53,14 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void WithDockerfile_CreatesDockerfileBuildAnnotation()
+    public void WithDockerfileBuilder_CreatesDockerfileBuildAnnotation()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
         // Act
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.From("alpine:latest");
         });
@@ -72,13 +72,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task WithDockerfile_GeneratesDockerfileFromCallback()
+    public async Task WithDockerfileBuilder_GeneratesDockerfileFromCallback()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.From("alpine:latest")
                 .WorkDir("/app")
@@ -110,21 +110,21 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task WithDockerfile_MultipleCallbacks_BuildsComposedDockerfile()
+    public async Task WithDockerfileBuilder_MultipleCallbacks_BuildsComposedDockerfile()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
         // First callback - base setup
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.From("node:18")
                 .WorkDir("/app");
         });
 
         // Second callback - add dependencies
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.Stages[0]
                 .Copy("package*.json", "./")
@@ -132,7 +132,7 @@ public class WithDockerfileBuilderTests
         });
 
         // Third callback - add application
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             context.Builder.Stages[0]
                 .Copy(".", ".")
@@ -162,13 +162,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task WithDockerfile_AsyncCallback_Works()
+    public async Task WithDockerfileBuilder_AsyncCallback_Works()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
-        container.WithDockerfile("context", async context =>
+        container.WithDockerfileBuilder("context", async context =>
         {
             await Task.Delay(10); // Simulate async work
             context.Builder.From("alpine:latest")
@@ -194,7 +194,7 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task WithDockerfile_ContextProvidesServices()
+    public async Task WithDockerfileBuilder_ContextProvidesServices()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
@@ -202,7 +202,7 @@ public class WithDockerfileBuilderTests
         
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             var config = context.Services.GetService<string>();
             context.Builder.From("alpine:latest")
@@ -227,13 +227,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task WithDockerfile_MultiStageDockerfile()
+    public async Task WithDockerfileBuilder_MultiStageDockerfile()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
         var container = appBuilder.AddContainer("mycontainer", "myimage");
 
-        container.WithDockerfile("context", context =>
+        container.WithDockerfileBuilder("context", context =>
         {
             // Builder stage
             var builder = context.Builder.From("node:18", "builder");
@@ -270,13 +270,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void AddDockerfile_WithAsyncCallback_CreatesContainerResource()
+    public void AddDockerfileBuilder_WithAsyncCallback_CreatesContainerResource()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
         // Act
-        var container = appBuilder.AddDockerfile("mycontainer", "context", async context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", async context =>
         {
             await Task.Delay(10);
             context.Builder.From("alpine:latest")
@@ -292,13 +292,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void AddDockerfile_WithSyncCallback_CreatesContainerResource()
+    public void AddDockerfileBuilder_WithSyncCallback_CreatesContainerResource()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
         // Act
-        var container = appBuilder.AddDockerfile("mycontainer", "context", context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", context =>
         {
             context.Builder.From("alpine:latest")
                 .WorkDir("/app");
@@ -313,12 +313,12 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task AddDockerfile_WithAsyncCallback_GeneratesDockerfile()
+    public async Task AddDockerfileBuilder_WithAsyncCallback_GeneratesDockerfile()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var container = appBuilder.AddDockerfile("mycontainer", "context", async context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", async context =>
         {
             await Task.Delay(10);
             context.Builder.From("node:18")
@@ -353,12 +353,12 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task AddDockerfile_WithSyncCallback_GeneratesDockerfile()
+    public async Task AddDockerfileBuilder_WithSyncCallback_GeneratesDockerfile()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var container = appBuilder.AddDockerfile("mycontainer", "context", context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", context =>
         {
             context.Builder.From("alpine:latest")
                 .Run("apk add curl")
@@ -386,12 +386,12 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void AddDockerfile_WithCallback_CreatesDockerfileBuildAnnotation()
+    public void AddDockerfileBuilder_WithCallback_CreatesDockerfileBuildAnnotation()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var container = appBuilder.AddDockerfile("mycontainer", "context", context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", context =>
         {
             context.Builder.From("alpine:latest");
         });
@@ -407,12 +407,12 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public async Task AddDockerfile_WithMultiStage_GeneratesCorrectDockerfile()
+    public async Task AddDockerfileBuilder_WithMultiStage_GeneratesCorrectDockerfile()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
-        var container = appBuilder.AddDockerfile("mycontainer", "context", context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", context =>
         {
             // Build stage
             var buildStage = context.Builder.From("golang:1.20", "build");
@@ -452,13 +452,13 @@ public class WithDockerfileBuilderTests
     }
 
     [Fact]
-    public void AddDockerfile_WithCallback_CanChainWithOtherMethods()
+    public void AddDockerfileBuilder_WithCallback_CanChainWithOtherMethods()
     {
         // Arrange
         var appBuilder = DistributedApplication.CreateBuilder();
 
         // Act
-        var container = appBuilder.AddDockerfile("mycontainer", "context", context =>
+        var container = appBuilder.AddDockerfileBuilder("mycontainer", "context", context =>
         {
             context.Builder.From("alpine:latest");
         })
