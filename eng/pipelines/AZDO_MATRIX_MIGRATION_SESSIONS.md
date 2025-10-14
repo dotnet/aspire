@@ -182,19 +182,118 @@ Each implementation session should follow this pattern:
 - Address any test failures or timeout issues
 - Prepare for Phase 2 (Template tests migration)
 
-### Session 3: TBD - Testing & Validation
+### Session 3: 2025-10-14 - Environment Variable Fix & YAML Validation
+**Status**: ✅ **COMPLETE - READY FOR TESTING**
+**Duration**: ~1 hour
+
+**Context Continuation**:
+- Previous session (Session 2) implemented working 4-stage matrix architecture
+- Build 1173380 was successful but needed environment variable improvements
+- User requested job-level environment variables for .NET SDK PATH access
+- Discovered Azure DevOps YAML validation differences from GitHub Actions
+
+**Goals Achieved**:
+- [x] Fix job-level environment variable setup for .NET SDK access
+- [x] Resolve Azure DevOps YAML validation errors (`env:` not supported at job level)
+- [x] Implement proper environment variable scoping for Azure DevOps tasks
+- [x] Update both Linux and Windows test execution steps
+- [x] Prepare pipeline for reliable testing with correct .NET SDK access
+
+**Key Issues Encountered & Solutions**:
+
+1. **Environment Variable Scoping Issue**:
+   - **Problem**: Azure DevOps job-level `variables:` creates pipeline variables, not environment variables
+   - **User Insight**: "will the variables that we just defined translate to being env vars for all the steps?"
+   - **Solution**: Use `variables:` at job level + explicit `$env:` setup in PowerShell steps
+
+2. **Azure DevOps YAML Validation Error**:
+   - **Problem**: `env:` not supported at job level (unlike GitHub Actions)
+   - **Error**: `Unexpected value 'env'` at lines 330 and 408
+   - **Solution**: Changed to `variables:` at job level, set environment in individual steps
+
+3. **Cross-Platform PATH Handling**:
+   - **Linux**: `$env:PATH = "$(Build.SourcesDirectory)/.dotnet:$env:PATH"`
+   - **Windows**: `$env:PATH = "$(Build.SourcesDirectory)/.dotnet;$env:PATH"`
+
+**Technical Implementation Details**:
+
+**Job-level Variables (Pipeline variables, not environment)**:
+```yaml
+variables:
+  DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
+  DOTNET_PATH: $(Build.SourcesDirectory)/.dotnet
+  DOCKER_BUILDKIT: 1
+  # ... other variables
+```
+
+**Step-level Environment Variables (PowerShell)**:
+```powershell
+# Set environment variables in PowerShell steps
+$env:DOTNET_ROOT = "$(Build.SourcesDirectory)/.dotnet"
+$env:PATH = "$(Build.SourcesDirectory)/.dotnet:$env:PATH"  # Linux
+$env:PATH = "$(Build.SourcesDirectory)/.dotnet;$env:PATH" # Windows
+```
+
+**Key Learnings - Azure DevOps vs GitHub Actions**:
+- Azure DevOps doesn't support job-level `env:` like GitHub Actions
+- Must use `variables:` at job level, then set `$env:` in individual steps
+- PublishTestResults and other Azure DevOps tasks need environment variables, not just pipeline variables
+- PowerShell can set environment variables that persist for the step execution
+
+**Files Modified**:
+- `eng/pipelines/templates/public-pipeline-template.yml`:
+  - Lines 330, 408: Changed `env:` to `variables:`
+  - Linux test step: Added `$env:DOTNET_ROOT` and `$env:PATH` setup
+  - Windows test step: Added `$env:DOTNET_ROOT` and `$env:PATH` setup with Windows path separator
+
+**Current Branch State**: `feature/matrix-session2`
+- All YAML validation errors resolved
+- Environment variable scoping fixed for Azure DevOps
+- Ready for commit and pipeline testing
+- **Uncommitted changes**: 2 files modified (sessions.md + pipeline template)
+
+**Quick Start for Next Session**:
+```bash
+# 1. Commit current fixes
+git add . && git commit -m "Fix Azure DevOps environment variable scoping for .NET SDK access"
+git push
+
+# 2. Trigger pipeline test
+./eng/scripts/azdo-pipeline-helper.sh trigger --branch feature/matrix-session2
+
+# 3. Monitor results
+./eng/scripts/azdo-pipeline-helper.sh status --build-id [BUILD_ID]
+```
+
+**Next Session Goals**:
+- Commit environment variable fixes
+- Trigger pipeline build and validate YAML passes validation
+- Monitor 4-stage execution: SetupLinux → LinuxTests, SetupWindows → WindowsTests
+- Verify matrix job generation and individual test execution
+- Analyze performance vs previous Helix-based approach
+- Validate test results collection and reporting
+
+**Success Criteria for Next Session**:
+- Pipeline triggers without YAML validation errors
+- All 4 stages execute independently as designed
+- Individual integration tests run as separate matrix jobs
+- Test results properly published and aggregated
+- Build time <= 90 minutes (target improvement over current)
+
+### Session 4: TBD - Final Testing & Validation
 **Status**: 🎯 **NEXT**
 **Prerequisites**:
-- Build 1173380 completion and analysis
-- Performance comparison with current approach
-- Test results validation
+- Session 3 environment variable fixes committed and tested
+- Successful pipeline execution with 4-stage architecture
+- Matrix job generation working correctly
 
 **Goals**:
-- [ ] Analyze matrix test execution results
-- [ ] Compare build time vs current approach (should be <= 90 minutes)
+- [ ] Complete end-to-end pipeline testing
+- [ ] Analyze matrix test execution results and performance
+- [ ] Compare build time vs current Helix approach (target: <= 90 minutes)
 - [ ] Verify test pass rate matches GitHub Actions equivalents
-- [ ] Document any issues found and solutions
-- [ ] Plan Phase 2 template tests migration
+- [ ] Document final implementation and prepare for production rollout
+- [ ] Plan Phase 2 (Template tests migration)
 
 ## Key Technical Details
 

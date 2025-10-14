@@ -327,9 +327,9 @@ stages:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
 
-        env:
+        variables:
           DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-          PATH: $(Build.SourcesDirectory)/.dotnet:$(PATH)
+          DOTNET_PATH: $(Build.SourcesDirectory)/.dotnet
           DOCKER_BUILDKIT: 1
           DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
@@ -360,6 +360,10 @@ stages:
             continueOnError: true
 
           - pwsh: |
+              # Set environment variables
+              $env:DOTNET_ROOT = "$(Build.SourcesDirectory)/.dotnet"
+              $env:PATH = "$(Build.SourcesDirectory)/.dotnet:$env:PATH"
+
               # Handle both Aspire.*.Tests and *.Tests naming patterns
               $testShortName = "$(testShortName)"
               $testProject = if (Test-Path "tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj") {
@@ -405,9 +409,9 @@ stages:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals $(agentImage)
 
-        env:
+        variables:
           DOTNET_ROOT: $(Build.SourcesDirectory)/.dotnet
-          PATH: $(Build.SourcesDirectory)/.dotnet;$(PATH)
+          DOTNET_PATH: $(Build.SourcesDirectory)/.dotnet
           DOCKER_BUILDKIT: 1
           DOTNET_ASPIRE_DEPENDENCY_CHECK_TIMEOUT: 180
           DCP_DIAGNOSTICS_LOG_LEVEL: debug
@@ -430,6 +434,10 @@ stages:
             continueOnError: true
 
           - pwsh: |
+              # Set environment variables
+              $env:DOTNET_ROOT = "$(Build.SourcesDirectory)/.dotnet"
+              $env:PATH = "$(Build.SourcesDirectory)/.dotnet;$env:PATH"
+
               # Handle both Aspire.*.Tests and *.Tests naming patterns
               $testShortName = "$(testShortName)"
               $testProject = if (Test-Path "tests/Aspire.$testShortName.Tests/Aspire.$testShortName.Tests.csproj") {
