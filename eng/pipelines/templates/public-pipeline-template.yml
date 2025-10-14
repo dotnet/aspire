@@ -364,8 +364,6 @@ stages:
                 /p:ContinuousIntegrationBuild=true `
                 /p:TrxFileNamePrefix="$(testShortName)" `
                 --configuration $(_BuildConfig) `
-                --no-restore `
-                --no-build `
                 -- `
                 --ignore-exit-code 8 `
                 --report-trx `
@@ -483,8 +481,6 @@ stages:
                 /p:ContinuousIntegrationBuild=true `
                 /p:TrxFileNamePrefix="$(testShortName)" `
                 --configuration $(_BuildConfig) `
-                --no-restore `
-                --no-build `
                 -- `
                 --ignore-exit-code 8 `
                 --report-trx `
