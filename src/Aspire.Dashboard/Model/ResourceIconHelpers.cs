@@ -57,7 +57,8 @@ internal static class ResourceIconHelpers
                     _ => iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant)
                 };
             }
-            return null;
+
+            return iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant);
         }
     }
 
