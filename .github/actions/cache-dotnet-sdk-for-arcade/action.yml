@@ -1,16 +1,16 @@
 name: 'Cache .NET SDK for Arcade'
 description: |
   Aggressively cache the .NET SDK in the .dotnet directory using actions/cache@v4.
-  
+
   This action caches the .dotnet directory and only runs the restore script on cache misses.
-  
+
   Why we can't use actions/setup-dotnet:
   The Aspire repository has complex requirements in global.json that include:
   - Custom SDK paths pointing to local .dotnet directory
   - Multiple runtime versions with variable substitution (e.g., $(DotNetRuntimePreviousVersionForTesting))
   - Architecture-specific runtimes (x64, arm64) for different platforms
   - Custom error messages for missing SDK
-  
+
   The actions/setup-dotnet action doesn't support these advanced global.json features,
   particularly the "paths" array and variable substitution in the "runtimes" section.
   Instead, we use the repository's restore scripts which properly handle these requirements
@@ -41,17 +41,11 @@ runs:
         key: ${{ inputs.cache-key }}
         restore-keys: ${{ inputs.restore-keys }}
 
-    - name: Restore .NET SDK
+    - name: Install Sdks
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
-      shell: bash
+      shell: pwsh
       run: |
-        if [ -f "./restore.sh" ]; then
-          echo "Running restore.sh to install .NET SDK..."
-          ./restore.sh -p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false
-        elif [ -f "./restore.cmd" ]; then
-          echo "Running restore.cmd to install .NET SDK..."
-          ./restore.cmd -p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false
-        else
-          echo "Error: No restore script found (restore.sh or restore.cmd)"
-          exit 1
-        fi
+        New-Item -ItemType Directory -Path ./artifacts/tmp -Force | Out-Null
+        '<Project />' | Out-File -FilePath ./artifacts/tmp/install-sdks.proj -Encoding utf8
+        ./eng/build.ps1 -restore -projects ./artifacts/tmp/install-sdks.proj
+        Remove-Item -Path ./artifacts/tmp/install-sdks.proj -Force
