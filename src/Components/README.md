@@ -22,7 +22,7 @@ Each client integration is in its own NuGet package, and can version independent
 
 ### Target Framework(s)
 
-The Aspire client integration must support [all currently supported versions of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) when that version of Aspire is shipped. For example:
+The Aspire client integration must support [all supported versions of .NET](https://dotnet.microsoft.com/platform/support/policy/dotnet-core) at the time that specific version of Aspire is initially released. For example:
 
 | .NET Aspire Version | Targets                       |
 |---------------------|-------------------------------|
