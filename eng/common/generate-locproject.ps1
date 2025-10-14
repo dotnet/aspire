@@ -26,7 +26,6 @@ $jsonFiles = @()
 $jsonTemplateFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory" | Where-Object { $_.FullName -Match "\.template\.config\\localize\\.+\.en\.json" } # .NET templating pattern
 $jsonTemplateFiles | ForEach-Object {
     $null = $_.Name -Match "(.+)\.[\w-]+\.json" # matches '[filename].[langcode].json
-Write-Host "Processing $($_.FullName)..." -ForegroundColor Cyan
     $destinationFile = "$($_.Directory.FullName)\$($Matches.1).json"
     $jsonFiles += Copy-Item "$($_.FullName)" -Destination $destinationFile -PassThru
 }
