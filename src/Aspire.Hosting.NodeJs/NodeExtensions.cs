@@ -72,13 +72,6 @@ public static class NodeAppHostingExtension
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithExecutableCertificateTrustCallback((ctx) =>
             {
-                // We can only really enable append mode when running Node apps as executables.
-                ctx.CertificateBundleEnvironment.Add("NODE_EXTRA_CA_CERTS");
-
-                return Task.CompletedTask;
-            })
-            .WithContainerCertificateTrustCallback((ctx) =>
-            {
                 if (ctx.Scope == CustomCertificateAuthoritiesScope.Append)
                 {
                     ctx.CertificateBundleEnvironment.Add("NODE_EXTRA_CA_CERTS");

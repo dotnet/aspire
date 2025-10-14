@@ -30,7 +30,7 @@ public static class PythonAppResourceBuilderExtensions
     /// Use <c>WithArgs</c> to pass arguments to the script.
     /// </para>
     /// <para>
-    /// The virtual environment must be initialized before running the app. To setup a virtual environment use the 
+    /// The virtual environment must be initialized before running the app. To setup a virtual environment use the
     /// <c>python -m venv .venv</c> command in the app directory.
     /// </para>
     /// <para>
@@ -162,27 +162,13 @@ public static class PythonAppResourceBuilderExtensions
         {
             if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
             {
-                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
+                // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
                 ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
             }
 
+            // Override default opentelemetry-python certificate bundle path
+            // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
             ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
-
-            return Task.CompletedTask;
-        });
-
-        // Configure required environment variables for custom certificate trust when running as a container
-        resourceBuilder.WithContainerCertificateTrustCallback(ctx =>
-        {
-            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
-            {
-                ctx.CertificateBundleEnvironment.Add("GRPC_DEFAULT_SSL_ROOTS_FILE_PATH");
-                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
-                ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
-            }
-
-            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
-            ctx.CertificatesDirectoryEnvironment.Add("SSL_CERT_DIR");
 
             return Task.CompletedTask;
         });
@@ -269,7 +255,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </para>
     /// <para>
     /// UV (https://github.com/astral-sh/uv) is a modern Python package manager written in Rust that can manage virtual environments
-    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual 
+    /// and dependencies with significantly faster performance than traditional tools. The <c>uv sync</c> command ensures that the virtual
     /// environment exists and all dependencies specified in pyproject.toml are installed and synchronized.
     /// </para>
     /// <para>
@@ -281,11 +267,11 @@ public static class PythonAppResourceBuilderExtensions
     /// Add a Python app with automatic UV environment setup:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
-    /// 
+    ///
     /// var python = builder.AddPythonApp("api", "../python-api", "main.py")
     ///     .WithUvEnvironment()  // Automatically runs 'uv sync' before starting the app
     ///     .WithHttpEndpoint(port: 5000);
-    /// 
+    ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
@@ -299,13 +285,13 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         var uvEnvironmentName = $"{builder.Resource.Name}-uv-environment";
-        
+
         // Check if the UV environment resource already exists
         var existingResource = builder.ApplicationBuilder.Resources
             .FirstOrDefault(r => string.Equals(r.Name, uvEnvironmentName, StringComparison.OrdinalIgnoreCase));
-        
+
         IResourceBuilder<PythonUvEnvironmentResource> uvBuilder;
-        
+
         if (existingResource is not null)
         {
             // Resource already exists, return a builder for it
@@ -313,7 +299,7 @@ public static class PythonAppResourceBuilderExtensions
             {
                 throw new DistributedApplicationException($"Cannot add UV environment resource with name '{uvEnvironmentName}' because a resource of type '{existingResource.GetType()}' with that name already exists.");
             }
-            
+
             uvBuilder = builder.ApplicationBuilder.CreateResourceBuilder(uvEnvironmentResource);
         }
         else

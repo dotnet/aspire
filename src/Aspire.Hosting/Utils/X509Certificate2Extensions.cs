@@ -10,6 +10,8 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 internal static class X509Certificate2Extensions
 {
+    // OID and friendly name for the ASP.NET Core HTTPS development certificate
+    // See: https://github.com/dotnet/aspnetcore/blob/9f255d1ed217c0081e9b602fa86411b1821c2e0f/src/Shared/CertificateGeneration/CertificateManager.cs#L26-L27
     internal const string AspNetHttpsOid = "1.3.6.1.4.1.311.84.1.1";
     internal const string AspNetHttpsOidFriendlyName = "ASP.NET Core HTTPS development certificate";
 

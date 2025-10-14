@@ -20,26 +20,27 @@ public sealed class ContainerCertificateTrustCallbackAnnotation(Func<ContainerCe
 /// <summary>
 /// Context provided to a <see cref="ContainerCertificateTrustCallbackAnnotation"/> callback.
 /// </summary>
-/// <param name="resource">The resource for which the callback is being invoked.</param>
-/// <param name="scope">The <see cref="CustomCertificateAuthoritiesScope"/> setting for the resource.</param>
-/// <param name="certificates">The <see cref="X509Certificate2Collection"/> of certificates to modify.</param>
-/// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
-public sealed class ContainerCertificateTrustCallbackAnnotationContext(IResource resource, CustomCertificateAuthoritiesScope scope, X509Certificate2Collection certificates, CancellationToken cancellationToken = default)
+public sealed class ContainerCertificateTrustCallbackAnnotationContext
 {
     /// <summary>
     /// Gets the resource to which the annotation is applied.
     /// </summary>
-    public IResource Resource { get; } = resource ?? throw new ArgumentNullException(nameof(resource));
+    public required IResource Resource { get; init; }
 
     /// <summary>
     /// Gets the <see cref="CustomCertificateAuthoritiesScope"/> of trust for the resource.
     /// </summary>
-    public CustomCertificateAuthoritiesScope Scope { get; } = scope;
+    public required CustomCertificateAuthoritiesScope Scope { get; init; }
 
     /// <summary>
     /// Gets the <see cref="X509Certificate2Collection"/> of certificates for this resource.
     /// </summary>
-    public X509Certificate2Collection Certificates { get; } = certificates ?? throw new ArgumentNullException(nameof(certificates));
+    public required X509Certificate2Collection Certificates { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="CancellationToken"/> that can be used to cancel the operation.
+    /// </summary>
+    public required CancellationToken CancellationToken { get; init; }
 
     /// <summary>
     /// Command line arguments required to enable certificate trust for the resource.
@@ -58,6 +59,8 @@ public sealed class ContainerCertificateTrustCallbackAnnotationContext(IResource
 
     /// <summary>
     /// List of environment variable names that will be set with paths to directories containing CA certificates to trust.
+    /// By default, SSL_CERT_DIR is specified, which overrides the default OpenSSL individual certificates directory paths.
+    /// See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
     /// </summary>
     public List<string> CertificatesDirectoryEnvironment { get; } = new() { "SSL_CERT_DIR" };
 
@@ -71,25 +74,33 @@ public sealed class ContainerCertificateTrustCallbackAnnotationContext(IResource
     /// List of default certificate bundle files in the container that will be replaced if the resource scope of trust is
     /// set to <see cref="CustomCertificateAuthoritiesScope.Override"/>. Defaults to common Linux paths for CA certificates
     /// to maximize compatibility, but can be overriden with specific paths for a given resource if needed.
+    /// See: https://go.dev/src/crypto/x509/root_linux.go
     /// </summary>
     public List<string> DefaultContainerCertificateAuthorityBundlePaths { get; } = new()
     {
-        "/etc/ssl/certs/ca-certificates.crt",       // Debian/Ubuntu/Gentoo etc.
-        "/etc/pki/tls/certs/ca-bundle.crt",         // Fedora/RHEL 6
-        "/etc/ssl/ca-bundle.pem",                   // OpenSUSE
-        "/etc/pki/tls/cacert.pem",                  // OpenELEC
-        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", // CentOS/RHEL 7
-        "/etc/ssl/cert.pem",                        // Alpine Linux
+        // Debian/Ubuntu/Gentoo etc.
+        "/etc/ssl/certs/ca-certificates.crt",
+        // Fedora/RHEL 6
+        "/etc/pki/tls/certs/ca-bundle.crt",
+        // OpenSUSE
+        "/etc/ssl/ca-bundle.pem",
+        // OpenELEC
+        "/etc/pki/tls/cacert.pem",
+        // CentOS/RHEL 7
+        "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+        // Alpine Linux
+        "/etc/ssl/cert.pem",
     };
 
     /// <summary>
     /// List of default certificate directories in a container that should be appended to the custom certificate directories in
     /// <see cref="CustomCertificateAuthoritiesScope.Append"/> mode. Defaults to common Linux paths for CA certificates.
+    /// See: https://go.dev/src/crypto/x509/root_linux.go
     /// </summary>
-    public List<string> DefaultContainerCertificatesDirectoryPaths { get; } = new() { "/etc/ssl/certs", "/usr/local/share/ca-certificates", "/etc/pki/tls/certs" };
-
-    /// <summary>
-    /// Gets the <see cref="CancellationToken"/> that can be used to cancel the operation.
-    /// </summary>
-    public CancellationToken CancellationToken { get; } = cancellationToken;
+    public List<string> DefaultContainerCertificatesDirectoryPaths { get; } = new()
+    {
+        "/etc/ssl/certs",
+        "/usr/local/share/ca-certificates",
+        "/etc/pki/tls/certs"
+    };
 }

@@ -24,11 +24,14 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                 using var store = new X509Store(StoreName.My, StoreLocation.CurrentUser);
                 store.Open(OpenFlags.ReadOnly);
                 devCerts.AddRange(
+                    // Order by version and expiration date descending to get the most recent, highest version first.
+                    // OpenSSL will only check the first self-signed certificate in the bundle that matches a given domain,
+                    // so we want to ensure the certificate that will be used by ASP.NET Core is the first one in the bundle.
                     store.Certificates
-                    .Where(c => c.IsAspNetCoreDevelopmentCertificate())
-                    .Where(c => c.NotAfter > DateTime.UtcNow)
-                    .OrderByDescending(c => c.GetCertificateVersion())
-                    .ThenByDescending(c => c.NotAfter));
+                        .Where(c => c.IsAspNetCoreDevelopmentCertificate())
+                        .Where(c => c.NotAfter > DateTime.UtcNow)
+                        .OrderByDescending(c => c.GetCertificateVersion())
+                        .ThenByDescending(c => c.NotAfter));
 
                 if (devCerts.Count == 0)
                 {

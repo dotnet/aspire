@@ -2075,7 +2075,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        var context = new ExecutableCertificateTrustCallbackAnnotationContext(modelResource, scope, certificates, cancellationToken);
+        var context = new ExecutableCertificateTrustCallbackAnnotationContext
+        {
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
         if (modelResource.TryGetLastAnnotation<ExecutableCertificateTrustCallbackAnnotation>(out var callbackAnnotation))
         {
             await callbackAnnotation.Callback(context).ConfigureAwait(false);
@@ -2178,10 +2184,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
         }
 
-        var context = new ContainerCertificateTrustCallbackAnnotationContext(modelResource, scope, certificates, cancellationToken);
+        var context = new ContainerCertificateTrustCallbackAnnotationContext
+        {
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
         if (scope == CustomCertificateAuthoritiesScope.Override)
         {
+            // Override default OpenSSL certificate bundle path resolution
             // SSL_CERT_FILE is always added to the defaults when the scope is Override
+            // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
             context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
         }
 

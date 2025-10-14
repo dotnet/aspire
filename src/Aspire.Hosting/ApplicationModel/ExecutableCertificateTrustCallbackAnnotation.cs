@@ -20,26 +20,27 @@ public sealed class ExecutableCertificateTrustCallbackAnnotation(Func<Executable
 /// <summary>
 /// Context provided to a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> callback.
 /// </summary>
-/// <param name="resource">The resource for which the callback is being invoked.</param>
-/// <param name="scope">The <see cref="CustomCertificateAuthoritiesScope"/> setting for the resource.</param>
-/// <param name="certificates">The <see cref="X509Certificate2Collection"/> of certificates to modify.</param>
-/// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
-public sealed class ExecutableCertificateTrustCallbackAnnotationContext(IResource resource, CustomCertificateAuthoritiesScope scope, X509Certificate2Collection certificates, CancellationToken cancellationToken = default)
+public sealed class ExecutableCertificateTrustCallbackAnnotationContext
 {
     /// <summary>
     /// Gets the resource to which the annotation is applied.
     /// </summary>
-    public IResource Resource { get; } = resource ?? throw new ArgumentNullException(nameof(resource));
+    public required IResource Resource { get; init; }
 
     /// <summary>
     /// Gets the <see cref="CustomCertificateAuthoritiesScope"/> of trust for the resource.
     /// </summary>
-    public CustomCertificateAuthoritiesScope Scope { get; } = scope;
+    public required CustomCertificateAuthoritiesScope Scope { get; init; }
 
     /// <summary>
     /// Gets the <see cref="X509Certificate2Collection"/> of certificates for this resource.
     /// </summary>
-    public X509Certificate2Collection Certificates { get; } = certificates ?? throw new ArgumentNullException(nameof(certificates));
+    public required X509Certificate2Collection Certificates { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="CancellationToken"/> that can be used to cancel the operation.
+    /// </summary>
+    public required CancellationToken CancellationToken { get; init; }
 
     /// <summary>
     /// Command line arguments required to enable certificate trust for the resource.
@@ -60,9 +61,4 @@ public sealed class ExecutableCertificateTrustCallbackAnnotationContext(IResourc
     /// List of environment variable names that will be set with paths to directories containing CA certificates to trust.
     /// </summary>
     public List<string> CertificatesDirectoryEnvironment { get; } = new();
-
-    /// <summary>
-    /// Gets the <see cref="CancellationToken"/> that can be used to cancel the operation.
-    /// </summary>
-    public CancellationToken CancellationToken { get; } = cancellationToken;
 }

@@ -2019,7 +2019,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// </remarks>
     public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
-        where TResource : IResource
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(certificateAuthorityCollection);
@@ -2068,7 +2068,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// </remarks>
     public static IResourceBuilder<TResource> WithDeveloperCertificateTrust<TResource>(this IResourceBuilder<TResource> builder, bool trust)
-        where TResource : IResource
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -2114,7 +2114,7 @@ public static class ResourceBuilderExtensions
     /// </example>
     /// </remarks>
     public static IResourceBuilder<TResource> WithCustomCertificateAuthoritiesScope<TResource>(this IResourceBuilder<TResource> builder, CustomCertificateAuthoritiesScope scope)
-        where TResource : IResource
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
 
@@ -2130,40 +2130,6 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
-    /// configure itself for custom certificate trust.
-    /// </summary>
-    /// <typeparam name="TResource">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
-    /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithExecutableCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ExecutableCertificateTrustCallbackAnnotationContext, Task> callback)
-        where TResource : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ExecutableCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
-    /// <summary>
-    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
-    /// configure itself for custom certificate trust.
-    /// </summary>
-    /// <typeparam name="TResource">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
-    /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
-        where TResource : IResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
