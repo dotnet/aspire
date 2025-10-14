@@ -336,7 +336,7 @@ class ResourceGraph {
             .append("title")
             .text(n => n.resourceIcon.tooltip);
 
-        // Icon paths could be mixed size. We need to transform icons to always be displayed at a consistant size.
+        // Icon paths could be mixed size. We need to transform icons to always be displayed at a consistent size.
         iconPath.each(function (d) {
             const iconSize = 48;
 
