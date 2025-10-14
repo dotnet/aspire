@@ -45,7 +45,4 @@ runs:
       if: steps.cache-dotnet.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Path ./artifacts/tmp -Force | Out-Null
-        '<Project />' | Out-File -FilePath ./artifacts/tmp/install-sdks.proj -Encoding utf8
-        ./eng/build.ps1 -restore -projects ./artifacts/tmp/install-sdks.proj
-        Remove-Item -Path ./artifacts/tmp/install-sdks.proj -Force
+        ./eng/common/build.ps1 -restore
