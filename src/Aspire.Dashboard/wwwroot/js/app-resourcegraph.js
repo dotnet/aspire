@@ -325,14 +325,35 @@ class ResourceGraph {
             .append("circle")
             .attr("r", 53)
             .attr("class", "resource-node-border");
-        newNodesContainer
+        var iconTransform = newNodesContainer
             .append("g")
-            .attr("transform", "scale(2.1) translate(-12,-17)")
-            .append("path")
+            .attr("transform", "translate(-24,-37)")
+        var iconPath = iconTransform
+            .append("path");
+        iconPath
             .attr("fill", n => n.resourceIcon.color)
             .attr("d", n => n.resourceIcon.path)
             .append("title")
             .text(n => n.resourceIcon.tooltip);
+
+        // Icon paths could be mixed size. We need to transform icons to always be displayed at a consistent size.
+        iconPath.each(function (d) {
+            const iconSize = 48;
+
+            const path = d3.select(this);
+            const node = path.node();
+            const bbox = node.getBBox();
+
+            const available = Math.max(1, iconSize - 2);
+            const scale = available / Math.max(bbox.width, bbox.height);
+
+            const cx = bbox.x + bbox.width / 2;
+            const cy = bbox.y + bbox.height / 2;
+
+            // apply scaling & centering inside this group
+            path.attr("transform",
+                `translate(${iconSize / 2},${iconSize / 2}) scale(${scale}) translate(${-cx},${-cy})`);
+        });
 
         var endpointGroup = newNodesContainer
             .append("g")

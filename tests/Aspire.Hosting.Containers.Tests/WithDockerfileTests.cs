@@ -758,7 +758,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     private const string DefaultMessage = "aspire!";
 
     [Fact]
-    public async Task WithDockerfileSyncFactoryCreatesAnnotationWithFactory()
+    public async Task WithDockerfileFactorySyncFactoryCreatesAnnotationWithFactory()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
@@ -767,7 +767,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from factory'";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, context => dockerfileContent);
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent);
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.Equal(tempContextPath, annotation.ContextPath);
@@ -786,7 +786,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public async Task WithDockerfileAsyncFactoryCreatesAnnotationWithFactory()
+    public async Task WithDockerfileFactoryAsyncFactoryCreatesAnnotationWithFactory()
     {
         using var builder = TestDistributedApplicationBuilder.Create();
         builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
@@ -795,7 +795,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from async factory'";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, async context =>
+                               .WithDockerfileFactory(tempContextPath, async context =>
                                {
                                    await Task.Delay(1, context.CancellationToken);
                                    return dockerfileContent;
@@ -831,7 +831,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated at build time'";
         var container = builder.AddContainer("testcontainer", "testimage")
                                .WithHttpEndpoint(targetPort: 80)
-                               .WithDockerfile(tempContextPath, context => dockerfileContent);
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent);
 
         var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
 
@@ -848,7 +848,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerfileContent = "FROM alpine:latest AS builder\nFROM alpine:latest AS runner";
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithDockerfile(tempContextPath, context => dockerfileContent, "runner")
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent, "runner")
                                .WithBuildArg("VERSION", "1.0");
 
         var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
@@ -874,7 +874,7 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
             var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for manifest'";
             var container = builder.AddContainer("testcontainer", "testimage")
-                                   .WithDockerfile(tempDir.FullName, context => dockerfileContent);
+                                   .WithDockerfileFactory(tempDir.FullName, context => dockerfileContent);
 
             var app = builder.Build();
             await app.RunAsync();

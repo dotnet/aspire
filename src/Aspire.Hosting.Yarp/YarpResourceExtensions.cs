@@ -117,7 +117,7 @@ public static class YarpResourceExtensions
 
         if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
-            builder.WithDockerfile(sourcePath, ctx =>
+            builder.WithDockerfileFactory(sourcePath, ctx =>
             {
                 if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
                 {
