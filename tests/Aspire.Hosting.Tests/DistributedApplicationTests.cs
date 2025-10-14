@@ -562,7 +562,7 @@ public class DistributedApplicationTests
     [RequiresDocker]
     public async Task VerifyContainerCreateFile()
     {
-        using var testProgram = CreateTestProgram("verify-container-create-file");
+        using var testProgram = CreateTestProgram("verify-container-create-file", trustDeveloperCertificate: false);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
