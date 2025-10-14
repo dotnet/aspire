@@ -24,6 +24,11 @@ on:
         required: false
         type: boolean
         default: false
+      # Controls whether to build RID-specific NuGet packages
+      buildRidSpecificNugets:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
 
@@ -79,6 +84,8 @@ jobs:
     name: Build packages
     if: ${{ github.repository_owner == 'dotnet' }}
     uses: ./.github/workflows/build-packages.yml
+    with:
+      buildRidSpecificNugets: ${{ inputs.buildRidSpecificNugets }}
 
   run_tests:
     name: Test

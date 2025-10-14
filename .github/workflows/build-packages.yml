@@ -6,6 +6,11 @@ on:
       versionOverrideArg:
         required: false
         type: string
+      buildRidSpecificNugets:
+        required: false
+        type: boolean
+        default: true
+        description: 'Whether to build and upload RID-specific NuGet packages'
     outputs:
       arch_rids:
         description: JSON array of architecture-specific RIDs discovered during packaging
@@ -31,6 +36,7 @@ jobs:
         run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true ${{ inputs.versionOverrideArg }}
 
       - name: Stage RID-specific NuGets and remaining packages
+        if: ${{ inputs.buildRidSpecificNugets }}
         id: stage_rid_specific
         shell: bash
         run: |
@@ -84,7 +90,7 @@ jobs:
           retention-days: 15
 
       - name: Upload consolidated RID-specific NuGets
-        if: ${{ steps.stage_rid_specific.outputs.rids != '[]' }}
+        if: ${{ inputs.buildRidSpecificNugets && steps.stage_rid_specific.outputs.rids != '[]' }}
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: built-nugets-for-rid-all
@@ -104,7 +110,7 @@ jobs:
   upload_arch_specific_nugets:
     name: Upload arch-specific NuGets
     needs: build_packages
-    if: ${{ needs.build_packages.outputs.arch_rids != '[]' }}
+    if: ${{ inputs.buildRidSpecificNugets && needs.build_packages.outputs.arch_rids != '[]' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
