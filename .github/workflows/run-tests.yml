@@ -101,6 +101,22 @@ jobs:
           restore-keys: |
             dotnet-sdk-${{ runner.os }}-
 
+      - name: Cache Test SDKs
+        id: cache-test-sdks
+        if: ${{ inputs.requiresTestSdk }}
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          # NOTE: These paths must be kept in sync with the SDK directories defined in
+          # tests/Shared/Aspire.Templates.Testing.targets (SdkDirForPreviousTFM, SdkDirForCurrentTFM, etc.)
+          path: |
+            artifacts/bin/dotnet-8
+            artifacts/bin/dotnet-9
+            artifacts/bin/dotnet-10
+            artifacts/bin/dotnet-tests
+          key: test-sdks-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/SdksForTesting.Versions.props') }}
+          restore-keys: |
+            test-sdks-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         # Used for running tests outside the repo
@@ -178,7 +194,7 @@ jobs:
           }
 
       - name: Install sdk for nuget based testing
-        if: ${{ inputs.requiresTestSdk }}
+        if: ${{ inputs.requiresTestSdk && steps.cache-test-sdks.outputs.cache-hit != 'true' }}
         run: >
           ${{ env.DOTNET_SCRIPT }} build ${{ github.workspace }}/tests/workloads.proj
           /p:SkipPackageCheckForTemplatesTesting=true
@@ -333,26 +349,26 @@ jobs:
         shell: pwsh
         run: |
           $trxFiles = Get-ChildItem -Path "${{ github.workspace }}/testresults" -Filter *.trx -Recurse -ErrorAction SilentlyContinue
-          
+
           if ($trxFiles.Count -eq 0) {
             Write-Error "No .trx files found. Tests may not have run due to infrastructure issues."
             exit 1
           }
-          
+
           Write-Host "Found $($trxFiles.Count) .trx file(s)"
-          
+
           $validFileCount = 0
           foreach ($trxFile in $trxFiles) {
             Write-Host "Checking $($trxFile.Name)..."
-            
+
             try {
               [xml]$trxContent = Get-Content -Path $trxFile.FullName
-              
+
               # Check if the XML is valid and non-empty
               if ($trxContent -and $trxContent.TestRun) {
                 $validFileCount++
                 $countersNode = $trxContent.TestRun.ResultSummary.Counters
-                
+
                 if ($countersNode -and $countersNode.total) {
                   $testCount = [int]$countersNode.total
                   Write-Host "  Total tests in file: $testCount"
@@ -367,12 +383,12 @@ jobs:
               Write-Warning "Failed to parse $($trxFile.Name): $_"
             }
           }
-          
+
           if ($validFileCount -eq 0) {
             Write-Error "No valid .trx files found. All .trx files are empty or invalid XML."
             exit 1
           }
-          
+
           Write-Host "✓ Test execution completed successfully (found $validFileCount valid .trx file(s))"
 
       - name: Dump docker info
