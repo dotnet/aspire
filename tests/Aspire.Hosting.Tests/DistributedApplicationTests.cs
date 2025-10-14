@@ -26,7 +26,6 @@ using Microsoft.Extensions.Options;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 
 namespace Aspire.Hosting.Tests;
 
@@ -564,7 +563,6 @@ public class DistributedApplicationTests
     public async Task VerifyContainerCreateFile()
     {
         using var testProgram = CreateTestProgram("verify-container-create-file");
-        testProgram.AppBuilder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = "false";
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
@@ -640,11 +638,7 @@ public class DistributedApplicationTests
     [InlineData(true, true, true)]
     public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
     {
-        using var testProgram = CreateTestProgram("verify-container-dev-cert");
-        if (implicitTrust.HasValue)
-        {
-            testProgram.AppBuilder.Configuration["DcpPublisher:TrustDeveloperCertificate"] = implicitTrust.Value ? "true" : "false";
-        }
+        using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
@@ -658,6 +652,7 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
+        var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         Assert.Collection(list,
@@ -687,23 +682,22 @@ public class DistributedApplicationTests
                                     Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
                                     var certs = new X509Certificate2Collection();
                                     certs.ImportFromPem(bundle.Contents);
-                                    var devCert = Assert.Single(certs);
-                                    Assert.True(devCert.IsAspNetCoreDevelopmentCertificate());
+                                    Assert.Equal(dc.Certificates.Count, certs.Count);
+                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
                                 },
                                 dir =>
                                 {
                                     Assert.Equal("certs", dir.Name);
                                     Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
                                     Assert.NotNull(dir.Entries);
-                                    Assert.Collection(dir.Entries,
-                                        cert =>
+                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
+                                    foreach (var devCert in dc.Certificates)
+                                    {
+                                        Assert.Contains(dir.Entries, (cert) =>
                                         {
-                                            Assert.Equal(ContainerFileSystemEntryType.OpenSSL, cert.Type);
-                                            Assert.NotNull(cert.Contents);
-                                            var parsedCert = new X509Certificate2(Encoding.UTF8.GetBytes(cert.Contents));
-                                            Assert.True(parsedCert.IsAspNetCoreDevelopmentCertificate());
-                                            Assert.Equal($"{parsedCert.Thumbprint}.pem", cert.Name);
+                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
                                         });
+                                    }
                                 });
                         });
                 }
@@ -1521,11 +1515,13 @@ public class DistributedApplicationTests
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
-        bool randomizePorts = true) =>
+        bool randomizePorts = true,
+        bool? trustDeveloperCertificate = null) =>
         TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,
-            randomizePorts: randomizePorts);
+            randomizePorts: randomizePorts,
+            trustDeveloperCertificate: trustDeveloperCertificate);
 }
