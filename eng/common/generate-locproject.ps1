@@ -26,7 +26,7 @@ $jsonFiles = @()
 $jsonTemplateFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory" | Where-Object { $_.FullName -Match "\.template\.config\\localize\\.+\.en\.json" } # .NET templating pattern
 $jsonTemplateFiles | ForEach-Object {
     $null = $_.Name -Match "(.+)\.[\w-]+\.json" # matches '[filename].[langcode].json
-
+Write-Host "Processing $($_.FullName)..." -ForegroundColor Cyan
     $destinationFile = "$($_.Directory.FullName)\$($Matches.1).json"
     $jsonFiles += Copy-Item "$($_.FullName)" -Destination $destinationFile -PassThru
 }
@@ -71,7 +71,7 @@ $xlfFiles = @()
 $allXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.xlf"
 $langXlfFiles = @()
 if ($allXlfFiles) {
-    $null = $allXlfFiles[0].FullName -Match "\.([\w-]+)\.xlf" # matches '[langcode].xlf'
+    $null = $allXlfFiles[3].FullName -Match "\.([\w-]+)\.xlf" # matches '[langcode].xlf'
     $firstLangCode = $Matches.1
     $langXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.$firstLangCode.xlf"
 }

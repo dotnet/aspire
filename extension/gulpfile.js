@@ -33,20 +33,17 @@ const languages = [
 
 const extensionName = 'aspire-vscode'
 const rootDir = __dirname
-const xliffDir = path.join(rootDir, '/loc/xliff')
-const enuDir = path.join(xliffDir, '/enu')
+const xliffDir = path.join(rootDir, '/loc/xliff');
 const encoding = 'utf8'
 const locIntermediates = path.join(rootDir, '/.localization')
 const bundleDefaultFile = path.join(locIntermediates, 'out', 'nls.bundle.json')
 // Creates *.i18n.json files in out/loc/LANG directory with translated strings from loc/xliff/**/*.xlf files
 const xlifftoi18n = () => {
-	const xlfFiles = `${xliffDir}/**/${extensionName}.xlf`
-	const notEnglishXlfFiles = `!${enuDir}/**/*.xlf`
+	// Match all language-prefixed xlf files (e.g., aspire-vscode.cs.xlf) but not the base English file (aspire-vscode.xlf)
+	const xlfFiles = `${xliffDir}/${extensionName}.*.xlf`;
 	return (
 		gulp
-			.src([xlfFiles, notEnglishXlfFiles])
-			//The reason why we can't use nls.prepareJsonFiles here https://github.com/microsoft/vscode-nls-dev/blob/38974b8975ad34aecb79e613ebee27ce3423cadf/src/main.ts#L887
-			//is because it doesn't put each *.i18n.json file in a different directory for each language
+			.src([xlfFiles])
 			.pipe(prepareJsonFiles())
 			.pipe(gulp.dest(locIntermediates))
 	)
@@ -80,7 +77,7 @@ const generateLocalizedBundlesAndMetadata = () => {
 	localizedJsFiles.on('data', function (file) {
 		console.log(file.relative)
 	})
-		
+
 
 	return localizedJsFiles
 		.pipe(sourcemaps.write('.', { includeContent: false, sourceRoot: path.join(__dirname, '.localization') }))
@@ -88,13 +85,40 @@ const generateLocalizedBundlesAndMetadata = () => {
 		.pipe(gulp.dest('.localization/out'))
 }
 
-// Generate ENU xlf file from package.nls.json and nls metadata.
-const jsonToEnuXliff = () => {
-	return gulp
-		.src(['package.nls.json', '.localization/out/nls.metadata.header.json', '.localization/out/nls.metadata.json']) // We need the header because the createXlfFiles function uses the outdir
+// Generate xlf files for all languages from package.nls.json and nls metadata.
+const jsonToXliff = (done) => {
+	let completedCount = 0;
+	const totalCount = languages.length + 1; // +1 for English
+
+	const checkDone = () => {
+		completedCount++;
+		if (completedCount === totalCount) {
+			done();
+		}
+	};
+
+	// Create English xlf file (no language prefix) -> aspire-vscode.xlf
+	gulp
+		.src(['package.nls.json', '.localization/out/nls.metadata.header.json', '.localization/out/nls.metadata.json'])
 		.pipe(nls.createXlfFiles('', extensionName))
-		.pipe(gulp.dest(enuDir))
-}
+		.pipe(gulp.dest(xliffDir))
+		.on('end', checkDone);
+
+	// Create xlf files for all other languages with language prefix (e.g., aspire-vscode.cs.xlf)
+	languages.forEach(lang => {
+		gulp
+			.src(['package.nls.json', '.localization/out/nls.metadata.header.json', '.localization/out/nls.metadata.json'])
+			.pipe(nls.createXlfFiles(lang.id, extensionName))
+			.pipe(es.map(function(file, cb) {
+				// Rename from aspire-vscode.xlf to aspire-vscode.LANG.xlf
+				file.basename = `${extensionName}.${lang.folderName}`;
+				file.extname = '.xlf';
+				cb(null, file);
+			}))
+			.pipe(gulp.dest(xliffDir))
+			.on('end', checkDone);
+	});
+};
 
 const createMetadataFilesOnDist = () => {
 	const tsProject = ts.createProject('tsconfig.json')
@@ -110,25 +134,33 @@ const createMetadataFilesOnDist = () => {
 		.pipe(gulp.dest('dist'))
 }
 
-const watchTask = series(createMetadataFilesOnDist)
+const watchTask = series(createMetadataFilesOnDist);
 
 // Generate .i18n.json files from translated .xlf files
-// The file base is assumed to be loc/xliff, and the first directory part in the file name
-// to be the language.
+// The language is extracted from the filename (e.g., aspire-vscode.cs.xlf -> cs)
 function prepareJsonFiles() {
-	const parsePromises = []
+	const parsePromises = [];
 	return es.through(
 		function (xlf) {
-			const stream = this
-			// Get the lang of the xlf file to be localized so that the i18n json file can be put in a directory with that name
-			const lang = xlf.relative.substr(0, xlf.relative.replace(/\\/g, '/').indexOf('/'))
+			const stream = this;
+			// Extract language from filename (e.g., aspire-vscode.cs.xlf -> cs)
+			const filename = path.basename(xlf.relative, '.xlf');
+			const parts = filename.split('.');
+			// If filename is extensionName.LANG.xlf format, extract LANG; otherwise skip
+			const lang = parts.length > 1 ? parts[parts.length - 1] : null;
+
+			if (!lang) {
+				// Skip files without language prefix (English base file)
+				return;
+			}
+
 			const parsePromise = nls.XLF.parse(xlf.contents.toString(encoding)).then(function (resolvedFiles) {
 				resolvedFiles.forEach(function (file) {
-					const translatedFile = createI18nFile(path.join(lang, file.originalFilePath), file.messages, xlf.relative)
-					stream.queue(translatedFile)
-				})
-			})
-			parsePromises.push(parsePromise)
+					const translatedFile = createI18nFile(path.join(lang, file.originalFilePath), file.messages, xlf.relative);
+					stream.queue(translatedFile);
+				});
+			});
+			parsePromises.push(parsePromise);
 		},
 		function () {
 			var stream = this
@@ -169,12 +201,12 @@ function validateBundleJson() {
 	return gulp.src(bundleDefaultFile)
 }
 
-const prepareLocFiles = series(createAndAddLocalizedPackageNlsJson, generateLocalizedBundlesAndMetadata, jsonToEnuXliff, validateBundleJson)
+const prepareLocFiles = series(createAndAddLocalizedPackageNlsJson, generateLocalizedBundlesAndMetadata, jsonToXliff, validateBundleJson);
 const generateAllLocalizationFiles = series(
 	xlifftoi18n,
-	parallel(createAndAddLocalizedPackageNlsJson, series(generateLocalizedBundlesAndMetadata, jsonToEnuXliff)),
-)
+	parallel(createAndAddLocalizedPackageNlsJson, series(generateLocalizedBundlesAndMetadata, jsonToXliff)),
+);
 
-module.exports.prepare = prepareLocFiles
-module.exports.localizationBundle = generateAllLocalizationFiles
-module.exports.localizationWatch = watchTask
+module.exports.prepare = prepareLocFiles;
+module.exports.localizationBundle = generateAllLocalizationFiles;
+module.exports.localizationWatch = watchTask;
