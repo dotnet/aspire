@@ -31,7 +31,8 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
                         .Where(c => c.IsAspNetCoreDevelopmentCertificate())
                         .Where(c => c.NotAfter > DateTime.UtcNow)
                         .OrderByDescending(c => c.GetCertificateVersion())
-                        .ThenByDescending(c => c.NotAfter));
+                        .ThenByDescending(c => c.NotAfter)
+                        .Take(1));
 
                 if (devCerts.Count == 0)
                 {
