@@ -153,8 +153,8 @@ stages:
     displayName: 'Setup Linux'
     dependsOn: []  # Explicit parallel execution
     jobs:
-      - job: SetupDotNetLinux
-        displayName: 'Setup .NET SDK - Linux'
+      - job: SetupAndEnumerateLinux
+        displayName: 'Setup .NET SDK & Enumerate Tests - Linux'
         pool:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals build.ubuntu.2204.amd64.open
@@ -174,21 +174,6 @@ stages:
               targetPath: '$(Build.SourcesDirectory)/.dotnet'
               artifactName: 'dotnet-sdk-linux'
               publishLocation: 'pipeline'
-
-      - job: EnumerateIntegrationTests
-        displayName: 'Enumerate Integration Tests'
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals build.ubuntu.2204.amd64.open
-
-        steps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-          - pwsh: |
-              ./restore.sh
-            displayName: 'Restore .NET SDK'
 
           - pwsh: |
               ./dotnet.sh build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
@@ -234,8 +219,8 @@ stages:
     displayName: 'Setup Windows'
     dependsOn: []  # Explicit parallel execution
     jobs:
-      - job: SetupDotNetWindows
-        displayName: 'Setup .NET SDK - Windows'
+      - job: SetupAndEnumerateWindows
+        displayName: 'Setup .NET SDK & Enumerate Tests - Windows'
         pool:
           name: $(DncEngPublicBuildPool)
           demands: ImageOverride -equals windows.vs2022preview.amd64.open
@@ -255,21 +240,6 @@ stages:
               targetPath: '$(Build.SourcesDirectory)/.dotnet'
               artifactName: 'dotnet-sdk-windows'
               publishLocation: 'pipeline'
-
-      - job: EnumerateIntegrationTestsWindows
-        displayName: 'Enumerate Integration Tests - Windows'
-        pool:
-          name: $(DncEngPublicBuildPool)
-          demands: ImageOverride -equals windows.vs2022preview.amd64.open
-
-        steps:
-          - checkout: self
-            fetchDepth: 1
-            clean: true
-
-          - pwsh: |
-              ./restore.cmd
-            displayName: 'Restore .NET SDK'
 
           - pwsh: |
               ./dotnet.cmd build tests/Shared/GetTestProjects.proj /bl:$(Build.Arcade.LogsPath)/GetTestProjects.binlog /p:TestsListOutputPath=$(Build.Arcade.ArtifactsPath)/IntegrationTests.list /p:ContinuousIntegrationBuild=true
@@ -321,7 +291,7 @@ stages:
       - job: RunIntegrationTestsLinux
         displayName: 'Test'
         strategy:
-          matrix: $[ stageDependencies.SetupLinux.EnumerateIntegrationTests.outputs['GenerateMatrix.linuxTestsMatrix'] ]
+          matrix: $[ stageDependencies.SetupLinux.SetupAndEnumerateLinux.outputs['GenerateMatrix.linuxTestsMatrix'] ]
 
         timeoutInMinutes: 20
 
@@ -437,7 +407,7 @@ stages:
       - job: RunIntegrationTestsWindows
         displayName: 'Test'
         strategy:
-          matrix: $[ stageDependencies.SetupWindows.EnumerateIntegrationTestsWindows.outputs['GenerateMatrix.windowsTestsMatrix'] ]
+          matrix: $[ stageDependencies.SetupWindows.SetupAndEnumerateWindows.outputs['GenerateMatrix.windowsTestsMatrix'] ]
 
         timeoutInMinutes: 20
 
