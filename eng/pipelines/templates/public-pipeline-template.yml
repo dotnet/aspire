@@ -80,8 +80,8 @@ stages:
       # Integration Tests Matrix - replaces old pipeline tests
       - ${{ each testVariant in split( variables.testVariants, ',' ) }}:
         - ${{ if contains(testVariant, '_integration_matrix_tests') }}:
-          - job: EnumerateIntegrationTests
-            displayName: 'Enumerate Integration Tests'
+          - job: SetupDotNet
+            displayName: 'Setup .NET SDK and Runtime'
             pool:
               name: $(DncEngPublicBuildPool)
               demands: ImageOverride -equals build.ubuntu.2204.amd64.open
@@ -92,12 +92,33 @@ stages:
                 clean: true
 
               - pwsh: |
-                  if ($env:AGENT_OS -eq "Windows_NT") {
-                    ./restore.cmd
-                  } else {
-                    ./restore.sh
-                  }
+                  ./restore.sh
                 displayName: 'Restore .NET SDK'
+
+              - task: PublishPipelineArtifact@1
+                displayName: 'Publish .NET SDK'
+                inputs:
+                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
+                  artifactName: 'dotnet-sdk'
+                  publishLocation: 'pipeline'
+
+          - job: EnumerateIntegrationTests
+            displayName: 'Enumerate Integration Tests'
+            dependsOn: SetupDotNet
+            pool:
+              name: $(DncEngPublicBuildPool)
+              demands: ImageOverride -equals build.ubuntu.2204.amd64.open
+
+            steps:
+              - checkout: self
+                fetchDepth: 1
+                clean: true
+
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Download .NET SDK'
+                inputs:
+                  artifactName: 'dotnet-sdk'
+                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
               - pwsh: |
                   if ($env:AGENT_OS -eq "Windows_NT") {
@@ -151,7 +172,9 @@ stages:
 
           - job: RunIntegrationTests
             displayName: 'Test'
-            dependsOn: EnumerateIntegrationTests
+            dependsOn:
+              - SetupDotNet
+              - EnumerateIntegrationTests
             condition: succeeded()
 
             strategy:
@@ -167,6 +190,12 @@ stages:
               - checkout: self
                 fetchDepth: 1
                 clean: true
+
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Download .NET SDK'
+                inputs:
+                  artifactName: 'dotnet-sdk'
+                  targetPath: '$(Build.SourcesDirectory)/.dotnet'
 
               - task: DockerInstaller@0
                 inputs:
