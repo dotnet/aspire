@@ -137,7 +137,9 @@ public static class PythonAppResourceBuilderExtensions
 
         var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
 
-        var resourceBuilder = builder.AddResource(resource).WithArgs(context =>
+        var resourceBuilder = builder
+            .AddResource(resource)
+            .WithArgs(context =>
         {
             context.Args.Add(scriptPath);
         });

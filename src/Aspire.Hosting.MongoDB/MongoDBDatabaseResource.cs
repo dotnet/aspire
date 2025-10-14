@@ -21,6 +21,14 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
     public ReferenceExpression ConnectionStringExpression => Parent.BuildConnectionString(DatabaseName);
 
     /// <summary>
+    /// Gets the connection URI expression for the MongoDB database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mongodb://[user:password@]{host}:{port}/{database}[?authSource=admin&amp;authMechanism=SCRAM-SHA-256]</c>. The credential and query segments are included only when a password is configured.
+    /// </remarks>
+    public ReferenceExpression UriExpression => Parent.BuildConnectionString(DatabaseName);
+
+    /// <summary>
     /// Gets the parent MongoDB container resource.
     /// </summary>
     public MongoDBServerResource Parent { get; } = parent ?? throw new ArgumentNullException(nameof(parent));
@@ -35,4 +43,10 @@ public class MongoDBDatabaseResource(string name, string databaseName, MongoDBSe
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+        ]);
 }
