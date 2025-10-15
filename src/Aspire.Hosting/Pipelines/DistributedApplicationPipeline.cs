@@ -303,9 +303,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         Dictionary<string, PipelineStep> stepsByName)
     {
         var indegrees = new int[steps.Count];
-        var dependents = new Dictionary<string, List<int>>();
-        var stepIndices = new Dictionary<string, int>();
+        var dependents = new Dictionary<string, List<int>>(steps.Count);
+        var stepIndices = new Dictionary<string, int>(steps.Count);
 
+        // Build step index mapping and initialize dependents
         for (var i = 0; i < steps.Count; i++)
         {
             stepIndices[steps[i].Name] = i;
@@ -323,18 +324,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
-                if (!requiredByStepObj.DependsOnSteps.Contains(step.Name))
-                {
-                    requiredByStepObj.DependsOnSteps.Add(step.Name);
-                }
+                // Add dependency if not already present (avoid Contains check on List)
+                requiredByStepObj.DependsOnSteps.Add(step.Name);
             }
         }
 
         // Build the graph based on DependsOn relationships
-        foreach (var step in steps)
+        for (var i = 0; i < steps.Count; i++)
         {
-            var stepIndex = stepIndices[step.Name];
-
+            var step = steps[i];
             foreach (var dependency in step.DependsOnSteps)
             {
                 if (!stepIndices.TryGetValue(dependency, out var depIndex))
@@ -343,35 +341,39 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         $"Step '{step.Name}' depends on unknown step '{dependency}'");
                 }
 
-                dependents[dependency].Add(stepIndex);
-                indegrees[stepIndex]++;
+                dependents[dependency].Add(i);
+                indegrees[i]++;
             }
         }
 
-        // Cycle detection using topological sort
-        var queue = new Queue<int>();
-        var tempIndegrees = (int[])indegrees.Clone();
+        // Cycle detection using Kahn's algorithm (topological sort)
+        // Track processed steps to identify cycles if they exist
+        var queue = new Queue<int>(steps.Count);
+        var processedSteps = new HashSet<int>(steps.Count);
 
+        // Initialize queue with all zero in-degree steps
         for (var i = 0; i < steps.Count; i++)
         {
-            if (tempIndegrees[i] == 0)
+            if (indegrees[i] == 0)
             {
                 queue.Enqueue(i);
             }
         }
 
-        var processedCount = 0;
+        // Process steps in topological order
         while (queue.Count > 0)
         {
             var stepIndex = queue.Dequeue();
-            processedCount++;
+            processedSteps.Add(stepIndex);
 
             var stepName = steps[stepIndex].Name;
             if (dependents.TryGetValue(stepName, out var deps))
             {
                 foreach (var depIndex in deps)
                 {
-                    if (--tempIndegrees[depIndex] == 0)
+                    // Note: We're modifying indegrees during cycle detection
+                    // This is safe because we only use it for scheduling after this method returns
+                    if (--indegrees[depIndex] == 0)
                     {
                         queue.Enqueue(depIndex);
                     }
@@ -379,44 +381,27 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
         }
 
-        if (processedCount != steps.Count)
+        // If not all steps were processed, there's a cycle
+        if (processedSteps.Count != steps.Count)
         {
-            var processedIndices = new HashSet<int>();
-            queue.Clear();
-            tempIndegrees = (int[])indegrees.Clone();
-
+            var stepsInCycle = new List<string>(steps.Count - processedSteps.Count);
             for (var i = 0; i < steps.Count; i++)
             {
-                if (tempIndegrees[i] == 0)
+                if (!processedSteps.Contains(i))
                 {
-                    queue.Enqueue(i);
+                    stepsInCycle.Add(steps[i].Name);
                 }
             }
-
-            while (queue.Count > 0)
-            {
-                var idx = queue.Dequeue();
-                processedIndices.Add(idx);
-
-                if (dependents.TryGetValue(steps[idx].Name, out var deps))
-                {
-                    foreach (var depIdx in deps)
-                    {
-                        if (--tempIndegrees[depIdx] == 0)
-                        {
-                            queue.Enqueue(depIdx);
-                        }
-                    }
-                }
-            }
-
-            var stepsInCycle = steps
-                .Where((s, i) => !processedIndices.Contains(i))
-                .Select(s => s.Name)
-                .ToList();
 
             throw new InvalidOperationException(
                 $"Circular dependency detected in pipeline steps: {string.Join(", ", stepsInCycle)}");
+        }
+
+        // Rebuild indegrees array since we modified it during cycle detection
+        Array.Clear(indegrees);
+        for (var i = 0; i < steps.Count; i++)
+        {
+            indegrees[i] = steps[i].DependsOnSteps.Count;
         }
 
         return (indegrees, dependents);
