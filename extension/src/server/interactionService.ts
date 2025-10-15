@@ -33,6 +33,7 @@ export interface IInteractionService {
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
     startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
+    writeDebugSessionMessage: (message: string, stdout: boolean) => void;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -339,6 +340,16 @@ export class InteractionService implements IInteractionService {
         }
     }
 
+    writeDebugSessionMessage(message: string, stdout: boolean) {
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            extensionLogOutputChannel.warn('Attempted to write to debug session, but no active debug session exists.');
+            return;
+        }
+
+        debugSession.sendMessage(message, true, stdout ? 'stdout' : 'stderr');
+    }
+
     async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
         let debugSession = this._getAspireDebugSession();
         if (!debugSession) {
@@ -425,4 +436,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
     connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
+    connection.onRequest("writeDebugSessionMessage", middleware('writeDebugSessionMessage', interactionService.writeDebugSessionMessage.bind(interactionService)));
 }

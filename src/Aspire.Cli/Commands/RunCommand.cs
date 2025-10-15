@@ -14,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
 
@@ -229,7 +230,7 @@ internal sealed class RunCommand : BaseCommand
 
             var logFile = GetAppHostLogFile();
 
-            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
+            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
 
             var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
@@ -332,7 +333,6 @@ internal sealed class RunCommand : BaseCommand
 
             if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
-                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
                 extensionInteractionService.NotifyAppHostStartupCompleted();
             }
@@ -416,7 +416,7 @@ internal sealed class RunCommand : BaseCommand
         return logFile;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -436,6 +436,15 @@ internal sealed class RunCommand : BaseCommand
 
             await foreach (var entry in logEntries.WithCancellation(cancellationToken))
             {
+                if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+                {
+                    if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
+                    {
+                        // Send only information+ level logs to the extension host.
+                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
+                    }
+                }
+
                 await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
             }
         }
