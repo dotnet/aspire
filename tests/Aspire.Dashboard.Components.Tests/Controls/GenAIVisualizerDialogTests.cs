@@ -134,6 +134,9 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         Services.AddLocalization();
         Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
 
+        var dialogProviderModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js", version));
+        dialogProviderModule.SetupModule("getActiveElement", _ => true);
+
         var cut = Render(builder =>
         {
             builder.OpenComponent<FluentDialogProvider>(0);
@@ -147,5 +150,10 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
+    }
+
+    private static string GetFluentFile(string filePath, Version version)
+    {
+        return $"{filePath}?v={version}";
     }
 }
