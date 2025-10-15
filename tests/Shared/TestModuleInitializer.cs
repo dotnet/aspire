@@ -4,8 +4,9 @@
 using System.Runtime.CompilerServices;
 using Aspire.TestUtilities;
 
-namespace Aspire.Hosting.Azure.Tests;
-
+// Note: This file is shared across multiple test projects.
+// It uses the global namespace so that the module initializer works
+// correctly in all test projects that include it.
 sealed class TestModuleInitializer
 {
     [ModuleInitializer]
