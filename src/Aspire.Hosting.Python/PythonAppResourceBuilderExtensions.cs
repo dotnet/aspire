@@ -321,7 +321,7 @@ public static class PythonAppResourceBuilderExtensions
                             arg1 == annotation.Entrypoint)
                         {
                             ctx.Args.RemoveAt(0); // Remove "-m"
-                            ctx.Args.RemoveAt(0); // Remove module name
+                            ctx.Args.RemoveAt(1); // Remove module name
                         }
                     }
                     // For Script type: remove script path (1 arg)
