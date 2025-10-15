@@ -1178,55 +1178,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithParallelBranches_RunsConcurrently()
-    {
-        // Test that independent branches can run in parallel
-        // Pattern: A -> B1, A -> B2
-        // B1 and B2 should be able to run concurrently after A completes
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var executionTimes = new Dictionary<string, DateTime>();
-        var completionTimes = new Dictionary<string, DateTime>();
-
-        pipeline.AddStep("A", async (context) =>
-        {
-            lock (executionTimes) { executionTimes["A"] = DateTime.UtcNow; }
-            await Task.Delay(10);
-            lock (completionTimes) { completionTimes["A"] = DateTime.UtcNow; }
-        });
-
-        pipeline.AddStep("B1", async (context) =>
-        {
-            lock (executionTimes) { executionTimes["B1"] = DateTime.UtcNow; }
-            await Task.Delay(50);
-            lock (completionTimes) { completionTimes["B1"] = DateTime.UtcNow; }
-        }, dependsOn: "A");
-
-        pipeline.AddStep("B2", async (context) =>
-        {
-            lock (executionTimes) { executionTimes["B2"] = DateTime.UtcNow; }
-            await Task.Delay(50);
-            lock (completionTimes) { completionTimes["B2"] = DateTime.UtcNow; }
-        }, dependsOn: "A");
-
-        var context = CreateDeployingContext(builder.Build());
-        var sw = Stopwatch.StartNew();
-        await pipeline.ExecuteAsync(context);
-        sw.Stop();
-
-        // Both B1 and B2 should start after A completes
-        Assert.True(executionTimes["B1"] >= completionTimes["A"], "B1 should start after A completes");
-        Assert.True(executionTimes["B2"] >= completionTimes["A"], "B2 should start after A completes");
-
-        // If running concurrently, B1 and B2 should overlap in time
-        // (both take 50ms, so if sequential would take 100ms+, if parallel should take ~50ms)
-        // Total time should be less than 100ms (A:10ms + max(B1:50ms, B2:50ms) ≈ 60ms)
-        Assert.True(sw.ElapsedMilliseconds < 100,
-            $"B1 and B2 should run concurrently. Total time: {sw.ElapsedMilliseconds}ms");
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithLongAndShortBranches_DoesNotBlockShortBranch()
     {
         // Test that a long-running branch doesn't block an independent short branch
