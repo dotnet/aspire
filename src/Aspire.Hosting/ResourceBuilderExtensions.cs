@@ -2093,7 +2093,13 @@ public static class ResourceBuilderExtensions
         };
         if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
         {
-            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            foreach (var existingCollection in existingAnnotation.CertificateAuthorityCollections)
+            {
+                if (existingCollection != certificateAuthorityCollection.Resource)
+                {
+                    annotation.CertificateAuthorityCollections.Add(existingCollection);
+                }
+            }
             annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
             annotation.Scope ??= existingAnnotation.Scope;
         }
