@@ -1,6 +1,6 @@
 <Project>
   <!-- Versions used to install sdks for testing. This is used for running template tests, and end to end tests.
-       These are being kept in a separate file so it can GH Actions can cache sdks between runs based on this file changes.
+       These are being kept in a separate file so that GH Actions can cache sdks between runs based on this file changes.
   -->
   <PropertyGroup>
     <!-- dotnet versions for running tests -->
