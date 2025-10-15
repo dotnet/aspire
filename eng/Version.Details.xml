@@ -33,6 +33,10 @@
       <Uri>https://github.com/microsoft/usvc-apiserver</Uri>
       <Sha>71fce45f07f29a1c1aeba399e38befec3c9617f5</Sha>
     </Dependency>
+    <Dependency Name="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="9.10.0">
+      <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
+      <Sha>f8f779a6ea004bb1f26649719ca77d63a9d9417c</Sha>
+    </Dependency>
     <Dependency Name="Microsoft.Extensions.Http.Resilience" Version="9.10.0">
       <Uri>https://dev.azure.com/dnceng/internal/_git/dotnet-extensions</Uri>
       <Sha>f8f779a6ea004bb1f26649719ca77d63a9d9417c</Sha>
