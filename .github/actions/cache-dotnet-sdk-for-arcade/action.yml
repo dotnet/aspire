@@ -6,8 +6,12 @@ description: |
   It uses a minimal empty project file with Arcade's build infrastructure to trigger SDK
   installation without building any actual code.
 
-  The cache key includes global.json and eng/Versions.props to ensure the cache is
-  invalidated when SDK versions, runtime versions.
+  The cache key includes global.json, eng/Versions.props, eng/SdksForTesting.Versions.props,
+  and eng/Version.Details.xml to ensure the cache is invalidated when SDK versions, runtime
+  versions, or Arcade SDK versions change.
+
+  For pull requests, the cache operates in read-only mode (lookup-only) to prevent cache
+  pollution and save storage quota. PRs can still benefit from caches saved by the main branch.
 
   Why we can't use actions/setup-dotnet:
   The Aspire repository has complex requirements in global.json that include:
@@ -40,7 +44,8 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: .dotnet
-        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', 'eng/Versions.props') }}
+        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', 'eng/Versions.props', 'eng/SdksForTesting.Versions.props', 'eng/Version.Details.xml') }}
+        lookup-only: ${{ github.event_name == 'pull_request' }}
 
     - name: Install Sdks (Windows)
       if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os == 'Windows'
