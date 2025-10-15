@@ -1,29 +1,19 @@
 name: 'Cache .NET SDK for Arcade'
 description: |
-  Aggressively cache the .NET SDK in the .dotnet directory using actions/cache@v4.
+  Cache the .NET SDK in the .dotnet directory using actions/cache@v4.
 
   This action caches the .dotnet directory and only runs SDK installation on cache misses.
-  It uses a minimal empty project file with Arcade's build infrastructure to trigger SDK
-  installation without building any actual code.
+  The cache key includes all version files (global.json and eng/Versions.props)
+  to ensure proper invalidation when SDK versions change.
 
-  The cache key includes global.json, eng/Versions.props, eng/SdksForTesting.Versions.props,
-  and eng/Version.Details.xml to ensure the cache is invalidated when SDK versions, runtime
-  versions, or Arcade SDK versions change.
-
-  For pull requests, the cache operates in read-only mode (lookup-only) to prevent cache
-  pollution and save storage quota. PRs can still benefit from caches saved by the main branch.
+  For pull requests, the cache operates in read-only mode to prevent cache pollution
+  and save storage quota while still benefiting from caches saved by the main branch.
 
   Why we can't use actions/setup-dotnet:
-  The Aspire repository has complex requirements in global.json that include:
-  - Custom SDK paths pointing to local .dotnet directory
-  - Multiple runtime versions with variable substitution (e.g., $(DotNetRuntimePreviousVersionForTesting))
-  - Architecture-specific runtimes (x64, arm64) for different platforms
-  - Custom error messages for missing SDK
-
-  The actions/setup-dotnet action doesn't support these advanced global.json features,
-  particularly the "paths" array and variable substitution in the "runtimes" section.
-  Instead, we use the repository's Arcade build infrastructure (eng/build.ps1 or build.sh)
-  which properly handles these requirements and installs SDKs to the local .dotnet directory.
+  The Aspire repository uses advanced global.json features that actions/setup-dotnet
+  doesn't support, variable substitution in runtime versions,
+  and architecture-specific runtimes. Instead, we use Arcade's build infrastructure
+  (eng/build.ps1 or build.sh) which properly handles these requirements.
 
 inputs:
   key-prefix:
