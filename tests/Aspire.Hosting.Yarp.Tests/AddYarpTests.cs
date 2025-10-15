@@ -112,14 +112,54 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
-    public void VerifyWithStaticFilesBindMountAddsContainerFileSystemAnnotation()
+    public void VerifyWithStaticFilesBindMountAddsContainerFileSystemAnnotationInRunMode()
     {
-        using var builder = TestDistributedApplicationBuilder.Create();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
         
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>());
         Assert.Equal("/wwwroot", annotation.DestinationPath);
+    }
+
+    [Fact]
+    public void VerifyWithStaticFilesAddsDockerfileBuildAnnotationInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TempDirectory();
+        
+        var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
+
+        var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(annotation.DockerfileFactory);
+        Assert.Contains(tempDir.Path, annotation.ContextPath);
+    }
+
+    [Fact]
+    public async Task VerifyWithStaticFilesGeneratesCorrectDockerfileInPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var tempDir = new TempDirectory();
+        
+        var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
+
+        var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.NotNull(annotation.DockerfileFactory);
+        
+        var context = new DockerfileFactoryContext
+        {
+            Resource = yarp.Resource,
+            Services = TestServiceProvider.Instance,
+            CancellationToken = CancellationToken.None
+        };
+        
+        var dockerfile = await annotation.DockerfileFactory(context);
+        
+        Assert.Contains("FROM", dockerfile);
+        Assert.Contains("dotnet/nightly/yarp:2.3.0-preview.4", dockerfile);
+        Assert.Contains("AS yarp", dockerfile);
+        Assert.Contains("WORKDIR /app", dockerfile);
+        Assert.Contains("COPY . /app/wwwroot", dockerfile);
     }
 }

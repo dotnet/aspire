@@ -271,7 +271,7 @@ public class Program
 
             // If the CLI is being launched from the aspire extension, we don't want to use the console logger that's used when including --debug.
             // Instead, we will log to the extension backchannel.
-            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Information);
+            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Trace);
             builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ExtensionLoggerProvider>());
         }
         else

@@ -42,7 +42,7 @@ export function getSupportedCapabilities(): string[] {
 
 export function getRunSessionInfo(): RunSessionInfo {
     return {
-        protocols_supported: ["2024-03-03"],
+        protocols_supported: ["2024-03-03", "2024-04-23", "2025-10-01"],
         supported_launch_configurations: getSupportedCapabilities()
     };
 }

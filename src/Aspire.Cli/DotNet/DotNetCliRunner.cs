@@ -248,8 +248,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         string[] cliArgs = isSingleFile switch
         {
             false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
-            true => ["run", projectFile.FullName, "--", ..args]
+            true => ["run", noProfileSwitch, "--file", projectFile.FullName, "--", .. args]
         };
+
+        cliArgs = [.. cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg))];
 
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.

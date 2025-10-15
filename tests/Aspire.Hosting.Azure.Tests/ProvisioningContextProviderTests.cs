@@ -51,7 +51,7 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
+        Assert.NotNull(context.DeploymentState);
         Assert.Equal("westus2", context.Location.Name);
     }
 
@@ -279,16 +279,16 @@ public class ProvisioningContextProviderTests
         Assert.Collection(inputsInteraction.Inputs,
             input =>
             {
-                Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
-                Assert.Equal("Location", input.Label);
+                Assert.Equal(BaseProvisioningContextProvider.SubscriptionIdName, input.Name);
+                Assert.Equal("Subscription ID", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
             {
-                Assert.Equal(BaseProvisioningContextProvider.SubscriptionIdName, input.Name);
-                Assert.Equal("Subscription ID", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
+                Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
+                Assert.Equal("Location", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
             },
             input =>
@@ -299,8 +299,18 @@ public class ProvisioningContextProviderTests
                 Assert.False(input.Required);
             });
 
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
+
+        // Trigger dynamic update of locations based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicOptions!.UpdateInputCallback(new UpdateInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
         inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
 
         inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
@@ -348,8 +358,18 @@ public class ProvisioningContextProviderTests
 
         // Wait for the inputs interaction
         var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
-        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[0].Options!.First(kvp => kvp.Key == "westus").Value;
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "not a guid";
+
+        // Trigger dynamic update of locations based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicOptions!.UpdateInputCallback(new UpdateInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
         inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "invalid group";
 
         var context = new InputsDialogValidationContext
@@ -401,7 +421,7 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.UserSecrets);
+        Assert.NotNull(context.DeploymentState);
         Assert.Equal("westus2", context.Location.Name);
     }
 }

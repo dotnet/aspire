@@ -307,10 +307,25 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
     {
         // Arrange - disable showAllTemplates but enable singleFileAppHost
         var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - disable both showAllTemplates and singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -334,6 +349,21 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - enable showAllTemplates but disable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: false);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
@@ -434,6 +464,12 @@ public class DotNetTemplateFactoryTests
         public Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
+        public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
+        public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProjectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<(int ExitCode, NuGetPackageCli[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
@@ -454,16 +490,6 @@ public class DotNetTemplateFactoryTests
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
-
-        public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class TestCertificateService : ICertificateService

@@ -5,6 +5,7 @@ using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant.Ghcp;
 using Aspire.Dashboard.Model.Assistant.Prompts;
+using Aspire.Dashboard.Telemetry;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 
@@ -17,6 +18,7 @@ public class AIContextProvider : IAIContextProvider
     private readonly ILogger<AIContextProvider> _logger;
     private readonly IOptionsMonitor<DashboardOptions> _dashboardOptions;
     private readonly ChatClientFactory _chatClientFactory;
+    private readonly ITelemetryErrorRecorder _telemetryErrorRecorder;
     private readonly List<AIContext> _contextsStack = new List<AIContext>();
     private readonly List<ModelSubscription> _contextChangedSubscriptions = [];
     private readonly List<ModelSubscription> _displayChangedSubscriptions = [];
@@ -27,13 +29,15 @@ public class AIContextProvider : IAIContextProvider
         ILogger<AIContextProvider> logger,
         IOptionsMonitor<DashboardOptions> dashboardOptions,
         ChatClientFactory chatClientFactory,
-        IceBreakersBuilder iceBreakersBuilder)
+        IceBreakersBuilder iceBreakersBuilder,
+        ITelemetryErrorRecorder telemetryErrorRecorder)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _dashboardOptions = dashboardOptions;
         _chatClientFactory = chatClientFactory;
         IceBreakersBuilder = iceBreakersBuilder;
+        _telemetryErrorRecorder = telemetryErrorRecorder;
         Enabled = IsEnabled();
     }
 
@@ -119,7 +123,7 @@ public class AIContextProvider : IAIContextProvider
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while executing subscriptions.");
+            _telemetryErrorRecorder.RecordError("Error while executing AIContextProvider subscriptions.", ex, writeToLogging: true);
         }
     }
 

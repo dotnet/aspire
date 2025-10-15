@@ -98,5 +98,17 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("SolutionAlreadyInitialized", resourceCulture);
             }
         }
+        
+        internal static string AddingAppHostProjectToSolution {
+            get {
+                return ResourceManager.GetString("AddingAppHostProjectToSolution", resourceCulture);
+            }
+        }
+        
+        internal static string AddingServiceDefaultsProjectToSolution {
+            get {
+                return ResourceManager.GetString("AddingServiceDefaultsProjectToSolution", resourceCulture);
+            }
+        }
     }
 }

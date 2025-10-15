@@ -91,7 +91,9 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
-    /// Enables static file serving in the YARP resource and bind mounts files from the specified source path to the wwwroot folder in the container.
+    /// Enables static file serving. In run mode: bind mounts <paramref name="sourcePath"/> to /wwwroot.
+    /// In publish mode: generates a Dockerfile whose build context is <paramref name="sourcePath"/> and
+    /// copies its contents into /app/wwwroot baked into the image.
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="sourcePath">The source path containing static files to serve.</param>
@@ -101,7 +103,29 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        return builder.WithStaticFiles()
-                     .WithContainerFiles("/wwwroot", sourcePath);
+        builder = builder.WithStaticFiles();
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithDockerfileFactory(sourcePath, ctx =>
+            {
+                if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+                {
+                    imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+                }
+
+                return $"""
+                FROM {imageName} AS yarp
+                WORKDIR /app
+                COPY . /app/wwwroot
+                """;
+            });
+        }
+        else
+        {
+            builder = builder.WithContainerFiles("/wwwroot", sourcePath);
+        }
+
+        return builder;
     }
 }

@@ -14,7 +14,7 @@ const config = {
     httpsRedirectPort: process.env['HTTPS_REDIRECT_PORT'] ?? (process.env['HTTPS_PORT'] ?? 8443),
     certFile: process.env['HTTPS_CERT_FILE'] ?? '',
     certKeyFile: process.env['HTTPS_CERT_KEY_FILE'] ?? '',
-    cacheAddress: process.env['ConnectionStrings__cache'] ?? '',
+    cacheUrl: process.env['CACHE_URI'] ?? '',
     apiServer: process.env['services__weatherapi__https__0'] ?? process.env['services__weatherapi__http__0']
 };
 console.log(`config: ${JSON.stringify(config)}`);
@@ -28,21 +28,7 @@ const httpsOptions = fs.existsSync(config.certFile) && fs.existsSync(config.cert
     }
     : { enabled: false };
 
-// Setup connection to Redis cache
-const passwordPrefix = ',password=';
-let cacheConfig = {
-    url: `redis://${config.cacheAddress}`
-};
-
-const cachePasswordIndex = config.cacheAddress.indexOf(passwordPrefix);
-if (cachePasswordIndex > 0) {
-    cacheConfig = {
-        url: `redis://${config.cacheAddress.substring(0, cachePasswordIndex)}`,
-        password: config.cacheAddress.substring(cachePasswordIndex + passwordPrefix.length)
-    }
-}
-
-const cache = createClient(cacheConfig);
+const cache = createClient({ url: config.cacheUrl });
 cache.on('error', err => console.error('Redis Client Error', err));
 await cache.connect();
 

@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
@@ -144,7 +145,7 @@ internal sealed class ResourceContainerImageBuilder(
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         var step = await activityReporter.CreateStepAsync(
-            "Building container images for resources",
+            "build-images",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -208,20 +209,28 @@ internal sealed class ResourceContainerImageBuilder(
                 cancellationToken).ConfigureAwait(false);
             return;
         }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        else if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
         {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
+            if (!resource.TryGetContainerImageName(out var imageName))
             {
-                // This is a container resource so we'll use the container runtime to build the image
-                await BuildContainerImageFromDockerfileAsync(
-                    resource,
-                    dockerfileBuildAnnotation,
-                    containerImageAnnotation.Image,
-                    step,
-                    options,
-                    cancellationToken).ConfigureAwait(false);
-                return;
+                throw new InvalidOperationException("Resource image name could not be determined.");
             }
+
+            // This is a container resource so we'll use the container runtime to build the image
+            await BuildContainerImageFromDockerfileAsync(
+                resource,
+                dockerfileBuildAnnotation,
+                imageName,
+                step,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var _))
+        {
+            // This resource already has a container image associated with it so no build is needed.
+            logger.LogInformation("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
+            return;
         }
         else
         {
@@ -426,7 +435,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    internal static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
         try
         {
@@ -437,6 +446,7 @@ internal sealed class ResourceContainerImageBuilder(
                 IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                 bool boolValue => boolValue ? "true" : "false",
                 null => null,
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString()
             };
         }

@@ -426,6 +426,21 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures how connection information is injected into environment variables when the resource references other resources.
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource to configure.</param>
+    /// <param name="flags">The injection flags determining which connection information is emitted.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithConnectionProperties<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(flags));
+    }
+
+    /// <summary>
     /// Injects a connection string as an environment variable from the source resource into the destination resource, using the source resource's name as the connection string name (if not overridden).
     /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
     /// <para>
@@ -455,12 +470,60 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
+            {
+                var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+                context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            }
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+            {
+                var prefix = connectionName switch
+                {
+                    "" => "",
+                    _ => $"{connectionName.ToUpperInvariant()}_"
+                };
+
+                SplatConnectionProperties(resource, prefix, context);
+            }
         });
+    }
+
+    /// <summary>
+    /// Retrieves the value of a specified connection property from the resource's connection properties.
+    /// </summary>
+    /// <remarks>Throws a KeyNotFoundException if the specified key does not exist in the resource's
+    /// connection properties.</remarks>
+    /// <param name="resource">The resource that provides the connection properties. Cannot be null.</param>
+    /// <param name="key">The key of the connection property to retrieve. Cannot be null.</param>
+    /// <returns>The value associated with the specified connection property key.</returns>
+    public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
+    {
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return connectionProperty.Value;
+            }
+        }
+
+        return ReferenceExpression.Empty;
+    }
+
+    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            context.EnvironmentVariables[$"{prefix}{connectionProperty.Key.ToUpperInvariant()}"] = connectionProperty.Value;
+        }
     }
 
     /// <summary>
@@ -2363,10 +2426,10 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2389,7 +2452,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(requiredExtensionId, launchConfigurationProducer));
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
     }
 
     /// <summary>

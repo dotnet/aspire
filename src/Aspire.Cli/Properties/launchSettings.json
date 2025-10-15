@@ -35,6 +35,12 @@
       },
       "dotnetRunMessages": true
     },
+    "deploy-azure": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "deploy",
+      "workingDirectory": "../../playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost"
+    },
     "run-testapphost": {
       "commandName": "Project",
       "commandLineArgs": "run --project ../../../../../tests/TestingAppHost1/TestingAppHost1.AppHost/TestingAppHost1.AppHost.csproj",

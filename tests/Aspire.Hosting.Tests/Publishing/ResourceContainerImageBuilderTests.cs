@@ -709,7 +709,6 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11823", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanResolveBuildArgumentsWithDifferentValueTypes()
     {
         using var builder = TestDistributedApplicationBuilder.Create(output);
@@ -796,6 +795,26 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
                 File.Delete(tempFile);
             }
         }
+    }
+
+    [Fact]
+    public async Task ResolveValue_FormatsDecimalWithInvariantCulture()
+    {
+        // Test decimal value
+        var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test double value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test float value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test integer (should also work)
+        result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
+        Assert.Equal("42", result);
     }
 
     [Fact]

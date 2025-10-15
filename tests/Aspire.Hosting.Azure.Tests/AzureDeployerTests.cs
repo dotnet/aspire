@@ -10,6 +10,7 @@ using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Provisioning;
@@ -253,7 +254,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Verify specific tag call was made (local "api" to target in testregistry with deployment tag)
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "api" &&
+            call.localImageName.StartsWith("api:") &&
             call.targetImageName.StartsWith("testregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -321,7 +322,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithMultipleComputeEnvironments_Works()
     {
         // Arrange
@@ -404,7 +405,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             call.targetImageName.StartsWith("aasregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
         Assert.Contains(mockImageBuilder.TagImageCalls, call =>
-            call.localImageName == "python-app" &&
+            call.localImageName.StartsWith("python-app:") &&
             call.targetImageName.StartsWith("acaregistry.azurecr.io/") &&
             call.targetImageName.Contains("aspire-deploy-"));
 
@@ -583,8 +584,8 @@ public class AzureDeployerTests(ITestOutputHelper output)
                    cmd.Arguments == "acr login --name testregistry");
 
         // Assert that deploying steps executed
-        Assert.Contains("Deploying compute resources", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("Deploying compute resources", "Deploying cache"), mockActivityReporter.CreatedTasks);
+        Assert.Contains("deploy-compute", mockActivityReporter.CreatedSteps);
+        Assert.Contains(("deploy-compute", "Deploying cache"), mockActivityReporter.CreatedTasks);
     }
 
     [Fact]
@@ -635,7 +636,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public async Task DeployAsync_WithGeneratedParameters_PromptsForParameterValues()
+    public async Task DeployAsync_WithGeneratedParameters_DoesNotPromptsForParameterValues()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -648,31 +649,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Act
         using var app = builder.Build();
-        var runTask = Task.Run(app.Run);
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
 
-        // Wait for the parameter inputs interaction (no notification in publish mode)
-        var parameterInputs = await testInteractionService.Interactions.Reader.ReadAsync();
-        Assert.Equal("Set unresolved parameters", parameterInputs.Title);
-
-        // Verify the generated parameter is prompted for (should not include save to secrets option in publish mode)
-        Assert.Collection(parameterInputs.Inputs,
-            input =>
-            {
-                Assert.Equal("cache-password", input.Label);
-                Assert.Equal(InputType.SecretText, input.InputType);
-                Assert.Equal("Enter value for cache-password", input.Placeholder);
-                Assert.False(input.Required);
-            });
-
-        // Complete the parameter inputs interaction with a password value
-        parameterInputs.Inputs[0].Value = "test-generated-password";
-        parameterInputs.CompletionTcs.SetResult(InteractionResult.Ok(parameterInputs.Inputs));
-
-        // Wait for the run task to complete (or timeout)
-        await runTask.WaitAsync(TimeSpan.FromSeconds(10));
-
-        var setValue = await redis.Resource.PasswordParameter!.GetValueAsync(default);
-        Assert.Equal("test-generated-password", setValue);
+        Assert.Equal(0, testInteractionService.Interactions.Reader.Count);
     }
 
     [Fact]
@@ -766,7 +746,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithAzureFunctionsProject_Works()
     {
         // Arrange
@@ -894,7 +874,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             builder.Services.AddSingleton(activityReporter);
         }
         builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
-        builder.Services.AddSingleton<IUserSecretsManager, NoOpUserSecretsManager>();
+        builder.Services.AddSingleton<IDeploymentStateManager, NoOpDeploymentStateManager>();
         if (bicepProvisioner is not null)
         {
             builder.Services.AddSingleton(bicepProvisioner);
@@ -903,11 +883,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
     }
 
-    private sealed class NoOpUserSecretsManager : IUserSecretsManager
+    private sealed class NoOpDeploymentStateManager : IDeploymentStateManager
     {
-        public Task<JsonObject> LoadUserSecretsAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
+        public string? StateFilePath => null;
 
-        public Task SaveUserSecretsAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
+
+        public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
@@ -921,6 +903,60 @@ public class AzureDeployerTests(ITestOutputHelper output)
         {
             return Task.CompletedTask;
         }
+    }
+
+    [Fact(Skip = "az cli not available on azdo", SkipType = typeof(PlatformDetection), SkipWhen = nameof(PlatformDetection.IsRunningFromAzdo))]
+    public async Task DeployAsync_ShowsEndpointOnlyForExternalEndpoints()
+    {
+        // Arrange
+        var activityReporter = new TestPublishingActivityReporter();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider, activityReporter: activityReporter);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+        var azureEnv = builder.AddAzureEnvironment();
+
+        // Add container with external endpoint
+        var externalContainer = builder.AddContainer("external-api", "external-image:latest")
+            .WithHttpEndpoint(port: 80, name: "http")
+            .WithExternalHttpEndpoints();
+
+        // Add container with internal endpoint only
+        var internalContainer = builder.AddContainer("internal-api", "internal-image:latest")
+            .WithHttpEndpoint(port: 80, name: "http");
+
+        // Add container with no endpoints
+        var noEndpointContainer = builder.AddContainer("worker", "worker-image:latest");
+
+        // Act
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert - Verify that external container shows URL in completion message
+        var externalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("external-api"));
+        Assert.NotNull(externalTask.CompletionMessage);
+        Assert.Contains("https://external-api.test.westus.azurecontainerapps.io", externalTask.CompletionMessage);
+
+        // Assert - Verify that internal container does NOT show URL in completion message
+        var internalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("internal-api"));
+        Assert.NotNull(internalTask.CompletionMessage);
+        Assert.DoesNotContain("https://", internalTask.CompletionMessage);
+        Assert.Equal("Successfully deployed internal-api", internalTask.CompletionMessage);
+
+        // Assert - Verify that container with no endpoints does NOT show URL in completion message
+        var noEndpointTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("worker"));
+        Assert.NotNull(noEndpointTask.CompletionMessage);
+        Assert.DoesNotContain("https://", noEndpointTask.CompletionMessage);
+        Assert.Equal("Successfully deployed worker", noEndpointTask.CompletionMessage);
     }
 
     private sealed class Project : IProjectMetadata
@@ -943,6 +979,203 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 }
             }
         };
+    }
+
+    [Fact]
+    public async Task DeployAsync_FirstDeployment_SavesStateToFile()
+    {
+        var appHostSha = "testsha1first";
+
+        using var builder = TestDistributedApplicationBuilder.Create(
+            $"Publishing:Publisher=default",
+            $"Publishing:OutputPath=./",
+            $"Publishing:Deploy=true",
+            $"AppHostSha={appHostSha}");
+
+        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
+
+        builder.AddAzureEnvironment();
+
+        using var app = builder.Build();
+
+        var deploymentStateManager = app.Services.GetRequiredService<IDeploymentStateManager>();
+        var deploymentStatePath = deploymentStateManager.StateFilePath;
+        Assert.NotNull(deploymentStatePath);
+
+        if (File.Exists(deploymentStatePath))
+        {
+            File.Delete(deploymentStatePath);
+        }
+
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.True(File.Exists(deploymentStatePath));
+        var stateContent = await File.ReadAllTextAsync(deploymentStatePath);
+        var stateJson = JsonNode.Parse(stateContent);
+        Assert.NotNull(stateJson);
+        Assert.True(stateJson.AsObject().ContainsKey("Azure:SubscriptionId"));
+
+        if (File.Exists(deploymentStatePath))
+        {
+            File.Delete(deploymentStatePath);
+        }
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithCachedDeploymentState_LoadsFromCache()
+    {
+        var appHostSha = "testsha2cache";
+        var deploymentStatePath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments",
+            appHostSha,
+            $"Production.json"
+        );
+        Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
+        var cachedState = new JsonObject
+        {
+            ["Azure:SubscriptionId"] = "cached-sub-12345678-1234-1234-1234-123456789012",
+            ["Azure:Location"] = "westus2",
+            ["Azure:ResourceGroup"] = "cached-rg-test"
+        };
+        await File.WriteAllTextAsync(deploymentStatePath, cachedState.ToJsonString());
+
+        using var builder = TestDistributedApplicationBuilder.Create(
+            $"Publishing:Publisher=default",
+            $"Publishing:OutputPath=./",
+            $"Publishing:Deploy=true",
+            $"AppHostSha={appHostSha}");
+
+        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
+        using var app = builder.Build();
+
+        // Verify that the cached state was loaded into configuration
+        Assert.Equal("cached-sub-12345678-1234-1234-1234-123456789012", builder.Configuration["Azure:SubscriptionId"]);
+        Assert.Equal("westus2", builder.Configuration["Azure:Location"]);
+        Assert.Equal("cached-rg-test", builder.Configuration["Azure:ResourceGroup"]);
+
+        builder.AddAzureEnvironment();
+
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Verify that the state file still exists after deployment
+        Assert.True(File.Exists(deploymentStatePath));
+
+        if (File.Exists(deploymentStatePath))
+        {
+            File.Delete(deploymentStatePath);
+        }
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithClearCacheFlag_DoesNotSaveState()
+    {
+        var appHostSha = "testsha3clear";
+
+        using var builder = TestDistributedApplicationBuilder.Create(
+            $"Publishing:Publisher=default",
+            $"Publishing:OutputPath=./",
+            $"Publishing:Deploy=true",
+            $"Publishing:ClearCache=true",
+            $"AppHostSha={appHostSha}");
+
+        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
+
+        builder.AddAzureEnvironment();
+
+        using var app = builder.Build();
+
+        var deploymentStateManager = app.Services.GetRequiredService<IDeploymentStateManager>();
+        var deploymentStatePath = deploymentStateManager.StateFilePath;
+        Assert.NotNull(deploymentStatePath);
+
+        if (File.Exists(deploymentStatePath))
+        {
+            File.Delete(deploymentStatePath);
+        }
+
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.False(File.Exists(deploymentStatePath));
+    }
+
+    [Fact]
+    public async Task DeployAsync_WithStagingEnvironment_UsesStagingStateFile()
+    {
+        var appHostSha = "testsha4stage";
+
+        using var builder = TestDistributedApplicationBuilder.Create(
+            $"Publishing:Publisher=default",
+            $"Publishing:OutputPath=./",
+            $"Publishing:Deploy=true",
+            $"AppHostSha={appHostSha}");
+
+        ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner(), environmentName: "Staging");
+
+        builder.AddAzureEnvironment();
+
+        using var app = builder.Build();
+
+        var deploymentStateManager = app.Services.GetRequiredService<IDeploymentStateManager>();
+        var stagingStatePath = deploymentStateManager.StateFilePath;
+        Assert.NotNull(stagingStatePath);
+        Assert.EndsWith("staging.json", stagingStatePath);
+
+        if (File.Exists(stagingStatePath))
+        {
+            File.Delete(stagingStatePath);
+        }
+
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.True(File.Exists(stagingStatePath));
+        var stateContent = await File.ReadAllTextAsync(stagingStatePath);
+        var stateJson = JsonNode.Parse(stateContent);
+        Assert.NotNull(stateJson);
+
+        if (File.Exists(stagingStatePath))
+        {
+            File.Delete(stagingStatePath);
+        }
+    }
+
+    private static void ConfigureTestServicesWithFileDeploymentStateManager(
+        IDistributedApplicationTestingBuilder builder,
+        IBicepProvisioner? bicepProvisioner = null,
+        string? environmentName = null)
+    {
+        var options = ProvisioningTestHelpers.CreateOptions();
+        var environment = new TestHostEnvironment
+        {
+            ApplicationName = "TestApp",
+            EnvironmentName = environmentName ?? "Test"
+        };
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+
+        builder.Services.AddSingleton<IHostEnvironment>(environment);
+        builder.Services.AddSingleton(armClientProvider);
+        builder.Services.AddSingleton(userPrincipalProvider);
+        builder.Services.AddSingleton(tokenCredentialProvider);
+        builder.Services.AddSingleton(logger);
+        builder.Services.AddSingleton(options);
+        builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();
+        builder.Services.AddSingleton<IDeploymentStateManager, FileDeploymentStateManager>();
+
+        if (bicepProvisioner is not null)
+        {
+            builder.Services.AddSingleton(bicepProvisioner);
+        }
+
+        builder.Services.AddSingleton<IProcessRunner>(new MockProcessRunner());
+        builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
     }
 
     private sealed class TestPublishingActivityReporter : IPublishingActivityReporter
