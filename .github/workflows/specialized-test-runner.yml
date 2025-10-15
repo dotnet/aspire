@@ -49,6 +49,8 @@ jobs:
 
       - name: Generate test runsheet
         id: generate_tests_matrix
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: >
           ./build.sh
           --test
