@@ -44,19 +44,19 @@ jobs:
           --restore
           --build
           -c Release
-          --ci
           /p:GeneratePackageOnBuild=false
           ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
 
       - name: Generate test runsheet
         id: generate_tests_matrix
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: >
           ./build.sh
           --test
           /p:TestRunnerName=${{ inputs.testRunnerName }}
           ${{ inputs.extraRunSheetBuilderArgs }}
           -c Release
-          --ci
           /p:Restore=false
           /p:Build=false
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
@@ -96,7 +96,7 @@ jobs:
       ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
 
   results:
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [generate_tests_matrix, build_packages, run_tests]

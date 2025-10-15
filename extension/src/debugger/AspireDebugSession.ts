@@ -276,13 +276,13 @@ export class AspireDebugSession implements vscode.DebugAdapter {
     this.sendMessage(`${emoji}  ${message}`, addNewLine);
   }
 
-  sendMessage(message: string, addNewLine: boolean = true) {
+  sendMessage(message: string, addNewLine: boolean = true, category: 'stdout' | 'stderr' = 'stdout') {
     this.sendEvent({
       type: 'event',
       seq: this._messageSeq++,
       event: 'output',
       body: {
-        category: 'stdout',
+        category: category,
         output: `${message}${addNewLine ? '\n' : ''}`
       }
     });

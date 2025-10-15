@@ -905,7 +905,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         }
     }
 
-    [Fact]
+    [Fact(Skip = "az cli not available on azdo", SkipType = typeof(PlatformDetection), SkipWhen = nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task DeployAsync_ShowsEndpointOnlyForExternalEndpoints()
     {
         // Arrange

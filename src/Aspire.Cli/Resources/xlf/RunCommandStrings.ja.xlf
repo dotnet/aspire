@@ -32,11 +32,6 @@
         <target state="translated">エンドポイント</target>
         <note />
       </trans-unit>
-      <trans-unit id="ExtensionSwitchingToAppHostConsole">
-        <source>To view AppHost logs in real-time, switch to the AppHost Debug Console.</source>
-        <target state="translated">AppHost ログをリアルタイムで表示するには、AppHost デバッグ コンソールに切り替えてください。</target>
-        <note />
-      </trans-unit>
       <trans-unit id="Health">
         <source>The health of the resource, eg Healthy</source>
         <target state="translated">リソースの正常性 (正常など)</target>

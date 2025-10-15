@@ -181,9 +181,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         TelemetryContextProvider.Initialize(TelemetryContext);
         _resourceSubscriptionToken = _resourceSubscriptionCts.Token;
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
-        _aiContext = CreateAIContext();
         _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedResource = _allResource, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        _aiContext = CreateAIContext();
         _logEntryChannelReaderTask = StartLogEntryChannelReaderTask();
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
@@ -526,7 +526,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private ResourceViewModel? GetSelectedResource()
     {
-        var name = PageViewModel.SelectedResource.Id?.InstanceId;
+        var name = PageViewModel?.SelectedResource.Id?.InstanceId;
         if (name == null)
         {
             return null;

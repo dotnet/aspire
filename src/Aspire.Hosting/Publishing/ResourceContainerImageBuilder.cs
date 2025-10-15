@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
@@ -434,7 +435,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    internal static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
         try
         {
@@ -445,6 +446,7 @@ internal sealed class ResourceContainerImageBuilder(
                 IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                 bool boolValue => boolValue ? "true" : "false",
                 null => null,
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString()
             };
         }

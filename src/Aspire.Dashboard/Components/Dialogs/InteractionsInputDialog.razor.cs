@@ -1,9 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Interaction;
 using Aspire.Dashboard.Model.Markdown;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Resources;
 using Aspire.DashboardService.Proto.V1;
 using Microsoft.AspNetCore.Components;

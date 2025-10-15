@@ -27,7 +27,10 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__seq": "{seq.connectionString}"
+        "ConnectionStrings__seq": "{seq.connectionString}",
+        "SEQ_HOST": "{seq.bindings.http.host}",
+        "SEQ_PORT": "{seq.bindings.http.port}",
+        "SEQ_URI": "{seq.bindings.http.url}"
       },
       "bindings": {
         "http": {

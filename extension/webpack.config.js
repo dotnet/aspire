@@ -34,15 +34,6 @@ const extensionConfig = {
 				exclude: /node_modules/,
 				use: [
 					{
-						loader: 'vscode-nls-dev/lib/webpack-loader',
-						// The vscode-nls loader is necessary because calls of the form localize('some_key', 'Hello')
-						// are transformed to localize(0, null) where the first parameter (0, in this example)
-						// is the position of the string to be localized in the bundle file
-						options: {
-							base: path.join(__dirname, 'src'),
-						},
-					},
-					{
 						loader: 'ts-loader',
 					},
 				],

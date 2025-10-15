@@ -26,6 +26,7 @@ public class ConfigCommandTests(ITestOutputHelper outputHelper)
                 };
 
                 options.InteractionServiceFactory = sp => new TestExtensionInteractionService(sp);
+                options.ExtensionBackchannelFactory = sp => new TestExtensionBackchannel();
 
                 options.ConfigurationServiceFactory = _ => new TestConfigurationService();
             });

@@ -229,7 +229,7 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for azure'";
         var container = builder.AddContainer("testcontainer", "testimage")
-                               .WithDockerfile(".", context => dockerfileContent);
+                               .WithDockerfileFactory(".", context => dockerfileContent);
 
         var app = builder.Build();
         app.Run();

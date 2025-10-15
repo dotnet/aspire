@@ -1,0 +1,3 @@
+FROM mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4 AS yarp
+WORKDIR /app
+COPY . /app/wwwroot

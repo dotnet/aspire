@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model.Interaction;
@@ -57,6 +56,16 @@ public sealed class InputViewModel
     }
 
     public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
+
+    public IEnumerable<SelectViewModel<string>> FilteredOptions()
+    {
+        if (Value is not { Length: > 0 } value)
+        {
+            return SelectOptions;
+        }
+
+        return SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     public string? Value
     {

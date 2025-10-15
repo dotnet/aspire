@@ -4,12 +4,10 @@
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPUBLISHERS001
 
-using System.Reflection;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
-using Azure.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -102,7 +100,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     private async Task PromptForSubscriptionAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "fetch-subscription",
@@ -116,25 +114,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
-                        var subscriptionList = availableSubscriptions.ToList();
-
-                        if (subscriptionList.Count > 0)
-                        {
-                            subscriptionOptions = [.. subscriptionList
-                                .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
-                                .OrderBy(kvp => kvp.Value)];
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Falling back to manual input.");
-                    }
+                    (subscriptionOptions, fetchSucceeded) = await TryGetSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)
@@ -219,7 +199,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
-        bool fetchSucceeded = false;
+        var fetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
             "fetch-regions",
@@ -233,25 +213,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
                 await using (task.ConfigureAwait(false))
                 {
-                    try
-                    {
-                        var credential = _tokenCredentialProvider.TokenCredential;
-                        var armClient = _armClientProvider.GetArmClient(credential);
-                        var availableLocations = await armClient.GetAvailableLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
-                        var locationList = availableLocations.ToList();
-
-                        if (locationList.Count > 0)
-                        {
-                            locationOptions = locationList
-                                .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
-                                .ToList();
-                            fetchSucceeded = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
-                    }
+                    (locationOptions, fetchSucceeded) = await TryGetLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (fetchSucceeded)
@@ -271,13 +233,11 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
         }
 
-        if (locationOptions?.Count > 0)
-        {
-            var result = await _interactionService.PromptInputsAsync(
-                AzureProvisioningStrings.LocationDialogTitle,
-                AzureProvisioningStrings.LocationSelectionMessage,
-                [
-                    new InteractionInput
+        var result = await _interactionService.PromptInputsAsync(
+            AzureProvisioningStrings.LocationDialogTitle,
+            AzureProvisioningStrings.LocationSelectionMessage,
+            [
+                new InteractionInput
                     {
                         Name = LocationName,
                         InputType = InputType.Choice,
@@ -292,57 +252,6 @@ internal sealed class PublishModeProvisioningContextProvider(
                         Label = AzureProvisioningStrings.ResourceGroupLabel,
                         Value = GetDefaultResourceGroupName()
                     }
-                ],
-                new InputsDialogInteractionOptions
-                {
-                    EnableMessageMarkdown = false,
-                    ValidationCallback = static (validationContext) =>
-                    {
-                        var resourceGroupInput = validationContext.Inputs[ResourceGroupName];
-                        if (!IsValidResourceGroupName(resourceGroupInput.Value))
-                        {
-                            validationContext.AddValidationError(resourceGroupInput, AzureProvisioningStrings.ValidationResourceGroupNameInvalid);
-                        }
-                        return Task.CompletedTask;
-                    }
-                },
-                cancellationToken).ConfigureAwait(false);
-
-            if (!result.Canceled)
-            {
-                _options.Location = result.Data[LocationName].Value;
-                _options.ResourceGroup = result.Data[ResourceGroupName].Value;
-                _options.AllowResourceGroupCreation = true;
-                return;
-            }
-        }
-
-        var locations = typeof(AzureLocation).GetProperties(BindingFlags.Public | BindingFlags.Static)
-                            .Where(p => p.PropertyType == typeof(AzureLocation))
-                            .Select(p => (AzureLocation)p.GetValue(null)!)
-                            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
-                            .OrderBy(kvp => kvp.Value)
-                            .ToList();
-
-        var manualResult = await _interactionService.PromptInputsAsync(
-            AzureProvisioningStrings.LocationDialogTitle,
-            AzureProvisioningStrings.LocationSelectionMessage,
-            [
-                new InteractionInput
-                {
-                    Name = LocationName,
-                    InputType = InputType.Choice,
-                    Label = AzureProvisioningStrings.LocationLabel,
-                    Required = true,
-                    Options = [..locations]
-                },
-                new InteractionInput
-                {
-                    Name = ResourceGroupName,
-                    InputType = InputType.Text,
-                    Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
-                }
             ],
             new InputsDialogInteractionOptions
             {
@@ -359,10 +268,10 @@ internal sealed class PublishModeProvisioningContextProvider(
             },
             cancellationToken).ConfigureAwait(false);
 
-        if (!manualResult.Canceled)
+        if (!result.Canceled)
         {
-            _options.Location = manualResult.Data[LocationName].Value;
-            _options.ResourceGroup = manualResult.Data[ResourceGroupName].Value;
+            _options.Location = result.Data[LocationName].Value;
+            _options.ResourceGroup = result.Data[ResourceGroupName].Value;
             _options.AllowResourceGroupCreation = true;
         }
     }

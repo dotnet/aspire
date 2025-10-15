@@ -66,6 +66,22 @@
                 }
             }
 
+        # Filter runsheet for PR events: only run one test project as a sanity check
+        # for outerloop and quarantined test workflows
+        $eventName = $env:GITHUB_EVENT_NAME
+        $testRunnerName = '$(TestRunnerName)'
+        $isPullRequest = ($eventName -eq 'pull_request')
+        $isSpecializedWorkflow = ($testRunnerName -eq 'QuarantinedTestRunsheetBuilder' -or $testRunnerName -eq 'OuterloopTestRunsheetBuilder')
+
+        if ($isPullRequest -and $isSpecializedWorkflow -and $combined.Count -gt 0) {
+            Write-Host "Running on pull_request event for specialized tests - filtering to single test project"
+            # Get the first unique project name and keep all OS entries for that project
+            $firstProjectName = $combined[0].project
+            $combined = @($combined | Where-Object { $_.project -eq $firstProjectName })
+            $osCount = $combined.Count
+            Write-Host "Selected project '$firstProjectName' with $osCount OS variant(s)"
+        }
+
         # See https://collectingwisdom.com/powershell-convertto-json-single-item-array/
         $jsonString = (ConvertTo-Json $combined -Depth 10 -Compress)
         $jsonString | Set-Content '$(_CombinedRunsheetFile)';
