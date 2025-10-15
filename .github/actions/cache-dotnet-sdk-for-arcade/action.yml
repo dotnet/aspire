@@ -6,6 +6,9 @@ description: |
   It uses a minimal empty project file with Arcade's build infrastructure to trigger SDK
   installation without building any actual code.
 
+  The cache key includes global.json and eng/Versions.props to ensure the cache is
+  invalidated when SDK versions, runtime versions.
+
   Why we can't use actions/setup-dotnet:
   The Aspire repository has complex requirements in global.json that include:
   - Custom SDK paths pointing to local .dotnet directory
@@ -37,9 +40,7 @@ runs:
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: .dotnet
-        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-        restore-keys: |
-          ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-
+        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', 'eng/Versions.props') }}
 
     - name: Install Sdks (Windows)
       if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os == 'Windows'
