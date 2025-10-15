@@ -229,7 +229,7 @@ public partial class MetricsTests : DashboardTestContext
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
                 Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items1, i => i.Instance.Data as OtlpScope == instrument.Parent);
+                Assert.Single(items1, i => i.Instance.Data as string == instrument.Parent.Name);
             }
         });
 
