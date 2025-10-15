@@ -29,7 +29,6 @@ public sealed class OracleContainerFixture : IAsyncLifetime
         if (RequiresDockerAttribute.IsSupported)
         {
             _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Oracle container initialization starting..."));
-            
             Container = new OracleBuilder()
                 .WithPortBinding(1521, true)
                 .WithHostname("localhost")
