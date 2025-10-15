@@ -109,13 +109,13 @@ public sealed class DistributedApplicationOptions
             return projectNameFromMetadata;
         }
 
-        // For single-file app hosts, the assembly name is typically "apphost".
+        // For single-file app hosts, the assembly name typically starts with "apphost-" followed by a random suffix.
         // In this case, use the directory name as the application name to provide
-        // a more meaningful identifier than just "apphost".
+        // a more meaningful identifier than the generated assembly name.
         // For example, if the apphost file is at "foo/apphost.cs", the app name becomes "foo".
         var assemblyName = Assembly?.GetName().Name;
         if (!string.IsNullOrEmpty(assemblyName) && 
-            string.Equals(assemblyName, "apphost", StringComparison.OrdinalIgnoreCase))
+            assemblyName.StartsWith("apphost-", StringComparison.OrdinalIgnoreCase))
         {
             // Use the directory name from ProjectDirectory if available
             var projectDirectory = ProjectDirectory;
