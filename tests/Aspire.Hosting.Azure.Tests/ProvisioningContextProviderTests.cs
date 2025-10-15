@@ -302,7 +302,7 @@ public class ProvisioningContextProviderTests
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "12345678-1234-1234-1234-123456789012";
 
         // Trigger dynamic update of locations based on subscription.
-        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicOptions!.UpdateInputCallback(new UpdateInputContext
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
         {
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,
@@ -361,7 +361,7 @@ public class ProvisioningContextProviderTests
         inputsInteraction.Inputs[BaseProvisioningContextProvider.SubscriptionIdName].Value = "not a guid";
 
         // Trigger dynamic update of locations based on subscription.
-        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicOptions!.UpdateInputCallback(new UpdateInputContext
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
         {
             AllInputs = inputsInteraction.Inputs,
             CancellationToken = CancellationToken.None,

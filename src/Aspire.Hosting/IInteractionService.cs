@@ -107,9 +107,9 @@ internal record DynamicRefreshOptions(
     InteractionInputCollection AllInputs,
     IServiceProvider ServiceProvider);
 
-internal sealed class DynamicInputState(DynamicInputOptions options)
+internal sealed class DynamicInputState(DynamicInputLoading options)
 {
-    private readonly DynamicInputOptions _options = options;
+    private readonly DynamicInputLoading _options = options;
     private readonly object _lock = new object();
 
     private Task? _currentTask;
@@ -166,7 +166,7 @@ internal sealed class DynamicInputState(DynamicInputOptions options)
         {
             try
             {
-                await _options.UpdateInputCallback(new UpdateInputContext
+                await _options.LoadCallback(new LoadInputContext
                 {
                     AllInputs = options.AllInputs,
                     Input = options.Input,
@@ -194,24 +194,63 @@ internal sealed class DynamicInputState(DynamicInputOptions options)
     internal Action<InteractionInput>? OnDataRefresh { get; set; }
 }
 
-#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+/// <summary>
+/// Represents configuration options for dynamically loading input data.
+/// </summary>
+/// <remarks>
+/// Use this class to specify how and when dynamic input data should be loaded. This type is intended for advanced
+/// scenarios where input loading behavior must be customized.
+/// </remarks>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class DynamicInputOptions
+public sealed class DynamicInputLoading
 {
-    public required Func<UpdateInputContext, Task> UpdateInputCallback { get; init; }
-    public bool AlwaysUpdateOnStart { get; init; }
+    /// <summary>
+    /// Gets or sets the callback function that is invoked to perform a load operation using the specified input context.
+    /// </summary>
+    public required Func<LoadInputContext, Task> LoadCallback { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="LoadCallback"/> should always be executed at the start of the input prompt.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="LoadCallback"/> is executed at the start of the input prompt except when it depends on other inputs with <see cref="DependsOnInputs"/>.
+    /// Setting this to <c>true</c> forces the load to always occur at the start of the prompt, regardless of dependencies.
+    /// </remarks>
+    public bool AlwaysLoadOnStart { get; init; }
+
+    /// <summary>
+    /// Gets the list of input names that this input depends on. <see cref="LoadCallback"/> is executed
+    /// whenever any of the specified inputs change.
+    /// </summary>
     public IReadOnlyList<string>? DependsOnInputs { get; init; }
 }
 
+/// <summary>
+/// The context for dynamic input loading. Used with <see cref="DynamicInputLoading.LoadCallback"/>.
+/// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class UpdateInputContext
+public sealed class LoadInputContext
 {
+    /// <summary>
+    /// Gets the loading input. This is the target of <see cref="DynamicInputLoading"/>.
+    /// </summary>
     public required InteractionInput Input { get; init; }
+
+    /// <summary>
+    /// Gets the collection of all <see cref="InteractionInput"/> in this prompt.
+    /// </summary>
     public required InteractionInputCollection AllInputs { get; init; }
+
+    /// <summary>
+    /// Gets the service provider.
+    /// </summary>
     public required IServiceProvider ServiceProvider { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="CancellationToken"/>.
+    /// </summary>
     public required CancellationToken CancellationToken { get; init; }
 }
-#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
 /// <summary>
 /// Represents an input for an interaction.
@@ -261,9 +300,9 @@ public sealed class InteractionInput
     public IReadOnlyList<KeyValuePair<string, string>>? Options { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="DynamicInputOptions"/> for the input.
+    /// Gets or sets the <see cref="DynamicInputLoading"/> for the input.
     /// </summary>
-    public DynamicInputOptions? DynamicOptions { get; init; }
+    public DynamicInputLoading? DynamicLoading { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the input.

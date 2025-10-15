@@ -219,8 +219,8 @@ internal sealed class DashboardServiceData : IDisposable
                 if (dependencyChange)
                 {
                     var dependentInputs = inputsInfo.Inputs.Where(
-                        i => i.DynamicOptions is { } dynamicOptions &&
-                        (dynamicOptions.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
+                        i => i.DynamicLoading is { } dynamic &&
+                        (dynamic.DependsOnInputs?.Any(d => string.Equals(modelInput.Name, d, StringComparisons.InteractionInputName)) ?? false));
 
                     foreach (var dependentInput in dependentInputs)
                     {

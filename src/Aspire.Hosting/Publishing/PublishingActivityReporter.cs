@@ -267,7 +267,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 // Find all the inputs that are depended on.
                 // These inputs value changing will cause the interaction to be sent to the server.
                 var updateStateOnChangeInputs = inputsInfo.Inputs
-                    .SelectMany(i => i.DynamicOptions?.DependsOnInputs ?? [])
+                    .SelectMany(i => i.DynamicLoading?.DependsOnInputs ?? [])
                     .ToList();
 
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput

@@ -729,9 +729,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new DynamicInputLoading
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -783,9 +783,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new DynamicInputLoading
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -891,10 +891,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new DynamicInputLoading
                 {
                     DependsOnInputs = ["DoesNotExist"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
@@ -924,10 +924,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new DynamicInputLoading
                 {
                     DependsOnInputs = ["Age"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
