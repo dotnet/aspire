@@ -57,19 +57,19 @@ public class DistributedApplicationPipelineTests
         var executedSteps = new List<string>();
         pipeline.AddStep("step1", async (context) =>
         {
-            executedSteps.Add("step1");
+            lock (executedSteps) { executedSteps.Add("step1"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step2", async (context) =>
         {
-            executedSteps.Add("step2");
+            lock (executedSteps) { executedSteps.Add("step2"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step3", async (context) =>
         {
-            executedSteps.Add("step3");
+            lock (executedSteps) { executedSteps.Add("step3"); }
             await Task.CompletedTask;
         });
 
@@ -122,19 +122,19 @@ public class DistributedApplicationPipelineTests
         var executedSteps = new List<string>();
         pipeline.AddStep("step1", async (context) =>
         {
-            executedSteps.Add("step1");
+            lock (executedSteps) { executedSteps.Add("step1"); }
             await Task.CompletedTask;
         }, requiredBy: "step2");
 
         pipeline.AddStep("step2", async (context) =>
         {
-            executedSteps.Add("step2");
+            lock (executedSteps) { executedSteps.Add("step2"); }
             await Task.CompletedTask;
         }, requiredBy: "step3");
 
         pipeline.AddStep("step3", async (context) =>
         {
-            executedSteps.Add("step3");
+            lock (executedSteps) { executedSteps.Add("step3"); }
             await Task.CompletedTask;
         });
 
@@ -153,19 +153,19 @@ public class DistributedApplicationPipelineTests
         var executedSteps = new List<string>();
         pipeline.AddStep("step1", async (context) =>
         {
-            executedSteps.Add("step1");
+            lock (executedSteps) { executedSteps.Add("step1"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step2", async (context) =>
         {
-            executedSteps.Add("step2");
+            lock (executedSteps) { executedSteps.Add("step2"); }
             await Task.CompletedTask;
         }, requiredBy: "step3");
 
         pipeline.AddStep("step3", async (context) =>
         {
-            executedSteps.Add("step3");
+            lock (executedSteps) { executedSteps.Add("step3"); }
             await Task.CompletedTask;
         }, dependsOn: "step1");
 
@@ -250,7 +250,7 @@ public class DistributedApplicationPipelineTests
                 Name = "annotated-step",
                 Action = async (ctx) =>
                 {
-                    executedSteps.Add("annotated-step");
+                    lock (executedSteps) { executedSteps.Add("annotated-step"); }
                     await Task.CompletedTask;
                 }
             }));
@@ -258,7 +258,7 @@ public class DistributedApplicationPipelineTests
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("regular-step", async (context) =>
         {
-            executedSteps.Add("regular-step");
+            lock (executedSteps) { executedSteps.Add("regular-step"); }
             await Task.CompletedTask;
         });
 
@@ -284,7 +284,7 @@ public class DistributedApplicationPipelineTests
                     Name = "annotated-step-1",
                     Action = async (ctx) =>
                     {
-                        executedSteps.Add("annotated-step-1");
+                        lock (executedSteps) { executedSteps.Add("annotated-step-1"); }
                         await Task.CompletedTask;
                     }
                 },
@@ -293,7 +293,7 @@ public class DistributedApplicationPipelineTests
                     Name = "annotated-step-2",
                     Action = async (ctx) =>
                     {
-                        executedSteps.Add("annotated-step-2");
+                        lock (executedSteps) { executedSteps.Add("annotated-step-2"); }
                         await Task.CompletedTask;
                     }
                 }
@@ -414,31 +414,31 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddStep("a", async (context) =>
         {
-            executedSteps.Add("a");
+            lock (executedSteps) { executedSteps.Add("a"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("b", async (context) =>
         {
-            executedSteps.Add("b");
+            lock (executedSteps) { executedSteps.Add("b"); }
             await Task.CompletedTask;
         }, dependsOn: "a");
 
         pipeline.AddStep("c", async (context) =>
         {
-            executedSteps.Add("c");
+            lock (executedSteps) { executedSteps.Add("c"); }
             await Task.CompletedTask;
         }, dependsOn: "a");
 
         pipeline.AddStep("d", async (context) =>
         {
-            executedSteps.Add("d");
+            lock (executedSteps) { executedSteps.Add("d"); }
             await Task.CompletedTask;
         }, dependsOn: "b", requiredBy: "e");
 
         pipeline.AddStep("e", async (context) =>
         {
-            executedSteps.Add("e");
+            lock (executedSteps) { executedSteps.Add("e"); }
             await Task.CompletedTask;
         }, dependsOn: "c");
 
@@ -469,19 +469,19 @@ public class DistributedApplicationPipelineTests
         var executedSteps = new List<string>();
         pipeline.AddStep("step1", async (context) =>
         {
-            executedSteps.Add("step1");
+            lock (executedSteps) { executedSteps.Add("step1"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step2", async (context) =>
         {
-            executedSteps.Add("step2");
+            lock (executedSteps) { executedSteps.Add("step2"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step3", async (context) =>
         {
-            executedSteps.Add("step3");
+            lock (executedSteps) { executedSteps.Add("step3"); }
             await Task.CompletedTask;
         }, dependsOn: new[] { "step1", "step2" });
 
@@ -505,19 +505,19 @@ public class DistributedApplicationPipelineTests
         var executedSteps = new List<string>();
         pipeline.AddStep("step1", async (context) =>
         {
-            executedSteps.Add("step1");
+            lock (executedSteps) { executedSteps.Add("step1"); }
             await Task.CompletedTask;
         }, requiredBy: new[] { "step2", "step3" });
 
         pipeline.AddStep("step2", async (context) =>
         {
-            executedSteps.Add("step2");
+            lock (executedSteps) { executedSteps.Add("step2"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("step3", async (context) =>
         {
-            executedSteps.Add("step3");
+            lock (executedSteps) { executedSteps.Add("step3"); }
             await Task.CompletedTask;
         });
 
@@ -825,26 +825,26 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddStep("success1", async (context) =>
         {
-            executedSteps.Add("success1");
+            lock (executedSteps) { executedSteps.Add("success1"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("fail1", async (context) =>
         {
-            executedSteps.Add("fail1");
+            lock (executedSteps) { executedSteps.Add("fail1"); }
             await Task.CompletedTask;
             throw new InvalidOperationException("Failure 1");
         });
 
         pipeline.AddStep("success2", async (context) =>
         {
-            executedSteps.Add("success2");
+            lock (executedSteps) { executedSteps.Add("success2"); }
             await Task.CompletedTask;
         });
 
         pipeline.AddStep("fail2", async (context) =>
         {
-            executedSteps.Add("fail2");
+            lock (executedSteps) { executedSteps.Add("fail2"); }
             await Task.CompletedTask;
             throw new InvalidOperationException("Failure 2");
         });
