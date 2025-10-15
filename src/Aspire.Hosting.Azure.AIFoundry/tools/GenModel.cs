@@ -10,16 +10,23 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
-using var mc = new ModelClient();
+var isFoundryLocal = args.Contains("--local");
+
+using var mc = new ModelClient(isFoundryLocal);
 var allModelsResponse = await mc.GetAllModelsAsync().ConfigureAwait(false);
 
 // Generate C# extension methods for the models
-var extensionGenerator = new ModelClassGenerator();
-var generatedCode = extensionGenerator.GenerateCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
+var generatedCode = isFoundryLocal
+    ? GenerateLocalCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? [])
+    : GenerateHostedCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
-File.WriteAllText(Path.Combine("..", "AIFoundryModel.Generated.cs"), generatedCode);
-Console.WriteLine("Generated extension methods written to AIFoundryModel.Generated.cs");
+var filename = isFoundryLocal
+    ? Path.Combine("..", "AIFoundryModel.Local.Generated.cs")
+    : Path.Combine("..", "AIFoundryModel.Generated.cs");
+
+File.WriteAllText(filename, generatedCode);
+Console.WriteLine($"Generated extension methods written to {Path.GetFileName(filename)}");
 
 // Also serialize the strongly typed response for output with pretty printing
 var options = new JsonSerializerOptions
@@ -31,12 +38,265 @@ var options = new JsonSerializerOptions
 Console.WriteLine("\nModel data:");
 Console.WriteLine(JsonSerializer.Serialize(allModelsResponse, options));
 
+string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
+{
+    var sb = new StringBuilder();
+    // Add file header
+    sb.AppendLine("// Licensed to the .NET Foundation under one or more agreements.");
+    sb.AppendLine("// The .NET Foundation licenses this file to you under the MIT license.");
+    sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
+    sb.AppendLine();
+    sb.AppendLine("/// <summary>");
+    sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
+    sb.AppendLine("/// </summary>");
+    sb.AppendLine("public partial class AIFoundryModel");
+    sb.AppendLine("{");
+
+    // Group models by publisher (only include models that are visible and have names & publishers)
+    var modelsByPublisher = models
+        .Where(m => m.Annotations?.SystemCatalogData?.Publisher != null &&
+                    m.Annotations?.Name != null &&
+                    IsVisible(m.Annotations?.InvisibleUntil))
+        .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
+        .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+    foreach (var publisherGroup in modelsByPublisher)
+    {
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {ToPascalCase(publisherGroup.Key)}");
+        sb.AppendLine("    {");
+
+        var firstMethod = true;
+        foreach (var model in publisherGroup.OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            if (firstMethod)
+            {
+                sb.AppendLine();
+            }
+
+            firstMethod = false;
+
+            var modelName = model.Annotations!.Name!;
+            var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
+            var version = GetModelVersion(model);
+            var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
+            var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
+
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
+        }
+
+        // if (sb.Length > 0)
+        // {
+        //     sb.Remove(sb.Length - Environment.NewLine.Length, Environment.NewLine.Length); // Remove last extra newline
+        // }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
+    }
+
+    sb.AppendLine("}");
+    return sb.ToString();
+}
+
+string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
+{
+    var sb = new StringBuilder();
+    // Add file header
+    sb.AppendLine("// Licensed to the .NET Foundation under one or more agreements.");
+    sb.AppendLine("// The .NET Foundation licenses this file to you under the MIT license.");
+    sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
+    sb.AppendLine();
+    sb.AppendLine("/// <summary>");
+    sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
+    sb.AppendLine("/// </summary>");
+    sb.AppendLine("public partial class AIFoundryModel");
+    sb.AppendLine("{");
+
+    // Group models by publisher (only include models that are visible and have names & publishers)
+    var modelsByPublisher = models
+        .Where(m => m.Annotations?.SystemCatalogData?.Publisher != null &&
+                    m.Annotations?.Name != null &&
+                    IsVisible(m.Annotations?.InvisibleUntil))
+        .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
+        .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+
+    sb.AppendLine("    /// <summary>");
+    sb.AppendLine("    /// Models available on Foundry Local.");
+    sb.AppendLine("    /// </summary>");
+    sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class Local");
+    sb.AppendLine("    {");
+
+    foreach (var publisherGroup in modelsByPublisher)
+    {
+        foreach (var model in publisherGroup
+            .GroupBy(m => m.Annotations!.Tags!["alias"])
+            .Select(x => x.First()).OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
+        {
+            var modelName = model.Annotations!.Tags!["alias"];
+            var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
+            var version = GetModelVersion(model);
+            var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
+            var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
+
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
+            sb.AppendLine();
+        }
+    }
+
+    sb.AppendLine("    }");
+    sb.AppendLine();
+
+    sb.AppendLine("}");
+    return sb.ToString();
+}
+
+static string EscapeXml(string? value)
+{
+    if (string.IsNullOrEmpty(value))
+    {
+        return string.Empty;
+    }
+    return value.Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("\"", "&quot;")
+                .Replace("'", "&apos;");
+}
+
+static string ToPascalCase(string modelName)
+{
+    // Insert a separator when an uppercase letter is found after a lowercase letter or digit
+    // e.g. OpenAI-GPT3 -> Open AI GPT3
+    // e.g. DeepSeek-V3 -> Deep Seek V3
+    // e.g. AI21Labs -> AI 21 Labs
+
+    modelName = ModelClassGenerator.LowerToUpper().Replace(modelName, "$1 $2");
+    modelName = ModelClassGenerator.LetterToDigit().Replace(modelName, "$1 $2");
+
+    // Convert model name to PascalCase method name
+    var parts = modelName
+        .Replace("-", " ")
+        .Replace(".", " ")
+        .Replace("_", " ")
+        .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+    var result = new StringBuilder();
+    foreach (var part in parts)
+    {
+        if (part.Length > 0)
+        {
+            // Handle special cases for numbers and versions
+            if (char.IsDigit(part[0]))
+            {
+                result.Append(part);
+            }
+            else
+            {
+                if (part.All(char.IsUpper) && part.Length < 3)
+                {
+                    // Keep acronyms in uppercase when less than 3 chars
+                    result.Append(part);
+                    continue;
+                }
+                else
+                {
+                    // Convert to PascalCase
+                    result.Append(char.ToUpper(part[0]));
+                    if (part.Length > 1)
+                    {
+                        result.Append(part[1..].ToLower());
+                    }
+                }
+            }
+        }
+    }
+
+    return result.ToString();
+}
+
+static string GetModelVersion(ModelEntity model)
+{
+    // Try to get version from different sources
+    if (!string.IsNullOrEmpty(model.Properties?.AlphanumericVersion))
+    {
+        return model.Properties.AlphanumericVersion;
+    }
+
+    if (!string.IsNullOrEmpty(model.Version))
+    {
+        return model.Version;
+    }
+
+    if (model.Properties?.Version > 0)
+    {
+        return model.Properties.Version.ToString(CultureInfo.InvariantCulture);
+    }
+
+    return "1"; // Default version
+}
+
+static string CleanDescription(string description)
+{
+    if (string.IsNullOrEmpty(description))
+    {
+        return "AI model deployment";
+    }
+
+    // Clean up description for XML documentation
+    return description
+        .Replace("\n", " ")
+        .Replace("\r", " ")
+        .Replace("  ", " ")
+        .Replace(" on CUDA GPUs", "")
+        .Replace(" on GPUs", "")
+        .Replace(" on CPUs", "")
+        .Trim();
+}
+
+static string EscapeStringForCSharp(string value)
+{
+    return value
+        .Replace("\\", "\\\\")
+        .Replace("\"", "\\\"");
+}
+
+static bool IsVisible(string? invisibleUntil)
+{
+    if (string.IsNullOrWhiteSpace(invisibleUntil))
+    {
+        return true; // No restriction
+    }
+    if (DateTime.TryParse(invisibleUntil, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dt))
+    {
+        return dt <= DateTime.UtcNow;
+    }
+    return true; // If parse fails, be permissive
+}
+
+public partial class ModelClassGenerator
+{
+
+    [GeneratedRegex("([a-z0-9])([A-Z])")]
+    public static partial Regex LowerToUpper();
+
+    [GeneratedRegex("([a-zA-Z])([0-9])")]
+    public static partial Regex LetterToDigit();
+}
+
 public class ModelClient : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly HttpClientHandler _handler;
-
-    public ModelClient()
+    private readonly bool _isFoundryLocal;
+    public ModelClient(bool isFoundryLocal)
     {
         _handler = new HttpClientHandler()
         {
@@ -46,7 +306,9 @@ public class ModelClient : IDisposable
         };
 
         _httpClient = new HttpClient(_handler);
+        _isFoundryLocal = isFoundryLocal;
     }
+
     public async Task<ConsolidatedResponse> GetAllModelsAsync()
     {
         var allModels = new List<ModelEntity>();
@@ -114,11 +376,11 @@ public class ModelClient : IDisposable
 
     public async Task<string> GetModelsAsync(string? continuationToken = null)
     {
-        var url = "https://ai.azure.com/api/westus2/ux/v1.0/entities/crossRegion";
+        var url = "https://ai.azure.com/api/eastus/ux/v1.0/entities/crossRegion";
 
         var request = new HttpRequestMessage(HttpMethod.Post, url);
 
-        request.Headers.Add("x-ms-user-agent", "AzureMachineLearningWorkspacePortal/3.0");
+        request.Headers.Add("User-Agent", "AzureAiStudio");
 
         // Build the JSON payload with optional continuation token
         var basePayload = """
@@ -178,6 +440,34 @@ public class ModelClient : IDisposable
         }
         """;
 
+        if (_isFoundryLocal)
+        {
+            basePayload = $$"""
+                {
+                    "resourceIds": [
+                        {"resourceId": "azureml", "entityContainerType": "Registry"}
+                    ],
+                    "indexEntitiesRequest": {
+                        "filters": [
+                            {"field": "type", "operator": "eq", "values": ["models"]},
+                            {"field": "kind", "operator": "eq", "values": ["Versioned"]},
+                            {"field": "labels", "operator": "eq", "values": ["latest"]},
+                            {"field": "annotations/archived", "operator": "ne", "values": ["false"]},
+                            {"field": "annotations/tags/foundryLocal", "operator": "eq", "values": [""]},
+                            {"field": "properties/variantInfo/variantMetadata/device", "operator": "eq",
+                                "values": ["cpu", "gpu", "npu"]}
+                        ],
+                        "freeTextSearch": "",
+                        "order": [{"field": "properties/name", "direction": "Asc"}],
+                        "pageSize": 30,
+                        "facets": [ ],
+                        "includeTotalResultCount": true,
+                        "searchBuilder": "AppendPrefix"
+                    }
+                }
+                """;
+        }
+
         string jsonContent;
         if (continuationToken != null)
         {
@@ -208,15 +498,24 @@ public class ModelClient : IDisposable
         _handler?.Dispose();
     }
 
-    private static void RunFixups(List<ModelEntity> allModels)
+    private void RunFixups(List<ModelEntity> allModels)
     {
-        foreach (var model in allModels)
+        if (_isFoundryLocal)
         {
-            // Fix up Phi-4 version to 7 since 8 doesn't work in Azure.
-            if (model.Annotations?.Name == "Phi-4")
+            // Exclude phi-4-reasoning as it is not listed by foundry local (TBD)
+            // c.f. https://github.com/microsoft/Foundry-Local/issues/245#issuecomment-3404022929
+            allModels.RemoveAll(m => m.Annotations?.Tags?.TryGetValue("alias", out var alias) is not null && alias == "phi-4-reasoning");
+        }
+        else
+        {
+            foreach (var model in allModels)
             {
-                model.Properties!.AlphanumericVersion = "7";
-                model.Version = "7";
+                // Fix up Phi-4 version to 7 since 8 doesn't work in Azure.
+                if (model.Annotations?.Name == "Phi-4")
+                {
+                    model.Properties!.AlphanumericVersion = "7";
+                    model.Version = "7";
+                }
             }
         }
     }
@@ -471,9 +770,9 @@ public class ModelProperties
     [JsonPropertyName("isAnonymous")]
     public bool IsAnonymous { get; set; }
 
-    // Not a type, this is an error in the original API
+    // Not a typo, this is an error in the original API
     [JsonPropertyName("orginAssetId")]
-    public string? OrginAssetId { get; set; }
+    public string? OriginAssetId { get; set; }
 
     [JsonPropertyName("intellectualProperty")]
     public IntellectualProperty? IntellectualProperty { get; set; }
@@ -537,187 +836,4 @@ public class ConsolidatedResponse
 
     [JsonPropertyName("entities")]
     public List<ModelEntity>? Entities { get; set; }
-}
-
-public partial class ModelClassGenerator
-{
-    public string GenerateCode(string csNamespace, List<ModelEntity> models)
-    {
-        var sb = new StringBuilder();
-        // Add file header
-        sb.AppendLine("// Licensed to the .NET Foundation under one or more agreements.");
-        sb.AppendLine("// The .NET Foundation licenses this file to you under the MIT license.");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {csNamespace};");
-        sb.AppendLine();
-        sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
-        sb.AppendLine("/// </summary>");
-        sb.AppendLine("public partial class AIFoundryModel");
-        sb.AppendLine("{");
-
-        // Group models by publisher (only include models that are visible and have names & publishers)
-        var modelsByPublisher = models
-            .Where(m => m.Annotations?.SystemCatalogData?.Publisher != null &&
-                        m.Annotations?.Name != null &&
-                        IsVisible(m.Annotations?.InvisibleUntil))
-            .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
-            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
-
-        foreach (var publisherGroup in modelsByPublisher)
-        {
-            var publisherClassName = ToPascalCase(publisherGroup.Key);
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
-            sb.AppendLine("    /// </summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {publisherClassName}");
-            sb.AppendLine("    {");
-
-            foreach (var model in publisherGroup.OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
-            {
-                var modelName = model.Annotations!.Name!;
-                var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
-                var version = GetModelVersion(model);
-                var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
-                var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
-
-                sb.AppendLine("        /// <summary>");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
-                sb.AppendLine("        /// </summary>");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
-                sb.AppendLine();
-            }
-
-            sb.AppendLine("    }");
-            sb.AppendLine();
-        }
-
-        sb.AppendLine("}");
-        return sb.ToString();
-    }
-
-    private static string EscapeXml(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-        return value.Replace("&", "&amp;")
-                    .Replace("<", "&lt;")
-                    .Replace(">", "&gt;")
-                    .Replace("\"", "&quot;")
-                    .Replace("'", "&apos;");
-    }
-
-    private static string ToPascalCase(string modelName)
-    {
-        // Insert a separator when an uppercase letter is found after a lowercase letter or digit
-        // e.g. OpenAI-GPT3 -> Open AI GPT3
-        // e.g. DeepSeek-V3 -> Deep Seek V3
-        // e.g. AI21Labs -> AI 21 Labs
-
-        modelName = LowerToUpper().Replace(modelName, "$1 $2");
-        modelName = LetterToDigit().Replace(modelName, "$1 $2");
-
-        // Convert model name to PascalCase method name
-        var parts = modelName
-            .Replace("-", " ")
-            .Replace(".", " ")
-            .Replace("_", " ")
-            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        var result = new StringBuilder();
-        foreach (var part in parts)
-        {
-            if (part.Length > 0)
-            {
-                // Handle special cases for numbers and versions
-                if (char.IsDigit(part[0]))
-                {
-                    result.Append(part);
-                }
-                else
-                {
-                    if (part.All(char.IsUpper) && part.Length < 3)
-                    {
-                        // Keep acronyms in uppercase when less than 3 chars
-                        result.Append(part);
-                        continue;
-                    }
-                    else
-                    {
-                        // Convert to PascalCase
-                        result.Append(char.ToUpper(part[0]));
-                        if (part.Length > 1)
-                        {
-                            result.Append(part[1..].ToLower());
-                        }
-                    }
-                }
-            }
-        }
-
-        return result.ToString();
-    }
-
-    private static string GetModelVersion(ModelEntity model)
-    {
-        // Try to get version from different sources
-        if (!string.IsNullOrEmpty(model.Properties?.AlphanumericVersion))
-        {
-            return model.Properties.AlphanumericVersion;
-        }
-
-        if (!string.IsNullOrEmpty(model.Version))
-        {
-            return model.Version;
-        }
-
-        if (model.Properties?.Version > 0)
-        {
-            return model.Properties.Version.ToString(CultureInfo.InvariantCulture);
-        }
-
-        return "1"; // Default version
-    }
-
-    private static string CleanDescription(string description)
-    {
-        if (string.IsNullOrEmpty(description))
-        {
-            return "AI model deployment";
-        }
-
-        // Clean up description for XML documentation
-        return description
-            .Replace("\n", " ")
-            .Replace("\r", " ")
-            .Replace("  ", " ")
-            .Trim();
-    }
-
-    private static string EscapeStringForCSharp(string value)
-    {
-        return value
-            .Replace("\\", "\\\\")
-            .Replace("\"", "\\\"");
-    }
-
-    private static bool IsVisible(string? invisibleUntil)
-    {
-        if (string.IsNullOrWhiteSpace(invisibleUntil))
-        {
-            return true; // No restriction
-        }
-        if (DateTime.TryParse(invisibleUntil, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dt))
-        {
-            return dt <= DateTime.UtcNow;
-        }
-        return true; // If parse fails, be permissive
-    }
-
-    [GeneratedRegex("([a-z0-9])([A-Z])")]
-    private static partial Regex LowerToUpper();
-
-    [GeneratedRegex("([a-zA-Z])([0-9])")]
-    private static partial Regex LetterToDigit();
 }
