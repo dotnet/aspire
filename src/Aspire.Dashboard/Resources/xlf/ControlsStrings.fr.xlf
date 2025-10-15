@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphAccessibleLabel">
         <source>Graph. For an accessible view please navigate to the Table tab</source>
-        <target state="translated">Graph. Si vous souhaitez obtenir un affichage accessible, veuillez accéder à l’onglet Tableau</target>
+        <target state="translated">Graphique. Si vous souhaitez obtenir un affichage accessible, veuillez accéder à l’onglet Tableau</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">Graph</target>
+        <target state="translated">Graphique</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">
@@ -284,7 +284,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="translated">Chargement en cours...</target>
+        <target state="translated">Chargement...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">

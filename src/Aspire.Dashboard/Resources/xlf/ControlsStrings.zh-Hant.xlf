@@ -94,12 +94,12 @@
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
         <source>Remove for resource</source>
-        <target state="translated">為資源移除</target>
+        <target state="translated">拿掉資源</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
         <source>Remove for {0}</source>
-        <target state="translated">為 {0} 移除</target>
+        <target state="translated">拿掉 {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSignalsButtonTitle">
@@ -634,7 +634,7 @@
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
-        <target state="translated">掛載類型</target>
+        <target state="translated">掛接類型</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumePathColumnHeader">
