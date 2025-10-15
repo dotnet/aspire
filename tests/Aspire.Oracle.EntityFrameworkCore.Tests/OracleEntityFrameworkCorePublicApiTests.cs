@@ -1,12 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.TestUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
+[OuterloopTest("Oracle EF Core tests require Oracle container and are slow")]
 public class OracleEntityFrameworkCorePublicApiTests
 {
     [Fact]
