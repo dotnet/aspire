@@ -108,4 +108,23 @@ public class DistributedApplicationOptionsTests
         // The name will either come from assembly metadata or the assembly name itself
         Assert.StartsWith(projectDirectory, builder.AppHostPath);
     }
+
+    [Fact]
+    public void ProjectName_WithExplicitProjectNameOverridesAllLogic()
+    {
+        // Verify that explicit ProjectName takes precedence over all other logic
+        // This is important to ensure users can always override behavior if needed
+        var projectDirectory = OperatingSystem.IsWindows() ? @"C:\projects\MyApp" : "/projects/MyApp";
+        var options = new DistributedApplicationOptions
+        {
+            ProjectDirectory = projectDirectory,
+            ProjectName = "ExplicitlySetName"
+        };
+
+        var builder = (DistributedApplicationBuilder)DistributedApplication.CreateBuilder(options);
+
+        // Verify explicit name is used
+        var expectedPath = Path.GetFullPath(Path.Join(projectDirectory, "ExplicitlySetName"));
+        Assert.Equal(expectedPath, builder.AppHostPath);
+    }
 }
