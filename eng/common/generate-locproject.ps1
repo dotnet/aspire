@@ -69,6 +69,12 @@ if ($macosHtmlEnFiles) {
 $xlfFiles = @()
 
 $allXlfFiles = Get-ChildItem -Recurse -Path "$SourcesDirectory\*\*.xlf"
+# Print out all found xlf files
+# TODO remove
+Write-Host "all xlf files"
+$allXlfFiles | ForEach-Object { Write-Host $_.FullName }
+
+Write-Host "end all xlf files"
 $langXlfFiles = @()
 if ($allXlfFiles) {
     $null = $allXlfFiles[0].FullName -Match "\.([\w-]+)\.xlf" # matches '[langcode].xlf'
