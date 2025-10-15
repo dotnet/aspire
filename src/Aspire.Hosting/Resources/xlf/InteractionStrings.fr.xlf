@@ -64,7 +64,7 @@
       </trans-unit>
       <trans-unit id="ParametersInputsMessagePublishMode">
         <source>Please provide values for the unresolved parameters.</source>
-        <target state="new">Please provide values for the unresolved parameters.</target>
+        <target state="translated">Veuillez fournir des valeurs pour les paramètres non résolus.</target>
         <note />
       </trans-unit>
       <trans-unit id="ParametersInputsParameterPlaceholder">
