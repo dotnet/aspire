@@ -28,6 +28,8 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerAttribute.IsSupported)
         {
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Starting Oracle container initialization..."));
+
             Container = new OracleBuilder()
                 .WithPortBinding(1521, true)
                 .WithHostname("localhost")
@@ -37,7 +39,46 @@ public sealed class OracleContainerFixture : IAsyncLifetime
                     .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
                 ).Build();
 
-            await Container.StartAsync();
+            // Add timeout to fail faster and provide better diagnostics
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+
+            try
+            {
+                _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Starting Oracle container with image: {ComponentTestConstants.AspireTestContainerRegistry}/gvenzl/oracle-xe:21.3.0-slim-faststart"));
+                await Container.StartAsync(cts.Token);
+                _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Oracle container started successfully"));
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Oracle container failed to start within 3 minutes timeout"));
+
+                // Attempt to get container logs for diagnostics
+                try
+                {
+                    var (stdout, stderr) = await Container.GetLogsAsync(ct: CancellationToken.None);
+                    _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Container stdout logs:\n{stdout}"));
+                    if (!string.IsNullOrEmpty(stderr))
+                    {
+                        _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Container stderr logs:\n{stderr}"));
+                    }
+                }
+                catch (Exception logEx)
+                {
+                    _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Failed to retrieve container logs: {logEx.Message}"));
+                }
+
+                throw new InvalidOperationException(
+                    "Oracle container failed to start within the 3-minute timeout. " +
+                    "The container did not log the expected startup completion message: 'Completed: ALTER DATABASE OPEN'. " +
+                    "This may indicate Docker resource constraints, networking issues, or problems with the container image. " +
+                    "Check the container logs above for more details.",
+                    new TimeoutException("Container startup timed out after 3 minutes"));
+            }
+            catch (Exception ex)
+            {
+                _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Oracle container failed to start: {ex.Message}"));
+                throw;
+            }
         }
     }
 
