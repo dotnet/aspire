@@ -600,4 +600,149 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var uvEnvironmentResource = appModel.Resources.OfType<PythonUvEnvironmentResource>().Single();
         Assert.Equal("pythonProject-uv-environment", uvEnvironmentResource.Name);
     }
+
+    [Fact]
+    public void AddPythonScript_CreatesResourceWithScriptEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonBuilder = builder.AddPythonScript("python-script", tempDir.Path, "main.py");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<PythonAppResource>());
+        Assert.Equal("python-script", resource.Name);
+
+        var entrypointAnnotation = resource.Annotations.OfType<PythonEntrypointAnnotation>().Single();
+        Assert.Equal(EntrypointType.Script, entrypointAnnotation.Type);
+        Assert.Equal("main.py", entrypointAnnotation.Entrypoint);
+    }
+
+    [Fact]
+    public void AddPythonModule_CreatesResourceWithModuleEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonBuilder = builder.AddPythonModule("flask-app", tempDir.Path, "flask");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<PythonAppResource>());
+        Assert.Equal("flask-app", resource.Name);
+
+        var entrypointAnnotation = resource.Annotations.OfType<PythonEntrypointAnnotation>().Single();
+        Assert.Equal(EntrypointType.Module, entrypointAnnotation.Type);
+        Assert.Equal("flask", entrypointAnnotation.Entrypoint);
+    }
+
+    [Fact]
+    public void AddPythonExecutable_CreatesResourceWithExecutableEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonBuilder = builder.AddPythonExecutable("pytest", tempDir.Path, "pytest");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<PythonAppResource>());
+        Assert.Equal("pytest", resource.Name);
+
+        var entrypointAnnotation = resource.Annotations.OfType<PythonEntrypointAnnotation>().Single();
+        Assert.Equal(EntrypointType.Executable, entrypointAnnotation.Type);
+        Assert.Equal("pytest", entrypointAnnotation.Entrypoint);
+    }
+
+    [Fact]
+    public void AddPythonModule_WithArgs_AddsArgumentsCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonBuilder = builder.AddPythonModule("flask-app", tempDir.Path, "flask")
+            .WithArgs("run", "--debug", "--host=0.0.0.0");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<PythonAppResource>());
+        
+        // Verify the arguments are added (note: "-m flask" is added automatically, then our args)
+        var argsCallback = resource.Annotations.OfType<CommandLineArgsCallbackAnnotation>().ToList();
+        Assert.NotEmpty(argsCallback);
+    }
+
+    [Fact]
+    public void WithEntrypoint_ChangesEntrypointTypeAndValue()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        // Start with a script
+        var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py")
+            .WithArgs("arg1", "arg2");
+
+        // Change to a module
+        pythonBuilder.WithEntrypoint(EntrypointType.Module, "uvicorn")
+            .WithArgs("main:app", "--reload");
+
+        var app = builder.Build();
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var resource = Assert.Single(appModel.Resources.OfType<PythonAppResource>());
+        
+        // Verify the entrypoint was updated
+        var entrypointAnnotation = resource.Annotations.OfType<PythonEntrypointAnnotation>().Single();
+        Assert.Equal(EntrypointType.Module, entrypointAnnotation.Type);
+        Assert.Equal("uvicorn", entrypointAnnotation.Entrypoint);
+    }
+
+    [Fact]
+    public void WithEntrypoint_UpdatesCommandForExecutableType()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        // Start with a script
+        var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py");
+
+        // Get the initial command (should be python executable)
+        var app1 = builder.Build();
+        var appModel1 = app1.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource1 = appModel1.Resources.OfType<PythonAppResource>().Single();
+        var initialCommand = resource1.Command;
+
+        // Change to an executable
+        pythonBuilder.WithEntrypoint(EntrypointType.Executable, "pytest");
+
+        var app2 = builder.Build();
+        var appModel2 = app2.Services.GetRequiredService<DistributedApplicationModel>();
+        var resource2 = appModel2.Resources.OfType<PythonAppResource>().Single();
+        var newCommand = resource2.Command;
+
+        // Commands should be different - one is python, one is pytest
+        Assert.NotEqual(initialCommand, newCommand);
+        Assert.Contains("pytest", newCommand);
+    }
+
+    [Fact]
+    public void WithEntrypoint_ThrowsWhenVirtualEnvironmentNotFound()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        
+        // Create a resource without going through AddPythonApp (missing annotations)
+        var resource = new PythonAppResource("test", "python", "/tmp");
+        var resourceBuilder = builder.CreateResourceBuilder(resource);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            resourceBuilder.WithEntrypoint(EntrypointType.Module, "flask"));
+
+        Assert.Contains("Python environment annotation", exception.Message);
+    }
 }
+

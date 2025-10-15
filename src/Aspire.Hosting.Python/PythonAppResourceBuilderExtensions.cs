@@ -25,39 +25,127 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
-    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
-    /// Use <c>WithArgs</c> to pass arguments to the script.
+    /// This method is obsolete. Use one of the more specific methods instead:
     /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
+    /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
+    /// </list>
     /// <para>
-    /// The virtual environment must be initialized before running the app. To setup a virtual environment use the
-    /// <c>python -m venv .venv</c> command in the app directory.
+    /// These new methods provide better clarity about how the Python application will be executed.
+    /// You can also use <see cref="WithEntrypoint"/> to change the entrypoint type after creation.
     /// </para>
-    /// <para>
-    /// To restore dependencies in the virtual environment first activate the environment by executing the activation
-    /// script and then use the <c>pip install -r requirements.txt</c> command to restore dependencies.
-    /// </para>
-    /// <para>
-    /// To receive traces, logs, and metrics from the python app in the dashboard, the app must be instrumented with OpenTelemetry.
-    /// You can instrument your app by adding the <c>opentelemetry-distro</c>, and <c>opentelemetry-exporter-otlp</c> to
-    /// your Python app.
-    /// </para>
+    /// </remarks>
     /// <example>
-    /// Add a python app to the application model:
+    /// Replace with <see cref="AddPythonScript"/>:
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddPythonApp("python-app", "../python-app", "main.py")
+    /// builder.AddPythonScript("python-app", "../python-app", "main.py")
     ///        .WithArgs("arg1", "arg2");
     ///
     /// builder.Build().Run();
     /// </code>
     /// </example>
-    /// </remarks>
+    [Obsolete("Use AddPythonScript, AddPythonModule, or AddPythonExecutable instead for more explicit control over how the Python application is executed.")]
     [OverloadResolutionPriority(1)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv");
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv");
+
+    /// <summary>
+    /// Adds a Python script to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the python script.</param>
+    /// <param name="scriptPath">The path to the script relative to the app directory to run.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method executes a Python script directly using <c>python script.py</c>.
+    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <c>WithArgs</c> to pass arguments to the script.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a FastAPI Python script to the application model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPythonScript("fastapi-app", "../api", "main.py")
+    ///        .WithArgs("arg1", "arg2");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<PythonAppResource> AddPythonScript(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv");
+
+    /// <summary>
+    /// Adds a Python module to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the python application.</param>
+    /// <param name="moduleName">The name of the Python module to run (e.g., "flask", "uvicorn").</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method runs a Python module using <c>python -m &lt;module&gt;</c>.
+    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <c>WithArgs</c> to pass arguments to the module.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a Flask module to the application model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPythonModule("flask-dev", "../flaskapp", "flask")
+    ///        .WithArgs("run", "--debug", "--host=0.0.0.0");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<PythonAppResource> AddPythonModule(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, ".venv");
+
+    /// <summary>
+    /// Adds a Python executable to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="appDirectory">The path to the directory containing the python application.</param>
+    /// <param name="executableName">The name of the executable in the virtual environment (e.g., "pytest", "uvicorn", "flask").</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method runs an executable from the virtual environment's bin directory.
+    /// By default, the virtual environment folder is expected to be named <c>.venv</c> and located in the app directory.
+    /// Use <see cref="WithVirtualEnvironment(IResourceBuilder{PythonAppResource}, string)"/> to specify a different virtual environment path.
+    /// Use <c>WithArgs</c> to pass arguments to the executable.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a pytest executable to the application model:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddPythonExecutable("pytest", "../api", "pytest")
+    ///        .WithArgs("-q");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<PythonAppResource> AddPythonExecutable(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string executableName)
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, ".venv");
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -70,20 +158,30 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithArgs</c>:
+    /// This overload is obsolete. Use one of the more specific methods instead:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
+    /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
+    /// </list>
+    /// <para>
+    /// Chain with <c>WithArgs</c> to pass arguments:
+    /// </para>
+    /// <example>
     /// <code lang="csharp">
-    /// builder.AddPythonApp("name", "dir", "script.py")
+    /// builder.AddPythonScript("name", "dir", "script.py")
     ///        .WithArgs("arg1", "arg2");
     /// </code>
-    /// </para>
+    /// </example>
     /// </remarks>
-    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithArgs(...) instead.")]
+    [Obsolete("Use AddPythonScript, AddPythonModule, or AddPythonExecutable and chain with .WithArgs(...) instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
     {
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
-        return AddPythonAppCore(builder, name, appDirectory, scriptPath, ".venv")
+        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv")
             .WithArgs(scriptArgs);
     }
 
@@ -99,33 +197,43 @@ public static class PythonAppResourceBuilderExtensions
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// This overload is obsolete. Use the overload without parameters and chain with <c>WithVirtualEnvironment</c> and <c>WithArgs</c>:
+    /// This overload is obsolete. Use one of the more specific methods instead:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><see cref="AddPythonScript"/> - To run a Python script file</description></item>
+    /// <item><description><see cref="AddPythonModule"/> - To run a Python module via <c>python -m</c></description></item>
+    /// <item><description><see cref="AddPythonExecutable"/> - To run an executable from the virtual environment</description></item>
+    /// </list>
+    /// <para>
+    /// Chain with <see cref="WithVirtualEnvironment"/> and <c>WithArgs</c>:
+    /// </para>
+    /// <example>
     /// <code lang="csharp">
-    /// builder.AddPythonApp("name", "dir", "script.py")
+    /// builder.AddPythonScript("name", "dir", "script.py")
     ///        .WithVirtualEnvironment("myenv")
     ///        .WithArgs("arg1", "arg2");
     /// </code>
-    /// </para>
+    /// </example>
     /// </remarks>
-    [Obsolete("Use AddPythonApp(builder, name, appDirectory, scriptPath) and chain with .WithVirtualEnvironment(...).WithArgs(...) instead.")]
+    [Obsolete("Use AddPythonScript, AddPythonModule, or AddPythonExecutable and chain with .WithVirtualEnvironment(...).WithArgs(...) instead.")]
     [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
-        return AddPythonAppCore(builder, name, appDirectory, scriptPath, virtualEnvironmentPath)
+        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
             .WithArgs(scriptArgs);
     }
 
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
-        IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath,
-        string virtualEnvironmentPath)
+        IDistributedApplicationBuilder builder, string name, string appDirectory, EntrypointType entrypointType,
+        string entrypoint, string virtualEnvironmentPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(appDirectory);
-        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
+        ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
         appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
@@ -133,15 +241,59 @@ public static class PythonAppResourceBuilderExtensions
             ? virtualEnvironmentPath
             : Path.Join(appDirectory, virtualEnvironmentPath));
 
-        var pythonExecutable = virtualEnvironment.GetExecutable("python");
+        // Determine the command based on entrypoint type
+        string command = entrypointType switch
+        {
+            EntrypointType.Executable => virtualEnvironment.GetExecutable(entrypoint),
+            EntrypointType.Script => virtualEnvironment.GetExecutable("python"),
+            EntrypointType.Module => virtualEnvironment.GetExecutable("python"),
+            _ => throw new ArgumentOutOfRangeException(nameof(entrypointType), entrypointType, "Invalid entrypoint type.")
+        };
 
-        var resource = new PythonAppResource(name, pythonExecutable, appDirectory);
+        var resource = new PythonAppResource(name, command, appDirectory);
 
         var resourceBuilder = builder
             .AddResource(resource)
-            .WithArgs(context =>
+            .WithArgs(static context =>
         {
-            context.Args.Add(scriptPath);
+            if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var existingAnnotation))
+            {
+                // If the entrypoint annotation already exists, we are likely being called from WithVSCodeDebugSupport.
+                // In this case, we should not modify the args as they have already been set up.
+                return;
+            }
+
+            if (!context.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
+                !pythonEnvironmentAnnotation.Uv)
+            {
+                // If not using UV, no special args needed
+                return;
+            }
+
+            var entrypointType = existingAnnotation.Type;
+            var entrypoint = existingAnnotation.Entrypoint;
+
+            // Add entrypoint-specific arguments
+            switch (entrypointType)
+            {
+                case EntrypointType.Module:
+                    context.Args.Add("-m");
+                    context.Args.Add(entrypoint);
+                    break;
+                case EntrypointType.Script:
+                    context.Args.Add(entrypoint);
+                    break;
+                case EntrypointType.Executable:
+                    // Executable runs directly, no additional args needed for entrypoint
+                    break;
+            }
+        });
+
+        // Store the entrypoint annotation
+        resourceBuilder.WithAnnotation(new PythonEntrypointAnnotation
+        {
+            Type = entrypointType,
+            Entrypoint = entrypoint
         });
 
         resourceBuilder.WithPythonEnvironment(env =>
@@ -181,10 +333,35 @@ public static class PythonAppResourceBuilderExtensions
             return Task.CompletedTask;
         });
 
-        resourceBuilder.WithVSCodeDebugSupport(mode => new PythonLaunchConfiguration { ProgramPath = Path.Join(appDirectory, scriptPath), Mode = mode }, "ms-python.python", ctx =>
+        // VS Code debug support - only applicable for Script and Module types
+        if (entrypointType == EntrypointType.Script || entrypointType == EntrypointType.Module)
         {
-            ctx.Args.RemoveAt(0); // The first argument when running from command line is the entrypoint file.
-        });
+            var programPath = entrypointType == EntrypointType.Script
+                ? Path.Join(appDirectory, entrypoint)
+                : null; // For modules, we'll use the module name
+
+            resourceBuilder.WithVSCodeDebugSupport(
+                mode => new PythonLaunchConfiguration
+                {
+                    ProgramPath = programPath,
+                    Module = entrypointType == EntrypointType.Module ? entrypoint : null,
+                    Mode = mode
+                },
+                "ms-python.python",
+                ctx =>
+                {
+                    // Remove entrypoint-specific arguments that VS Code will handle
+                    if (entrypointType == EntrypointType.Module && ctx.Args.Count >= 2)
+                    {
+                        ctx.Args.RemoveAt(0); // Remove "-m"
+                        ctx.Args.RemoveAt(0); // Remove module name
+                    }
+                    else if (entrypointType == EntrypointType.Script && ctx.Args.Count >= 1)
+                    {
+                        ctx.Args.RemoveAt(0); // Remove script path
+                    }
+                });
+        }
 
         resourceBuilder.PublishAsDockerFile(c =>
         {
@@ -193,8 +370,6 @@ public static class PythonAppResourceBuilderExtensions
             {
                 return;
             }
-
-            var entry = Path.GetFileName(scriptPath);
 
             c.WithDockerfileBuilder(appDirectory,
                 context =>
@@ -205,6 +380,24 @@ public static class PythonAppResourceBuilderExtensions
                         // Use the default Dockerfile if not using UV
                         return;
                     }
+
+                    if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
+                    {
+                        // No entrypoint annotation found, cannot generate Dockerfile
+                        return;
+                    }
+
+                    var entrypointType = entrypointAnnotation.Type;
+                    var entrypoint = entrypointAnnotation.Entrypoint;
+
+                    // Determine entry command for Dockerfile
+                    string[] entryCommand = entrypointType switch
+                    {
+                        EntrypointType.Script => ["python", entrypoint],
+                        EntrypointType.Module => ["python", "-m", entrypoint],
+                        EntrypointType.Executable => [entrypoint],
+                        _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
+                    };
 
                     var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
 
@@ -237,7 +430,7 @@ public static class PythonAppResourceBuilderExtensions
                             "uv sync --locked --no-dev",
                             "type=cache,target=/root/.cache/uv");
 
-                    context.Builder
+                    var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
                         .EmptyLine()
                         .Comment("------------------------------")
@@ -261,9 +454,21 @@ public static class PythonAppResourceBuilderExtensions
                         .Comment("Set working directory")
                         .WorkDir("/app")
                         .EmptyLine()
-                        .Comment("Run the application")
-                        .Entrypoint(["python"])
-                        .Cmd([entry]);
+                        .Comment("Run the application");
+
+                    // Set the appropriate entrypoint and command based on entrypoint type
+                    switch (entrypointType)
+                    {
+                        case EntrypointType.Script:
+                            runtimeBuilder.Entrypoint(["python"]).Cmd([entrypoint]);
+                            break;
+                        case EntrypointType.Module:
+                            runtimeBuilder.Entrypoint(["python", "-m"]).Cmd([entrypoint]);
+                            break;
+                        case EntrypointType.Executable:
+                            runtimeBuilder.Entrypoint([entrypoint]);
+                            break;
+                    }
                 });
         });
 
@@ -324,12 +529,90 @@ public static class PythonAppResourceBuilderExtensions
             ? virtualEnvironmentPath
             : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
 
-        // Update the command to use the new virtual environment
-        builder.WithCommand(virtualEnvironment.GetExecutable("python"));
+        // Get the entrypoint annotation to determine how to update the command
+        if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
+        {
+            throw new InvalidOperationException("Cannot update virtual environment: Python entrypoint annotation not found.");
+        }
+
+        // Update the command based on entrypoint type
+        string command = entrypointAnnotation.Type switch
+        {
+            EntrypointType.Executable => virtualEnvironment.GetExecutable(entrypointAnnotation.Entrypoint),
+            EntrypointType.Script or EntrypointType.Module => virtualEnvironment.GetExecutable("python"),
+            _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointAnnotation.Type}")
+        };
+
+        builder.WithCommand(command);
         builder.WithPythonEnvironment(env =>
         {
             env.VirtualEnvironment = virtualEnvironment;
         });
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures the entrypoint for the Python application.
+    /// </summary>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="entrypointType">The type of entrypoint (Script, Module, or Executable).</param>
+    /// <param name="entrypoint">The entrypoint value (script path, module name, or executable name).</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/> for method chaining.</returns>
+    /// <remarks>
+    /// <para>
+    /// This method allows you to change the entrypoint configuration of a Python application after it has been created.
+    /// The command and arguments will be updated based on the specified entrypoint type:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description><b>Script</b>: Runs as <c>python &lt;scriptPath&gt;</c></description></item>
+    /// <item><description><b>Module</b>: Runs as <c>python -m &lt;moduleName&gt;</c></description></item>
+    /// <item><description><b>Executable</b>: Runs the executable directly from the virtual environment</description></item>
+    /// </list>
+    /// <para>
+    /// <b>Important:</b> This method resets all command-line arguments. If you need to add arguments after changing
+    /// the entrypoint, call <c>WithArgs</c> after this method.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Change a Python app from running a script to running a module:
+    /// <code lang="csharp">
+    /// var python = builder.AddPythonScript("api", "../python-api", "main.py")
+    ///     .WithEntrypoint(EntrypointType.Module, "uvicorn")
+    ///     .WithArgs("main:app", "--reload");
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<PythonAppResource> WithEntrypoint(
+        this IResourceBuilder<PythonAppResource> builder, EntrypointType entrypointType, string entrypoint)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(entrypoint);
+
+        // Get or create the virtual environment from the annotation
+        if (!builder.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+            pythonEnv.VirtualEnvironment is null)
+        {
+            throw new InvalidOperationException("Cannot set entrypoint: Python environment annotation with virtual environment not found.");
+        }
+
+        var virtualEnvironment = pythonEnv.VirtualEnvironment;
+
+        // Determine the new command based on entrypoint type
+        string command = entrypointType switch
+        {
+            EntrypointType.Executable => virtualEnvironment.GetExecutable(entrypoint),
+            EntrypointType.Script or EntrypointType.Module => virtualEnvironment.GetExecutable("python"),
+            _ => throw new ArgumentOutOfRangeException(nameof(entrypointType), entrypointType, "Invalid entrypoint type.")
+        };
+
+        // Update the command inline
+        builder.WithCommand(command);
+        builder.WithAnnotation(new PythonEntrypointAnnotation
+        {
+            Type = entrypointType,
+            Entrypoint = entrypoint
+        },
+        ResourceAnnotationMutationBehavior.Replace);
 
         return builder;
     }
