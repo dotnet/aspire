@@ -277,16 +277,33 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     /// <summary>
     /// Builds the dependency graph for the pipeline steps.
     /// </summary>
+    /// <remarks>
+    /// This method constructs a directed acyclic graph (DAG) representing step dependencies and validates
+    /// that no circular dependencies exist. It uses Kahn's algorithm for topological sorting and cycle detection.
+    /// 
+    /// Example: For steps A → B → C (where → means "depends on"), the method produces:
+    /// - indegrees: [0, 1, 1] (A has 0 dependencies, B depends on 1 step, C depends on 1 step)
+    /// - dependents: {"A" → [1], "B" → [2], "C" → []} (A is required by step at index 1, etc.)
+    /// 
+    /// Diamond dependency example: A → B, A → C, B → D, C → D produces:
+    /// - indegrees: [0, 1, 1, 2] (D has 2 dependencies: both B and C)
+    /// - dependents: {"A" → [1, 2], "B" → [3], "C" → [3], "D" → []}
+    /// </remarks>
     /// <returns>A tuple of (indegrees array, dependents dictionary)</returns>
     private static (int[] indegrees, Dictionary<string, List<int>> dependents) BuildDependencyGraph(
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName)
     {
+        // Arrays/dictionaries to track the dependency graph structure
+        // - indegrees[i]: number of dependencies for step i (in-degree count)
+        // - dependents["StepName"]: list of step indices that depend on "StepName"
+        // - stepIndices["StepName"]: index of step in the steps list
         var indegrees = new int[steps.Count];
         var dependents = new Dictionary<string, List<int>>(steps.Count);
         var stepIndices = new Dictionary<string, int>(steps.Count);
 
-        // Build step index mapping and initialize dependents
+        // Build step index mapping and initialize dependents dictionary
+        // Example: ["A", "B", "C"] → stepIndices: {"A"→0, "B"→1, "C"→2}
         for (var i = 0; i < steps.Count; i++)
         {
             stepIndices[steps[i].Name] = i;
@@ -294,6 +311,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // Process all the `RequiredBy` relationships and normalize to DependsOn
+        // Example: If step "A" has RequiredBy="B", then "B" gets a dependency on "A"
+        // This converts: A.RequiredBy("B") → B.DependsOn("A")
         foreach (var step in steps)
         {
             foreach (var requiredByStep in step.RequiredBySteps)
@@ -304,12 +323,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
-                // Add dependency if not already present (avoid Contains check on List)
+                // Add the dependency relationship
                 requiredByStepObj.DependsOnSteps.Add(step.Name);
             }
         }
 
         // Build the graph based on DependsOn relationships
+        // For each dependency, update:
+        // 1. The dependents dictionary (reverse edges for efficient traversal)
+        // 2. The indegrees array (count incoming edges)
+        // Example: If B depends on A, then dependents["A"] includes B's index, and indegrees[B]++
         for (var i = 0; i < steps.Count; i++)
         {
             var step = steps[i];
@@ -327,11 +350,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // Cycle detection using Kahn's algorithm (topological sort)
-        // Track processed steps to identify cycles if they exist
+        // Kahn's algorithm: repeatedly remove nodes with in-degree 0
+        // If all nodes are removed, the graph is a DAG (no cycles)
+        // If some nodes remain, they form a cycle
         var queue = new Queue<int>(steps.Count);
         var processedSteps = new HashSet<int>(steps.Count);
 
-        // Initialize queue with all zero in-degree steps
+        // Initialize queue with all zero in-degree steps (steps with no dependencies)
+        // Example: In A → B → C, only A has in-degree 0 initially
         for (var i = 0; i < steps.Count; i++)
         {
             if (indegrees[i] == 0)
@@ -341,6 +367,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // Process steps in topological order
+        // Each iteration removes a step and decrements the in-degree of its dependents
         while (queue.Count > 0)
         {
             var stepIndex = queue.Dequeue();
@@ -351,8 +378,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             {
                 foreach (var depIndex in deps)
                 {
+                    // Decrement in-degree and enqueue if it becomes 0
                     // Note: We're modifying indegrees during cycle detection
-                    // This is safe because we only use it for scheduling after this method returns
+                    // This is safe because we rebuild it before returning
                     if (--indegrees[depIndex] == 0)
                     {
                         queue.Enqueue(depIndex);
@@ -362,6 +390,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // If not all steps were processed, there's a cycle
+        // Example: A → B → C → A would leave all three steps unprocessed
         if (processedSteps.Count != steps.Count)
         {
             var stepsInCycle = new List<string>(steps.Count - processedSteps.Count);
@@ -378,6 +407,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // Rebuild indegrees array since we modified it during cycle detection
+        // Simply count the dependencies for each step
         Array.Clear(indegrees);
         for (var i = 0; i < steps.Count; i++)
         {
