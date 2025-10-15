@@ -14,6 +14,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class PythonAppResourceBuilderExtensions
 {
+    private const string DefaultVirtualEnvFolder = ".venv";
+
     /// <summary>
     /// Adds a python application to the application model.
     /// </summary>
@@ -49,9 +51,10 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     [Obsolete("Use AddPythonScript, AddPythonModule, or AddPythonExecutable instead for more explicit control over how the Python application is executed.")]
     [OverloadResolutionPriority(1)]
+    [EditorBrowsable(EditorBrowsableState.Never)]
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv");
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
 
     /// <summary>
     /// Adds a Python script to the application model.
@@ -82,7 +85,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonScript(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string scriptPath)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv");
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder);
 
     /// <summary>
     /// Adds a Python module to the application model.
@@ -113,7 +116,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonModule(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, ".venv");
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Module, moduleName, DefaultVirtualEnvFolder);
 
     /// <summary>
     /// Adds a Python executable to the application model.
@@ -144,7 +147,7 @@ public static class PythonAppResourceBuilderExtensions
     /// </example>
     public static IResourceBuilder<PythonAppResource> AddPythonExecutable(
         this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string executableName)
-        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, ".venv");
+        => AddPythonAppCore(builder, name, appDirectory, EntrypointType.Executable, executableName, DefaultVirtualEnvFolder);
 
     /// <summary>
     /// Adds a python application with a virtual environment to the application model.
@@ -181,7 +184,7 @@ public static class PythonAppResourceBuilderExtensions
     {
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
-        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv")
+        return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, DefaultVirtualEnvFolder)
             .WithArgs(scriptArgs);
     }
 
@@ -237,46 +240,21 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        // python will be replaced with the resolved entrypoint based on the venv
-        var resource = new PythonAppResource(name, "python", appDirectory);
+        // python will be replaced with the resolved entrypoint based on the virtualEnvironmentPath
+        var resource = new PythonAppResource(name, "python", Path.GetFullPath(appDirectory, builder.AppHostDirectory));
 
         var resourceBuilder = builder
             .AddResource(resource)
-            // We're not using WithEntrypoint here since it relies on the
-            // WithVirtualEnvironment being set. We bootstrap it here.
+            // Order matters, we need to bootstrap the entrypoint before setting the entrypoint
             .WithAnnotation(new PythonEntrypointAnnotation
             {
                 Type = entrypointType,
                 Entrypoint = entrypoint
             })
+            // This will resolve the correct python executable based on the virtual environment
             .WithVirtualEnvironment(virtualEnvironmentPath)
-            .WithArgs(static context =>
-        {
-            if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var existingAnnotation))
-            {
-                // If the entrypoint annotation already exists, we are likely being called from WithVSCodeDebugSupport.
-                // In this case, we should not modify the args as they have already been set up.
-                return;
-            }
-
-            var entrypointType = existingAnnotation.Type;
-            var entrypoint = existingAnnotation.Entrypoint;
-
-            // Add entrypoint-specific arguments
-            switch (entrypointType)
-            {
-                case EntrypointType.Module:
-                    context.Args.Add("-m");
-                    context.Args.Add(entrypoint);
-                    break;
-                case EntrypointType.Script:
-                    context.Args.Add(entrypoint);
-                    break;
-                case EntrypointType.Executable:
-                    // Executable runs directly, no additional args needed for entrypoint
-                    break;
-            }
-        });
+            // This will set up the the entrypoint based on the PythonEntrypointAnnotation
+            .WithEntrypoint(entrypointType, entrypoint);
 
         resourceBuilder.WithIconName("CodePyRectangle");
 
@@ -315,7 +293,7 @@ public static class PythonAppResourceBuilderExtensions
         if (entrypointType is EntrypointType.Script or EntrypointType.Module)
         {
             var programPath = entrypointType == EntrypointType.Script
-                ? Path.GetFullPath(entrypoint, appDirectory)
+                ? Path.GetFullPath(entrypoint, resource.WorkingDirectory)
                 : null; // For modules, we'll use the module name
 
             resourceBuilder.WithVSCodeDebugSupport(
@@ -361,12 +339,12 @@ public static class PythonAppResourceBuilderExtensions
         resourceBuilder.PublishAsDockerFile(c =>
         {
             // Only generate a Dockerfile if one doesn't already exist in the app directory
-            if (File.Exists(Path.Combine(appDirectory, "Dockerfile")))
+            if (File.Exists(Path.Combine(resource.WorkingDirectory, "Dockerfile")))
             {
                 return;
             }
 
-            c.WithDockerfileBuilder(appDirectory,
+            c.WithDockerfileBuilder(resource.WorkingDirectory,
                 context =>
                 {
                     if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
@@ -608,6 +586,35 @@ public static class PythonAppResourceBuilderExtensions
             Entrypoint = entrypoint
         },
         ResourceAnnotationMutationBehavior.Replace);
+
+        builder.WithArgs(static context =>
+        {
+            if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var existingAnnotation))
+            {
+                return;
+            }
+
+            // Clear existing args since we're replacing the entrypoint
+            context.Args.Clear();
+
+            var entrypointType = existingAnnotation.Type;
+            var entrypoint = existingAnnotation.Entrypoint;
+
+            // Add entrypoint-specific arguments
+            switch (entrypointType)
+            {
+                case EntrypointType.Module:
+                    context.Args.Add("-m");
+                    context.Args.Add(entrypoint);
+                    break;
+                case EntrypointType.Script:
+                    context.Args.Add(entrypoint);
+                    break;
+                case EntrypointType.Executable:
+                    // Executable runs directly, no additional args needed for entrypoint
+                    break;
+            }
+        });
 
         return builder;
     }
