@@ -2,7 +2,9 @@ name: 'Cache .NET SDK for Arcade'
 description: |
   Aggressively cache the .NET SDK in the .dotnet directory using actions/cache@v4.
 
-  This action caches the .dotnet directory and only runs the restore script on cache misses.
+  This action caches the .dotnet directory and only runs SDK installation on cache misses.
+  It uses a minimal empty project file with Arcade's build infrastructure to trigger SDK
+  installation without building any actual code.
 
   Why we can't use actions/setup-dotnet:
   The Aspire repository has complex requirements in global.json that include:
@@ -13,8 +15,8 @@ description: |
 
   The actions/setup-dotnet action doesn't support these advanced global.json features,
   particularly the "paths" array and variable substitution in the "runtimes" section.
-  Instead, we use the repository's restore scripts which properly handle these requirements
-  and install SDKs to the local .dotnet directory.
+  Instead, we use the repository's Arcade build infrastructure (eng/build.ps1 or build.sh)
+  which properly handles these requirements and installs SDKs to the local .dotnet directory.
 
 inputs:
   key-prefix:

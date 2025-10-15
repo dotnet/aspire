@@ -4,7 +4,7 @@ A composite GitHub Action for aggressively caching the `.dotnet` directory used 
 
 ## Overview
 
-This action caches the `.dotnet` directory using `actions/cache@v4` and only runs the restore script on cache misses. This significantly speeds up CI/CD workflows by avoiding redundant SDK installations. The restore script is run with parameters to skip building managed/native code and extensions, focusing only on SDK restoration.
+This action caches the `.dotnet` directory using `actions/cache@v4` and only runs the build script for SDK installation on cache misses. This significantly speeds up CI/CD workflows by avoiding redundant SDK installations. The action uses a minimal empty project file with the `-restore` flag to trigger only SDK installation via Arcade, without building any actual code.
 
 ## Why Not Use `actions/setup-dotnet`?
 
@@ -15,7 +15,7 @@ The Aspire repository has complex requirements in `global.json` that `actions/se
 - **Architecture-specific runtimes**: Defines separate x64 and arm64 runtime versions
 - **Custom error messages**: Provides repository-specific guidance when SDK is missing
 
-Instead, this action uses the repository's `restore.sh` or `restore.cmd` scripts which properly handle these advanced features.
+Instead, this action uses the repository's Arcade build infrastructure (`eng/build.ps1` or `build.sh`) with a minimal empty project file to trigger SDK installation through the standard Arcade restore mechanism.
 
 ## Usage
 
@@ -27,10 +27,18 @@ steps:
 
   - name: Cache .NET SDK
     uses: ./.github/actions/cache-dotnet-sdk-for-arcade
+```
+
+### With Custom Key Prefix
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+
+  - name: Cache .NET SDK
+    uses: ./.github/actions/cache-dotnet-sdk-for-arcade
     with:
-      cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
-      restore-keys: |
-        dotnet-sdk-${{ runner.os }}-
+      key-prefix: custom-dotnet-sdk
 ```
 
 ### With Cache Hit Detection
@@ -42,17 +50,13 @@ steps:
   - name: Cache .NET SDK
     id: cache-sdk
     uses: ./.github/actions/cache-dotnet-sdk-for-arcade
-    with:
-      cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
-      restore-keys: |
-        dotnet-sdk-${{ runner.os }}-
 
   - name: Check cache status
     run: |
       if [ "${{ steps.cache-sdk.outputs.cache-hit }}" == "true" ]; then
         echo "SDK restored from cache"
       else
-        echo "SDK restored from scratch"
+        echo "SDK installed from scratch"
       fi
 ```
 
@@ -60,8 +64,7 @@ steps:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `cache-key` | Yes | - | Primary cache key for the `.dotnet` directory |
-| `restore-keys` | No | `''` | Ordered list of prefix-matched keys for restoring stale cache |
+| `key-prefix` | No | `dotnet-sdk` | Prefix for the cache key. The full key is automatically constructed as `{key-prefix}-{OS}-{arch}-{global.json-hash}` |
 
 ## Outputs
 
@@ -69,32 +72,38 @@ steps:
 |--------|-------------|
 | `cache-hit` | Boolean indicating if an exact cache match was found for `cache-key` |
 
-## Cache Key Recommendations
+## Cache Key Strategy
 
-For optimal cache performance, include:
+The action automatically constructs cache keys with the following components:
 
-1. **Operating system**: `${{ runner.os }}` - Different OSes need different SDKs
-2. **global.json hash**: `${{ hashFiles('global.json') }}` - Changes when SDK version changes
-3. **Architecture**: For multi-arch builds, include `${{ runner.arch }}`
+1. **key-prefix**: User-provided or default `dotnet-sdk`
+2. **Operating system**: `${{ runner.os }}` - Different OSes need different SDKs
+3. **Architecture**: `${{ runner.arch }}` - x64 vs arm64 require different binaries
+4. **global.json hash**: `${{ hashFiles('global.json') }}` - Changes when SDK version changes
 
-### Example Cache Keys
+The full cache key format is: `{key-prefix}-{OS}-{arch}-{hash}`
+
+### Example: Using Custom Key Prefix
 
 ```yaml
-# Basic (OS + global.json)
-cache-key: dotnet-sdk-${{ runner.os }}-${{ hashFiles('global.json') }}
+# For workflow-specific caching
+- name: Cache .NET SDK
+  uses: ./.github/actions/cache-dotnet-sdk-for-arcade
+  with:
+    key-prefix: build-workflow-dotnet-sdk
 
-# With architecture
-cache-key: dotnet-sdk-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json') }}
-
-# With workflow name (for workflow-specific caches)
-cache-key: dotnet-sdk-${{ github.workflow }}-${{ runner.os }}-${{ hashFiles('global.json') }}
+# Results in key like: build-workflow-dotnet-sdk-Linux-X64-a1b2c3d4
 ```
 
 ## How It Works
 
-1. **Cache Lookup**: Attempts to restore `.dotnet` directory from cache using `cache-key`
-2. **Cache Miss**: If no exact match, tries `restore-keys` prefixes for partial matches
-3. **Restore**: On cache miss, runs `restore.sh` (Linux/macOS) or `restore.cmd` (Windows) with `-p:SkipManagedBuild=true -p:SkipNativeBuild=true -p:BuildExtension=false` to only restore the SDK
+1. **Cache Lookup**: Attempts to restore `.dotnet` directory from cache using the constructed cache key
+2. **Cache Miss**: If no exact match, tries restore keys with prefix matching (OS and architecture)
+3. **SDK Installation**: On cache miss:
+   - Creates a minimal empty project file in `artifacts/tmp/install-sdks.proj`
+   - Runs `eng/build.ps1` (Windows) or `build.sh` (Linux/macOS) with `-restore` flag
+   - Arcade's restore mechanism installs required SDKs to `.dotnet` directory
+   - Cleans up the temporary project file
 4. **Save**: After workflow completion, cache action automatically saves the `.dotnet` directory
 
 ## Testing
@@ -103,7 +112,9 @@ A test workflow is available at `.github/workflows/test-cache-dotnet-sdk.yml`. R
 
 ## Implementation Details
 
-- Uses `actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830` (v4)
-- Conditional restore step: `if: steps.cache-dotnet.outputs.cache-hit != 'true'`
-- Cross-platform: Detects and runs appropriate restore script for the OS
-- Error handling: Fails if neither `restore.sh` nor `restore.cmd` is found
+- Uses `actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830` (v4.6.1)
+- Conditional SDK installation: `if: steps.cache-dotnet.outputs.cache-hit != 'true'`
+- Cross-platform: Uses PowerShell on Windows, Bash on Linux/macOS
+- Minimal overhead: Only creates a small empty project file, no actual code compilation
+- Automatic cleanup: Removes temporary project file after SDK installation
+- Cache key includes OS, architecture, and global.json hash for optimal cache hits
