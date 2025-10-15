@@ -88,7 +88,7 @@ export class AspireEditorCommandProvider implements vscode.Disposable {
                     onChangeAppHostPath(null);
                 }
                 else {
-                    const appHostPath = path.isAbsolute(json.appHostPath) ? json.appHostPath : path.join(workspaceFolder.uri.fsPath, json.appHostPath);
+                    const appHostPath = path.isAbsolute(json.appHostPath) ? json.appHostPath : path.join(workspaceFolder.uri.fsPath, ".aspire",json.appHostPath);
                     onChangeAppHostPath(appHostPath);
                 }
             }
