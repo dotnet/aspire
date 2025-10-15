@@ -101,7 +101,31 @@ public sealed class DistributedApplicationOptions
     private string? ResolveProjectName()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        return GetMetadataValue(assemblyMetadata, "AppHostProjectName");
+        var projectNameFromMetadata = GetMetadataValue(assemblyMetadata, "AppHostProjectName");
+        
+        // If metadata provides a project name, use it
+        if (!string.IsNullOrEmpty(projectNameFromMetadata))
+        {
+            return projectNameFromMetadata;
+        }
+
+        // For single-file app hosts, the assembly name is typically "apphost".
+        // In this case, use the directory name as the application name to provide
+        // a more meaningful identifier than just "apphost".
+        // For example, if the apphost file is at "foo/apphost.cs", the app name becomes "foo".
+        var assemblyName = Assembly?.GetName().Name;
+        if (!string.IsNullOrEmpty(assemblyName) && 
+            string.Equals(assemblyName, "apphost", StringComparison.OrdinalIgnoreCase))
+        {
+            // Use the directory name from ProjectDirectory if available
+            var projectDirectory = ProjectDirectory;
+            if (!string.IsNullOrEmpty(projectDirectory))
+            {
+                return Path.GetFileName(projectDirectory);
+            }
+        }
+
+        return null;
     }
 
     private Assembly? ResolveAssembly()
