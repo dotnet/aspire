@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">允許的長度上限為 {1} 個字元。</target>
+        <target state="translated">允許 {1} 字元的長度上限。</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="GenAIDisplayErrorMessageText">
         <source>Error displaying GenAI content:</source>
-        <target state="new">Error displaying GenAI content:</target>
+        <target state="translated">顯示生成式 AI 內容時發生錯誤:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
@@ -369,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">該頁面在語言變更時將重新載入。</target>
+        <target state="translated">頁面將在語言變更時重載。</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">

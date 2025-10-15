@@ -44,7 +44,7 @@
       </trans-unit>
       <trans-unit id="FieldTooLong">
         <source>A maximum length of {1} characters is allowed.</source>
-        <target state="translated">É permitido um comprimento máximo de {1} caracteres.</target>
+        <target state="translated">Um comprimento máximo de {1} caracteres é permitido.</target>
         <note>{0} is the field name, whereas {1} is the length. We don't want to show the field name, so it is missing.</note>
       </trans-unit>
       <trans-unit id="FilterDialogApplyFilterButtonText">
@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="GenAIDisplayErrorMessageText">
         <source>Error displaying GenAI content:</source>
-        <target state="new">Error displaying GenAI content:</target>
+        <target state="translated">Erro ao exibir conteúdo GenAI:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
@@ -369,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">A página será recarregada ao alterar o idioma.</target>
+        <target state="translated">A página será recarregado com a alteração de idioma.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -434,7 +434,7 @@
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningDescription">
         <source>Confirm you want to show the value. In the future, opening the text visualizer will automatically display all values</source>
-        <target state="translated">Confirme se você deseja exibir o valor. No futuro, abrir o visualizador de texto exibirá automaticamente todos os valores</target>
+        <target state="translated">Confirme se você deseja mostrar o valor. No futuro, a abertura do visualizador de texto exibirá automaticamente todos os valores</target>
         <note />
       </trans-unit>
       <trans-unit id="TextVisualizerSecretWarningTitle">

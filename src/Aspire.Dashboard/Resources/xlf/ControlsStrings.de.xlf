@@ -344,7 +344,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Erfassung angehalten</target>
+        <target state="translated">Aufzeichnung angehalten</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">

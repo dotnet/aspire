@@ -94,12 +94,12 @@
       </trans-unit>
       <trans-unit id="ClearPendingSelectedResource">
         <source>Remove for resource</source>
-        <target state="translated">移除资源</target>
+        <target state="translated">删除资源</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSelectedResource">
         <source>Remove for {0}</source>
-        <target state="translated">移除 {0}</target>
+        <target state="translated">删除 {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="ClearSignalsButtonTitle">
