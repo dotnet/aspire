@@ -43,7 +43,8 @@ public async Task LongRunningIntegrationTest()
 ## CI Integration
 
 - **Regular CI**: Uses `--filter-not-trait "outerloop=true"` to exclude outerloop tests
-- **Outerloop CI**: Runs outerloop tests separately on a schedule
+- **Outerloop CI on Schedule/Push**: Runs all outerloop tests separately on a schedule (daily at 02:00 UTC)
+- **Outerloop CI on Pull Requests**: Runs only a single outerloop test project as a sanity check when PRs modify workflow/infrastructure files
 - **Results**: Outerloop test failures are tracked separately from regular CI
 
 ## For Copilot Agent and Test Runners
