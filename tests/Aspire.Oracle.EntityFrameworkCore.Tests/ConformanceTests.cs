@@ -16,7 +16,6 @@ using Xunit;
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
 [Collection("Oracle Database collection")]
-[OuterloopTest("Oracle EF Core tests require Oracle container and are slow")]
 public class ConformanceTests : ConformanceTests<TestDbContext, OracleEntityFrameworkCoreSettings>
 {
     private readonly OracleContainerFixture? _containerFixture;

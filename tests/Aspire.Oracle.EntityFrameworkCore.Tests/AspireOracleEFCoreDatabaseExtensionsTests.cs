@@ -14,7 +14,6 @@ using Xunit;
 
 namespace Aspire.Oracle.EntityFrameworkCore.Tests;
 
-[OuterloopTest("Oracle EF Core tests require Oracle container and are slow")]
 public class AspireOracleEFCoreDatabaseExtensionsTests
 {
     private const string ConnectionString = "Data Source=fake";
