@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 using var mc = new ModelClient();
 var allModelsResponse = await mc.GetAllModelsAsync().ConfigureAwait(false);
@@ -500,7 +501,7 @@ public class ConsolidatedResponse
     public List<ModelEntity>? Entities { get; set; }
 }
 
-public class ModelClassGenerator
+public partial class ModelClassGenerator
 {
     public string GenerateCode(string csNamespace, List<ModelEntity> models)
     {
@@ -537,7 +538,7 @@ public class ModelClassGenerator
                 .Select(x => x.First()).OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
             {
                 var modelName = model.Annotations!.Tags!["alias"];
-                var descriptorName = GenerateMethodName(modelName); // Reuse method name logic for descriptor property name
+                var descriptorName = ToPascalCase(modelName); // Reuse method name logic for descriptor property name
                 var version = GetModelVersion(model);
                 var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
                 var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
@@ -570,8 +571,16 @@ public class ModelClassGenerator
                     .Replace("'", "&apos;");
     }
 
-    private static string GenerateMethodName(string modelName)
+    private static string ToPascalCase(string modelName)
     {
+        // Insert a separator when an uppercase letter is found after a lowercase letter or digit
+        // e.g. OpenAI-GPT3 -> Open AI GPT3
+        // e.g. DeepSeek-V3 -> Deep Seek V3
+        // e.g. AI21Labs -> AI 21 Labs
+
+        modelName = LowerToUpper().Replace(modelName, "$1 $2");
+        modelName = LetterToDigit().Replace(modelName, "$1 $2");
+
         // Convert model name to PascalCase method name
         var parts = modelName
             .Replace("-", " ")
@@ -591,10 +600,20 @@ public class ModelClassGenerator
                 }
                 else
                 {
-                    result.Append(char.ToUpper(part[0]));
-                    if (part.Length > 1)
+                    if (part.All(char.IsUpper) && part.Length < 3)
                     {
-                        result.Append(part.Substring(1).ToLower());
+                        // Keep acronyms in uppercase when less than 3 chars
+                        result.Append(part);
+                        continue;
+                    }
+                    else
+                    {
+                        // Convert to PascalCase
+                        result.Append(char.ToUpper(part[0]));
+                        if (part.Length > 1)
+                        {
+                            result.Append(part[1..].ToLower());
+                        }
                     }
                 }
             }
@@ -649,42 +668,6 @@ public class ModelClassGenerator
             .Replace("\"", "\\\"");
     }
 
-    private static string GeneratePublisherClassName(string publisher)
-    {
-        // Similar logic to GenerateMethodName but keep acronyms in PascalCase style
-        var cleaned = publisher
-            .Replace("-", " ")
-            .Replace(".", " ")
-            .Replace("_", " ");
-
-        var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var sb = new StringBuilder();
-        foreach (var part in parts)
-        {
-            if (part.Length == 0)
-            {
-                continue;
-            }
-            if (part.All(char.IsUpper) && part.Length > 1)
-            {
-                // e.g. AI -> Ai
-                sb.Append(char.ToUpperInvariant(part[0]));
-                // Use span overloads where possible
-                // Use substring for lowercasing efficiently
-                sb.Append(part.Substring(1).ToLowerInvariant());
-            }
-            else
-            {
-                sb.Append(char.ToUpperInvariant(part[0]));
-                if (part.Length > 1)
-                {
-                    sb.Append(part.AsSpan(1));
-                }
-            }
-        }
-        return sb.ToString();
-    }
-
     private static bool IsVisible(string? invisibleUntil)
     {
         if (string.IsNullOrWhiteSpace(invisibleUntil))
@@ -697,4 +680,10 @@ public class ModelClassGenerator
         }
         return true; // If parse fails, be permissive
     }
+
+    [GeneratedRegex("([a-z0-9])([A-Z])")]
+    private static partial Regex LowerToUpper();
+
+    [GeneratedRegex("([a-zA-Z])([0-9])")]
+    private static partial Regex LetterToDigit();
 }
