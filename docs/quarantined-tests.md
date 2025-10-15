@@ -58,7 +58,7 @@ public async Task FlakyTest()
 
 - **Regular CI**: Uses `--filter-not-trait "quarantined=true"` to exclude quarantined tests
 - **Quarantine CI on Schedule/Push**: Runs all quarantined tests twice daily (02:00 and 14:00 UTC) to monitor their status
-- **Quarantine CI on Pull Requests**: Runs only a single quarantined test project as a sanity check when PRs modify workflow/infrastructure files
+- **Quarantine CI on Pull Requests**: Runs only the first quarantined test project across all OSes (Windows, Linux, macOS) as a sanity check when PRs modify workflow/infrastructure files
 - **Results**: Quarantined test failures don't block PR merges but are tracked for fixes
 
 ## For Copilot Agent and Test Runners

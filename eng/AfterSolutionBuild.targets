@@ -75,8 +75,11 @@
 
         if ($isPullRequest -and $isSpecializedWorkflow -and $combined.Count -gt 0) {
             Write-Host "Running on pull_request event for specialized tests - filtering to single test project"
-            # Select the first test project from the full runsheet
-            $combined = @($combined[0])
+            # Get the first unique project name and keep all OS entries for that project
+            $firstProjectName = $combined[0].project
+            $combined = @($combined | Where-Object { $_.project -eq $firstProjectName })
+            $osCount = $combined.Count
+            Write-Host "Selected project '$firstProjectName' with $osCount OS variant(s)"
         }
 
         # See https://collectingwisdom.com/powershell-convertto-json-single-item-array/
