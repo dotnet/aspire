@@ -262,10 +262,10 @@ extends:
                     - win-arm64
                     # non-aot - single file builds
                     - win-x86
-      # todo undo this
-      - template: /eng/common/templates-official/job/onelocbuild.yml@self
-        parameters:
-          LclSource: lclFilesfromPackage
-          LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
-          MirrorRepo: aspire
-          MirrorBranch: main
+      - ${{ if and(notin(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main')) }}:
+        - template: /eng/common/templates-official/job/onelocbuild.yml@self
+          parameters:
+            LclSource: lclFilesfromPackage
+            LclPackageId: 'LCL-JUNO-PROD-ASPIRE'
+            MirrorRepo: aspire
+            MirrorBranch: main
