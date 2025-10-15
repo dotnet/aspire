@@ -22,7 +22,14 @@ public static class CertificateAuthorityCollectionResourceExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         var resource = new CertificateAuthorityCollection(name);
-        return builder.AddResource(resource);
+        return builder.AddResource(resource)
+            .ExcludeFromManifest()
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = nameof(CertificateAuthorityCollection),
+                Properties = [],
+                IsHidden = true,
+            });
     }
 
     /// <summary>
