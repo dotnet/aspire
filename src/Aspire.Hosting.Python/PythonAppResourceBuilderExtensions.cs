@@ -263,13 +263,6 @@ public static class PythonAppResourceBuilderExtensions
                 return;
             }
 
-            if (!context.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
-                !pythonEnvironmentAnnotation.Uv)
-            {
-                // If not using UV, no special args needed
-                return;
-            }
-
             var entrypointType = existingAnnotation.Type;
             var entrypoint = existingAnnotation.Entrypoint;
 
