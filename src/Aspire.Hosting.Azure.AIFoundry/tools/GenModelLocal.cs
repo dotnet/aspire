@@ -17,8 +17,8 @@ var extensionGenerator = new ModelClassGenerator();
 var generatedCode = extensionGenerator.GenerateCode("Aspire.Hosting.Azure", allModelsResponse.Entities ?? []);
 
 // Write the generated code to a file
-File.WriteAllText(Path.Combine("..", "AIFoundryLocalModel.Generated.cs"), generatedCode);
-Console.WriteLine("Generated extension methods written to AIFoundryLocalModel.Generated.cs");
+File.WriteAllText(Path.Combine("..", "AIFoundryModel.Local.Generated.cs"), generatedCode);
+Console.WriteLine("Generated extension methods written to AIFoundryModel.Local.Generated.cs");
 
 // Also serialize the strongly typed response for output with pretty printing
 var options = new JsonSerializerOptions
@@ -120,7 +120,7 @@ public class ModelClient : IDisposable
         request.Headers.Add("User-Agent", "AzureAiStudio");
 
         // Build the JSON payload with optional continuation token
-        var basePayload = """
+        var basePayload = $$"""
         {
             "resourceIds": [
                 {"resourceId": "azureml", "entityContainerType": "Registry"}
@@ -130,10 +130,10 @@ public class ModelClient : IDisposable
                     {"field": "type", "operator": "eq", "values": ["models"]},
                     {"field": "kind", "operator": "eq", "values": ["Versioned"]},
                     {"field": "labels", "operator": "eq", "values": ["latest"]},
-                    {"field": "labels", "operator": "eq", "values": ["latest"]},
+                    {"field": "annotations/archived", "operator": "ne", "values": ["false"]},
                     {"field": "annotations/tags/foundryLocal", "operator": "eq", "values": [""]},
-                    {"field": "properties/variantInfo/variantMetadata/executionProvider", "operator": "eq",
-                        "values": ["CPUExecutionProvider", "QNNExecutionProvider", "CUDAExecutionProvider"]}
+                    {"field": "properties/variantInfo/variantMetadata/device", "operator": "eq",
+                        "values": ["cpu", "gpu", "npu"]}
                 ],
                 "freeTextSearch": "",
                 "order": [{"field": "properties/name", "direction": "Asc"}],
@@ -177,15 +177,9 @@ public class ModelClient : IDisposable
 
     private static void RunFixups(List<ModelEntity> allModels)
     {
-        foreach (var model in allModels)
-        {
-            // Fix up Phi-4 version to 7 since 8 doesn't work in Azure.
-            if (model.Annotations?.Name == "Phi-4")
-            {
-                model.Properties!.AlphanumericVersion = "7";
-                model.Version = "7";
-            }
-        }
+        // Exclude phi-4-reasoning as it is not listed by foundry local (TBD)
+        // c.f. https://github.com/microsoft/Foundry-Local/issues/245#issuecomment-3404022929
+        allModels.RemoveAll(m => m.Annotations?.Tags?.TryGetValue("alias", out var alias) is not null && alias == "phi-4-reasoning");
     }
 }
 
@@ -518,7 +512,7 @@ public class ModelClassGenerator
         sb.AppendLine("/// <summary>");
         sb.AppendLine("/// Generated strongly typed model descriptors for Azure AI Foundry.");
         sb.AppendLine("/// </summary>");
-        sb.AppendLine("public partial class AIFoundryLocalModel");
+        sb.AppendLine("public partial class AIFoundryModel");
         sb.AppendLine("{");
 
         // Group models by publisher (only include models that are visible and have names & publishers)
@@ -529,15 +523,14 @@ public class ModelClassGenerator
             .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
             .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
+        sb.AppendLine("    /// <summary>");
+        sb.AppendLine("    /// Models available on Foundry Local.");
+        sb.AppendLine("    /// </summary>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class FoundryLocal");
+        sb.AppendLine("    {");
+
         foreach (var publisherGroup in modelsByPublisher)
         {
-            var publisherClassName = GeneratePublisherClassName(publisherGroup.Key);
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
-            sb.AppendLine("    /// </summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {publisherClassName}");
-            sb.AppendLine("    {");
-
             foreach (var model in publisherGroup
                 .GroupBy(m => m.Annotations!.Tags!["alias"])
                 .Select(x => x.First()).OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
@@ -554,10 +547,10 @@ public class ModelClassGenerator
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
                 sb.AppendLine();
             }
-
-            sb.AppendLine("    }");
-            sb.AppendLine();
         }
+
+        sb.AppendLine("    }");
+        sb.AppendLine();
 
         sb.AppendLine("}");
         return sb.ToString();
