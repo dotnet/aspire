@@ -966,20 +966,37 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "manifest", outputPath: outputDir.Path);
 
-        var pyproj = builder.AddPythonScript("pyproj", projectDirectory, "main.py")
+        // Add Python resources with different entrypoint types
+        builder.AddPythonScript("script-app", projectDirectory, "main.py")
+            .WithUvEnvironment();
+
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule")
+            .WithUvEnvironment();
+
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
             .WithUvEnvironment();
 
         var app = builder.Build();
 
         app.Run();
 
-        // Verify that a Dockerfile was generated during manifest generation
-        var dockerfilePath = Path.Combine(outputDir.Path, "pyproj.Dockerfile");
-        Assert.True(File.Exists(dockerfilePath), "Dockerfile should be generated when WithUvEnvironment is used");
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
 
-        var dockerfileContent = File.ReadAllText(dockerfilePath);
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
 
-        await Verify(dockerfileContent);
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
     }
 
     [Fact]
