@@ -23,7 +23,13 @@ public static class CertificateAuthorityCollectionResourceExtensions
 
         var resource = new CertificateAuthorityCollection(name);
         return builder.AddResource(resource)
-            .ExcludeFromManifest();
+            .ExcludeFromManifest()
+            .WithInitialState(new CustomResourceSnapshot
+            {
+                ResourceType = nameof(CertificateAuthorityCollection),
+                Properties = [],
+                IsHidden = true,
+            });
     }
 
     /// <summary>
