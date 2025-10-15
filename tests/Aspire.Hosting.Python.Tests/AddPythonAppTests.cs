@@ -549,7 +549,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public void WithUvEnvironment_AddswaitForCompletionRelationship()
+    public void WithUvEnvironment_AddsWaitForCompletionRelationship()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
         using var tempDir = new TempDirectory();
