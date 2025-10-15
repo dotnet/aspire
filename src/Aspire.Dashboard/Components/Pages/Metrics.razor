@@ -107,7 +107,7 @@
                                     {
                                         <ChartContainer
                                             ResourceKey="@(PageViewModel.SelectedResource.Id.GetResourceKey())"
-                                            MeterName="@(PageViewModel.SelectedMeter.Name)"
+                                            MeterName="@(PageViewModel.SelectedMeter)"
                                             InstrumentName="@(PageViewModel.SelectedInstrument.Name)"
                                             Duration="PageViewModel.SelectedDuration.Id"
                                             ActiveView="@(PageViewModel.SelectedViewKind ?? Metrics.MetricViewKind.Graph)"
@@ -117,16 +117,16 @@
                                     }
                                     else if (PageViewModel.SelectedMeter != null)
                                     {
-                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter.Name</h3>
+                                        <h3 class="meter-name-title">@PageViewModel.SelectedMeter</h3>
                                         <FluentDataGrid
                                             Style="max-width:1100px;"
-                                            Items="@PageViewModel.Instruments.Where(i => i.Parent == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
+                                            Items="@PageViewModel.Instruments.Where(i => i.Parent.Name == PageViewModel.SelectedMeter).OrderBy(i => i.Name).AsQueryable()"
                                             GridTemplateColumns="3fr 5fr"
                                             RowSize="DataGridRowSize.Medium"
                                             TGridItem="OtlpInstrumentSummary">
                                             <ChildContent>
                                                 <TemplateColumn Title="@Loc[nameof(Dashboard.Resources.Metrics.MetricsInsturementNameGridNameColumnHeader)]">
-                                                    <FluentAnchor Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedResource.Name, meter: context.Parent.Name, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
+                                                    <FluentAnchor Class="button-hyperlink-no-icon" Href="@DashboardUrls.MetricsUrl(resource: PageViewModel.SelectedResource.Name, meter: context.Parent.Name, instrument: context.Name, duration: DurationMinutes, view: ViewKindName)" Appearance="Appearance.Lightweight">
                                                         @context.Name
                                                     </FluentAnchor>
                                                 </TemplateColumn>
