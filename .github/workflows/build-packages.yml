@@ -36,51 +36,57 @@ jobs:
       - name: Build with packages
         run: ./build.sh -restore -build -build-extension -ci -pack -bl -p:InstallBrowsersForPlaywright=false -p:SkipTestProjects=true ${{ inputs.versionOverrideArg }}
 
-      - name: Stage RID-specific NuGets and remaining packages
-        if: ${{ inputs.buildRidSpecificNugets }}
+      - name: Stage NuGet packages
         id: stage_rid_specific
         shell: bash
         run: |
           set -euo pipefail
           set -x
           shopt -s nullglob
-          mkdir -p staging/built-nugets staging/rid
+          mkdir -p staging/built-nugets
           # Copy full packages tree first (so structure expected by downstream tests is preserved)
           rsync -a artifacts/packages/ staging/built-nugets/
 
-          declare -A RID_SET=()
-          # Find target packages (dcp and dashboard)
-          while IFS= read -r -d '' pkg; do
-            bn="$(basename "$pkg")"
-            rid=""
-            if [[ $bn =~ ^Aspire\.Hosting\.Orchestration\.([^.]+)\..*\.nupkg$ ]]; then
-              rid="${BASH_REMATCH[1]}"
-            elif [[ $bn =~ ^Aspire\.Dashboard\.Sdk\.([^.]+)\..*\.nupkg$ ]]; then
-              rid="${BASH_REMATCH[1]}"
-            else
-              continue
-            fi
-            if [[ -n $rid ]]; then
-              RID_SET["$rid"]=1
-              mkdir -p "staging/rid/$rid"
-              cp "$pkg" "staging/rid/$rid/"
-              # Remove from built-nugets staging copy so it is excluded there
-              rel="${pkg#artifacts/packages/}"
-              rm -f "staging/built-nugets/$rel" || true
-            fi
-          done < <(find artifacts/packages -type f \( -name 'Aspire.Hosting.Orchestration.*.nupkg' -o -name 'Aspire.Dashboard.Sdk.*.nupkg' \) -print0)
+          # Only filter out RID-specific packages if buildRidSpecificNugets is enabled
+          if [[ "${{ inputs.buildRidSpecificNugets }}" == "true" ]]; then
+            mkdir -p staging/rid
+            declare -A RID_SET=()
+            # Find target packages (dcp and dashboard)
+            while IFS= read -r -d '' pkg; do
+              bn="$(basename "$pkg")"
+              rid=""
+              if [[ $bn =~ ^Aspire\.Hosting\.Orchestration\.([^.]+)\..*\.nupkg$ ]]; then
+                rid="${BASH_REMATCH[1]}"
+              elif [[ $bn =~ ^Aspire\.Dashboard\.Sdk\.([^.]+)\..*\.nupkg$ ]]; then
+                rid="${BASH_REMATCH[1]}"
+              else
+                continue
+              fi
+              if [[ -n $rid ]]; then
+                RID_SET["$rid"]=1
+                mkdir -p "staging/rid/$rid"
+                cp "$pkg" "staging/rid/$rid/"
+                # Remove from built-nugets staging copy so it is excluded there
+                rel="${pkg#artifacts/packages/}"
+                rm -f "staging/built-nugets/$rel" || true
+              fi
+            done < <(find artifacts/packages -type f \( -name 'Aspire.Hosting.Orchestration.*.nupkg' -o -name 'Aspire.Dashboard.Sdk.*.nupkg' \) -print0)
 
-          # Build JSON array of RIDs
-          if (( ${#RID_SET[@]} )); then
-            printf '%s\n' "${!RID_SET[@]}" | sort -u > /tmp/rids.txt
-            # Build a compact single-line JSON array (avoid pretty-print newlines which break $GITHUB_OUTPUT)
-            json=$(jq -R . < /tmp/rids.txt | jq -s -c .)
+            # Build JSON array of RIDs
+            if (( ${#RID_SET[@]} )); then
+              printf '%s\n' "${!RID_SET[@]}" | sort -u > /tmp/rids.txt
+              # Build a compact single-line JSON array (avoid pretty-print newlines which break $GITHUB_OUTPUT)
+              json=$(jq -R . < /tmp/rids.txt | jq -s -c .)
+            else
+              json='[]'
+            fi
+            echo "Discovered RIDs: $json"
+            # Use printf to safely write (single line) to GITHUB_OUTPUT
+            printf 'rids=%s\n' "$json" >> "$GITHUB_OUTPUT"
           else
-            json='[]'
+            # When buildRidSpecificNugets is false, set empty RIDs array
+            printf 'rids=%s\n' '[]' >> "$GITHUB_OUTPUT"
           fi
-          echo "Discovered RIDs: $json"
-          # Use printf to safely write (single line) to GITHUB_OUTPUT
-          printf 'rids=%s\n' "$json" >> "$GITHUB_OUTPUT"
 
       - name: Upload built NuGets (excluding RID-specific orchestration/dashboard)
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
