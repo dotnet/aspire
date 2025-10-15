@@ -1,6 +1,7 @@
 ﻿@using Aspire.Dashboard.Model
 @using Aspire.Dashboard.Model.Otlp
 @using Aspire.Dashboard.Resources
+@using Aspire.Dashboard.Utils
 @implements IDialogContentComponent<FilterDialogViewModel>
 
 @inject IStringLocalizer<Dialogs> Loc
@@ -20,14 +21,8 @@
                           Width="100%"
                           Height="400px"
                           OptionText="@(c => c.Name)"
-                          OptionDisabled="@(c => c.Id is null)">
-                <OptionTemplate Context="optionContext">
-                    @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                    @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                    <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                        @optionContext.Name
-                    </span>
-                </OptionTemplate>
+                          OptionDisabled="@(c => c.Id is null)"
+                          OptionTitle="@(c => DashboardUIHelpers.ResolveTooltip(c.Name))">
             </FluentSelect>
         </div>
 
@@ -49,6 +44,7 @@
                             Height="400px"
                             OptionText="@(c => c.Name)"
                             OptionValue="@(c => c.Name)"
+                            OptionTitle="@(c => DashboardUIHelpers.ResolveTooltip(c.Name))"
                             Immediate="true"
                             ImmediateDelay="@FluentUIExtensions.InputDelay"
                             Label="@Loc[nameof(Dialogs.FilterDialogTextValuePlaceholder)]">
@@ -59,11 +55,7 @@
                         @* Workaround this issue by inserting extra text using CSS. *@
                         <span data-filtercount="@optionContext.Id!.Count"></span>
                     </FluentBadge>
-                    @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                    @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                    <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                        <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
-                    </span>
+                    <FluentHighlighter Text="@optionContext.Name" HighlightedText="@_formModel.Value" />
                 </OptionTemplate>
             </FluentCombobox>
             <ValidationMessage For="() => _formModel.Value" />
