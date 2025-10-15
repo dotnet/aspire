@@ -79,7 +79,7 @@
       </trans-unit>
       <trans-unit id="ResourceExpandAllChildren">
         <source>Expand child resources</source>
-        <target state="translated">子リソースを展開する</target>
+        <target state="translated">子リソースの展開</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourceFilterOptionEmpty">
