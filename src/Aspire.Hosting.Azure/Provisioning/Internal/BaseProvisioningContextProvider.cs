@@ -237,12 +237,12 @@ internal abstract partial class BaseProvisioningContextProvider(
         }
         else
         {
-            _logger.LogDebug("Skipping getting available locations from client. SubscriptionId '{SubscriptionId}' isn't a valid GUID.", subscriptionId);
+            _logger.LogDebug("SubscriptionId '{SubscriptionId}' isn't a valid GUID. Skipping getting available locations from client.", subscriptionId);
         }
 
         return locationOptions is not null
-                ? (locationOptions, true)
-                : (GetStaticAzureLocations(), false);
+            ? (locationOptions, true)
+            : (GetStaticAzureLocations(), false);
     }
 
     /// <summary>
