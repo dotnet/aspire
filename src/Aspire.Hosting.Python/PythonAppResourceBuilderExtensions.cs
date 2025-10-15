@@ -236,24 +236,19 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(entrypoint);
         ArgumentNullException.ThrowIfNull(virtualEnvironmentPath);
 
-        appDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, appDirectory));
-        var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
-            ? virtualEnvironmentPath
-            : Path.Join(appDirectory, virtualEnvironmentPath));
-
-        // Determine the command based on entrypoint type
-        string command = entrypointType switch
-        {
-            EntrypointType.Executable => virtualEnvironment.GetExecutable(entrypoint),
-            EntrypointType.Script => virtualEnvironment.GetExecutable("python"),
-            EntrypointType.Module => virtualEnvironment.GetExecutable("python"),
-            _ => throw new ArgumentOutOfRangeException(nameof(entrypointType), entrypointType, "Invalid entrypoint type.")
-        };
-
-        var resource = new PythonAppResource(name, command, appDirectory);
+        // python will be replaced with the resolved entrypoint based on the venv
+        var resource = new PythonAppResource(name, "python", appDirectory);
 
         var resourceBuilder = builder
             .AddResource(resource)
+            // We're not using WithEntrypoint here since it relies on the
+            // WithVirtualEnvironment being set. We bootstrap it here.
+            .WithAnnotation(new PythonEntrypointAnnotation
+            {
+                Type = entrypointType,
+                Entrypoint = entrypoint
+            })
+            .WithVirtualEnvironment(virtualEnvironmentPath)
             .WithArgs(static context =>
         {
             if (!context.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var existingAnnotation))
@@ -282,17 +277,6 @@ public static class PythonAppResourceBuilderExtensions
             }
         });
 
-        // Store the entrypoint annotation
-        resourceBuilder.WithAnnotation(new PythonEntrypointAnnotation
-        {
-            Type = entrypointType,
-            Entrypoint = entrypoint
-        });
-
-        resourceBuilder.WithPythonEnvironment(env =>
-        {
-            env.VirtualEnvironment = virtualEnvironment;
-        });
         resourceBuilder.WithIconName("CodePyRectangle");
 
         resourceBuilder.WithOtlpExporter();
@@ -327,7 +311,7 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         // VS Code debug support - only applicable for Script and Module types
-        if (entrypointType == EntrypointType.Script || entrypointType == EntrypointType.Module)
+        if (entrypointType is EntrypointType.Script or EntrypointType.Module)
         {
             var programPath = entrypointType == EntrypointType.Script
                 ? Path.Join(appDirectory, entrypoint)
@@ -380,6 +364,14 @@ public static class PythonAppResourceBuilderExtensions
                         return;
                     }
 
+                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
+
+                    if (pythonVersion is null)
+                    {
+                        // Could not detect Python version, skip Dockerfile generation
+                        return;
+                    }
+
                     var entrypointType = entrypointAnnotation.Type;
                     var entrypoint = entrypointAnnotation.Entrypoint;
 
@@ -391,14 +383,6 @@ public static class PythonAppResourceBuilderExtensions
                         EntrypointType.Executable => [entrypoint],
                         _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
                     };
-
-                    var pythonVersion = pythonEnvironmentAnnotation.Version ?? PythonVersionDetector.DetectVersion(appDirectory, pythonEnvironmentAnnotation.VirtualEnvironment!);
-
-                    if (pythonVersion is null)
-                    {
-                        // Could not detect Python version, skip Dockerfile generation
-                        return;
-                    }
 
                     var builderStage = context.Builder
                         .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
@@ -520,7 +504,7 @@ public static class PythonAppResourceBuilderExtensions
 
         var virtualEnvironment = new VirtualEnvironment(Path.IsPathRooted(virtualEnvironmentPath)
             ? virtualEnvironmentPath
-            : Path.Join(builder.Resource.WorkingDirectory, virtualEnvironmentPath));
+            : Path.GetFullPath(virtualEnvironmentPath, builder.Resource.WorkingDirectory));
 
         // Get the entrypoint annotation to determine how to update the command
         if (!builder.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var entrypointAnnotation))
@@ -591,7 +575,7 @@ public static class PythonAppResourceBuilderExtensions
         var virtualEnvironment = pythonEnv.VirtualEnvironment;
 
         // Determine the new command based on entrypoint type
-        string command = entrypointType switch
+        var command = entrypointType switch
         {
             EntrypointType.Executable => virtualEnvironment.GetExecutable(entrypoint),
             EntrypointType.Script or EntrypointType.Module => virtualEnvironment.GetExecutable("python"),
