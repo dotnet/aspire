@@ -65,13 +65,13 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
         sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
         sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
         sb.AppendLine("    /// </summary>");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {ToPascalCase(publisherGroup.Key)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static partial class {ToPascalCase(publisherGroup.Key)}");
         sb.AppendLine("    {");
 
         var firstMethod = true;
         foreach (var model in publisherGroup.OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
         {
-            if (firstMethod)
+            if (!firstMethod)
             {
                 sb.AppendLine();
             }
