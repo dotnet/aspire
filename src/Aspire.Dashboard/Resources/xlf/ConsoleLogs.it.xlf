@@ -94,7 +94,7 @@
       </trans-unit>
       <trans-unit id="DownloadLogs">
         <source>Download logs</source>
-        <target state="translated">Scarica i log</target>
+        <target state="translated">Scarica log</target>
         <note />
       </trans-unit>
       <trans-unit id="LogStatusLabel">
