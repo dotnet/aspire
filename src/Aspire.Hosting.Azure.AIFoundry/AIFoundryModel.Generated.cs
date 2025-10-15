@@ -662,5 +662,4 @@ public partial class AIFoundryModel
         /// </summary>
         public static readonly AIFoundryModel GrokCodeFast1 = new() { Name = "grok-code-fast-1", Version = "1", Format = "xAI" };
     }
-
 }

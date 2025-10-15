@@ -60,8 +60,16 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
         .GroupBy(m => m.Annotations!.SystemCatalogData!.Publisher!)
         .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
 
+    var firstClass = true;
     foreach (var publisherGroup in modelsByPublisher)
     {
+        if (!firstClass)
+        {
+            sb.AppendLine();
+        }
+
+        firstClass = false;
+
         sb.AppendLine(CultureInfo.InvariantCulture, $"    /// <summary>");
         sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(publisherGroup.Key)}.");
         sb.AppendLine("    /// </summary>");
@@ -90,13 +98,7 @@ string GenerateHostedCode(string csNamespace, List<ModelEntity> models)
             sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
         }
 
-        // if (sb.Length > 0)
-        // {
-        //     sb.Remove(sb.Length - Environment.NewLine.Length, Environment.NewLine.Length); // Remove last extra newline
-        // }
-
         sb.AppendLine("    }");
-        sb.AppendLine();
     }
 
     sb.AppendLine("}");
@@ -133,6 +135,7 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
 
     foreach (var publisherGroup in modelsByPublisher)
     {
+        var firstMethod = true;
         foreach (var model in publisherGroup
             .GroupBy(m => m.Annotations!.Tags!["alias"])
             .Select(x => x.First()).OrderBy(m => m.Annotations!.Name, StringComparer.OrdinalIgnoreCase))
@@ -143,16 +146,21 @@ string GenerateLocalCode(string csNamespace, List<ModelEntity> models)
             var publisher = model.Annotations!.SystemCatalogData!.Publisher!;
             var description = CleanDescription(model.Annotations?.SystemCatalogData?.Summary ?? model.Annotations?.Description ?? $"Descriptor for {modelName} model");
 
+            if (!firstMethod)
+            {
+                sb.AppendLine();
+            }
+
+            firstMethod = false;
+
             sb.AppendLine("        /// <summary>");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {EscapeXml(description)}");
             sb.AppendLine("        /// </summary>");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly AIFoundryModel {descriptorName} = new() {{ Name = \"{EscapeStringForCSharp(modelName)}\", Version = \"{EscapeStringForCSharp(version)}\", Format = \"{EscapeStringForCSharp(publisher)}\" }};");
-            sb.AppendLine();
         }
     }
 
     sb.AppendLine("    }");
-    sb.AppendLine();
 
     sb.AppendLine("}");
     return sb.ToString();
