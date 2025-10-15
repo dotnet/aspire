@@ -34,7 +34,7 @@ public static class NodeAppHostingExtension
         var resource = new NodeAppResource(name, "node", workingDirectory);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults()
+                      .WithNodeDefaults("node", workingDirectory)
                       .WithArgs(effectiveArgs)
                       .WithIconName("CodeJsRectangle");
     }
@@ -64,12 +64,13 @@ public static class NodeAppHostingExtension
         var resource = new NodeAppResource(name, "npm", workingDirectory);
 
         return builder.AddResource(resource)
-                      .WithNodeDefaults()
+                      .WithNodeDefaults("npm", workingDirectory)
                       .WithArgs(allArgs)
                       .WithIconName("CodeJsRectangle");
     }
 
-    private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>
+    private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder, string command, string workingDirectory) =>
+#pragma warning disable ASPIREEXTENSION001
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithExecutableCertificateTrustCallback((ctx) =>
@@ -84,5 +85,7 @@ public static class NodeAppHostingExtension
                 }
 
                 return Task.CompletedTask;
-            });
+            })
+            .WithVSCodeDebugSupport(mode => new NodeAppLaunchConfiguration { Command = command, Mode = mode, WorkingDirectory = workingDirectory }, "node");
+#pragma warning restore ASPIREEXTENSION001
 }

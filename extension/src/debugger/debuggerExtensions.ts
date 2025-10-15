@@ -6,6 +6,7 @@ import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
 import { isCsharpInstalled, isPythonInstalled } from "../capabilities";
 import { pythonDebuggerExtension } from "./languages/python";
+import { nodeDebuggerExtension } from "./languages/node";
 
 // Represents a resource-specific debugger extension for when the default session configuration is not sufficient to launch the resource.
 export interface ResourceDebuggerExtension {
@@ -69,6 +70,8 @@ export function getResourceDebuggerExtensions(): ResourceDebuggerExtension[] {
     if (isPythonInstalled()) {
         extensions.push(pythonDebuggerExtension);
     }
+
+    extensions.push(nodeDebuggerExtension);
 
     return extensions;
 }
