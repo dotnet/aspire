@@ -433,10 +433,10 @@ public static class PythonAppResourceBuilderExtensions
                     switch (entrypointType)
                     {
                         case EntrypointType.Script:
-                            runtimeBuilder.Entrypoint(["python"]).Cmd([entrypoint]);
+                            runtimeBuilder.Entrypoint(["python", entrypoint]);
                             break;
                         case EntrypointType.Module:
-                            runtimeBuilder.Entrypoint(["python", "-m"]).Cmd([entrypoint]);
+                            runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
                             break;
                         case EntrypointType.Executable:
                             runtimeBuilder.Entrypoint([entrypoint]);

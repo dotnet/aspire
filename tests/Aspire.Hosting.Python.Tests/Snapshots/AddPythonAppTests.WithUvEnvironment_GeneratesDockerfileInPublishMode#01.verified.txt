@@ -40,5 +40,4 @@ USER appuser
 WORKDIR /app
 
 # Run the application
-ENTRYPOINT ["python","-m"]
-CMD ["mymodule"]
+ENTRYPOINT ["python","-m","mymodule"]
