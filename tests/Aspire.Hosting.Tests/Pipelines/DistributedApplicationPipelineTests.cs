@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPIPELINES001
 #pragma warning disable IDE0005
 
+using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
@@ -227,14 +228,17 @@ public class DistributedApplicationPipelineTests
 
         Assert.Equal(5, executionOrder.Count);
 
-        var level1Steps = executionOrder.Where(x => x.step.StartsWith("level1-")).ToList();
-        var level2Steps = executionOrder.Where(x => x.step.StartsWith("level2-")).ToList();
-        var level3Steps = executionOrder.Where(x => x.step.StartsWith("level3-")).ToList();
+        // With readiness-based scheduling, we only guarantee that dependencies are respected,
+        // not that all steps at a given "level" complete before the next "level" starts.
+        // Verify that each step starts after its direct dependencies.
+        var stepTimes = executionOrder.ToDictionary(x => x.step, x => x.time);
 
-        Assert.True(level1Steps.All(l1 => level2Steps.All(l2 => l1.time <= l2.time)),
-            "All level 1 steps should start before or at same time as level 2 steps");
-        Assert.True(level2Steps.All(l2 => level3Steps.All(l3 => l2.time <= l3.time)),
-            "All level 2 steps should start before or at same time as level 3 steps");
+        Assert.True(stepTimes["level2-step1"] >= stepTimes["level1-step1"],
+            "level2-step1 should start after level1-step1");
+        Assert.True(stepTimes["level2-step2"] >= stepTimes["level1-step2"],
+            "level2-step2 should start after level1-step2");
+        Assert.True(stepTimes["level3-step1"] >= stepTimes["level2-step1"],
+            "level3-step1 should start after level2-step1");
     }
 
     [Fact]
@@ -1118,6 +1122,171 @@ public class DistributedApplicationPipelineTests
     private static void ThrowHelperMethod()
     {
         throw new NotSupportedException("Test exception for stack trace");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
+    {
+        // Diamond pattern: A -> B, A -> C, B -> D, C -> D
+        // D should only start after both B and C complete
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionOrder = new List<string>();
+        var executionTimes = new Dictionary<string, DateTime>();
+
+        pipeline.AddStep("A", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("A"); executionTimes["A"] = DateTime.UtcNow; }
+            await Task.Delay(10);
+        });
+
+        pipeline.AddStep("B", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("B"); executionTimes["B"] = DateTime.UtcNow; }
+            await Task.Delay(10);
+        }, dependsOn: "A");
+
+        pipeline.AddStep("C", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("C"); executionTimes["C"] = DateTime.UtcNow; }
+            await Task.Delay(10);
+        }, dependsOn: "A");
+
+        pipeline.AddStep("D", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("D"); executionTimes["D"] = DateTime.UtcNow; }
+            await Task.CompletedTask;
+        }, dependsOn: new[] { "B", "C" });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(4, executionOrder.Count);
+        
+        // Verify execution order
+        var aIndex = executionOrder.IndexOf("A");
+        var bIndex = executionOrder.IndexOf("B");
+        var cIndex = executionOrder.IndexOf("C");
+        var dIndex = executionOrder.IndexOf("D");
+
+        Assert.True(aIndex < bIndex, "A should execute before B");
+        Assert.True(aIndex < cIndex, "A should execute before C");
+        Assert.True(bIndex < dIndex, "B should execute before D");
+        Assert.True(cIndex < dIndex, "C should execute before D");
+
+        // Verify that D started after both B and C (not just one of them)
+        Assert.True(executionTimes["D"] >= executionTimes["B"], "D should start after B completes");
+        Assert.True(executionTimes["D"] >= executionTimes["C"], "D should start after C completes");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithParallelBranches_RunsConcurrently()
+    {
+        // Test that independent branches can run in parallel
+        // Pattern: A -> B1, A -> B2
+        // B1 and B2 should be able to run concurrently after A completes
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionTimes = new Dictionary<string, DateTime>();
+        var completionTimes = new Dictionary<string, DateTime>();
+
+        pipeline.AddStep("A", async (context) =>
+        {
+            lock (executionTimes) { executionTimes["A"] = DateTime.UtcNow; }
+            await Task.Delay(10);
+            lock (completionTimes) { completionTimes["A"] = DateTime.UtcNow; }
+        });
+
+        pipeline.AddStep("B1", async (context) =>
+        {
+            lock (executionTimes) { executionTimes["B1"] = DateTime.UtcNow; }
+            await Task.Delay(50);
+            lock (completionTimes) { completionTimes["B1"] = DateTime.UtcNow; }
+        }, dependsOn: "A");
+
+        pipeline.AddStep("B2", async (context) =>
+        {
+            lock (executionTimes) { executionTimes["B2"] = DateTime.UtcNow; }
+            await Task.Delay(50);
+            lock (completionTimes) { completionTimes["B2"] = DateTime.UtcNow; }
+        }, dependsOn: "A");
+
+        var context = CreateDeployingContext(builder.Build());
+        var sw = Stopwatch.StartNew();
+        await pipeline.ExecuteAsync(context);
+        sw.Stop();
+
+        // Both B1 and B2 should start after A completes
+        Assert.True(executionTimes["B1"] >= completionTimes["A"], "B1 should start after A completes");
+        Assert.True(executionTimes["B2"] >= completionTimes["A"], "B2 should start after A completes");
+
+        // If running concurrently, B1 and B2 should overlap in time
+        // (both take 50ms, so if sequential would take 100ms+, if parallel should take ~50ms)
+        // Total time should be less than 100ms (A:10ms + max(B1:50ms, B2:50ms) ≈ 60ms)
+        Assert.True(sw.ElapsedMilliseconds < 100, 
+            $"B1 and B2 should run concurrently. Total time: {sw.ElapsedMilliseconds}ms");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithLongAndShortBranches_DoesNotBlockShortBranch()
+    {
+        // Test that a long-running branch doesn't block an independent short branch
+        // Pattern: A -> LongB, A -> ShortB -> C
+        // C should be able to complete while LongB is still running
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var completionOrder = new List<string>();
+        var completionTimes = new Dictionary<string, DateTime>();
+
+        pipeline.AddStep("A", async (context) =>
+        {
+            await Task.Delay(10);
+        });
+
+        pipeline.AddStep("LongB", async (context) =>
+        {
+            await Task.Delay(100);
+            lock (completionOrder) 
+            { 
+                completionOrder.Add("LongB"); 
+                completionTimes["LongB"] = DateTime.UtcNow; 
+            }
+        }, dependsOn: "A");
+
+        pipeline.AddStep("ShortB", async (context) =>
+        {
+            await Task.Delay(10);
+            lock (completionOrder) 
+            { 
+                completionOrder.Add("ShortB"); 
+                completionTimes["ShortB"] = DateTime.UtcNow; 
+            }
+        }, dependsOn: "A");
+
+        pipeline.AddStep("C", async (context) =>
+        {
+            await Task.Delay(10);
+            lock (completionOrder) 
+            { 
+                completionOrder.Add("C"); 
+                completionTimes["C"] = DateTime.UtcNow; 
+            }
+        }, dependsOn: "ShortB");
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // C should complete before LongB (demonstrating improved concurrency)
+        var cIndex = completionOrder.IndexOf("C");
+        var longBIndex = completionOrder.IndexOf("LongB");
+
+        Assert.True(cIndex < longBIndex, 
+            "C should complete before LongB (not blocked by long-running parallel branch)");
+        Assert.True(completionTimes["C"] < completionTimes["LongB"],
+            "C should complete before LongB based on timestamps");
     }
 
     private static DeployingContext CreateDeployingContext(DistributedApplication app)
