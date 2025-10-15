@@ -432,8 +432,9 @@ public class ModelProperties
     [JsonPropertyName("isAnonymous")]
     public bool IsAnonymous { get; set; }
 
+    // Not a type, this is an error in the original API
     [JsonPropertyName("orginAssetId")]
-    public string? OrginAssetId { get; set; }
+    public string? OriginAssetId { get; set; }
 
     [JsonPropertyName("intellectualProperty")]
     public IntellectualProperty? IntellectualProperty { get; set; }
