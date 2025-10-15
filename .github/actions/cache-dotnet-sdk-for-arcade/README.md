@@ -64,7 +64,7 @@ steps:
 
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
-| `key-prefix` | No | `dotnet-sdk` | Prefix for the cache key. The full key is automatically constructed as `{key-prefix}-{OS}-{arch}-{global.json-hash}` |
+| `key-prefix` | No | `dotnet-sdk-v1` | Prefix for the cache key. The full key is automatically constructed as `{key-prefix}-{OS}-{arch}-{global.json-hash}` |
 
 ## Outputs
 
@@ -76,7 +76,7 @@ steps:
 
 The action automatically constructs cache keys with the following components:
 
-1. **key-prefix**: User-provided or default `dotnet-sdk`
+1. **key-prefix**: User-provided or default `dotnet-sdk-v1` (versioned to allow cache invalidation)
 2. **Operating system**: `${{ runner.os }}` - Different OSes need different SDKs
 3. **Architecture**: `${{ runner.arch }}` - x64 vs arm64 require different binaries
 4. **global.json hash**: `${{ hashFiles('global.json') }}` - Changes when SDK version changes
@@ -90,9 +90,9 @@ The full cache key format is: `{key-prefix}-{OS}-{arch}-{hash}`
 - name: Cache .NET SDK
   uses: ./.github/actions/cache-dotnet-sdk-for-arcade
   with:
-    key-prefix: build-workflow-dotnet-sdk
+    key-prefix: build-workflow-dotnet-sdk-v1
 
-# Results in key like: build-workflow-dotnet-sdk-Linux-X64-a1b2c3d4
+# Results in key like: build-workflow-dotnet-sdk-v1-Linux-X64-a1b2c3d4
 ```
 
 ## How It Works
@@ -118,3 +118,4 @@ A test workflow is available at `.github/workflows/test-cache-dotnet-sdk.yml`. R
 - Minimal overhead: Only creates a small empty project file, no actual code compilation
 - Automatic cleanup: Removes temporary project file after SDK installation
 - Cache key includes OS, architecture, and global.json hash for optimal cache hits
+- **Versioned caching**: The default prefix includes `-v1` suffix to allow global cache invalidation by bumping the version number

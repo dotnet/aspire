@@ -22,7 +22,7 @@ inputs:
   key-prefix:
     description: 'Prefix for the cache key'
     required: false
-    default: 'dotnet-sdk'
+    default: 'dotnet-sdk-v1'
 
 outputs:
   cache-hit:

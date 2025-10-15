@@ -110,9 +110,9 @@ jobs:
             artifacts/bin/dotnet-9
             artifacts/bin/dotnet-10
             artifacts/bin/dotnet-tests
-          key: test-sdks-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/SdksForTesting.Versions.props') }}
+          key: test-sdks-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('eng/SdksForTesting.Versions.props') }}
           restore-keys: |
-            test-sdks-${{ runner.os }}-${{ runner.arch }}-
+            test-sdks-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
