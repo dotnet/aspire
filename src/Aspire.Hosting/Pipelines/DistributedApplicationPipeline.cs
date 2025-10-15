@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREPIPELINES001
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
@@ -115,37 +116,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         var stepsByName = allSteps.ToDictionary(s => s.Name);
 
-        var levels = ResolveDependencies(allSteps, stepsByName);
-
-        foreach (var level in levels)
-        {
-            var tasks = level.Select(step => ExecuteStepAsync(step, context)).ToList();
-            try
-            {
-                await Task.WhenAll(tasks).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Collect all exceptions from failed tasks
-                var exceptions = tasks
-                    .Where(t => t.IsFaulted)
-                    .SelectMany(t => t.Exception?.InnerExceptions ?? Enumerable.Empty<Exception>())
-                    .ToList();
-
-                if (exceptions.Count == 1)
-                {
-                    ExceptionDispatchInfo.Capture(exceptions[0]).Throw();
-                }
-                else if (exceptions.Count > 1)
-                {
-                    throw new AggregateException(
-                        $"Multiple pipeline steps failed at the same level: {string.Join(", ", exceptions.OfType<InvalidOperationException>().Select(e => e.Message))}",
-                        exceptions);
-                }
-
-                throw;
-            }
-        }
+        // Build dependency graph and execute with readiness-based scheduler
+        await ExecuteWithReadinessScheduler(allSteps, stepsByName, context).ConfigureAwait(false);
     }
 
     private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(DeployingContext context)
@@ -201,126 +173,270 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
-    /// Resolves the dependencies among the steps and organizes them into levels for execution.
+    /// Executes pipeline steps using a readiness-based scheduler that starts steps as soon as their dependencies are met.
     /// </summary>
-    /// <param name="steps">The complete set of pipeline steps populated from annotations and the builder</param>
-    /// <param name="stepsByName">A dictionary mapping step names to their corresponding step objects</param>
-    /// <returns>A list of lists where each list contains the steps to be executed at the same level</returns>
-    private static List<List<PipelineStep>> ResolveDependencies(
-        IEnumerable<PipelineStep> steps,
-        Dictionary<string, PipelineStep> stepsByName)
+    private static async Task ExecuteWithReadinessScheduler(
+        List<PipelineStep> steps,
+        Dictionary<string, PipelineStep> stepsByName,
+        DeployingContext context)
     {
-        // Initial a graph that represents a step and its dependencies
-        // and an inDegree map to count the number of dependencies that
-        // each step has.
-        var graph = new Dictionary<string, List<string>>();
-        var inDegree = new Dictionary<string, int>();
+        // Build the dependency graph and validate no cycles
+        var (indegrees, dependents) = BuildDependencyGraph(steps, stepsByName);
 
-        foreach (var step in steps)
+        // Create step index mapping
+        var stepIndices = new Dictionary<string, int>();
+        for (int i = 0; i < steps.Count; i++)
         {
-            graph[step.Name] = [];
-            inDegree[step.Name] = 0;
+            stepIndices[steps[i].Name] = i;
         }
 
-        // Process all the `RequiredBy` relationships in the graph and adds
-        // the each `RequiredBy` step to the DependsOn list of the step that requires it.
+        // Track running tasks and exceptions
+        var runningTasks = new HashSet<Task<int>>();
+        var exceptions = new ConcurrentBag<Exception>();
+        var completedSteps = new HashSet<int>();
+        var completedStepsLock = new object();
+
+        // Enqueue all zero in-degree steps initially
+        var readySteps = new List<int>();
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (indegrees[i] == 0)
+            {
+                readySteps.Add(i);
+            }
+        }
+
+        // Main execution loop
+        while (completedSteps.Count < steps.Count || runningTasks.Count > 0)
+        {
+            // Start all ready steps
+            foreach (var stepIndex in readySteps)
+            {
+                var step = steps[stepIndex];
+                var task = ExecuteStepWithTrackingAsync(stepIndex, step, context, exceptions);
+                runningTasks.Add(task);
+            }
+            readySteps.Clear();
+
+            // If no tasks are running and no steps are ready, we have a problem
+            if (runningTasks.Count == 0)
+            {
+                break;
+            }
+
+            // Wait for at least one task to complete
+            var completedTask = await Task.WhenAny(runningTasks).ConfigureAwait(false);
+            runningTasks.Remove(completedTask);
+
+            var completedStepIndex = await completedTask.ConfigureAwait(false);
+
+            lock (completedStepsLock)
+            {
+                completedSteps.Add(completedStepIndex);
+            }
+
+            // If a failure occurred, stop scheduling new steps but wait for running tasks
+            if (!exceptions.IsEmpty)
+            {
+                // Wait for all running tasks to complete
+                if (runningTasks.Count > 0)
+                {
+                    await Task.WhenAll(runningTasks).ConfigureAwait(false);
+                }
+                break;
+            }
+
+            // Check which dependent steps are now ready
+            var completedStepName = steps[completedStepIndex].Name;
+            if (dependents.TryGetValue(completedStepName, out var dependentIndices))
+            {
+                foreach (var dependentIndex in dependentIndices)
+                {
+                    // Decrement the in-degree and check if all dependencies are satisfied
+                    if (Interlocked.Decrement(ref indegrees[dependentIndex]) == 0)
+                    {
+                        readySteps.Add(dependentIndex);
+                    }
+                }
+            }
+        }
+
+        // Check for circular dependencies (defensive check)
+        if (completedSteps.Count != steps.Count && exceptions.IsEmpty)
+        {
+            var uncompletedSteps = steps
+                .Where((_, i) => !completedSteps.Contains(i))
+                .Select(s => s.Name)
+                .ToList();
+
+            throw new InvalidOperationException(
+                $"Circular dependency detected in pipeline steps: {string.Join(", ", uncompletedSteps)}");
+        }
+
+        // Throw exceptions if any occurred
+        if (!exceptions.IsEmpty)
+        {
+            var exceptionList = exceptions.ToList();
+            if (exceptionList.Count == 1)
+            {
+                ExceptionDispatchInfo.Capture(exceptionList[0]).Throw();
+            }
+            else
+            {
+                throw new AggregateException(
+                    $"Multiple pipeline steps failed at the same level: {string.Join(", ", exceptionList.OfType<InvalidOperationException>().Select(e => e.Message))}",
+                    exceptionList);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Executes a step and returns its index upon completion.
+    /// </summary>
+    private static async Task<int> ExecuteStepWithTrackingAsync(
+        int stepIndex,
+        PipelineStep step,
+        DeployingContext context,
+        ConcurrentBag<Exception> exceptions)
+    {
+        try
+        {
+            await ExecuteStepAsync(step, context).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            exceptions.Add(ex);
+        }
+
+        return stepIndex;
+    }
+
+    /// <summary>
+    /// Builds the dependency graph for the pipeline steps.
+    /// </summary>
+    /// <returns>A tuple of (indegrees array, dependents dictionary)</returns>
+    private static (int[] indegrees, Dictionary<string, List<int>> dependents) BuildDependencyGraph(
+        List<PipelineStep> steps,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        var indegrees = new int[steps.Count];
+        var dependents = new Dictionary<string, List<int>>();
+        var stepIndices = new Dictionary<string, int>();
+
+        for (int i = 0; i < steps.Count; i++)
+        {
+            stepIndices[steps[i].Name] = i;
+            dependents[steps[i].Name] = [];
+        }
+
+        // Process all the `RequiredBy` relationships and normalize to DependsOn
         foreach (var step in steps)
         {
             foreach (var requiredByStep in step.RequiredBySteps)
             {
-                if (!graph.ContainsKey(requiredByStep))
+                if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
                 {
                     throw new InvalidOperationException(
                         $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
-                if (stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj) &&
-                    !requiredByStepObj.DependsOnSteps.Contains(step.Name))
+                if (!requiredByStepObj.DependsOnSteps.Contains(step.Name))
                 {
                     requiredByStepObj.DependsOnSteps.Add(step.Name);
                 }
             }
         }
 
-        // Now that the `DependsOn` lists are fully populated, we can build the graph
-        // and the inDegree map based only on the DependOnSteps list.
+        // Build the graph based on DependsOn relationships
         foreach (var step in steps)
         {
+            var stepIndex = stepIndices[step.Name];
+
             foreach (var dependency in step.DependsOnSteps)
             {
-                if (!graph.TryGetValue(dependency, out var dependents))
+                if (!stepIndices.TryGetValue(dependency, out var depIndex))
                 {
                     throw new InvalidOperationException(
                         $"Step '{step.Name}' depends on unknown step '{dependency}'");
                 }
 
-                dependents.Add(step.Name);
-                inDegree[step.Name]++;
+                dependents[dependency].Add(stepIndex);
+                indegrees[stepIndex]++;
             }
         }
 
-        // Perform a topological sort to determine the levels of execution and
-        // initialize a queue with all steps that have no dependencies (inDegree of 0)
-        // and can be executed immediately as part of the first level.
-        var levels = new List<List<PipelineStep>>();
-        var queue = new Queue<string>(
-            inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key)
-        );
+        // Cycle detection using topological sort
+        var queue = new Queue<int>();
+        var tempIndegrees = (int[])indegrees.Clone();
 
-        // Process the queue until all steps have been organized into levels.
-        // We start with the steps that have no dependencies and then iterate
-        // through all the steps that depend on them to build out the graph
-        // until no more steps are available to process.
+        for (int i = 0; i < steps.Count; i++)
+        {
+            if (tempIndegrees[i] == 0)
+            {
+                queue.Enqueue(i);
+            }
+        }
+
+        var processedCount = 0;
         while (queue.Count > 0)
         {
-            var currentLevel = new List<PipelineStep>();
-            var levelSize = queue.Count;
+            var stepIndex = queue.Dequeue();
+            processedCount++;
 
-            for (var i = 0; i < levelSize; i++)
+            var stepName = steps[stepIndex].Name;
+            if (dependents.TryGetValue(stepName, out var deps))
             {
-                var stepName = queue.Dequeue();
-                var step = stepsByName[stepName];
-                currentLevel.Add(step);
-
-                // For each dependent step, reduce its inDegree by 1
-                // in each iteration since its dependencies have been
-                // processed. Once a dependent step has an inDegree
-                // of 0, it means all its dependencies have been
-                // processed and it can be added to the queue so we
-                // can process the next level of dependencies.
-                foreach (var dependent in graph[stepName])
+                foreach (var depIndex in deps)
                 {
-                    inDegree[dependent]--;
-                    if (inDegree[dependent] == 0)
+                    if (--tempIndegrees[depIndex] == 0)
                     {
-                        queue.Enqueue(dependent);
+                        queue.Enqueue(depIndex);
+                    }
+                }
+            }
+        }
+
+        if (processedCount != steps.Count)
+        {
+            var processedIndices = new HashSet<int>();
+            queue.Clear();
+            tempIndegrees = (int[])indegrees.Clone();
+
+            for (int i = 0; i < steps.Count; i++)
+            {
+                if (tempIndegrees[i] == 0)
+                {
+                    queue.Enqueue(i);
+                }
+            }
+
+            while (queue.Count > 0)
+            {
+                var idx = queue.Dequeue();
+                processedIndices.Add(idx);
+
+                if (dependents.TryGetValue(steps[idx].Name, out var deps))
+                {
+                    foreach (var depIdx in deps)
+                    {
+                        if (--tempIndegrees[depIdx] == 0)
+                        {
+                            queue.Enqueue(depIdx);
+                        }
                     }
                 }
             }
 
-            // Exhausting the queue means that we've resolved all
-            // steps that can run in parallel.
-            levels.Add(currentLevel);
-        }
-
-        // If the total number of steps in all levels does not equal
-        // the total number of steps in the pipeline, it indicates that
-        // there is a circular dependency in the graph. Steps are enqueued
-        // for processing into levels above when all their dependencies are
-        // resolved. When a cycle exists, the degrees of the steps in the cycle
-        // will never reach zero and won't be enqueued for processing so the
-        // total number of processed steps will be less than the total number
-        // of steps in the pipeline.
-        if (levels.Sum(l => l.Count) != steps.Count())
-        {
-            var processedSteps = new HashSet<string>(levels.SelectMany(l => l.Select(s => s.Name)));
-            var stepsInCycle = steps.Where(s => !processedSteps.Contains(s.Name)).Select(s => s.Name).ToList();
+            var stepsInCycle = steps
+                .Where((s, i) => !processedIndices.Contains(i))
+                .Select(s => s.Name)
+                .ToList();
 
             throw new InvalidOperationException(
                 $"Circular dependency detected in pipeline steps: {string.Join(", ", stepsInCycle)}");
         }
 
-        return levels;
+        return (indegrees, dependents);
     }
 
     private static async Task ExecuteStepAsync(PipelineStep step, DeployingContext context)
