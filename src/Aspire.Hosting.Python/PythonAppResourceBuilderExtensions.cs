@@ -315,7 +315,7 @@ public static class PythonAppResourceBuilderExtensions
         if (entrypointType is EntrypointType.Script or EntrypointType.Module)
         {
             var programPath = entrypointType == EntrypointType.Script
-                ? Path.Join(appDirectory, entrypoint)
+                ? Path.GetFullPath(entrypoint, appDirectory)
                 : null; // For modules, we'll use the module name
 
             resourceBuilder.WithVSCodeDebugSupport(
@@ -326,17 +326,34 @@ public static class PythonAppResourceBuilderExtensions
                     Mode = mode
                 },
                 "ms-python.python",
-                ctx =>
+                static ctx =>
                 {
-                    // Remove entrypoint-specific arguments that VS Code will handle
-                    if (entrypointType == EntrypointType.Module && ctx.Args.Count >= 2)
+                    // Remove entrypoint-specific arguments that VS Code will handle.
+                    // We need to verify the annotation to ensure we remove the correct args.
+                    if (!ctx.Resource.TryGetLastAnnotation<PythonEntrypointAnnotation>(out var annotation))
                     {
-                        ctx.Args.RemoveAt(0); // Remove "-m"
-                        ctx.Args.RemoveAt(0); // Remove module name
+                        return;
                     }
-                    else if (entrypointType == EntrypointType.Script && ctx.Args.Count >= 1)
+
+                    // For Module type: remove "-m" and module name (2 args)
+                    if (annotation.Type == EntrypointType.Module)
                     {
-                        ctx.Args.RemoveAt(0); // Remove script path
+                        if (ctx.Args is [string arg0, string arg1, ..] &&
+                            arg0 == "-m" &&
+                            arg1 == annotation.Entrypoint)
+                        {
+                            ctx.Args.RemoveAt(0); // Remove "-m"
+                            ctx.Args.RemoveAt(0); // Remove module name
+                        }
+                    }
+                    // For Script type: remove script path (1 arg)
+                    else if (annotation.Type == EntrypointType.Script)
+                    {
+                        if (ctx.Args is [string arg0, ..] &&
+                            arg0 == annotation.Entrypoint)
+                        {
+                            ctx.Args.RemoveAt(0); // Remove script path
+                        }
                     }
                 });
         }

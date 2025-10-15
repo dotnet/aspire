@@ -981,5 +981,100 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
 
         await Verify(dockerfileContent);
     }
+
+    [Fact]
+    public async Task WithVSCodeDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var scriptPath = "main.py";
+
+        var pythonApp = builder.AddPythonScript("myapp", appDirectory, scriptPath)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("arg1", "arg2");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify the script path was removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("arg2", arg));
+    }
+
+    [Fact]
+    public async Task WithVSCodeDebugSupport_RemovesModuleArgumentsForModuleEntrypoint()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var moduleName = "flask";
+
+        var pythonApp = builder.AddPythonModule("myapp", appDirectory, moduleName)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("run");
+
+        var app = builder.Build();
+
+        var resource = pythonApp.Resource;
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, app.Services);
+
+        // Verify "-m" and module name were removed but other args remain
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("run", arg));
+    }
+
+    [Fact]
+    public async Task WithVSCodeDebugSupport_ExecutableTypeDoesNotModifyArgs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+        using var tempDir = new TempDirectory();
+
+        // Set DEBUG_SESSION_INFO to trigger VS Code debug support callback
+        builder.Configuration["DEBUG_SESSION_INFO"] = "{}";
+
+        var appDirectory = Path.Combine(tempDir.Path, "myapp");
+        Directory.CreateDirectory(appDirectory);
+        var virtualEnvironmentPath = Path.Combine(tempDir.Path, ".venv");
+        Directory.CreateDirectory(virtualEnvironmentPath);
+        var executableName = "myexe";
+
+        var pythonApp = builder.AddPythonExecutable("myapp", appDirectory, executableName)
+            .WithVirtualEnvironment(virtualEnvironmentPath)
+            .WithArgs("arg1", "arg2");
+
+        var resource = pythonApp.Resource;
+
+        var app = builder.Build();
+
+        // Use ArgumentEvaluator to get the resolved argument list (after callbacks are applied)
+        var commandArguments = await ArgumentEvaluator.GetArgumentListAsync(resource, TestServiceProvider.Instance);
+
+        // For executable type, no args are removed (no debug support callback)
+        Assert.Collection(commandArguments,
+            arg => Assert.Equal("arg1", arg),
+            arg => Assert.Equal("arg2", arg));
+    }
 }
 
