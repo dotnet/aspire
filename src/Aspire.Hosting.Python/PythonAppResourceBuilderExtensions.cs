@@ -6,7 +6,6 @@ using System.Runtime.CompilerServices;
 #pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
-using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
 
@@ -180,6 +179,7 @@ public static class PythonAppResourceBuilderExtensions
     public static IResourceBuilder<PythonAppResource> AddPythonApp(
         this IDistributedApplicationBuilder builder, string name, string appDirectory, string scriptPath, params string[] scriptArgs)
     {
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, ".venv")
             .WithArgs(scriptArgs);
@@ -222,6 +222,7 @@ public static class PythonAppResourceBuilderExtensions
         string virtualEnvironmentPath, params string[] scriptArgs)
     {
         ThrowIfNullOrContainsIsNullOrEmpty(scriptArgs);
+        ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
             .WithArgs(scriptArgs);
     }

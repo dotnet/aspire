@@ -712,18 +712,12 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         var pythonBuilder = builder.AddPythonScript("python-app", tempDir.Path, "main.py");
 
         // Get the initial command (should be python executable)
-        var app1 = builder.Build();
-        var appModel1 = app1.Services.GetRequiredService<DistributedApplicationModel>();
-        var resource1 = appModel1.Resources.OfType<PythonAppResource>().Single();
-        var initialCommand = resource1.Command;
+        var initialCommand = pythonBuilder.Resource.Command;
 
         // Change to an executable
         pythonBuilder.WithEntrypoint(EntrypointType.Executable, "pytest");
 
-        var app2 = builder.Build();
-        var appModel2 = app2.Services.GetRequiredService<DistributedApplicationModel>();
-        var resource2 = appModel2.Resources.OfType<PythonAppResource>().Single();
-        var newCommand = resource2.Command;
+        var newCommand = pythonBuilder.Resource.Command;
 
         // Commands should be different - one is python, one is pytest
         Assert.NotEqual(initialCommand, newCommand);
