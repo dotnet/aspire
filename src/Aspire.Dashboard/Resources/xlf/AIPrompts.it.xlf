@@ -4,152 +4,152 @@
     <body>
       <trans-unit id="PromptAnalyzeLogEntry">
         <source>Analyze log entry `log_id: {0}`</source>
-        <target state="translated">Analizza la voce di log 'log_id: {0}'</target>
+        <target state="new">Analyze log entry `log_id: {0}`</target>
         <note>{0} is a log id. Don't translate log_id</note>
       </trans-unit>
       <trans-unit id="PromptAnalyzePerformance">
         <source>Analyze performance</source>
-        <target state="translated">Analizza le prestazioni</target>
+        <target state="new">Analyze performance</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptAnalyzeResource">
         <source>Analyze resource `{0}`</source>
-        <target state="translated">Analizza la risorsa '{0}'</target>
+        <target state="new">Analyze resource `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptAnalyzeResourcePerformance">
         <source>Analyze performance for `{0}`</source>
-        <target state="translated">Analizza le prestazioni per '{0}'</target>
+        <target state="new">Analyze performance for `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptAnalyzeResources">
         <source>Explain the current state of my app's resources</source>
-        <target state="translated">Spiega lo stato attuale delle risorse dell'app</target>
+        <target state="new">Explain the current state of my app's resources</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptAnalyzeSpan">
         <source>Analyze span `{0}`</source>
-        <target state="translated">Analizza lo span '{0}'</target>
+        <target state="new">Analyze span `{0}`</target>
         <note>{0} is a span id</note>
       </trans-unit>
       <trans-unit id="PromptAnalyzeStructuredLogs">
         <source>Get structured logs for all resources</source>
-        <target state="translated">Recupera i log strutturati per tutte le risorse</target>
+        <target state="new">Get structured logs for all resources</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptAnalyzeTrace">
         <source>Analyze distributed trace `trace_id: {0}`</source>
-        <target state="translated">Analizza la traccia distribuita 'trace_id: {0}'</target>
+        <target state="new">Analyze distributed trace `trace_id: {0}`</target>
         <note>{0} is a trace id. Don't translate trace_id</note>
       </trans-unit>
       <trans-unit id="PromptConsoleLogs">
         <source>Get console logs for all resources</source>
-        <target state="translated">Recupera i log della console per tutte le risorse</target>
+        <target state="new">Get console logs for all resources</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptErrorTraces">
         <source>Analyze distributed trace errors</source>
-        <target state="translated">Analisi errori delle tracce distribuite</target>
+        <target state="new">Analyze distributed trace errors</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptErrorsStructuredLogs">
         <source>Analyze structured log errors</source>
-        <target state="translated">Analizza errori nei log strutturati</target>
+        <target state="new">Analyze structured log errors</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptHelpConsoleLogs">
         <source>Describe using console logs</source>
-        <target state="translated">Descrivi l'utilizzo dei log della console</target>
+        <target state="new">Describe using console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptHelpResources">
         <source>Describe using resources</source>
-        <target state="translated">Descrivi l'utilizzo delle risorse</target>
+        <target state="new">Describe using resources</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptHelpStructuredLogs">
         <source>Describe using structured logs</source>
-        <target state="translated">Descrivi utilizzando log strutturati</target>
+        <target state="new">Describe using structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptHelpTraces">
         <source>Describe using distributed traces</source>
-        <target state="translated">Descrivi utilizzando tracce distribuite</target>
+        <target state="new">Describe using distributed traces</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptResourceConsoleLogs">
         <source>Get console logs for `{0}`</source>
-        <target state="translated">Recupera i log della console per '{0}'</target>
+        <target state="new">Get console logs for `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptResourceStructuredLogs">
         <source>Get structured logs for `{0}`</source>
-        <target state="translated">Recupera log strutturati per '{0}'</target>
+        <target state="new">Get structured logs for `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptResourceTraces">
         <source>Get distributed traces for `{0}`</source>
-        <target state="translated">Recupera tracce distribuite per '{0}'</target>
+        <target state="new">Get distributed traces for `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptResourceTracesAndStructuredLogs">
         <source>Get traces and structured logs for `{0}`</source>
-        <target state="translated">Recupera tracce e log strutturati per '{0}'</target>
+        <target state="new">Get traces and structured logs for `{0}`</target>
         <note>{0} is a resource name</note>
       </trans-unit>
       <trans-unit id="PromptTraces">
         <source>Get distributed traces for all resources</source>
-        <target state="translated">Recupera tracce distribuite per tutte le risorse</target>
+        <target state="new">Get distributed traces for all resources</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptTracesAndStructuredLogs">
         <source>Get traces and structured logs</source>
-        <target state="translated">Recupera tracce e log strutturati</target>
+        <target state="new">Get traces and structured logs</target>
         <note />
       </trans-unit>
       <trans-unit id="PromptUnhealthyResources">
         <source>Check that all resources are in a healthy state</source>
-        <target state="translated">Verifica che tutte le risorse siano in uno stato integro</target>
+        <target state="new">Check that all resources are in a healthy state</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleExplainErrors">
         <source>Explain errors</source>
-        <target state="translated">Spiega gli errori</target>
+        <target state="new">Explain errors</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleHelp">
         <source>Help</source>
-        <target state="translated">Guida</target>
+        <target state="new">Help</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleInvestigate">
         <source>Investigate</source>
-        <target state="translated">Esegui indagine</target>
+        <target state="new">Investigate</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleInvestigateUnhealthyResources">
         <source>Investigate unhealthy resources</source>
-        <target state="translated">Indaga sulle risorse non integre</target>
+        <target state="new">Investigate unhealthy resources</target>
         <note />
       </trans-unit>
       <trans-unit id="TitlePerformance">
         <source>Performance</source>
-        <target state="translated">Prestazioni</target>
+        <target state="new">Performance</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleRecentActivity">
         <source>Recent activity</source>
-        <target state="translated">Attività recenti</target>
+        <target state="new">Recent activity</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleRecentConsoleLogs">
         <source>Recent console logs</source>
-        <target state="translated">Log della console recenti</target>
+        <target state="new">Recent console logs</target>
         <note />
       </trans-unit>
       <trans-unit id="TitleSummarizeResources">
         <source>Summarize resources</source>
-        <target state="translated">Riepiloga le risorse</target>
+        <target state="new">Summarize resources</target>
         <note />
       </trans-unit>
     </body>

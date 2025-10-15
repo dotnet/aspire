@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="AIAssistantLaunchButtonText">
         <source>Chat with GitHub Copilot</source>
-        <target state="translated">Czat z funkcją GitHub Copilot</target>
+        <target state="new">Chat with GitHub Copilot</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatIDEConnectionDisclaimerText">
         <source>Aspire uses your {0} connection to generate Copilot insights.</source>
-        <target state="translated">W celu wygenerowania szczegółowych informacji funkcji Copilot, usługa Aspire korzysta z Twojego połączenia {0}.</target>
+        <target state="new">Aspire uses your {0} connection to generate Copilot insights.</target>
         <note>{0} is the name of an IDE.</note>
       </trans-unit>
       <trans-unit id="ChatLoadingText">
         <source>Getting ready...</source>
-        <target state="translated">Trwa przygotowywanie...</target>
+        <target state="new">Getting ready...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatMistakesDisclaimerText">
         <source>Copilot uses AI. Check for mistakes.</source>
-        <target state="translated">Funkcja Copilot używa sztucznej inteligencji. Sprawdź, czy nie ma błędów.</target>
+        <target state="new">Copilot uses AI. Check for mistakes.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatModelSelectButtonTitle">
@@ -29,202 +29,202 @@
       </trans-unit>
       <trans-unit id="ChatRefreshFollowUpPrompts">
         <source>Refresh follow-up prompts</source>
-        <target state="translated">Odśwież polecenia kolejnych czynności</target>
+        <target state="new">Refresh follow-up prompts</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorCanceled">
         <source>Request canceled</source>
-        <target state="translated">Żądanie anulowane</target>
+        <target state="new">Request canceled</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbidden">
         <source>Permission denied when sending request. </source>
-        <target state="translated">Odmowa uprawnień podczas wysyłania żądania. </target>
+        <target state="new">Permission denied when sending request. </target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenCopilotSubscription">
         <source>If you don't yet have a Copilot subscription, you can &lt;a href="{0}" target="_blank"&gt;get one here&lt;/a&gt;.</source>
-        <target state="translated">Jeśli nie masz jeszcze subskrypcji Copilot, możesz &lt;a href="{0}" target="_blank"&gt;uzyskać ją tutaj&lt;/a&gt;.</target>
+        <target state="new">If you don't yet have a Copilot subscription, you can &lt;a href="{0}" target="_blank"&gt;get one here&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenDescription">
         <source>To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
-        <target state="translated">Aby używać GitHub Copilot w .NET Aspire, musisz mieć zainstalowaną aktualną wersję swojego IDE, a Twoje konto GitHub musi mieć dostęp do GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 lub nowsze&lt;/li&gt;&lt;li&gt;VS Code i C# Dev Kit 1.19.63 lub nowsze&lt;/li&gt;&lt;/ul&gt;</target>
+        <target state="new">To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVSCode">
         <source>Sign into VS Code with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Set up GitHub Copilot in VS Code&lt;/a&gt;.</source>
-        <target state="translated">Zaloguj się do programu VS Code przy użyciu konta usługi GitHub, które ma subskrypcję funkcji Copilot. Wykonaj kroki opisane w artykule &lt;a href="{0}" target="_blank"&gt;Konfigurowanie funkcji GitHub Copilot w programie VS Code&lt;/a&gt;.</target>
+        <target state="new">Sign into VS Code with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Set up GitHub Copilot in VS Code&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVisualStudio">
         <source>Sign into Visual Studio with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Add GitHub accounts to your Visual Studio keychain&lt;/a&gt;.</source>
-        <target state="translated">Zaloguj się do programu Visual Studio przy użyciu konta usługi GitHub, które ma subskrypcję funkcji Copilot. Wykonaj kroki opisane w artykule &lt;a href="{0}" target="_blank"&gt;Dodawanie kont usługi GitHub do pęku kluczy programu Visual Studio&lt;/a&gt;.</target>
+        <target state="new">Sign into Visual Studio with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Add GitHub accounts to your Visual Studio keychain&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorRateLimited">
         <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">Niestety, Twoja prośba została ograniczona. Spróbuj ponownie później.</target>
+        <target state="new">Sorry, your request was rate limited. Please try again later.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
-        <target state="translated">Nie można wysłać żądania</target>
+        <target state="new">Unable to send request</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimitCopilot">
         <source>You've reached your monthly limit of chat on the Copilot Free plan. &lt;a href="{0}" target="_blank"&gt;Upgrade now&lt;/a&gt; or wait until {1} for your limit to reset.</source>
-        <target state="translated">Osiągnięto miesięczny limit czatu w ramach planu bezpłatnej funkcji Copilot. &lt;a href="{0}" target="_blank"&gt;Uaktualnij teraz&lt;/a&gt; lub poczekaj do {1}, aby zresetować limit.</target>
+        <target state="new">You've reached your monthly limit of chat on the Copilot Free plan. &lt;a href="{0}" target="_blank"&gt;Upgrade now&lt;/a&gt; or wait until {1} for your limit to reset.</target>
         <note>{0} is a link, {1} is a date</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorStatusCode">
         <source>Error when sending request. Status code: {0}</source>
-        <target state="translated">Błąd podczas wysyłania żądania. Kod stanu: {0}</target>
+        <target state="new">Error when sending request. Status code: {0}</target>
         <note>{0} is a status code</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorUnknown">
         <source>Error when sending request</source>
-        <target state="translated">Błąd podczas wysyłania żądania</target>
+        <target state="new">Error when sending request</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatTextAreaPlaceHolder">
         <source>Type your message...</source>
-        <target state="translated">Wpisz swoją wiadomość...</target>
+        <target state="new">Type your message...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatThinkingText">
         <source>Thinking...</source>
-        <target state="translated">Zastanawiam się...</target>
+        <target state="new">Thinking...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatUnavailableText">
         <source>GitHub Copilot unavailable</source>
-        <target state="translated">Funkcja GitHub Copilot jest niedostępna</target>
+        <target state="new">GitHub Copilot unavailable</target>
         <note />
       </trans-unit>
       <trans-unit id="CopyMessageButtonText">
         <source>Copy to clipboard</source>
-        <target state="translated">Kopiuj do schowka</target>
+        <target state="new">Copy to clipboard</target>
         <note />
       </trans-unit>
       <trans-unit id="DialogTitle">
         <source>GitHub Copilot chat</source>
-        <target state="translated">Czat narzędzia GitHub Copilot</target>
+        <target state="new">GitHub Copilot chat</target>
         <note />
       </trans-unit>
       <trans-unit id="DislikeMessageButtonText">
         <source>Unhelpful</source>
-        <target state="translated">Nieprzydatne</target>
+        <target state="new">Unhelpful</target>
         <note />
       </trans-unit>
       <trans-unit id="ExplainErrorsButtonText">
         <source>Explain errors</source>
-        <target state="translated">Wyjaśnij błędy</target>
+        <target state="new">Explain errors</target>
         <note />
       </trans-unit>
       <trans-unit id="ExplainTraceButtonText">
         <source>Explain trace</source>
-        <target state="translated">Objaśnienie śledzenia</target>
+        <target state="new">Explain trace</target>
         <note />
       </trans-unit>
       <trans-unit id="LikeMessageButtonText">
         <source>Helpful</source>
-        <target state="translated">Przydatne</target>
+        <target state="new">Helpful</target>
         <note />
       </trans-unit>
       <trans-unit id="MenuTextAskGitHubCopilot">
         <source>Ask GitHub Copilot</source>
-        <target state="translated">Zapytaj funkcję GitHub Copilot</target>
+        <target state="new">Ask GitHub Copilot</target>
         <note />
       </trans-unit>
       <trans-unit id="RetryMessageButtonText">
         <source>Retry</source>
-        <target state="translated">Ponów próbę</target>
+        <target state="new">Retry</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarExpandDialog">
         <source>Expand dialog</source>
-        <target state="translated">Rozwiń okno dialogowe</target>
+        <target state="new">Expand dialog</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarNewChat">
         <source>Start new chat</source>
-        <target state="translated">Rozpocznij nowy czat</target>
+        <target state="new">Start new chat</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
-        <target state="translated">Wyślij wiadomość</target>
+        <target state="new">Send message</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarShrinkDialog">
         <source>Shrink dialog</source>
-        <target state="translated">Okno dialogowe Zmniejszanie</target>
+        <target state="new">Shrink dialog</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">
         <source>GitHub Copilot chat</source>
-        <target state="translated">Czat narzędzia GitHub Copilot</target>
+        <target state="new">GitHub Copilot chat</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationConsoleLogs">
         <source>Getting console logs for `{0}`...</source>
-        <target state="translated">Trwa pobieranie dzienników konsoli dla „{0}”...</target>
+        <target state="new">Getting console logs for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationConsoleLogsFailure">
         <source>Failed to get console logs for `{0}`.</source>
-        <target state="translated">Nie można pobrać dzienników konsoli dla zasobu „{0}”.</target>
+        <target state="new">Failed to get console logs for `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationResourceGraph">
         <source>Getting resource graph....</source>
-        <target state="translated">Trwa pobieranie wykresu zasobów...</target>
+        <target state="new">Getting resource graph....</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsAll">
         <source>Getting structured logs for all resources...</source>
-        <target state="translated">Trwa pobieranie dzienników strukturalnych dla wszystkich zasobów...</target>
+        <target state="new">Getting structured logs for all resources...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsResource">
         <source>Getting structured logs for `{0}`...</source>
-        <target state="translated">Trwa pobieranie dzienników strukturalnych dla „{0}”...</target>
+        <target state="new">Getting structured logs for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsResourceFailure">
         <source>Failed to get structured logs for `{0}`.</source>
-        <target state="translated">Nie można pobrać dzienników ze strukturą dla zasobu „{0}”.</target>
+        <target state="new">Failed to get structured logs for `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTrace">
         <source>Getting trace `{0}`...</source>
-        <target state="translated">Trwa pobieranie śladu „{0}”...</target>
+        <target state="new">Getting trace `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTraceFailure">
         <source>Failed to get trace `{0}`.</source>
-        <target state="translated">Nie można pobrać śladu „{0}”.</target>
+        <target state="new">Failed to get trace `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTraceStructuredLogs">
         <source>Getting trace `{0}` logs...</source>
-        <target state="translated">Trwa pobieranie dzienników śledzenia „{0}”...</target>
+        <target state="new">Getting trace `{0}` logs...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesAll">
         <source>Getting traces for all resources...</source>
-        <target state="translated">Trwa pobieranie śladów dla wszystkich zasobów...</target>
+        <target state="new">Getting traces for all resources...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesResource">
         <source>Getting traces for `{0}`...</source>
-        <target state="translated">Trwa pobieranie śladów dla „{0}”...</target>
+        <target state="new">Getting traces for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesResourceFailure">
         <source>Failed to get traces for `{0}`.</source>
-        <target state="translated">Nie można pobrać śladów dla zasobu „{0}”.</target>
+        <target state="new">Failed to get traces for `{0}`.</target>
         <note />
       </trans-unit>
     </body>

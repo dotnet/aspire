@@ -4,22 +4,22 @@
     <body>
       <trans-unit id="AIAssistantLaunchButtonText">
         <source>Chat with GitHub Copilot</source>
-        <target state="translated">GitHub Copilot ile sohbet edin</target>
+        <target state="new">Chat with GitHub Copilot</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatIDEConnectionDisclaimerText">
         <source>Aspire uses your {0} connection to generate Copilot insights.</source>
-        <target state="translated">Aspire, Copilot içgörüleri oluşturmak için {0} bağlantınızı kullanır.</target>
+        <target state="new">Aspire uses your {0} connection to generate Copilot insights.</target>
         <note>{0} is the name of an IDE.</note>
       </trans-unit>
       <trans-unit id="ChatLoadingText">
         <source>Getting ready...</source>
-        <target state="translated">Hazırlanıyor...</target>
+        <target state="new">Getting ready...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatMistakesDisclaimerText">
         <source>Copilot uses AI. Check for mistakes.</source>
-        <target state="translated">Copilot, yapay zekayı kullanır. Hataları kontrol edin.</target>
+        <target state="new">Copilot uses AI. Check for mistakes.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatModelSelectButtonTitle">
@@ -29,202 +29,202 @@
       </trans-unit>
       <trans-unit id="ChatRefreshFollowUpPrompts">
         <source>Refresh follow-up prompts</source>
-        <target state="translated">İzleme istemlerini yenileyin</target>
+        <target state="new">Refresh follow-up prompts</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorCanceled">
         <source>Request canceled</source>
-        <target state="translated">İstek iptal edildi</target>
+        <target state="new">Request canceled</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbidden">
         <source>Permission denied when sending request. </source>
-        <target state="translated">İstek gönderilirken izin reddedildi. </target>
+        <target state="new">Permission denied when sending request. </target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenCopilotSubscription">
         <source>If you don't yet have a Copilot subscription, you can &lt;a href="{0}" target="_blank"&gt;get one here&lt;/a&gt;.</source>
-        <target state="translated">Henüz bir Copilot aboneliğiniz yoksa, &lt;a href="{0}" target="_blank"&gt;buradan bir tane&lt;/a&gt; edinebilirsiniz.</target>
+        <target state="new">If you don't yet have a Copilot subscription, you can &lt;a href="{0}" target="_blank"&gt;get one here&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenDescription">
         <source>To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</source>
-        <target state="translated">GitHub Copilot'ı .NET Aspire'da kullanmak için IDE'nizin güncel bir sürümünün yüklü olması ve GitHub hesabınızın GitHub Copilot'a erişim iznine sahip olması gerekir.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 veya üzeri&lt;/li&gt;&lt;li&gt;VS Code ve C# Geliştirme Seti 1.19.63 veya üzeri&lt;/li&gt;&lt;/ul&gt;</target>
+        <target state="new">To use GitHub Copilot in .NET Aspire, you must have a recent version of your IDE installed, and your GitHub account needs to have access to GitHub Copilot.&lt;ul style="margin-top:8px"&gt;&lt;li&gt;Visual Studio 2022 17.14 or later&lt;/li&gt;&lt;li&gt;VS Code and C# Dev Kit 1.19.63 or later&lt;/li&gt;&lt;/ul&gt;</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVSCode">
         <source>Sign into VS Code with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Set up GitHub Copilot in VS Code&lt;/a&gt;.</source>
-        <target state="translated">Copilot aboneliği olan bir GitHub hesabıyla VS Code'da oturum açın. &lt;a href="{0}" target="_blank"&gt;VS Code'da GitHub Copilot'u ayarlama&lt;/a&gt; adımlarını izleyin.</target>
+        <target state="new">Sign into VS Code with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Set up GitHub Copilot in VS Code&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorForbiddenVisualStudio">
         <source>Sign into Visual Studio with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Add GitHub accounts to your Visual Studio keychain&lt;/a&gt;.</source>
-        <target state="translated">Copilot aboneliğine sahip bir GitHub hesabıyla Visual Studio'da oturum açın. &lt;a href="{0}" target="_blank"&gt;GitHub hesaplarını Visual Studio anahtar zincirinize ekleme&lt;/a&gt; bölümündeki adımları izleyin.</target>
+        <target state="new">Sign into Visual Studio with a GitHub account that has a Copilot subscription. Follow the steps in &lt;a href="{0}" target="_blank"&gt;Add GitHub accounts to your Visual Studio keychain&lt;/a&gt;.</target>
         <note>{0} is a link</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorRateLimited">
         <source>Sorry, your request was rate limited. Please try again later.</source>
-        <target state="translated">Üzgünüz, sınır aşıldığı için isteğiniz gerçekleştirilemedi. Lütfen daha sonra yeniden deneyin.</target>
+        <target state="new">Sorry, your request was rate limited. Please try again later.</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimit">
         <source>Unable to send request</source>
-        <target state="translated">İstek gönderilemiyor</target>
+        <target state="new">Unable to send request</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatRequestErrorReachedLimitCopilot">
         <source>You've reached your monthly limit of chat on the Copilot Free plan. &lt;a href="{0}" target="_blank"&gt;Upgrade now&lt;/a&gt; or wait until {1} for your limit to reset.</source>
-        <target state="translated">Copilot Ücretsiz planında aylık sohbet sınırınıza ulaştınız. &lt;a href="{0}" target="_blank"&gt;Şimdi yükseltin&lt;/a&gt; veya {1} sınırınızın sıfırlanmasını bekleyin.</target>
+        <target state="new">You've reached your monthly limit of chat on the Copilot Free plan. &lt;a href="{0}" target="_blank"&gt;Upgrade now&lt;/a&gt; or wait until {1} for your limit to reset.</target>
         <note>{0} is a link, {1} is a date</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorStatusCode">
         <source>Error when sending request. Status code: {0}</source>
-        <target state="translated">İstek gönderilirken hata oluştu. Durum kodu: {0}</target>
+        <target state="new">Error when sending request. Status code: {0}</target>
         <note>{0} is a status code</note>
       </trans-unit>
       <trans-unit id="ChatRequestErrorUnknown">
         <source>Error when sending request</source>
-        <target state="translated">İstek gönderilirken hata oluştu</target>
+        <target state="new">Error when sending request</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatTextAreaPlaceHolder">
         <source>Type your message...</source>
-        <target state="translated">İletinizi yazın...</target>
+        <target state="new">Type your message...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatThinkingText">
         <source>Thinking...</source>
-        <target state="translated">Düşünüyor...</target>
+        <target state="new">Thinking...</target>
         <note />
       </trans-unit>
       <trans-unit id="ChatUnavailableText">
         <source>GitHub Copilot unavailable</source>
-        <target state="translated">GitHub Copilot kullanılamıyor</target>
+        <target state="new">GitHub Copilot unavailable</target>
         <note />
       </trans-unit>
       <trans-unit id="CopyMessageButtonText">
         <source>Copy to clipboard</source>
-        <target state="translated">Panoya kopyala</target>
+        <target state="new">Copy to clipboard</target>
         <note />
       </trans-unit>
       <trans-unit id="DialogTitle">
         <source>GitHub Copilot chat</source>
-        <target state="translated">GitHub Copilot sohbeti</target>
+        <target state="new">GitHub Copilot chat</target>
         <note />
       </trans-unit>
       <trans-unit id="DislikeMessageButtonText">
         <source>Unhelpful</source>
-        <target state="translated">Yardımcı olmadı</target>
+        <target state="new">Unhelpful</target>
         <note />
       </trans-unit>
       <trans-unit id="ExplainErrorsButtonText">
         <source>Explain errors</source>
-        <target state="translated">Hataları açıkla</target>
+        <target state="new">Explain errors</target>
         <note />
       </trans-unit>
       <trans-unit id="ExplainTraceButtonText">
         <source>Explain trace</source>
-        <target state="translated">İzlemeyi açıkla</target>
+        <target state="new">Explain trace</target>
         <note />
       </trans-unit>
       <trans-unit id="LikeMessageButtonText">
         <source>Helpful</source>
-        <target state="translated">Yardımcı oldu</target>
+        <target state="new">Helpful</target>
         <note />
       </trans-unit>
       <trans-unit id="MenuTextAskGitHubCopilot">
         <source>Ask GitHub Copilot</source>
-        <target state="translated">GitHub Copilot’a sorun</target>
+        <target state="new">Ask GitHub Copilot</target>
         <note />
       </trans-unit>
       <trans-unit id="RetryMessageButtonText">
         <source>Retry</source>
-        <target state="translated">Yeniden dene</target>
+        <target state="new">Retry</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarExpandDialog">
         <source>Expand dialog</source>
-        <target state="translated">İletişim kutusunu genişlet</target>
+        <target state="new">Expand dialog</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarNewChat">
         <source>Start new chat</source>
-        <target state="translated">Yeni sohbet başlat</target>
+        <target state="new">Start new chat</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarSendMessage">
         <source>Send message</source>
-        <target state="translated">İleti gönder</target>
+        <target state="new">Send message</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarShrinkDialog">
         <source>Shrink dialog</source>
-        <target state="translated">İletişim kutusunu küçült</target>
+        <target state="new">Shrink dialog</target>
         <note />
       </trans-unit>
       <trans-unit id="SidebarTitle">
         <source>GitHub Copilot chat</source>
-        <target state="translated">GitHub Copilot sohbeti</target>
+        <target state="new">GitHub Copilot chat</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationConsoleLogs">
         <source>Getting console logs for `{0}`...</source>
-        <target state="translated">`{0}` için konsol günlükleri alınıyor...</target>
+        <target state="new">Getting console logs for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationConsoleLogsFailure">
         <source>Failed to get console logs for `{0}`.</source>
-        <target state="translated">`{0}` için konsol günlükleri alınamadı.</target>
+        <target state="new">Failed to get console logs for `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationResourceGraph">
         <source>Getting resource graph....</source>
-        <target state="translated">Kaynak grafiği alınıyor...</target>
+        <target state="new">Getting resource graph....</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsAll">
         <source>Getting structured logs for all resources...</source>
-        <target state="translated">Tüm kaynaklar için yapılandırılmış günlükler alınıyor...</target>
+        <target state="new">Getting structured logs for all resources...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsResource">
         <source>Getting structured logs for `{0}`...</source>
-        <target state="translated">`{0}` için yapılandırılmış günlükler alınıyor...</target>
+        <target state="new">Getting structured logs for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationStructuredLogsResourceFailure">
         <source>Failed to get structured logs for `{0}`.</source>
-        <target state="translated">`{0}` için yapılandırılmış günlükler alınamadı.</target>
+        <target state="new">Failed to get structured logs for `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTrace">
         <source>Getting trace `{0}`...</source>
-        <target state="translated">`{0}` izlemesi alınıyor...</target>
+        <target state="new">Getting trace `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTraceFailure">
         <source>Failed to get trace `{0}`.</source>
-        <target state="translated">`{0}` izlemesi alınamadı.</target>
+        <target state="new">Failed to get trace `{0}`.</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTraceStructuredLogs">
         <source>Getting trace `{0}` logs...</source>
-        <target state="translated">`{0}` izleme günlükleri alınıyor...</target>
+        <target state="new">Getting trace `{0}` logs...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesAll">
         <source>Getting traces for all resources...</source>
-        <target state="translated">Tüm kaynaklar için izlemeler alınıyor...</target>
+        <target state="new">Getting traces for all resources...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesResource">
         <source>Getting traces for `{0}`...</source>
-        <target state="translated">`{0}` için izlemeler alınıyor...</target>
+        <target state="new">Getting traces for `{0}`...</target>
         <note />
       </trans-unit>
       <trans-unit id="ToolNotificationTracesResourceFailure">
         <source>Failed to get traces for `{0}`.</source>
-        <target state="translated">`{0}` için izlemeler alınamadı.</target>
+        <target state="new">Failed to get traces for `{0}`.</target>
         <note />
       </trans-unit>
     </body>
