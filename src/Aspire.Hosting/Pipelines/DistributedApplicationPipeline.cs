@@ -192,7 +192,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             SingleWriter = false
         });
 
-        // Track exceptions
+        // Track exceptions and completion
         var exceptions = new ConcurrentQueue<Exception>();
         var completedCount = 0;
 
@@ -206,12 +206,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         // Producer-consumer: Read from channel and execute steps
-        var executionTasks = new List<Task>();
         var maxConcurrency = Environment.ProcessorCount;
+        var executionTasks = new Task[maxConcurrency];
 
         for (var i = 0; i < maxConcurrency; i++)
         {
-            executionTasks.Add(Task.Run(async () =>
+            executionTasks[i] = Task.Run(async () =>
             {
                 await foreach (var stepIndex in readyChannel.Reader.ReadAllAsync().ConfigureAwait(false))
                 {
@@ -228,11 +228,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         return;
                     }
 
-                    // Mark as completed
-                    Interlocked.Increment(ref completedCount);
+                    // Mark as completed and check if we're done
+                    var completed = Interlocked.Increment(ref completedCount);
 
-                    // Check which dependent steps are now ready
-                    if (dependents.TryGetValue(step.Name, out var dependentIndices))
+                    // Check which dependent steps are now ready (use index-based lookup)
+                    var stepName = step.Name;
+                    if (dependents.TryGetValue(stepName, out var dependentIndices))
                     {
                         foreach (var dependentIndex in dependentIndices)
                         {
@@ -244,38 +245,17 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         }
                     }
 
-                    // If all steps are done, complete the channel
-                    if (Volatile.Read(ref completedCount) == steps.Count)
+                    // If all steps are done, complete the channel (check once per completion)
+                    if (completed == steps.Count)
                     {
                         readyChannel.Writer.TryComplete();
                     }
                 }
-            }));
+            });
         }
 
         // Wait for all execution tasks to complete
         await Task.WhenAll(executionTasks).ConfigureAwait(false);
-
-        // Check for circular dependencies (defensive check)
-        if (completedCount != steps.Count && exceptions.IsEmpty)
-        {
-            var completedIndices = new HashSet<int>();
-            for (var i = 0; i < steps.Count; i++)
-            {
-                if (indegrees[i] < 0 || indegrees[i] == 0)
-                {
-                    completedIndices.Add(i);
-                }
-            }
-
-            var uncompletedSteps = steps
-                .Where((_, i) => !completedIndices.Contains(i))
-                .Select(s => s.Name)
-                .ToList();
-
-            throw new InvalidOperationException(
-                $"Circular dependency detected in pipeline steps: {string.Join(", ", uncompletedSteps)}");
-        }
 
         // Throw exceptions if any occurred
         if (!exceptions.IsEmpty)
@@ -288,7 +268,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             else
             {
                 throw new AggregateException(
-                    $"Multiple pipeline steps failed: {string.Join(", ", exceptionList.OfType<InvalidOperationException>().Select(e => e.Message))}",
+                    $"Multiple pipeline steps failed: {string.Join(", ", exceptionList.Select(e => e.Message))}",
                     exceptionList);
             }
         }
