@@ -1,0 +1,22 @@
+name: AI Test Workflow
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  aitest:
+    # Only run when the comment starts with /aitest on a PR
+    if: >-
+      ${{
+        startsWith(github.event.comment.body, '/aitest') &&
+        github.event.issue.pull_request
+      }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print hello world
+        run: echo "Hello World"
