@@ -16,6 +16,7 @@ internal static class KnownConfigNames
     public const string DashboardCorsAllowedOrigins = "ASPIRE_DASHBOARD_CORS_ALLOWED_ORIGINS";
     public const string DashboardConfigFilePath = "ASPIRE_DASHBOARD_CONFIG_FILE_PATH";
     public const string DashboardFileConfigDirectory = "ASPIRE_DASHBOARD_FILE_CONFIG_DIRECTORY";
+    public const string DashboardAIDisabled = "ASPIRE_DASHBOARD_AI_DISABLED";
     public const string DashboardForwardedHeadersEnabled = "ASPIRE_DASHBOARD_FORWARDEDHEADERS_ENABLED";
 
     public const string ShowDashboardResources = "ASPIRE_SHOW_DASHBOARD_RESOURCES";
@@ -40,9 +41,10 @@ internal static class KnownConfigNames
     public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
-    public const string ExtensionCapabilities = "ASPIRE_EXTENSION_CAPABILITIES";
-    public const string ExtensionDebugRunMode = "ASPIRE_EXTENSION_DEBUG_RUN_MODE";
     public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
+
+    public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
+    public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";
 
     public static class Legacy
     {

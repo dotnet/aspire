@@ -46,6 +46,16 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(choices.First());
     }
 
+    public Task<IReadOnlyList<T>> PromptForSelectionsAsync<T>(string promptText, IEnumerable<T> choices, Func<T, string> choiceFormatter, CancellationToken cancellationToken = default) where T : notnull
+    {
+        if (!choices.Any())
+        {
+            throw new EmptyChoicesException($"No items available for selection: {promptText}");
+        }
+
+        return Task.FromResult<IReadOnlyList<T>>(choices.ToList());
+    }
+
     public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion)
     {
         return 0;
@@ -83,6 +93,10 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
     {
         StartDebugSessionCallback?.Invoke(workingDirectory, projectFile, debug);
         return Task.CompletedTask;
+    }
+
+    public void WriteDebugSessionMessage(string message, bool stdout)
+    {
     }
 
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines)

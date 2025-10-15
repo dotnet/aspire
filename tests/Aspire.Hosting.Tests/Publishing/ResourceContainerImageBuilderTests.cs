@@ -46,6 +46,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -186,6 +187,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithCustomOutputPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -225,6 +227,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithAllOptionsSet()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -240,11 +243,11 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
         using var app = builder.Build();
 
-        var tempOutputPath = Path.GetTempPath();
+        using var tempDir = new TempDirectory();
         var options = new ContainerBuildOptions
         {
             ImageFormat = ContainerImageFormat.Oci,
-            OutputPath = tempOutputPath,
+            OutputPath = Path.Combine(tempDir.Path, "NewFolder"), // tests that the folder is created if it doesn't exist
             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
         };
 
@@ -384,6 +387,7 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 
     [Fact]
     [RequiresDocker]
+    [ActiveIssue("https://github.com/dotnet/dnceng/issues/6232", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
     public async Task CanBuildImageFromDockerfileResource_WithTrailingSlashContextPath()
     {
         using var builder = TestDistributedApplicationBuilder.CreateWithTestContainerRegistry(output);
@@ -791,6 +795,26 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
                 File.Delete(tempFile);
             }
         }
+    }
+
+    [Fact]
+    public async Task ResolveValue_FormatsDecimalWithInvariantCulture()
+    {
+        // Test decimal value
+        var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test double value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test float value
+        result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
+        Assert.Equal("3.14", result);
+        
+        // Test integer (should also work)
+        result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
+        Assert.Equal("42", result);
     }
 
     [Fact]

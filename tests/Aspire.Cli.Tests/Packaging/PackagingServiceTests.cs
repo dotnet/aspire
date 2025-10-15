@@ -110,10 +110,6 @@ public class PackagingServiceTests(ITestOutputHelper outputHelper)
         Assert.NotNull(aspireMapping);
         Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{testHash}/nuget/v3/index.json", aspireMapping.Source);
         
-        var serviceDiscoveryMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "Microsoft.Extensions.ServiceDiscovery*");
-        Assert.NotNull(serviceDiscoveryMapping);
-        Assert.Equal($"https://pkgs.dev.azure.com/dnceng/public/_packaging/darc-pub-dotnet-aspire-{testHash}/nuget/v3/index.json", serviceDiscoveryMapping.Source);
-        
         var nugetMapping = stagingChannel.Mappings!.FirstOrDefault(m => m.PackageFilter == "*");
         Assert.NotNull(nugetMapping);
         Assert.Equal("https://api.nuget.org/v3/index.json", nugetMapping.Source);

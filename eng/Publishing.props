@@ -23,7 +23,6 @@
     <_InstallersToPublish Include="$(ArtifactsDir)**\*.wixpack.zip" Condition="'$(PostBuildSign)' == 'true'" />
     <_InstallerManifestFilesToPublish Include="$(ArtifactsDir)VSSetup\$(Configuration)\Insertion\**\*.zip" />
     <_DashboardFilesToPublish Include="$(DashboardPublishedArtifactsOutputDir)\**\*.zip" />
-    <_ExtensionFilesToPublish Include="$(RepoRoot)extension\*.vsix" />
   </ItemGroup>
 
   <Target Name="_PublishBlobItems">
@@ -32,6 +31,7 @@
     <ItemGroup>
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.zip" />
       <_ArchiveFiles Include="$(ArtifactsPackagesDir)\**\aspire-cli-*.tar.gz" />
+      <_ExtensionFilesToPublish Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix" />
 
       <!-- Extract RID from each archive file -->
       <_ArchiveFilesWithRid Include="@(_ArchiveFiles)">
@@ -74,6 +74,16 @@
       Properties="SuppressFinalPackageVersion=true">
       <Output TaskParameter="TargetOutputs" PropertyName="_PackageVersion" />
     </MSBuild>
+
+    <!-- Zip each VSIX file for publishing to blob feed, as certain file types, such as .tar.gz or .zip are allowed to be published, and .vsix is not included -->
+    <Exec Command="powershell -NoProfile -Command &quot;'@(_ExtensionFilesToPublish)' -split ';' | Where-Object { $_ } | ForEach-Object { Compress-Archive -Path $_ -DestinationPath ($_ + '.zip') -Force }&quot;"
+          Condition="'@(_ExtensionFilesToPublish)' != ''" />
+    
+    <!-- Replace VSIX files with their zipped versions -->
+    <ItemGroup>
+      <_ExtensionFilesToPublish Remove="@(_ExtensionFilesToPublish)" />
+      <_ExtensionFilesToPublish Include="$(ArtifactsPackagesDir)**\aspire-vscode-*.vsix.zip" />
+    </ItemGroup>
 
     <!-- Generate checksums for aspire-cli packages -->
     <ItemGroup>

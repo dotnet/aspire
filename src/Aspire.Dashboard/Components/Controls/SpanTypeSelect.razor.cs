@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
 

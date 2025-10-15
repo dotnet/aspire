@@ -60,7 +60,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
@@ -218,41 +218,38 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into user-secrets during run mode
-        if (context.ExecutionContext.IsRunMode)
+        // Populate values into deployment state
+        var az = context.DeploymentState.Prop("Azure");
+        az["Tenant"] = context.Tenant.DefaultDomain;
+
+        var resourceConfig = context.DeploymentState
+            .Prop("Azure")
+            .Prop("Deployments")
+            .Prop(resource.Name);
+
+        // Clear the entire section
+        resourceConfig.AsObject().Clear();
+
+        // Save the deployment id to the configuration
+        resourceConfig["Id"] = deployment.Id.ToString();
+
+        // Stash all parameters as a single JSON string
+        resourceConfig["Parameters"] = parameters.ToJsonString();
+
+        if (outputObj is not null)
         {
-            var az = context.UserSecrets.Prop("Azure");
-            az["Tenant"] = context.Tenant.DefaultDomain;
-
-            var resourceConfig = context.UserSecrets
-                .Prop("Azure")
-                .Prop("Deployments")
-                .Prop(resource.Name);
-
-            // Clear the entire section
-            resourceConfig.AsObject().Clear();
-
-            // Save the deployment id to the configuration
-            resourceConfig["Id"] = deployment.Id.ToString();
-
-            // Stash all parameters as a single JSON string
-            resourceConfig["Parameters"] = parameters.ToJsonString();
-
-            if (outputObj is not null)
-            {
-                // Same for outputs
-                resourceConfig["Outputs"] = outputObj.ToJsonString();
-            }
-
-            // Write resource scope to config for consistent checksums
-            if (scope is not null)
-            {
-                resourceConfig["Scope"] = scope.ToJsonString();
-            }
-
-            // Save the checksum to the configuration
-            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+            // Same for outputs
+            resourceConfig["Outputs"] = outputObj.ToJsonString();
         }
+
+        // Write resource scope to config for consistent checksums
+        if (scope is not null)
+        {
+            resourceConfig["Scope"] = scope.ToJsonString();
+        }
+
+        // Save the checksum to the configuration
+        resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
 
         if (outputObj is not null)
         {
@@ -260,7 +257,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 

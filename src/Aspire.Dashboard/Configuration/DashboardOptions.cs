@@ -18,6 +18,7 @@ public sealed class DashboardOptions
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
     public DebugSessionOptions DebugSession { get; set; } = new();
     public UIOptions UI { get; set; } = new();
+    public AIOptions AI { get; set; } = new();
 }
 
 // Don't set values after validating/parsing options.
@@ -271,6 +272,11 @@ public sealed class OpenIdConnectOptions
     /// </summary>
     public string RequiredClaimValue { get; set; } = "";
 
+    /// <summary>
+    /// Gets or sets the optional value to configure the ClaimActions of <see cref="Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions"/>
+    /// </summary>
+    public List<ClaimAction> ClaimActions { get; set; } = new();
+
     public string[] GetNameClaimTypes()
     {
         Debug.Assert(_nameClaimTypes is not null, "Should have been parsed during validation.");
@@ -311,6 +317,20 @@ public sealed class OpenIdConnectOptions
 
         return messages is null;
     }
+}
+
+public sealed class ClaimAction
+{
+    public required string ClaimType { get; set; }
+    public required string JsonKey { get; set; }
+    public string? SubKey { get; set; }
+    public bool? IsUnique { get; set; }
+    public string? ValueType { get; set; }
+}
+
+public sealed class AIOptions
+{
+    public bool? Disabled { get; set; }
 }
 
 public sealed class DebugSessionOptions

@@ -2,10 +2,12 @@
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
 	"extension.debug.program": "Path to the apphost to run",
+  "extension.debug.debuggers": "Configuration to apply when launching resources of specific types",
 	"extension.debug.defaultConfiguration.name": "Aspire: Launch default apphost",
 	"extension.debug.defaultConfiguration.description": "Launch the effective Aspire apphost in your workspace",
 	"command.add": "Add an integration",
 	"command.new": "New Aspire project",
+	"command.init": "Initialize Aspire",
 	"command.publish": "Publish deployment artifacts",
 	"command.update": "Update integrations",
 	"command.openTerminal": "Open Aspire terminal",
@@ -57,5 +59,6 @@
   "aspire-vscode.strings.failedToConfigureLaunchJson": "Failed to configure launch.json: {0}.",
   "aspire-vscode.strings.debugSessionAlreadyExists": "A debug session is already active for id {0}.",
   "aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}.",
-  "aspire-vscode.strings.failedToStartDebugSession": "Failed to start debug session."
+  "aspire-vscode.strings.failedToStartDebugSession": "Failed to start debug session.",
+  "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}."
 }

@@ -75,6 +75,13 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                 Name = "AZURE_CLIENT_ID",
                 Value = AllocateParameter(appIdentityResource.ClientId)
             });
+
+            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+            env.Add(new ContainerAppEnvironmentVariable
+            {
+                Name = "AZURE_TOKEN_CREDENTIALS",
+                Value = "ManagedIdentityCredential"
+            });
         }
     }
 
@@ -244,6 +251,21 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
         if (value is BicepOutputReference output)
         {
             return (AllocateParameter(output, secretType: secretType), secretType);
+        }
+
+        if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
+        {
+            // Evaluate the inner value to get the bicep expression
+            var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
+
+            var innerExpression = innerValue switch
+            {
+                ProvisioningParameter p => p.Value.Compile(),
+                IBicepValue b => b.Compile(),
+                _ => throw new ArgumentException($"Invalid expression type for url-encoding: {innerValue.GetType()}")
+            };
+
+            return (new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression), secret);
         }
 
 #pragma warning disable CS0618 // Type or member is obsolete

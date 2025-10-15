@@ -11,6 +11,7 @@ using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Extensions;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
@@ -92,6 +93,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     public required IStringLocalizer<Dashboard.Resources.Resources> ResourcesLoc { get; init; }
 
     [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIAssistant> AIAssistantLoc { get; init; }
+
+    [Inject]
+    public required IStringLocalizer<Dashboard.Resources.AIPrompts> AIPromptsLoc { get; init; }
+
+    [Inject]
     public required IStringLocalizer<Commands> CommandsLoc { get; init; }
 
     [Inject]
@@ -108,6 +115,9 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     [Inject]
     public required BrowserTimeProvider TimeProvider { get; init; }
+
+    [Inject]
+    public required IAIContextProvider AIContextProvider { get; init; }
 
     [Inject]
     public required PauseManager PauseManager { get; init; }
@@ -144,6 +154,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
     private bool _isSubscribedToAll;
     internal LogEntries _logEntries = null!;
     private readonly object _updateLogsLock = new object();
+    private AIContext? _aiContext;
     private LogViewer? _logViewerRef;
 
     // UI
@@ -172,6 +183,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         _logEntries = new(Options.Value.Frontend.MaxConsoleLogCount);
         _allResource = new() { Id = null, Name = ControlsStringsLoc[nameof(ControlsStrings.LabelAll)] };
         PageViewModel = new ConsoleLogsViewModel { SelectedResource = _allResource, Status = Loc[nameof(Dashboard.Resources.ConsoleLogs.ConsoleLogsLoadingResources)] };
+        _aiContext = CreateAIContext();
         _logEntryChannelReaderTask = StartLogEntryChannelReaderTask();
 
         _consoleLogsFiltersChangedSubscription = ConsoleLogsManager.OnFiltersChanged(async () =>
@@ -375,6 +387,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         if (needsNewSubscription)
         {
             Logger.LogDebug("Subscription change needed. IsAllSelected: {IsAllSelected}, SelectedResource: {SelectedResource}", isAllSelected, selectedResourceName);
+            _aiContext?.ContextHasChanged();
 
             // Cancel all existing subscriptions
             await CancelAllSubscriptionsAsync();
@@ -491,9 +504,12 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
                 selectedResource,
                 NavigationManager,
                 TelemetryRepository,
+                AIContextProvider,
                 GetResourceName,
                 ControlsStringsLoc,
                 ResourcesLoc,
+                AIAssistantLoc,
+                AIPromptsLoc,
                 CommandsLoc,
                 EventCallback.Factory.Create(this, () =>
                 {
@@ -510,7 +526,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     private ResourceViewModel? GetSelectedResource()
     {
-        var name = PageViewModel.SelectedResource.Id?.InstanceId;
+        var name = PageViewModel?.SelectedResource.Id?.InstanceId;
         if (name == null)
         {
             return null;
@@ -949,7 +965,7 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
         }
 
         // Save filters to session storage so they're persisted when navigating to and from the console logs page.
-        // This makes remove behavior persistant which matches removing telemetry.
+        // This makes remove behavior persistent which matches removing telemetry.
         await ConsoleLogsManager.UpdateFiltersAsync(_consoleLogFilters);
     }
 
@@ -995,6 +1011,8 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
 
     public async ValueTask DisposeAsync()
     {
+        _aiContext?.Dispose();
+
         _consoleLogsFiltersChangedSubscription?.Dispose();
 
         _resourceSubscriptionCts.Cancel();
@@ -1056,6 +1074,24 @@ public sealed partial class ConsoleLogs : ComponentBase, IComponentWithTelemetry
             ? GetResourceName(selectedResource)
             : null;
         return new ConsoleLogsPageState(selectedResourceName);
+    }
+
+    private AIContext CreateAIContext()
+    {
+        return AIContextProvider.AddNew(nameof(ConsoleLogs), c =>
+        {
+            c.BuildIceBreakers = (builder, context) =>
+            {
+                if (GetSelectedResource() is { } selectedResource)
+                {
+                    builder.ConsoleLogs(context, selectedResource);
+                }
+                else
+                {
+                    builder.ConsoleLogs(context);
+                }
+            };
+        });
     }
 
     // IComponentWithTelemetry impl

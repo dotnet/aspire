@@ -7,8 +7,11 @@
 }
 
 .interaction-input-dialog .interaction-input ::deep fluent-text-field,
-.interaction-input-dialog .interaction-input ::deep fluent-select {
+.interaction-input-dialog .interaction-input ::deep fluent-select,
+.interaction-input-dialog .interaction-input ::deep fluent-combobox {
     width: 75%;
+    /* Prevent long select/combox controls from extending outside the dialog. This can happen when there is very long placeholder text */
+    max-width: 500px;
 }
 
 .interaction-input-dialog .interaction-input ::deep .input-description,
@@ -21,4 +24,10 @@
 .interaction-input-dialog .interaction-input ::deep .input-description ul,
 .interaction-input-dialog .interaction-input ::deep .input-description ol {
     margin-bottom: 0.2em;
+}
+
+.interaction-input-dialog .interaction-input ::deep .input-choice-container {
+    display: flex;
+    column-gap: 12px;
+    align-items: center;
 }

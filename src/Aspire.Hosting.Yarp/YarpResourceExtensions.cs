@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Yarp;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -37,10 +38,19 @@ public static class YarpResourceExtensions
 
         if (builder.ExecutionContext.IsRunMode)
         {
-            // YARP will not trust the cert used by Aspire otlp endpoint when running locally
-            // The Aspire otlp endpoint uses the dev cert, only valid for localhost, but from the container
-            // perspective, the url will be something like https://docker.host.internal, so it will NOT be valid.
-            yarpBuilder.WithEnvironment("YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE", "true");
+            yarpBuilder.WithEnvironment(ctx =>
+            {
+                var developerCertificateService = ctx.ExecutionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
+                if (!developerCertificateService.SupportsContainerTrust)
+                {
+                    // On systems without the ASP.NET DevCert updates introduced in .NET 10, YARP will not trust the cert used
+                    // by Aspire otlp endpoint when running locally. The Aspire otlp endpoint uses the dev cert, and prior to
+                    // .NET 10, it was only valid for localhost, but from the container perspective, the url will be something
+                    // like https://docker.host.internal, so it will NOT be valid. This is not necessary when using the latest
+                    // dev cert.
+                    ctx.EnvironmentVariables["YARP_UNSAFE_OLTP_CERT_ACCEPT_ANY_SERVER_CERTIFICATE"] = "true";
+                }
+            });
         }
 
         yarpBuilder.WithEnvironment(ctx =>
@@ -91,7 +101,9 @@ public static class YarpResourceExtensions
     }
 
     /// <summary>
-    /// Enables static file serving in the YARP resource and bind mounts files from the specified source path to the wwwroot folder in the container.
+    /// Enables static file serving. In run mode: bind mounts <paramref name="sourcePath"/> to /wwwroot.
+    /// In publish mode: generates a Dockerfile whose build context is <paramref name="sourcePath"/> and
+    /// copies its contents into /app/wwwroot baked into the image.
     /// </summary>
     /// <param name="builder">The resource builder for YARP.</param>
     /// <param name="sourcePath">The source path containing static files to serve.</param>
@@ -101,7 +113,29 @@ public static class YarpResourceExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(sourcePath);
 
-        return builder.WithStaticFiles()
-                     .WithContainerFiles("/wwwroot", sourcePath);
+        builder = builder.WithStaticFiles();
+
+        if (builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            builder.WithDockerfileFactory(sourcePath, ctx =>
+            {
+                if (!ctx.Resource.TryGetContainerImageName(useBuiltImage: false, out var imageName) || string.IsNullOrEmpty(imageName))
+                {
+                    imageName = $"{YarpContainerImageTags.Image}:{YarpContainerImageTags.Tag}";
+                }
+
+                return $"""
+                FROM {imageName} AS yarp
+                WORKDIR /app
+                COPY . /app/wwwroot
+                """;
+            });
+        }
+        else
+        {
+            builder = builder.WithContainerFiles("/wwwroot", sourcePath);
+        }
+
+        return builder;
     }
 }

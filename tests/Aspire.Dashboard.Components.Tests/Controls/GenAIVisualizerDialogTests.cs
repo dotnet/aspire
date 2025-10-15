@@ -10,6 +10,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
+using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -41,7 +42,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: CreateOtlpSpan(resource, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime),
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
@@ -109,7 +110,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: span,
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
@@ -126,6 +127,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
         Services.AddFluentUIComponents();
         Services.AddSingleton<LibraryConfiguration>();
         Services.AddSingleton<TelemetryRepository>();
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         Services.AddSingleton<PauseManager>();
         Services.AddSingleton(new ThemeManager(new TestThemeResolver()));
 

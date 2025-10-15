@@ -643,11 +643,10 @@ internal class NuGetConfigMerger
             return false;
         }
         
-        // Patterns that start with "Aspire" or are exactly "Microsoft.Extensions.ServiceDiscovery*" are Aspire-related
+        // Patterns that start with "Aspire" are Aspire-related
         // Wildcard patterns are not Aspire-specific
         // Other Microsoft.Extensions.* patterns (like "Microsoft.Extensions.SpecialPackage*") are NOT Aspire-related
-        return pattern.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase) ||
-               pattern.Equals("Microsoft.Extensions.ServiceDiscovery*", StringComparison.OrdinalIgnoreCase);
+        return pattern.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSourceSafeToRemove(string sourceKey, string? sourceValue)

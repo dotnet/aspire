@@ -79,6 +79,7 @@ resource infra_storageVolume 'Microsoft.Storage/storageAccounts@2024-01-01' = {
   }
   properties: {
     largeFileSharesState: 'Enabled'
+    minimumTlsVersion: 'TLS1_2'
   }
   tags: tags
 }

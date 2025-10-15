@@ -7,6 +7,8 @@
 @using Aspire.Dashboard.Resources
 @using Aspire.Dashboard.Utils
 @using System.Diagnostics
+@inject IStringLocalizer<AIAssistant> AIAssistantLoc
+@inject IStringLocalizer<AIPrompts> AIPromptsLoc
 
 <PageTitle>
     <ApplicationName
@@ -35,6 +37,17 @@
                     <div slot="" class="trace-header">
                         @GetTraceDetailsFragment()
                         <div class="trace-header-filters">
+                            @if (AIContextProvider.Enabled)
+                            {
+                                <FluentButton Title="@AIAssistantLoc[nameof(AIAssistant.ExplainTraceButtonText)]" aria-label="@AIAssistantLoc[nameof(AIAssistant.ExplainTraceButtonText)]" OnClick="ExplainTraceAsync">
+                                    <span slot="start">
+                                        <FluentIcon Icon="Aspire.Dashboard.Components.CustomIcons.AspireIcons.Size16.GitHubCopilot" Slot="start" Style="vertical-align: sub;" />
+                                    </span>
+                                    @AIAssistantLoc[nameof(AIAssistant.ExplainTraceButtonText)]
+                                </FluentButton>
+
+                                <DesktopToolbarDivider />
+                            }
                             <FluentSearch @bind-Value="_filter"
                                           @bind-Value:after="HandleAfterFilterBindAsync"
                                           Immediate="true"

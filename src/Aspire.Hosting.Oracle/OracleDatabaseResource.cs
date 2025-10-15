@@ -27,6 +27,14 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
        ReferenceExpression.Create($"{Parent}/{DatabaseName}");
 
     /// <summary>
+    /// Gets the JDBC connection string for the Oracle Database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:oracle:thin:{user}/{password}@//{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
+    /// <summary>
     /// Gets the database name.
     /// </summary>
     public string DatabaseName { get; } = ThrowIfNullOrEmpty(databaseName);
@@ -36,4 +44,10 @@ public class OracleDatabaseResource(string name, string databaseName, OracleData
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

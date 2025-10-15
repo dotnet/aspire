@@ -44,8 +44,8 @@ public static class AzureProvisionerExtensions
         builder.Services.TryAddSingleton<IArmClientProvider, DefaultArmClientProvider>();
         builder.Services.TryAddSingleton<ISecretClientProvider, DefaultSecretClientProvider>();
         builder.Services.TryAddSingleton<IBicepCompiler, BicepCliCompiler>();
-        builder.Services.TryAddSingleton<IUserSecretsManager, DefaultUserSecretsManager>();
         builder.Services.TryAddSingleton<IUserPrincipalProvider, DefaultUserPrincipalProvider>();
+
         if (builder.ExecutionContext.IsPublishMode)
         {
             builder.Services.AddSingleton<IProvisioningContextProvider, PublishModeProvisioningContextProvider>();

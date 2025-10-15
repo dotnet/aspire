@@ -36,6 +36,23 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
             return ReferenceExpression.Create($"{Parent};{connectionStringBuilder.ToString()}");
         }
     }
+
+    /// <summary>
+    /// Gets the connection URI expression for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>mysql://{user}:{password}@{host}:{port}/{database}</c>.
+    /// </remarks>
+    public ReferenceExpression UriExpression => ReferenceExpression.Create($"{Parent.UriExpression}/{DatabaseName:uri}");
+
+    /// <summary>
+    /// Gets the JDBC connection string for the MySQL database.
+    /// </summary>
+    /// <remarks>
+    /// Format: <c>jdbc:mysql://{host}:{port}/{database}?user={user}&amp;password={password}</c>.
+    /// </remarks>
+    public ReferenceExpression JdbcConnectionString => Parent.BuildJdbcConnectionString(DatabaseName);
+
     /// <summary>
     /// Gets the database name.
     /// </summary>
@@ -46,4 +63,11 @@ public class MySqlDatabaseResource(string name, string databaseName, MySqlServer
         ArgumentException.ThrowIfNullOrEmpty(argument, paramName);
         return argument;
     }
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() =>
+        Parent.CombineProperties([
+            new("Database", ReferenceExpression.Create($"{DatabaseName}")),
+            new("Uri", UriExpression),
+            new("JdbcConnectionString", JdbcConnectionString),
+        ]);
 }

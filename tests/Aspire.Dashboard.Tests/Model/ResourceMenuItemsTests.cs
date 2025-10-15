@@ -25,7 +25,8 @@ public sealed class ResourceMenuItemsTests
     {
         // Arrange
         var resource = ModelTestHelpers.CreateResource();
-        var telemetryRespository = TelemetryTestHelpers.CreateRepository();
+        var repository = TelemetryTestHelpers.CreateRepository();
+        var aiContextProvider = new TestAIContextProvider();
 
         // Act
         var menuItems = new List<MenuButtonItem>();
@@ -33,10 +34,13 @@ public sealed class ResourceMenuItemsTests
             menuItems,
             resource,
             new TestNavigationManager(),
-            telemetryRespository,
+            repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
@@ -58,6 +62,7 @@ public sealed class ResourceMenuItemsTests
         var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var outgoingPeerResolver = new TestOutgoingPeerResolver(onResolve: attributes => (resource.Name, resource));
         var repository = TelemetryTestHelpers.CreateRepository(outgoingPeerResolvers: [outgoingPeerResolver]);
+        var aiContextProvider = new TestAIContextProvider();
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
         {
@@ -86,9 +91,12 @@ public sealed class ResourceMenuItemsTests
             resource,
             new TestNavigationManager(),
             repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,
@@ -111,6 +119,7 @@ public sealed class ResourceMenuItemsTests
         // Arrange
         var resource = ModelTestHelpers.CreateResource(resourceName: "test-abc");
         var repository = TelemetryTestHelpers.CreateRepository();
+        var aiContextProvider = new TestAIContextProvider();
         var addContext = new AddContext();
         repository.AddTraces(addContext, new RepeatedField<ResourceSpans>()
         {
@@ -138,9 +147,12 @@ public sealed class ResourceMenuItemsTests
             resource,
             new TestNavigationManager(),
             repository,
+            aiContextProvider,
             r => r.Name,
             new TestStringLocalizer<Resources.ControlsStrings>(),
             new TestStringLocalizer<Resources.Resources>(),
+            new TestStringLocalizer<Resources.AIAssistant>(),
+            new TestStringLocalizer<Resources.AIPrompts>(),
             new TestStringLocalizer<Commands>(),
             EventCallback.Empty,
             EventCallback<CommandViewModel>.Empty,

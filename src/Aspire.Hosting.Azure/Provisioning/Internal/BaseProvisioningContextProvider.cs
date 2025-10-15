@@ -72,7 +72,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         return !name.Contains("..");
     }
 
-    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public virtual async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject deploymentState, CancellationToken cancellationToken = default)
     {
         var subscriptionId = _options.SubscriptionId ?? throw new MissingConfigurationException("An Azure subscription id is required. Set the Azure:SubscriptionId configuration value.");
 
@@ -103,17 +103,24 @@ internal abstract partial class BaseProvisioningContextProvider(
         if (string.IsNullOrEmpty(_options.ResourceGroup))
         {
             // Generate an resource group name since none was provided
-            // Create a unique resource group name and save it in user secrets
+            // Create a unique resource group name and save it in deployment state
             resourceGroupName = GetDefaultResourceGroupName();
 
             createIfAbsent = true;
 
-            userSecrets.Prop("Azure")["ResourceGroup"] = resourceGroupName;
+            deploymentState.Prop("Azure")["ResourceGroup"] = resourceGroupName;
         }
         else
         {
             resourceGroupName = _options.ResourceGroup;
             createIfAbsent = _options.AllowResourceGroupCreation ?? false;
+        }
+
+        // In publish mode, always allow resource group creation
+        if (_distributedApplicationExecutionContext.IsPublishMode)
+        {
+            createIfAbsent = true;
+            _options.AllowResourceGroupCreation = true;
         }
 
         var resourceGroups = subscriptionResource.GetResourceGroups();
@@ -149,6 +156,16 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var principal = await _userPrincipalProvider.GetUserPrincipalAsync(cancellationToken).ConfigureAwait(false);
 
+        // Persist the provisioning options to deployment state so they can be reused in the future
+        var azureSection = deploymentState.Prop("Azure");
+        azureSection["Location"] = _options.Location;
+        azureSection["SubscriptionId"] = _options.SubscriptionId;
+        azureSection["ResourceGroup"] = resourceGroupName;
+        if (_options.AllowResourceGroupCreation.HasValue)
+        {
+            azureSection["AllowResourceGroupCreation"] = _options.AllowResourceGroupCreation.Value;
+        }
+
         return new ProvisioningContext(
                     credential,
                     armClient,
@@ -157,9 +174,87 @@ internal abstract partial class BaseProvisioningContextProvider(
                     tenantResource,
                     location,
                     principal,
-                    userSecrets,
+                    deploymentState,
                     _distributedApplicationExecutionContext);
     }
 
     protected abstract string GetDefaultResourceGroupName();
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? subscriptionOptions = null;
+        var fetchSucceeded = false;
+
+        try
+        {
+            var credential = _tokenCredentialProvider.TokenCredential;
+            var armClient = _armClientProvider.GetArmClient(credential);
+            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            var subscriptionList = availableSubscriptions.ToList();
+
+            if (subscriptionList.Count > 0)
+            {
+                subscriptionOptions = [.. subscriptionList
+                                .Select(sub => KeyValuePair.Create(sub.Id.SubscriptionId ?? "", $"{sub.DisplayName ?? sub.Id.SubscriptionId} ({sub.Id.SubscriptionId})"))
+                                .OrderBy(kvp => kvp.Value)];
+                fetchSucceeded = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate available subscriptions. Falling back to manual input.");
+        }
+
+        return (subscriptionOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? locationOptions = null;
+
+        // SubscriptionId is always a GUID. Check if we have a valid GUID before trying to use it.
+        // Fallback to static list of Azure locations if the subscriptionId is not valid or there is an error.
+        if (Guid.TryParse(subscriptionId, out _))
+        {
+            try
+            {
+                var credential = _tokenCredentialProvider.TokenCredential;
+                var armClient = _armClientProvider.GetArmClient(credential);
+                var availableLocations = await armClient.GetAvailableLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+                var locationList = availableLocations.ToList();
+
+                if (locationList.Count > 0)
+                {
+                    locationOptions = locationList
+                        .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
+            }
+        }
+        else
+        {
+            _logger.LogDebug("SubscriptionId '{SubscriptionId}' isn't a valid GUID. Skipping getting available locations from client.", subscriptionId);
+        }
+
+        return locationOptions is not null
+            ? (locationOptions, true)
+            : (GetStaticAzureLocations(), false);
+    }
+
+    /// <summary>
+    /// Gets static Azure locations as fallback when dynamic loading fails.
+    /// </summary>
+    private static List<KeyValuePair<string, string>> GetStaticAzureLocations()
+    {
+        return typeof(AzureLocation).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+            .Where(p => p.PropertyType == typeof(AzureLocation))
+            .Select(p => (AzureLocation)p.GetValue(null)!)
+            .Select(location => KeyValuePair.Create(location.Name, location.DisplayName ?? location.Name))
+            .OrderBy(kvp => kvp.Value)
+            .ToList();
+    }
 }

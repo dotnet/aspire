@@ -169,9 +169,6 @@
   <data name="Logs" xml:space="preserve">
     <value>Logs</value>
   </data>
-  <data name="ExtensionSwitchingToAppHostConsole" xml:space="preserve">
-    <value>To view AppHost logs in real-time, switch to the AppHost Debug Console.</value>
-  </data>
   <data name="ConnectingToAppHost" xml:space="preserve">
     <value>Connecting to apphost...</value>
   </data>

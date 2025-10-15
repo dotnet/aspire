@@ -41,6 +41,100 @@
       "env": {
         "DOCKER_BUILDKIT": "1"
       }
+    },
+    "dynamic-sync": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-sync.Dockerfile"
+      }
+    },
+    "dynamic-async": {
+      "type": "container.v1",
+      "build": {
+        "context": "qots",
+        "dockerfile": "dynamic-async.Dockerfile"
+      }
+    },
+    "builder-sync": {
+      "type": "container.v1",
+      "connectionString": "{builder-sync.bindings.tcp.host}:{builder-sync.bindings.tcp.port},password={builder-sync-password.value}",
+      "build": {
+        "context": ".",
+        "dockerfile": "builder-sync.Dockerfile"
+      },
+      "entrypoint": "/bin/sh",
+      "args": [
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD"
+      ],
+      "env": {
+        "REDIS_PASSWORD": "{builder-sync-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "builder-async": {
+      "type": "container.v1",
+      "connectionString": "{builder-async.bindings.tcp.host}:{builder-async.bindings.tcp.port},password={builder-async-password.value}",
+      "build": {
+        "context": ".",
+        "dockerfile": "builder-async.Dockerfile"
+      },
+      "entrypoint": "/bin/sh",
+      "args": [
+        "-c",
+        "redis-server --requirepass $REDIS_PASSWORD"
+      ],
+      "env": {
+        "REDIS_PASSWORD": "{builder-async-password.value}"
+      },
+      "bindings": {
+        "tcp": {
+          "scheme": "tcp",
+          "protocol": "tcp",
+          "transport": "tcp",
+          "targetPort": 6379
+        }
+      }
+    },
+    "builder-sync-password": {
+      "type": "parameter.v0",
+      "value": "{builder-sync-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
+    },
+    "builder-async-password": {
+      "type": "parameter.v0",
+      "value": "{builder-async-password.inputs.value}",
+      "inputs": {
+        "value": {
+          "type": "string",
+          "secret": true,
+          "default": {
+            "generate": {
+              "minLength": 22,
+              "special": false
+            }
+          }
+        }
+      }
     }
   }
 }

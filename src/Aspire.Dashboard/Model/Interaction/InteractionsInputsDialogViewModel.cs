@@ -14,7 +14,7 @@ public sealed class InteractionsInputsDialogViewModel
         get => _interaction;
         init => _interaction = value;
     }
-    public required Func<WatchInteractionsResponseUpdate, Task> OnSubmitCallback { get; init; }
+    public required Func<WatchInteractionsResponseUpdate, bool, Task> OnSubmitCallback { get; init; }
     public required string Message { get; init; }
 
     public List<InteractionInput> Inputs => Interaction.InputsDialog!.InputItems.ToList();

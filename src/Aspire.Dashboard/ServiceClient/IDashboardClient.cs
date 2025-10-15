@@ -65,6 +65,12 @@ public interface IDashboardClient : IAsyncDisposable
     IAsyncEnumerable<IReadOnlyList<ResourceLogLine>> GetConsoleLogs(string resourceName, CancellationToken cancellationToken);
 
     Task<ResourceCommandResponseViewModel> ExecuteResourceCommandAsync(string resourceName, string resourceType, CommandViewModel command, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Get the current resources.
+    /// </summary>
+    /// <returns></returns>
+    IReadOnlyList<ResourceViewModel> GetResources();
 }
 
 public sealed record ResourceViewModelSubscription(
