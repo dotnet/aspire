@@ -602,21 +602,17 @@ public sealed class AzureEnvironmentResource : Resource
             }
         }
 
-        // Check if the compute environment has the app service URI output (for Azure App Service)
+        // Check if the compute environment has the unique string used in Azure App Service name
         if (azureComputeEnv is AzureProvisioningResource appServiceResource &&
-            appServiceResource.Outputs.TryGetValue("AZURE_APP_SERVICE_URI", out var appServiceUri))
+            appServiceResource.Outputs.TryGetValue("AZURE_APP_SERVICE_UNIQUE_STRING", value: out var uniqueIdentifier))
         {
-            /*
-            if (computeResource.TryGetEndpoints(out var endpoints))
+            var hostname = $"{computeResource.Name.ToLowerInvariant()}-{uniqueIdentifier}";
+            if (hostname.Length > 60)
             {
-                var endpoint = endpoints.FirstOrDefault(e => e.IsExternal);
-
-                if (endpoint != null)
-                {
-                    BicepFunction.Interpolate($"{endpoint.UriScheme}://{endpoint.TargetHost}.azurewebsites.net");
-                }
-            }*/
-            return $" to {appServiceUri}";
+                hostname = hostname.Substring(0, 60);
+            }
+            var endpoint = $"https://{hostname}.azurewebsites.net";
+            return $" to {endpoint}";
         }
 
         return string.Empty;

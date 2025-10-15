@@ -360,11 +360,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             EnableApplicationInsightsForWebSite(webSite);
         }
 
-        infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_URI", typeof(string))
-        {
-            Value = BicepFunction.Interpolate($"https://{webSite.Name}.azurewebsites.net")
-        });
-
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {
