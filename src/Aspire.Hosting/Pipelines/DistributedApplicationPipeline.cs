@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
@@ -173,7 +174,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
-    /// Executes pipeline steps using a readiness-based scheduler that starts steps as soon as their dependencies are met.
+    /// Executes pipeline steps using a channel-based readiness scheduler with producer-consumer pattern.
+    /// Steps are executed as soon as their dependencies are met, with automatic concurrency management.
     /// </summary>
     private static async Task ExecuteWithReadinessScheduler(
         List<PipelineStep> steps,
@@ -183,89 +185,91 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // Build the dependency graph and validate no cycles
         var (indegrees, dependents) = BuildDependencyGraph(steps, stepsByName);
 
-        // Create step index mapping
-        var stepIndices = new Dictionary<string, int>();
-        for (int i = 0; i < steps.Count; i++)
+        // Create an unbounded channel for ready steps
+        var readyChannel = Channel.CreateUnbounded<int>(new UnboundedChannelOptions
         {
-            stepIndices[steps[i].Name] = i;
-        }
+            SingleReader = false,
+            SingleWriter = false
+        });
 
-        // Track running tasks and exceptions
-        var runningTasks = new HashSet<Task<int>>();
-        var exceptions = new ConcurrentBag<Exception>();
-        var completedSteps = new HashSet<int>();
-        var completedStepsLock = new object();
+        // Track exceptions
+        var exceptions = new ConcurrentQueue<Exception>();
+        var completedCount = 0;
 
         // Enqueue all zero in-degree steps initially
-        var readySteps = new List<int>();
-        for (int i = 0; i < steps.Count; i++)
+        for (var i = 0; i < steps.Count; i++)
         {
             if (indegrees[i] == 0)
             {
-                readySteps.Add(i);
+                await readyChannel.Writer.WriteAsync(i).ConfigureAwait(false);
             }
         }
 
-        // Main execution loop
-        while (completedSteps.Count < steps.Count || runningTasks.Count > 0)
+        // Producer-consumer: Read from channel and execute steps
+        var executionTasks = new List<Task>();
+        var maxConcurrency = Environment.ProcessorCount;
+
+        for (var i = 0; i < maxConcurrency; i++)
         {
-            // Start all ready steps
-            foreach (var stepIndex in readySteps)
+            executionTasks.Add(Task.Run(async () =>
             {
-                var step = steps[stepIndex];
-                var task = ExecuteStepWithTrackingAsync(stepIndex, step, context, exceptions);
-                runningTasks.Add(task);
-            }
-            readySteps.Clear();
-
-            // If no tasks are running and no steps are ready, we have a problem
-            if (runningTasks.Count == 0)
-            {
-                break;
-            }
-
-            // Wait for at least one task to complete
-            var completedTask = await Task.WhenAny(runningTasks).ConfigureAwait(false);
-            runningTasks.Remove(completedTask);
-
-            var completedStepIndex = await completedTask.ConfigureAwait(false);
-
-            lock (completedStepsLock)
-            {
-                completedSteps.Add(completedStepIndex);
-            }
-
-            // If a failure occurred, stop scheduling new steps but wait for running tasks
-            if (!exceptions.IsEmpty)
-            {
-                // Wait for all running tasks to complete
-                if (runningTasks.Count > 0)
+                await foreach (var stepIndex in readyChannel.Reader.ReadAllAsync().ConfigureAwait(false))
                 {
-                    await Task.WhenAll(runningTasks).ConfigureAwait(false);
-                }
-                break;
-            }
-
-            // Check which dependent steps are now ready
-            var completedStepName = steps[completedStepIndex].Name;
-            if (dependents.TryGetValue(completedStepName, out var dependentIndices))
-            {
-                foreach (var dependentIndex in dependentIndices)
-                {
-                    // Decrement the in-degree and check if all dependencies are satisfied
-                    if (Interlocked.Decrement(ref indegrees[dependentIndex]) == 0)
+                    var step = steps[stepIndex];
+                    try
                     {
-                        readySteps.Add(dependentIndex);
+                        await ExecuteStepAsync(step, context).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Enqueue(ex);
+                        // Signal failure - complete the channel
+                        readyChannel.Writer.TryComplete();
+                        return;
+                    }
+
+                    // Mark as completed
+                    Interlocked.Increment(ref completedCount);
+
+                    // Check which dependent steps are now ready
+                    if (dependents.TryGetValue(step.Name, out var dependentIndices))
+                    {
+                        foreach (var dependentIndex in dependentIndices)
+                        {
+                            // Decrement the in-degree and check if all dependencies are satisfied
+                            if (Interlocked.Decrement(ref indegrees[dependentIndex]) == 0)
+                            {
+                                await readyChannel.Writer.WriteAsync(dependentIndex).ConfigureAwait(false);
+                            }
+                        }
+                    }
+
+                    // If all steps are done, complete the channel
+                    if (Volatile.Read(ref completedCount) == steps.Count)
+                    {
+                        readyChannel.Writer.TryComplete();
                     }
                 }
-            }
+            }));
         }
 
+        // Wait for all execution tasks to complete
+        await Task.WhenAll(executionTasks).ConfigureAwait(false);
+
         // Check for circular dependencies (defensive check)
-        if (completedSteps.Count != steps.Count && exceptions.IsEmpty)
+        if (completedCount != steps.Count && exceptions.IsEmpty)
         {
+            var completedIndices = new HashSet<int>();
+            for (var i = 0; i < steps.Count; i++)
+            {
+                if (indegrees[i] < 0 || indegrees[i] == 0)
+                {
+                    completedIndices.Add(i);
+                }
+            }
+
             var uncompletedSteps = steps
-                .Where((_, i) => !completedSteps.Contains(i))
+                .Where((_, i) => !completedIndices.Contains(i))
                 .Select(s => s.Name)
                 .ToList();
 
@@ -279,36 +283,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             var exceptionList = exceptions.ToList();
             if (exceptionList.Count == 1)
             {
-                ExceptionDispatchInfo.Capture(exceptionList[0]).Throw();
+                ExceptionDispatchInfo.Throw(exceptionList[0]);
             }
             else
             {
                 throw new AggregateException(
-                    $"Multiple pipeline steps failed at the same level: {string.Join(", ", exceptionList.OfType<InvalidOperationException>().Select(e => e.Message))}",
+                    $"Multiple pipeline steps failed: {string.Join(", ", exceptionList.OfType<InvalidOperationException>().Select(e => e.Message))}",
                     exceptionList);
             }
         }
-    }
-
-    /// <summary>
-    /// Executes a step and returns its index upon completion.
-    /// </summary>
-    private static async Task<int> ExecuteStepWithTrackingAsync(
-        int stepIndex,
-        PipelineStep step,
-        DeployingContext context,
-        ConcurrentBag<Exception> exceptions)
-    {
-        try
-        {
-            await ExecuteStepAsync(step, context).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            exceptions.Add(ex);
-        }
-
-        return stepIndex;
     }
 
     /// <summary>
@@ -323,7 +306,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var dependents = new Dictionary<string, List<int>>();
         var stepIndices = new Dictionary<string, int>();
 
-        for (int i = 0; i < steps.Count; i++)
+        for (var i = 0; i < steps.Count; i++)
         {
             stepIndices[steps[i].Name] = i;
             dependents[steps[i].Name] = [];
@@ -369,7 +352,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var queue = new Queue<int>();
         var tempIndegrees = (int[])indegrees.Clone();
 
-        for (int i = 0; i < steps.Count; i++)
+        for (var i = 0; i < steps.Count; i++)
         {
             if (tempIndegrees[i] == 0)
             {
@@ -402,7 +385,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             queue.Clear();
             tempIndegrees = (int[])indegrees.Clone();
 
-            for (int i = 0; i < steps.Count; i++)
+            for (var i = 0; i < steps.Count; i++)
             {
                 if (tempIndegrees[i] == 0)
                 {

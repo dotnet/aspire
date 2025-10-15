@@ -188,39 +188,36 @@ public class DistributedApplicationPipelineTests
         var pipeline = new DistributedApplicationPipeline();
 
         var executionOrder = new List<(string step, DateTime time)>();
-        var level1Complete = new TaskCompletionSource();
-        var level2Complete = new TaskCompletionSource();
+        var executionOrderLock = new object();
 
         pipeline.AddStep("level1-step1", async (context) =>
         {
-            executionOrder.Add(("level1-step1", DateTime.UtcNow));
+            lock (executionOrder) { executionOrder.Add(("level1-step1", DateTime.UtcNow)); }
             await Task.Delay(10);
-            await Task.CompletedTask;
         });
 
         pipeline.AddStep("level1-step2", async (context) =>
         {
-            executionOrder.Add(("level1-step2", DateTime.UtcNow));
+            lock (executionOrder) { executionOrder.Add(("level1-step2", DateTime.UtcNow)); }
             await Task.Delay(10);
-            await Task.CompletedTask;
         });
 
-        pipeline.AddStep("level2-step1", async (context) =>
+        pipeline.AddStep("level2-step1", (context) =>
         {
-            executionOrder.Add(("level2-step1", DateTime.UtcNow));
-            await Task.CompletedTask;
+            lock (executionOrder) { executionOrder.Add(("level2-step1", DateTime.UtcNow)); }
+            return Task.CompletedTask;
         }, dependsOn: "level1-step1");
 
-        pipeline.AddStep("level2-step2", async (context) =>
+        pipeline.AddStep("level2-step2", (context) =>
         {
-            executionOrder.Add(("level2-step2", DateTime.UtcNow));
-            await Task.CompletedTask;
+            lock (executionOrder) { executionOrder.Add(("level2-step2", DateTime.UtcNow)); }
+            return Task.CompletedTask;
         }, dependsOn: "level1-step2");
 
-        pipeline.AddStep("level3-step1", async (context) =>
+        pipeline.AddStep("level3-step1", (context) =>
         {
-            executionOrder.Add(("level3-step1", DateTime.UtcNow));
-            await Task.CompletedTask;
+            lock (executionOrder) { executionOrder.Add(("level3-step1", DateTime.UtcNow)); }
+            return Task.CompletedTask;
         }, dependsOn: "level2-step1");
 
         var context = CreateDeployingContext(builder.Build());
@@ -1163,7 +1160,7 @@ public class DistributedApplicationPipelineTests
         await pipeline.ExecuteAsync(context);
 
         Assert.Equal(4, executionOrder.Count);
-        
+
         // Verify execution order
         var aIndex = executionOrder.IndexOf("A");
         var bIndex = executionOrder.IndexOf("B");
@@ -1225,7 +1222,7 @@ public class DistributedApplicationPipelineTests
         // If running concurrently, B1 and B2 should overlap in time
         // (both take 50ms, so if sequential would take 100ms+, if parallel should take ~50ms)
         // Total time should be less than 100ms (A:10ms + max(B1:50ms, B2:50ms) ≈ 60ms)
-        Assert.True(sw.ElapsedMilliseconds < 100, 
+        Assert.True(sw.ElapsedMilliseconds < 100,
             $"B1 and B2 should run concurrently. Total time: {sw.ElapsedMilliseconds}ms");
     }
 
@@ -1249,30 +1246,30 @@ public class DistributedApplicationPipelineTests
         pipeline.AddStep("LongB", async (context) =>
         {
             await Task.Delay(100);
-            lock (completionOrder) 
-            { 
-                completionOrder.Add("LongB"); 
-                completionTimes["LongB"] = DateTime.UtcNow; 
+            lock (completionOrder)
+            {
+                completionOrder.Add("LongB");
+                completionTimes["LongB"] = DateTime.UtcNow;
             }
         }, dependsOn: "A");
 
         pipeline.AddStep("ShortB", async (context) =>
         {
             await Task.Delay(10);
-            lock (completionOrder) 
-            { 
-                completionOrder.Add("ShortB"); 
-                completionTimes["ShortB"] = DateTime.UtcNow; 
+            lock (completionOrder)
+            {
+                completionOrder.Add("ShortB");
+                completionTimes["ShortB"] = DateTime.UtcNow;
             }
         }, dependsOn: "A");
 
         pipeline.AddStep("C", async (context) =>
         {
             await Task.Delay(10);
-            lock (completionOrder) 
-            { 
-                completionOrder.Add("C"); 
-                completionTimes["C"] = DateTime.UtcNow; 
+            lock (completionOrder)
+            {
+                completionOrder.Add("C");
+                completionTimes["C"] = DateTime.UtcNow;
             }
         }, dependsOn: "ShortB");
 
@@ -1283,7 +1280,7 @@ public class DistributedApplicationPipelineTests
         var cIndex = completionOrder.IndexOf("C");
         var longBIndex = completionOrder.IndexOf("LongB");
 
-        Assert.True(cIndex < longBIndex, 
+        Assert.True(cIndex < longBIndex,
             "C should complete before LongB (not blocked by long-running parallel branch)");
         Assert.True(completionTimes["C"] < completionTimes["LongB"],
             "C should complete before LongB based on timestamps");
