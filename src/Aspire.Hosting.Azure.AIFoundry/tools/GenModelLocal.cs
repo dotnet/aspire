@@ -632,9 +632,12 @@ public class ModelClassGenerator
 
         // Clean up description for XML documentation
         return description
-            .Replace("\n", " ")
-            .Replace("\r", " ")
+            .Replace("\r", "")
             .Replace("  ", " ")
+            .Replace(" on CUDA GPUs", "")
+            .Replace(" on GPUs", "")
+            .Replace(" on CPUs", "")
+            .Replace("\n", "\n        /// ")
             .Trim();
     }
 

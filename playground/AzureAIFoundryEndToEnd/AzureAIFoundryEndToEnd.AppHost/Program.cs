@@ -10,8 +10,8 @@ var foundry = builder.AddAzureAIFoundry("foundry")
     ;
 
 var model = foundry.Resource.IsEmulator
-    ? AIFoundryModel.FoundryLocal.Phi4MiniReasoning
-    : AIFoundryModel.Microsoft.Phi4MiniReasoning
+    ? AIFoundryModel.FoundryLocal.Phi4Mini
+    : AIFoundryModel.Microsoft.Phi4MiniInstruct
     ;
 
 var hostedModel = AIFoundryModel.Microsoft.Phi4MiniReasoning;
