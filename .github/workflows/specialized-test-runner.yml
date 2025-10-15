@@ -53,9 +53,9 @@ jobs:
           --restore
           --build
           -c Release
-          --ci
           /p:GeneratePackageOnBuild=false
-          ${{ !inputs.enablePlaywrightInstall && '/p:InstallBrowsersForPlaywright=false' || '' }}
+          /p:SkipNativeBuild=true
+          /p:InstallBrowsersForPlaywright=false
 
       - name: Generate test runsheet
         id: generate_tests_matrix
@@ -65,7 +65,6 @@ jobs:
           /p:TestRunnerName=${{ inputs.testRunnerName }}
           ${{ inputs.extraRunSheetBuilderArgs }}
           -c Release
-          --ci
           /p:Restore=false
           /p:Build=false
           /bl:${{ github.workspace }}/artifacts/log/Release/runsheet.binlog
