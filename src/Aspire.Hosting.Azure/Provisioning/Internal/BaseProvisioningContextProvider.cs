@@ -212,28 +212,37 @@ internal abstract partial class BaseProvisioningContextProvider(
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
 
-        try
+        // SubscriptionId is always a GUID. Check if we have a valid GUID before trying to use it.
+        // Fallback to static list of Azure locations if the subscriptionId is not valid or there is an error.
+        if (Guid.TryParse(subscriptionId, out _))
         {
-            var credential = _tokenCredentialProvider.TokenCredential;
-            var armClient = _armClientProvider.GetArmClient(credential);
-            var availableLocations = await armClient.GetAvailableLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-            var locationList = availableLocations.ToList();
-
-            if (locationList.Count > 0)
+            try
             {
-                locationOptions = locationList
-                    .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
-                    .ToList();
+                var credential = _tokenCredentialProvider.TokenCredential;
+                var armClient = _armClientProvider.GetArmClient(credential);
+                var availableLocations = await armClient.GetAvailableLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+                var locationList = availableLocations.ToList();
+
+                if (locationList.Count > 0)
+                {
+                    locationOptions = locationList
+                        .Select(loc => KeyValuePair.Create(loc.Name, loc.DisplayName))
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
             }
         }
-        catch (Exception ex)
+        else
         {
-            _logger.LogWarning(ex, "Failed to enumerate available locations. Falling back to manual input.");
+            _logger.LogDebug("Skipping getting available locations from client. SubscriptionId '{SubscriptionId}' isn't a valid GUID.", subscriptionId);
         }
 
         return locationOptions is not null
-            ? (locationOptions, true)
-            : (GetStaticAzureLocations(), false);
+                ? (locationOptions, true)
+                : (GetStaticAzureLocations(), false);
     }
 
     /// <summary>
