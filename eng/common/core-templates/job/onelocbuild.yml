@@ -66,36 +66,6 @@ jobs:
       - 'Illegal entry point, is1ESPipeline is not defined. Repository yaml should not directly reference templates in core-templates folder.': error
 
     - ${{ if ne(parameters.SkipLocProjectJsonGeneration, 'true') }}:
-      # Install Node.js for building the Aspire VS Code extension
-      - task: NodeTool@0
-        displayName: Install Node.js
-        inputs:
-          versionSpec: '20.x'
-        condition: ${{ parameters.condition }}
-
-      # Install yarn for building the extension
-      - task: PowerShell@2
-        displayName: Install yarn
-        inputs:
-          targetType: 'inline'
-          script: |
-            npm install -g yarn
-            yarn --version
-          workingDirectory: '${{ parameters.SourcesDirectory }}'
-        condition: ${{ parameters.condition }}
-
-      # Build the extension to generate xlf files
-      - task: PowerShell@2
-        displayName: Build Aspire Extension
-        inputs:
-          targetType: 'inline'
-          script: |
-            cd extension
-            yarn install
-            yarn compile
-          workingDirectory: '${{ parameters.SourcesDirectory }}'
-        condition: ${{ parameters.condition }}
-
       - task: Powershell@2
         inputs:
           filePath: $(System.DefaultWorkingDirectory)/eng/common/generate-locproject.ps1
