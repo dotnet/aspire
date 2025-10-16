@@ -3,7 +3,6 @@
 
 namespace Aspire.Hosting.Utils;
 
-internal sealed class FormattingHelpers
 /// <summary>
 /// Provides helper methods for formatting values in specific formats.
 /// </summary>
@@ -19,9 +18,8 @@ internal static class FormattingHelpers
     /// <exception cref="NotSupportedException">Thrown when the specified format is not supported.</exception>
     public static string FormatValue(string value, string format)
     {
-        // ...
-    }
-}
+        return format.ToLowerInvariant() switch
+        {
             "uri" => Uri.EscapeDataString(value),
             _ => throw new NotSupportedException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)")
         };

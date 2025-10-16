@@ -20,9 +20,8 @@ internal sealed class BicepFormattingHelpers
     /// <exception cref="NotSupportedException">Thrown when the specified format is not supported.</exception>
     public static BicepExpression FormatBicepExpression(object val, string format)
     {
-        // Method implementation
-    }
-}
+        var innerExpression = val switch
+        {
             ProvisioningParameter p => p.Value.Compile(),
             IBicepValue b => b.Compile(),
             _ => throw new ArgumentException($"Invalid expression type for '{format}' encoding: {val.GetType()}")
