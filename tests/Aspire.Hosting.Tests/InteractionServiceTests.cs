@@ -729,7 +729,7 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicLoading = new DynamicInputLoading
+                DynamicLoading = new InputLoadOptions
                 {
                     LoadCallback = async c =>
                     {
@@ -747,7 +747,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         // Assert
@@ -756,7 +756,7 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -783,7 +783,7 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicLoading = new DynamicInputLoading
+                DynamicLoading = new InputLoadOptions
                 {
                     LoadCallback = async c =>
                     {
@@ -802,7 +802,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         await CompleteInteractionAsync(
@@ -815,14 +815,14 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
 
         updateTcs.SetResult();
 
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -891,7 +891,7 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicLoading = new DynamicInputLoading
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["DoesNotExist"],
                     LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
@@ -924,7 +924,7 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicLoading = new DynamicInputLoading
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["Age"],
                     LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>

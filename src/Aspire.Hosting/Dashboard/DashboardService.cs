@@ -155,7 +155,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
-                                if (input.DynamicState is { } providerState)
+                                if (input.DynamicLoadingState is { } providerState)
                                 {
                                     dto.Loading = providerState.Loading;
                                 }

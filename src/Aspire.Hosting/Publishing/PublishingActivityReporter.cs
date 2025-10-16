@@ -281,7 +281,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                     ValidationErrors = input.ValidationErrors,
                     AllowCustomChoice = input.AllowCustomChoice,
                     UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName)),
-                    Loading = input.DynamicState?.Loading ?? false,
+                    Loading = input.DynamicLoadingState?.Loading ?? false,
                     Disabled = input.Disabled
                 }).ToList();
 

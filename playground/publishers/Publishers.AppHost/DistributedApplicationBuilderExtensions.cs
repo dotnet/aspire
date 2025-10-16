@@ -69,7 +69,7 @@ internal static class IDistributedApplicationBuilderExtensions
                         Label = "More certificate details",
                         InputType = InputType.Choice,
                         Required = true,
-                        DynamicLoading = new DynamicInputLoading
+                        DynamicLoading = new InputLoadOptions
                         {
                             DependsOnInputs = ["SSLCertificateType"],
                             LoadCallback = async (c) =>

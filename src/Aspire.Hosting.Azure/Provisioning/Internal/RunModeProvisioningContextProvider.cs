@@ -132,7 +132,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             Required = true,
                             AllowCustomChoice = true,
                             Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                            DynamicLoading = new DynamicInputLoading
+                            DynamicLoading = new InputLoadOptions
                             {
                                 LoadCallback = async (context) =>
                                 {
@@ -153,7 +153,7 @@ internal sealed class RunModeProvisioningContextProvider(
                             Placeholder = AzureProvisioningStrings.LocationPlaceholder,
                             Required = true,
                             Disabled = true,
-                            DynamicLoading = new DynamicInputLoading
+                            DynamicLoading = new InputLoadOptions
                             {
                                 LoadCallback = async (context) =>
                                 {

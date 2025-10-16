@@ -145,9 +145,9 @@ internal class InteractionService : IInteractionService
             {
                 if (input.DynamicLoading is { } dynamic)
                 {
-                    var dynamicState = new DynamicInputState(dynamic)
+                    var dynamicState = new InputLoadingState(dynamic)
                     {
-                        OnDataRefresh = (input) =>
+                        OnLoadComplete = (input) =>
                         {
                             // Options or value on a choice could have changed. Ensure the value is still valid.
                             if (input.InputType == InputType.Choice)
@@ -169,15 +169,15 @@ internal class InteractionService : IInteractionService
                         }
                     };
 
-                    input.DynamicState = dynamicState;
+                    input.DynamicLoadingState = dynamicState;
 
                     // Refresh input on start if:
                     // -The dynamic input doesn't depend on other inputs, or
                     // -Has been configured to always update
                     if (dynamic.DependsOnInputs == null || dynamic.DependsOnInputs.Count == 0 || dynamic.AlwaysLoadOnStart)
                     {
-                        var refreshOptions = new DynamicRefreshOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
-                        input.DynamicState.RefreshInput(refreshOptions);
+                        var refreshOptions = new QueueLoadOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
+                        input.DynamicLoadingState.QueueLoad(refreshOptions);
                     }
                 }
             }

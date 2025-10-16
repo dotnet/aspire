@@ -233,8 +233,8 @@ internal sealed class DashboardServiceData : IDisposable
         // Refresh options for choice inputs that depend on other inputs.
         foreach (var inputToUpdate in choiceInteractionsToUpdate)
         {
-            var refreshOptions = new DynamicRefreshOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
-            inputToUpdate.DynamicState!.RefreshInput(refreshOptions);
+            var options = new QueueLoadOptions(logger, cancellationToken, inputToUpdate, inputsInfo.Inputs, serviceProvider);
+            inputToUpdate.DynamicLoadingState!.QueueLoad(options);
         }
     }
 }

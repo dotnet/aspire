@@ -100,16 +100,16 @@ public interface IInteractionService
     Task<InteractionResult<bool>> PromptNotificationAsync(string title, string message, NotificationInteractionOptions? options = null, CancellationToken cancellationToken = default);
 }
 
-internal record DynamicRefreshOptions(
+internal record QueueLoadOptions(
     ILogger Logger,
     CancellationToken CancellationToken,
     InteractionInput Input,
     InteractionInputCollection AllInputs,
     IServiceProvider ServiceProvider);
 
-internal sealed class DynamicInputState(DynamicInputLoading options)
+internal sealed class InputLoadingState(InputLoadOptions options)
 {
-    private readonly DynamicInputLoading _options = options;
+    private readonly InputLoadOptions _options = options;
     private readonly object _lock = new object();
 
     private Task? _currentTask;
@@ -118,7 +118,7 @@ internal sealed class DynamicInputState(DynamicInputLoading options)
 
     public bool Loading { get; private set; }
 
-    internal void RefreshInput(DynamicRefreshOptions options)
+    internal void QueueLoad(QueueLoadOptions options)
     {
         lock (_lock)
         {
@@ -153,7 +153,7 @@ internal sealed class DynamicInputState(DynamicInputLoading options)
         }
     }
 
-    private void StartNewTask(DynamicRefreshOptions options)
+    private void StartNewTask(QueueLoadOptions options)
     {
         Debug.Assert(Monitor.IsEntered(_lock));
 
@@ -178,7 +178,7 @@ internal sealed class DynamicInputState(DynamicInputLoading options)
                     Loading = false;
                 }
 
-                OnDataRefresh?.Invoke(options.Input);
+                OnLoadComplete?.Invoke(options.Input);
             }
             catch (OperationCanceledException)
             {
@@ -191,7 +191,7 @@ internal sealed class DynamicInputState(DynamicInputLoading options)
         }, currentToken);
     }
 
-    internal Action<InteractionInput>? OnDataRefresh { get; set; }
+    internal Action<InteractionInput>? OnLoadComplete { get; set; }
 }
 
 /// <summary>
@@ -202,7 +202,7 @@ internal sealed class DynamicInputState(DynamicInputLoading options)
 /// scenarios where input loading behavior must be customized.
 /// </remarks>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class DynamicInputLoading
+public sealed class InputLoadOptions
 {
     /// <summary>
     /// Gets or sets the callback function that is invoked to perform a load operation using the specified input context.
@@ -226,13 +226,13 @@ public sealed class DynamicInputLoading
 }
 
 /// <summary>
-/// The context for dynamic input loading. Used with <see cref="DynamicInputLoading.LoadCallback"/>.
+/// The context for dynamic input loading. Used with <see cref="InputLoadOptions.LoadCallback"/>.
 /// </summary>
 [Experimental(InteractionService.DiagnosticId, UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public sealed class LoadInputContext
 {
     /// <summary>
-    /// Gets the loading input. This is the target of <see cref="DynamicInputLoading"/>.
+    /// Gets the loading input. This is the target of <see cref="InputLoadOptions"/>.
     /// </summary>
     public required InteractionInput Input { get; init; }
 
@@ -260,7 +260,7 @@ public sealed class LoadInputContext
 public sealed class InteractionInput
 {
     internal string EffectiveLabel => string.IsNullOrWhiteSpace(Label) ? Name : Label;
-    internal DynamicInputState? DynamicState { get; set; }
+    internal InputLoadingState? DynamicLoadingState { get; set; }
     internal List<string> ValidationErrors { get; } = [];
 
     /// <summary>
@@ -300,9 +300,11 @@ public sealed class InteractionInput
     public IReadOnlyList<KeyValuePair<string, string>>? Options { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="DynamicInputLoading"/> for the input.
+    /// Gets or sets the <see cref="InputLoadOptions"/> for the input.
+    /// Dynamic loading is used to load data and update inputs after a prompt has started.
+    /// It can also be used to reload data and update inputs after a dependant input has changed.
     /// </summary>
-    public DynamicInputLoading? DynamicLoading { get; init; }
+    public InputLoadOptions? DynamicLoading { get; init; }
 
     /// <summary>
     /// Gets or sets the value of the input.

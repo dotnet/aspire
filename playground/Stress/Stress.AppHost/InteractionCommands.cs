@@ -296,7 +296,7 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   DynamicLoading = new DynamicInputLoading
+                   DynamicLoading = new InputLoadOptions
                    {
                        LoadCallback = async (context) =>
                        {
@@ -311,7 +311,7 @@ internal static class InteractionCommands
                        }
                    }
                };
-               var dependentOptionsProvider = new DynamicInputLoading
+               var dependentOptionsProvider = new InputLoadOptions
                {
                    LoadCallback = async (context) =>
                    {
@@ -364,7 +364,7 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    Required = true,
                    Disabled = true,
-                   DynamicLoading = new DynamicInputLoading
+                   DynamicLoading = new InputLoadOptions
                    {
                        DependsOnInputs = ["Dynamic"],
                        LoadCallback = async (context) =>
@@ -435,7 +435,7 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   DynamicLoading = new DynamicInputLoading
+                   DynamicLoading = new InputLoadOptions
                    {
                        LoadCallback = async (context) =>
                        {
@@ -452,7 +452,7 @@ internal static class InteractionCommands
                    Label = "Dynamic",
                    Placeholder = "Select dynamic value",
                    Required = true,
-                   DynamicLoading = new DynamicInputLoading
+                   DynamicLoading = new InputLoadOptions
                    {
                        LoadCallback = async (context) =>
                        {
