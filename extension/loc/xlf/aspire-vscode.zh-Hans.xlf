@@ -236,7 +236,7 @@
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.fieldRequired">
         <source xml:lang="en">This field is required.</source>
-        <target state="new">This field is required.</target>
+        <target state="translated">此字段是必填字段。</target>
       </trans-unit>
       <trans-unit id="command.update">
         <source xml:lang="en">Update integrations</source>
