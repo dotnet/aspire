@@ -35,14 +35,14 @@
                 <FluentIcon Value="@(new Icons.Regular.Size24.QuestionCircle())" Color="Color.Neutral"/>
             </FluentButton>
             <FluentButton Class="header-button"
-                          Appearance="Appearance.Stealth" OnClick="@LaunchMcpAsync" Target="_blank" Rel="noreferrer noopener"
+                          Appearance="Appearance.Stealth" OnClick="@LaunchMcpAsync"
                           Title="MCP Server" aria-label="MCP Server">
                 <FluentIcon Value="@(new AspireIcons.Size24.McpIcon())" Color="Color.Neutral" />
             </FluentButton>
             @if (AIContextProvider.Enabled)
             {
                 <FluentButton Class="@("header-button" + ((AIContextProvider.AssistantChatViewModel is {} vm && AIContextProvider.ShowAssistantSidebarDialog) ? " header-button-selected" : ""))"
-                    Appearance="Appearance.Stealth" OnClick="@LaunchAssistantAsync"
+                              Appearance="Appearance.Stealth" OnClick="@LaunchAssistantAsync"
                               Title="@AIAssistantLoc[nameof(AIAssistant.AIAssistantLaunchButtonText)]" aria-label="@AIAssistantLoc[nameof(AIAssistant.AIAssistantLaunchButtonText)]">
                     <FluentIcon Value="@(new AspireIcons.Size24.GitHubCopilot())" Color="Color.Neutral" />
                 </FluentButton>

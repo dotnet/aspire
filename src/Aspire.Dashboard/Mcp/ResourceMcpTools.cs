@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Dashboard.ConsoleLogs;
 using Aspire.Dashboard.Model;
+using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -40,7 +41,7 @@ internal sealed class ResourceMcpTools
             var cts = new CancellationTokenSource(millisecondsDelay: 500);
             var resources = _dashboardClient.GetResources();
 
-            var resourceGraphData = AIHelpers.GetResponseGraphJson(resources);
+            var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList());
 
             var response = $"""
             Always format resource_name in the response as code like this: `frontend-abcxyz`
