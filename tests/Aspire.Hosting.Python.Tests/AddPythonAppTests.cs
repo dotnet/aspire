@@ -1093,5 +1093,61 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
             arg => Assert.Equal("arg1", arg),
             arg => Assert.Equal("arg2", arg));
     }
+
+    [Fact]
+    public async Task PythonApp_SetsPythonUtf8EnvironmentVariable_OnWindowsInRunMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run).WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        var app = builder.Build();
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            pythonApp.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Equal("1", environmentVariables["PYTHONUTF8"]);
+        }
+        else
+        {
+            Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
+        }
+    }
+
+    [Fact]
+    public async Task PythonApp_DoesNotSetPythonUtf8EnvironmentVariable_OnNonWindowsPlatforms()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run).WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        var app = builder.Build();
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            pythonApp.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance);
+
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
+        }
+    }
+
+    [Fact]
+    public async Task PythonApp_DoesNotSetPythonUtf8EnvironmentVariable_InPublishMode()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        var app = builder.Build();
+        var environmentVariables = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(
+            pythonApp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
+
+        // PYTHONUTF8 should not be set in Publish mode, even on Windows
+        Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
+    }
 }
 
