@@ -733,7 +733,6 @@ public class DistributedApplicationTests
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
         var s = app.Services.GetRequiredService<IKubernetesService>();
-        var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
         var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
         var createdContainer = Assert.Single(list);
         Assert.Equal(ContainerState.Running, createdContainer?.Status?.State);
