@@ -424,6 +424,7 @@ public class PublishAsDockerfileTests
 
         using var tempDir = CreateDirectoryWithDockerFile();
         var path = tempDir.Path;
+
         var projectPath = Path.Combine(path, "project.csproj");
 
         var callbackCount = 0;
