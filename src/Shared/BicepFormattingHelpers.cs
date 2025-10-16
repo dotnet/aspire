@@ -7,7 +7,6 @@ namespace Aspire.Hosting.Azure.Utils;
 
 internal sealed class BicepFormattingHelpers
 {
-
     public static BicepExpression FormatBicepExpression(object val, string format)
     {
         var innerExpression = val switch
