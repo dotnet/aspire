@@ -398,7 +398,7 @@ public static class ResourceBuilderExtensions
             context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
             var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
-            foreach (var endpoint in annotation.Resource.GetEndpoints())
+            foreach (var endpoint in annotation.Resource.GetEndpoints(annotation.ContextNetworkID))
             {
                 if (specificEndpointName != null && !string.Equals(endpoint.EndpointName, specificEndpointName, StringComparison.OrdinalIgnoreCase))
                 {
@@ -719,6 +719,10 @@ public static class ResourceBuilderExtensions
         if (endpointReferenceAnnotation == null)
         {
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
+            if (builder.Resource.IsContainer())
+            {
+                endpointReferenceAnnotation.ContextNetworkID = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+            }
             builder.WithAnnotation(endpointReferenceAnnotation);
 
             var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation, null, name);
@@ -787,7 +791,10 @@ public static class ResourceBuilderExtensions
 
         if (endpoint == null && createIfNotExists)
         {
-            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName);
+            var defaultNetwork = builder.Resource.IsContainer()
+                ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                : KnownNetworkIdentifiers.LocalhostNetwork;
+            endpoint = new EndpointAnnotation(ProtocolType.Tcp, name: endpointName, networkID: defaultNetwork);
             callback(endpoint);
             builder.Resource.Annotations.Add(endpoint);
         }
@@ -800,7 +807,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. A reference to this endpoint can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -820,6 +827,10 @@ public static class ResourceBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Endpoints for a Container will be consumed from localhost network by default, but the same EndpointAnnotation
+        // can also be resolved in the context of container-to-container communication by using the target port
+        // and the container name as the host. This is why we only set the context network to localhost,
+        // for both container and non-container resources.
         var annotation = new EndpointAnnotation(
             protocol: protocol ?? ProtocolType.Tcp,
             uriScheme: scheme,
@@ -827,7 +838,8 @@ public static class ResourceBuilderExtensions
             port: port,
             targetPort: targetPort,
             isExternal: isExternal,
-            isProxied: isProxied);
+            isProxied: isProxied,
+            networkID: KnownNetworkIdentifiers.LocalhostNetwork);
 
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
         {
@@ -839,7 +851,7 @@ public static class ResourceBuilderExtensions
         {
             annotation.TargetPortEnvironmentVariable = env;
 
-            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation);
+            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation, KnownNetworkIdentifiers.LocalhostNetwork);
 
             builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
             {
@@ -851,7 +863,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
     /// The endpoint name will be the scheme name if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -871,7 +883,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTP endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
     /// The endpoint name will be "http" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -891,7 +903,7 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string)"/>.
+    /// Exposes an HTTPS endpoint on a resource. This endpoint reference can be retrieved using <see cref="ResourceBuilderExtensions.GetEndpoint{T}(IResourceBuilder{T}, string, NetworkIdentifier?)"/>.
     /// The endpoint name will be "https" if not specified.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>
@@ -943,12 +955,13 @@ public static class ResourceBuilderExtensions
     /// <typeparam name="T">The resource type.</typeparam>
     /// <param name="builder">The the resource builder.</param>
     /// <param name="name">The name of the endpoint.</param>
+    /// <param name="contextNetworkID">The network context in which to resolve the endpoint. If null, localhost (loopback) network context will be used.</param>"
     /// <returns>An <see cref="EndpointReference"/> that can be used to resolve the address of the endpoint after resource allocation has occurred.</returns>
-    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name) where T : IResourceWithEndpoints
+    public static EndpointReference GetEndpoint<T>(this IResourceBuilder<T> builder, [EndpointName] string name, NetworkIdentifier? contextNetworkID = null) where T : IResourceWithEndpoints
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.Resource.GetEndpoint(name);
+        return builder.Resource.GetEndpoint(name, contextNetworkID);
     }
 
     /// <summary>

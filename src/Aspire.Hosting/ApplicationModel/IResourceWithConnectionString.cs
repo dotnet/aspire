@@ -6,7 +6,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a resource that has a connection string associated with it.
 /// </summary>
-public interface IResourceWithConnectionString : IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public interface IResourceWithConnectionString : IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences, INetworkAwareValueProvider
 {
     /// <summary>
     /// Gets the connection string associated with the resource.
@@ -19,6 +19,9 @@ public interface IResourceWithConnectionString : IResource, IManifestExpressionP
     string IManifestExpressionProvider.ValueExpression => $"{{{Name}.connectionString}}";
 
     ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken) => GetConnectionStringAsync(cancellationToken);
+
+    ValueTask<string?> INetworkAwareValueProvider.GetValueAsync(NetworkIdentifier? context, CancellationToken cancellationToken) =>
+        ConnectionStringExpression.GetValueAsync(cancellationToken, context);
 
     /// <summary>
     /// Describes the connection string format string used for this resource.

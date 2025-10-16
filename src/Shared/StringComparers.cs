@@ -32,6 +32,7 @@ internal static class StringComparers
     public static StringComparer CommandName => StringComparer.Ordinal;
     public static StringComparer CliInputOrOutput => StringComparer.Ordinal;
     public static StringComparer InteractionInputName => StringComparer.OrdinalIgnoreCase;
+    public static StringComparer NetworkID => StringComparer.Ordinal;
 }
 
 internal static class StringComparisons

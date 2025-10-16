@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a parameter resource.
 /// </summary>
-public class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider
+public class ParameterResource : Resource, IManifestExpressionProvider, IValueProvider, INetworkAwareValueProvider
 {
     private readonly Lazy<string> _lazyValue;
     private readonly Func<ParameterDefault?, string> _valueGetter;
@@ -92,6 +92,17 @@ public class ParameterResource : Resource, IManifestExpressionProvider, IValuePr
 
         // In publish mode, there's no WaitForValueTcs set.
         return ValueInternal;
+    }
+
+    /// <summary>
+    /// Gets the value of the parameter asynchronously, waiting if necessary for the value to be set.
+    /// </summary>
+    public ValueTask<string?> GetValueAsync(NetworkIdentifier? _, CancellationToken cancellationToken)
+    {
+        // It might look like this does not provide any additional functionality over GetValueAsync,
+        // but we need to ensure that types derived from ParameterResource implement INetworkAwareValueProvider
+        // using WaitForValueTcs, and not via some other mechanism like IResourceWithConnectionString interface.
+        return GetValueAsync(cancellationToken);
     }
 
     /// <summary>

@@ -5,7 +5,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents a reference to a connection string.
 /// </summary>
-public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public class ConnectionStringReference(IResourceWithConnectionString resource, bool optional) : IManifestExpressionProvider, IValueProvider, IValueWithReferences, INetworkAwareValueProvider
 {
     /// <summary>
     /// The resource that the connection string is referencing.
@@ -21,9 +21,28 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
 
     IEnumerable<object> IValueWithReferences.References => [Resource];
 
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var value = await Resource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        return ((INetworkAwareValueProvider)this).GetValueAsync(null, cancellationToken);
+    }
+
+    async ValueTask<string?> INetworkAwareValueProvider.GetValueAsync(NetworkIdentifier? context, CancellationToken cancellationToken)
+    {
+        string? value;
+
+        if (Resource is INetworkAwareValueProvider navp)
+        {
+            value = await navp.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            if (context is not null)
+            {
+                throw new InvalidOperationException($"The resource '{Resource.Name}' does not support network-aware value resolution.");
+            }
+
+            value = await ((IValueProvider)this).GetValueAsync(cancellationToken).ConfigureAwait(false);
+        }
 
         if (string.IsNullOrEmpty(value) && !Optional)
         {
@@ -34,4 +53,5 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     }
 
     internal void ThrowConnectionStringUnavailableException() => throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
+
 }

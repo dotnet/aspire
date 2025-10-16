@@ -22,6 +22,8 @@ internal abstract class CustomResource : KubernetesObject, IMetadata<V1ObjectMet
     public const string ServiceConsumerAnnotation = "service-consumer";
     public const string EndpointNameAnnotation = "endpoint-name";
     public const string ResourceNameAnnotation = "resource-name";
+    public const string ContainerTunnelClientServiceAnnotation = "container-tunnel-client-service";
+    public const string ContainerNetworkAnnotation = "container-network";
     public const string OtelServiceNameAnnotation = "otel-service-name";
     public const string OtelServiceInstanceIdAnnotation = "otel-service-instance-id";
     public const string ResourceStateAnnotation = "resource-state";
