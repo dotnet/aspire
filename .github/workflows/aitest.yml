@@ -28,8 +28,9 @@ jobs:
 
       - name: Parse and validate scenario name
         id: parse_scenario
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          COMMENT_BODY="${{ github.event.comment.body }}"
           echo "Comment body: $COMMENT_BODY"
 
           # Extract scenario name from comment
