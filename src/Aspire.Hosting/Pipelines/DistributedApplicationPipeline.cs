@@ -288,47 +288,44 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
         }
 
-        // Track visit state: 0 = unvisited, 1 = visiting (on current path), 2 = visited
-        var visitState = new Dictionary<string, int>(steps.Count);
+        var visited = new HashSet<string>(steps.Count);
+        var path = new Stack<string>();
 
         // DFS to detect cycles
-        void DetectCycles(string stepName, List<string> path)
+        void DetectCycles(string stepName)
         {
-            if (visitState.TryGetValue(stepName, out var state))
+            if (path.Contains(stepName)) // Currently visiting - cycle detected!
             {
-                if (state == 1) // Currently visiting - cycle detected!
-                {
-                    path.Add(stepName);
-                    throw new InvalidOperationException(
-                        $"Circular dependency detected in pipeline steps: {string.Join(" → ", path)}");
-                }
-                if (state == 2) // Already visited - no need to check again
-                {
-                    return;
-                }
+                var cycle = path.Reverse().SkipWhile(s => s != stepName).Append(stepName);
+                throw new InvalidOperationException(
+                    $"Circular dependency detected in pipeline steps: {string.Join(" → ", cycle)}");
             }
 
-            visitState[stepName] = 1; // Mark as visiting
-            path.Add(stepName);
+            if (visited.Contains(stepName)) // Already visited - no need to check again
+            {
+                return;
+            }
+
+            path.Push(stepName);
 
             if (stepsByName.TryGetValue(stepName, out var step))
             {
                 foreach (var dependency in step.DependsOnSteps)
                 {
-                    DetectCycles(dependency, path);
+                    DetectCycles(dependency);
                 }
             }
 
-            path.RemoveAt(path.Count - 1);
-            visitState[stepName] = 2; // Mark as visited
+            path.Pop();
+            visited.Add(stepName);
         }
 
         // Check each step for cycles
         foreach (var step in steps)
         {
-            if (!visitState.ContainsKey(step.Name))
+            if (!visited.Contains(step.Name))
             {
-                DetectCycles(step.Name, []);
+                DetectCycles(step.Name);
             }
         }
     }
