@@ -23,6 +23,57 @@ jobs:
       GH_CLI_VERSION: 2.80.0
       GH_TOKEN: ${{ secrets.GH_USER_TOKEN }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Parse and validate scenario name
+        id: parse_scenario
+        run: |
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          echo "Comment body: $COMMENT_BODY"
+
+          # Extract scenario name from comment
+          SCENARIO_NAME=$(echo "$COMMENT_BODY" | \
+            grep -oP '^/aitest\s+\K[a-z0-9]+(-[a-z0-9]+)*$' | head -1)
+
+          if [ -z "$SCENARIO_NAME" ]; then
+            echo "Error: Invalid or missing scenario name"
+            echo "Expected format: /aitest scenario-name"
+            echo "Scenario name must be lowercase alphanumeric with hyphens"
+            exit 1
+          fi
+
+          echo "Scenario name: $SCENARIO_NAME"
+          echo "scenario_name=$SCENARIO_NAME" >> $GITHUB_OUTPUT
+
+      - name: Check for prompt file
+        id: check_prompt
+        run: |
+          SCENARIO_NAME="${{ steps.parse_scenario.outputs.scenario_name }}"
+          PROMPT_FILE="tests/agent-scenarios/${SCENARIO_NAME}/prompt.md"
+
+          if [ ! -f "$PROMPT_FILE" ]; then
+            echo "Error: Prompt file not found at $PROMPT_FILE"
+            exit 1
+          fi
+
+          echo "Found prompt file: $PROMPT_FILE"
+          echo "prompt_file=$PROMPT_FILE" >> $GITHUB_OUTPUT
+
+      - name: Read prompt file
+        id: read_prompt
+        run: |
+          PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
+          PROMPT=$(cat "$PROMPT_FILE")
+
+          echo "Prompt content:"
+          echo "$PROMPT"
+
+          # Store prompt in output (escape newlines for GitHub Actions)
+          echo "prompt<<EOF" >> $GITHUB_OUTPUT
+          echo "$PROMPT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Download and install GitHub CLI
         run: |
           echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
@@ -40,8 +91,7 @@ jobs:
         id: create_agent_task
         run: |
           echo "Creating agent task..."
-          PROMPT="Create an aspire application starting by \
-          downloading the Aspire CLI and creating a starter app"
+          PROMPT="${{ steps.read_prompt.outputs.prompt }}"
 
           # Create the agent task and capture the output
           OUTPUT=$(gh agent-task create \
@@ -71,7 +121,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const prUrl = '${{ steps.create_agent_task.outputs.pr_url }}';
+            const scenarioName = '${{ steps.parse_scenario.outputs.scenario_name }}';
             const comment = `🤖 **AI Agent Task Created**
+
+            Scenario: **${scenarioName}**
 
             An AI agent has been triggered to create an Aspire
             application. You can track the progress here:
