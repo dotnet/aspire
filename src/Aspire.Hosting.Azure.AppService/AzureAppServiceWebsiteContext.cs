@@ -29,6 +29,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
 
+    public int? TargetPort => _endpointMapping.Values.FirstOrDefault(e => e.External && e.TargetPort is not null).TargetPort;
+
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
@@ -87,6 +89,13 @@ internal sealed class AzureAppServiceWebsiteContext(
         if (unsupportedEndpoints.Length > 0)
         {
             throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
+        }
+
+        // App Service supports only one target port
+        var targetPortEndpoints = endpoints.Where(e => e.TargetPort is not null).Select(e => e.TargetPort).Distinct();
+        if (targetPortEndpoints.Count() > 1)
+        {
+            throw new NotSupportedException("App Service only supports one target port.");
         }
 
         foreach (var endpoint in endpoints)
@@ -266,7 +275,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        infra.Add(mainContainer);
+        if (TargetPort is not null)
+        {
+            mainContainer.TargetPort = TargetPort.Value.ToString(CultureInfo.InvariantCulture);
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = TargetPort.Value.ToString(CultureInfo.InvariantCulture) });
+        }
 
         foreach (var kv in EnvironmentVariables)
         {
@@ -301,8 +314,10 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            webSite.SiteConfig.AppCommandLine = Join(arrayExpression, " ");
+            mainContainer.StartUpCommand = Join(arrayExpression, " ");
         }
+
+        infra.Add(mainContainer);
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
         webSite.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
