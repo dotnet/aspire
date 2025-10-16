@@ -101,7 +101,7 @@ internal static class ExecutionType
     public const string IDE = "IDE";
 }
 
-internal sealed class ExecutableStatus : V1Status
+internal sealed record ExecutableStatus : V1Status
 {
     /// <summary>
     /// The execution ID is the identifier for the actual-state counterpart of the Executable.

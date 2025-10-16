@@ -40,7 +40,7 @@ internal static class ContainerVolumeState
     public const string Ready = "Ready";
 }
 
-internal sealed class ContainerVolumeStatus : V1Status
+internal sealed record ContainerVolumeStatus : V1Status
 {
     /// <summary>
     /// The current state of the container volume. See <see cref="ContainerVolumeState"/> for possible values.

@@ -25,7 +25,7 @@ internal sealed class ServiceSpec
     public string AddressAllocationMode { get; set; } = AddressAllocationModes.Localhost;
 }
 
-internal sealed class ServiceStatus : V1Status
+internal sealed record ServiceStatus : V1Status
 {
     // The actual address the service is running on
     [JsonPropertyName("effectiveAddress")]

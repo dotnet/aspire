@@ -25,7 +25,7 @@ internal sealed class EndpointSpec
     public int? Port { get; set; }
 }
 
-internal sealed class EndpointStatus : V1Status
+internal sealed record EndpointStatus : V1Status
 {
     // Currently Endpoint has no status properties, but that may change in future.
 }
