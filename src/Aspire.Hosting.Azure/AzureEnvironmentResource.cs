@@ -603,19 +603,6 @@ public sealed class AzureEnvironmentResource : Resource
             }
         }
 
-        // Check if the compute environment is Azure App Service Environment by checking for app service specific output planId
-        if (azureComputeEnv is AzureProvisioningResource appServiceResource &&
-            appServiceResource.Outputs.TryGetValue("planId", out var uniqueIdentifier))
-        {
-            var hostname = $"{computeResource.Name.ToLowerInvariant()}-{BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)}";
-            if (hostname.Length > 60)
-            {
-                hostname = hostname.Substring(0, 60);
-            }
-            var endpoint = $"https://{hostname}.azurewebsites.net";
-            return $" to {endpoint}";
-        }
-
         return string.Empty;
     }
 
