@@ -23,7 +23,6 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     private readonly string[] _manifestExpressions;
     private readonly string?[] _stringFormats;
 
-    /// <inheritdoc/>
     private ReferenceExpression(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)
     {
         ArgumentNullException.ThrowIfNull(format);
@@ -316,7 +315,7 @@ public class ReferenceExpressionBuilder
     /// Appends a formatted value to the expression. The value must implement <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.
     /// </summary>
     /// <param name="valueProvider">An instance of an object which implements <see cref="IValueProvider"/> and <see cref="IManifestExpressionProvider"/>.</param>
-    /// <param name="format"></param>
+    /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
     /// <exception cref="InvalidOperationException"></exception>
     public void AppendFormatted<T>(T valueProvider, string? format) where T : IValueProvider, IManifestExpressionProvider
     {

@@ -5,12 +5,24 @@ using Azure.Provisioning;
 
 namespace Aspire.Hosting.Azure.Utils;
 
+/// <summary>
+/// Provides helper methods for formatting Bicep expressions with specific encodings.
+/// </summary>
 internal sealed class BicepFormattingHelpers
 {
+    /// <summary>
+    /// Formats a Bicep expression using the specified encoding format.
+    /// </summary>
+    /// <param name="val">The value to format, which must be a <see cref="ProvisioningParameter"/> or <see cref="IBicepValue"/>.</param>
+    /// <param name="format">The encoding format to apply. Currently, only "uri" is supported.</param>
+    /// <returns>A <see cref="BicepExpression"/> representing the formatted expression.</returns>
+    /// <exception cref="ArgumentException">Thrown when the value type is not supported for formatting.</exception>
+    /// <exception cref="NotSupportedException">Thrown when the specified format is not supported.</exception>
     public static BicepExpression FormatBicepExpression(object val, string format)
     {
-        var innerExpression = val switch
-        {
+        // Method implementation
+    }
+}
             ProvisioningParameter p => p.Value.Compile(),
             IBicepValue b => b.Compile(),
             _ => throw new ArgumentException($"Invalid expression type for '{format}' encoding: {val.GetType()}")
