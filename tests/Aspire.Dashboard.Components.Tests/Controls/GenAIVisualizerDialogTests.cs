@@ -6,11 +6,9 @@ using System.Text.Json.Nodes;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
-using Aspire.Dashboard.Telemetry;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -122,38 +120,10 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        Services.AddFluentUIComponents();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton(new ThemeManager(new TestThemeResolver()));
-
-        Services.AddLocalization();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-
-        var dialogProviderModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js", version));
-        dialogProviderModule.SetupModule("getActiveElement", _ => true);
-
-        var cut = Render(builder =>
-        {
-            builder.OpenComponent<FluentDialogProvider>(0);
-            builder.CloseComponent();
-        });
-
-        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
-        // This makes FluentMenu render without error.
-        var menuService = Services.GetRequiredService<IMenuService>();
-        menuService.ProviderId = "Test";
+        FluentUISetupHelpers.SetupDialogInfrastructure(this, includeTelemetryErrorRecorder: true);
+        var cut = FluentUISetupHelpers.RenderDialogProvider(this);
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }
