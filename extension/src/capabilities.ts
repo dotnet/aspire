@@ -19,6 +19,10 @@ export function isPythonInstalled() {
     return isExtensionInstalled("ms-python.python");
 }
 
+export function isJavaInstalled() {
+    return isExtensionInstalled("vscjava.vscode-java-pack");
+}
+
 export function getSupportedCapabilities(): string[] {
     const capabilities = ['prompting', 'baseline.v1', 'secret-prompts.v1'];
 
@@ -35,6 +39,11 @@ export function getSupportedCapabilities(): string[] {
     if (isPythonInstalled()) {
         capabilities.push("python");
         capabilities.push("ms-python.python");
+    }
+
+    if (isJavaInstalled()) {
+        capabilities.push("java");
+        capabilities.push("vscjava.vscode-java-pack");
     }
 
     return capabilities;
