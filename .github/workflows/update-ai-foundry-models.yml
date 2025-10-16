@@ -21,6 +21,7 @@ jobs:
         run: |
           set -e
           "$GITHUB_WORKSPACE/dotnet.sh" run GenModel.cs
+          "$GITHUB_WORKSPACE/dotnet.sh" run GenModel.cs --local
 
       - name: Create or update pull request
         uses: dotnet/actions-create-pull-request@e8d799aa1f8b17f324f9513832811b0a62f1e0b1

@@ -9,7 +9,13 @@ var foundry = builder.AddAzureAIFoundry("foundry")
     .RunAsFoundryLocal()
     ;
 
-var chat = foundry.AddDeployment("chat", AIFoundryModel.Microsoft.Phi4MiniReasoning);
+var model = foundry.Resource.IsEmulator
+    ? AIFoundryModel.Local.Phi4Mini
+    : AIFoundryModel.Microsoft.Phi4MiniInstruct;
+
+var hostedModel = AIFoundryModel.Microsoft.Phi4MiniReasoning;
+
+var chat = foundry.AddDeployment("chat", model);
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")
        .WithExternalHttpEndpoints()
