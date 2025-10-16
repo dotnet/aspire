@@ -194,8 +194,8 @@
     "test": "yarn unit-test",
     "l10n:export": "gulp prepare",
     "l10n:import": "gulp localizationBundle",
-    "precompile": "yarn l10n:export",
-    "prewatch": "yarn l10n:export",
+    "precompile": "yarn l10n:export && yarn l10n:import",
+    "prewatch": "yarn l10n:export && yarn l10n:import",
     "localize": "yarn l10n:export && yarn l10n:import"
   },
   "devDependencies": {
