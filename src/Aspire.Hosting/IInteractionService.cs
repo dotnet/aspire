@@ -205,7 +205,7 @@ internal sealed class InputLoadingState(InputLoadOptions options)
 public sealed class InputLoadOptions
 {
     /// <summary>
-    /// Gets or sets the callback function that is invoked to perform a load operation using the specified input context.
+    /// Gets the callback function that is invoked to perform a load operation using the specified input context.
     /// </summary>
     public required Func<LoadInputContext, Task> LoadCallback { get; init; }
 
@@ -300,7 +300,7 @@ public sealed class InteractionInput
     public IReadOnlyList<KeyValuePair<string, string>>? Options { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="InputLoadOptions"/> for the input.
+    /// Gets the <see cref="InputLoadOptions"/> for the input.
     /// Dynamic loading is used to load data and update inputs after a prompt has started.
     /// It can also be used to reload data and update inputs after a dependant input has changed.
     /// </summary>
@@ -312,12 +312,12 @@ public sealed class InteractionInput
     public string? Value { get; set; }
 
     /// <summary>
-    /// Gets or sets the placeholder text for the input.
+    /// Gets the placeholder text for the input.
     /// </summary>
     public string? Placeholder { get; init; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
+    /// Gets a value indicating whether a custom choice is allowed. Only used by <see cref="InputType.Choice"/> inputs.
     /// </summary>
     public bool AllowCustomChoice { get; init; }
 
