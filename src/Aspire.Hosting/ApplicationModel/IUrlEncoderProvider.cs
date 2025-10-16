@@ -4,67 +4,57 @@
 namespace Aspire.Hosting.ApplicationModel;
 
 /// <summary>
-/// Represents a service that can url-encode a ReferenceExpression.
+/// Defines the format of a <see cref="ReferenceExpression"/>.
 /// </summary>
-public interface IUrlEncoderProvider : IValueWithReferences, IValueProvider, IManifestExpressionProvider
+public enum ReferenceExpressionFormats
 {
     /// <summary>
-    /// The value provider.
+    /// No special formatting.
     /// </summary>
-    object ValueProvider { get; }
+    None = 0,
+
+    /// <summary>
+    /// The value should be URL-encoded.
+    /// </summary>
+    UrlEncoded = 1,
 }
 
-internal class UrlEncoderProvider<T> : IUrlEncoderProvider where T : IValueProvider, IManifestExpressionProvider
+internal class ManifestEncoder : IReferenceExpressionEncoder
 {
-    private readonly T _valueProvider;
-
-    public UrlEncoderProvider(T valueProvider)
+    public string EncodeValue(string value, ReferenceExpressionFormats format)
     {
-        _valueProvider = valueProvider;
-    }
-
-    public object ValueProvider => _valueProvider;
-    
-    public string ValueExpression
-    {
-        get
+        return format switch
         {
-            var expression = _valueProvider.ValueExpression;
-
-            return expression;
-        }
+            ReferenceExpressionFormats.None => value,
+            ReferenceExpressionFormats.UrlEncoded => $"uriComponent({value})",
+            _ => throw new NotSupportedException($"The format '{format}' is not supported."),
+        };
     }
+}
 
-    /// <inheritdoc/>
-    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+internal class ValueEncoder : IReferenceExpressionEncoder
+{
+    public string EncodeValue(string value, ReferenceExpressionFormats format)
     {
-        var value = await _valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false);
-
-        // Don't double-encode
-        if (value is null)
+        return format switch
         {
-            return null;
-        }
-
-        return Uri.EscapeDataString(value);
+            ReferenceExpressionFormats.None => value,
+            ReferenceExpressionFormats.UrlEncoded => Uri.EscapeDataString(value),
+            _ => throw new NotSupportedException($"The format '{format}' is not supported."),
+        };
     }
+}
 
-    IEnumerable<object> IValueWithReferences.References
-    {
-        get
-        {
-            if (_valueProvider is IResource)
-            {
-                yield return _valueProvider;
-            }
-
-            if (_valueProvider is IValueWithReferences valueWithReferences)
-            {
-                foreach (var reference in valueWithReferences.References)
-                {
-                    yield return reference;
-                }
-            }
-        }
-    }
+/// <summary>
+/// Provides methods to encode values and Bicep expressions based on the specified <see cref="ReferenceExpressionFormats"/>.
+/// </summary>
+public interface IReferenceExpressionEncoder
+{
+    /// <summary>
+    /// Encodes the given value according to the specified format.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="format"></param>
+    /// <returns></returns>
+    string EncodeValue(string value, ReferenceExpressionFormats format);
 }

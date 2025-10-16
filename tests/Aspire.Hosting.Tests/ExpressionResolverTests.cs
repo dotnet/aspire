@@ -229,8 +229,8 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
             { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") },
             { "Empty", ReferenceExpression.Empty },
             { "String", ReferenceExpression.Create($"String") },
-            { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], []) },
-            { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], []) }
+            { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], [], []) },
+            { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], [], []) }
         };
     }
 

@@ -253,21 +253,6 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             return (AllocateParameter(output, secretType: secretType), secretType);
         }
 
-        if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
-        {
-            // Evaluate the inner value to get the bicep expression
-            var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
-
-            var innerExpression = innerValue switch
-            {
-                ProvisioningParameter p => p.Value.Compile(),
-                IBicepValue b => b.Compile(),
-                _ => throw new ArgumentException($"Invalid expression type for url-encoding: {innerValue.GetType()}")
-            };
-
-            return (new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression), secret);
-        }
-
 #pragma warning disable CS0618 // Type or member is obsolete
         if (value is BicepSecretOutputReference)
         {
@@ -303,7 +288,14 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
             // Special case simple expressions
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+
+                if (expr.StringFormats[0] is string format)
+                {
+                    val = (FormatBicepExpression(val, format), secretType);
+                }
+
+                return val;
             }
 
             var args = new object[expr.ValueProviders.Count];
@@ -319,11 +311,31 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
                     finalSecretType = SecretType.Normal;
                 }
 
+                if (expr.StringFormats[index] is string format)
+                {
+                    val = FormatBicepExpression(val, format);
+                }
+
                 args[index++] = val;
             }
 
             return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
 
+            static BicepExpression FormatBicepExpression(object val, string format)
+            {
+                var innerExpression = val switch
+                {
+                    ProvisioningParameter p => p.Value.Compile(),
+                    IBicepValue b => b.Compile(),
+                    _ => throw new ArgumentException($"Invalid expression type for url-encoding: {val.GetType()}")
+                };
+
+                return format.ToLowerInvariant() switch
+                {
+                    "uri" => new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression),
+                    _ => throw new NotSupportedException($"The format '{format}' is not supported.")
+                };
+            }
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)
