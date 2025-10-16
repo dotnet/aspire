@@ -30,7 +30,6 @@ internal sealed class RunCommand : BaseCommand
     private readonly AspireCliTelemetry _telemetry;
     private readonly IConfiguration _configuration;
     private readonly IDotNetSdkInstaller _sdkInstaller;
-    private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
 
     public RunCommand(
@@ -44,7 +43,6 @@ internal sealed class RunCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        IServiceProvider serviceProvider,
         CliExecutionContext executionContext)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -64,7 +62,6 @@ internal sealed class RunCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _configuration = configuration;
-        _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
         _features = features;
 
@@ -82,11 +79,21 @@ internal sealed class RunCommand : BaseCommand
         TreatUnmatchedTokensAsErrors = false;
     }
 
-    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
         var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
         var startDebugSession = isExtensionHost && parseResult.GetValue<bool>("--start-debug-session");
+        var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
+        var debug = parseResult.GetValue<bool>("--debug");
+        var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
+
+        return ExecuteInternalAsync(passedAppHostProjectFile, startDebugSession, waitForDebugger, debug, unmatchedTokens, cancellationToken);
+    }
+
+    internal async Task<int> ExecuteInternalAsync(FileInfo? passedAppHostProjectFile, bool startDebugSession, bool waitForDebugger, bool debug, string[] unmatchedTokens, CancellationToken cancellationToken)
+    {
+        var isExtensionHost = ExtensionHelper.IsExtensionHost(InteractionService, out _, out _);
 
         // A user may run `aspire run` in an Aspire terminal in VS Code. In this case, intercept and prompt
         // VS Code to start a debug session using the current directory
@@ -129,10 +136,6 @@ internal sealed class RunCommand : BaseCommand
             }
 
             var env = new Dictionary<string, string>();
-
-            var debug = parseResult.GetValue<bool>("--debug");
-
-            var waitForDebugger = parseResult.GetValue<bool>("--wait-for-debugger");
 
             if (waitForDebugger)
             {
@@ -195,8 +198,6 @@ internal sealed class RunCommand : BaseCommand
 
             var backchannelCompletitionSource = new TaskCompletionSource<IAppHostBackchannel>();
 
-            var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
-
             if (isSingleFileAppHost)
             {
                 // TODO:  This is just fallback behavior for now. We need to decide on whether we
@@ -215,10 +216,16 @@ internal sealed class RunCommand : BaseCommand
                 }
             }
 
+            // Disable noBuild for generic app host.
+            // TODO: Reconsider when "watch" is supported for generic app host.
+            var isGenericAppHost = Environment.GetEnvironmentVariable("REMOTE_APP_HOST_PIPE_NAME") != null;
+
+            var noBuild = !watch && !isGenericAppHost;
+
             var pendingRun = _runner.RunAsync(
                 effectiveAppHostFile,
                 watch,
-                !watch,
+                noBuild,
                 unmatchedTokens,
                 env,
                 backchannelCompletitionSource,
