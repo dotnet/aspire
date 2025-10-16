@@ -14,8 +14,4 @@
     <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="$(TestsSharedDir)\TestModuleInitializer.cs" />
-  </ItemGroup>
-
 </Project>

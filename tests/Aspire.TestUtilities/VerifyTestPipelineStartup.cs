@@ -1,18 +1,15 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.TestUtilities;
-using Xunit.Sdk;
-using Xunit.v3;
+namespace Aspire.TestUtilities;
 
-// Note: This file is shared across multiple test projects.
-// The VerifyTestPipelineStartup class uses ITestPipelineStartup to ensure
-// Verify is properly initialized before any tests run.
-// Each test project that includes this file must register it with:
-// [assembly: TestPipelineStartup(typeof(VerifyTestPipelineStartup))]
-internal sealed class VerifyTestPipelineStartup : ITestPipelineStartup
+/// <summary>
+/// xUnit v3 test pipeline startup class that initializes Verify snapshot testing infrastructure.
+/// Test projects should register this with: [assembly: Xunit.v3.TestPipelineStartup(typeof(VerifyTestPipelineStartup))]
+/// </summary>
+public sealed class VerifyTestPipelineStartup : Xunit.v3.ITestPipelineStartup
 {
-    public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
+    public ValueTask StartAsync(Xunit.Sdk.IMessageSink diagnosticMessageSink)
     {
         // Set the directory for all Verify calls in test projects
         var target = PlatformDetection.IsRunningOnHelix
