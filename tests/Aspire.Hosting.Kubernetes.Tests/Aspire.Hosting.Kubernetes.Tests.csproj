@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Verify.XunitV3" />
   </ItemGroup>
 
