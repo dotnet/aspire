@@ -3,6 +3,8 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
+
 #pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
@@ -276,15 +278,31 @@ public static class PythonAppResourceBuilderExtensions
         // Configure required environment variables for custom certificate trust when running as an executable
         resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
         {
-            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+            if (ctx.Scope == CustomCertificateAuthoritiesScope.Append)
             {
-                // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+                // Python doesn't have a concept of appending to the default trust store so if we're going to
+                // do any custom trust, we have to provide a default set ourself. It's not really feasible to
+                // extract the
+                foreach (var location in Enum.GetValues<StoreLocation>())
+                {
+                    using var rootStore = new X509Store(StoreName.Root, location);
+                    rootStore.Open(OpenFlags.ReadOnly);
+                    ctx.Certificates.AddRange(rootStore.Certificates);
+                }
             }
 
             // Override default opentelemetry-python certificate bundle path
             // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
             ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+
+            // Override default certificates path for the requests module.
+            // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+            ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+
+            // Override default certificates path for Python modules that honor OpenSSL style paths.
+            // This has been tested with urllib, urllib3, httpx, and aiohttp.
+            // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
+            ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
 
             return Task.CompletedTask;
         });
