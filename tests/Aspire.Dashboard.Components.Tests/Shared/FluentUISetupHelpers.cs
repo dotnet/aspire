@@ -124,14 +124,7 @@ internal static class FluentUISetupHelpers
             context.Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
         }
 
-        if (themeManager is not null)
-        {
-            context.Services.AddSingleton(themeManager);
-        }
-        else
-        {
-            context.Services.AddSingleton(new ThemeManager(new TestThemeResolver()));
-        }
+        context.Services.AddSingleton(themeManager ?? new ThemeManager(new TestThemeResolver()));
     }
 
     public static void SetupFluentUIComponents(TestContext context)
