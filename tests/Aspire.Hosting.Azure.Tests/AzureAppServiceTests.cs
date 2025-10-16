@@ -573,7 +573,7 @@ public class AzureAppServiceTests
 
         var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
             .WithHttpsEndpoint(targetPort: 8000)
-            .WithHttpEndpoint(targetPort: 9000)
+            .WithHttpEndpoint(targetPort: 8800)
             .WithExternalHttpEndpoints()
             .WithReference(project1);
 
