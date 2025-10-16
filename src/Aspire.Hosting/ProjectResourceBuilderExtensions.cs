@@ -679,6 +679,23 @@ public static class ProjectResourceBuilderExtensions
             return builder;
         }
 
+        // Check if this resource has already been converted to a container resource.
+        // This makes the method idempotent - multiple calls won't cause errors.
+        var existingContainer = builder.ApplicationBuilder.Resources
+            .OfType<ProjectContainerResource>()
+            .FirstOrDefault(c => c.Name == builder.Resource.Name);
+
+        if (existingContainer is not null)
+        {
+            // Resource has already been converted, just invoke the configure callback if provided
+            if (configure is not null)
+            {
+                var existingBuilder = builder.ApplicationBuilder.CreateResourceBuilder(existingContainer);
+                configure(existingBuilder);
+            }
+            return builder;
+        }
+
         // The implementation here is less than ideal, but we don't have a clean way of building resource types
         // that change their behavior based on the context. In this case, we want to change the behavior of the
         // resource from a ProjectResource to a ContainerResource. We do this by removing the ProjectResource
