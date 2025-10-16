@@ -261,6 +261,13 @@ public static class PythonAppResourceBuilderExtensions
         // Add virtual environment validation before resource starts
         resourceBuilder.OnBeforeResourceStarted(async (resource, evt, ct) =>
         {
+            // Only check if interaction service is available (dashboard is enabled)
+            var interactionService = evt.Services.GetService<IInteractionService>();
+            if (interactionService is null || !interactionService.IsAvailable)
+            {
+                return;
+            }
+
             // Get the virtual environment path from the annotation
             if (!resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
                 pythonEnv.VirtualEnvironment is null)
@@ -268,28 +275,28 @@ public static class PythonAppResourceBuilderExtensions
                 return;
             }
 
-            var venvPath = Path.IsPathRooted(virtualEnvironmentPath)
-                ? virtualEnvironmentPath
-                : Path.GetFullPath(virtualEnvironmentPath, resource.WorkingDirectory);
+            // Skip check if UV is being used (it creates the virtual environment automatically)
+            if (pythonEnv.Uv)
+            {
+                return;
+            }
+
+            var venvPath = pythonEnv.VirtualEnvironment.Location;
 
             // Check if the virtual environment directory exists
             if (!Directory.Exists(venvPath))
             {
-                var interactionService = evt.Services.GetService<IInteractionService>();
-                if (interactionService is not null && interactionService.IsAvailable)
+                var title = "Python virtual environment not found";
+                var message = $"The Python virtual environment for resource '{resource.Name}' was not found at '{venvPath}'. Please create the virtual environment before running the application.";
+                var options = new NotificationInteractionOptions
                 {
-                    var title = "Python virtual environment not found";
-                    var message = $"The Python virtual environment for resource '{resource.Name}' was not found at '{venvPath}'. Please create the virtual environment before running the application.";
-                    var options = new NotificationInteractionOptions
-                    {
-                        Intent = MessageIntent.Error,
-                        LinkText = "Learn more",
-                        LinkUrl = "https://aka.ms/aspire/python"
-                    };
+                    Intent = MessageIntent.Error,
+                    LinkText = "Learn more",
+                    LinkUrl = "https://aka.ms/aspire/python"
+                };
 
-                    // Show notification without blocking (fire and forget)
-                    _ = interactionService.PromptNotificationAsync(title, message, options, ct);
-                }
+                // Show notification without blocking (fire and forget)
+                _ = interactionService.PromptNotificationAsync(title, message, options, ct);
             }
         });
 

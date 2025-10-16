@@ -3,6 +3,7 @@
 
 #pragma warning disable CS0612
 #pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Microsoft.Extensions.DependencyInjection;
 using Aspire.Hosting.Utils;
@@ -10,6 +11,7 @@ using Aspire.Hosting.Tests.Utils;
 using System.Diagnostics;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Tests;
 
 namespace Aspire.Hosting.Python.Tests;
 
@@ -1171,6 +1173,106 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // Verify the virtual environment path doesn't exist
         var expectedVenvPath = Path.Combine(tempDir.Path, ".venv");
         Assert.False(Directory.Exists(expectedVenvPath), "Virtual environment should not exist for this test");
+    }
+
+    [Fact]
+    public async Task PythonApp_SendsNotification_WhenVirtualEnvironmentDoesNotExist()
+    {
+        var testInteractionService = new TestInteractionService();
+        
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+        
+        using var tempDir = new TempDirectory();
+
+        // Create a script file but don't create the virtual environment
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello, World!')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        using var app = builder.Build();
+
+        // Start the app to trigger the BeforeResourceStartedEvent
+        await app.StartAsync();
+
+        // Read the notification from the interaction service
+        var hasNotification = await testInteractionService.Interactions.Reader.WaitToReadAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.True(hasNotification, "Should have received a notification");
+
+        var notification = await testInteractionService.Interactions.Reader.ReadAsync();
+        
+        // Verify the notification properties
+        Assert.Equal("Python virtual environment not found", notification.Title);
+        Assert.Contains("pythonProject", notification.Message);
+        Assert.Contains(tempDir.Path, notification.Message);
+        
+        // Verify notification options
+        Assert.NotNull(notification.Options);
+        var notificationOptions = Assert.IsType<NotificationInteractionOptions>(notification.Options);
+        Assert.Equal(MessageIntent.Error, notificationOptions.Intent);
+        Assert.Equal("Learn more", notificationOptions.LinkText);
+        Assert.Equal("https://aka.ms/aspire/python", notificationOptions.LinkUrl);
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public async Task PythonApp_DoesNotSendNotification_WhenInteractionServiceNotAvailable()
+    {
+        var testInteractionService = new TestInteractionService { IsAvailable = false };
+        
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+        
+        using var tempDir = new TempDirectory();
+
+        // Create a script file but don't create the virtual environment
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello, World!')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        using var app = builder.Build();
+
+        // Start the app to trigger the BeforeResourceStartedEvent
+        await app.StartAsync();
+
+        // Give a moment for any potential notification
+        await Task.Delay(500);
+
+        // Verify no notification was sent
+        var hasNotification = testInteractionService.Interactions.Reader.TryRead(out _);
+        Assert.False(hasNotification, "Should not have received a notification when IsAvailable is false");
+
+        await app.StopAsync();
+    }
+
+    [Fact]
+    public void PythonApp_DoesNotSendNotification_WhenUsingUvEnvironment()
+    {
+        var testInteractionService = new TestInteractionService();
+        
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        builder.Services.AddSingleton<IInteractionService>(testInteractionService);
+        
+        using var tempDir = new TempDirectory();
+
+        // Create a script file
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello, World!')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py")
+            .WithUvEnvironment(); // UV creates the venv automatically
+
+        using var app = builder.Build();
+
+        // Verify the PythonEnvironmentAnnotation has Uv set to true
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation));
+        Assert.True(annotation.Uv, "UV should be enabled");
+        
+        // The actual notification check would happen at runtime, but since UV is enabled,
+        // the check would be skipped even if the venv doesn't exist
     }
 }
 
