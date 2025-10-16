@@ -80,7 +80,13 @@ internal sealed class FallbackProjectParser
             
             // Properties section
             var propertiesObject = new JsonObject();
-            propertiesObject["AspireHostingSDKVersion"] = JsonValue.Create(aspireHostingSdkVersion);
+            
+            // Only add AspireHostingSDKVersion property if we found an SDK element
+            if (aspireHostingSdkVersion is not null)
+            {
+                propertiesObject["AspireHostingSDKVersion"] = JsonValue.Create(aspireHostingSdkVersion);
+            }
+            
             rootObject["Properties"] = propertiesObject;
             
             // Fallback flag

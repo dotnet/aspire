@@ -248,21 +248,28 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         var itemsAndPropertiesDocument = await GetItemsAndPropertiesWithFallbackAsync(context.AppHostProjectFile, context, cancellationToken);
         var propertiesElement = itemsAndPropertiesDocument.RootElement.GetProperty("Properties");
-        var sdkVersionElement = propertiesElement.GetProperty("AspireHostingSDKVersion");
+        
+        // Check if AspireHostingSDKVersion property exists - it might not exist in legacy 8.x projects
+        string? currentSdkVersion = null;
+        if (propertiesElement.TryGetProperty("AspireHostingSDKVersion", out var sdkVersionElement))
+        {
+            currentSdkVersion = sdkVersionElement.GetString();
+        }
+        // If the property doesn't exist, currentSdkVersion will remain null
 
         var latestSdkPackage = await GetLatestVersionOfPackageAsync(context, "Aspire.AppHost.Sdk", cancellationToken);
 
-        if (sdkVersionElement.GetString() == latestSdkPackage?.Version)
+        if (currentSdkVersion == latestSdkPackage?.Version)
         {
             logger.LogInformation("App Host SDK is up to date.");
             return;
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", currentSdkVersion ?? "none", latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
             "Aspire.AppHost.Sdk",
-            sdkVersionElement.GetString() ?? "unknown",
+            currentSdkVersion ?? "none",
             latestSdkPackage?.Version ?? "unknown",
             context.AppHostProjectFile);
         context.UpdateSteps.Enqueue(sdkUpdateStep);
@@ -282,12 +289,56 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+        
         if (sdkNode is null)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
-        }
+            // SDK element is missing, inject it (for legacy 8.x projects)
+            
+            // Create the SDK element
+            sdkNode = projectDocument.CreateElement("Sdk");
+            var nameAttribute = projectDocument.CreateAttribute("Name");
+            nameAttribute.Value = "Aspire.AppHost.Sdk";
+            sdkNode.Attributes!.Append(nameAttribute);
+            
+            var versionAttribute = projectDocument.CreateAttribute("Version");
+            versionAttribute.Value = package.Version;
+            sdkNode.Attributes!.Append(versionAttribute);
+            
+            // Find the first element child to insert before
+            XmlNode? firstElementChild = null;
+            foreach (XmlNode child in projectNode.ChildNodes)
+            {
+                if (child.NodeType == XmlNodeType.Element)
+                {
+                    firstElementChild = child;
+                    break;
+                }
+            }
 
-        sdkNode.Attributes?["Version"]?.Value = package.Version;
+            if (firstElementChild is not null)
+            {
+                // Insert the SDK element before the first element child
+                projectNode.InsertBefore(sdkNode, firstElementChild);
+                
+                // Add newline and indentation after the SDK element
+                var whitespaceAfterSdk = projectDocument.CreateTextNode("\n    ");
+                projectNode.InsertBefore(whitespaceAfterSdk, firstElementChild);
+            }
+            else
+            {
+                // No element children, just append with proper formatting
+                var whitespaceBeforeSdk = projectDocument.CreateTextNode("\n    ");
+                projectNode.AppendChild(whitespaceBeforeSdk);
+                projectNode.AppendChild(sdkNode);
+                var whitespaceAfterSdk = projectDocument.CreateTextNode("\n");
+                projectNode.AppendChild(whitespaceAfterSdk);
+            }
+        }
+        else
+        {
+            // Update existing SDK element version
+            sdkNode.Attributes?["Version"]!.Value = package.Version;
+        }
 
         projectDocument.Save(projectFile.FullName);
 
