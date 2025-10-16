@@ -95,7 +95,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct().ToList();
         if (targetPortEndpoints.Count > 1)
         {
-            throw new NotSupportedException("App Service only supports one target port.");
+            throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
         }
 
         _targetPort = targetPortEndpoints.FirstOrDefault();

@@ -581,7 +581,7 @@ public class AzureAppServiceTests
 
         var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
 
-        Assert.Equal("App Service only supports one target port.", ex.Message);
+        Assert.Equal("App Service does not support resources with multiple external endpoints.", ex.Message);
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
