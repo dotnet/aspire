@@ -311,7 +311,7 @@ internal static class InteractionCommands
                        }
                    }
                };
-               var dependentOptionsProvider = new InputLoadOptions
+               var sharedDynamicOptions = new InputLoadOptions
                {
                    LoadCallback = async (context) =>
                    {
@@ -344,7 +344,7 @@ internal static class InteractionCommands
                    Placeholder = "Select dynamic value",
                    Required = true,
                    Disabled = true,
-                   DynamicLoading = dependentOptionsProvider
+                   DynamicLoading = sharedDynamicOptions
                };
                var dynamicCustomChoiceInput = new InteractionInput
                {
@@ -355,7 +355,7 @@ internal static class InteractionCommands
                    AllowCustomChoice = true,
                    Required = true,
                    Disabled = true,
-                   DynamicLoading = dependentOptionsProvider
+                   DynamicLoading = sharedDynamicOptions
                };
                var dynamicTextInput = new InteractionInput
                {
