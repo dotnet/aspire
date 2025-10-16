@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   aitest:
@@ -17,6 +17,70 @@ jobs:
         github.event.issue.pull_request
       }}
     runs-on: ubuntu-latest
+    env:
+      REPO_OWNER: dotnet
+      REPO_NAME: aspire
+      GH_CLI_VERSION: 2.80.0
+      GH_TOKEN: ${{ secrets.GH_USER_TOKEN }}
     steps:
-      - name: Print hello world
-        run: echo "Hello World"
+      - name: Download and install GitHub CLI
+        run: |
+          echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
+          DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}"
+          ARCHIVE_NAME="gh_${GH_CLI_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL "${DOWNLOAD_URL}/${ARCHIVE_NAME}" -o gh.tar.gz
+          tar -xzf gh.tar.gz
+          sudo mv "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh" /usr/local/bin/
+          rm -rf gh.tar.gz "gh_${GH_CLI_VERSION}_linux_amd64"
+
+          echo "Verifying GitHub CLI installation..."
+          gh --version
+
+      - name: Create agent task
+        id: create_agent_task
+        run: |
+          echo "Creating agent task..."
+          PROMPT="Create an aspire application starting by \
+          downloading the Aspire CLI and creating a starter app"
+
+          # Create the agent task and capture the output
+          OUTPUT=$(gh agent-task create \
+            --repo "${REPO_OWNER}/${REPO_NAME}" \
+            --prompt "$PROMPT" \
+            2>&1)
+
+          echo "Agent task output:"
+          echo "$OUTPUT"
+
+          # Extract the PR URL from the output
+          PR_URL=$(echo "$OUTPUT" | \
+            grep -oP 'https://github.com/[^/]+/[^/]+/pull/\d+' | head -1)
+
+          if [ -z "$PR_URL" ]; then
+            echo "Warning: Could not extract PR URL from output"
+            echo "pr_url=" >> $GITHUB_OUTPUT
+          else
+            echo "Successfully created agent task with PR: $PR_URL"
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR with agent task link
+        if: steps.create_agent_task.outputs.pr_url != ''
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prUrl = '${{ steps.create_agent_task.outputs.pr_url }}';
+            const comment = `🤖 **AI Agent Task Created**
+
+            An AI agent has been triggered to create an Aspire
+            application. You can track the progress here:
+
+            ${prUrl}`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
