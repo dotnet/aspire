@@ -123,18 +123,10 @@ public static class ExecutableResourceBuilderExtensions
 
         // Check if this resource has already been converted to a container resource.
         // This makes the method idempotent - multiple calls won't cause errors.
-        var existingContainer = builder.ApplicationBuilder.Resources
-            .OfType<ExecutableContainerResource>()
-            .FirstOrDefault(c => c.Name == builder.Resource.Name);
-
-        if (existingContainer is not null)
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<ExecutableContainerResource>(builder.Resource.Name, out var existingBuilder) && existingBuilder is not null)
         {
             // Resource has already been converted, just invoke the configure callback if provided
-            if (configure is not null)
-            {
-                var existingBuilder = builder.ApplicationBuilder.CreateResourceBuilder(existingContainer);
-                configure(existingBuilder);
-            }
+            configure?.Invoke(existingBuilder);
             return builder;
         }
 

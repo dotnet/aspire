@@ -74,5 +74,33 @@ public static class DistributedApplicationBuilderExtensions
 
         return builder.CreateResourceBuilder(typedResource);
     }
+
+    /// <summary>
+    /// Attempts to create a new resource builder based on the name of an existing resource.
+    /// </summary>
+    /// <typeparam name="T">Type of resource.</typeparam>
+    /// <param name="builder">The distributed application builder.</param>
+    /// <param name="name">The name of an existing resource.</param>
+    /// <param name="resourceBuilder">When this method returns, contains the resource builder if the resource was found and is of the correct type; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if the resource was found and is of the correct type; otherwise, <c>false</c>.</returns>
+    /// <remarks>
+    /// This method is similar to <see cref="CreateResourceBuilder{T}(IDistributedApplicationBuilder, string)"/> but returns <c>false</c> instead of throwing an exception
+    /// when the resource is not found or is not of the correct type.
+    /// </remarks>
+    public static bool TryCreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name, out IResourceBuilder<T>? resourceBuilder) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
+
+        var resource = builder.Resources.FirstOrDefault(r => string.Equals(r.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (resource is null || resource is not T typedResource)
+        {
+            resourceBuilder = null;
+            return false;
+        }
+
+        resourceBuilder = builder.CreateResourceBuilder(typedResource);
+        return true;
+    }
 }
 
