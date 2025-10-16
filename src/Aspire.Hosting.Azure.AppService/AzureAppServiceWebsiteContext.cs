@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
@@ -141,21 +142,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             return (AllocateParameter(output, secretType: secretType), secretType);
         }
 
-        if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
-        {
-            // Evaluate the inner value to get the bicep expression
-            var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
-
-            var innerExpression = innerValue switch
-            {
-                ProvisioningParameter p => p.Value.Compile(),
-                IBicepValue b => b.Compile(),
-                _ => throw new ArgumentException($"Invalid expression type for url-encoding: {innerValue.GetType()}")
-            };
-
-            return (new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression), secret);
-        }
-
         if (value is IAzureKeyVaultSecretReference vaultSecretReference)
         {
             if (parent is null)
@@ -178,7 +164,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+
+                if (expr.StringFormats[0] is string format)
+                {
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
+                }
+
+                return val;
             }
 
             var args = new object[expr.ValueProviders.Count];
@@ -192,6 +185,12 @@ internal sealed class AzureAppServiceWebsiteContext(
                 {
                     finalSecretType = SecretType.Normal;
                 }
+
+                if (expr.StringFormats[index] is string format)
+                {
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
+                }
+
                 args[index++] = val;
             }
 
