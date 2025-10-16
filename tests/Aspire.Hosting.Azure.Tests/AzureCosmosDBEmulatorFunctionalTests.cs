@@ -45,7 +45,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         var pendingStart = app.StartAsync(cts.Token);
 
-        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Starting, cts.Token);
+        await app.ResourceNotifications.WaitForResourceAsync(resource.Resource.Name, KnownResourceStates.Running, cts.Token);
 
         await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
