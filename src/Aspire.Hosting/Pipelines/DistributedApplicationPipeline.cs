@@ -4,12 +4,10 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREPIPELINES001
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
-using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
@@ -118,7 +116,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var stepsByName = allSteps.ToDictionary(s => s.Name);
 
         // Build dependency graph and execute with readiness-based scheduler
-        await ExecuteWithReadinessScheduler(allSteps, stepsByName, context).ConfigureAwait(false);
+        await ExecuteStepsAsTaskDag(allSteps, stepsByName, context).ConfigureAwait(false);
     }
 
     private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(DeployingContext context)
@@ -174,145 +172,108 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
-    /// Executes pipeline steps using a channel-based readiness scheduler with producer-consumer pattern.
-    /// Steps are executed as soon as their dependencies are met, with automatic concurrency management.
+    /// Executes pipeline steps by building a Task DAG where each step waits on its dependencies.
+    /// Uses CancellationToken to stop remaining work when any step fails.
     /// </summary>
-    private static async Task ExecuteWithReadinessScheduler(
+    private static async Task ExecuteStepsAsTaskDag(
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName,
         DeployingContext context)
     {
-        // Build the dependency graph and validate no cycles
-        var (indegrees, dependents) = BuildDependencyGraph(steps, stepsByName);
+        // Validate no cycles exist in the dependency graph
+        ValidateDependencyGraph(steps, stepsByName);
 
-        // Create an unbounded channel for ready steps
-        var readyChannel = Channel.CreateUnbounded<int>(new UnboundedChannelOptions
+        // Create a TaskCompletionSource for each step
+        var stepCompletions = new Dictionary<string, TaskCompletionSource>(steps.Count);
+        foreach (var step in steps)
         {
-            SingleReader = false,
-            SingleWriter = false
-        });
-
-        // Track exceptions and completion
-        var exceptions = new ConcurrentQueue<Exception>();
-        var completedCount = 0;
-
-        // Enqueue all zero in-degree steps initially
-        for (var i = 0; i < steps.Count; i++)
-        {
-            if (indegrees[i] == 0)
-            {
-                await readyChannel.Writer.WriteAsync(i).ConfigureAwait(false);
-            }
+            stepCompletions[step.Name] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         }
 
-        // Producer-consumer: Read from channel and execute steps
-        var maxConcurrency = Environment.ProcessorCount;
-        var executionTasks = new Task[maxConcurrency];
-
-        for (var i = 0; i < maxConcurrency; i++)
+        // Execute a step after its dependencies complete
+        async Task ExecuteStepWithDependencies(PipelineStep step)
         {
-            executionTasks[i] = Task.Run(async () =>
+            var stepTcs = stepCompletions[step.Name];
+
+            try
             {
-                await foreach (var stepIndex in readyChannel.Reader.ReadAllAsync().ConfigureAwait(false))
+                // Wait for all dependencies to complete (will throw if any dependency failed)
+                if (step.DependsOnSteps.Count > 0)
                 {
-                    var step = steps[stepIndex];
                     try
                     {
-                        await ExecuteStepAsync(step, context).ConfigureAwait(false);
+                        var depTasks = step.DependsOnSteps.Select(depName => stepCompletions[depName].Task);
+                        await Task.WhenAll(depTasks).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
-                        exceptions.Enqueue(ex);
-                        // Signal failure - complete the channel
-                        readyChannel.Writer.TryComplete();
+                        // Dependency failed - mark this step as failed and stop, but don't re-throw
+                        // to avoid counting the same root cause exception multiple times
+                        stepTcs.TrySetException(ex);
                         return;
                     }
-
-                    // Mark as completed and check if we're done
-                    var completed = Interlocked.Increment(ref completedCount);
-
-                    // Check which dependent steps are now ready (use index-based lookup)
-                    var stepName = step.Name;
-                    if (dependents.TryGetValue(stepName, out var dependentIndices))
-                    {
-                        foreach (var dependentIndex in dependentIndices)
-                        {
-                            // Decrement the in-degree and check if all dependencies are satisfied
-                            if (Interlocked.Decrement(ref indegrees[dependentIndex]) == 0)
-                            {
-                                await readyChannel.Writer.WriteAsync(dependentIndex).ConfigureAwait(false);
-                            }
-                        }
-                    }
-
-                    // If all steps are done, complete the channel (check once per completion)
-                    if (completed == steps.Count)
-                    {
-                        readyChannel.Writer.TryComplete();
-                    }
                 }
-            });
+
+                await ExecuteStepAsync(step, context).ConfigureAwait(false);
+
+                stepTcs.TrySetResult();
+            }
+            catch (Exception ex)
+            {
+                // Execution failure - mark as failed and re-throw so it's counted
+                stepTcs.TrySetException(ex);
+                throw;
+            }
         }
 
-        // Wait for all execution tasks to complete
-        await Task.WhenAll(executionTasks).ConfigureAwait(false);
-
-        // Throw exceptions if any occurred
-        if (!exceptions.IsEmpty)
+        // Start all steps (they'll wait on their dependencies internally)
+        var allStepTasks = new Task[steps.Count];
+        for (var i = 0; i < steps.Count; i++)
         {
-            var exceptionList = exceptions.ToList();
-            if (exceptionList.Count == 1)
+            var step = steps[i];
+            allStepTasks[i] = Task.Run(() => ExecuteStepWithDependencies(step));
+        }
+
+        // Wait for all steps to complete (or fail)
+        try
+        {
+            await Task.WhenAll(allStepTasks).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Collect all failed steps
+            var failures = allStepTasks
+                .Where(t => t.IsFaulted)
+                .Select(t => t.Exception!)
+                .SelectMany(ae => ae.InnerExceptions)
+                .ToList();
+
+            if (failures.Count > 1)
             {
-                ExceptionDispatchInfo.Throw(exceptionList[0]);
+                throw new AggregateException("Multiple pipeline steps failed.", failures);
             }
-            else
-            {
-                throw new AggregateException(
-                    $"Multiple pipeline steps failed: {string.Join(", ", exceptionList.Select(e => e.Message))}",
-                    exceptionList);
-            }
+
+            // Single failure - just rethrow
+            throw;
         }
     }
 
     /// <summary>
-    /// Builds the dependency graph for the pipeline steps.
+    /// Validates that the pipeline steps form a directed acyclic graph (DAG) with no circular dependencies.
     /// </summary>
     /// <remarks>
-    /// This method constructs a directed acyclic graph (DAG) representing step dependencies and validates
-    /// that no circular dependencies exist. It uses Kahn's algorithm for topological sorting and cycle detection.
+    /// Uses depth-first search (DFS) to detect cycles. A cycle exists if we encounter a node that is
+    /// currently being visited (on the current DFS path).
     /// 
-    /// Example: For steps A → B → C (where → means "depends on"), the method produces:
-    /// - indegrees: [0, 1, 1] (A has 0 dependencies, B depends on 1 step, C depends on 1 step)
-    /// - dependents: {"A" → [1], "B" → [2], "C" → []} (A is required by step at index 1, etc.)
-    /// 
-    /// Diamond dependency example: A → B, A → C, B → D, C → D produces:
-    /// - indegrees: [0, 1, 1, 2] (D has 2 dependencies: both B and C)
-    /// - dependents: {"A" → [1, 2], "B" → [3], "C" → [3], "D" → []}
+    /// Example: A → B → C is valid (no cycle)
+    /// Example: A → B → C → A is invalid (cycle detected)
+    /// Example: A → B, A → C, B → D, C → D is valid (diamond dependency, no cycle)
     /// </remarks>
-    /// <returns>A tuple of (indegrees array, dependents dictionary)</returns>
-    private static (int[] indegrees, Dictionary<string, List<int>> dependents) BuildDependencyGraph(
+    private static void ValidateDependencyGraph(
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName)
     {
-        // Arrays/dictionaries to track the dependency graph structure
-        // - indegrees[i]: number of dependencies for step i (in-degree count)
-        // - dependents["StepName"]: list of step indices that depend on "StepName"
-        // - stepIndices["StepName"]: index of step in the steps list
-        var indegrees = new int[steps.Count];
-        var dependents = new Dictionary<string, List<int>>(steps.Count);
-        var stepIndices = new Dictionary<string, int>(steps.Count);
-
-        // Build step index mapping and initialize dependents dictionary
-        // Example: ["A", "B", "C"] → stepIndices: {"A"→0, "B"→1, "C"→2}
-        for (var i = 0; i < steps.Count; i++)
-        {
-            stepIndices[steps[i].Name] = i;
-            dependents[steps[i].Name] = [];
-        }
-
-        // Process all the `RequiredBy` relationships and normalize to DependsOn
-        // Example: If step "A" has RequiredBy="B", then "B" gets a dependency on "A"
-        // This converts: A.RequiredBy("B") → B.DependsOn("A")
+        // Process all RequiredBy relationships and normalize to DependsOn
         foreach (var step in steps)
         {
             foreach (var requiredByStep in step.RequiredBySteps)
@@ -323,98 +284,53 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
-                // Add the dependency relationship
                 requiredByStepObj.DependsOnSteps.Add(step.Name);
             }
         }
 
-        // Build the graph based on DependsOn relationships
-        // For each dependency, update:
-        // 1. The dependents dictionary (reverse edges for efficient traversal)
-        // 2. The indegrees array (count incoming edges)
-        // Example: If B depends on A, then dependents["A"] includes B's index, and indegrees[B]++
-        for (var i = 0; i < steps.Count; i++)
+        // Track visit state: 0 = unvisited, 1 = visiting (on current path), 2 = visited
+        var visitState = new Dictionary<string, int>(steps.Count);
+
+        // DFS to detect cycles
+        void DetectCycles(string stepName, List<string> path)
         {
-            var step = steps[i];
-            foreach (var dependency in step.DependsOnSteps)
+            if (visitState.TryGetValue(stepName, out var state))
             {
-                if (!stepIndices.TryGetValue(dependency, out var depIndex))
+                if (state == 1) // Currently visiting - cycle detected!
                 {
+                    path.Add(stepName);
                     throw new InvalidOperationException(
-                        $"Step '{step.Name}' depends on unknown step '{dependency}'");
+                        $"Circular dependency detected in pipeline steps: {string.Join(" → ", path)}");
                 }
-
-                dependents[dependency].Add(i);
-                indegrees[i]++;
-            }
-        }
-
-        // Cycle detection using Kahn's algorithm (topological sort)
-        // Kahn's algorithm: repeatedly remove nodes with in-degree 0
-        // If all nodes are removed, the graph is a DAG (no cycles)
-        // If some nodes remain, they form a cycle
-        var queue = new Queue<int>(steps.Count);
-        var processedSteps = new HashSet<int>(steps.Count);
-
-        // Initialize queue with all zero in-degree steps (steps with no dependencies)
-        // Example: In A → B → C, only A has in-degree 0 initially
-        for (var i = 0; i < steps.Count; i++)
-        {
-            if (indegrees[i] == 0)
-            {
-                queue.Enqueue(i);
-            }
-        }
-
-        // Process steps in topological order
-        // Each iteration removes a step and decrements the in-degree of its dependents
-        while (queue.Count > 0)
-        {
-            var stepIndex = queue.Dequeue();
-            processedSteps.Add(stepIndex);
-
-            var stepName = steps[stepIndex].Name;
-            if (dependents.TryGetValue(stepName, out var deps))
-            {
-                foreach (var depIndex in deps)
+                if (state == 2) // Already visited - no need to check again
                 {
-                    // Decrement in-degree and enqueue if it becomes 0
-                    // Note: We're modifying indegrees during cycle detection
-                    // This is safe because we rebuild it before returning
-                    if (--indegrees[depIndex] == 0)
-                    {
-                        queue.Enqueue(depIndex);
-                    }
+                    return;
                 }
             }
-        }
 
-        // If not all steps were processed, there's a cycle
-        // Example: A → B → C → A would leave all three steps unprocessed
-        if (processedSteps.Count != steps.Count)
-        {
-            var stepsInCycle = new List<string>(steps.Count - processedSteps.Count);
-            for (var i = 0; i < steps.Count; i++)
+            visitState[stepName] = 1; // Mark as visiting
+            path.Add(stepName);
+
+            if (stepsByName.TryGetValue(stepName, out var step))
             {
-                if (!processedSteps.Contains(i))
+                foreach (var dependency in step.DependsOnSteps)
                 {
-                    stepsInCycle.Add(steps[i].Name);
+                    DetectCycles(dependency, path);
                 }
             }
 
-            throw new InvalidOperationException(
-                $"Circular dependency detected in pipeline steps: {string.Join(", ", stepsInCycle)}");
+            path.RemoveAt(path.Count - 1);
+            visitState[stepName] = 2; // Mark as visited
         }
 
-        // Rebuild indegrees array since we modified it during cycle detection
-        // Simply count the dependencies for each step
-        Array.Clear(indegrees);
-        for (var i = 0; i < steps.Count; i++)
+        // Check each step for cycles
+        foreach (var step in steps)
         {
-            indegrees[i] = steps[i].DependsOnSteps.Count;
+            if (!visitState.ContainsKey(step.Name))
+            {
+                DetectCycles(step.Name, []);
+            }
         }
-
-        return (indegrees, dependents);
     }
 
     private static async Task ExecuteStepAsync(PipelineStep step, DeployingContext context)
