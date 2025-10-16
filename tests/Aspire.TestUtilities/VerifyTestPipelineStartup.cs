@@ -18,7 +18,7 @@ public sealed class VerifyTestPipelineStartup : Xunit.v3.ITestPipelineStartup
 
         // If target contains an absolute path it will use it as is.
         // If it contains a relative path, it will be combined with the project directory.
-        DerivePathInfo(
+        VerifyXunit.Verifier.DerivePathInfo(
             (sourceFile, projectDirectory, type, method) => new(
                 directory: Path.Combine(projectDirectory, target),
                 typeName: type.Name,
