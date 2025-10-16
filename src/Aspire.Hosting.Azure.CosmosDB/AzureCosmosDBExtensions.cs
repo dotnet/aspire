@@ -104,18 +104,16 @@ public static class AzureCosmosExtensions
 
             cosmosClient = CreateCosmosClient(connectionString);
 
-        })
-        .OnResourceReady(async (cosmosDb, @event, ct) =>
-        {
             if (cosmosClient is null)
             {
                 throw new InvalidOperationException("CosmosClient is not initialized.");
             }
 
+            // try creating databases and containers until it works
             var retryPipeline = new ResiliencePipelineBuilder()
                 .AddRetry(new()
                 {
-                    MaxRetryAttempts = 1200, // 10 minutes of retries
+                    MaxRetryAttempts = 3600, // 30 minutes of retries
                     Delay = TimeSpan.FromMilliseconds(500),
                     BackoffType = DelayBackoffType.Constant,
                     ShouldHandle = new PredicateBuilder().Handle<CosmosException>(),
@@ -133,11 +131,7 @@ public static class AzureCosmosExtensions
             
                                 foreach (var container in database.Containers)
                                 {
-                                    var containerProperties = container.ContainerProperties ?? new ContainerProperties
-                                    {
-                                        Id = container.ContainerName,
-                                        PartitionKeyPaths = container.PartitionKeyPaths
-                                    };
+                                    var containerProperties = container.ContainerProperties;
             
                                     await db.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct).ConfigureAwait(false);
                                 }
