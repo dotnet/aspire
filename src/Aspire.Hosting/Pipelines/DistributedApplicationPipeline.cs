@@ -205,10 +205,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
                 catch (Exception ex)
                 {
-                    // Find which dependency failed
-                    var failedDep = step.DependsOnSteps.FirstOrDefault(depName => stepCompletions[depName].Task.IsFaulted);
-                    var message = failedDep != null
-                        ? $"Step '{step.Name}' cannot run because dependency '{failedDep}' failed"
+                    // Find all dependencies that failed
+                    var failedDeps = step.DependsOnSteps
+                        .Where(depName => stepCompletions[depName].Task.IsFaulted)
+                        .ToList();
+                    
+                    var message = failedDeps.Count > 0
+                        ? $"Step '{step.Name}' cannot run because {(failedDeps.Count == 1 ? "dependency" : "dependencies")} {string.Join(", ", failedDeps.Select(d => $"'{d}'"))} failed"
                         : $"Step '{step.Name}' cannot run because a dependency failed";
                     
                     // Wrap the dependency failure with context about this step
@@ -256,19 +259,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             if (failures.Count > 1)
             {
-                // Extract step names from the exception messages where possible
-                var failedStepNames = failures
-                    .OfType<InvalidOperationException>()
-                    .Select(e => {
-                        var match = System.Text.RegularExpressions.Regex.Match(e.Message, @"Step '([^']+)' failed");
-                        return match.Success ? match.Groups[1].Value : null;
-                    })
-                    .Where(name => name != null)
-                    .Distinct()
-                    .ToList();
+                // Match failures to steps to get their names
+                var failedStepNames = new List<string>();
+                for (var i = 0; i < allStepTasks.Length; i++)
+                {
+                    if (allStepTasks[i].IsFaulted)
+                    {
+                        failedStepNames.Add(steps[i].Name);
+                    }
+                }
 
                 var message = failedStepNames.Count > 0
-                    ? $"Multiple pipeline steps failed: {string.Join(", ", failedStepNames)}"
+                    ? $"Multiple pipeline steps failed: {string.Join(", ", failedStepNames.Distinct())}"
                     : "Multiple pipeline steps failed.";
 
                 throw new AggregateException(message, failures);
