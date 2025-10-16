@@ -141,6 +141,22 @@ public class OperationModesTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public void VerifyExplicitInspectModeParsingOnly()
+    {
+        // The purpose of this test is to verify that the apphost executable will enter
+        // inspect mode if executed with the "--operation inspect" argument.
+
+        using var builder = TestDistributedApplicationBuilder
+            .Create(["--operation", "inspect"])
+            .WithTestAndResourceLogging(outputHelper);
+        
+        Assert.Equal(DistributedApplicationOperation.Inspect, builder.ExecutionContext.Operation);
+        Assert.True(builder.ExecutionContext.IsInspectMode);
+        Assert.False(builder.ExecutionContext.IsRunMode);
+        Assert.False(builder.ExecutionContext.IsPublishMode);
+    }
+
+    [Fact]
     public async Task VerifyExplicitInspectModeInvocation()
     {
         // The purpose of this test is to verify that the apphost executable will enter
