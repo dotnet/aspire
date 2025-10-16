@@ -82,7 +82,11 @@ public sealed class DistributedApplicationOptions
         set => _projectName = value;
     }
 
-    internal string? DashboardApplicationName
+    /// <summary>
+    /// The application name to display in the dashboard. For file-based app hosts, this defaults to the directory name.
+    /// For other apps, it falls back to the environment's application name.
+    /// </summary>
+    public string? DashboardApplicationName
     {
         get => _dashboardApplicationName ?? _dashboardApplicationNameLazy.Value;
         set => _dashboardApplicationName = value;

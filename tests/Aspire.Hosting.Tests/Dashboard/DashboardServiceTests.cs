@@ -484,7 +484,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["AppHost:ApplicationName"] = "MyCustomAppName"
+            ["AppHost:DashboardApplicationName"] = "MyCustomAppName"
         });
         var configuration = configBuilder.Build();
 
@@ -547,7 +547,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["AppHost:ApplicationName"] = "MyApp.AppHost"
+            ["AppHost:DashboardApplicationName"] = "MyApp.AppHost"
         });
         var configuration = configBuilder.Build();
 

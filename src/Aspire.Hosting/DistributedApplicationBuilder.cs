@@ -213,7 +213,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
-            ["AppHost:ApplicationName"] = dashboardApplicationName,
+            ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 

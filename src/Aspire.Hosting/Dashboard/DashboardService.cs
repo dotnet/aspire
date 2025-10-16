@@ -39,7 +39,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ServerCallContext context)
     {
         // Read the application name from configuration if available, otherwise fall back to the environment
-        var applicationName = configuration["AppHost:ApplicationName"] ?? hostEnvironment.ApplicationName;
+        var applicationName = configuration["AppHost:DashboardApplicationName"] ?? hostEnvironment.ApplicationName;
         
         return Task.FromResult(new ApplicationInformationResponse
         {
