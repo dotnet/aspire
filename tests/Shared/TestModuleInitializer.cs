@@ -1,16 +1,18 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
 using Aspire.TestUtilities;
+using Xunit.Sdk;
+using Xunit.v3;
 
 // Note: This file is shared across multiple test projects.
-// It uses the global namespace so that the module initializer works
-// correctly in all test projects that include it.
-sealed class TestModuleInitializer
+// The VerifyTestPipelineStartup class uses ITestPipelineStartup to ensure
+// Verify is properly initialized before any tests run.
+// Each test project that includes this file must register it with:
+// [assembly: TestPipelineStartup(typeof(VerifyTestPipelineStartup))]
+internal sealed class VerifyTestPipelineStartup : ITestPipelineStartup
 {
-    [ModuleInitializer]
-    internal static void Setup()
+    public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
     {
         // Set the directory for all Verify calls in test projects
         var target = PlatformDetection.IsRunningOnHelix
@@ -24,5 +26,12 @@ sealed class TestModuleInitializer
                 directory: Path.Combine(projectDirectory, target),
                 typeName: type.Name,
                 methodName: method.Name));
+
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask StopAsync()
+    {
+        return ValueTask.CompletedTask;
     }
 }
