@@ -160,7 +160,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithContainer_Works()
     {
         // Arrange
@@ -208,7 +208,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithDockerfile_Works()
     {
         // Arrange
@@ -265,7 +265,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithProjectResource_Works()
     {
         // Arrange
@@ -536,7 +536,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithSingleRedisCache_CallsDeployingComputeResources()
     {
         // Arrange
@@ -589,7 +589,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
     }
 
     [Fact]
-    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728", typeof(PlatformDetection), nameof(PlatformDetection.IsRunningFromAzdo))]
+    [ActiveIssue("https://github.com/dotnet/aspire/issues/11728")]
     public async Task DeployAsync_WithOnlyAzureResources_PrintsDashboardUrl()
     {
         // Arrange
