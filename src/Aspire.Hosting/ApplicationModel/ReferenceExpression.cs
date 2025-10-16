@@ -3,6 +3,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -80,14 +81,12 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         for (var i = 0; i < ValueProviders.Count; i++)
         {
             args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+
+            // Apply string format if needed
             var stringFormat = _stringFormats[i];
             if (stringFormat is not null && args[i] is string s)
             {
-                args[i] = stringFormat.ToLowerInvariant() switch
-                {
-                    "uri" => Uri.EscapeDataString(s),
-                    _ => throw new FormatException($"The format '{stringFormat}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-                };
+                args[i] = FormattingHelpers.FormatValue(s, stringFormat);
             }
         }
 

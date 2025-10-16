@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
@@ -167,7 +168,7 @@ internal sealed class AzureAppServiceWebsiteContext(
 
                 if (expr.StringFormats[0] is string format)
                 {
-                    val = (FormatBicepExpression(val, format), secretType);
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
                 }
 
                 return val;
@@ -187,29 +188,13 @@ internal sealed class AzureAppServiceWebsiteContext(
 
                 if (expr.StringFormats[index] is string format)
                 {
-                    val = FormatBicepExpression(val, format);
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
                 }
 
                 args[index++] = val;
             }
 
             return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
-
-            static BicepExpression FormatBicepExpression(object val, string format)
-            {
-                var innerExpression = val switch
-                {
-                    ProvisioningParameter p => p.Value.Compile(),
-                    IBicepValue b => b.Compile(),
-                    _ => throw new ArgumentException($"Invalid expression type for url-encoding: {val.GetType()}")
-                };
-
-                return format.ToLowerInvariant() switch
-                {
-                    "uri" => new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression),
-                    _ => throw new NotSupportedException($"The format '{format}' is not supported.")
-                };
-            }
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)

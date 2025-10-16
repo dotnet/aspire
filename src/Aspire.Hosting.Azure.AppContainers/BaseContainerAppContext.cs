@@ -8,6 +8,7 @@ using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
+using Aspire.Hosting.Azure.Utils;
 
 namespace Aspire.Hosting.Azure;
 
@@ -292,7 +293,7 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
                 if (expr.StringFormats[0] is string format)
                 {
-                    val = (FormatBicepExpression(val, format), secretType);
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
                 }
 
                 return val;
@@ -313,29 +314,13 @@ internal abstract class BaseContainerAppContext(IResource resource, ContainerApp
 
                 if (expr.StringFormats[index] is string format)
                 {
-                    val = FormatBicepExpression(val, format);
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
                 }
 
                 args[index++] = val;
             }
 
             return (FormattableStringFactory.Create(expr.Format, args), finalSecretType);
-
-            static BicepExpression FormatBicepExpression(object val, string format)
-            {
-                var innerExpression = val switch
-                {
-                    ProvisioningParameter p => p.Value.Compile(),
-                    IBicepValue b => b.Compile(),
-                    _ => throw new ArgumentException($"Invalid expression type for url-encoding: {val.GetType()}")
-                };
-
-                return format.ToLowerInvariant() switch
-                {
-                    "uri" => new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression),
-                    _ => throw new NotSupportedException($"The format '{format}' is not supported.")
-                };
-            }
         }
 
         if (value is IManifestExpressionProvider manifestExpressionProvider)
