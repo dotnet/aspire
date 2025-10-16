@@ -5,7 +5,6 @@ namespace Aspire.Hosting.Utils;
 
 internal sealed class FormattingHelpers
 {
-
     public static string FormatValue(string value, string format)
     {
         return format.ToLowerInvariant() switch
