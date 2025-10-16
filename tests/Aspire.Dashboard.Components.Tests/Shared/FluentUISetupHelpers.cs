@@ -18,7 +18,7 @@ internal static class FluentUISetupHelpers
 {
     private static readonly Version s_fluentUIVersion = typeof(FluentMain).Assembly.GetName().Version!;
 
-    public static string GetFluentFile(string filePath)
+    private static string GetFluentFile(string filePath)
     {
         return $"{filePath}?v={s_fluentUIVersion}";
     }
