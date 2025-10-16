@@ -2291,6 +2291,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     Name = cert.Thumbprint + ".pem",
                     Type = ContainerFileSystemEntryType.OpenSSL,
                     Contents = cert.ExportCertificatePem(),
+                    ContinueOnError = true,
                 });
             }
 
