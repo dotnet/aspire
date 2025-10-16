@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Azure.Utils;
 /// <summary>
 /// Provides helper methods for formatting Bicep expressions with specific encodings.
 /// </summary>
-internal sealed class BicepFormattingHelpers
+internal static class BicepFormattingHelpers
 {
     /// <summary>
     /// Formats a Bicep expression using the specified encoding format.
