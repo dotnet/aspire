@@ -7,14 +7,19 @@
     <InstallWorkloadForTesting>true</InstallWorkloadForTesting>
 
     <XunitRunnerJson>xunit.runner.json</XunitRunnerJson>
-    <TestArchiveTestsDir>$(TestArchiveTestsDirForTemplateTests)</TestArchiveTestsDir>
 
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(CODESPACES)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(PrepareForHelix)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
-    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
-    <ExtractTestClassNamesPrefix>Aspire.Templates.Tests</ExtractTestClassNamesPrefix>
+    <!-- v3 auto-detection test splitting -->
+    <SplitTestsOnCI Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</SplitTestsOnCI>
+    <TestClassNamesPrefix>Aspire.Templates.Tests</TestClassNamesPrefix>
+    <RequiresNugetsForSplitTests>true</RequiresNugetsForSplitTests>
+    <RequiresTestSdkForSplitTests>true</RequiresTestSdkForSplitTests>
+    <EnablePlaywrightInstallForSplitTests>true</EnablePlaywrightInstallForSplitTests>
+    <TestSessionTimeoutForSplitTests>20m</TestSessionTimeoutForSplitTests>
+    <TestHangTimeoutForSplitTests>12m</TestHangTimeoutForSplitTests>
 
     <!--
       FIXME: https://github.com/dotnet/aspire/issues/8488

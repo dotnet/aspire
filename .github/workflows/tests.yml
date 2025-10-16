@@ -117,13 +117,13 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "ubuntu-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true ${{ matrix.filterArg }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   templates_test_macos:
     name: Templates macos
@@ -135,13 +135,13 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "macos-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true ${{ matrix.filterArg }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   templates_test_win:
     name: Templates Windows
@@ -153,13 +153,13 @@ jobs:
     with:
       testShortName: ${{ matrix.shortname }}
       os: "windows-latest"
-      testProjectPath: tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-      testSessionTimeout: 20m
-      testHangTimeout: 12m
-      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true --filter-class Aspire.Templates.Tests.${{ matrix.shortname }}"
+      testProjectPath: ${{ matrix.testProjectPath }}
+      testSessionTimeout: ${{ matrix.testSessionTimeout }}
+      testHangTimeout: ${{ matrix.testHangTimeout }}
+      extraTestArgs: "--filter-not-trait quarantined=true --filter-not-trait outerloop=true ${{ matrix.filterArg }}"
       versionOverrideArg: ${{ inputs.versionOverrideArg }}
-      requiresNugets: true
-      requiresTestSdk: true
+      requiresNugets: ${{ matrix.requiresNugets }}
+      requiresTestSdk: ${{ matrix.requiresTestSdk }}
 
   endtoend_tests:
     name: EndToEnd Linux

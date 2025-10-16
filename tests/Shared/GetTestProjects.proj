@@ -4,9 +4,10 @@
     It emits "shortnames" for the project which is essentially the project name with `Aspire.` prefix
     `.Tests` removed.
 
-    Input: $(TestsListOutputPath) -->
+    Input: $(TestsListOutputPath) 
+    Optional: $(GenerateSplitTestsMatrix) - if true, also generates split-tests-matrix.json -->
 
-  <Target Name="GenerateListOfTestsForGithubActions">
+  <Target Name="GenerateListOfTestsForGithubActions" DependsOnTargets="GenerateSplitTestsMatrix">
     <Error Condition="'$(TestsListOutputPath)' == ''"
            Text="%24(TestsListOutputPath) is unset" />
 
@@ -21,7 +22,7 @@
 
       <!-- This runs in a separate job -->
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.EndToEnd.Tests\**\*Tests.csproj" />
-      <!-- This runs in a separate job -->
+      <!-- This runs in a separate job (split tests handled separately) -->
       <_TestProjectsToExclude Include="$(RepoRoot)tests\Aspire.Templates.Tests\**\*Tests.csproj" />
 
       <_TestProjects Include="$(RepoRoot)tests\**\*Tests.csproj"
@@ -43,6 +44,28 @@
     <WriteLinesToFile File="$(TestsListOutputPath)"
                       Lines="@(ProjectRunTestsOnGithubActions->'%(ShortName)')"
                       Overwrite="true" />
+  </Target>
+
+  <!-- Generate split tests matrix from .tests.list files -->
+  <Target Name="GenerateSplitTestsMatrix" Condition="'$(GenerateSplitTestsMatrix)' == 'true'">
+    <PropertyGroup>
+      <RepoRoot>$(MSBuildThisFileDirectory)..\..\</RepoRoot>
+      <_TestListsDirectory>$(RepoRoot)artifacts\helix\</_TestListsDirectory>
+      <_OutputDirectory>$(RepoRoot)artifacts\test-matrices\</_OutputDirectory>
+      <_GenerateScriptPath>$(RepoRoot)eng\scripts\generate-test-matrix.ps1</_GenerateScriptPath>
+      <_PwshCommand>pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_GenerateScriptPath)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -TestListsDirectory &quot;$(_TestListsDirectory)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -OutputDirectory &quot;$(_OutputDirectory)&quot;</_PwshCommand>
+      <_PwshCommand Condition="'$(BuildOs)' != ''">$(_PwshCommand) -BuildOs &quot;$(BuildOs)&quot;</_PwshCommand>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_OutputDirectory)" />
+
+    <Exec Command="$(_PwshCommand)"
+          WorkingDirectory="$(RepoRoot)"
+          IgnoreExitCode="false" />
+
+    <Message Text="Split tests matrix generated: $(_OutputDirectory)split-tests-matrix.json" Importance="high" />
   </Target>
 
 </Project>

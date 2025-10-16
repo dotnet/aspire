@@ -37,17 +37,27 @@ runs:
         /p:TestsListOutputPath=${{ github.workspace }}/artifacts/TestsForGithubActions.list
         /p:ContinuousIntegrationBuild=true
 
-    - name: Generate list of template tests
+    - name: Generate list of template tests (v3 split tests)
       if: ${{ inputs.includeTemplates }}
       shell: pwsh
       run: >
           dotnet build ${{ github.workspace }}/tests/Aspire.Templates.Tests/Aspire.Templates.Tests.csproj
-          "/t:Build;ExtractTestClassNames"
+          "/t:Build;ExtractTestMetadataV3"
           /bl:${{ github.workspace }}/artifacts/log/Debug/BuildTemplatesTests.binlog
-          -p:ExtractTestClassNamesForHelix=true
+          -p:SplitTestsOnCI=true
           -p:PrepareForHelix=true
-          -p:ExtractTestClassNamesPrefix=Aspire.Templates.Tests
+          -p:TestClassNamesPrefix=Aspire.Templates.Tests
           -p:InstallBrowsersForPlaywright=false
+
+    - name: Generate split tests matrix
+      if: ${{ inputs.includeTemplates }}
+      shell: pwsh
+      run: >
+        dotnet build ${{ github.workspace }}/tests/Shared/GetTestProjects.proj
+        /t:GenerateSplitTestsMatrix
+        /bl:${{ github.workspace }}/artifacts/log/Debug/GenerateSplitTestsMatrix.binlog
+        /p:GenerateSplitTestsMatrix=true
+        /p:BuildOs=${{ runner.os == 'Windows' && 'windows' || (runner.os == 'macOS' && 'darwin' || 'linux') }}
 
     - name: Generate tests matrix
       id: generate_integrations_matrix
@@ -63,25 +73,22 @@ runs:
         "integrations_tests_matrix=$jsonString"
         "integrations_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
-    - name: Generate templates matrix
+    - name: Generate templates matrix (v3 split tests)
       id: generate_templates_matrix
       if: ${{ inputs.includeTemplates }}
       shell: pwsh
       run: |
-        $inputFilePath = "${{ github.workspace }}/artifacts/helix/templates-tests/Aspire.Templates.Tests.tests.list"
-        $lines = Get-Content $inputFilePath
-
-        $prefix = "Aspire.Templates.Tests."
-        $lines = Get-Content $inputFilePath | ForEach-Object {
-            $_ -replace "^$prefix", ""
+        $matrixFile = "${{ github.workspace }}/artifacts/test-matrices/split-tests-matrix.json"
+        if (Test-Path $matrixFile) {
+          $matrixContent = Get-Content -Raw $matrixFile
+          Write-Host "Split tests matrix content:"
+          Write-Host $matrixContent
+          "templates_tests_matrix=$matrixContent" | Out-File -FilePath $env:GITHUB_OUTPUT
+        } else {
+          Write-Host "Matrix file not found, using empty matrix"
+          $emptyMatrix = '{"include":[]}'
+          "templates_tests_matrix=$emptyMatrix" | Out-File -FilePath $env:GITHUB_OUTPUT
         }
-
-        $jsonObject = @{
-            "shortname" = $lines | Sort-Object
-        }
-        $jsonString = ConvertTo-Json $jsonObject -Compress
-        "templates_tests_matrix=$jsonString"
-        "templates_tests_matrix=$jsonString" | Out-File -FilePath $env:GITHUB_OUTPUT
 
     - name: Upload logs
       if: always()
@@ -91,3 +98,5 @@ runs:
         path: |
           artifacts/log/**/*.binlog
           artifacts/**/*.list
+          artifacts/**/*.json
+          artifacts/test-matrices/**

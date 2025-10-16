@@ -89,7 +89,7 @@
     <MakeDir Directories="$(_TestMetadataOutputDir)" />
     <MakeDir Directories="$(IntermediateOutputPath)" />
 
-    <!-- Run --list-tests and capture output to temp file -->
+    <!-- Run list-tests and capture output to temp file -->
     <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests &gt; &quot;$(_TestOutputTempFile)&quot;"
           WorkingDirectory="$(OutDir)"
           IgnoreExitCode="false" />
