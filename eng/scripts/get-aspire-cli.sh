@@ -886,6 +886,13 @@ if [[ -z "$QUALITY" ]]; then
     QUALITY="${DEFAULT_QUALITY}"
 fi
 
+# Validate extension installation is only allowed with dev quality
+if [[ "$INSTALL_EXTENSION" == true && "$QUALITY" != "dev" ]]; then
+    say_error "Extension installation is only supported with --quality dev. Current quality: $QUALITY"
+    say_info "Use --help for usage information."
+    exit 1
+fi
+
 # Set default install path if not provided
 if [[ -z "$INSTALL_PATH" ]]; then
     INSTALL_PATH="$HOME/.aspire/bin"

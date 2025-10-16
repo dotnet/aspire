@@ -1051,6 +1051,11 @@ function Start-AspireCliInstallation {
             throw "Unsupported Architecture $Architecture. Supported values are: $($Script:Config.SupportedArchitectures -join ", ")"
         }
 
+        # Validate extension installation is only allowed with dev quality
+        if ($InstallExtension -and $Quality -ne "dev") {
+            throw "Extension installation is only supported with -Quality dev. Current quality: $Quality"
+        }
+
         # Determine the installation path
         $resolvedInstallPath = Get-InstallPath -InstallPath $InstallPath
 
