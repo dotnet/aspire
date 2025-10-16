@@ -37,9 +37,9 @@
                   Overwrite="true" />
   </Target>
 
-  <!-- Used for running one helix job per test class -->
+  <!-- Used for running one helix job per test class (legacy mechanism) -->
   <Target Name="ExtractTestClassNames"
-          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
+          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true' and '$(SplitTestsOnCI)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
     <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
@@ -66,6 +66,74 @@
     <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
                       Lines="@(UniqueTestClassNamesFiltered)"
                       Overwrite="true" />
+  </Target>
+
+  <!-- v3 auto-detection mechanism for test splitting -->
+  <Target Name="ExtractTestMetadataV3"
+          Condition=" '$(IsTestProject)' == 'true' and '$(SplitTestsOnCI)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
+          BeforeTargets="ZipTestArchive"
+          AfterTargets="Build">
+
+    <Error Condition="'$(TestClassNamesPrefix)' == ''"
+           Text="%24(TestClassNamesPrefix) must be set when SplitTestsOnCI=true (e.g., Aspire.Templates.Tests)" />
+
+    <PropertyGroup>
+      <_TestMetadataOutputDir>$(TestArchiveTestsDir)</_TestMetadataOutputDir>
+      <_TestListFile>$(_TestMetadataOutputDir)$(MSBuildProjectName).tests.list</_TestListFile>
+      <_TestMetadataJsonFile>$(_TestMetadataOutputDir)$(MSBuildProjectName).tests.metadata.json</_TestMetadataJsonFile>
+      <_TestOutputTempFile>$(IntermediateOutputPath)test-list-output.tmp</_TestOutputTempFile>
+      <_TestCollectionsToSkip Condition="'$(TestCollectionsToSkip)' != ''">$(TestCollectionsToSkip)</_TestCollectionsToSkip>
+      <_TestCollectionsToSkip Condition="'$(_TestCollectionsToSkip)' == ''"></_TestCollectionsToSkip>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(_TestMetadataOutputDir)" />
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+
+    <!-- Run --list-tests and capture output to temp file -->
+    <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests &gt; &quot;$(_TestOutputTempFile)&quot;"
+          WorkingDirectory="$(OutDir)"
+          IgnoreExitCode="false" />
+
+    <!-- Create metadata JSON with project-specific settings -->
+    <PropertyGroup>
+      <_MetadataContent>
+{
+  "projectName": "$(MSBuildProjectName)",
+  "testClassNamesPrefix": "$(TestClassNamesPrefix)",
+  "testProjectPath": "tests/$(MSBuildProjectName)/$(MSBuildProjectName).csproj",
+  "requiresNugets": "$(RequiresNugetsForSplitTests)",
+  "requiresTestSdk": "$(RequiresTestSdkForSplitTests)",
+  "enablePlaywrightInstall": "$(EnablePlaywrightInstallForSplitTests)",
+  "testSessionTimeout": "$(TestSessionTimeoutForSplitTests)",
+  "testHangTimeout": "$(TestHangTimeoutForSplitTests)",
+  "uncollectedTestsSessionTimeout": "$(UncollectedTestsSessionTimeoutForSplitTests)",
+  "uncollectedTestsHangTimeout": "$(UncollectedTestsHangTimeoutForSplitTests)"
+}
+      </_MetadataContent>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_TestMetadataJsonFile)"
+                      Lines="$(_MetadataContent)"
+                      Overwrite="true"
+                      Encoding="UTF-8" />
+
+    <!-- Invoke PowerShell script to process test list -->
+    <PropertyGroup>
+      <_ExtractScriptPath>$(RepoRoot)eng/scripts/extract-test-metadata.ps1</_ExtractScriptPath>
+      <_PwshCommand>pwsh -NoProfile -ExecutionPolicy Bypass -File &quot;$(_ExtractScriptPath)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -TestAssemblyOutputFile &quot;$(_TestOutputTempFile)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -TestClassNamesPrefix &quot;$(TestClassNamesPrefix)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -TestCollectionsToSkip &quot;$(_TestCollectionsToSkip)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -OutputListFile &quot;$(_TestListFile)&quot;</_PwshCommand>
+      <_PwshCommand>$(_PwshCommand) -MetadataJsonFile &quot;$(_TestMetadataJsonFile)&quot;</_PwshCommand>
+    </PropertyGroup>
+
+    <Exec Command="$(_PwshCommand)"
+          WorkingDirectory="$(RepoRoot)"
+          IgnoreExitCode="false" />
+
+    <Message Text="Test metadata extracted: $(_TestListFile)" Importance="high" />
+    <Message Text="Metadata JSON updated: $(_TestMetadataJsonFile)" Importance="high" />
   </Target>
 
   <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
