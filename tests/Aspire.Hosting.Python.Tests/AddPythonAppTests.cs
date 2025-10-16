@@ -1149,5 +1149,28 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
         // PYTHONUTF8 should not be set in Publish mode, even on Windows
         Assert.False(environmentVariables.ContainsKey("PYTHONUTF8"));
     }
+
+    [Fact]
+    public async Task PythonApp_ShowsNotification_WhenVirtualEnvironmentDoesNotExist()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);
+        using var tempDir = new TempDirectory();
+
+        // Create a script file but don't create the virtual environment
+        var scriptPath = Path.Combine(tempDir.Path, "main.py");
+        File.WriteAllText(scriptPath, "print('Hello, World!')");
+
+        var pythonApp = builder.AddPythonScript("pythonProject", tempDir.Path, "main.py");
+
+        using var app = builder.Build();
+
+        // Verify the resource has the expected annotation
+        Assert.True(pythonApp.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var annotation));
+        Assert.NotNull(annotation.VirtualEnvironment);
+        
+        // Verify the virtual environment path doesn't exist
+        var expectedVenvPath = Path.Combine(tempDir.Path, ".venv");
+        Assert.False(Directory.Exists(expectedVenvPath), "Virtual environment should not exist for this test");
+    }
 }
 

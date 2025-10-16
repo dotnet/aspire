@@ -4,8 +4,10 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 #pragma warning disable ASPIREEXTENSION001
+#pragma warning disable ASPIREINTERACTION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting;
 
@@ -255,6 +257,41 @@ public static class PythonAppResourceBuilderExtensions
             .WithVirtualEnvironment(virtualEnvironmentPath)
             // This will set up the the entrypoint based on the PythonEntrypointAnnotation
             .WithEntrypoint(entrypointType, entrypoint);
+
+        // Add virtual environment validation before resource starts
+        resourceBuilder.OnBeforeResourceStarted(async (resource, evt, ct) =>
+        {
+            // Get the virtual environment path from the annotation
+            if (!resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnv) ||
+                pythonEnv.VirtualEnvironment is null)
+            {
+                return;
+            }
+
+            var venvPath = Path.IsPathRooted(virtualEnvironmentPath)
+                ? virtualEnvironmentPath
+                : Path.GetFullPath(virtualEnvironmentPath, resource.WorkingDirectory);
+
+            // Check if the virtual environment directory exists
+            if (!Directory.Exists(venvPath))
+            {
+                var interactionService = evt.Services.GetService<IInteractionService>();
+                if (interactionService is not null && interactionService.IsAvailable)
+                {
+                    var title = "Python virtual environment not found";
+                    var message = $"The Python virtual environment for resource '{resource.Name}' was not found at '{venvPath}'. Please create the virtual environment before running the application.";
+                    var options = new NotificationInteractionOptions
+                    {
+                        Intent = MessageIntent.Error,
+                        LinkText = "Learn more",
+                        LinkUrl = "https://aka.ms/aspire/python"
+                    };
+
+                    // Show notification without blocking (fire and forget)
+                    _ = interactionService.PromptNotificationAsync(title, message, options, ct);
+                }
+            }
+        });
 
         resourceBuilder.WithIconName("CodePyRectangle");
 
