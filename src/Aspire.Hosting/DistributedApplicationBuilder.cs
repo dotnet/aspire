@@ -128,14 +128,16 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             "publish" => DistributedApplicationOperation.Publish,
             "run" => DistributedApplicationOperation.Run,
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
+            "inspect" => DistributedApplicationOperation.Inspect,
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'run', or 'inspect'.")
         };
 
         return operation switch
         {
             DistributedApplicationOperation.Run => new DistributedApplicationExecutionContextOptions(operation),
             DistributedApplicationOperation.Publish => new DistributedApplicationExecutionContextOptions(operation, _innerBuilder.Configuration["Publishing:Publisher"] ?? "manifest"),
-            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish' or 'run'.")
+            DistributedApplicationOperation.Inspect => new DistributedApplicationExecutionContextOptions(operation),
+            _ => throw new DistributedApplicationException("Invalid operation specified. Valid operations are 'publish', 'run', or 'inspect'.")
         };
     }
 
@@ -477,9 +479,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         {
             return new ConfigureOptions<HealthCheckPublisherOptions>(options =>
             {
-                if (ExecutionContext.IsPublishMode)
+                if (ExecutionContext.IsPublishMode || ExecutionContext.IsInspectMode)
                 {
-                    // In publish mode we don't run any checks.
+                    // In publish mode and inspect mode we don't run any checks.
                     options.Predicate = (check) => false;
                 }
             });

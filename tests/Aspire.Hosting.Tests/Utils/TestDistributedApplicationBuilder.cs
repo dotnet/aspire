@@ -23,6 +23,7 @@ public static class TestDistributedApplicationBuilder
         {
             DistributedApplicationOperation.Run => (string[])[],
             DistributedApplicationOperation.Publish => [$"Publishing:Publisher={publisher}", $"Publishing:OutputPath={outputPath}", $"Publishing:Deploy={isDeploy}"],
+            DistributedApplicationOperation.Inspect => ["--operation", "inspect"],
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
