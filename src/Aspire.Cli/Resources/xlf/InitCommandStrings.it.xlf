@@ -4,57 +4,57 @@
     <body>
       <trans-unit id="AddingAppHostProjectToSolution">
         <source>Adding AppHost project to solution...</source>
-        <target state="new">Adding AppHost project to solution...</target>
+        <target state="translated">Aggiunta del progetto AppHost alla soluzione in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingProjectsToSolution">
         <source>Adding projects to solution...</source>
-        <target state="new">Adding projects to solution...</target>
+        <target state="translated">Aggiunta di progetti alla soluzione in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="AddingServiceDefaultsProjectToSolution">
         <source>Adding ServiceDefaults project to solution...</source>
-        <target state="new">Adding ServiceDefaults project to solution...</target>
+        <target state="translated">Aggiunta del progetto ServiceDefaults alla soluzione in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireInitializationComplete">
         <source>Aspire initialization complete!</source>
-        <target state="new">Aspire initialization complete!</target>
+        <target state="translated">Inizializzazione di Aspire completata.</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingAppHostProject">
         <source>Creating AppHost project...</source>
-        <target state="new">Creating AppHost project...</target>
+        <target state="translated">Creazione del progetto AppHost in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="CreatingServiceDefaultsProject">
         <source>Creating ServiceDefaults project...</source>
-        <target state="new">Creating ServiceDefaults project...</target>
+        <target state="translated">Creazione del progetto ServiceDefaults in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="Description">
         <source>Initialize Aspire support in an existing solution or create a single-file AppHost.</source>
-        <target state="new">Initialize Aspire support in an existing solution or create a single-file AppHost.</target>
+        <target state="translated">Inizializzare il supporto Aspire in una soluzione esistente o creare un AppHost a file singolo.</target>
         <note />
       </trans-unit>
       <trans-unit id="MultipleSolutionsFound">
         <source>Multiple solution files found. Please select which one to add the Aspire projects to:</source>
-        <target state="new">Multiple solution files found. Please select which one to add the Aspire projects to:</target>
+        <target state="translated">Trovati più file di soluzione. Selezionare a quale aggiungere i progetti Aspire:</target>
         <note />
       </trans-unit>
       <trans-unit id="NoSolutionFoundCreatingSingleFileAppHost">
         <source>No solution file found. Creating single-file AppHost...</source>
-        <target state="new">No solution file found. Creating single-file AppHost...</target>
+        <target state="translated">Nessun file di soluzione trovato. Creazione di AppHost a file singolo in corso...</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionDetected">
         <source>Solution detected: {0}</source>
-        <target state="new">Solution detected: {0}</target>
+        <target state="translated">Soluzione rilevata: {0}</target>
         <note />
       </trans-unit>
       <trans-unit id="SolutionAlreadyInitialized">
         <source>Solution has already been initialized with Aspire.</source>
-        <target state="new">Solution has already been initialized with Aspire.</target>
+        <target state="translated">La soluzione è già stata inizializzata con Aspire.</target>
         <note />
       </trans-unit>
     </body>
