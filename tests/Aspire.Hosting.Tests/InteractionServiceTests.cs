@@ -729,9 +729,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -747,7 +747,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         // Assert
@@ -756,7 +756,7 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -783,9 +783,9 @@ public class InteractionServiceTests
             {
                 Name = "Dynamic",
                 InputType = InputType.Choice,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
-                    UpdateInputCallback = async c =>
+                    LoadCallback = async c =>
                     {
                         await updateTcs.Task;
                         c.Input.Options = [KeyValuePair.Create("loaded", "Loaded option")];
@@ -802,7 +802,7 @@ public class InteractionServiceTests
         var interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         var inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Null(inputsInteractionInfo.Inputs["Dynamic"].Options);
 
         await CompleteInteractionAsync(
@@ -815,14 +815,14 @@ public class InteractionServiceTests
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.True(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
 
         updateTcs.SetResult();
 
         interaction = await updates.Reader.ReadAsync().DefaultTimeout();
         inputsInteractionInfo = (Interaction.InputsInteractionInfo)interaction.InteractionInfo;
 
-        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicState!.Loading);
+        Assert.False(inputsInteractionInfo.Inputs["Dynamic"].DynamicLoadingState!.Loading);
         Assert.Equal("loaded", inputsInteractionInfo.Inputs["Dynamic"].Options![0].Key);
     }
 
@@ -891,10 +891,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["DoesNotExist"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"
@@ -924,10 +924,10 @@ public class InteractionServiceTests
                 Label = "Choice",
                 InputType = InputType.Choice,
                 Required = true,
-                DynamicOptions = new DynamicInputOptions
+                DynamicLoading = new InputLoadOptions
                 {
                     DependsOnInputs = ["Age"],
-                    UpdateInputCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
+                    LoadCallback = c => Task.FromResult<IReadOnlyList<KeyValuePair<string, string>>>(new Dictionary<string, string>
                     {
                         ["option1"] = "Option 1",
                         ["option2"] = "Option 2"

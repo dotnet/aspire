@@ -130,7 +130,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
         return new MetricsPageState
         {
             ResourceName = PageViewModel.SelectedResource.Id is not null ? PageViewModel.SelectedResource.Name : null,
-            MeterName = PageViewModel.SelectedMeter?.Name,
+            MeterName = PageViewModel.SelectedMeter,
             InstrumentName = PageViewModel.SelectedInstrument?.Name,
             DurationMinutes = (int)PageViewModel.SelectedDuration.Id.TotalMinutes,
             ViewKind = PageViewModel.SelectedViewKind?.ToString()
@@ -158,7 +158,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
         if (viewModel.Instruments != null && !string.IsNullOrEmpty(MeterName))
         {
-            viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.Name == MeterName)?.Parent;
+            viewModel.SelectedMeter = viewModel.Instruments.FirstOrDefault(i => i.Parent.Name == MeterName)?.Parent.Name;
             if (viewModel.SelectedMeter != null && !string.IsNullOrEmpty(InstrumentName))
             {
                 viewModel.SelectedInstrument = viewModel.Instruments.FirstOrDefault(i => i.Parent.Name == MeterName && i.Name == InstrumentName);
@@ -222,7 +222,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     private bool ShouldClearSelectedMetrics(List<OtlpInstrumentSummary> instruments)
     {
-        if (PageViewModel.SelectedMeter != null && !instruments.Any(i => i.Parent.Name == PageViewModel.SelectedMeter.Name))
+        if (PageViewModel.SelectedMeter != null && !instruments.Any(i => i.Parent.Name == PageViewModel.SelectedMeter))
         {
             return true;
         }
@@ -255,7 +255,7 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
     public sealed class MetricsViewModel
     {
         public FluentTreeItem? SelectedTreeItem { get; set; }
-        public OtlpScope? SelectedMeter { get; set; }
+        public string? SelectedMeter { get; set; }
         public OtlpInstrumentSummary? SelectedInstrument { get; set; }
         public required SelectViewModel<ResourceTypeDetails> SelectedResource { get; set; }
         public SelectViewModel<TimeSpan> SelectedDuration { get; set; } = null!;
@@ -280,14 +280,14 @@ public partial class Metrics : IDisposable, IComponentWithTelemetry, IPageWithSe
 
     private Task HandleSelectedTreeItemChangedAsync()
     {
-        if (PageViewModel.SelectedTreeItem?.Data is OtlpScope meter)
+        if (PageViewModel.SelectedTreeItem?.Data is string meter)
         {
             PageViewModel.SelectedMeter = meter;
             PageViewModel.SelectedInstrument = null;
         }
         else if (PageViewModel.SelectedTreeItem?.Data is OtlpInstrumentSummary instrument)
         {
-            PageViewModel.SelectedMeter = instrument.Parent;
+            PageViewModel.SelectedMeter = instrument.Parent.Name;
             PageViewModel.SelectedInstrument = instrument;
         }
         else

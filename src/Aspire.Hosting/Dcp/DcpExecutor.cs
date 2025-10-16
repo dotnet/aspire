@@ -10,6 +10,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -71,6 +72,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly List<AppResource> _appResources = [];
     private readonly CancellationTokenSource _shutdownCancellation = new();
     private readonly DcpExecutorEvents _executorEvents;
+    private readonly Locations _locations;
+    private readonly IDeveloperCertificateService _developerCertificateService;
 
     private readonly DcpResourceState _resourceState;
     private readonly ResourceSnapshotBuilder _snapshotBuilder;
@@ -104,7 +107,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                        ResourceLoggerService loggerService,
                        IDcpDependencyCheckService dcpDependencyCheckService,
                        DcpNameGenerator nameGenerator,
-                       DcpExecutorEvents executorEvents)
+                       DcpExecutorEvents executorEvents,
+                       Locations locations,
+                       IDeveloperCertificateService developerCertificateService)
     {
         _distributedApplicationLogger = distributedApplicationLogger;
         _kubernetesService = kubernetesService;
@@ -122,6 +127,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
         _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
+        _locations = locations;
+        _developerCertificateService = developerCertificateService;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
@@ -547,7 +554,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private static IEnumerable<LogEntry> CreateLogEntries(IReadOnlyList<(string, bool)> batch)
     {
-        foreach (var (content, isError) in batch)
+        foreach (var (content, logEntryType) in batch)
         {
             DateTime? timestamp = null;
             var resolvedContent = content;
@@ -558,7 +565,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 timestamp = result.Value.Timestamp.UtcDateTime;
             }
 
-            yield return LogEntry.Create(timestamp, resolvedContent, content, isError, resourcePrefix: null);
+            yield return LogEntry.Create(timestamp, resolvedContent, content, logEntryType, resourcePrefix: null);
         }
     }
 
@@ -1248,6 +1255,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             throw new FailedToApplyEnvironmentException();
         }
 
+        (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
+            spec.Env.AddRange(certificateEnv);
+        }
+        else
+        {
+            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", er.ModelResource.Name);
+        }
+
         try
         {
             AspireEventSource.Instance.DcpExecutableCreateStart(er.DcpResourceName);
@@ -1502,6 +1520,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         if (failedToApplyRunArgs || failedToApplyArgs || failedToApplyConfiguration)
         {
             throw new FailedToApplyEnvironmentException();
+        }
+
+        (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
+        if (applyCustomCertificateConfig)
+        {
+            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
+            spec.Env = (spec.Env ?? []).Concat(certificateEnv).ToList();
+            spec.CreateFiles.AddRange(certificateFiles);
+        }
+        else
+        {
+            resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied arguments or environment that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelContainerResource.Name);
         }
 
         if (_dcpInfo is not null)
@@ -2009,6 +2039,301 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
+    }
+
+    /// <summary>
+    /// Build up the certificate authority trust configuration for an executable.
+    /// </summary>
+    /// <param name="modelResource">The executable IResource.</param>
+    /// <param name="resourceArguments">The existing list of executable command line arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of executable environment variables.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing additional command line arguments and environment variables, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    {
+        // Apply the default dev cert trust behavior from options
+        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+
+        var certificates = new X509Certificate2Collection();
+        var scope = CustomCertificateAuthoritiesScope.Append;
+        if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        {
+            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
+            {
+                certificates.AddRange(certCollection.Certificates);
+            }
+
+            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+            scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (trustDevCert)
+        {
+            foreach (var cert in _developerCertificateService.Certificates)
+            {
+                certificates.Add(cert);
+            }
+        }
+
+        var context = new ExecutableCertificateTrustCallbackAnnotationContext
+        {
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
+        if (modelResource.TryGetLastAnnotation<ExecutableCertificateTrustCallbackAnnotation>(out var callbackAnnotation))
+        {
+            await callbackAnnotation.Callback(context).ConfigureAwait(false);
+        }
+
+        var arguments = new List<string>();
+        var envVars = new List<EnvVar>();
+        if (context.Certificates.Count > 0)
+        {
+            // Path the custom certificates will be written to
+            var caBundlePath = Path.Join(_locations.DcpSessionDir, modelResource.Name, "cert.pem");
+
+            foreach (var arg in context.CertificateTrustArguments)
+            {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
+                arguments.Add(arg);
+            }
+
+            foreach (var arg in context.CertificateBundleArguments)
+            {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), false);
+                }
+
+                arguments.Add(arg);
+                arguments.Add(caBundlePath);
+            }
+
+            // Build the required environment variables to configure the resource to trust the custom certificates
+            foreach (var caFileEnv in context.CertificateBundleEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caFileEnv,
+                    Value = caBundlePath,
+                });
+            }
+
+            // First build a CA bundle (concatenation of all certs in PEM format)
+            var caBundleBuilder = new StringBuilder();
+            foreach (var cert in context.Certificates)
+            {
+                caBundleBuilder.Append(cert.ExportCertificatePem());
+                caBundleBuilder.Append('\n');
+            }
+
+            Directory.CreateDirectory(Path.Join(_locations.DcpSessionDir, modelResource.Name));
+            File.WriteAllText(caBundlePath, caBundleBuilder.ToString());
+        }
+
+        return (arguments, envVars, true);
+    }
+
+    /// <summary>
+    /// Build up the certificate authority trust configuration for a container.
+    /// </summary>
+    /// <param name="modelResource">The container IResource.</param>
+    /// <param name="resourceArguments">The existing list of container arguments.</param>
+    /// <param name="resourceEnvironment">The existing list of container environment variables.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/> that can be used to cancel the operation.</param>
+    /// <returns>A tuple containing additional command line arguments, environment variables, and container file entries required to configure certificate authority trust, as well as a boolean indicating whether the operation was successful.</returns>
+    private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
+    {
+        // Apply the default dev cert trust behavior from options
+        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+
+        var certificates = new X509Certificate2Collection();
+        var scope = CustomCertificateAuthoritiesScope.Append;
+        if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
+        {
+            foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
+            {
+                certificates.AddRange(certCollection.Certificates);
+            }
+
+            trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
+            scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (trustDevCert)
+        {
+            foreach (var cert in _developerCertificateService.Certificates)
+            {
+                certificates.Add(cert);
+            }
+        }
+
+        var context = new ContainerCertificateTrustCallbackAnnotationContext
+        {
+            Resource = modelResource,
+            Scope = scope,
+            Certificates = certificates,
+            CancellationToken = cancellationToken
+        };
+        if (scope == CustomCertificateAuthoritiesScope.Override)
+        {
+            // Override default OpenSSL certificate bundle path resolution
+            // SSL_CERT_FILE is always added to the defaults when the scope is Override
+            // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
+            context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+        }
+
+        if (modelResource.TryGetLastAnnotation<ContainerCertificateTrustCallbackAnnotation>(out var callbackAnnotation))
+        {
+            await callbackAnnotation.Callback(context).ConfigureAwait(false);
+        }
+
+        var arguments = new List<string>();
+        var envVars = new List<EnvVar>();
+        var createFiles = new List<ContainerCreateFileSystem>();
+        if (context.Certificates.Count > 0)
+        {
+            var caBundlePath = context.CustomCertificatesContainerFilePath + "/cert.pem";
+            var caFilesPath = context.CustomCertificatesContainerFilePath + "/certs";
+
+            foreach (var arg in context.CertificateTrustArguments)
+            {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
+                arguments.Add(arg);
+            }
+
+            foreach (var arg in context.CertificateBundleArguments)
+            {
+                if (resourceArguments.Contains(arg))
+                {
+                    // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
+                    return (new List<string>(), new List<EnvVar>(), createFiles, false);
+                }
+
+                arguments.Add(arg);
+                arguments.Add(caBundlePath);
+            }
+
+            // Build the required environment variables to configure the resource to trust the custom certificates
+            foreach (var caFileEnv in context.CertificateBundleEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caFileEnv,
+                    Value = caBundlePath,
+                });
+            }
+
+            var caDirEnvValue = caFilesPath;
+            if (scope == CustomCertificateAuthoritiesScope.Append)
+            {
+                foreach (var defaultCaDir in context.DefaultContainerCertificatesDirectoryPaths)
+                {
+                    caDirEnvValue += $":{defaultCaDir}";
+                }
+            }
+
+            foreach (var caDirEnv in context.CertificatesDirectoryEnvironment)
+            {
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.Ordinal)))
+                {
+                    // If any of the certificate environment variables are already present in the existing env list, then we
+                    // assume the user has already done custom certificate configuration and we won't do automatic
+                    // configuration.
+                    return (resourceArguments, resourceEnvironment, createFiles, false);
+                }
+
+                envVars.Add(new EnvVar
+                {
+                    Name = caDirEnv,
+                    Value = caDirEnvValue,
+                });
+            }
+
+            // First build a CA bundle (concatenation of all certs in PEM format)
+            var caBundleBuilder = new StringBuilder();
+            var certificateFiles = new List<ContainerFileSystemEntry>();
+            foreach (var cert in context.Certificates.OrderBy(c => c.Thumbprint))
+            {
+                caBundleBuilder.Append(cert.ExportCertificatePem());
+                caBundleBuilder.Append('\n');
+                certificateFiles.Add(new ContainerFileSystemEntry
+                {
+                    Name = cert.Thumbprint + ".pem",
+                    Type = ContainerFileSystemEntryType.OpenSSL,
+                    Contents = cert.ExportCertificatePem(),
+                });
+            }
+
+            createFiles.Add(new ContainerCreateFileSystem
+            {
+                Destination = context.CustomCertificatesContainerFilePath,
+                Entries = [
+                    new ContainerFileSystemEntry
+                    {
+                        Name = "cert.pem",
+                        Contents = caBundleBuilder.ToString(),
+                    },
+                    new ContainerFileSystemEntry
+                    {
+                        Name = "certs",
+                        Type = ContainerFileSystemEntryType.Directory,
+                        Entries = certificateFiles.ToList(),
+                    }
+                ],
+            });
+
+            if (scope == CustomCertificateAuthoritiesScope.Override)
+            {
+                // If overriding the system CA bundle, then we want to copy our bundle to the well-known locations
+                // used by common Linux distributions to make it easier to ensure applications pick it up.
+                foreach (var bundlePath in context.DefaultContainerCertificateAuthorityBundlePaths)
+                {
+                    createFiles.Add(new ContainerCreateFileSystem
+                    {
+                        Destination = bundlePath,
+                        Entries = [
+                            new ContainerFileSystemEntry
+                            {
+                                Name = Path.GetFileName(bundlePath),
+                                Contents = caBundleBuilder.ToString(),
+                            },
+                        ],
+                    });
+                }
+            }
+        }
+
+        return (arguments, envVars, createFiles, true);
     }
 
     private string[]? GetSupportedLaunchConfigurations()

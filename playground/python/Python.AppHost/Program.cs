@@ -5,8 +5,18 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddPythonApp("script-only", "../script_only", "main.py");
-builder.AddPythonApp("instrumented-script", "../instrumented_script", "main.py");
+builder.AddPythonScript("script-only", "../script_only", "main.py");
+builder.AddPythonScript("instrumented-script", "../instrumented_script", "main.py");
+
+builder.AddPythonModule("fastapi-app", "../module_only", "uvicorn")
+    .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8000")
+    .WithHttpEndpoint(targetPort: 8000)
+    .WithUvEnvironment();
+
+// Run the same app on another port using uvicorn directly
+builder.AddPythonExecutable("fastapi-uvicorn-app", "../module_only", "uvicorn")
+    .WithArgs("api:app", "--reload", "--host=0.0.0.0", "--port=8001")
+    .WithHttpEndpoint(targetPort: 8001);
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging

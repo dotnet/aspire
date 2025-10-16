@@ -199,7 +199,7 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="translated">有篩選條件</target>
+        <target state="translated">有篩選</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphResetButton">

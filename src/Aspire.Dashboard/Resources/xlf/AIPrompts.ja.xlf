@@ -129,7 +129,7 @@
       </trans-unit>
       <trans-unit id="TitleInvestigateUnhealthyResources">
         <source>Investigate unhealthy resources</source>
-        <target state="translated">異常なリソースを調査します</target>
+        <target state="new">Investigate unhealthy resources</target>
         <note />
       </trans-unit>
       <trans-unit id="TitlePerformance">
