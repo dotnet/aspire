@@ -21,6 +21,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 using System.Security.Cryptography;
+using StreamJsonRpc;
 
 namespace Aspire.Cli.DotNet;
 
@@ -51,6 +52,7 @@ internal sealed class DotNetCliRunnerInvocationOptions
     public bool StartDebugSession { get; set; }
     public bool NoExtensionLaunch { get; set; }
     public bool Debug { get; set; }
+    public bool IsWatchMode { get; set; }
 }
 
 internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider serviceProvider, AspireCliTelemetry telemetry, IConfiguration configuration, IFeatures features, IInteractionService interactionService, CliExecutionContext executionContext, IDiskCache diskCache) : IDotNetCliRunner
@@ -295,6 +297,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 finalEnv["DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER"] = "true";
             }
         }
+
+        // Store watch mode state for backchannel reconnection
+        options.IsWatchMode = watch;
 
         return await ExecuteAsync(
             args: cliArgs,
@@ -557,7 +562,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                     startInfo.Environment.Select(kvp => new EnvVar { Name = kvp.Key, Value = kvp.Value }).ToList(),
                     options.StartDebugSession);
 
-                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, cancellationToken);
+                _ = StartBackchannelAsync(null, socketPath, backchannelCompletionSource, options, cancellationToken);
 
                 return ExitCodeConstants.Success;
             }
@@ -571,7 +576,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
 
         if (backchannelCompletionSource is not null)
         {
-            _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, cancellationToken);
+            _ = StartBackchannelAsync(process, socketPath, backchannelCompletionSource, options, cancellationToken);
         }
 
         var pendingStdoutStreamForwarder = Task.Run(async () => {
@@ -643,7 +648,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
     }
 
-    private async Task StartBackchannelAsync(Process? process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, CancellationToken cancellationToken)
+    private async Task StartBackchannelAsync(Process? process, string socketPath, TaskCompletionSource<IAppHostBackchannel> backchannelCompletionSource, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
@@ -663,11 +668,28 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
                 logger.LogTrace("Attempting to connect to AppHost backchannel at {SocketPath} (attempt {Attempt})", socketPath, connectionAttempts++);
                 await backchannel.ConnectAsync(socketPath, cancellationToken).ConfigureAwait(false);
                 backchannelCompletionSource.SetResult(backchannel);
-                backchannel.AddDisconnectHandler((_, _) =>
+                
+                // Set up disconnect handler based on watch mode
+                if (options.IsWatchMode)
                 {
-                    // If the backchannel disconnects, we want to stop the CLI process
-                    Environment.Exit(ExitCodeConstants.Success);
-                });
+                    backchannel.AddDisconnectHandler((_, args) =>
+                    {
+                        // Fire and forget the reconnection attempt
+                        _ = Task.Run(async () =>
+                        {
+                            await HandleBackchannelDisconnectInWatchModeAsync(process, socketPath, args, cancellationToken);
+                        });
+                    });
+                }
+                else
+                {
+                    backchannel.AddDisconnectHandler((_, _) =>
+                    {
+                        // In non-watch mode, exit immediately on disconnect
+                        logger.LogInformation("Backchannel disconnected. Exiting CLI.");
+                        Environment.Exit(ExitCodeConstants.Success);
+                    });
+                }
 
                 logger.LogDebug("Connected to AppHost backchannel at {SocketPath}", socketPath);
                 return;
@@ -721,6 +743,70 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
 
         } while (await timer.WaitForNextTickAsync(cancellationToken));
+    }
+
+    private async Task HandleBackchannelDisconnectInWatchModeAsync(Process? process, string socketPath, JsonRpcDisconnectedEventArgs args, CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Backchannel disconnected in watch mode. Reason: {Reason}. Attempting to reconnect...", args.Reason);
+        
+        // Check if the process is still running or if watch restarted it
+        if (process is not null && process.HasExited && process.ExitCode != 0)
+        {
+            logger.LogWarning("AppHost process exited with non-zero exit code {ExitCode}. Cannot reconnect.", process.ExitCode);
+            Environment.Exit(ExitCodeConstants.FailedToDotnetRunAppHost);
+            return;
+        }
+
+        // Attempt to reconnect with retries
+        const int maxReconnectAttempts = 30; // 30 attempts over ~30 seconds
+        const int retryDelayMs = 1000;
+        
+        for (int attempt = 1; attempt <= maxReconnectAttempts; attempt++)
+        {
+            try
+            {
+                logger.LogDebug("Reconnection attempt {Attempt} of {MaxAttempts}", attempt, maxReconnectAttempts);
+                
+                // Wait before attempting reconnection to give the apphost time to restart
+                await Task.Delay(retryDelayMs, cancellationToken);
+                
+                // Try to reconnect using a new backchannel instance
+                var newBackchannel = serviceProvider.GetRequiredService<IAppHostBackchannel>();
+                await newBackchannel.ConnectAsync(socketPath, cancellationToken);
+                
+                logger.LogInformation("Successfully reconnected to AppHost backchannel after {Attempts} attempts.", attempt);
+                
+                // Set up the disconnect handler again for future disconnects
+                newBackchannel.AddDisconnectHandler((_, disconnectArgs) =>
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await HandleBackchannelDisconnectInWatchModeAsync(process, socketPath, disconnectArgs, cancellationToken);
+                    });
+                });
+                
+                return;
+            }
+            catch (SocketException ex) when (attempt < maxReconnectAttempts)
+            {
+                logger.LogTrace(ex, "Reconnection attempt {Attempt} failed. Will retry.", attempt);
+                // Continue to next attempt
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                logger.LogInformation("Reconnection cancelled by user.");
+                Environment.Exit(ExitCodeConstants.Success);
+                return;
+            }
+            catch (Exception ex) when (attempt < maxReconnectAttempts)
+            {
+                logger.LogWarning(ex, "Unexpected error during reconnection attempt {Attempt}. Will retry.", attempt);
+                // Continue to next attempt
+            }
+        }
+        
+        logger.LogError("Failed to reconnect to AppHost backchannel after {MaxAttempts} attempts. Exiting.", maxReconnectAttempts);
+        Environment.Exit(ExitCodeConstants.FailedToDotnetRunAppHost);
     }
 
     public async Task<int> BuildAsync(FileInfo projectFilePath, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
