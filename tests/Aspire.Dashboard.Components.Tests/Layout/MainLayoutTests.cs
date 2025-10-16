@@ -2,15 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Dashboard.Components.Layout;
-using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.BrowserStorage;
-using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Tests;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
 using Bunit;
@@ -184,38 +179,23 @@ public partial class MainLayoutTests : DashboardTestContext
 
     private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, bool suppressUnsecuredMessage = false)
     {
-        Services.AddLocalization();
+        FluentUISetupHelpers.AddCommonDashboardServices(this, localStorage: localStorage, messageService: messageService);
+        
         Services.AddOptions();
-        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-        Services.AddSingleton<ThemeManager>();
-        Services.AddSingleton<IDialogService, DialogService>();
-        Services.AddSingleton<IDashboardClient, TestDashboardClient>();
-        Services.AddSingleton<ILocalStorage>(localStorage ?? new TestLocalStorage());
         Services.AddSingleton<IThemeResolver, TestThemeResolver>();
-        Services.AddSingleton<ShortcutManager>();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        Services.AddSingleton<IMessageService>(messageService ?? new MessageService());
-        Services.AddSingleton<LibraryConfiguration>();
+        Services.AddSingleton<IDashboardClient, TestDashboardClient>();
         Services.AddSingleton<ITooltipService, TooltipService>();
         Services.AddSingleton<IToastService, ToastService>();
         Services.AddSingleton<GlobalState>();
-        Services.AddSingleton<DashboardTelemetryService>();
-        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        Services.AddSingleton<ComponentTelemetryContextProvider>();
         Services.Configure<DashboardOptions>(o =>
         {
             o.Otlp.AuthMode = OtlpAuthMode.Unsecured;
             o.Otlp.SuppressUnsecuredTelemetryMessage = suppressUnsecuredMessage;
         });
 
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js", version));
-
-        var overflowModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
-        overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
-
-        var anchorModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
+        FluentUISetupHelpers.SetupFluentDialogProvider(this);
+        FluentUISetupHelpers.SetupFluentOverflow(this);
+        FluentUISetupHelpers.SetupFluentAnchor(this);
 
         var themeModule = JSInterop.SetupModule("/js/app-theme.js");
 
@@ -223,10 +203,5 @@ public partial class MainLayoutTests : DashboardTestContext
         JSInterop.SetupModule("window.registerOpenTextVisualizerOnClick", _ => true);
 
         JSInterop.Setup<BrowserInfo>("window.getBrowserInfo").SetResult(new BrowserInfo { TimeZone = "abc", UserAgent = "mozilla" });
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }
