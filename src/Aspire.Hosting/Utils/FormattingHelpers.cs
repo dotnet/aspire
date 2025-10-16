@@ -10,7 +10,7 @@ internal sealed class FormattingHelpers
         return format.ToLowerInvariant() switch
         {
             "uri" => Uri.EscapeDataString(value),
-            _ => throw new NotSupportedException($"The format '{format}' is not supported. Supported formats are: uri")
+            _ => throw new NotSupportedException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)")
         };
     }
 }

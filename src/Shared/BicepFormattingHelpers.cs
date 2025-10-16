@@ -19,7 +19,7 @@ internal sealed class BicepFormattingHelpers
         return format.ToLowerInvariant() switch
         {
             "uri" => new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression),
-            _ => throw new NotSupportedException($"The format '{format}' is not supported. Supported formats are: uri")
+            _ => throw new NotSupportedException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)")
         };
     }
 }

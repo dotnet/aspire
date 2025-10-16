@@ -149,19 +149,15 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         /// <param name="format">The format to be applied to the value. e.g., "uri"</param>
         public readonly void AppendFormatted(string? value, string? format = null)
         {
-            if (format is not null)
-            {
-                value = format.ToLowerInvariant() switch
-                {
-                    "uri" => Uri.EscapeDataString(value ?? ""),
-                    _ => throw new FormatException($"The format '{format}' is not supported. Supported formats are 'uri' (encodes a URI)."),
-                };
-            }
-
             // The value that comes in is a literal string that is not meant to be interpreted.
             // But the _builder later gets treated as a format string, so we just need to escape the braces.
             if (value is not null)
             {
+                if (format is not null)
+                {
+                    value = FormattingHelpers.FormatValue(value, format);
+                }
+
                 _builder.Append(EscapeUnescapedBraces(value));
             }
         }

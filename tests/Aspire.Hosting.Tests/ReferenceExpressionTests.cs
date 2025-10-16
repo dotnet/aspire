@@ -92,6 +92,16 @@ public class ReferenceExpressionTests
         Assert.Equal("[{\"api_uri\":\"Hello World\"}]", await expr.GetValueAsync(default));
     }
 
+    [Fact]
+    public async Task ReferenceExpressionIsUrlEncoded()
+    {
+        var v = new Value();
+
+        var expr = ReferenceExpression.Create($"Text: {v:uri}");
+
+        Assert.Equal("Text: [\"Hello%20World\"]", await expr.GetValueAsync(default));
+    }
+
     private sealed class Value : IValueProvider, IManifestExpressionProvider
     {
         public string ValueExpression => "{value}";
