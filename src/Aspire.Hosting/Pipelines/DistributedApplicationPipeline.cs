@@ -113,7 +113,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         ValidateSteps(allSteps);
 
-        var stepsByName = allSteps.ToDictionary(s => s.Name);
+        var stepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
         // Build dependency graph and execute with readiness-based scheduler
         await ExecuteStepsAsTaskDag(allSteps, stepsByName, context).ConfigureAwait(false);
@@ -138,7 +138,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)
     {
-        var stepNames = new HashSet<string>();
+        var stepNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var step in steps)
         {
@@ -184,7 +184,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         ValidateDependencyGraph(steps, stepsByName);
 
         // Create a TaskCompletionSource for each step
-        var stepCompletions = new Dictionary<string, TaskCompletionSource>(steps.Count);
+        var stepCompletions = new Dictionary<string, TaskCompletionSource>(steps.Count, StringComparer.Ordinal);
         foreach (var step in steps)
         {
             stepCompletions[step.Name] = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -205,9 +205,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
                 catch (Exception ex)
                 {
-                    // Dependency failed - mark this step as failed and stop, but don't re-throw
-                    // to avoid counting the same root cause exception multiple times
-                    stepTcs.TrySetException(ex);
+                    // Find which dependency failed
+                    var failedDep = step.DependsOnSteps.FirstOrDefault(depName => stepCompletions[depName].Task.IsFaulted);
+                    var message = failedDep != null
+                        ? $"Step '{step.Name}' cannot run because dependency '{failedDep}' failed"
+                        : $"Step '{step.Name}' cannot run because a dependency failed";
+                    
+                    // Wrap the dependency failure with context about this step
+                    var wrappedException = new InvalidOperationException(message, ex);
+                    stepTcs.TrySetException(wrappedException);
                     return;
                 }
             }
@@ -241,7 +247,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
         catch
         {
-            // Collect all failed steps
+            // Collect all failed steps and their names
             var failures = allStepTasks
                 .Where(t => t.IsFaulted)
                 .Select(t => t.Exception!)
@@ -250,7 +256,22 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             if (failures.Count > 1)
             {
-                throw new AggregateException("Multiple pipeline steps failed.", failures);
+                // Extract step names from the exception messages where possible
+                var failedStepNames = failures
+                    .OfType<InvalidOperationException>()
+                    .Select(e => {
+                        var match = System.Text.RegularExpressions.Regex.Match(e.Message, @"Step '([^']+)' failed");
+                        return match.Success ? match.Groups[1].Value : null;
+                    })
+                    .Where(name => name != null)
+                    .Distinct()
+                    .ToList();
+
+                var message = failedStepNames.Count > 0
+                    ? $"Multiple pipeline steps failed: {string.Join(", ", failedStepNames)}"
+                    : "Multiple pipeline steps failed.";
+
+                throw new AggregateException(message, failures);
             }
 
             // Single failure - just rethrow
@@ -259,11 +280,32 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
+    /// Represents the visitation state of a step during cycle detection.
+    /// </summary>
+    private enum VisitState
+    {
+        /// <summary>
+        /// The step has not been visited yet.
+        /// </summary>
+        Unvisited,
+        
+        /// <summary>
+        /// The step is currently being visited (on the current DFS path).
+        /// </summary>
+        Visiting,
+        
+        /// <summary>
+        /// The step has been fully visited (all descendants explored).
+        /// </summary>
+        Visited
+    }
+
+    /// <summary>
     /// Validates that the pipeline steps form a directed acyclic graph (DAG) with no circular dependencies.
     /// </summary>
     /// <remarks>
     /// Uses depth-first search (DFS) to detect cycles. A cycle exists if we encounter a node that is
-    /// currently being visited (on the current DFS path).
+    /// currently being visited (in the Visiting state), meaning we've found a back edge in the graph.
     /// 
     /// Example: A → B → C is valid (no cycle)
     /// Example: A → B → C → A is invalid (cycle detected)
@@ -288,44 +330,51 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
         }
 
-        var visited = new HashSet<string>(steps.Count);
-        var path = new Stack<string>();
+        var visitStates = new Dictionary<string, VisitState>(steps.Count, StringComparer.Ordinal);
+        foreach (var step in steps)
+        {
+            visitStates[step.Name] = VisitState.Unvisited;
+        }
 
         // DFS to detect cycles
-        void DetectCycles(string stepName)
+        void DetectCycles(string stepName, Stack<string> path)
         {
-            if (path.Contains(stepName)) // Currently visiting - cycle detected!
+            var state = visitStates[stepName];
+
+            if (state == VisitState.Visiting) // Currently visiting - cycle detected!
             {
                 var cycle = path.Reverse().SkipWhile(s => s != stepName).Append(stepName);
                 throw new InvalidOperationException(
                     $"Circular dependency detected in pipeline steps: {string.Join(" → ", cycle)}");
             }
 
-            if (visited.Contains(stepName)) // Already visited - no need to check again
+            if (state == VisitState.Visited) // Already fully visited - no need to check again
             {
                 return;
             }
 
+            visitStates[stepName] = VisitState.Visiting;
             path.Push(stepName);
 
             if (stepsByName.TryGetValue(stepName, out var step))
             {
                 foreach (var dependency in step.DependsOnSteps)
                 {
-                    DetectCycles(dependency);
+                    DetectCycles(dependency, path);
                 }
             }
 
             path.Pop();
-            visited.Add(stepName);
+            visitStates[stepName] = VisitState.Visited;
         }
 
         // Check each step for cycles
+        var path = new Stack<string>();
         foreach (var step in steps)
         {
-            if (!visited.Contains(step.Name))
+            if (visitStates[step.Name] == VisitState.Unvisited)
             {
-                DetectCycles(step.Name);
+                DetectCycles(step.Name, path);
             }
         }
     }
