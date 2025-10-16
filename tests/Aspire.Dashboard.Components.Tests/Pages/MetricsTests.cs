@@ -229,7 +229,7 @@ public partial class MetricsTests : DashboardTestContext
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
                 Assert.Single(items1, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items1, i => i.Instance.Data as OtlpScope == instrument.Parent);
+                Assert.Single(items1, i => i.Instance.Data as string == instrument.Parent.Name);
             }
         });
 
@@ -274,7 +274,7 @@ public partial class MetricsTests : DashboardTestContext
             foreach (var instrument in cut.Instance.PageViewModel.Instruments!)
             {
                 Assert.Single(items2, i => i.Instance.Data as OtlpInstrumentSummary == instrument);
-                Assert.Single(items2, i => i.Instance.Data as OtlpScope == instrument.Parent);
+                Assert.Single(items2, i => i.Instance.Data as string == instrument.Parent.Name);
             }
         });
     }
@@ -343,7 +343,7 @@ public partial class MetricsTests : DashboardTestContext
         var viewModel = cut.Instance.PageViewModel;
 
         // Assert 1
-        Assert.Equal("test-meter", viewModel.SelectedMeter!.Name);
+        Assert.Equal("test-meter", viewModel.SelectedMeter);
         Assert.Equal(app1InstrumentName, viewModel.SelectedInstrument!.Name);
 
         // Act 2
@@ -354,7 +354,7 @@ public partial class MetricsTests : DashboardTestContext
         cut.WaitForAssertion(() => Assert.Equal("TestApp2", viewModel.SelectedResource.Name));
 
         Assert.Equal(expectedInstrumentNameAfterChange, viewModel.SelectedInstrument?.Name);
-        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter?.Name);
+        Assert.Equal(expectedMeterNameAfterChange, viewModel.SelectedMeter);
 
         Assert.Equal(MetricViewKind.Table, viewModel.SelectedViewKind);
         Assert.Equal(TimeSpan.FromMinutes(720), viewModel.SelectedDuration.Id);
