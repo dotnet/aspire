@@ -21,9 +21,24 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
 
     IEnumerable<object> IValueWithReferences.References => [Resource];
 
-    async ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
+    ValueTask<string?> IValueProvider.GetValueAsync(CancellationToken cancellationToken)
     {
-        var value = await Resource.GetValueAsync(cancellationToken).ConfigureAwait(false);
+        return this.GetNetworkValueAsync(null, cancellationToken);
+    }
+
+    ValueTask<string?> IValueProvider.GetValueAsync(ValueProviderContext context, CancellationToken cancellationToken)
+    {
+        return context.Network switch
+        {
+            NetworkIdentifier networkContext => GetNetworkValueAsync(networkContext, cancellationToken),
+            _ => GetNetworkValueAsync(null, cancellationToken)
+        };
+    }
+
+    private async ValueTask<string?> GetNetworkValueAsync(NetworkIdentifier? networkContext, CancellationToken cancellationToken)
+    {
+        ValueProviderContext vpc = new() { Network = networkContext };
+        var value = await Resource.GetValueAsync(vpc, cancellationToken).ConfigureAwait(false);
 
         if (string.IsNullOrEmpty(value) && !Optional)
         {
@@ -34,4 +49,5 @@ public class ConnectionStringReference(IResourceWithConnectionString resource, b
     }
 
     internal void ThrowConnectionStringUnavailableException() => throw new DistributedApplicationException($"The connection string for the resource '{Resource.Name}' is not available.");
+
 }

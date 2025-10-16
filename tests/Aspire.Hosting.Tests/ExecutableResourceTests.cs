@@ -36,7 +36,7 @@ public class ExecutableResourceTests
                  context.Args.Add("arg2");
                  context.Args.Add(exe1.GetEndpoint("ep"));
                  context.Args.Add(testResource2);
-                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep", null));
              });
 
         using var app = appBuilder.Build();
