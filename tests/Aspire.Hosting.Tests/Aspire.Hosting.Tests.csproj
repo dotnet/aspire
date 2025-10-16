@@ -25,7 +25,6 @@
 
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net" />
-    <PackageReference Include="KubernetesClient" />
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
