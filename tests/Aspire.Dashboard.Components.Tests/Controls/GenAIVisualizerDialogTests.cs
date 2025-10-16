@@ -120,7 +120,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService)
     {
-        FluentUISetupHelpers.SetupDialogInfrastructure(this, includeTelemetryErrorRecorder: true);
+        FluentUISetupHelpers.SetupDialogInfrastructure(this);
         var cut = FluentUISetupHelpers.RenderDialogProvider(this);
 
         dialogService = Services.GetRequiredService<IDialogService>();

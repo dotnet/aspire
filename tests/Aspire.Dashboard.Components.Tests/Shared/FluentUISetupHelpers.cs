@@ -100,8 +100,7 @@ internal static class FluentUISetupHelpers
         ILocalStorage? localStorage = null,
         ISessionStorage? sessionStorage = null,
         ThemeManager? themeManager = null,
-        IMessageService? messageService = null,
-        bool includeTelemetryErrorRecorder = false)
+        IMessageService? messageService = null)
     {
         context.Services.AddLocalization();
         context.Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
@@ -118,13 +117,8 @@ internal static class FluentUISetupHelpers
         context.Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
         context.Services.AddSingleton<ComponentTelemetryContextProvider>();
         context.Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-
-        if (includeTelemetryErrorRecorder)
-        {
-            context.Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
-        }
-
-        context.Services.AddSingleton(themeManager ?? new ThemeManager(new TestThemeResolver()));
+        context.Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
+        context.Services.AddSingleton<ThemeManager>(themeManager ?? new ThemeManager(new TestThemeResolver()));
     }
 
     public static void SetupFluentUIComponents(TestContext context)
@@ -138,10 +132,9 @@ internal static class FluentUISetupHelpers
     public static void SetupDialogInfrastructure(
         TestContext context,
         ThemeManager? themeManager = null,
-        ILocalStorage? localStorage = null,
-        bool includeTelemetryErrorRecorder = false)
+        ILocalStorage? localStorage = null)
     {
-        AddCommonDashboardServices(context, localStorage: localStorage, themeManager: themeManager, includeTelemetryErrorRecorder: includeTelemetryErrorRecorder);
+        AddCommonDashboardServices(context, localStorage: localStorage, themeManager: themeManager);
         SetupFluentUIComponents(context);
         SetupFluentDialogProvider(context);
     }
