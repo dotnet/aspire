@@ -397,7 +397,9 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
                 else if (activity.Type == PublishingActivityTypes.Prompt)
                 {
+                    await logger.StopSpinnerAsync();
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+                    logger.StartSpinner();
                 }
                 else
                 {
