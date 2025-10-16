@@ -195,25 +195,25 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             var stepTcs = stepCompletions[step.Name];
 
+            // Wait for all dependencies to complete (will throw if any dependency failed)
+            if (step.DependsOnSteps.Count > 0)
+            {
+                try
+                {
+                    var depTasks = step.DependsOnSteps.Select(depName => stepCompletions[depName].Task);
+                    await Task.WhenAll(depTasks).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // Dependency failed - mark this step as failed and stop, but don't re-throw
+                    // to avoid counting the same root cause exception multiple times
+                    stepTcs.TrySetException(ex);
+                    return;
+                }
+            }
+
             try
             {
-                // Wait for all dependencies to complete (will throw if any dependency failed)
-                if (step.DependsOnSteps.Count > 0)
-                {
-                    try
-                    {
-                        var depTasks = step.DependsOnSteps.Select(depName => stepCompletions[depName].Task);
-                        await Task.WhenAll(depTasks).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Dependency failed - mark this step as failed and stop, but don't re-throw
-                        // to avoid counting the same root cause exception multiple times
-                        stepTcs.TrySetException(ex);
-                        return;
-                    }
-                }
-
                 await ExecuteStepAsync(step, context).ConfigureAwait(false);
 
                 stepTcs.TrySetResult();
