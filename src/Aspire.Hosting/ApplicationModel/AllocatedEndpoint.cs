@@ -42,11 +42,17 @@ public class AllocatedEndpoint
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="address">The IP address of the endpoint.</param>
-    /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
     /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
     /// <param name="bindingMode">The binding mode of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, EndpointBindingMode bindingMode, string? containerHostAddress = null, string? targetPortExpression = null)
+    /// <param name="networkID">The network identifier for the network associated with the endpoint.</param>
+    public AllocatedEndpoint(
+        EndpointAnnotation endpoint,
+        string address, int port,
+        EndpointBindingMode bindingMode,
+        string? targetPortExpression = null,
+        NetworkIdentifier? networkID = null
+    )
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -55,9 +61,9 @@ public class AllocatedEndpoint
         Endpoint = endpoint;
         Address = address;
         BindingMode = bindingMode;
-        ContainerHostAddress = containerHostAddress;
         Port = port;
         TargetPortExpression = targetPortExpression;
+        NetworkID = networkID ?? endpoint.DefaultNetworkID;
     }
 
     /// <summary>
@@ -65,11 +71,10 @@ public class AllocatedEndpoint
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="address">The IP address of the endpoint.</param>
-    /// <param name="containerHostAddress">The address of the container host.</param>
     /// <param name="port">The port number of the endpoint.</param>
     /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? containerHostAddress = null, string? targetPortExpression = null)
-        : this(endpoint, address, port, EndpointBindingMode.SingleAddress, containerHostAddress, targetPortExpression)
+    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, string? targetPortExpression = null)
+        : this(endpoint, address, port, EndpointBindingMode.SingleAddress, targetPortExpression)
     {
     }
 
@@ -88,11 +93,6 @@ public class AllocatedEndpoint
     /// IPv4 or IPv6 addresses (or both).
     /// </summary>
     public EndpointBindingMode BindingMode { get; private set; }
-
-    /// <summary>
-    /// The address of the container host. This is only set for containerized services.
-    /// </summary>
-    public string? ContainerHostAddress { get; private set; }
 
     /// <summary>
     /// The port used by the endpoint
@@ -118,6 +118,11 @@ public class AllocatedEndpoint
     /// A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.
     /// </summary>
     public string? TargetPortExpression { get; }
+
+    /// <summary>
+    /// Gets the network identifier for the network associated with the <see cref="AllocatedEndpoint"/> instance.
+    /// </summary>
+    public NetworkIdentifier NetworkID { get; private set; }
 
     /// <summary>
     /// Returns a string representation of the allocated endpoint URI.

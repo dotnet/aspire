@@ -14,7 +14,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var getValueTask = endpointRef.GetValueAsync(CancellationToken.None);
         Assert.False(getValueTask.IsCompleted);
@@ -32,7 +32,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var endpointExpr = endpointRef.Property(EndpointProperty.Url);
 
         var getValueTask = endpointExpr.GetValueAsync(CancellationToken.None);
@@ -52,7 +52,7 @@ public class EndpointReferenceTests
         resource.Annotations.Add(annotation);
         annotation.AllocatedEndpoint = new AllocatedEndpoint(annotation, "localhost", 8080);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var endpointExpr = endpointRef.Property(EndpointProperty.Url);
 
         var url = await endpointExpr.GetValueAsync(CancellationToken.None);
@@ -66,7 +66,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var hostExpr = endpointRef.Property(EndpointProperty.Host);
 
         var getValueTask = hostExpr.GetValueAsync(CancellationToken.None);
@@ -85,7 +85,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var portExpr = endpointRef.Property(EndpointProperty.Port);
 
         var getValueTask = portExpr.GetValueAsync(CancellationToken.None);
@@ -104,7 +104,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "https", name: "https");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var schemeExpr = endpointRef.Property(EndpointProperty.Scheme);
 
         var scheme = await schemeExpr.GetValueAsync(CancellationToken.None);
@@ -118,7 +118,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var ipv4Expr = endpointRef.Property(EndpointProperty.IPV4Host);
 
         var ipv4 = await ipv4Expr.GetValueAsync(CancellationToken.None);
@@ -132,7 +132,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http", targetPort: 5000);
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var targetPortExpr = endpointRef.Property(EndpointProperty.TargetPort);
 
         var targetPort = await targetPortExpr.GetValueAsync(CancellationToken.None);
@@ -146,7 +146,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var targetPortExpr = endpointRef.Property(EndpointProperty.TargetPort);
 
         var getValueTask = targetPortExpr.GetValueAsync(CancellationToken.None);
@@ -165,7 +165,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var endpointExpr = endpointRef.Property(EndpointProperty.Url);
 
         using var cts = new CancellationTokenSource();
@@ -183,7 +183,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
         var expr1 = endpointRef.Property(EndpointProperty.Url);
         var expr2 = endpointRef.Property(EndpointProperty.Host);
         var expr3 = endpointRef.Property(EndpointProperty.Port);
@@ -214,7 +214,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var ex = Assert.Throws<InvalidOperationException>(() => endpointRef.Port);
         Assert.Equal("The endpoint `http` is not allocated for the resource `test`.", ex.Message);
@@ -227,7 +227,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var ex = Assert.Throws<InvalidOperationException>(() => endpointRef.Host);
         Assert.Equal("The endpoint `http` is not allocated for the resource `test`.", ex.Message);
@@ -240,22 +240,9 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var ex = Assert.Throws<InvalidOperationException>(() => endpointRef.Url);
-        Assert.Equal("The endpoint `http` is not allocated for the resource `test`.", ex.Message);
-    }
-
-    [Fact]
-    public void ContainerHost_ThrowsWhenEndpointNotAllocated()
-    {
-        var resource = new TestResource("test");
-        var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
-        resource.Annotations.Add(annotation);
-
-        var endpointRef = new EndpointReference(resource, annotation);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => endpointRef.ContainerHost);
         Assert.Equal("The endpoint `http` is not allocated for the resource `test`.", ex.Message);
     }
 
@@ -266,7 +253,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "https", name: "https");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var scheme = endpointRef.Scheme;
         Assert.Equal("https", scheme);
@@ -279,7 +266,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http", targetPort: 5000);
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var targetPort = endpointRef.TargetPort;
         Assert.Equal(5000, targetPort);
@@ -292,7 +279,7 @@ public class EndpointReferenceTests
         var annotation = new EndpointAnnotation(ProtocolType.Tcp, uriScheme: "http", name: "http");
         resource.Annotations.Add(annotation);
 
-        var endpointRef = new EndpointReference(resource, annotation);
+        var endpointRef = new EndpointReference(resource, annotation, null);
 
         var targetPort = endpointRef.TargetPort;
         Assert.Null(targetPort);

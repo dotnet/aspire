@@ -223,24 +223,6 @@ public class WithEndpointTests
     }
 
     [Fact]
-    public void GettingContainerHostNameFailsIfNoContainerHostNameSet()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var container = builder.AddContainer("app", "image")
-            .WithEndpoint("ep", e =>
-            {
-                e.AllocatedEndpoint = new(e, "localhost", 8031);
-            });
-
-        var ex = Assert.Throws<InvalidOperationException>(() =>
-        {
-            return container.GetEndpoint("ep").ContainerHost;
-        });
-
-        Assert.Equal("The endpoint \"ep\" has no associated container host name.", ex.Message);
-    }
-
-    [Fact]
     public void WithExternalHttpEndpointsMarkExistingHttpEndpointsAsExternal()
     {
         using var builder = TestDistributedApplicationBuilder.Create();

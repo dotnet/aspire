@@ -240,7 +240,7 @@ internal class ResourceSnapshotBuilder
             var endpointUrls = resourceUrls.Where(u => u.Endpoint is not null).ToList();
             var nonEndpointUrls = resourceUrls.Where(u => u.Endpoint is null).ToList();
 
-            var resourceServices = _resourceState.AppResources.OfType<ServiceAppResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
+            var resourceServices = _resourceState.AppResources.OfType<ServiceWithModelResource>().Where(r => r.Service.AppModelResourceName == resource.AppModelResourceName).Select(s => s.Service).ToList();
             var name = resource.Metadata.Name;
 
             // Add the endpoint URLs
