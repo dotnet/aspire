@@ -27,7 +27,7 @@ internal sealed class OrchestratorHostService : IHostedLifecycleService, IAsyncD
         _dcpHost = dcpHost;
     }
 
-    private bool IsSupported => !_executionContext.IsPublishMode;
+    private bool IsSupported => _executionContext.IsRunMode;
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
