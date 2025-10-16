@@ -1,15 +1,14 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using Aspire.TestUtilities;
+using Xunit.Sdk;
+using Xunit.v3;
 
-namespace Aspire.Hosting.Azure.Tests;
-
-sealed class TestModuleInitializer
+sealed class TestPipelineStartup : ITestPipelineStartup
 {
-    [ModuleInitializer]
-    internal static void Setup()
+    public ValueTask StartAsync(IMessageSink diagnosticMessageSink)
     {
         // Set the directory for all Verify calls in test projects
         var target = PlatformDetection.IsRunningOnHelix
@@ -23,5 +22,12 @@ sealed class TestModuleInitializer
                 directory: Path.Combine(projectDirectory, target),
                 typeName: type.Name,
                 methodName: method.Name));
+
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask StopAsync()
+    {
+        return ValueTask.CompletedTask;
     }
 }
