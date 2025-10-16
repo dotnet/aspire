@@ -78,18 +78,14 @@
       }
     },
     "static-gateway": {
-      "type": "container.v0",
-      "image": "mcr.microsoft.com/dotnet/nightly/yarp:2.3.0-preview.4",
+      "type": "container.v1",
+      "build": {
+        "context": "../static-content",
+        "dockerfile": "static-gateway.Dockerfile"
+      },
       "entrypoint": "dotnet",
       "args": [
         "/app/yarp.dll"
-      ],
-      "bindMounts": [
-        {
-          "source": "../static-content",
-          "target": "/wwwroot",
-          "readOnly": true
-        }
       ],
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",

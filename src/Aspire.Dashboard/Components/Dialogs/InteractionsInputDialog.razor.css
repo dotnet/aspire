@@ -10,6 +10,8 @@
 .interaction-input-dialog .interaction-input ::deep fluent-select,
 .interaction-input-dialog .interaction-input ::deep fluent-combobox {
     width: 75%;
+    /* Prevent long select/combox controls from extending outside the dialog. This can happen when there is very long placeholder text */
+    max-width: 500px;
 }
 
 .interaction-input-dialog .interaction-input ::deep .input-description,

@@ -23,11 +23,13 @@ public sealed class ManifestUtils
 
         using var ms = new MemoryStream();
         var writer = new Utf8JsonWriter(ms);
-        var options = new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish)
-        {
-            ServiceProvider = new ServiceCollection().BuildServiceProvider()
-        };
+
+        var serviceCollection = new ServiceCollection();
+        var options = new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Publish);
         var executionContext = new DistributedApplicationExecutionContext(options);
+        serviceCollection.AddSingleton(executionContext);
+        options.ServiceProvider = serviceCollection.BuildServiceProvider();
+        
         writer.WriteStartObject();
         var context = new ManifestPublishingContext(executionContext, Path.Combine(manifestDirectory, "manifest.json"), writer);
         await context.WriteResourceAsync(resource);

@@ -127,6 +127,7 @@ public class AIContextProviderTests
             NullLogger<AIContextProvider>.Instance,
             testOptionsMonitor,
             new ChatClientFactory(new ConfigurationManager(), NullLoggerFactory.Instance, testOptionsMonitor),
-            new IceBreakersBuilder(new TestStringLocalizer<AIPrompts>()));
+            new IceBreakersBuilder(new TestStringLocalizer<AIPrompts>()),
+            new TestTelemetryErrorRecorder());
     }
 }

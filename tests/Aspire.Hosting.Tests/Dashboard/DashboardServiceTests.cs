@@ -155,12 +155,12 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             executeCommand: c => Task.FromResult(CommandResults.Success()),
             commandOptions: new()
             {
-                UpdateState = c => ApplicationModel.ResourceCommandState.Enabled,
+                UpdateState = c => Aspire.Hosting.ApplicationModel.ResourceCommandState.Enabled,
                 Description = "Display description!",
                 Parameter = new[] { "One", "Two" },
                 ConfirmationMessage = "Confirmation message!",
                 IconName = "Icon name!",
-                IconVariant = ApplicationModel.IconVariant.Filled,
+                IconVariant = Aspire.Hosting.ApplicationModel.IconVariant.Filled,
                 IsHighlighted = true
             });
 

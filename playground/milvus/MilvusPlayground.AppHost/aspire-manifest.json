@@ -42,7 +42,11 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
-        "ConnectionStrings__milvus": "{milvus.connectionString}"
+        "ConnectionStrings__milvus": "{milvus.connectionString}",
+        "MILVUS_HOST": "{milvus.bindings.grpc.host}",
+        "MILVUS_PORT": "{milvus.bindings.grpc.port}",
+        "MILVUS_TOKEN": "root:{milvus-key.value}",
+        "MILVUS_URI": "{milvus.bindings.grpc.url}"
       },
       "bindings": {
         "http": {

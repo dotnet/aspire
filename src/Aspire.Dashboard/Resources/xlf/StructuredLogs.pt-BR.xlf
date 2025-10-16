@@ -9,12 +9,12 @@
       </trans-unit>
       <trans-unit id="MessageExceededLimitBody">
         <source>A maximum of {0} structured logs are stored. Old structured logs are automatically removed.</source>
-        <target state="translated">No máximo {0} logs estruturados são armazenados. Logs estruturados antigos são removidos automaticamente.</target>
+        <target state="translated">Um máximo de {0} logs estruturados são armazenados. Os logs estruturados antigos são removidos automaticamente.</target>
         <note>{0} is the max count</note>
       </trans-unit>
       <trans-unit id="MessageExceededLimitTitle">
         <source>Exceeded structured log limit</source>
-        <target state="translated">Limite de logs estruturados excedido</target>
+        <target state="translated">O limite de log estruturado foi excedido</target>
         <note />
       </trans-unit>
       <trans-unit id="PauseInProgressText">

@@ -290,7 +290,7 @@ public class KubernetesPublisherTests()
 
         var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for kubernetes'";
         var container = builder.AddContainer("testcontainer", "testimage")
-                               .WithDockerfile(".", context => dockerfileContent);
+                               .WithDockerfileFactory(".", context => dockerfileContent);
 
         var app = builder.Build();
         app.Run();

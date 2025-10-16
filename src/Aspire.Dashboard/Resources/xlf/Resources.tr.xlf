@@ -199,7 +199,7 @@
       </trans-unit>
       <trans-unit id="ResourcesFiltered">
         <source>Has filters</source>
-        <target state="translated">Filtreler var</target>
+        <target state="translated">Filtreleri var</target>
         <note />
       </trans-unit>
       <trans-unit id="ResourcesGraphResetButton">

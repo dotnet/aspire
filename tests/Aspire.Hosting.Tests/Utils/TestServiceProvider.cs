@@ -23,5 +23,19 @@ public sealed class TestServiceProvider : IServiceProvider
         return _serviceContainer.GetService(serviceType);
     }
 
+    public TestServiceProvider AddService<TService>(TService instance)
+        where TService : class
+    {
+        _serviceContainer.AddService(typeof(TService), instance);
+        return this;
+    }
+
+    public TestServiceProvider AddService<TService>(ServiceCreatorCallback callback)
+        where TService : class
+    {
+        _serviceContainer.AddService(typeof(TService), callback);
+        return this;
+    }
+
     public static IServiceProvider Instance { get; } = new TestServiceProvider();
 }

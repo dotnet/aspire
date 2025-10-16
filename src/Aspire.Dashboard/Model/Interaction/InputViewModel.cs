@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.DashboardService.Proto.V1;
 
 namespace Aspire.Dashboard.Model.Interaction;
@@ -46,10 +45,27 @@ public sealed class InputViewModel
                 .ToList();
 
             SelectOptions = optionsVM;
+
+            // Default to the first option if no placeholder is set, the value is empty, and custom choice is disabled.
+            // This is done so the input model value matches frontend behavior (FluentSelect defaults to the first option)
+            if (string.IsNullOrEmpty(input.Placeholder) && string.IsNullOrEmpty(input.Value) && optionsVM.Count > 0 && !input.AllowCustomChoice)
+            {
+                input.Value = optionsVM[0].Id;
+            }
         }
     }
 
     public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
+
+    public IEnumerable<SelectViewModel<string>> FilteredOptions()
+    {
+        if (Value is not { Length: > 0 } value)
+        {
+            return SelectOptions;
+        }
+
+        return SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     public string? Value
     {

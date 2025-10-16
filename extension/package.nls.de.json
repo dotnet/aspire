@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
 	"extension.title": "Aspire VSCode",
 	"extension.description": "Official Aspire extension for Visual Studio Code",
@@ -68,3 +69,6 @@
 	"aspire-vscode.strings.yesLabel": "Yes",
 	"aspire-vscode.strings.noLabel": "No"
 }
+=======
+{}
+>>>>>>> main

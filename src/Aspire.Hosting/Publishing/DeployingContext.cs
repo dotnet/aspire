@@ -63,20 +63,4 @@ public sealed class DeployingContext(
     /// Gets the output path for deployment artifacts.
     /// </summary>
     public string? OutputPath { get; } = outputPath;
-
-    /// <summary>
-    /// Invokes deploying callbacks for each resource in the provided distributed application model.
-    /// </summary>
-    /// <param name="model">The distributed application model whose resources will be processed.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    internal async Task WriteModelAsync(DistributedApplicationModel model)
-    {
-        foreach (var resource in model.Resources)
-        {
-            if (resource.TryGetLastAnnotation<DeployingCallbackAnnotation>(out var annotation))
-            {
-                await annotation.Callback(this).ConfigureAwait(false);
-            }
-        }
-    }
 }

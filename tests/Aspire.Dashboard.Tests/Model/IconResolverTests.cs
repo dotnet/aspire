@@ -128,4 +128,53 @@ public sealed class IconResolverTests
         // Different variants should have different instances
         Assert.NotSame(iconFilled, iconRegular);
     }
+
+    [Theory]
+    [InlineData(IconSize.Size16)]
+    [InlineData(IconSize.Size20)]
+    [InlineData(IconSize.Size24)]
+    public void ResolveIconName_WithVariousSizes_ReturnsIcon(IconSize size)
+    {
+        // Arrange
+        var iconResolver = CreateIconResolver();
+
+        // Act
+        var icon = iconResolver.ResolveIconName("Database", size, IconVariant.Filled);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.Equal(size, icon.Size);
+    }
+
+    [Fact]
+    public void ResolveIconName_SameCacheKeyMultipleTimes_ReturnsSameInstance()
+    {
+        // Arrange
+        var iconResolver = CreateIconResolver();
+
+        // Act
+        var icon1 = iconResolver.ResolveIconName("Database", IconSize.Size20, IconVariant.Filled);
+        var icon2 = iconResolver.ResolveIconName("Database", IconSize.Size20, IconVariant.Filled);
+        var icon3 = iconResolver.ResolveIconName("Database", IconSize.Size20, IconVariant.Filled);
+
+        // Assert
+        Assert.NotNull(icon1);
+        Assert.Same(icon1, icon2);
+        Assert.Same(icon2, icon3);
+        // Multiple calls with same parameters should return same cached instance
+    }
+
+    [Fact]
+    public void ResolveIconName_FallbackToSmallerSizeIfUnavailable_ReturnsIcon()
+    {
+        // Arrange
+        var iconResolver = CreateIconResolver();
+
+        // Act - CodePyRectangle only has size 16, but we request size 24
+        var icon = iconResolver.ResolveIconName("CodePyRectangle", IconSize.Size24, IconVariant.Filled);
+
+        // Assert
+        Assert.NotNull(icon);
+        Assert.Equal(IconSize.Size16, icon.Size);
+    }
 }

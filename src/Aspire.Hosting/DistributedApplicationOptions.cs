@@ -86,6 +86,12 @@ public sealed class DistributedApplicationOptions
     /// </summary>
     public bool AllowUnsecuredTransport { get; set; }
 
+    /// <summary>
+    /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate)
+    /// by default at runtime.
+    /// </summary>
+    public bool TrustDeveloperCertificate { get; set; } = true;
+
     private string? ResolveProjectDirectory()
     {
         var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
