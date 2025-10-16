@@ -28,10 +28,10 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
         var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
         using var builder = TestDistributedApplicationBuilder.Create(testOutputHelper);
 
-        var healthCheckResult = HealthCheckResult.Unhealthy();
+        var healthCheckTcs = new TaskCompletionSource<HealthCheckResult>();
         builder.Services.AddHealthChecks().AddAsyncCheck("blocking_check", () =>
         {
-            return Task.FromResult(healthCheckResult);
+            return healthCheckTcs.Task;
         });
 
         var resource = builder.AddAzureCosmosDB("resource")
@@ -49,7 +49,7 @@ public class AzureCosmosDBEmulatorFunctionalTests(ITestOutputHelper testOutputHe
 
         await app.ResourceNotifications.WaitForResourceAsync(dependentResource.Resource.Name, KnownResourceStates.Waiting, cts.Token);
 
-        healthCheckResult = HealthCheckResult.Healthy();
+        healthCheckTcs.SetResult(HealthCheckResult.Healthy());
 
         await app.ResourceNotifications.WaitForResourceHealthyAsync(resource.Resource.Name, cts.Token);
 
