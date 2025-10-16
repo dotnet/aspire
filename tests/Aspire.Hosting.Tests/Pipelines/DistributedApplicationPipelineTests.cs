@@ -1122,6 +1122,121 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithDependencyFailure_ReportsFailedDependency()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var dependentStepExecuted = false;
+
+        // Step that will fail
+        pipeline.AddStep("failing-dependency", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Dependency failed");
+        });
+
+        // Step that depends on the failing step
+        pipeline.AddStep("dependent-step", async (context) =>
+        {
+            dependentStepExecuted = true;
+            await Task.CompletedTask;
+        }, dependsOn: "failing-dependency");
+
+        var context = CreateDeployingContext(builder.Build());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        
+        // The dependent step should not have executed
+        Assert.False(dependentStepExecuted, "Dependent step should not execute when dependency fails");
+        
+        // The error message should indicate which dependency failed
+        Assert.Contains("failing-dependency", ex.Message);
+        Assert.Contains("failed", ex.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithMultipleDependencyFailures_ReportsAllFailedDependencies()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var dependentStepExecuted = false;
+
+        // Two steps that will fail
+        pipeline.AddStep("failing-dep1", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Dependency 1 failed");
+        });
+
+        pipeline.AddStep("failing-dep2", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Dependency 2 failed");
+        });
+
+        // Step that depends on both failing steps
+        pipeline.AddStep("dependent-step", async (context) =>
+        {
+            dependentStepExecuted = true;
+            await Task.CompletedTask;
+        }, dependsOn: new[] { "failing-dep1", "failing-dep2" });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        var ex = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
+        
+        // The dependent step should not have executed
+        Assert.False(dependentStepExecuted, "Dependent step should not execute when dependencies fail");
+        
+        // Should report multiple failures
+        Assert.Contains("Multiple pipeline steps failed", ex.Message);
+        Assert.Equal(2, ex.InnerExceptions.Count);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCircularDependencyInComplex_ThrowsInvalidOperationException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        // Create a more complex circular dependency: A -> B -> C -> A
+        var stepA = new PipelineStep
+        {
+            Name = "stepA",
+            Action = async (context) => await Task.CompletedTask
+        };
+        stepA.DependsOn("stepC");
+
+        var stepB = new PipelineStep
+        {
+            Name = "stepB",
+            Action = async (context) => await Task.CompletedTask
+        };
+        stepB.DependsOn("stepA");
+
+        var stepC = new PipelineStep
+        {
+            Name = "stepC",
+            Action = async (context) => await Task.CompletedTask
+        };
+        stepC.DependsOn("stepB");
+
+        pipeline.AddStep(stepA);
+        pipeline.AddStep(stepB);
+        pipeline.AddStep(stepC);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        Assert.Contains("Circular dependency", ex.Message);
+        // Should mention the cycle
+        Assert.True(ex.Message.Contains("stepA") || ex.Message.Contains("stepB") || ex.Message.Contains("stepC"),
+            "Error message should mention at least one step in the cycle");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
