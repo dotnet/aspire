@@ -29,7 +29,7 @@ internal sealed class AzureAppServiceWebsiteContext(
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
 
-    public int? TargetPort => _endpointMapping.Values.FirstOrDefault(e => e.External && e.TargetPort is not null).TargetPort;
+    private int? _targetPort;
 
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
@@ -92,11 +92,13 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         // App Service supports only one target port
-        var targetPortEndpoints = endpoints.Where(e => e.TargetPort is not null).Select(e => e.TargetPort).Distinct();
+        var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct();
         if (targetPortEndpoints.Count() > 1)
         {
             throw new NotSupportedException("App Service only supports one target port.");
         }
+
+        _targetPort = targetPortEndpoints.FirstOrDefault();
 
         foreach (var endpoint in endpoints)
         {
@@ -275,10 +277,10 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        if (TargetPort is not null)
+        if (_targetPort is not null)
         {
-            mainContainer.TargetPort = TargetPort.Value.ToString(CultureInfo.InvariantCulture);
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = TargetPort.Value.ToString(CultureInfo.InvariantCulture) });
+            mainContainer.TargetPort = _targetPort.Value.ToString(CultureInfo.InvariantCulture);
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = _targetPort.Value.ToString(CultureInfo.InvariantCulture) });
         }
 
         foreach (var kv in EnvironmentVariables)
