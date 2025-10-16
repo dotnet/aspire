@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting;
@@ -87,7 +88,7 @@ public static class DistributedApplicationBuilderExtensions
     /// This method is similar to <see cref="CreateResourceBuilder{T}(IDistributedApplicationBuilder, string)"/> but returns <c>false</c> instead of throwing an exception
     /// when the resource is not found or is not of the correct type.
     /// </remarks>
-    public static bool TryCreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name, out IResourceBuilder<T>? resourceBuilder) where T : IResource
+    public static bool TryCreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name, [NotNullWhen(true)] out IResourceBuilder<T>? resourceBuilder) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentException.ThrowIfNullOrEmpty(name, nameof(name));
