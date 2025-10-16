@@ -100,15 +100,6 @@ public sealed class DistributedApplicationOptions
 
     private string? ResolveProjectName()
     {
-        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
-        var projectNameFromMetadata = GetMetadataValue(assemblyMetadata, "AppHostProjectName");
-        
-        // If metadata provides a project name, use it
-        if (!string.IsNullOrEmpty(projectNameFromMetadata))
-        {
-            return projectNameFromMetadata;
-        }
-
         // For file-based app hosts (single-file programs), use the directory name as the application name
         // to provide a more meaningful identifier than the generated assembly name.
         // File-based programs set the "EntryPointFilePath" data in AppContext.
@@ -122,6 +113,15 @@ public sealed class DistributedApplicationOptions
             {
                 return Path.GetFileName(projectDirectory);
             }
+        }
+
+        var assemblyMetadata = Assembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
+        var projectNameFromMetadata = GetMetadataValue(assemblyMetadata, "AppHostProjectName");
+        
+        // If metadata provides a project name, use it
+        if (!string.IsNullOrEmpty(projectNameFromMetadata))
+        {
+            return projectNameFromMetadata;
         }
 
         return null;
