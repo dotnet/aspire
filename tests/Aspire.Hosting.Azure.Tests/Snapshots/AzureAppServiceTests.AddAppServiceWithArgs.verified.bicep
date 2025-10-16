@@ -9,17 +9,9 @@ param env_outputs_azure_container_registry_managed_identity_id string
 
 param env_outputs_azure_container_registry_managed_identity_client_id string
 
-param api_containerimage string
+param project2_containerimage string
 
-param mydb_kv_outputs_name string
-
-param kvName string
-
-param sharedRg string
-
-param api_identity_outputs_id string
-
-param api_identity_outputs_clientid string
+param project2_containerport string
 
 param env_outputs_azure_app_service_dashboard_uri string
 
@@ -27,42 +19,26 @@ param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
-  name: mydb_kv_outputs_name
-}
-
-resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
-  name: 'connectionstrings--mydb'
-  parent: mydb_kv
-}
-
-resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
-  name: kvName
-  scope: resourceGroup(sharedRg)
-}
-
-resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
-  name: 'secret'
-  parent: existingKv
-}
-
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
-    image: api_containerimage
+    image: project2_containerimage
     isMain: true
+    startUpCommand: join([
+      '--myarg'
+      'myvalue'
+    ], ' ')
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
 }
 
 resource webapp 'Microsoft.Web/sites@2024-11-01' = {
-  name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
+  name: take('${toLower('project2')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     serverFarmId: env_outputs_planid
-    keyVaultReferenceIdentity: api_identity_outputs_id
     siteConfig: {
       numberOfWorkers: 30
       linuxFxVersion: 'SITECONTAINERS'
@@ -82,20 +58,16 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: 'in_memory'
         }
         {
-          name: 'ConnectionStrings__mydb'
-          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+          name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
+          value: 'true'
         }
         {
-          name: 'SECRET_VALUE'
-          value: '@Microsoft.KeyVault(SecretUri=${existingKv_secret.properties.secretUri})'
+          name: 'HTTP_PORTS'
+          value: project2_containerport
         }
         {
-          name: 'AZURE_CLIENT_ID'
-          value: api_identity_outputs_clientid
-        }
-        {
-          name: 'AZURE_TOKEN_CREDENTIALS'
-          value: 'ManagedIdentityCredential'
+          name: 'services__project1__http__0'
+          value: 'http://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
         }
         {
           name: 'ASPIRE_ENVIRONMENT_NAME'
@@ -103,7 +75,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'OTEL_SERVICE_NAME'
-          value: 'api'
+          value: 'project2'
         }
         {
           name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
@@ -132,12 +104,11 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
     type: 'UserAssigned'
     userAssignedIdentities: {
       '${env_outputs_azure_container_registry_managed_identity_id}': { }
-      '${api_identity_outputs_id}': { }
     }
   }
 }
 
-resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource project2_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id
