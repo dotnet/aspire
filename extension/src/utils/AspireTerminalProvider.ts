@@ -50,7 +50,10 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    sendToAspireTerminal(command: string, showTerminal: boolean = true) {
+    sendToAspireTerminal(command: string, project?: string, showTerminal: boolean = true) {
+        if (project) {
+            command += ` --project "${project}"`;
+        }
         const aspireTerminal = this.getAspireTerminal();
         extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
         aspireTerminal.terminal.sendText(command);
