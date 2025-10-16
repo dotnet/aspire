@@ -4,235 +4,235 @@
     <body>
       <trans-unit id="aspire-vscode.strings.debugSessionAlreadyExists">
         <source xml:lang="en">A debug session is already active for id {0}.</source>
-        <target state="new">A debug session is already active for id {0}.</target>
+        <target state="translated">Ya hay una sesión de depuración activa para el identificador {0}.</target>
       </trans-unit>
       <trans-unit id="command.add">
         <source xml:lang="en">Add an integration</source>
-        <target state="new">Add an integration</target>
+        <target state="translated">Agregar una integración</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireCliVersion">
         <source xml:lang="en">Aspire CLI Version: {0}.</source>
-        <target state="new">Aspire CLI Version: {0}.</target>
+        <target state="translated">Versión de la CLI de Aspire: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
         <source xml:lang="en">Aspire Extension</source>
-        <target state="new">Aspire Extension</target>
+        <target state="translated">Extensión Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireHostingSdkVersion">
         <source xml:lang="en">Aspire Hosting SDK Version: {0}.</source>
-        <target state="new">Aspire Hosting SDK Version: {0}.</target>
+        <target state="translated">Versión del SDK de Aspire Hosting: {0}.</target>
       </trans-unit>
       <trans-unit id="extension.title">
         <source xml:lang="en">Aspire VSCode</source>
-        <target state="new">Aspire VSCode</target>
+        <target state="translated">VsCode de Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireConfigExists">
         <source xml:lang="en">Aspire launch configuration already exists in launch.json.</source>
-        <target state="new">Aspire launch configuration already exists in launch.json.</target>
+        <target state="translated">La configuración de inicio de Aspire ya existe en launch.json.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireTerminalName">
         <source xml:lang="en">Aspire terminal</source>
-        <target state="new">Aspire terminal</target>
+        <target state="translated">Terminal de Aspire</target>
       </trans-unit>
       <trans-unit id="extension.debug.defaultConfiguration.name">
         <source xml:lang="en">Aspire: Launch default apphost</source>
-        <target state="new">Aspire: Launch default apphost</target>
+        <target state="translated">Aspire: Iniciar apphost predeterminado</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
         <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
-        <target state="new">Attempted to start unsupported resource type: {0}.</target>
+        <target state="translated">Se intentó iniciar el tipo de recurso no admitido: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
         <source xml:lang="en">Build failed with exit code {0}.</source>
-        <target state="new">Build failed with exit code {0}.</target>
+        <target state="translated">Error de compilación con código de salida {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
         <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
-        <target state="new">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</target>
+        <target state="translated">La compatibilidad con C# no está habilitada en esta área de trabajo. Este proyecto debería haberse iniciado a través de la CLI de Aspire.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.codespacesUrl">
         <source xml:lang="en">Codespaces: {0}</source>
-        <target state="new">Codespaces: {0}</target>
+        <target state="translated">Codespaces: {0}</target>
       </trans-unit>
       <trans-unit id="extension.debug.debuggers">
         <source xml:lang="en">Configuration to apply when launching resources of specific types</source>
-        <target state="new">Configuration to apply when launching resources of specific types</target>
+        <target state="translated">Configuración que se aplicará al iniciar recursos de tipos específicos</target>
       </trans-unit>
       <trans-unit id="command.configureLaunchJson">
         <source xml:lang="en">Configure launch.json file</source>
-        <target state="new">Configure launch.json file</target>
+        <target state="translated">Configurar launch.json archivo</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
         <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
-        <target state="new">DCP server not initialized - cannot forward debug output.</target>
+        <target state="translated">Servidor DCP no inicializado: no se puede reenviar la salida de depuración.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.debugProject">
         <source xml:lang="en">Debug {0}</source>
-        <target state="new">Debug {0}</target>
+        <target state="translated">Depurar {0}</target>
       </trans-unit>
       <trans-unit id="command.deploy">
         <source xml:lang="en">Deploy app</source>
-        <target state="new">Deploy app</target>
+        <target state="translated">Implementar aplicación</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.directUrl">
         <source xml:lang="en">Direct: {0}</source>
-        <target state="new">Direct: {0}</target>
+        <target state="translated">Directo: {0}</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
         <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
-        <target state="new">Disconnecting from Aspire debug session... Child processes will be stopped.</target>
+        <target state="translated">Desconectando de la sesión de depuración de Aspire... Se detendrán los procesos secundarios.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
         <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
-        <target state="new">Encountered an exception ({0}) while running the following command: {1}.</target>
+        <target state="translated">Se encontró una excepción ({0}) al ejecutar el siguiente comando: {1}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.errorRetrievingAppHosts">
         <source xml:lang="en">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</source>
-        <target state="new">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</target>
+        <target state="translated">Error al recuperar apphosts en el área de trabajo actual. Las opciones de depuración pueden estar incompletas.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.error">
         <source xml:lang="en">Error: {0}</source>
-        <target state="new">Error: {0}</target>
+        <target state="translated">Error: {0}</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
         <source xml:lang="en">Extension context is not initialized.</source>
-        <target state="new">Extension context is not initialized.</target>
+        <target state="translated">No se ha inicializado el contexto de extensión.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
         <source xml:lang="en">Failed to configure launch.json: {0}.</source>
-        <target state="new">Failed to configure launch.json: {0}.</target>
+        <target state="translated">Error al configurar launch.json: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.addressError">
         <source xml:lang="en">Failed to get RPC server address. The extension may not function correctly.</source>
-        <target state="new">Failed to get RPC server address. The extension may not function correctly.</target>
+        <target state="translated">Error al obtener la dirección del servidor RPC. Es posible que la extensión no funcione correctamente.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
         <source xml:lang="en">Failed to get TargetPath: {0}.</source>
-        <target state="new">Failed to get TargetPath: {0}.</target>
+        <target state="translated">Error al obtener TargetPath: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
         <source xml:lang="en">Failed to show prompt, text was empty.</source>
-        <target state="new">Failed to show prompt, text was empty.</target>
+        <target state="translated">Error al mostrar el mensaje, el texto estaba vacío.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartPythonProgram">
         <source xml:lang="en">Failed to start Python program: {0}.</source>
-        <target state="new">Failed to start Python program: {0}.</target>
+        <target state="translated">No se pudo iniciar el programa Python: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartDebugSession">
         <source xml:lang="en">Failed to start debug session.</source>
-        <target state="new">Failed to start debug session.</target>
+        <target state="translated">Error al iniciar la sesión de depuración.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartProject">
         <source xml:lang="en">Failed to start project: {0}.</source>
-        <target state="new">Failed to start project: {0}.</target>
+        <target state="translated">No se ha podido iniciar el proyecto: {0}.</target>
       </trans-unit>
       <trans-unit id="command.init">
         <source xml:lang="en">Initialize Aspire</source>
-        <target state="new">Initialize Aspire</target>
+        <target state="translated">Inicializar Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
         <source xml:lang="en">Invalid launch configuration for {0}.</source>
-        <target state="new">Invalid launch configuration for {0}.</target>
+        <target state="translated">Configuración de inicio no válida para {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.invalidTokenProvided">
         <source xml:lang="en">Invalid token provided.</source>
-        <target state="new">Invalid token provided.</target>
+        <target state="translated">Se proporcionó un token no válido.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.openAspireDashboard">
         <source xml:lang="en">Launch Aspire Dashboard</source>
-        <target state="new">Launch Aspire Dashboard</target>
+        <target state="translated">Iniciar panel de Aspire</target>
       </trans-unit>
       <trans-unit id="extension.debug.defaultConfiguration.description">
         <source xml:lang="en">Launch the effective Aspire apphost in your workspace</source>
-        <target state="new">Launch the effective Aspire apphost in your workspace</target>
+        <target state="translated">Iniciar el host de aplicaciones efectivo de Aspire en su área de trabajo.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.launchingWithAppHost">
         <source xml:lang="en">Launching Aspire debug session for apphost {0}...</source>
-        <target state="new">Launching Aspire debug session for apphost {0}...</target>
+        <target state="translated">Iniciando la sesión de depuración de Aspire para apphost {0}...</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
         <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
-        <target state="new">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</target>
+        <target state="translated">Iniciando sesión de depuración de Aspire usando el directorio {0}: intentando determinar el apphost efectivo...</target>
       </trans-unit>
       <trans-unit id="command.config">
         <source xml:lang="en">Manage configuration settings</source>
-        <target state="new">Manage configuration settings</target>
+        <target state="translated">Administrar las opciones de configuración</target>
       </trans-unit>
       <trans-unit id="command.new">
         <source xml:lang="en">New Aspire project</source>
-        <target state="new">New Aspire project</target>
+        <target state="translated">Nuevo proyecto de Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.no">
         <source xml:lang="en">No</source>
-        <target state="new">No</target>
+        <target state="translated">No</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
         <source xml:lang="en">No C# Dev Kit build task found.</source>
-        <target state="new">No C# Dev Kit build task found.</target>
+        <target state="translated">No se encontró ninguna tarea de compilación del kit de desarrollo de C#.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noCsprojFound">
         <source xml:lang="en">No apphost found in the current workspace.</source>
-        <target state="new">No apphost found in the current workspace.</target>
+        <target state="translated">No se encontró ningún apphost en el área de trabajo actual.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
         <source xml:lang="en">No output from msbuild.</source>
-        <target state="new">No output from msbuild.</target>
+        <target state="translated">No hay resultados de MSBuild.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWatchTask">
         <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
-        <target state="new">No watch task found. Please ensure a watch task is defined in your workspace.</target>
+        <target state="translated">No se encontró ninguna tarea de inspección. Asegúrese de que se haya definido una tarea de inspección en el área de trabajo.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWorkspaceFolder">
         <source xml:lang="en">No workspace folder found.</source>
-        <target state="new">No workspace folder found.</target>
+        <target state="translated">No se encontró ninguna carpeta del área de trabajo.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWorkspaceOpen">
         <source xml:lang="en">No workspace is open. Please open a folder or workspace before running this command.</source>
-        <target state="new">No workspace is open. Please open a folder or workspace before running this command.</target>
+        <target state="translated">No hay ningún área de trabajo abierta. Abra una carpeta o un área de trabajo antes de ejecutar este comando.</target>
       </trans-unit>
       <trans-unit id="extension.description">
         <source xml:lang="en">Official Aspire extension for Visual Studio Code</source>
-        <target state="new">Official Aspire extension for Visual Studio Code</target>
+        <target state="translated">Extensión oficial de La Visual Studio Code</target>
       </trans-unit>
       <trans-unit id="command.openTerminal">
         <source xml:lang="en">Open Aspire terminal</source>
-        <target state="new">Open Aspire terminal</target>
+        <target state="translated">Abrir terminal de Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.codespacesLink">
         <source xml:lang="en">Open codespaces URL</source>
-        <target state="new">Open codespaces URL</target>
+        <target state="translated">Abrir la dirección URL de codespaces</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.directLink">
         <source xml:lang="en">Open local URL</source>
-        <target state="new">Open local URL</target>
+        <target state="translated">Abrir dirección URL local</target>
       </trans-unit>
       <trans-unit id="extension.debug.program">
         <source xml:lang="en">Path to the apphost to run</source>
-        <target state="new">Path to the apphost to run</target>
+        <target state="translated">Ruta de acceso al apphost que se va a ejecutar</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.processExitedWithCode">
         <source xml:lang="en">Process exited with code {0}.</source>
-        <target state="new">Process exited with code {0}.</target>
+        <target state="translated">Proceso cerrado con el código {0}.</target>
       </trans-unit>
       <trans-unit id="command.publish">
         <source xml:lang="en">Publish deployment artifacts</source>
-        <target state="new">Publish deployment artifacts</target>
+        <target state="translated">Publicación de artefactos de implementación</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.rpcServerError">
         <source xml:lang="en">RPC server error: {0}.</source>
-        <target state="new">RPC server error: {0}.</target>
+        <target state="translated">Error del servidor RPC: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.rpcServerNotInitialized">
         <source xml:lang="en">RPC server is not initialized.</source>
-        <target state="new">RPC server is not initialized.</target>
+        <target state="translated">El servidor RPC no está inicializado.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.requiredCapability">
         <source xml:lang="en">Required capability: {0}.</source>
-        <target state="new">Required capability: {0}.</target>
+        <target state="translated">Funcionalidad necesaria: {0}.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
         <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
-        <target state="new">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</target>
+        <target state="translated">El apphost no es compatible. Considere actualizar apphost o la CLI de Aspire.</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.fieldRequired">
         <source xml:lang="en">This field is required.</source>
@@ -240,15 +240,15 @@
       </trans-unit>
       <trans-unit id="command.update">
         <source xml:lang="en">Update integrations</source>
-        <target state="new">Update integrations</target>
+        <target state="translated">Actualizar integraciones</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.watchProject">
         <source xml:lang="en">Watch {0} ({1})</source>
-        <target state="new">Watch {0} ({1})</target>
+        <target state="translated">Inspeccionar {0} ({1})</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.yes">
         <source xml:lang="en">Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">Sí</target>
       </trans-unit>
     </body>
   </file>
