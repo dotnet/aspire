@@ -35,7 +35,7 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         {
             options.ProjectLocatorFactory = _ => new TestProjectLocator()
             {
-                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, cancellationToken) =>
+                UseOrFindAppHostProjectFileAsyncCallback = (projectFile, _, _) =>
                 {
                     Assert.NotNull(projectFile);
                     return Task.FromResult<FileInfo?>(projectFile);
