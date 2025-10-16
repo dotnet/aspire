@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="InputPromptLoading">
         <source>Loading...</source>
-        <target state="new">Loading...</target>
+        <target state="translated">Cargando...</target>
         <note />
       </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
