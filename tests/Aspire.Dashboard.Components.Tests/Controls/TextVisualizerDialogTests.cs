@@ -207,7 +207,13 @@ public class TextVisualizerDialogTests : DashboardTestContext
         var module = JSInterop.SetupModule("/Components/Controls/TextVisualizer.razor.js");
         module.SetupVoid();
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
+
+        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
+
+        var dialogProviderModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js", version));
+        dialogProviderModule.SetupModule("getActiveElement", _ => true);
 
         var cut = Render(builder =>
         {

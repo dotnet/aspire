@@ -82,7 +82,7 @@ public class TestDialogService : IDialogService
             throw new InvalidOperationException("No dialog callback specified.");
         }
         var reference = await _onShowDialog.Invoke(data, parameters);
-        reference.Instance = new DialogInstance(dialogComponent, parameters, data);
+        reference.Instance = new DialogInstance(dialogComponent, parameters, data, previouslyFocusedElement: null);
         return reference;
     }
 

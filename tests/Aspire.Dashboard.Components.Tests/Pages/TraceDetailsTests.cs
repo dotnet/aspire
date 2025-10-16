@@ -647,7 +647,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         gridReference.SetupVoid("stop", _ => true);
 
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
-
+        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
         JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
 
         var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
@@ -659,7 +659,9 @@ public partial class TraceDetailsTests : DashboardTestContext
         var toolbarModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
         toolbarModule.SetupVoid("removePreventArrowKeyNavigation", _ => true);
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        var menuModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        menuModule.SetupVoid("initialize", _ => true);
+        menuModule.SetupVoid("dispose", _ => true);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
