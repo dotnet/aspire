@@ -632,9 +632,7 @@ public partial class TraceDetailsTests : DashboardTestContext
         FluentUISetupHelpers.SetupFluentDataGrid(this);
         FluentUISetupHelpers.SetupFluentAnchor(this);
         FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
-        
-        var version = FluentUISetupHelpers.GetFluentUIVersion();
-        JSInterop.SetupModule(FluentUISetupHelpers.GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
+        FluentUISetupHelpers.SetupFluentList(this);
 
         FluentUISetupHelpers.SetupFluentSearch(this);
         FluentUISetupHelpers.SetupFluentKeyCode(this);

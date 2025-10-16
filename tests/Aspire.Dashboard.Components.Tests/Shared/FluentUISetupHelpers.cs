@@ -14,138 +14,87 @@ using Microsoft.FluentUI.AspNetCore.Components;
 
 namespace Aspire.Dashboard.Components.Tests.Shared;
 
-/// <summary>
-/// Provides reusable setup methods for FluentUI components and services in tests.
-/// </summary>
 internal static class FluentUISetupHelpers
 {
-    /// <summary>
-    /// Gets the FluentUI assembly version used for module paths.
-    /// </summary>
-    public static Version GetFluentUIVersion() => typeof(FluentMain).Assembly.GetName().Version!;
+    private static readonly Version s_fluentUIVersion = typeof(FluentMain).Assembly.GetName().Version!;
 
-    /// <summary>
-    /// Formats a FluentUI module file path with version query parameter.
-    /// </summary>
-    public static string GetFluentFile(string filePath, Version version)
+    public static string GetFluentFile(string filePath)
     {
-        return $"{filePath}?v={version}";
+        return $"{filePath}?v={s_fluentUIVersion}";
     }
 
-    /// <summary>
-    /// Sets up the FluentDialogProvider JSInterop module.
-    /// </summary>
     public static void SetupFluentDialogProvider(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var dialogProviderModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js", version));
+        var dialogProviderModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Dialog/FluentDialogProvider.razor.js"));
         dialogProviderModule.SetupModule("getActiveElement", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentMenu JSInterop module.
-    /// </summary>
     public static void SetupFluentMenu(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        var menuModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js"));
         menuModule.SetupVoid("initialize", _ => true);
         menuModule.SetupVoid("dispose", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentOverflow JSInterop module.
-    /// </summary>
     public static void SetupFluentOverflow(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
+        var overflowModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js"));
         overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
         overflowModule.SetupVoid("fluentOverflowDispose", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentAnchor JSInterop module.
-    /// </summary>
     public static void SetupFluentAnchor(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js"));
     }
 
-    /// <summary>
-    /// Sets up the FluentAnchoredRegion JSInterop module.
-    /// </summary>
     public static void SetupFluentAnchoredRegion(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js", version));
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/AnchoredRegion/FluentAnchoredRegion.razor.js"));
     }
 
-    /// <summary>
-    /// Sets up the FluentDivider JSInterop module.
-    /// </summary>
     public static void SetupFluentDivider(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var dividerModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
+        var dividerModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js"));
         dividerModule.SetupVoid("setDividerAriaOrientation");
     }
 
-    /// <summary>
-    /// Sets up the FluentDataGrid JSInterop module.
-    /// </summary>
     public static void SetupFluentDataGrid(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
+        var dataGridModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js"));
         var gridReference = dataGridModule.SetupModule("init", _ => true);
         gridReference.SetupVoid("stop", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentSearch JSInterop module.
-    /// </summary>
     public static void SetupFluentSearch(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
+        var searchModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js"));
         searchModule.SetupVoid("addAriaHidden", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentKeyCode JSInterop module.
-    /// </summary>
     public static void SetupFluentKeyCode(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
+        var keycodeModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js"));
         keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentToolbar JSInterop module.
-    /// </summary>
     public static void SetupFluentToolbar(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var toolbarModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
+        var toolbarModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js"));
         toolbarModule.SetupVoid("removePreventArrowKeyNavigation", _ => true);
     }
 
-    /// <summary>
-    /// Sets up the FluentInputLabel JSInterop module.
-    /// </summary>
     public static void SetupFluentInputLabel(TestContext context)
     {
-        var version = GetFluentUIVersion();
-        var inputLabelModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
+        var inputLabelModule = context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js"));
         inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
     }
 
-    /// <summary>
-    /// Adds common Aspire Dashboard services to the test context.
-    /// </summary>
+    public static void SetupFluentList(TestContext context)
+    {
+        context.JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js"));
+    }
+
     public static void AddCommonDashboardServices(
         TestContext context,
         ILocalStorage? localStorage = null,
@@ -185,9 +134,6 @@ internal static class FluentUISetupHelpers
         }
     }
 
-    /// <summary>
-    /// Adds FluentUI components and sets up the menu service provider.
-    /// </summary>
     public static void SetupFluentUIComponents(TestContext context)
     {
         context.Services.AddFluentUIComponents();
@@ -196,9 +142,6 @@ internal static class FluentUISetupHelpers
         menuService.ProviderId = "Test";
     }
 
-    /// <summary>
-    /// Sets up common dialog-related JSInterop modules and services.
-    /// </summary>
     public static void SetupDialogInfrastructure(
         TestContext context,
         ThemeManager? themeManager = null,
@@ -210,9 +153,6 @@ internal static class FluentUISetupHelpers
         SetupFluentDialogProvider(context);
     }
 
-    /// <summary>
-    /// Renders a FluentDialogProvider component for dialog testing.
-    /// </summary>
     public static IRenderedFragment RenderDialogProvider(TestContext context)
     {
         return context.Render(builder =>
