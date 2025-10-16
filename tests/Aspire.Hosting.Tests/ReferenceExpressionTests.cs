@@ -99,7 +99,7 @@ public class ReferenceExpressionTests
 
         var expr = ReferenceExpression.Create($"Text: {v:uri}");
 
-        Assert.Equal("Text: [\"Hello%20World\"]", await expr.GetValueAsync(default));
+        Assert.Equal("Text: Hello%20World", await expr.GetValueAsync(default));
     }
 
     private sealed class Value : IValueProvider, IManifestExpressionProvider
