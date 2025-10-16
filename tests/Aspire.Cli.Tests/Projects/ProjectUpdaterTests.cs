@@ -1747,89 +1747,6 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task UpdateProjectFileAsync_SingleFileAppHost_UpdatesSdkDirectiveWithoutVersion()
-    {
-        using var workspace = TemporaryWorkspace.Create(outputHelper);
-
-        var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
-        var appHostFile = new FileInfo(Path.Combine(appHostFolder.FullName, "apphost.cs"));
-
-        // Create a single-file app host without a version (the common case)
-        await File.WriteAllTextAsync(
-            appHostFile.FullName,
-            """
-            #:sdk Aspire.AppHost.Sdk
-            using Aspire.Hosting;
-            var builder = DistributedApplication.CreateBuilder(args);
-            builder.Build().Run();
-            """);
-
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, config =>
-        {
-            config.DotNetCliRunnerFactory = (sp) =>
-            {
-                return new TestDotNetCliRunner()
-                {
-                    SearchPackagesAsyncCallback = (_, query, _, _, _, _, _, _, _) =>
-                    {
-                        var packages = new List<NuGetPackageCli>();
-
-                        packages.Add(query switch
-                        {
-                            "Aspire.AppHost.Sdk" => new NuGetPackageCli { Id = "Aspire.AppHost.Sdk", Version = "9.5.0", Source = "nuget.org" },
-                            _ => throw new InvalidOperationException($"Unexpected package query: {query}"),
-                        });
-
-                        return (0, packages.ToArray());
-                    },
-                    GetProjectItemsAndPropertiesAsyncCallback = (projectFile, items, properties, options, cancellationToken) =>
-                    {
-                        var itemsAndProperties = new JsonObject();
-                        itemsAndProperties.WithSdkVersion("9.4.1");
-
-                        var json = itemsAndProperties.ToJsonString();
-                        var document = JsonDocument.Parse(json);
-                        return (0, document);
-                    }
-                };
-            };
-
-            config.InteractionServiceFactory = (sp) =>
-            {
-                var interactionService = new TestConsoleInteractionService();
-                interactionService.ConfirmCallback = (promptText, defaultValue) =>
-                {
-                    return true;
-                };
-
-                return interactionService;
-            };
-        });
-        var provider = services.BuildServiceProvider();
-
-        var logger = provider.GetRequiredService<ILogger<ProjectUpdater>>();
-        var runner = provider.GetRequiredService<IDotNetCliRunner>();
-        var interactionService = provider.GetRequiredService<IInteractionService>();
-        var cache = provider.GetRequiredService<IMemoryCache>();
-        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var fallbackParser = provider.GetRequiredService<FallbackProjectParser>();
-        var packagingService = provider.GetRequiredService<IPackagingService>();
-
-        var channels = await packagingService.GetChannelsAsync();
-        var selectedChannel = channels.Single(c => c.Name == "default");
-
-        var projectUpdater = new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
-        var updateResult = await projectUpdater.UpdateProjectAsync(appHostFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
-
-        Assert.True(updateResult.UpdatedApplied);
-
-        // Verify the SDK directive was updated with the new version
-        var updatedContent = await File.ReadAllTextAsync(appHostFile.FullName);
-        Assert.Contains("#:sdk Aspire.AppHost.Sdk 9.5.0", updatedContent);
-        Assert.DoesNotContain("#:sdk Aspire.AppHost.Sdk\n", updatedContent); // Old format without version
-    }
-
-    [Fact]
     public async Task UpdateProjectFileAsync_SingleFileAppHost_UpdatesSdkDirectiveWithVersion()
     {
         using var workspace = TemporaryWorkspace.Create(outputHelper);
@@ -1837,11 +1754,11 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var appHostFolder = workspace.CreateDirectory("UpdateTester.AppHost");
         var appHostFile = new FileInfo(Path.Combine(appHostFolder.FullName, "apphost.cs"));
 
-        // Create a single-file app host with an explicit version
+        // Create a single-file app host with an explicit version using @ separator
         await File.WriteAllTextAsync(
             appHostFile.FullName,
             """
-            #:sdk Aspire.AppHost.Sdk 9.4.1
+            #:sdk Aspire.AppHost.Sdk@9.4.1
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
             builder.Build().Run();
@@ -1908,7 +1825,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Verify the SDK directive was updated from old to new version
         var updatedContent = await File.ReadAllTextAsync(appHostFile.FullName);
-        Assert.Contains("#:sdk Aspire.AppHost.Sdk 9.5.0", updatedContent);
+        Assert.Contains("#:sdk Aspire.AppHost.Sdk@9.5.0", updatedContent);
         Assert.DoesNotContain("9.4.1", updatedContent);
     }
 
@@ -1924,7 +1841,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         await File.WriteAllTextAsync(
             appHostFile.FullName,
             """
-            #:sdk Aspire.AppHost.Sdk *
+            #:sdk Aspire.AppHost.Sdk@*
             using Aspire.Hosting;
             var builder = DistributedApplication.CreateBuilder(args);
             builder.Build().Run();
@@ -1991,7 +1908,7 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
 
         // Verify the SDK directive was updated from wildcard to specific version
         var updatedContent = await File.ReadAllTextAsync(appHostFile.FullName);
-        Assert.Contains("#:sdk Aspire.AppHost.Sdk 9.5.0", updatedContent);
+        Assert.Contains("#:sdk Aspire.AppHost.Sdk@9.5.0", updatedContent);
     }
 
     [Fact]
@@ -2078,6 +1995,23 @@ public class ProjectUpdaterTests(ITestOutputHelper outputHelper)
         var updateResult = await projectUpdater.UpdateProjectAsync(appHostProjectFile, selectedChannel).WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.True(updateResult.UpdatedApplied);
+    }
+
+    [Theory]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@9.5.2", true)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@*", true)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@10.0.0-preview.1", true)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk@", false)]
+    [InlineData("#:sdk Aspire.AppHost.Sdk 9.5.2", false)]
+    [InlineData("#:package Aspire.Hosting.Redis@9.5.2", false)]
+    [InlineData("#:package Aspire.Hosting.Redis", false)]
+    public void SdkDirectiveRegex_MatchesValidDirectivesOnly(string directive, bool shouldMatch)
+    {
+        var regex = ProjectUpdater.SdkDirectiveRegex();
+        var match = regex.IsMatch(directive);
+        
+        Assert.Equal(shouldMatch, match);
     }
 }
 
