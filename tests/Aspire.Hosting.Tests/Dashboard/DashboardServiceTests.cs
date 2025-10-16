@@ -477,6 +477,100 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         Assert.True(true);
     }
 
+    [Fact]
+    public async Task GetApplicationInformation_ReadsFromConfiguration()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:ApplicationName"] = "MyCustomAppName"
+        });
+        var configuration = configBuilder.Build();
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var hostEnvironment = new TestHostEnvironment
+        {
+            ApplicationName = "DefaultAppName"
+        };
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            hostEnvironment,
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        Assert.Equal("MyCustomAppName", response.ApplicationName);
+    }
+
+    [Fact]
+    public async Task GetApplicationInformation_FallsBackToEnvironmentApplicationName()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build(); // Empty configuration
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var hostEnvironment = new TestHostEnvironment
+        {
+            ApplicationName = "FallbackAppName"
+        };
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            hostEnvironment,
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        Assert.Equal("FallbackAppName", response.ApplicationName);
+    }
+
+    [Fact]
+    public async Task GetApplicationInformation_StripsAppHostSuffix()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:ApplicationName"] = "MyApp.AppHost"
+        });
+        var configuration = configBuilder.Build();
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            new TestHostEnvironment(),
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        // The ComputeApplicationName method should strip the .AppHost suffix
+        Assert.Equal("MyApp", response.ApplicationName);
+    }
+
     private static DashboardServiceData CreateDashboardServiceData(
         ResourceLoggerService? resourceLoggerService = null,
         ResourceNotificationService? resourceNotificationService = null,
