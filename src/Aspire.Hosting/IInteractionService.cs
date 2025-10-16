@@ -118,7 +118,9 @@ internal sealed class InputLoadingState(InputLoadOptions options)
 
     public bool Loading { get; private set; }
 
-    internal void QueueLoad(QueueLoadOptions options)
+    public Action<InteractionInput>? OnLoadComplete { get; init; }
+
+    public void QueueLoad(QueueLoadOptions options)
     {
         lock (_lock)
         {
@@ -190,8 +192,6 @@ internal sealed class InputLoadingState(InputLoadOptions options)
             }
         }, currentToken);
     }
-
-    internal Action<InteractionInput>? OnLoadComplete { get; set; }
 }
 
 /// <summary>
