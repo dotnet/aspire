@@ -49,3 +49,6 @@ export const debugSessionAlreadyExists = (id: string) => vscode.l10n.t('A debug 
 export const processExceptionOccurred = (error: string, command: string) => vscode.l10n.t('Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => vscode.l10n.t('Invalid launch configuration for {0}.', projectPath);
+export const dontShowAgainLabel = vscode.l10n.t("Don't Show Again");
+export const doYouWantToSetDefaultApphost = vscode.l10n.t('Do you want to set the default apphost for this workspace?');
+export const selectDefaultLaunchApphost = vscode.l10n.t('Select the default apphost to launch when starting an Aspire debug session');

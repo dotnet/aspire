@@ -62,7 +62,7 @@
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
-      <source xml:lang="en">Do you want to set an apphost as the default to launch in Aspire debug sessions?</source>
+      <source xml:lang="en">Do you want to set the default apphost for this workspace?</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
       <source xml:lang="en">Don&apos;t show again</source>
@@ -185,7 +185,7 @@
       <source xml:lang="en">Required capability: {0}.</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
-      <source xml:lang="en">Select an apphost to launch by default</source>
+      <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
