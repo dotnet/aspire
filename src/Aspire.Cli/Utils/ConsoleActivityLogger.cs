@@ -411,7 +411,6 @@ internal sealed class ConsoleActivityLogger
         return sb.ToString();
     }
 
-
     private static bool DetectColorSupport()
     {
         try
