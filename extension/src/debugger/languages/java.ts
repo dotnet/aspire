@@ -8,8 +8,11 @@ export const javaDebuggerExtension: ResourceDebuggerExtension = {
     extensionId: 'vscjava.vscode-java-pack',
     displayName: 'Java',
     getProjectFile: (launchConfig) => {
-        if (isJavaLaunchConfiguration(launchConfig) && launchConfig.project_path) {
-            return launchConfig.project_path;
+        if (isJavaLaunchConfiguration(launchConfig)) {
+            const programPath = launchConfig.main_class_path || launchConfig.project_path;
+            if (programPath) {
+                return programPath;
+            }
         }
 
         throw new Error(invalidLaunchConfiguration(JSON.stringify(launchConfig)));
