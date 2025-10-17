@@ -247,7 +247,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                     {
                         linkedCts.Cancel();
                     }
-                    catch
+                    catch (ObjectDisposedException)
                     {
                         // Ignore cancellation errors
                     }
