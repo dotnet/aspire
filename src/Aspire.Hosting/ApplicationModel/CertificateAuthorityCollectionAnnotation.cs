@@ -7,7 +7,7 @@ namespace Aspire.Hosting.ApplicationModel;
 /// Defines the scope of custom certificate authorities for a resource. The default scope for most resources
 /// is <see cref="Append"/>, but some resources may choose to override this default behavior.
 /// </summary>
-public enum CustomCertificateAuthoritiesScope
+public enum CertificateTrustScope
 {
     /// <summary>
     /// Append the specified certificate authorities to the default set of trusted CAs for a resource. Not all
@@ -51,5 +51,5 @@ public sealed class CertificateAuthorityCollectionAnnotation : IResourceAnnotati
     /// Gets a value indicating whether the resource should attempt to override its default CA trust behavior in
     /// favor of the provided certificates (not all resources will support this).
     /// </summary>
-    public CustomCertificateAuthoritiesScope? Scope { get; internal set; }
+    public CertificateTrustScope? Scope { get; internal set; }
 }

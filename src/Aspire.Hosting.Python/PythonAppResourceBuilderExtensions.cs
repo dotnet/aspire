@@ -285,10 +285,10 @@ public static class PythonAppResourceBuilderExtensions
         // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
         // way to simply append additional certificates to default Python trust stores such as certifi.
         resourceBuilder
-            .WithCustomCertificateAuthoritiesScope(CustomCertificateAuthoritiesScope.System)
+            .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithExecutableCertificateTrustCallback(ctx =>
             {
-                if (ctx.Scope != CustomCertificateAuthoritiesScope.Append)
+                if (ctx.Scope != CertificateTrustScope.Append)
                 {
                     // Override default certificates path for the requests module.
                     // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification

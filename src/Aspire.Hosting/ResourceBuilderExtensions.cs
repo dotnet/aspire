@@ -2156,16 +2156,16 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Sets the <see cref="CustomCertificateAuthoritiesScope"/> for custom certificate authorities associated with the resource.
+    /// Sets the <see cref="CertificateTrustScope"/> for custom certificate authorities associated with the resource.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
     /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     /// <remarks>
-    /// The default scope if not overridden is <see cref="CustomCertificateAuthoritiesScope.Append"/> which means that custom certificate
+    /// The default scope if not overridden is <see cref="CertificateTrustScope.Append"/> which means that custom certificate
     /// authorities should be appended to the default trusted certificate authorities for the resource. Setting the scope to
-    /// <see cref="CustomCertificateAuthoritiesScope.Override"/> indicates the set of certificates in referenced
+    /// <see cref="CertificateTrustScope.Override"/> indicates the set of certificates in referenced
     /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
     /// exclusive source of trust for a resource.
     /// In all cases, this is a best effort implementation as not all resources support full customization of certificate
@@ -2178,11 +2178,11 @@ public static class ResourceBuilderExtensions
     ///
     /// var container = builder.AddContainer("my-service", "my-service:latest")
     ///     .WithCertificateAuthorityCollection(caCollection)
-    ///     .WithCustomCertificateAuthoritiesScope(CustomCertificateAuthoritiesScope.Override);
+    ///     .WithCertificateTrustScope(CertificateTrustScope.Override);
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<TResource> WithCustomCertificateAuthoritiesScope<TResource>(this IResourceBuilder<TResource> builder, CustomCertificateAuthoritiesScope scope)
+    public static IResourceBuilder<TResource> WithCertificateTrustScope<TResource>(this IResourceBuilder<TResource> builder, CertificateTrustScope scope)
         where TResource : IResourceWithEnvironment, IResourceWithArgs
     {
         ArgumentNullException.ThrowIfNull(builder);
