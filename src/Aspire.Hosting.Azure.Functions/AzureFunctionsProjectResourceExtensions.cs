@@ -21,7 +21,8 @@ public static class AzureFunctionsProjectResourceExtensions
     /// is a combination of this prefix, a hash of the AppHost project name, and the name of the
     /// resource group associated with the deployment. We want to keep the total number of characters
     /// in the name under 24 characters to avoid truncation by Azure and allow
-    /// for unique enough identifiers.
+    /// for unique enough identifiers. The hash is based on the project name (not path) to ensure
+    /// stable naming across deployments.
     /// </remarks>
     internal const string DefaultAzureFunctionsHostStorageName = "funcstorage";
 
@@ -249,7 +250,8 @@ public static class AzureFunctionsProjectResourceExtensions
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
-        var applicationHash = builder.Configuration["AppHost:Sha256"]![..5].ToLowerInvariant();
+        // Use ProjectNameSha256 for stable naming across deployments regardless of path
+        var applicationHash = builder.Configuration["AppHost:ProjectNameSha256"]![..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
 }

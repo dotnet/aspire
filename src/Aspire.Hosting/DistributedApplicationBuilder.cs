@@ -220,39 +220,46 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
-        // account for the path the AppHost is running from to disambiguate between different projects
-        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
-        // we want to use a stable hash based only on the project name.
-        string appHostSha;
+        // Compute both PathSha and ProjectNameSha to support different use cases:
+        // - PathSha: For disambiguating projects with the same name in different locations (deployment state, local resources)
+        // - ProjectNameSha: For stable naming across deployments regardless of path (Azure Functions, Azure environments)
+        string appHostPathSha;
+        string appHostProjectNameSha;
 
         // Check if AppHostSha is already configured (e.g., for testing scenarios)
         var configuredAppHostSha = _innerBuilder.Configuration["AppHostSha"];
         if (!string.IsNullOrEmpty(configuredAppHostSha))
         {
-            appHostSha = configuredAppHostSha;
-        }
-        else if (ExecutionContext.IsPublishMode)
-        {
-            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
-            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+            // For backward compatibility with tests
+            appHostPathSha = configuredAppHostSha;
+            appHostProjectNameSha = configuredAppHostSha;
         }
         else
         {
-            // Normalize the casing of AppHostPath
-            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
-            appHostSha = Convert.ToHexString(appHostShaBytes);
+            // Normalize the casing of AppHostPath and compute PathSha
+            var appHostPathShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
+            appHostPathSha = Convert.ToHexString(appHostPathShaBytes);
+
+            // Compute ProjectNameSha
+            var appHostProjectNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostProjectNameSha = Convert.ToHexString(appHostProjectNameShaBytes);
         }
+
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
-            ["AppHost:Sha256"] = appHostSha
+            // PathSha for local resources and deployment state (path-based disambiguation)
+            ["AppHost:PathSha256"] = appHostPathSha,
+            // ProjectNameSha for publish scenarios (stable naming)
+            ["AppHost:ProjectNameSha256"] = appHostProjectNameSha,
+            // Keep Sha256 for backward compatibility, set to PathSha for local scenarios
+            ["AppHost:Sha256"] = appHostPathSha
         });
 
         // Load deployment state early in the configuration chain if in publish mode
         // This must happen before command line args are added so they can override saved state
         if (ExecutionContext.IsPublishMode)
         {
-            LoadDeploymentState(appHostSha);
+            LoadDeploymentState(appHostPathSha);
         }
 
         // exec
