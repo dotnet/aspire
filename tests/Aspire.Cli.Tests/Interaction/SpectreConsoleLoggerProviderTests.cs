@@ -30,7 +30,7 @@ public class SpectreConsoleLoggerProviderTests
         {
             var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
             var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context);
+            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateNonCIDetector());
         });
         
         var serviceProvider = services.BuildServiceProvider();
@@ -63,7 +63,7 @@ public class SpectreConsoleLoggerProviderTests
         {
             var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
             var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context);
+            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateNonCIDetector());
         });
         
         var serviceProvider = services.BuildServiceProvider();
@@ -101,7 +101,7 @@ public class SpectreConsoleLoggerProviderTests
         {
             var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
             var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context);
+            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateNonCIDetector());
         });
         
         var serviceProvider = services.BuildServiceProvider();
@@ -144,7 +144,7 @@ public class SpectreConsoleLoggerProviderTests
         {
             var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
             var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context);
+            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateNonCIDetector());
         });
         
         var serviceProvider = services.BuildServiceProvider();
@@ -184,7 +184,7 @@ public class SpectreConsoleLoggerProviderTests
         {
             var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
             var context = provider.GetRequiredService<CliExecutionContext>();
-            return new ConsoleInteractionService(ansiConsole, context);
+            return new ConsoleInteractionService(ansiConsole, context, TestHelpers.CreateNonCIDetector());
         });
         
         var serviceProvider = services.BuildServiceProvider();

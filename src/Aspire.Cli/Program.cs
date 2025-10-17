@@ -109,6 +109,7 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
+        builder.Services.AddSingleton<ICIEnvironmentDetector, CIEnvironmentDetector>();
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
@@ -262,7 +263,8 @@ public class Program
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
+                var ciDetector = provider.GetRequiredService<ICIEnvironmentDetector>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, ciDetector);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -279,7 +281,8 @@ public class Program
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                return new ConsoleInteractionService(ansiConsole, executionContext);
+                var ciDetector = provider.GetRequiredService<ICIEnvironmentDetector>();
+                return new ConsoleInteractionService(ansiConsole, executionContext, ciDetector);
             });
         }
     }

@@ -18,19 +18,22 @@ internal class ConsoleInteractionService : IInteractionService
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
+    private readonly ICIEnvironmentDetector _ciDetector;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICIEnvironmentDetector ciDetector)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(ciDetector);
         _ansiConsole = ansiConsole;
         _executionContext = executionContext;
+        _ciDetector = ciDetector;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
         // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || CIEnvironmentDetector.IsCI)
+        if (_executionContext.DebugMode || _ciDetector.IsCI)
         {
             DisplaySubtleMessage(statusText);
             return await action();
@@ -44,7 +47,7 @@ internal class ConsoleInteractionService : IInteractionService
     public void ShowStatus(string statusText, Action action)
     {
         // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || CIEnvironmentDetector.IsCI)
+        if (_executionContext.DebugMode || _ciDetector.IsCI)
         {
             DisplaySubtleMessage(statusText);
             action();

@@ -2,57 +2,77 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Utils;
+using Microsoft.Extensions.Configuration;
 
 namespace Aspire.Cli.Tests.Utils;
 
 public class CIEnvironmentDetectorTests
 {
     [Fact]
-    public void IsCI_ReturnsBool()
+    public void IsCI_ReturnsFalse_WhenNoCIVariablesSet()
     {
-        // Just verify that the property can be accessed and returns a boolean
-        var isCI = CIEnvironmentDetector.IsCI;
-        Assert.True(isCI || !isCI); // Always true - just verifying it's a bool
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var detector = new CIEnvironmentDetector(configuration);
+        
+        // Assert
+        Assert.False(detector.IsCI);
     }
 
     [Theory]
-    [InlineData("CI", "true")]
-    [InlineData("CI", "1")]
-    [InlineData("GITHUB_ACTIONS", "true")]
-    [InlineData("AZURE_PIPELINES", "True")]
-    [InlineData("TF_BUILD", "1")]
-    [InlineData("JENKINS_URL", "http://jenkins")]
-    [InlineData("GITLAB_CI", "true")]
-    [InlineData("CIRCLECI", "true")]
-    [InlineData("TRAVIS", "true")]
-    [InlineData("BUILDKITE", "true")]
-    [InlineData("APPVEYOR", "True")]
-    [InlineData("TEAMCITY_VERSION", "2024.1")]
-    [InlineData("BITBUCKET_BUILD_NUMBER", "123")]
-    [InlineData("CODEBUILD_BUILD_ID", "build-123")]
-    public void DetectCI_WithEnvironmentVariable_DocumentsExpectedBehavior(string envVar, string value)
+    [InlineData("CI", "true", true)]
+    [InlineData("CI", "1", true)]
+    [InlineData("CI", "false", false)]
+    [InlineData("CI", "0", false)]
+    [InlineData("CI", "something", false)]
+    [InlineData("GITHUB_ACTIONS", "true", true)]
+    [InlineData("GITHUB_ACTIONS", "false", true)] // Any value for non-CI var means CI
+    [InlineData("AZURE_PIPELINES", "True", true)]
+    [InlineData("TF_BUILD", "1", true)]
+    [InlineData("JENKINS_URL", "http://jenkins", true)]
+    [InlineData("GITLAB_CI", "true", true)]
+    [InlineData("CIRCLECI", "true", true)]
+    [InlineData("TRAVIS", "true", true)]
+    [InlineData("BUILDKITE", "true", true)]
+    [InlineData("APPVEYOR", "True", true)]
+    [InlineData("TEAMCITY_VERSION", "2024.1", true)]
+    [InlineData("BITBUCKET_BUILD_NUMBER", "123", true)]
+    [InlineData("CODEBUILD_BUILD_ID", "build-123", true)]
+    public void IsCI_DetectsCorrectly_BasedOnConfiguration(string envVar, string value, bool expectedIsCI)
     {
-        // This test documents the expected behavior for various CI environment variables
-        // Note: We can't easily test the actual detection logic since it's static and cached,
-        // but we can document the expected behavior through these test cases
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [envVar] = value
+            })
+            .Build();
         
-        // Arrange & Act
-        var originalValue = Environment.GetEnvironmentVariable(envVar);
-        try
-        {
-            Environment.SetEnvironmentVariable(envVar, value);
-            
-            // The actual IsCI property is static and cached at type initialization,
-            // so we can't test it directly with environment variable changes.
-            // This test serves as documentation of expected behavior.
-            
-            // Assert - just verify the test data is valid
-            Assert.NotNull(envVar);
-            Assert.NotNull(value);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(envVar, originalValue);
-        }
+        // Act
+        var detector = new CIEnvironmentDetector(configuration);
+        
+        // Assert
+        Assert.Equal(expectedIsCI, detector.IsCI);
+    }
+
+    [Fact]
+    public void IsCI_ReturnsTrue_WhenMultipleCIVariablesSet()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["GITHUB_ACTIONS"] = "true",
+                ["CI"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var detector = new CIEnvironmentDetector(configuration);
+        
+        // Assert
+        Assert.True(detector.IsCI);
     }
 }

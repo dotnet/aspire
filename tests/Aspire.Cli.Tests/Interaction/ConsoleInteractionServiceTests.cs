@@ -14,7 +14,7 @@ public class ConsoleInteractionServiceTests
     {
         // Arrange
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, TestHelpers.CreateNonCIDetector());
         var choices = Array.Empty<string>();
 
         // Act & Assert
@@ -27,7 +27,7 @@ public class ConsoleInteractionServiceTests
     {
         // Arrange
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, TestHelpers.CreateNonCIDetector());
         var choices = Array.Empty<string>();
 
         // Act & Assert
@@ -48,7 +48,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var errorMessage = "The JSON value could not be converted to <Type>. Path: $.values[0].Type | LineNumber: 0 | BytePositionInLine: 121.";
 
         // Act - this should not throw an exception due to markup parsing
@@ -73,7 +73,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var message = "Path with <brackets> and [markup] characters";
 
         // Act - this should not throw an exception due to markup parsing
@@ -98,7 +98,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var lines = new[] 
         {
             ("stdout", "Command output with <angle> brackets"),
@@ -129,7 +129,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var markdown = "# Header\nThis is **bold** and *italic* text with `code`.";
 
         // Act
@@ -156,7 +156,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var plainText = "This is just plain text without any markdown.";
 
         // Act
@@ -181,7 +181,7 @@ public class ConsoleInteractionServiceTests
         });
 
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var statusText = "Processing request...";
         var result = "test result";
 
@@ -208,7 +208,7 @@ public class ConsoleInteractionServiceTests
         });
 
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateNonCIDetector());
         var statusText = "Processing synchronous request...";
         var actionCalled = false;
 

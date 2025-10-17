@@ -18,6 +18,7 @@ namespace Aspire.Cli.Utils;
 internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
+    private readonly ICIEnvironmentDetector _ciDetector;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -43,12 +44,13 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(bool? forceColor = null)
+    public ConsoleActivityLogger(ICIEnvironmentDetector ciDetector, bool? forceColor = null)
     {
+        _ciDetector = ciDetector;
         _enableColor = forceColor ?? DetectColorSupport();
         
         // Disable spinner in CI environments
-        if (CIEnvironmentDetector.IsCI)
+        if (_ciDetector.IsCI)
         {
             _spinning = false;
         }
@@ -92,7 +94,7 @@ internal sealed class ConsoleActivityLogger
     public void StartSpinner()
     {
         // Skip spinner in CI environments
-        if (CIEnvironmentDetector.IsCI || _spinning)
+        if (_ciDetector.IsCI || _spinning)
         {
             return;
         }
@@ -256,7 +258,7 @@ internal sealed class ConsoleActivityLogger
             {
                 // Render dashboard URL as clickable link in interactive terminals, plain in CI
                 var url = dashboardUrl;
-                if (CIEnvironmentDetector.IsCI || !_enableColor)
+                if (_ciDetector.IsCI || !_enableColor)
                 {
                     AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
                 }
@@ -392,7 +394,7 @@ internal sealed class ConsoleActivityLogger
         options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
-    private static string HighlightAndEscape(string input)
+    private string HighlightAndEscape(string input)
     {
         if (string.IsNullOrEmpty(input))
         {
@@ -406,7 +408,7 @@ internal sealed class ConsoleActivityLogger
         }
 
         // In CI environments, just output URLs as-is without [link] markup
-        if (CIEnvironmentDetector.IsCI)
+        if (_ciDetector.IsCI)
         {
             return input.EscapeMarkup();
         }
@@ -431,12 +433,12 @@ internal sealed class ConsoleActivityLogger
         return sb.ToString();
     }
 
-    private static bool DetectColorSupport()
+    private bool DetectColorSupport()
     {
         try
         {
             // In CI environments, we should still use ANSI colors for better readability
-            if (CIEnvironmentDetector.IsCI)
+            if (_ciDetector.IsCI)
             {
                 // Most modern CI systems support ANSI colors
                 return true;

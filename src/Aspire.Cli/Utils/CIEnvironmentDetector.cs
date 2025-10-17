@@ -1,19 +1,32 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.Configuration;
+
 namespace Aspire.Cli.Utils;
 
 /// <summary>
 /// Detects if the current process is running in a CI environment.
 /// </summary>
-internal static class CIEnvironmentDetector
+internal interface ICIEnvironmentDetector
 {
     /// <summary>
     /// Gets whether the current process is running in a CI environment.
     /// </summary>
-    public static bool IsCI { get; } = DetectCI();
+    bool IsCI { get; }
+}
 
-    private static bool DetectCI()
+/// <summary>
+/// Default implementation that detects CI environments from configuration.
+/// </summary>
+internal sealed class CIEnvironmentDetector(IConfiguration configuration) : ICIEnvironmentDetector
+{
+    /// <summary>
+    /// Gets whether the current process is running in a CI environment.
+    /// </summary>
+    public bool IsCI { get; } = DetectCI(configuration);
+
+    private static bool DetectCI(IConfiguration configuration)
     {
         // Check for common CI environment variables
         // https://github.com/watson/ci-info/blob/master/vendors.json
@@ -36,7 +49,7 @@ internal static class CIEnvironmentDetector
 
         foreach (var envVar in ciEnvVars)
         {
-            var value = Environment.GetEnvironmentVariable(envVar);
+            var value = configuration[envVar];
             if (!string.IsNullOrEmpty(value))
             {
                 // For CI variable, only return true if it's "true" or "1"
