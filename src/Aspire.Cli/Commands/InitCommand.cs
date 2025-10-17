@@ -337,17 +337,20 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostProjectDir = appHostProjects[0];
             var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
 
-            // Move the projects to the solution directory
+            // Copy the projects to the solution directory
+            // Using copy instead of move to support cross-drive operations on Windows
             var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
-            Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
-            Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
+            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
-            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            // Delete the temporary directory
+            Directory.Delete(tempProjectDir, recursive: true);
 
             // Add AppHost project to solution
+            var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
+            var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
             initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
             var addAppHostResult = await InteractionService.ShowStatusAsync(
                 InitCommandStrings.AddingAppHostProjectToSolution,

@@ -159,7 +159,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        var cliArgsList = new List<string> { "msbuild" };
+        var isSingleFileAppHost = projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        
+        // If we are a single file app host then we use the build command instead of msbuild command.
+        var cliArgsList = new List<string> { isSingleFileAppHost ? "build" : "msbuild" };
 
         if (properties.Length > 0)
         {

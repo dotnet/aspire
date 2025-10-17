@@ -453,6 +453,137 @@ public class AzureAppServiceTests
               .AppendContentAsFile(bicep, "bicep");
     }
 
+    [Fact]
+    public async Task AddAppServiceWithArgs()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithArgs("--myarg", "myvalue")
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithTargetPort()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort:8000)
+            .WithHttpEndpoint(targetPort: 8000)
+            .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithHttpEndpoint(targetPort:9000)
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+                .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithTargetPortMultipleEndpoints()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort: 8000)
+            .WithHttpEndpoint(targetPort: 8000)
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+                .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithMultipleTargetPortsThrowsNotSupportedException()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env");
+
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithHttpsEndpoint(targetPort: 8000)
+            .WithHttpEndpoint(targetPort: 8800)
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
+
+        using var app = builder.Build();
+
+        var ex = await Assert.ThrowsAsync<NotSupportedException>(() => ExecuteBeforeStartHooksAsync(app, default));
+
+        Assert.Equal("App Service does not support resources with multiple external endpoints.", ex.Message);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 

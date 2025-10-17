@@ -293,6 +293,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+        _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
 
         // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
         // we still honour the DCP options around container runtime selection.

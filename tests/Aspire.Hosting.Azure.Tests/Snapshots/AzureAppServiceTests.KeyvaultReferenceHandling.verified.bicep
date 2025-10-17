@@ -27,17 +27,6 @@ param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
-  name: 'main'
-  properties: {
-    authType: 'UserAssigned'
-    image: api_containerimage
-    isMain: true
-    userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
-  }
-  parent: webapp
-}
-
 resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
   name: mydb_kv_outputs_name
 }
@@ -55,6 +44,17 @@ resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
 resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
   name: 'secret'
   parent: existingKv
+}
+
+resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
+  name: 'main'
+  properties: {
+    authType: 'UserAssigned'
+    image: api_containerimage
+    isMain: true
+    userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
+  }
+  parent: webapp
 }
 
 resource webapp 'Microsoft.Web/sites@2024-11-01' = {

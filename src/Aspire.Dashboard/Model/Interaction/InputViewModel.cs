@@ -57,6 +57,16 @@ public sealed class InputViewModel
 
     public List<SelectViewModel<string>> SelectOptions { get; private set; } = [];
 
+    public IEnumerable<SelectViewModel<string>> FilteredOptions()
+    {
+        if (Value is not { Length: > 0 } value)
+        {
+            return SelectOptions;
+        }
+
+        return SelectOptions.Where(vm => vm.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
     public string? Value
     {
         get => Input.Value;

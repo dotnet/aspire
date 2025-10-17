@@ -345,10 +345,9 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var renderer = new PublishingOutputRenderer();
+        var logger = new ConsoleActivityLogger();
+        logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
-
-        renderer.StartSpinner();
 
         try
         {
@@ -374,34 +373,33 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         steps[activity.Data.Id] = stepInfo;
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            $"Starting {stepInfo.Title}...");
+                        // Use the stable step Id for logger state tracking (prevents duplicate counting when titles repeat)
+                        logger.StartTask(stepInfo.Id, stepInfo.Title, $"Starting {stepInfo.Title}...");
                     }
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
                         stepInfo.CompletionText = activity.Data.StatusText;
-
-                        var isSuccess = !IsCompletionStateError(stepInfo.CompletionState) &&
-                                       !IsCompletionStateWarning(stepInfo.CompletionState);
-                        var isFailure = IsCompletionStateError(stepInfo.CompletionState);
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            stepInfo.CompletionText,
-                            isSuccess,
-                            isFailure);
+                        stepInfo.EndTime = DateTime.UtcNow;
+                        if (IsCompletionStateError(stepInfo.CompletionState))
+                        {
+                            logger.Failure(stepInfo.Id, stepInfo.CompletionText);
+                        }
+                        else if (IsCompletionStateWarning(stepInfo.CompletionState))
+                        {
+                            logger.Warning(stepInfo.Id, stepInfo.CompletionText);
+                        }
+                        else
+                        {
+                            logger.Success(stepInfo.Id, stepInfo.CompletionText);
+                        }
                     }
                 }
                 else if (activity.Type == PublishingActivityTypes.Prompt)
                 {
-                    await renderer.StopSpinnerAsync();
+                    await logger.StopSpinnerAsync();
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
-                    renderer.StartSpinner();
+                    logger.StartSpinner();
                 }
                 else
                 {
@@ -426,11 +424,7 @@ internal abstract class PublishCommandBase : BaseCommand
                         };
 
                         tasks[activity.Data.Id] = task;
-
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            activity.Data.StatusText);
+                        logger.Progress(stepInfo.Id, activity.Data.StatusText);
                     }
 
                     task.StatusText = activity.Data.StatusText;
@@ -440,58 +434,82 @@ internal abstract class PublishCommandBase : BaseCommand
                     {
                         task.CompletionMessage = activity.Data.CompletionMessage;
 
-                        var isSuccess = !IsCompletionStateError(task.CompletionState) &&
-                                       !IsCompletionStateWarning(task.CompletionState);
-                        var isFailure = IsCompletionStateError(task.CompletionState);
-
                         var duration = DateTime.UtcNow - task.StartTime;
                         var durationStr = $"({duration.TotalSeconds:F1}s)";
 
-                        var message = task.StatusText;
-                        if (!string.IsNullOrEmpty(task.CompletionMessage))
+                        var message = !string.IsNullOrEmpty(task.CompletionMessage)
+                            ? $"{task.StatusText}: {task.CompletionMessage} {durationStr}"
+                            : $"{task.StatusText} {durationStr}";
+
+                        if (IsCompletionStateError(task.CompletionState))
                         {
-                            message = $"{task.StatusText}: {task.CompletionMessage} {durationStr}";
+                            logger.Failure(stepInfo.Id, message);
+                        }
+                        else if (IsCompletionStateWarning(task.CompletionState))
+                        {
+                            logger.Warning(stepInfo.Id, message);
                         }
                         else
                         {
-                            message = $"{task.StatusText} {durationStr}";
+                            logger.Success(stepInfo.Id, message);
                         }
 
-                        await renderer.WriteStepMessageAsync(
-                            stepInfo.Id,
-                            stepInfo.Title,
-                            message,
-                            isSuccess,
-                            isFailure);
+                        // If this task caused the step to fail, record a candidate failure reason if not already set.
+                        if (IsCompletionStateError(task.CompletionState) && string.IsNullOrEmpty(stepInfo.FailureReason))
+                        {
+                            stepInfo.FailureReason = task.CompletionMessage ?? task.StatusText;
+                        }
                     }
                 }
             }
 
             if (publishingActivity is not null)
             {
-                await renderer.StopSpinnerAsync();
-                Console.Write("\r");          // Move to start of line
-                Console.Write("     ");       // Write multiple spaces to clear
-                Console.Write("\r");          // Move back to start of line
-                Console.Out.Flush();
-
                 var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
                 var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
+                // Determine first failed step (if any) for failure detail.
+                string? failedStepTitle = null;
+                string? failedStepMessage = null;
+                if (hasErrors)
+                {
+                    var failedStep = steps.Values.FirstOrDefault(s => IsCompletionStateError(s.CompletionState));
+                    if (failedStep is not null)
+                    {
+                        failedStepTitle = failedStep.Title;
+                        failedStepMessage = failedStep.FailureReason ?? failedStep.CompletionText;
+                    }
+                }
 
-                AnsiConsole.WriteLine();
-                var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                // Build duration breakdown (sorted by duration desc)
+                var now = DateTime.UtcNow;
+                var durationRecords = steps.Values.Select(s =>
+                {
+                    var end = s.EndTime ?? now;
+                    var state = s.CompletionState switch
+                    {
+                        var cs when IsCompletionStateError(cs) => ConsoleActivityLogger.ActivityState.Failure,
+                        var cs when IsCompletionStateWarning(cs) => ConsoleActivityLogger.ActivityState.Warning,
+                        var cs when cs == CompletionStates.Completed => ConsoleActivityLogger.ActivityState.Success,
+                        _ => ConsoleActivityLogger.ActivityState.InProgress
+                    };
+                    return new ConsoleActivityLogger.StepDurationRecord(
+                        s.Id,
+                        s.Title,
+                        state,
+                        end - s.StartTime,
+                        s.FailureReason);
+                })
+                .OrderByDescending(r => r.Duration)
+                .ToList();
+                logger.SetStepDurations(durationRecords);
 
-                var prefix = hasErrors ? "[red]" : hasWarnings ? "[yellow]" : "[green]";
-                var operationPrefix = hasErrors ? OperationFailedPrefix : OperationCompletedPrefix;
+                // Provide final result to logger and print its structured summary.
+                logger.SetFinalResult(!hasErrors);
+                logger.WriteSummary();
 
-                AnsiConsole.MarkupLine(
-                    $"[dim]{timestamp}[/] [bold white]{operationPrefix,-12}[/] " +
-                    $"{prefix}{publishingActivity.Data.StatusText.EscapeMarkup()}[/]");
-
-                // Send visual bell notification when operation is complete
+                // Visual bell
                 Console.Write("\a");
                 Console.Out.Flush();
-
                 return !hasErrors;
             }
 
@@ -499,11 +517,7 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
-            await renderer.StopSpinnerAsync();
-            Console.Write("\r");          // Move to start of line
-            Console.Write("     ");       // Write multiple spaces to clear
-            Console.Write("\r");          // Move back to start of line
-            Console.Out.Flush();
+            await logger.StopSpinnerAsync();
         }
     }
 
@@ -696,8 +710,10 @@ internal abstract class PublishCommandBase : BaseCommand
         public string Title { get; set; } = string.Empty;
         public int Number { get; set; }
         public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
         public string CompletionState { get; set; } = CompletionStates.InProgress;
         public string CompletionText { get; set; } = string.Empty;
+        public string? FailureReason { get; set; }
         public Dictionary<string, TaskInfo> Tasks { get; } = [];
     }
 
@@ -710,106 +726,7 @@ internal abstract class PublishCommandBase : BaseCommand
         public string? CompletionMessage { get; set; }
     }
 
-    private class ProgressContextInfo
-    {
-        public StepInfo? Step { get; set; }
-    }
-
-    private class PublishingOutputRenderer
-    {
-        private readonly HashSet<string> _seenSteps = [];
-        private readonly Dictionary<string, string> _stepColors = [];
-        private readonly string[] _availableColors = ["blue", "cyan", "yellow", "magenta", "purple", "orange3"];
-        private int _colorIndex;
-        private readonly char[] _spinnerChars = ['|', '/', '-', '\\'];
-        private volatile bool _isSpinning;
-        private Task? _spinnerTask;
-
-        public void StartSpinner()
-        {
-            if (_isSpinning)
-            {
-                return;
-            }
-
-            _isSpinning = true;
-            _spinnerTask = Task.Run(async () =>
-            {
-                var spinnerIndex = 0;
-
-                while (_isSpinning)
-                {
-                    AnsiConsole.Write(CultureInfo.InvariantCulture, _spinnerChars[spinnerIndex]);
-                    AnsiConsole.Write("\b");
-                    spinnerIndex = (spinnerIndex + 1) % _spinnerChars.Length;
-                    await Task.Delay(150);
-                }
-
-                AnsiConsole.Write(" \b");
-            });
-        }
-
-        public async Task StopSpinnerAsync()
-        {
-            _isSpinning = false;
-            if (_spinnerTask is not null)
-            {
-                await _spinnerTask.ConfigureAwait(false);
-            }
-            _spinnerTask = null;
-        }
-
-        public async Task WriteStepMessageAsync(string stepId, string stepTitle, string message,
-            bool isSuccess = false, bool isFailure = false)
-        {
-            var wasSpinning = _isSpinning;
-            if (wasSpinning)
-            {
-                _isSpinning = false;
-                if (_spinnerTask is not null)
-                {
-                    await _spinnerTask.ConfigureAwait(false);
-                }
-            }
-
-            if (!_seenSteps.Contains(stepId))
-            {
-                AnsiConsole.WriteLine();
-                _seenSteps.Add(stepId);
-            }
-
-            var timestamp = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
-            var stepColor = GetStepColor(stepId);
-
-            var formattedMessage = message.EscapeMarkup();
-            if (isSuccess)
-            {
-                formattedMessage = $"[green]{formattedMessage}[/]";
-            }
-            else if (isFailure)
-            {
-                formattedMessage = $"[red]{formattedMessage}[/]";
-            }
-
-            AnsiConsole.MarkupLine($"[dim]{timestamp}[/] [{stepColor}]({stepTitle})[/] {formattedMessage}");
-
-            if (wasSpinning)
-            {
-                StartSpinner();
-            }
-        }
-
-        private string GetStepColor(string stepId)
-        {
-            if (!_stepColors.TryGetValue(stepId, out var color))
-            {
-                color = _availableColors[_colorIndex % _availableColors.Length];
-                _stepColors[stepId] = color;
-                _colorIndex++;
-            }
-            return color;
-        }
-    }
+    // Removed legacy PublishingOutputRenderer and ProgressContextInfo (spinner & step coloring now handled by ConsoleActivityLogger).
 
     /// <summary>
     /// Starts the terminal infinite progress bar.

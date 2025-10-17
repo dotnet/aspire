@@ -33,9 +33,9 @@ internal sealed class EnvFile
         return envFile;
     }
 
-    public void AddIfMissing(string key, string? value, string? comment)
+    public void Add(string key, string? value, string? comment, bool onlyIfMissing = true)
     {
-        if (_keys.Contains(key))
+        if (onlyIfMissing && _keys.Contains(key))
         {
             return;
         }

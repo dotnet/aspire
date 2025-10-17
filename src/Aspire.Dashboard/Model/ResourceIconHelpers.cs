@@ -28,7 +28,7 @@ internal static class ResourceIconHelpers
         var icon = resource.ResourceType switch
         {
             KnownResourceTypes.Executable => iconResolver.ResolveIconName("Apps", desiredSize, desiredVariant),
-            KnownResourceTypes.Project => iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant),
+            KnownResourceTypes.Project => ResolveProjectIcon(iconResolver, resource, desiredSize, desiredVariant),
             KnownResourceTypes.Container => iconResolver.ResolveIconName("Box", desiredSize, desiredVariant),
             KnownResourceTypes.Parameter => iconResolver.ResolveIconName("Key", desiredSize, desiredVariant),
             KnownResourceTypes.ConnectionString => iconResolver.ResolveIconName("PlugConnectedSettings", desiredSize, desiredVariant),
@@ -43,6 +43,23 @@ internal static class ResourceIconHelpers
         }
 
         return icon;
+
+        static Icon? ResolveProjectIcon(IconResolver iconResolver, ResourceViewModel resource, IconSize desiredSize, IconVariant desiredVariant = IconVariant.Filled)
+        {
+            if (resource.TryGetProjectPath(out var projectPath) && !string.IsNullOrEmpty(projectPath))
+            {
+                var extension = Path.GetExtension(projectPath);
+                return extension?.ToLowerInvariant() switch
+                {
+                    ".csproj" => iconResolver.ResolveIconName("CodeCsRectangle", desiredSize, desiredVariant),
+                    ".fsproj" => iconResolver.ResolveIconName("CodeFsRectangle", desiredSize, desiredVariant),
+                    ".vbproj" => iconResolver.ResolveIconName("CodeVbRectangle", desiredSize, desiredVariant),
+                    _ => iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant)
+                };
+            }
+
+            return iconResolver.ResolveIconName("CodeCircle", desiredSize, desiredVariant);
+        }
     }
 
     public static (Icon? icon, Color color) GetHealthStatusIcon(HealthStatus? healthStatus)

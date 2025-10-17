@@ -25,7 +25,10 @@ SHOW_HELP=false
 VERBOSE=false
 KEEP_ARCHIVE=false
 DRY_RUN=false
+INSTALL_EXTENSION=false
+USE_INSIDERS=false
 DEFAULT_QUALITY="release"
+EXTENSION_ARTIFACT_NAME="aspire-vscode.vsix.zip"
 
 # Function to show help
 show_help() {
@@ -52,6 +55,8 @@ USAGE:
     --version VERSION           Version of the Aspire CLI to download (default: unset)
     --os OS                     Operating system (default: auto-detect)
     --arch ARCH                 Architecture (default: auto-detect)
+    --install-extension         Install VS Code extension along with the CLI
+    --use-insiders              Install extension to VS Code Insiders instead of VS Code (requires --install-extension)
     -k, --keep-archive          Keep downloaded archive files and temporary directory after installation
     --dry-run                   Show what would be done without actually performing any actions
     -v, --verbose               Enable verbose output
@@ -63,6 +68,8 @@ EXAMPLES:
     ./get-aspire-cli.sh --quality "staging"
     ./get-aspire-cli.sh --version "9.5.0-preview.1.25366.3"
     ./get-aspire-cli.sh --os "linux" --arch "x64"
+    ./get-aspire-cli.sh --install-extension
+    ./get-aspire-cli.sh --install-extension --use-insiders
     ./get-aspire-cli.sh --keep-archive
     ./get-aspire-cli.sh --dry-run
     ./get-aspire-cli.sh --help
@@ -122,6 +129,14 @@ parse_args() {
                 fi
                 ARCH="$2"
                 shift 2
+                ;;
+            --install-extension)
+                INSTALL_EXTENSION=true
+                shift
+                ;;
+            --use-insiders)
+                USE_INSIDERS=true
+                shift
                 ;;
             -k|--keep-archive)
                 KEEP_ARCHIVE=true
@@ -557,6 +572,61 @@ add_to_shell_profile() {
     return 0
 }
 
+# Function to check VS Code CLI dependency
+test_vscode_cli() {
+    local vscode_cmd
+    local vscode_name
+
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+        vscode_name="VS Code Insiders"
+    else
+        vscode_cmd="code"
+        vscode_name="VS Code"
+    fi
+
+    if ! command -v "$vscode_cmd" >/dev/null 2>&1; then
+        say_warn "$vscode_name CLI ($vscode_cmd) not found in PATH"
+        return 1
+    fi
+
+    say_verbose "$vscode_name CLI ($vscode_cmd) found"
+    return 0
+}
+
+# Function to construct the URL for VS Code extension download
+construct_aspire_extension_url() {
+    local version="$1"
+    local quality="$2"
+    local base_url
+    local extension="vsix.zip"
+
+    if [[ -z "$version" ]]; then
+        # When version is not set use aka.ms URLs based on quality
+        case "$quality" in
+            dev)
+                base_url="https://aka.ms/dotnet/9/aspire/daily"
+                ;;
+            staging)
+                base_url="https://aka.ms/dotnet/9/aspire/rc/daily"
+                ;;
+            release)
+                base_url="https://aka.ms/dotnet/9/aspire/ga/daily"
+                ;;
+            *)
+                say_error "Unsupported quality '$quality'. Supported values are: dev, staging, release."
+                return 1
+                ;;
+        esac
+
+        printf "${base_url}/aspire-vscode.${extension}"
+    else
+        # When version is set, use ci.dot.net URL
+        base_url="https://ci.dot.net/public/aspire/"
+        printf "${base_url}${version}/aspire-vscode-${version}.${extension}"
+    fi
+}
+
 # Function to construct the base URL for the Aspire CLI download
 construct_aspire_cli_url() {
     local version="$1"
@@ -603,6 +673,95 @@ construct_aspire_cli_url() {
 
         printf "${base_url}/${version}/aspire-cli-${rid}-${version}.${extension}"
     fi
+}
+
+# Function to download VS Code extension
+download_aspire_extension() {
+    local temp_dir="$1"
+    local version="$2"
+    local quality="$3"
+    local url extension_archive
+
+    say_info "Downloading Aspire VS Code extension"
+
+    if ! url=$(construct_aspire_extension_url "$version" "$quality"); then
+        return 1
+    fi
+
+    extension_archive="${temp_dir}/${EXTENSION_ARTIFACT_NAME}"
+
+    say_info "Downloading from: $url"
+    if ! download_file "$url" "$extension_archive" $ARCHIVE_DOWNLOAD_TIMEOUT_SEC; then
+        return 1
+    fi
+
+    say_verbose "Successfully downloaded extension archive"
+    echo "$extension_archive"
+}
+
+# Function to install VS Code extension
+install_aspire_extension() {
+    local extension_archive="$1"
+    local vscode_cmd vscode_name extract_dir vsix_file
+
+    if [[ "$USE_INSIDERS" == true ]]; then
+        vscode_cmd="code-insiders"
+        vscode_name="VS Code Insiders"
+    else
+        vscode_cmd="code"
+        vscode_name="VS Code"
+    fi
+
+    say_info "Installing Aspire extension to $vscode_name"
+
+    # Extract the zip to get the VSIX file
+    extract_dir=$(mktemp -d -t aspire-extension-XXXXXXXX)
+
+    # Extract archive
+    if [[ "$DRY_RUN" != true ]]; then
+        if command -v unzip >/dev/null 2>&1; then
+            if ! unzip -q "$extension_archive" -d "$extract_dir"; then
+                say_error "Failed to extract extension archive"
+                rm -rf "$extract_dir"
+                return 1
+            fi
+        else
+            say_error "unzip command not found"
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        say_verbose "Extracted extension archive"
+    fi
+
+    # Find the VSIX file
+    vsix_file=$(find "$extract_dir" -name "*.vsix" | head -n 1)
+
+    if [[ -z "$vsix_file" ]]; then
+        say_error "No VSIX file found in extension archive"
+        rm -rf "$extract_dir"
+        return 1
+    fi
+
+    say_verbose "Found VSIX file: $(basename "$vsix_file")"
+
+    # Install the extension
+    if [[ "$DRY_RUN" == true ]]; then
+        say_info "[DRY RUN] Would run: $vscode_cmd --install-extension $vsix_file --force"
+    else
+        say_verbose "Running: $vscode_cmd --install-extension $vsix_file --force"
+        if ! "$vscode_cmd" --install-extension "$vsix_file" --force; then
+            say_error "Extension installation failed"
+            rm -rf "$extract_dir"
+            return 1
+        fi
+
+        say_info "${GREEN}Successfully installed Aspire extension to $vscode_name${RESET}"
+    fi
+
+    # Clean up extraction directory
+    rm -rf "$extract_dir"
+    return 0
 }
 
 # Function to download and install archive
@@ -683,6 +842,27 @@ download_and_install_archive() {
     cli_path="${INSTALL_PATH}/${cli_exe}"
 
     say_info "Aspire CLI successfully installed to: ${GREEN}$cli_path${RESET}"
+
+    # Download and install VS Code extension if requested
+    if [[ "$INSTALL_EXTENSION" == true ]]; then
+        printf "\n"
+        say_info "Installing VS Code extension"
+
+        if test_vscode_cli; then
+            if extension_archive=$(download_aspire_extension "$temp_dir" "$VERSION" "$QUALITY"); then
+                if ! install_aspire_extension "$extension_archive"; then
+                    say_warn "Failed to install VS Code extension"
+                    say_warn "The CLI was installed successfully, but the extension installation failed"
+                fi
+            else
+                say_warn "Failed to download VS Code extension"
+                say_warn "The CLI was installed successfully, but the extension download failed"
+            fi
+        else
+            say_warn "Cannot install extension: VS Code CLI not found in PATH"
+            say_info "Please ensure VS Code is installed and available in PATH"
+        fi
+    fi
 }
 
 # Parse command line arguments
@@ -704,6 +884,13 @@ fi
 if [[ -z "$QUALITY" ]]; then
     # Default quality if not provided
     QUALITY="${DEFAULT_QUALITY}"
+fi
+
+# Validate extension installation is only allowed with dev quality
+if [[ "$INSTALL_EXTENSION" == true && "$QUALITY" != "dev" ]]; then
+    say_error "Extension installation is only supported with --quality dev. Current quality: $QUALITY"
+    say_info "Use --help for usage information."
+    exit 1
 fi
 
 # Set default install path if not provided

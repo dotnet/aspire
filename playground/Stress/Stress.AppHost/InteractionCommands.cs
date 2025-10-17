@@ -296,9 +296,9 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   DynamicOptions = new DynamicInputOptions
+                   DynamicLoading = new InputLoadOptions
                    {
-                       UpdateInputCallback = async (context) =>
+                       LoadCallback = async (context) =>
                        {
                            await Task.Delay(5000, context.CancellationToken);
 
@@ -311,9 +311,9 @@ internal static class InteractionCommands
                        }
                    }
                };
-               var dependentOptionsProvider = new DynamicInputOptions
+               var sharedDynamicOptions = new InputLoadOptions
                {
-                   UpdateInputCallback = async (context) =>
+                   LoadCallback = async (context) =>
                    {
                        var dependsOnInput = context.AllInputs["PredefinedOptions"];
 
@@ -344,7 +344,7 @@ internal static class InteractionCommands
                    Placeholder = "Select dynamic value",
                    Required = true,
                    Disabled = true,
-                   DynamicOptions = dependentOptionsProvider
+                   DynamicLoading = sharedDynamicOptions
                };
                var dynamicCustomChoiceInput = new InteractionInput
                {
@@ -355,7 +355,7 @@ internal static class InteractionCommands
                    AllowCustomChoice = true,
                    Required = true,
                    Disabled = true,
-                   DynamicOptions = dependentOptionsProvider
+                   DynamicLoading = sharedDynamicOptions
                };
                var dynamicTextInput = new InteractionInput
                {
@@ -364,10 +364,10 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    Required = true,
                    Disabled = true,
-                   DynamicOptions = new DynamicInputOptions
+                   DynamicLoading = new InputLoadOptions
                    {
                        DependsOnInputs = ["Dynamic"],
-                       UpdateInputCallback = async (context) =>
+                       LoadCallback = async (context) =>
                        {
                            await Task.Delay(5000, context.CancellationToken);
                            var dependsOnInput = context.AllInputs["Dynamic"];
@@ -435,9 +435,9 @@ internal static class InteractionCommands
                    Placeholder = "Placeholder!",
                    AllowCustomChoice = true,
                    Required = true,
-                   DynamicOptions = new DynamicInputOptions
+                   DynamicLoading = new InputLoadOptions
                    {
-                       UpdateInputCallback = async (context) =>
+                       LoadCallback = async (context) =>
                        {
                            await Task.Delay(1000, context.CancellationToken);
 
@@ -452,9 +452,9 @@ internal static class InteractionCommands
                    Label = "Dynamic",
                    Placeholder = "Select dynamic value",
                    Required = true,
-                   DynamicOptions = new DynamicInputOptions
+                   DynamicLoading = new InputLoadOptions
                    {
-                       UpdateInputCallback = async (context) =>
+                       LoadCallback = async (context) =>
                        {
                            await Task.Delay(1000, context.CancellationToken);
 

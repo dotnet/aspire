@@ -1,6 +1,0 @@
-# Build artifacts
-dist/
-.localization/
-out/
-node_modules/
-extension/.vscode-test/
