@@ -12,47 +12,12 @@ using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
-/// <summary>
-/// Represents a failed pipeline step with its associated exception.
-/// </summary>
-internal sealed class PipelineStepFailure
-{
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PipelineStepFailure"/> class.
-    /// </summary>
-    /// <param name="stepName">The name of the failed step.</param>
-    /// <param name="exception">The exception that caused the failure.</param>
-    public PipelineStepFailure(string stepName, Exception exception)
-    {
-        StepName = stepName;
-        Exception = exception;
-    }
-
-    /// <summary>
-    /// Gets the name of the failed step.
-    /// </summary>
-    public string StepName { get; }
-
-    /// <summary>
-    /// Gets the exception that caused the step to fail.
-    /// </summary>
-    public Exception Exception { get; }
-}
-
 [DebuggerDisplay("{ToString(),nq}")]
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
     private readonly List<PipelineStep> _steps = [];
-    private readonly List<PipelineStepFailure> _failedSteps = [];
 
     public bool HasSteps => _steps.Count > 0;
-
-    /// <summary>
-    /// Gets the list of steps that failed during the last execution.
-    /// Only includes steps that threw exceptions during execution, not steps that were skipped due to dependency failures.
-    /// This list is cleared at the start of each execution.
-    /// </summary>
-    public IReadOnlyList<PipelineStepFailure> FailedSteps => _failedSteps;
 
     public void AddStep(string name,
         Func<DeployingContext, Task> action,
@@ -139,9 +104,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     public async Task ExecuteAsync(DeployingContext context)
     {
-        // Clear failed steps from any previous execution
-        _failedSteps.Clear();
-
         var allSteps = _steps.Concat(CollectStepsFromAnnotations(context)).ToList();
 
         if (allSteps.Count == 0)
@@ -213,13 +175,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     /// Executes pipeline steps by building a Task DAG where each step waits on its dependencies.
     /// Uses CancellationToken to stop remaining work when any step fails.
     /// </summary>
-    private async Task ExecuteStepsAsTaskDag(
+    private static async Task ExecuteStepsAsTaskDag(
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName,
         DeployingContext context)
     {
         // Validate no cycles exist in the dependency graph
         ValidateDependencyGraph(steps, stepsByName);
+
+        // Create a CancellationTokenSource that will be cancelled when any step fails
+        using var failureCts = new CancellationTokenSource();
 
         // Create a TaskCompletionSource for each step
         var stepCompletions = new Dictionary<string, TaskCompletionSource>(steps.Count, StringComparer.Ordinal);
@@ -232,6 +197,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         async Task ExecuteStepWithDependencies(PipelineStep step)
         {
             var stepTcs = stepCompletions[step.Name];
+
+            // Check if execution has been cancelled due to other step failures
+            if (failureCts.Token.IsCancellationRequested)
+            {
+                var cancelException = new OperationCanceledException("Pipeline execution cancelled due to step failure", failureCts.Token);
+                stepTcs.TrySetException(cancelException);
+                return;
+            }
 
             // Wait for all dependencies to complete (will throw if any dependency failed)
             if (step.DependsOnSteps.Count > 0)
@@ -259,6 +232,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
             }
 
+            // Check again before starting execution in case another step failed while we were waiting
+            if (failureCts.Token.IsCancellationRequested)
+            {
+                var cancelException = new OperationCanceledException("Pipeline execution cancelled due to step failure", failureCts.Token);
+                stepTcs.TrySetException(cancelException);
+                return;
+            }
+
             try
             {
                 await ExecuteStepAsync(step, context).ConfigureAwait(false);
@@ -267,8 +248,19 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             }
             catch (Exception ex)
             {
-                // Execution failure - mark as failed and re-throw so it's counted
+                // Execution failure - mark as failed, cancel all other work, and re-throw
                 stepTcs.TrySetException(ex);
+                
+                // Cancel all remaining work
+                try
+                {
+                    failureCts.Cancel();
+                }
+                catch
+                {
+                    // Ignore cancellation errors
+                }
+                
                 throw;
             }
         }
@@ -294,21 +286,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 .Select(t => t.Exception!)
                 .SelectMany(ae => ae.InnerExceptions)
                 .ToList();
-
-            // Track failed steps for reporting
-            for (var i = 0; i < allStepTasks.Length; i++)
-            {
-                if (allStepTasks[i].IsFaulted)
-                {
-                    var stepName = steps[i].Name;
-                    var taskException = allStepTasks[i].Exception;
-                    if (taskException is not null)
-                    {
-                        var stepException = taskException.InnerExceptions.FirstOrDefault() ?? taskException;
-                        _failedSteps.Add(new PipelineStepFailure(stepName, stepException));
-                    }
-                }
-            }
 
             if (failures.Count > 1)
             {

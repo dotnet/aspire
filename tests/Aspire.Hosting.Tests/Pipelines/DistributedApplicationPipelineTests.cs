@@ -1237,168 +1237,34 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithFailingStep_TracksFailedStep()
+    public async Task ExecuteAsync_WithFailure_PreventsOtherStepsFromStarting()
     {
+        // Test that when one step fails, other steps that haven't started yet don't start
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
 
-        var expectedException = new InvalidOperationException("Test failure");
-        pipeline.AddStep("failing-step", async (context) =>
+        var step2Started = false;
+
+        // Step 1 will fail after a short delay
+        pipeline.AddStep("step1", async (context) =>
         {
-            await Task.CompletedTask;
-            throw expectedException;
+            await Task.Delay(50);
+            throw new InvalidOperationException("Step 1 failed");
         });
+
+        // Step 2 depends on step1, so it definitely shouldn't start
+        pipeline.AddStep("step2", async (context) =>
+        {
+            step2Started = true;
+            await Task.CompletedTask;
+        }, dependsOn: "step1");
 
         var context = CreateDeployingContext(builder.Build());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
 
-        // Verify that the failed step was tracked
-        Assert.Single(pipeline.FailedSteps);
-        Assert.Equal("failing-step", pipeline.FailedSteps[0].StepName);
-        Assert.NotNull(pipeline.FailedSteps[0].Exception);
-        Assert.Contains("failing-step", pipeline.FailedSteps[0].Exception.Message);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithMultipleFailingSteps_TracksAllFailures()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new NotSupportedException("Error 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-
-        // Verify that both failed steps were tracked
-        Assert.Equal(2, pipeline.FailedSteps.Count);
-        
-        var failedStepNames = pipeline.FailedSteps.Select(f => f.StepName).OrderBy(n => n).ToList();
-        Assert.Equal(["failing-step1", "failing-step2"], failedStepNames);
-        
-        // Verify exceptions are tracked
-        Assert.All(pipeline.FailedSteps, f => Assert.NotNull(f.Exception));
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithDependencyFailure_TracksOnlyDirectFailures()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var dependentStepExecuted = false;
-
-        pipeline.AddStep("failing-dependency", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency failed");
-        });
-
-        pipeline.AddStep("dependent-step", async (context) =>
-        {
-            dependentStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: "failing-dependency");
-
-        var context = CreateDeployingContext(builder.Build());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
-
-        // Only the step that actually threw an exception should be tracked
-        Assert.Single(pipeline.FailedSteps);
-        Assert.Equal("failing-dependency", pipeline.FailedSteps[0].StepName);
-        
-        // The dependent step should not have executed
-        Assert.False(dependentStepExecuted);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_ClearsFailuresFromPreviousExecution()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        // First execution - add a failing step
-        pipeline.AddStep("failing-step", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Test failure");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
-        Assert.Single(pipeline.FailedSteps);
-
-        // Second execution - create a new pipeline with successful step
-        var pipeline2 = new DistributedApplicationPipeline();
-        pipeline2.AddStep("successful-step", async (context) =>
-        {
-            await Task.CompletedTask;
-        });
-
-        await pipeline2.ExecuteAsync(context);
-
-        // Failed steps should be empty after successful execution
-        Assert.Empty(pipeline2.FailedSteps);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_FailedStepsCanBeUsedForDetailedErrorReporting()
-    {
-        // This test demonstrates how the CLI or Publisher can use FailedSteps for error reporting
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var exception1 = new InvalidOperationException("Database connection failed");
-        var exception2 = new TimeoutException("Deployment timeout");
-
-        pipeline.AddStep("deploy-database", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw exception1;
-        });
-
-        pipeline.AddStep("deploy-service", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw exception2;
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-
-        // Verify we can access detailed failure information for reporting
-        Assert.Equal(2, pipeline.FailedSteps.Count);
-
-        // Simulate building an error report like the CLI would
-        var errorReport = string.Join(", ", pipeline.FailedSteps.Select(f => $"{f.StepName}: {f.Exception.Message}"));
-        Assert.Contains("deploy-database", errorReport);
-        Assert.Contains("Database connection failed", errorReport);
-        Assert.Contains("deploy-service", errorReport);
-        Assert.Contains("Deployment timeout", errorReport);
-
-        // Verify exception types are preserved
-        var dbFailure = pipeline.FailedSteps.First(f => f.StepName == "deploy-database");
-        Assert.IsType<InvalidOperationException>(dbFailure.Exception);
-        Assert.Contains("Database connection failed", dbFailure.Exception.Message);
-
-        var serviceFailure = pipeline.FailedSteps.First(f => f.StepName == "deploy-service");
-        Assert.IsType<InvalidOperationException>(serviceFailure.Exception);
-        Assert.Contains("Deployment timeout", serviceFailure.Exception.Message);
+        // Step 2 should never start because its dependency failed
+        Assert.False(step2Started, "Step depending on failed step should not start");
     }
 
     [Fact]
