@@ -134,7 +134,14 @@ public static class AzureStorageExtensions
             .WithDefaultRoleAssignments(StorageBuiltInRole.GetBuiltInRoleName,
                 StorageBuiltInRole.StorageBlobDataContributor,
                 StorageBuiltInRole.StorageTableDataContributor,
-                StorageBuiltInRole.StorageQueueDataContributor);
+                StorageBuiltInRole.StorageQueueDataContributor)
+            .WithAnnotation(new OperatorRoleCallbackAnnotation(new HashSet<RoleDefinition>
+            {
+                // Operators should have full access to manage storage accounts
+                new RoleDefinition(
+                    StorageBuiltInRole.StorageAccountContributor.ToString()!,
+                    StorageBuiltInRole.GetBuiltInRoleName(StorageBuiltInRole.StorageAccountContributor))
+            }));
     }
 
     /// <summary>

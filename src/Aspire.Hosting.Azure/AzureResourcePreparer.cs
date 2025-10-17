@@ -225,6 +225,9 @@ internal sealed class AzureResourcePreparer(
                     }
                 }
             }
+
+            // Process operator role assignments
+            ProcessOperatorRoleAssignments(appModel, azureResources);
         }
 
         if (globalRoleAssignments.Count > 0)
@@ -471,6 +474,133 @@ internal sealed class AzureResourcePreparer(
 
         throw new NotSupportedException("Unsupported value type " + value.GetType());
     }
+
+    private void ProcessOperatorRoleAssignments(
+        DistributedApplicationModel appModel,
+        List<(IResource Resource, IAzureResource AzureResource)> azureResources)
+    {
+        // Find all compute environments with operator principals
+        var computeEnvironmentsWithOperators = appModel.Resources
+            .Where(r => r.TryGetAnnotationsOfType<OperatorPrincipalAnnotation>(out _))
+            .ToList();
+
+        if (computeEnvironmentsWithOperators.Count == 0)
+        {
+            return;
+        }
+
+        // For each Azure resource with operator role callbacks, create role assignments for each operator principal
+        foreach (var (_, azureResource) in azureResources)
+        {
+            if (azureResource is not AzureProvisioningResource provisioningResource)
+            {
+                continue;
+            }
+
+            if (!provisioningResource.TryGetAnnotationsOfType<OperatorRoleCallbackAnnotation>(out var operatorCallbacks))
+            {
+                continue;
+            }
+
+            // Collect all operator roles from the callbacks
+            var operatorRoles = operatorCallbacks
+                .SelectMany(c => c.Roles)
+                .ToHashSet();
+
+            if (operatorRoles.Count == 0)
+            {
+                continue;
+            }
+
+            // For each operator principal in the compute environments
+            foreach (var computeEnv in computeEnvironmentsWithOperators)
+            {
+                if (!computeEnv.TryGetAnnotationsOfType<OperatorPrincipalAnnotation>(out var operatorAnnotations))
+                {
+                    continue;
+                }
+
+                foreach (var operatorAnnotation in operatorAnnotations)
+                {
+                    // Create a role assignment resource for this operator on this Azure resource
+                    var operatorPrincipalId = operatorAnnotation.PrincipalId;
+
+                    var roleAssignmentResource = new AzureProvisioningResource(
+                        $"{provisioningResource.Name}-operator-{GetOperatorName(operatorPrincipalId)}",
+                        infra => AddOperatorRoleAssignmentsInfrastructure(infra, provisioningResource, operatorRoles, operatorPrincipalId))
+                    {
+                        ProvisioningBuildOptions = options.Value.ProvisioningBuildOptions,
+                    };
+
+                    // existing resource role assignments need to be scoped to the resource's resource group
+                    if (provisioningResource.TryGetLastAnnotation<ExistingAzureResourceAnnotation>(out var existingAnnotation) &&
+                        existingAnnotation.ResourceGroup is not null)
+                    {
+                        roleAssignmentResource.Scope = new(existingAnnotation.ResourceGroup);
+                    }
+
+                    appModel.Resources.Add(roleAssignmentResource);
+
+                    // Add relationship annotation
+                    roleAssignmentResource.Annotations.Add(new ResourceRelationshipAnnotation(provisioningResource, KnownRelationshipTypes.Parent));
+                }
+            }
+        }
+    }
+
+    private void AddOperatorRoleAssignmentsInfrastructure(
+        AzureResourceInfrastructure infra,
+        AzureProvisioningResource azureResource,
+        IEnumerable<RoleDefinition> operatorRoles,
+        IManifestExpressionProvider operatorPrincipalId)
+    {
+        var principalIdParam = operatorPrincipalId.AsProvisioningParameter(infra, parameterName: "operatorPrincipalId");
+
+        var context = new OperatorAddRoleAssignmentsContext(
+            infra,
+            executionContext,
+            operatorRoles,
+            new(() => RoleManagementPrincipalType.User), // Operators can be users or groups
+            new(() => principalIdParam),
+            new(() => principalIdParam));
+
+        // Add role assignments for the operator
+        azureResource.AddRoleAssignments(context);
+    }
+
+    private static string GetOperatorName(IManifestExpressionProvider principalId)
+    {
+        // If it's a parameter resource, use the parameter name
+        if (principalId is ParameterResource param)
+        {
+            return Infrastructure.NormalizeBicepIdentifier(param.Name);
+        }
+
+        // Otherwise, use a generic name
+        return "principal";
+    }
+
+    private sealed class OperatorAddRoleAssignmentsContext(
+        AzureResourceInfrastructure infrastructure,
+        DistributedApplicationExecutionContext executionContext,
+        IEnumerable<RoleDefinition> roles,
+        Lazy<BicepValue<RoleManagementPrincipalType>> getPrincipalType,
+        Lazy<BicepValue<Guid>> getPrincipalId,
+        Lazy<BicepValue<string>> getPrincipalName) : IAddRoleAssignmentsContext
+    {
+        public AzureResourceInfrastructure Infrastructure { get; } = infrastructure;
+
+        public IEnumerable<RoleDefinition> Roles => roles;
+
+        public BicepValue<RoleManagementPrincipalType> PrincipalType => getPrincipalType.Value;
+
+        public BicepValue<Guid> PrincipalId => getPrincipalId.Value;
+
+        public BicepValue<string> PrincipalName => getPrincipalName.Value;
+
+        public DistributedApplicationExecutionContext ExecutionContext => executionContext;
+    }
+
     private static void AppendGlobalRoleAssignments(Dictionary<AzureProvisioningResource, HashSet<RoleDefinition>> globalRoleAssignments, AzureProvisioningResource azureResource, IEnumerable<RoleDefinition> newRoles)
     {
         if (!globalRoleAssignments.TryGetValue(azureResource, out var existingRoles))
