@@ -223,7 +223,7 @@ internal abstract class PublishCommandBase : BaseCommand
             var noFailuresReported = debugMode switch
             {
                 true => await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, cancellationToken),
-                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
+                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, nonInteractive, cancellationToken),
             };
 
             // Send terminal progress bar stop sequence
@@ -355,12 +355,18 @@ internal abstract class PublishCommandBase : BaseCommand
         return !hasErrors;
     }
 
-    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, bool nonInteractive, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
         var logger = new ConsoleActivityLogger();
-        logger.StartSpinner();
+        
+        // Only start spinner if not in non-interactive mode
+        if (!nonInteractive)
+        {
+            logger.StartSpinner();
+        }
+        
         PublishingActivity? publishingActivity = null;
 
         try
@@ -411,9 +417,15 @@ internal abstract class PublishCommandBase : BaseCommand
                 }
                 else if (activity.Type == PublishingActivityTypes.Prompt)
                 {
-                    await logger.StopSpinnerAsync();
+                    if (!nonInteractive)
+                    {
+                        await logger.StopSpinnerAsync();
+                    }
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
-                    logger.StartSpinner();
+                    if (!nonInteractive)
+                    {
+                        logger.StartSpinner();
+                    }
                 }
                 else
                 {
@@ -531,7 +543,10 @@ internal abstract class PublishCommandBase : BaseCommand
         }
         finally
         {
-            await logger.StopSpinnerAsync();
+            if (!nonInteractive)
+            {
+                await logger.StopSpinnerAsync();
+            }
         }
     }
 
