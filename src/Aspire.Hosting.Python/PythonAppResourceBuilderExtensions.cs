@@ -291,7 +291,7 @@ public static class PythonAppResourceBuilderExtensions
 
             // Override default opentelemetry-python certificate bundle path
             // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_CERTIFICATE");
 
             return Task.CompletedTask;
         });
