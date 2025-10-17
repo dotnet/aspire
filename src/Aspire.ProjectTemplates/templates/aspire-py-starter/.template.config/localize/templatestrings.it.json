@@ -1,18 +1,16 @@
-{
+﻿{
   "author": "Microsoft",
-  "name": "Aspire Python Starter App",
-  "description": "A project template for creating an Aspire app with a Python backend API service and a JavaScript frontend using Vite and React.",
-  "symbols/Framework/description": "The target framework for the project.",
-  "symbols/Framework/choices/net8.0/description": "Target net8.0",
-  "symbols/Framework/choices/net9.0/description": "Target net9.0",
-  "symbols/Framework/choices/net10.0/description": "Target net10.0",
-  "symbols/AspireVersion/description": "The version of Aspire to use.",
-  "symbols/AspireVersion/displayName": "Aspire version",
+  "name": "App Aspire vuota",
+  "description": "Modello di progetto per la creazione di un'app Aspire vuota.",
+  "symbols/Framework/description": "Il framework di destinazione per il progetto.",
+  "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
+  "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",
+  "symbols/Framework/choices/net10.0/description": "Destinazione net10.0",
+  "symbols/AspireVersion/description": "Versione di Aspire da usare.",
+  "symbols/AspireVersion/displayName": "Versione di Aspire",
   "symbols/AspireVersion/choices/13.0/displayName": "13.0",
-  "symbols/AspireVersion/choices/13.0/description": "Chooses Aspire 13.0",
+  "symbols/AspireVersion/choices/13.0/description": "Sceglie Aspire 13.0",
   "symbols/AspireVersion/choices/9.5/displayName": "9.5",
-  "symbols/AspireVersion/choices/9.5/description": "Chooses Aspire 9.5",
-  "symbols/skipRestore/description": "If specified, skips the automatic restore of the project on create.",
-  "postActions/restore/description": "Restore NuGet packages required by this project.",
-  "postActions/restore/manualInstructions/default/text": "Run 'dotnet restore'"
+  "symbols/AspireVersion/choices/9.5/description": "Sceglie Aspire 9.5",
+  "symbols/skipRestore/description": "Se specificato, ignora il ripristino automatico del progetto durante la creazione."
 }
