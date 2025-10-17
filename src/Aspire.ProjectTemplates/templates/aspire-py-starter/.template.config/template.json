@@ -22,7 +22,6 @@
     "language": "C#",
     "type": "solution",
     "editorTreatAs": "solution",
-    "aspire-9.5-tfms": "net8.0;net9.0;net10.0",
     "aspire-13.0-tfms": "net8.0;net9.0;net10.0"
   },
   "precedence": "9000",
@@ -35,14 +34,8 @@
   ],
   "sources": [
     {
-      "source": "./9.5",
-      "target": "./",
-      "condition": "AspireVersionActual == 9.5"
-    },
-    {
       "source": "./13.0",
-      "target": "./",
-      "condition": "AspireVersionActual == 13.0"
+      "target": "./"
     }
   ],
   "symbols": {
@@ -66,43 +59,6 @@
       ],
       "replaces": "net8.0",
       "defaultValue": "net9.0"
-    },
-    "AspireVersion": {
-      "type": "parameter",
-      "description": "The version of Aspire to use.",
-      "displayName": "Aspire version",
-      "datatype": "choice",
-      "isEnabled": "Framework != net10.0",
-      "choices": [
-        {
-          "choice": "13.0",
-          "displayName": "13.0",
-          "description": "Chooses Aspire 13.0"
-        },
-        {
-          "choice": "9.5",
-          "displayName": "9.5",
-          "description": "Chooses Aspire 9.5"
-        }
-      ],
-      "defaultValue": "13.0"
-    },
-    "AspireVersionActual": {
-      "type": "generated",
-      "generator": "switch",
-      "replaces": "aspireVersion",
-      "parameters": {
-        "cases": [
-          {
-            "condition": "AspireVersion == 9.5",
-            "value": "9.5"
-          },
-          {
-            "condition": "",
-            "value": "13.0"
-          }
-        ]
-      }
     },
     "hostIdentifier": {
       "type": "bind",
