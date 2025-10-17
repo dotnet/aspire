@@ -30,7 +30,10 @@ public interface IProjectMetadata : IResourceAnnotation
     /// </summary>
     public bool SuppressBuild => false;
 
-    internal bool IsFileBasedApp => string.Equals(Path.GetExtension(ProjectPath), ".cs", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Gets a value indicating whether the project is a file-based app (a .cs file) rather than a full project (.csproj).
+    /// </summary>
+    public bool IsFileBasedApp => string.Equals(Path.GetExtension(ProjectPath), ".cs", StringComparison.OrdinalIgnoreCase);
 }
 
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
