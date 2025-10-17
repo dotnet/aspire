@@ -37,6 +37,8 @@ export function getSupportedCapabilities(): string[] {
         capabilities.push("ms-python.python");
     }
 
+    capabilities.push("node");
+
     return capabilities;
 }
 

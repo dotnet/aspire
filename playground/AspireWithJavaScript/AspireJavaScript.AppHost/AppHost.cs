@@ -32,4 +32,9 @@ builder.AddNpmApp("reactvite", "../AspireJavaScript.Vite")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
+builder.AddNpmApp("node", "../AspireJavaScript.Node")
+    .WithReference(weatherApi)
+    .WaitFor(weatherApi)
+    .PublishAsDockerFile();
+
 builder.Build().Run();
