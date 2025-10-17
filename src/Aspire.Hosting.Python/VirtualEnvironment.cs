@@ -10,6 +10,11 @@ namespace Aspire.Hosting.Python;
 internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
 {
     /// <summary>
+    /// Gets the path to the virtual environment directory.
+    /// </summary>
+    public string Location { get; } = virtualEnvironmentPath;
+
+    /// <summary>
     /// Locates an executable in the virtual environment.
     /// </summary>
     /// <param name="name">The name of the executable.</param>
@@ -18,9 +23,9 @@ internal sealed class VirtualEnvironment(string virtualEnvironmentPath)
     {
         if (OperatingSystem.IsWindows())
         {
-            return Path.Join(virtualEnvironmentPath, "Scripts", name + ".exe");
+            return Path.Join(Location, "Scripts", name + ".exe");
         }
 
-        return Path.Join(virtualEnvironmentPath, "bin", name);
+        return Path.Join(Location, "bin", name);
     }
 }
