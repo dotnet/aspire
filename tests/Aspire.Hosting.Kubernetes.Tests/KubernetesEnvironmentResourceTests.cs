@@ -4,6 +4,7 @@
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
 
@@ -90,6 +91,24 @@ public class KubernetesEnvironmentResourceTests(ITestOutputHelper output)
         await app.RunAsync();
 
         await VerifyDirectory(tempDir.Path);
+    }
+
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddKubernetesEnvironment("env");
+
+        var project = builder
+            .AddProject<Projects.ServiceA>("project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1-service", endpointReferenceEx.Format);
+        Assert.Empty(endpointReferenceEx.ValueProviders);
     }
 
     [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]

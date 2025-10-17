@@ -1988,4 +1988,25 @@ public class AzureContainerAppsTests
 
         await Verify(bicep, "bicep");
     }
+
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureContainerAppEnvironment("env");
+
+        var project = builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1.internal.{0}", endpointReferenceEx.Format);
+        var provider = Assert.Single(endpointReferenceEx.ValueProviders);
+        var output = Assert.IsType<BicepOutputReference>(provider);
+        Assert.Equal(env.Resource, output.Resource);
+        Assert.Equal("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", output.Name);
+    }
 }
