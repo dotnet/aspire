@@ -352,7 +352,7 @@ public static class PythonAppResourceBuilderExtensions
             }
 
             c.WithDockerfileBuilder(resource.WorkingDirectory,
-                context =>
+                async context =>
                 {
                     if (!c.Resource.TryGetLastAnnotation<PythonEnvironmentAnnotation>(out var pythonEnvironmentAnnotation) ||
                         !pythonEnvironmentAnnotation.Uv)
@@ -437,18 +437,20 @@ public static class PythonAppResourceBuilderExtensions
                         .Comment("Run the application");
 
                     // Set the appropriate entrypoint and command based on entrypoint type
-                    switch (entrypointType)
+                    // Retrieve any arguments configured via WithArgs and append them to the entrypoint
+                    var args = context.Resource is IResourceWithArgs resourceWithArgs
+                        ? await resourceWithArgs.GetArgumentValuesAsync(DistributedApplicationOperation.Publish).ConfigureAwait(false)
+                        : [];
+
+                    List<string> entrypointCommand = entrypointType switch
                     {
-                        case EntrypointType.Script:
-                            runtimeBuilder.Entrypoint(["python", entrypoint]);
-                            break;
-                        case EntrypointType.Module:
-                            runtimeBuilder.Entrypoint(["python", "-m", entrypoint]);
-                            break;
-                        case EntrypointType.Executable:
-                            runtimeBuilder.Entrypoint([entrypoint]);
-                            break;
-                    }
+                        EntrypointType.Script => ["python", entrypoint, .. args],
+                        EntrypointType.Module => ["python", "-m", entrypoint, .. args],
+                        EntrypointType.Executable => [entrypoint, .. args],
+                        _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
+                    };
+
+                    runtimeBuilder.Entrypoint([.. entrypointCommand]);
                 });
         });
 
