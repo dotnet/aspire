@@ -138,6 +138,7 @@ public class Program
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
+        builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -155,6 +156,8 @@ public class Program
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
+        builder.Services.AddTransient<SelfCommand>();
+        builder.Services.AddTransient<SelfUpdateCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
