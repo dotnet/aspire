@@ -9,7 +9,7 @@ namespace Aspire.Hosting.Publishing;
 /// Interface for reporting publishing activities.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IPublishingActivityReporter
+public interface IPipelineActivityReporter
 {
     /// <summary>
     /// Creates a new publishing step with the specified title.

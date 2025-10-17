@@ -121,8 +121,8 @@ public class PublishingExtensionsTests
         Assert.Equal("Error message", taskInternal.CompletionMessage);
     }
 
-    private PublishingActivityReporter CreatePublishingReporter()
+    private PipelineActivityReporter CreatePublishingReporter()
     {
-        return new PublishingActivityReporter(_interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
     }
 }

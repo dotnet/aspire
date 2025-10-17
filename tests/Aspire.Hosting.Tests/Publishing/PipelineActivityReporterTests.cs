@@ -786,9 +786,9 @@ public class PublishingActivityReporterTests
         Assert.True(activity.Data.IsError);
     }
 
-    private PublishingActivityReporter CreatePublishingReporter()
+    private PipelineActivityReporter CreatePublishingReporter()
     {
-        return new PublishingActivityReporter(_interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
     }
 
     internal static InteractionService CreateInteractionService()

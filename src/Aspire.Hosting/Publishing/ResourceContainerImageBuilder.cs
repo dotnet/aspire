@@ -133,7 +133,7 @@ internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
     IOptions<DcpOptions> dcpOptions,
     IServiceProvider serviceProvider,
-    IPublishingActivityReporter activityReporter) : IResourceContainerImageBuilder
+    IPipelineActivityReporter activityReporter) : IResourceContainerImageBuilder
 {
     private IContainerRuntime? _containerRuntime;
     private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch

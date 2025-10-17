@@ -8,10 +8,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Publishing;
 
 /// <summary>
-/// A no-op implementation of <see cref="IPublishingActivityReporter"/> for testing purposes.
+/// A no-op implementation of <see cref="IPipelineActivityReporter"/> for testing purposes.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public sealed class NullPublishingActivityReporter : IPublishingActivityReporter
+public sealed class NullPublishingActivityReporter : IPipelineActivityReporter
 {
     /// <inheritdoc />
     public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)

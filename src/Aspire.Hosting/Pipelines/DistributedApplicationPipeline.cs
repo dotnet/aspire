@@ -9,6 +9,8 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Publishing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -20,7 +22,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     public bool HasSteps => _steps.Count > 0;
 
     public void AddStep(string name,
-        Func<DeployingContext, Task> action,
+        Func<PipelineContext, Task> action,
         object? dependsOn = null,
         object? requiredBy = null)
     {
@@ -102,7 +104,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(step);
     }
 
-    public async Task ExecuteAsync(DeployingContext context)
+    public async Task ExecuteAsync(PipelineContext context)
     {
         var allSteps = _steps.Concat(CollectStepsFromAnnotations(context)).ToList();
 
@@ -119,7 +121,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         await ExecuteStepsAsTaskDag(allSteps, stepsByName, context).ConfigureAwait(false);
     }
 
-    private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(DeployingContext context)
+    private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(PipelineContext context)
     {
         foreach (var resource in context.Model.Resources)
         {
@@ -178,7 +180,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     private static async Task ExecuteStepsAsTaskDag(
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName,
-        DeployingContext context)
+        PipelineContext context)
     {
         // Validate no cycles exist in the dependency graph
         ValidateDependencyGraph(steps, stepsByName);
@@ -186,7 +188,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // Create a linked CancellationTokenSource that will be cancelled when any step fails
         // or when the original context token is cancelled
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-        
+
         // Store the original token and set the linked token on the context
         var originalToken = context.CancellationToken;
         context.CancellationToken = linkedCts.Token;
@@ -219,11 +221,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         var failedDeps = step.DependsOnSteps
                             .Where(depName => stepCompletions[depName].Task.IsFaulted)
                             .ToList();
-                        
+
                         var message = failedDeps.Count > 0
                             ? $"Step '{step.Name}' cannot run because {(failedDeps.Count == 1 ? "dependency" : "dependencies")} {string.Join(", ", failedDeps.Select(d => $"'{d}'"))} failed"
                             : $"Step '{step.Name}' cannot run because a dependency failed";
-                        
+
                         // Wrap the dependency failure with context about this step
                         var wrappedException = new InvalidOperationException(message, ex);
                         stepTcs.TrySetException(wrappedException);
@@ -233,7 +235,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 try
                 {
-                    await ExecuteStepAsync(step, context).ConfigureAwait(false);
+                    var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
+                    var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
+
+                    await using (publishingStep.ConfigureAwait(false))
+                    {
+                        context.PublishingStep = publishingStep;
+                        await ExecuteStepAsync(step, context).ConfigureAwait(false);
+                    }
 
                     stepTcs.TrySetResult();
                 }
@@ -241,7 +250,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 {
                     // Execution failure - mark as failed, cancel all other work, and re-throw
                     stepTcs.TrySetException(ex);
-                    
+
                     // Cancel all remaining work
                     try
                     {
@@ -251,7 +260,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                     {
                         // Ignore cancellation errors
                     }
-                    
+
                     throw;
                 }
             }
@@ -317,12 +326,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         /// The step has not been visited yet.
         /// </summary>
         Unvisited,
-        
+
         /// <summary>
         /// The step is currently being visited (on the current DFS path).
         /// </summary>
         Visiting,
-        
+
         /// <summary>
         /// The step has been fully visited (all descendants explored).
         /// </summary>
@@ -335,7 +344,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     /// <remarks>
     /// Uses depth-first search (DFS) to detect cycles. A cycle exists if we encounter a node that is
     /// currently being visited (in the Visiting state), meaning we've found a back edge in the graph.
-    /// 
+    ///
     /// Example: A → B → C is valid (no cycle)
     /// Example: A → B → C → A is invalid (cycle detected)
     /// Example: A → B, A → C, B → D, C → D is valid (diamond dependency, no cycle)
@@ -408,11 +417,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private static async Task ExecuteStepAsync(PipelineStep step, DeployingContext context)
+    private static async Task ExecuteStepAsync(PipelineStep step, PipelineContext context)
     {
         try
         {
-            await step.Action(context).ConfigureAwait(false);
+            var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
+            var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
+
+            await using (publishingStep.ConfigureAwait(false))
+            {
+                context.PublishingStep = publishingStep;
+                await step.Action(context).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {

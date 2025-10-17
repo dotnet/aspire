@@ -14,15 +14,15 @@ using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Publishing;
 
-internal sealed class PublishingActivityReporter : IPublishingActivityReporter, IAsyncDisposable
+internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
     private readonly InteractionService _interactionService;
-    private readonly ILogger<PublishingActivityReporter> _logger;
+    private readonly ILogger<PipelineActivityReporter> _logger;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Task _interactionServiceSubscriber;
 
-    public PublishingActivityReporter(InteractionService interactionService, ILogger<PublishingActivityReporter> logger)
+    public PipelineActivityReporter(InteractionService interactionService, ILogger<PipelineActivityReporter> logger)
     {
         _interactionService = interactionService;
         _logger = logger;

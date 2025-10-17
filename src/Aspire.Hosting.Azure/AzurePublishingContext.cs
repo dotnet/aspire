@@ -27,11 +27,11 @@ public sealed class AzurePublishingContext(
     AzureProvisioningOptions provisioningOptions,
     IServiceProvider serviceProvider,
     ILogger logger,
-    IPublishingActivityReporter activityReporter)
+    IPipelineActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityReporter ActivityReporter => activityReporter;
+    private IPipelineActivityReporter ActivityReporter => activityReporter;
 
     private IServiceProvider ServiceProvider => serviceProvider;
 

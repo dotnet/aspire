@@ -850,7 +850,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
-        IPublishingActivityReporter? activityReporter = null,
+        IPipelineActivityReporter? activityReporter = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -1178,7 +1178,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
     }
 
-    private sealed class TestPublishingActivityReporter : IPublishingActivityReporter
+    private sealed class TestPublishingActivityReporter : IPipelineActivityReporter
     {
         public bool CompletePublishCalled { get; private set; }
         public string? CompletionMessage { get; private set; }

@@ -20,7 +20,7 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    PublishingActivityReporter activityReporter,
+    PipelineActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options)
 {
@@ -131,7 +131,7 @@ internal class AppHostRpcTarget(
         catch (DistributedApplicationException ex)
         {
             logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
-            
+
             return new DashboardUrlsState
             {
                 DashboardHealthy = false,

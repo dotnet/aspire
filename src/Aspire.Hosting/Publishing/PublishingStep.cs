@@ -16,7 +16,7 @@ internal sealed class PublishingStep : IPublishingStep
 {
     private readonly ConcurrentDictionary<string, PublishingTask> _tasks = new();
 
-    internal PublishingStep(PublishingActivityReporter reporter, string id, string title)
+    internal PublishingStep(PipelineActivityReporter reporter, string id, string title)
     {
         Reporter = reporter;
         Id = id;
@@ -58,7 +58,7 @@ internal sealed class PublishingStep : IPublishingStep
     /// <summary>
     /// The progress reporter that created this step.
     /// </summary>
-    internal PublishingActivityReporter Reporter { get; }
+    internal PipelineActivityReporter Reporter { get; }
 
     /// <summary>
     /// Adds a task to this step.

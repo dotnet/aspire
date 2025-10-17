@@ -9,6 +9,27 @@
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.ApplicationModel.DeployingContext</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:Aspire.Hosting.Publishing.IPublishingActivityReporter</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:Aspire.Hosting.ApplicationModel.PublishingContext.get_ActivityReporter</Target>
+    <Left>lib/net8.0/Aspire.Hosting.dll</Left>
+    <Right>lib/net8.0/Aspire.Hosting.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
     <Target>M:Aspire.Hosting.IInteractionService.PromptInputsAsync(System.String,System.String,System.Collections.Generic.IReadOnlyList{Aspire.Hosting.InteractionInput},Aspire.Hosting.InputsDialogInteractionOptions,System.Threading.CancellationToken)</Target>
     <Left>lib/net8.0/Aspire.Hosting.dll</Left>

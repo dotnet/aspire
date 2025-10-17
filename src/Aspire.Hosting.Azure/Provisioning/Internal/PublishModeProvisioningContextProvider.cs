@@ -27,7 +27,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
+    IPipelineActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,

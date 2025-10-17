@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService, IOptions<PublishingOptions> publishingOptions) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPipelineActivityReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService, IOptions<PublishingOptions> publishingOptions) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
