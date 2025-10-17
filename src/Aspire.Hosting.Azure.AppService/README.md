@@ -10,7 +10,7 @@ Provides extension methods and resource definitions for a .NET Aspire AppHost to
 
 ### Install the package
 
-Install the .NET Aspire Azure App Service Hosting library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the .NET Aspire Azure App Service Hosting library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.AppService
@@ -38,7 +38,7 @@ automatically.
 
 ## Usage example
 
-In the _Program.cs_ file of your AppHost project, add an Azure App Service Environment and publish your project as an Azure App Service website:
+In the _AppHost.cs_ file of `AppHost`, add an Azure App Service Environment and publish your project as an Azure App Service website:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
