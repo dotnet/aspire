@@ -156,8 +156,6 @@ public class Program
         builder.Services.AddTransient<UpdateCommand>();
         builder.Services.AddTransient<DeployCommand>();
         builder.Services.AddTransient<ExecCommand>();
-        builder.Services.AddTransient<SelfCommand>();
-        builder.Services.AddTransient<SelfUpdateCommand>();
         builder.Services.AddTransient<RootCommand>();
         builder.Services.AddTransient<ExtensionInternalCommand>();
 
