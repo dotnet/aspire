@@ -4,6 +4,7 @@
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
@@ -170,6 +171,69 @@ public class InteractionServiceTests
             () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+    }
+
+    [Fact]
+    public async Task PublicApis_InteractivityDisabled_ThrowErrors()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [KnownConfigNames.InteractivityEnabled] = "false"
+            })
+            .Build();
+        var interactionService = CreateInteractionService(configuration: configuration);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptConfirmationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+    }
+
+    [Fact]
+    public void IsAvailable_InteractivityDisabled_ReturnsFalse()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [KnownConfigNames.InteractivityEnabled] = "false"
+            })
+            .Build();
+        var interactionService = CreateInteractionService(configuration: configuration);
+
+        // Act & Assert
+        Assert.False(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_InteractivityEnabled_ReturnsTrue()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [KnownConfigNames.InteractivityEnabled] = "true"
+            })
+            .Build();
+        var interactionService = CreateInteractionService(configuration: configuration);
+
+        // Act & Assert
+        Assert.True(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_InteractivityNotSet_ReturnsTrue()
+    {
+        // Arrange
+        var interactionService = CreateInteractionService();
+
+        // Act & Assert
+        Assert.True(interactionService.IsAvailable);
     }
 
     [Fact]
@@ -970,12 +1034,14 @@ public class InteractionServiceTests
             CancellationToken.None);
     }
 
-    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
+    private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null, IConfiguration? configuration = null)
     {
+        var config = configuration ?? new ConfigurationBuilder().Build();
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            config);
     }
 }
 

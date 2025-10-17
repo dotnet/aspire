@@ -122,6 +122,9 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var env = new Dictionary<string, string>();
 
+            // Disable interactivity for publish/deploy operations as they run in automation contexts
+            env[KnownConfigNames.InteractivityEnabled] = "false";
+
             var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
             {

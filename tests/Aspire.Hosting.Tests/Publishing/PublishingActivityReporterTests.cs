@@ -8,6 +8,7 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Publishing;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -798,6 +799,6 @@ public class PublishingActivityReporterTests
         services.AddSingleton<InteractionService>();
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<InteractionService>>();
-        return new InteractionService(logger, new DistributedApplicationOptions(), provider);
+        return new InteractionService(logger, new DistributedApplicationOptions(), provider, new ConfigurationBuilder().Build());
     }
 }
