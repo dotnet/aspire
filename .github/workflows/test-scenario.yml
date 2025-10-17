@@ -35,7 +35,7 @@ jobs:
 
           # Extract scenario name from comment
           SCENARIO_NAME=$(echo "$COMMENT_BODY" | \
-            grep -oP '^/test-scenario\s+\K[a-z0-9]+(-[a-z0-9]+)*$' | head -1)
+            grep -oP '^/test-scenario\s+\K[a-z0-9]+(-[a-z0-9]+)*[a-z0-9]$' | head -1)
 
           if [ -z "$SCENARIO_NAME" ]; then
             echo "Error: Invalid or missing scenario name"
