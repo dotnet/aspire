@@ -10,23 +10,22 @@ namespace Aspire.Hosting.ApplicationModel;
 /// <summary>
 /// Represents an annotation that specifies that the resource can be debugged by the Aspire Extension.
 /// </summary>
-[DebuggerDisplay("Type = {GetType().Name,nq}, RequiredExtensionId = {RequiredExtensionId,nq}")]
+[DebuggerDisplay("Type = {GetType().Name,nq}, RequiredExtensionId = {LaunchConfigurationType,nq}")]
 [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 internal sealed class SupportsDebuggingAnnotation : IResourceAnnotation
 {
-    private SupportsDebuggingAnnotation(string? requiredExtensionId,
-        Action<Executable, string> launchConfigurationAnnotator)
+    private SupportsDebuggingAnnotation(string launchConfigurationType, Action<Executable, string> launchConfigurationAnnotator)
     {
-        RequiredExtensionId = requiredExtensionId;
+        LaunchConfigurationType = launchConfigurationType;
         LaunchConfigurationAnnotator = launchConfigurationAnnotator;
     }
 
-    public string? RequiredExtensionId { get; }
+    public string LaunchConfigurationType { get; }
     public Action<Executable, string> LaunchConfigurationAnnotator { get; }
 
-    internal static SupportsDebuggingAnnotation Create<T>(string? requiredExtensionId, Func<string, T> launchProfileProducer)
+    internal static SupportsDebuggingAnnotation Create<T>(string launchConfigurationType, Func<string, T> launchProfileProducer)
     {
-        return new SupportsDebuggingAnnotation(requiredExtensionId, (exe, mode) =>
+        return new SupportsDebuggingAnnotation(launchConfigurationType, (exe, mode) =>
         {
             exe.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, launchProfileProducer(mode));
         });

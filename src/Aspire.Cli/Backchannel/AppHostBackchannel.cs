@@ -22,6 +22,7 @@ internal interface IAppHostBackchannel
     IAsyncEnumerable<PublishingActivity> GetPublishingActivitiesAsync(CancellationToken cancellationToken);
     Task<string[]> GetCapabilitiesAsync(CancellationToken cancellationToken);
     Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
+    Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
 }
@@ -192,6 +193,19 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
 
         await rpc.InvokeWithCancellationAsync(
             "CompletePromptResponseAsync",
+            [promptId, answers],
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        logger.LogDebug("Providing prompt responses for prompt ID {PromptId}", promptId);
+
+        await rpc.InvokeWithCancellationAsync(
+            "UpdatePromptResponseAsync",
             [promptId, answers],
             cancellationToken).ConfigureAwait(false);
     }

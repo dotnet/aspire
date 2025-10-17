@@ -634,7 +634,7 @@
       </trans-unit>
       <trans-unit id="VolumeMountTypeColumnHeader">
         <source>Mount type</source>
-        <target state="translated">설치 종류</target>
+        <target state="translated">탑재 유형</target>
         <note />
       </trans-unit>
       <trans-unit id="VolumePathColumnHeader">

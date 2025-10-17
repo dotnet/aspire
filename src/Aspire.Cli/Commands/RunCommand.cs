@@ -14,6 +14,7 @@ using Aspire.Cli.Telemetry;
 using Aspire.Cli.Utils;
 using Aspire.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using StreamJsonRpc;
 
@@ -229,7 +230,7 @@ internal sealed class RunCommand : BaseCommand
 
             var logFile = GetAppHostLogFile();
 
-            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, cancellationToken);
+            var pendingLogCapture = CaptureAppHostLogsAsync(logFile, backchannel, _interactionService, cancellationToken);
 
             var dashboardUrls = await InteractionService.ShowStatusAsync(RunCommandStrings.StartingDashboard, async () => { return await backchannel.GetDashboardUrlsAsync(cancellationToken); });
 
@@ -255,15 +256,18 @@ internal sealed class RunCommand : BaseCommand
             var longestLocalizedLength = new[] { dashboardsLocalizedString, logsLocalizedString, endpointsLocalizedString, appHostLocalizedString }
                 .Max(s => s.Length);
 
-            topGrid.Columns[0].Width = longestLocalizedLength + 1;
+            // +1 -> accommodates the colon (:) that gets appended to each localized string
+            var longestLocalizedLengthWithColon = longestLocalizedLength + 1;
+
+            topGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
             if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
             {
-                topGrid.AddRow(Text.Empty, new Markup($"[link]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
             }
 
             topGrid.AddRow(Text.Empty, Text.Empty);
@@ -278,7 +282,7 @@ internal sealed class RunCommand : BaseCommand
             var isSshRemote = _configuration.GetValue<string?>("VSCODE_IPC_HOOK_CLI") is not null
                               && _configuration.GetValue<string?>("SSH_CONNECTION") is not null;
 
-            AppendCtrlCMessage(longestLocalizedLength);
+            AppendCtrlCMessage(longestLocalizedLengthWithColon);
 
             if (isCodespaces || isRemoteContainers || isSshRemote)
             {
@@ -301,7 +305,7 @@ internal sealed class RunCommand : BaseCommand
                             var endpointsGrid = new Grid();
                             endpointsGrid.AddColumn();
                             endpointsGrid.AddColumn();
-                            endpointsGrid.Columns[0].Width = longestLocalizedLength;
+                            endpointsGrid.Columns[0].Width = longestLocalizedLengthWithColon;
 
                             if (firstEndpoint)
                             {
@@ -317,7 +321,7 @@ internal sealed class RunCommand : BaseCommand
                             _ansiConsole.Write(endpointsPadder);
                             firstEndpoint = false;
 
-                            AppendCtrlCMessage(longestLocalizedLength);
+                            AppendCtrlCMessage(longestLocalizedLengthWithColon);
                         });
                     }
                 }
@@ -329,7 +333,6 @@ internal sealed class RunCommand : BaseCommand
 
             if (ExtensionHelper.IsExtensionHost(InteractionService, out extensionInteractionService, out _))
             {
-                _ansiConsole.WriteLine(RunCommandStrings.ExtensionSwitchingToAppHostConsole);
                 extensionInteractionService.DisplayDashboardUrls(dashboardUrls);
                 extensionInteractionService.NotifyAppHostStartupCompleted();
             }
@@ -386,7 +389,7 @@ internal sealed class RunCommand : BaseCommand
         }
     }
 
-    private void AppendCtrlCMessage(int longestLocalizedLength)
+    private void AppendCtrlCMessage(int longestLocalizedLengthWithColon)
     {
         if (ExtensionHelper.IsExtensionHost(_interactionService, out _, out _))
         {
@@ -396,7 +399,7 @@ internal sealed class RunCommand : BaseCommand
         var ctrlCGrid = new Grid();
         ctrlCGrid.AddColumn();
         ctrlCGrid.AddColumn();
-        ctrlCGrid.Columns[0].Width = longestLocalizedLength;
+        ctrlCGrid.Columns[0].Width = longestLocalizedLengthWithColon;
         ctrlCGrid.AddRow(Text.Empty, Text.Empty);
         ctrlCGrid.AddRow(new Text(string.Empty), new Markup(RunCommandStrings.PressCtrlCToStopAppHost) { Overflow = Overflow.Ellipsis });
 
@@ -413,7 +416,7 @@ internal sealed class RunCommand : BaseCommand
         return logFile;
     }
 
-    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    private static async Task CaptureAppHostLogsAsync(FileInfo logFile, IAppHostBackchannel backchannel, IInteractionService interactionService, CancellationToken cancellationToken)
     {
         try
         {
@@ -433,6 +436,15 @@ internal sealed class RunCommand : BaseCommand
 
             await foreach (var entry in logEntries.WithCancellation(cancellationToken))
             {
+                if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out _))
+                {
+                    if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
+                    {
+                        // Send only information+ level logs to the extension host.
+                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
+                    }
+                }
+
                 await streamWriter.WriteLineAsync($"{entry.Timestamp:HH:mm:ss} [{entry.LogLevel}] {entry.CategoryName}: {entry.Message}");
             }
         }

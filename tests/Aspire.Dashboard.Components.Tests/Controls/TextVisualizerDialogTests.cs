@@ -5,7 +5,6 @@ using System.Collections.Immutable;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Utils;
 using Bunit;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
@@ -196,36 +195,17 @@ public class TextVisualizerDialogTests : DashboardTestContext
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService, ThemeManager? themeManager = null, TestLocalStorage? localStorage = null)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-        themeManager ??= new ThemeManager(new TestThemeResolver());
+        FluentUISetupHelpers.SetupDialogInfrastructure(this, themeManager: themeManager, localStorage: localStorage);
 
-        Services.AddSingleton<ILocalStorage>(localStorage ?? new TestLocalStorage());
-        Services.AddFluentUIComponents();
-        Services.AddSingleton(themeManager);
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddLocalization();
         var module = JSInterop.SetupModule("/Components/Controls/TextVisualizer.razor.js");
         module.SetupVoid();
 
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
 
-        var cut = Render(builder =>
-        {
-            builder.OpenComponent<FluentDialogProvider>(0);
-            builder.CloseComponent();
-        });
-
-        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
-        // This makes FluentMenu render without error.
-        var menuService = Services.GetRequiredService<IMenuService>();
-        menuService.ProviderId = "Test";
+        var cut = FluentUISetupHelpers.RenderDialogProvider(this);
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
     }
 }

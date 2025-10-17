@@ -307,10 +307,25 @@ public class DotNetTemplateFactoryTests
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
     {
         // Arrange - disable showAllTemplates but enable singleFileAppHost
         var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - disable both showAllTemplates and singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -334,6 +349,21 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - enable showAllTemplates but disable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: false);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)

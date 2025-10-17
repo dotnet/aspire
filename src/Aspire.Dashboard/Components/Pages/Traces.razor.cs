@@ -436,7 +436,7 @@ public partial class Traces : IComponentWithTelemetry, IPageWithSessionAndUrlSta
         {
             c.BuildIceBreakers = (builder, context) =>
             {
-                var resource = _resources.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
+                var resource = _resources?.SingleOrDefault(a => a.ResourceKey == PageViewModel.SelectedResource.Id?.GetResourceKey());
                 if (resource != null)
                 {
                     builder.Traces(context, resource, TracesViewModel.GetTraces, TracesViewModel.HasErrors(), () => TracesViewModel.GetErrorTraces(int.MaxValue));

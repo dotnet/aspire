@@ -14,7 +14,7 @@
       </trans-unit>
       <trans-unit id="StartCommandDisplayDescription">
         <source>Start resource</source>
-        <target state="translated">Запуск ресурса</target>
+        <target state="translated">Запустить ресурс</target>
         <note />
       </trans-unit>
       <trans-unit id="StartCommandDisplayName">

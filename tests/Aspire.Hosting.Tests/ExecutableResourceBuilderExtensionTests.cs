@@ -83,7 +83,7 @@ public class ExecutableResourceBuilderExtensionTests
         Assert.NotNull(annotation);
         var exe = new Executable(new ExecutableSpec());
         annotation.LaunchConfigurationAnnotator(exe, "NoDebug");
-        Assert.Equal("ms-python.python", annotation.RequiredExtensionId);
+        Assert.Equal("ms-python.python", annotation.LaunchConfigurationType);
 
         Assert.True(exe.TryGetAnnotationAsObjectList<ExecutableLaunchConfiguration>(Executable.LaunchConfigurationsAnnotation, out var annotations));
         Assert.Equal(launchConfig.Mode, annotations.Single().Mode);

@@ -39,6 +39,12 @@
         "Deployment:Target": "publish-test"
       }
     },
+    "deploy-azure": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "commandLineArgs": "deploy",
+      "workingDirectory": "../../playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost"
+    },
     "run-testapphost": {
       "commandName": "Project",
       "dotnetRunMessages": true,

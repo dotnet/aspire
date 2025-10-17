@@ -104,7 +104,7 @@
       </trans-unit>
       <trans-unit id="GenAIDisplayErrorMessageText">
         <source>Error displaying GenAI content:</source>
-        <target state="new">Error displaying GenAI content:</target>
+        <target state="translated">GenAI içeriğini görüntüleme hatası:</target>
         <note />
       </trans-unit>
       <trans-unit id="GenAIDurationLabel">
@@ -369,7 +369,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogLanguagePageReloads">
         <source>The page will reload on language change.</source>
-        <target state="translated">Dil değişikliğinde sayfa yeniden yüklenir.</target>
+        <target state="translated">Dil değişikliğinde sayfa yeniden yüklenemedi.</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogLightTheme">
@@ -394,7 +394,7 @@
       </trans-unit>
       <trans-unit id="SettingsDialogTelemetryInfoLinkTooltip">
         <source>Go to usage telemetry documentation</source>
-        <target state="translated">Kullanım telemetri belgelerine git</target>
+        <target state="translated">Kullanım telemetri belgelerine erişin</target>
         <note />
       </trans-unit>
       <trans-unit id="SettingsDialogTheme">

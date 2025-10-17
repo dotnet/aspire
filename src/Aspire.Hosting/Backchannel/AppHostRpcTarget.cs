@@ -218,6 +218,11 @@ internal class AppHostRpcTarget(
 
     public async Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
-        await activityReporter.CompleteInteractionAsync(promptId, answers, cancellationToken).ConfigureAwait(false);
+        await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: false, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
+    {
+        await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
     }
 }

@@ -284,7 +284,7 @@
       </trans-unit>
       <trans-unit id="Loading">
         <source>Loading...</source>
-        <target state="translated">Загрузка...</target>
+        <target state="translated">Идет загрузка...</target>
         <note />
       </trans-unit>
       <trans-unit id="MetricTableExemplarsColumnHeader">
@@ -344,7 +344,7 @@
       </trans-unit>
       <trans-unit id="PauseWarningTitle">
         <source>Capture paused</source>
-        <target state="translated">Захват приостановлен</target>
+        <target state="translated">Запись приостановлена</target>
         <note />
       </trans-unit>
       <trans-unit id="PlotlyChartCount">
@@ -479,7 +479,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsDuration">
         <source>Duration &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Длительность &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">Длительность: &lt;strong&gt;{0}&lt;/strong&gt;</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanDetailsEventsHeader">
@@ -519,7 +519,7 @@
       </trans-unit>
       <trans-unit id="SpanDetailsStartTime">
         <source>Start time &lt;strong&gt;{0}&lt;/strong&gt;</source>
-        <target state="translated">Время начала &lt;strong&gt;{0}&lt;/strong&gt;</target>
+        <target state="translated">&lt;strong&gt;Время начала: &lt;/strong&gt; {0}</target>
         <note>{0} is a duration. This is raw markup, so &lt;strong&gt; and &lt;/strong&gt; should not be modified</note>
       </trans-unit>
       <trans-unit id="SpanTypeCloud">

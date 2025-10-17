@@ -58,7 +58,7 @@ internal sealed class ExecutableReplicaSetSpec
     public ExecutableTemplate Template { get; set; } = new ExecutableTemplate();
 }
 
-internal sealed class ExecutableReplicaSetStatus : V1Status
+internal sealed record ExecutableReplicaSetStatus : V1Status
 {
     // Total number of observed child executables
     [JsonPropertyName("observedReplicas")]

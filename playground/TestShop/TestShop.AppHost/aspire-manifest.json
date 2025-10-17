@@ -68,7 +68,14 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogdbapp.bindings.http.targetPort}",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
+        "CATALOGDB_HOST": "{postgres.bindings.tcp.host}",
+        "CATALOGDB_PORT": "{postgres.bindings.tcp.port}",
+        "CATALOGDB_USERNAME": "postgres",
+        "CATALOGDB_PASSWORD": "{postgres-password.value}",
+        "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_DATABASE": "catalogdb"
       },
       "bindings": {
         "http": {
@@ -92,7 +99,14 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{catalogservice.bindings.http.targetPort}",
-        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}"
+        "ConnectionStrings__catalogdb": "{catalogdb.connectionString}",
+        "CATALOGDB_HOST": "{postgres.bindings.tcp.host}",
+        "CATALOGDB_PORT": "{postgres.bindings.tcp.port}",
+        "CATALOGDB_USERNAME": "postgres",
+        "CATALOGDB_PASSWORD": "{postgres-password.value}",
+        "CATALOGDB_URI": "postgresql://postgres:{postgres-password.value}@{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_JDBCCONNECTIONSTRING": "jdbc:postgresql://{postgres.bindings.tcp.host}:{postgres.bindings.tcp.port}/catalogdb",
+        "CATALOGDB_DATABASE": "catalogdb"
       },
       "bindings": {
         "http": {
@@ -147,7 +161,16 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{basketservice.bindings.http.targetPort}",
         "ConnectionStrings__basketcache": "{basketcache.connectionString}",
-        "ConnectionStrings__messaging": "{messaging.connectionString}"
+        "BASKETCACHE_HOST": "{basketcache.bindings.tcp.host}",
+        "BASKETCACHE_PORT": "{basketcache.bindings.tcp.port}",
+        "BASKETCACHE_PASSWORD": "{basketcache-password.value}",
+        "BASKETCACHE_URI": "redis://:{basketcache-password.value}@{basketcache.bindings.tcp.host}:{basketcache.bindings.tcp.port}",
+        "ConnectionStrings__messaging": "{messaging.connectionString}",
+        "MESSAGING_HOST": "{messaging.bindings.tcp.host}",
+        "MESSAGING_PORT": "{messaging.bindings.tcp.port}",
+        "MESSAGING_USERNAME": "guest",
+        "MESSAGING_PASSWORD": "{messaging-password.value}",
+        "MESSAGING_URI": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}"
       },
       "bindings": {
         "http": {
@@ -198,7 +221,12 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ConnectionStrings__messaging": "{messaging.connectionString}"
+        "ConnectionStrings__messaging": "{messaging.connectionString}",
+        "MESSAGING_HOST": "{messaging.bindings.tcp.host}",
+        "MESSAGING_PORT": "{messaging.bindings.tcp.port}",
+        "MESSAGING_USERNAME": "guest",
+        "MESSAGING_PASSWORD": "{messaging-password.value}",
+        "MESSAGING_URI": "amqp://guest:{messaging-password.value}@{messaging.bindings.tcp.host}:{messaging.bindings.tcp.port}"
       }
     },
     "apigateway": {

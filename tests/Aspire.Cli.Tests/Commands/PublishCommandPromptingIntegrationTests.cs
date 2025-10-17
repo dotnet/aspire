@@ -342,15 +342,15 @@ public class PublishCommandPromptingIntegrationTests(ITestOutputHelper outputHel
         // Set up a single prompt with multiple inputs
         promptBackchannel.AddMultiInputPrompt("multi-input-prompt-1", "Configuration Setup", "Please provide the following details:",
             [
-                new("Database Connection String", InputTypes.Text, true, null),
-                new("API Key", InputTypes.SecretText, true, null),
-                new("Environment", InputTypes.Choice, true,
+                new("database-connection", "Database Connection String", InputTypes.Text, true, null),
+                new("api-key", "API Key", InputTypes.SecretText, true, null),
+                new("environment", "Environment", InputTypes.Choice, true,
                 [
                     new("dev", "Development"),
                     new("staging", "Staging"),
                     new("prod", "Production")
                 ]),
-                new("Enable Logging", InputTypes.Boolean, false, null)
+                new("enable-logging", "Enable Logging", InputTypes.Boolean, false, null)
             ]);
 
         // Set up the expected user responses for all inputs
@@ -776,7 +776,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
     public void AddPrompt(string promptId, string label, string inputType, string message, bool isRequired, IReadOnlyList<KeyValuePair<string, string>>? options = null, string? defaultValue = null, IReadOnlyList<string>? validationErrors = null)
     {
-        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(label, inputType, isRequired, options, defaultValue, validationErrors)], message));
+        _promptsToSend.Add(new PromptData(promptId, [new PromptInputData(promptId, label, inputType, isRequired, options, defaultValue, validationErrors)], message));
     }
 
     public void AddMultiInputPrompt(string promptId, string title, string message, IReadOnlyList<PromptInputData> inputs)
@@ -797,6 +797,7 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
             var inputs = prompt.Inputs.Select(input => new PublishingPromptInput
             {
+                Name = input.Name,
                 Label = input.Label,
                 InputType = input.InputType,
                 Required = input.IsRequired,
@@ -828,7 +829,17 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 
     public Task CompletePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
     {
-        CompletedPrompts.Add(new PromptCompletion(promptId, answers));
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: false);
+    }
+
+    public Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken)
+    {
+        return CompletePromptResponseCoreAsync(promptId, answers, updateResponse: true);
+    }
+
+    private Task CompletePromptResponseCoreAsync(string promptId, PublishingPromptInputAnswer[] answers, bool updateResponse)
+    {
+        CompletedPrompts.Add(new PromptCompletion(promptId, answers, updateResponse));
         if (_promptCompletionSources.TryGetValue(promptId, out var completionSource))
         {
             completionSource.SetResult();
@@ -874,9 +885,9 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
 }
 
 // Data structures for tracking prompts
-internal sealed record PromptInputData(string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
+internal sealed record PromptInputData(string Name, string Label, string InputType, bool IsRequired, IReadOnlyList<KeyValuePair<string, string>>? Options = null, string? Value = null, IReadOnlyList<string>? ValidationErrors = null);
 internal sealed record PromptData(string PromptId, IReadOnlyList<PromptInputData> Inputs, string Message, string? Title = null);
-internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers);
+internal sealed record PromptCompletion(string PromptId, PublishingPromptInputAnswer[] Answers, bool UpdateResponse);
 
 // Enhanced TestConsoleInteractionService that tracks interaction types
 [SuppressMessage("Usage", "ASPIREINTERACTION001:Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.")]

@@ -11,6 +11,7 @@ using Aspire.Hosting.Tests.Utils.Grpc;
 using Aspire.Hosting.Utils;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -39,7 +40,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardServiceImpl>.Instance);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), NullLogger<DashboardServiceImpl>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
 
@@ -92,7 +93,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         var dashboardServiceData = CreateDashboardServiceData(resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), NullLogger<DashboardServiceImpl>.Instance);
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), NullLogger<DashboardServiceImpl>.Instance);
 
         var logger = resourceLoggerService.GetLogger("test-resource");
 
@@ -144,7 +145,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(resourceLoggerService);
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, resourceLoggerService: resourceLoggerService, resourceNotificationService: resourceNotificationService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var testResource = new TestResource("test-resource");
         using var applicationBuilder = TestDistributedApplicationBuilder.Create(testOutputHelper: testOutputHelper);
@@ -155,12 +156,12 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             executeCommand: c => Task.FromResult(CommandResults.Success()),
             commandOptions: new()
             {
-                UpdateState = c => ApplicationModel.ResourceCommandState.Enabled,
+                UpdateState = c => Aspire.Hosting.ApplicationModel.ResourceCommandState.Enabled,
                 Description = "Display description!",
                 Parameter = new[] { "One", "Two" },
                 ConfirmationMessage = "Confirmation message!",
                 IconName = "Icon name!",
-                IconVariant = ApplicationModel.IconVariant.Filled,
+                IconVariant = Aspire.Hosting.ApplicationModel.IconVariant.Filled,
                 IsHighlighted = true
             });
 
@@ -228,7 +229,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             new DistributedApplicationOptions(),
             new ServiceCollection().BuildServiceProvider());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -297,7 +298,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             new DistributedApplicationOptions(),
             new ServiceCollection().BuildServiceProvider());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -343,7 +344,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             new DistributedApplicationOptions(),
             new ServiceCollection().BuildServiceProvider());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -401,7 +402,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             new DistributedApplicationOptions(),
             new ServiceCollection().BuildServiceProvider());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -437,7 +438,7 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
             new DistributedApplicationOptions(),
             new ServiceCollection().BuildServiceProvider());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
-        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), loggerFactory.CreateLogger<DashboardServiceImpl>());
+        var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
         var cts = new CancellationTokenSource();
         var context = TestServerCallContext.Create(cancellationToken: cts.Token);
@@ -474,6 +475,100 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
 
         // This test simply needs to compile.
         Assert.True(true);
+    }
+
+    [Fact]
+    public async Task GetApplicationInformation_ReadsFromConfiguration()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:DashboardApplicationName"] = "MyCustomAppName"
+        });
+        var configuration = configBuilder.Build();
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var hostEnvironment = new TestHostEnvironment
+        {
+            ApplicationName = "DefaultAppName"
+        };
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            hostEnvironment,
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        Assert.Equal("MyCustomAppName", response.ApplicationName);
+    }
+
+    [Fact]
+    public async Task GetApplicationInformation_FallsBackToEnvironmentApplicationName()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build(); // Empty configuration
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var hostEnvironment = new TestHostEnvironment
+        {
+            ApplicationName = "FallbackAppName"
+        };
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            hostEnvironment,
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        Assert.Equal("FallbackAppName", response.ApplicationName);
+    }
+
+    [Fact]
+    public async Task GetApplicationInformation_StripsAppHostSuffix()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AppHost:DashboardApplicationName"] = "MyApp.AppHost"
+        });
+        var configuration = configBuilder.Build();
+
+        var dashboardServiceData = CreateDashboardServiceData();
+        var dashboardService = new DashboardServiceImpl(
+            dashboardServiceData,
+            new TestHostEnvironment(),
+            new TestHostApplicationLifetime(),
+            configuration,
+            NullLogger<DashboardServiceImpl>.Instance);
+
+        var context = TestServerCallContext.Create();
+
+        // Act
+        var response = await dashboardService.GetApplicationInformation(
+            new ApplicationInformationRequest(),
+            context);
+
+        // Assert
+        // The ComputeApplicationName method should strip the .AppHost suffix
+        Assert.Equal("MyApp", response.ApplicationName);
     }
 
     private static DashboardServiceData CreateDashboardServiceData(

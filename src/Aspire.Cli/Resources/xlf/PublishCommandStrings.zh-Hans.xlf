@@ -12,6 +12,11 @@
         <target state="translated">正在生成工件...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InputPromptLoading">
+        <source>Loading...</source>
+        <target state="translated">正在加载...</target>
+        <note />
+      </trans-unit>
       <trans-unit id="OperationCompletedPrefix">
         <source>PUBLISHING COMPLETED</source>
         <target state="translated">已完成发布</target>

@@ -8,6 +8,9 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Threading.Channels;
 using Aspire.Hosting.Backchannel;
+using Aspire.Hosting.Dashboard;
+using Microsoft.Extensions.Logging;
+using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -15,12 +18,14 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
 {
     private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
     private readonly InteractionService _interactionService;
+    private readonly ILogger<PublishingActivityReporter> _logger;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
     private readonly Task _interactionServiceSubscriber;
 
-    public PublishingActivityReporter(InteractionService interactionService)
+    public PublishingActivityReporter(InteractionService interactionService, ILogger<PublishingActivityReporter> logger)
     {
         _interactionService = interactionService;
+        _logger = logger;
         _interactionServiceSubscriber = Task.Run(() => SubscribeToInteractionsAsync(_cancellationTokenSource.Token));
     }
 
@@ -244,7 +249,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         {
             await foreach (var interaction in _interactionService.SubscribeInteractionUpdates(cancellationToken).ConfigureAwait(false))
             {
-                await HandleInteractionUpdateAsync(interaction, cancellationToken).ConfigureAwait(false);
+                await WriteInteractionUpdateToClientAsync(interaction, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
@@ -253,45 +258,31 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         }
     }
 
-    /// <summary>
-    /// Checks if there are any steps currently in progress.
-    /// </summary>
-    private bool HasStepsInProgress()
-    {
-        return _steps.Any(step => step.Value.CompletionState == CompletionState.InProgress);
-    }
-
-    private async Task HandleInteractionUpdateAsync(Interaction interaction, CancellationToken cancellationToken)
+    private async Task WriteInteractionUpdateToClientAsync(Interaction interaction, CancellationToken cancellationToken)
     {
         if (interaction.State == Interaction.InteractionState.InProgress)
         {
-            if (HasStepsInProgress())
-            {
-                await _interactionService.CompleteInteractionAsync(interaction.InteractionId, (interaction, ServiceProvider) =>
-                {
-                    // Complete the interaction with an error state
-                    interaction.CompletionTcs.TrySetException(new InvalidOperationException("Cannot prompt interaction while steps are in progress."));
-                    return new InteractionCompletionState
-                    {
-                        Complete = true,
-                        State = "Cannot prompt interaction while steps are in progress."
-                    };
-                }, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-
-            // Handle input interaction types
             if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo && inputsInfo.Inputs.Count > 0)
             {
+                // Find all the inputs that are depended on.
+                // These inputs value changing will cause the interaction to be sent to the server.
+                var updateStateOnChangeInputs = inputsInfo.Inputs
+                    .SelectMany(i => i.DynamicLoading?.DependsOnInputs ?? [])
+                    .ToList();
+
                 var promptInputs = inputsInfo.Inputs.Select(input => new PublishingPromptInput
                 {
+                    Name = input.Name,
                     Label = input.EffectiveLabel,
                     InputType = input.InputType.ToString(),
                     Required = input.Required,
                     Options = input.Options,
                     Value = input.Value,
                     ValidationErrors = input.ValidationErrors,
-                    AllowCustomChoice = input.AllowCustomChoice
+                    AllowCustomChoice = input.AllowCustomChoice,
+                    UpdateStateOnChange = updateStateOnChangeInputs.Any(i => string.Equals(i, input.Name, StringComparisons.InteractionInputName)),
+                    Loading = input.DynamicLoadingState?.Loading ?? false,
+                    Disabled = input.Disabled
                 }).ToList();
 
                 var activity = new PublishingActivity
@@ -315,6 +306,7 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
                 {
                     new PublishingPromptInput
                     {
+                        Name = "confirm",
                         Label = "Confirm",
                         InputType = "Boolean",
                         Required = true,
@@ -341,34 +333,61 @@ internal sealed class PublishingActivityReporter : IPublishingActivityReporter, 
         }
     }
 
-    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, CancellationToken cancellationToken = default)
+    internal async Task CompleteInteractionAsync(string promptId, PublishingPromptInputAnswer[]? responses, bool updateResponse = false, CancellationToken cancellationToken = default)
     {
         if (int.TryParse(promptId, CultureInfo.InvariantCulture, out var interactionId))
         {
-            await _interactionService.CompleteInteractionAsync(interactionId,
-                (interaction, serviceProvider) =>
+            await _interactionService.ProcessInteractionFromClientAsync(interactionId,
+                (interaction, serviceProvider, logger) =>
                 {
                     if (interaction.InteractionInfo is Interaction.InputsInteractionInfo inputsInfo)
                     {
+                        var options = (InputsDialogInteractionOptions)interaction.Options;
+
                         // Set values for all inputs if we have responses
                         if (responses is not null)
                         {
-                            for (var i = 0; i < Math.Min(inputsInfo.Inputs.Count, responses.Length); i++)
+                            var dtos = new List<InputDto>();
+                            for (var i = 0; i < responses.Length; i++)
                             {
-                                inputsInfo.Inputs[i].Value = responses[i].Value ?? "";
+                                var responseAnswer = responses[i];
+                                InteractionInput? matchingInput;
+
+                                if (responseAnswer.Name != null)
+                                {
+                                    if (!inputsInfo.Inputs.TryGetByName(responseAnswer.Name, out matchingInput))
+                                    {
+                                        _logger.LogWarning("Unable to match answer with name '{InputName}' to an input.", responseAnswer.Name);
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    matchingInput = inputsInfo.Inputs[i];
+                                }
+
+                                dtos.Add(new InputDto(matchingInput.Name, responseAnswer.Value ?? "", matchingInput.InputType));
                             }
+
+                            DashboardServiceData.ProcessInputs(
+                                serviceProvider,
+                                logger,
+                                inputsInfo,
+                                dtos,
+                                dependencyChange: updateResponse,
+                                interaction.CancellationToken);
                         }
 
                         return new InteractionCompletionState
                         {
-                            Complete = true,
+                            Complete = !updateResponse,
                             State = inputsInfo.Inputs
                         };
                     }
                     else if (interaction.InteractionInfo is Interaction.NotificationInteractionInfo)
                     {
                         // Handle notification interactions with boolean result
-                        bool result = false;
+                        var result = false;
                         if (responses is not null && responses.Length > 0)
                         {
                             // Parse the boolean value from the first response

@@ -426,6 +426,21 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures how connection information is injected into environment variables when the resource references other resources.
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource to configure.</param>
+    /// <param name="flags">The injection flags determining which connection information is emitted.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithConnectionProperties<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new ReferenceEnvironmentInjectionAnnotation(flags));
+    }
+
+    /// <summary>
     /// Injects a connection string as an environment variable from the source resource into the destination resource, using the source resource's name as the connection string name (if not overridden).
     /// The format of the environment variable will be "ConnectionStrings__{sourceResourceName}={connectionString}".
     /// <para>
@@ -455,12 +470,60 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
         return builder.WithEnvironment(context =>
         {
-            var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))
+            {
+                var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"{ConnectionStringEnvironmentName}{connectionName}";
+                context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            }
 
-            context.EnvironmentVariables[connectionStringName] = new ConnectionStringReference(resource, optional);
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionProperties))
+            {
+                var prefix = connectionName switch
+                {
+                    "" => "",
+                    _ => $"{connectionName.ToUpperInvariant()}_"
+                };
+
+                SplatConnectionProperties(resource, prefix, context);
+            }
         });
+    }
+
+    /// <summary>
+    /// Retrieves the value of a specified connection property from the resource's connection properties.
+    /// </summary>
+    /// <remarks>Throws a KeyNotFoundException if the specified key does not exist in the resource's
+    /// connection properties.</remarks>
+    /// <param name="resource">The resource that provides the connection properties. Cannot be null.</param>
+    /// <param name="key">The key of the connection property to retrieve. Cannot be null.</param>
+    /// <returns>The value associated with the specified connection property key.</returns>
+    public static ReferenceExpression GetConnectionProperty(this IResourceWithConnectionString resource, string key)
+    {
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            if (string.Equals(connectionProperty.Key, key, StringComparison.OrdinalIgnoreCase))
+            {
+                return connectionProperty.Value;
+            }
+        }
+
+        return ReferenceExpression.Empty;
+    }
+
+    private static void SplatConnectionProperties(IResourceWithConnectionString resource, string prefix, EnvironmentCallbackContext context)
+    {
+        ArgumentNullException.ThrowIfNull(resource);
+
+        foreach (var connectionProperty in resource.GetConnectionProperties())
+        {
+            context.EnvironmentVariables[$"{prefix}{connectionProperty.Key.ToUpperInvariant()}"] = connectionProperty.Value;
+        }
     }
 
     /// <summary>
@@ -1999,6 +2062,145 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
+    /// <summary>
+    /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="certificateAuthorityCollection">Additional certificates in a <see cref="CertificateAuthorityCollection"/> to treat as trusted certificate authorities for the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add a certificate authority collection to a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificatesFromFile("../my-ca.pem");
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCertificateAuthorityCollection<TResource>(this IResourceBuilder<TResource> builder, IResourceBuilder<CertificateAuthorityCollection> certificateAuthorityCollection)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(certificateAuthorityCollection);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            CertificateAuthorityCollections = { certificateAuthorityCollection.Resource },
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            foreach (var existingCollection in existingAnnotation.CertificateAuthorityCollections)
+            {
+                if (existingCollection != certificateAuthorityCollection.Resource)
+                {
+                    annotation.CertificateAuthorityCollections.Add(existingCollection);
+                }
+            }
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="trust">Indicates whether the developer certificate should be treated as trusted.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// <example>
+    /// Disable trust for app host managed developer certificate(s) for a container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithDeveloperCertificateTrust(false);
+    /// </code>
+    /// </example>
+    /// <example>
+    /// Disable automatic trust for app host managed developer certificate(s), but explicitly enable it for a specific resource.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions()
+    /// {
+    ///     Args = args,
+    ///     TrustDeveloperCertificate = false,
+    /// });
+    /// var project = builder.AddProject&lt;MyService&gt;("my-service")
+    ///    .WithDeveloperCertificateTrust(true);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithDeveloperCertificateTrust<TResource>(this IResourceBuilder<TResource> builder, bool trust)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            TrustDeveloperCertificates = trust,
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Sets the <see cref="CustomCertificateAuthoritiesScope"/> for custom certificate authorities associated with the resource.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
+    /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
+    /// <remarks>
+    /// The default scope is <see cref="CustomCertificateAuthoritiesScope.Append"/> which means that custom certificate authorities
+    /// should be appended to the default trusted certificate authorities for the resource. Setting the scope to
+    /// <see cref="CustomCertificateAuthoritiesScope.Override"/> indicates the set of certificates in referenced
+    /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
+    /// exclusive source of trust for a resource.
+    /// In all cases, this is a best effort implementation as not all resources support full customization of certificate
+    /// trust.
+    /// <example>
+    /// Set the scope for custom certificate authorities to override the default trusted certificate authorities for a container resource.
+    /// <code lang="csharp">
+    /// var caCollection = builder.AddCertificateAuthorityCollection("my-cas")
+    ///     .WithCertificate(new X509Certificate2("my-ca.pem"));
+    ///
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateAuthorityCollection(caCollection)
+    ///     .WithCustomCertificateAuthoritiesScope(CustomCertificateAuthoritiesScope.Override);
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<TResource> WithCustomCertificateAuthoritiesScope<TResource>(this IResourceBuilder<TResource> builder, CustomCertificateAuthoritiesScope scope)
+        where TResource : IResourceWithEnvironment, IResourceWithArgs
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        var annotation = new CertificateAuthorityCollectionAnnotation
+        {
+            Scope = scope,
+        };
+        if (builder.Resource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var existingAnnotation))
+        {
+            annotation.CertificateAuthorityCollections.AddRange(existingAnnotation.CertificateAuthorityCollections);
+            annotation.TrustDeveloperCertificates ??= existingAnnotation.TrustDeveloperCertificates;
+            annotation.Scope ??= existingAnnotation.Scope;
+        }
+
+        return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults
     // created for ASP.NET Core projects with the default launch settings added via AddProject. HTTPS is first so that we prefer it
     // if found.
@@ -2363,10 +2565,10 @@ public static class ResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The resource builder.</param>
     /// <param name="launchConfigurationProducer">Launch configuration producer for the resource.</param>
-    /// <param name="requiredExtensionId">The ID of the required VS Code extension. If specified, the extension must be installed for debugging to be enabled.</param>
+    /// <param name="launchConfigurationType">The type of the resource.</param>
     /// <param name="argsCallback">Optional callback to add or modify command line arguments when running in an extension host. Useful if the entrypoint is usually provided as an argument to the resource executable.</param>
     [Experimental("ASPIREEXTENSION001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string requiredExtensionId, Action<CommandLineArgsCallbackContext>? argsCallback = null)
+    public static IResourceBuilder<T> WithVSCodeDebugSupport<T, TLaunchConfiguration>(this IResourceBuilder<T> builder, Func<string, TLaunchConfiguration> launchConfigurationProducer, string launchConfigurationType, Action<CommandLineArgsCallbackContext>? argsCallback = null)
         where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -2389,7 +2591,7 @@ public static class ResourceBuilderExtensions
             });
         }
 
-        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(requiredExtensionId, launchConfigurationProducer));
+        return builder.WithAnnotation(SupportsDebuggingAnnotation.Create(launchConfigurationType, launchConfigurationProducer));
     }
 
     /// <summary>

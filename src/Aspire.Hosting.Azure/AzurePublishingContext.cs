@@ -89,7 +89,7 @@ public sealed class AzurePublishingContext(
         }
 
         var step = await ActivityReporter.CreateStepAsync(
-            "Publishing Azure Bicep templates",
+            "publish-bicep",
             cancellationToken
         ).ConfigureAwait(false);
 
