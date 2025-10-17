@@ -1,4 +1,4 @@
-name: AI Test Workflow
+name: Test Scenario Workflow
 
 on:
   issue_comment:
@@ -9,11 +9,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  aitest:
-    # Only run when the comment starts with /aitest on a PR
+  test-scenario:
+    # Only run when the comment starts with /test-scenario on a PR
     if: >-
       ${{
-        startsWith(github.event.comment.body, '/aitest') &&
+        startsWith(github.event.comment.body, '/test-scenario') &&
         github.event.issue.pull_request
       }}
     runs-on: ubuntu-latest
@@ -35,11 +35,11 @@ jobs:
 
           # Extract scenario name from comment
           SCENARIO_NAME=$(echo "$COMMENT_BODY" | \
-            grep -oP '^/aitest\s+\K[a-z0-9]+(-[a-z0-9]+)*$' | head -1)
+            grep -oP '^/test-scenario\s+\K[a-z0-9]+(-[a-z0-9]+)*$' | head -1)
 
           if [ -z "$SCENARIO_NAME" ]; then
             echo "Error: Invalid or missing scenario name"
-            echo "Expected format: /aitest scenario-name"
+            echo "Expected format: /test-scenario scenario-name"
             echo "Scenario name must be lowercase alphanumeric with hyphens"
             exit 1
           fi

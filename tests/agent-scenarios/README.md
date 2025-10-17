@@ -1,6 +1,6 @@
 # Agent Scenarios
 
-This directory contains scenario definitions for the `/aitest` workflow command.
+This directory contains scenario definitions for the `/test-scenario` workflow command.
 
 ## Structure
 
@@ -40,12 +40,12 @@ agent-scenarios/
 To trigger an agent scenario on a pull request, comment:
 
 ```
-/aitest scenario-name
+/test-scenario scenario-name
 ```
 
 For example:
 ```
-/aitest starter-app
+/test-scenario starter-app
 ```
 
 The workflow will:
@@ -60,7 +60,7 @@ The workflow will:
 1. Create a new directory under `tests/agent-scenarios/` with a valid scenario name
 2. Add a `prompt.md` file with the prompt text for the agent
 3. Commit the changes
-4. Test by commenting `/aitest your-scenario-name` on a PR
+4. Test by commenting `/test-scenario your-scenario-name` on a PR
 
 ## Example Scenarios
 
