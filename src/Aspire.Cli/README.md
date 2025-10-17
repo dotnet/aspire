@@ -134,8 +134,35 @@ Update integrations in the Aspire project. (Preview)
 aspire update [options]
 ```
 
+**Options:**
+- `--project` - The path to the project file
+- `--self` - Update the Aspire CLI itself to the latest version
+- `--quality <quality>` - Quality level to update to when using --self (stable, staging, daily)
+
 **Description:**
 Updates Aspire integration packages to their latest compatible versions. Supports both traditional package management (PackageReference with Version) and Central Package Management (CPM) using Directory.Packages.props. The command automatically detects the package management approach used in the project and updates packages accordingly.
+
+When using `--self`, the CLI will update itself to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure. If the quality level is not specified with `--self`, an interactive prompt will appear to select from the available options.
+
+**Quality Levels (for --self):**
+- `stable` - Latest stable release version
+- `staging` - Latest release candidate/staging version
+- `daily` - Latest development build from main branch
+
+**Example:**
+```cli
+# Update project integrations
+aspire update
+
+# Update CLI with interactive quality selection
+aspire update --self
+
+# Update CLI to latest stable release
+aspire update --self --quality stable
+
+# Update CLI to latest development build
+aspire update --self --quality daily
+```
 
 ### config
 
@@ -193,43 +220,3 @@ aspire config delete <key> [options]
 
 **Description:**
 Manages CLI configuration settings. Configuration can be set locally (per project) or globally (user-wide). Local settings are stored in the current directory, while global settings are stored in `$HOME/.aspire/settings.json`.
-
-### self
-
-Manage the Aspire CLI itself.
-
-```cli
-aspire self [command] [options]
-```
-
-**Subcommands:**
-
-#### update
-Update the Aspire CLI to the latest version.
-
-```cli
-aspire self update [options]
-```
-
-**Options:**
-- `--quality <quality>` - Quality level to update to (stable, staging, daily)
-
-**Description:**
-Updates the Aspire CLI to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure. If the quality level is not specified, an interactive prompt will appear to select from the available options.
-
-**Quality Levels:**
-- `stable` - Latest stable release version
-- `staging` - Latest release candidate/staging version
-- `daily` - Latest development build from main branch
-
-**Example:**
-```cli
-# Update with interactive quality selection
-aspire self update
-
-# Update to latest stable release
-aspire self update --quality stable
-
-# Update to latest development build
-aspire self update --quality daily
-```
