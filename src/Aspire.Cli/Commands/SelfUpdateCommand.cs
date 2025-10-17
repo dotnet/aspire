@@ -64,9 +64,6 @@ internal sealed class SelfUpdateCommand : BaseCommand
             // Extract and update
             await ExtractAndUpdateAsync(currentExePath, archivePath, cancellationToken);
 
-            InteractionService.DisplaySuccess("Aspire CLI has been successfully updated!");
-            InteractionService.DisplayMessage(":information:", "Run 'aspire --version' to verify the new version.");
-
             return 0;
         }
         catch (Exception ex)
@@ -129,9 +126,10 @@ internal sealed class SelfUpdateCommand : BaseCommand
                     SetExecutablePermission(currentExePath);
                 }
 
-                // Test the new executable
-                _logger.LogDebug("Testing new CLI executable");
-                if (!await TestNewExecutableAsync(currentExePath, cancellationToken))
+                // Test the new executable and display its version
+                _logger.LogDebug("Testing new CLI executable and displaying version");
+                var newVersion = await GetNewVersionAsync(currentExePath, cancellationToken);
+                if (newVersion is null)
                 {
                     throw new InvalidOperationException("New CLI executable failed verification test.");
                 }
@@ -200,7 +198,7 @@ internal sealed class SelfUpdateCommand : BaseCommand
         }
     }
 
-    private static async Task<bool> TestNewExecutableAsync(string exePath, CancellationToken cancellationToken)
+    private async Task<string?> GetNewVersionAsync(string exePath, CancellationToken cancellationToken)
     {
         try
         {
@@ -216,15 +214,24 @@ internal sealed class SelfUpdateCommand : BaseCommand
             using var process = Process.Start(psi);
             if (process is null)
             {
-                return false;
+                return null;
             }
 
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
             await process.WaitForExitAsync(cancellationToken);
-            return process.ExitCode == 0;
+            
+            if (process.ExitCode == 0)
+            {
+                var version = output.Trim();
+                InteractionService.DisplaySuccess($"Updated to version: {version}");
+                return version;
+            }
+            
+            return null;
         }
         catch
         {
-            return false;
+            return null;
         }
     }
 

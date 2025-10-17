@@ -107,7 +107,13 @@ internal sealed class RootCommand : BaseRootCommand
         Subcommands.Add(cacheCommand);
         Subcommands.Add(deployCommand);
         Subcommands.Add(updateCommand);
-        Subcommands.Add(selfCommand);
+        
+        // Only add self command if not running as a dotnet tool
+        if (!IsRunningAsDotNetTool())
+        {
+            Subcommands.Add(selfCommand);
+        }
+        
         Subcommands.Add(extensionInternalCommand);
 
         if (featureFlags.IsFeatureEnabled(KnownFeatures.ExecCommandEnabled, false))
@@ -115,5 +121,19 @@ internal sealed class RootCommand : BaseRootCommand
             Subcommands.Add(execCommand);
         }
 
+    }
+
+    private static bool IsRunningAsDotNetTool()
+    {
+        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
+        // When running as a native binary, it points to "aspire" or "aspire.exe"
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(processPath);
+        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
     }
 }
