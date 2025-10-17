@@ -6,7 +6,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.AddDockerComposeEnvironment("env");
 
-var pythonapp = builder.AddPythonApp("instrumented-python-app", "../InstrumentedPythonProject", "app.py")
+var pythonapp = builder.AddPythonScript("instrumented-python-app", "../InstrumentedPythonProject", "app.py")
        .WithUvEnvironment()
        .WithHttpEndpoint(env: "PORT")
        .WithExternalHttpEndpoints();

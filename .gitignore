@@ -158,3 +158,15 @@ playground/**/publish/
 # Release notes automation output
 tools/ReleaseNotes/analysis-output/
 tools/ReleaseNotes/release-notes-*.md
+
+# Extension build artifacts
+extension/dist/
+extension/.localization/
+extension/out/
+extension/node_modules/
+extension/.vscode-test/
+
+# Generated extension localization files (regenerated from XLF during build)
+extension/l10n/bundle.l10n.json
+extension/l10n/bundle.l10n.*.json
+extension/package.nls.*.json

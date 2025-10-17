@@ -44,12 +44,6 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
-            {
-                InteractionService.DisplayError(ErrorStrings.CommandNotSupportedWithSingleFileAppHost);
-                return ExitCodeConstants.SingleFileAppHostNotSupported;
-            }
-
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
             var channel = await InteractionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);

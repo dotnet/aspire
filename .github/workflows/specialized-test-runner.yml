@@ -59,6 +59,8 @@ jobs:
 
       - name: Generate test runsheet
         id: generate_tests_matrix
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: >
           ./build.sh
           --test
@@ -106,7 +108,7 @@ jobs:
       ignoreTestFailures: ${{ inputs.ignoreTestFailures }}
 
   results:
-    if: ${{ github.repository_owner == 'dotnet' }}
+    if: ${{ always() && github.repository_owner == 'dotnet' }}
     runs-on: ubuntu-latest
     name: Final Results
     needs: [generate_tests_matrix, build_packages, run_tests]

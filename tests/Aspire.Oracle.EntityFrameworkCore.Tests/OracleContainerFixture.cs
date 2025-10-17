@@ -28,6 +28,7 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (RequiresDockerAttribute.IsSupported)
         {
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Oracle container initialization starting..."));
             Container = new OracleBuilder()
                 .WithPortBinding(1521, true)
                 .WithHostname("localhost")
@@ -37,7 +38,13 @@ public sealed class OracleContainerFixture : IAsyncLifetime
                     .UntilMessageIsLogged("Completed: ALTER DATABASE OPEN")
                 ).Build();
 
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Starting Oracle container..."));
             await Container.StartAsync();
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage($"Oracle container started. Connection string: {GetConnectionString()}"));
+        }
+        else
+        {
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Docker is not supported on this platform. Oracle tests will be skipped."));
         }
     }
 
@@ -45,7 +52,9 @@ public sealed class OracleContainerFixture : IAsyncLifetime
     {
         if (Container is not null)
         {
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Disposing Oracle container..."));
             await Container.DisposeAsync();
+            _diagnosticMessageSink.OnMessage(new DiagnosticMessage("Oracle container disposed."));
         }
     }
 }

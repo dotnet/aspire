@@ -118,7 +118,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                             // Find all the inputs that are depended on.
                             // These inputs value changing will cause the interaction to be sent to the server.
                             var updateStateOnChangeInputs = inputs.Inputs
-                                .SelectMany(i => i.DynamicOptions?.DependsOnInputs ?? [])
+                                .SelectMany(i => i.DynamicLoading?.DependsOnInputs ?? [])
                                 .ToList();
 
                             var inputInstances = inputs.Inputs.Select(input =>
@@ -155,7 +155,7 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
                                 {
                                     dto.Options.Add(input.Options.ToDictionary());
                                 }
-                                if (input.DynamicState is { } providerState)
+                                if (input.DynamicLoadingState is { } providerState)
                                 {
                                     dto.Loading = providerState.Loading;
                                 }

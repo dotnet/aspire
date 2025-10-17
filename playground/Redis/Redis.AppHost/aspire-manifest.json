@@ -95,8 +95,20 @@
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
         "ConnectionStrings__redis": "{redis.connectionString}",
+        "REDIS_HOST": "{redis.bindings.tcp.host}",
+        "REDIS_PORT": "{redis.bindings.tcp.port}",
+        "REDIS_PASSWORD": "{redis-password.value}",
+        "REDIS_URI": "redis://:{redis-password.value}@{redis.bindings.tcp.host}:{redis.bindings.tcp.port}",
         "ConnectionStrings__garnet": "{garnet.connectionString}",
-        "ConnectionStrings__valkey": "{valkey.connectionString}"
+        "GARNET_HOST": "{garnet.bindings.tcp.host}",
+        "GARNET_PORT": "{garnet.bindings.tcp.port}",
+        "GARNET_PASSWORD": "{garnet-password.value}",
+        "GARNET_URI": "redis://:{garnet-password.value}@{garnet.bindings.tcp.host}:{garnet.bindings.tcp.port}",
+        "ConnectionStrings__valkey": "{valkey.connectionString}",
+        "VALKEY_HOST": "{valkey.bindings.tcp.host}",
+        "VALKEY_PORT": "{valkey.bindings.tcp.port}",
+        "VALKEY_PASSWORD": "{valkey-password.value}",
+        "VALKEY_URI": "valkey://:{valkey-password.value}@{valkey.bindings.tcp.host}:{valkey.bindings.tcp.port}"
       },
       "bindings": {
         "http": {

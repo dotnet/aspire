@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="NotFoundDetails">
         <source>The page you requested could not be found</source>
-        <target state="translated">Non è stato possibile trovare la pagina richiesta</target>
+        <target state="translated">Impossibile trovare la pagina richiesta.</target>
         <note />
       </trans-unit>
       <trans-unit id="NotFoundPageTitle">
