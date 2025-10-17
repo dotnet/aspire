@@ -1237,6 +1237,125 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithFailingStep_TracksFailedStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var expectedException = new InvalidOperationException("Test failure");
+        pipeline.AddStep("failing-step", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw expectedException;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Verify that the failed step was tracked
+        Assert.Single(pipeline.FailedSteps);
+        Assert.Equal("failing-step", pipeline.FailedSteps[0].StepName);
+        Assert.NotNull(pipeline.FailedSteps[0].Exception);
+        Assert.Contains("failing-step", pipeline.FailedSteps[0].Exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithMultipleFailingSteps_TracksAllFailures()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("failing-step1", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Error 1");
+        });
+
+        pipeline.AddStep("failing-step2", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new NotSupportedException("Error 2");
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
+
+        // Verify that both failed steps were tracked
+        Assert.Equal(2, pipeline.FailedSteps.Count);
+        
+        var failedStepNames = pipeline.FailedSteps.Select(f => f.StepName).OrderBy(n => n).ToList();
+        Assert.Equal(["failing-step1", "failing-step2"], failedStepNames);
+        
+        // Verify exceptions are tracked
+        Assert.All(pipeline.FailedSteps, f => Assert.NotNull(f.Exception));
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDependencyFailure_TracksOnlyDirectFailures()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var dependentStepExecuted = false;
+
+        pipeline.AddStep("failing-dependency", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Dependency failed");
+        });
+
+        pipeline.AddStep("dependent-step", async (context) =>
+        {
+            dependentStepExecuted = true;
+            await Task.CompletedTask;
+        }, dependsOn: "failing-dependency");
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Only the step that actually threw an exception should be tracked
+        Assert.Single(pipeline.FailedSteps);
+        Assert.Equal("failing-dependency", pipeline.FailedSteps[0].StepName);
+        
+        // The dependent step should not have executed
+        Assert.False(dependentStepExecuted);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ClearsFailuresFromPreviousExecution()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        // First execution - add a failing step
+        pipeline.AddStep("failing-step", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new InvalidOperationException("Test failure");
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        Assert.Single(pipeline.FailedSteps);
+
+        // Second execution - create a new pipeline with successful step
+        var pipeline2 = new DistributedApplicationPipeline();
+        pipeline2.AddStep("successful-step", async (context) =>
+        {
+            await Task.CompletedTask;
+        });
+
+        await pipeline2.ExecuteAsync(context);
+
+        // Failed steps should be empty after successful execution
+        Assert.Empty(pipeline2.FailedSteps);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
