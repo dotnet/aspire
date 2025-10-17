@@ -6,7 +6,7 @@ namespace Projects;
 
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 /// <summary>
-/// Metadata for the Aspire Host project.
+/// Metadata for the Aspire AppHost project.
 /// </summary>
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
