@@ -132,9 +132,9 @@ internal sealed class RunModeProvisioningContextProvider(
                             Required = true,
                             AllowCustomChoice = true,
                             Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                            DynamicOptions = new DynamicInputOptions
+                            DynamicLoading = new InputLoadOptions
                             {
-                                UpdateInputCallback = async (context) =>
+                                LoadCallback = async (context) =>
                                 {
                                     var (subscriptionOptions, fetchSucceeded) =
                                         await TryGetSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
@@ -153,9 +153,9 @@ internal sealed class RunModeProvisioningContextProvider(
                             Placeholder = AzureProvisioningStrings.LocationPlaceholder,
                             Required = true,
                             Disabled = true,
-                            DynamicOptions = new DynamicInputOptions
+                            DynamicLoading = new InputLoadOptions
                             {
-                                UpdateInputCallback = async (context) =>
+                                LoadCallback = async (context) =>
                                 {
                                     var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
 

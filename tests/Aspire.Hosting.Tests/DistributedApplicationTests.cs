@@ -712,6 +712,36 @@ public class DistributedApplicationTests
 
     [Fact]
     [RequiresDocker]
+    public async Task VerifyContainerSucceedsWithCreateFileContinueOnError()
+    {
+        using var testProgram = CreateTestProgram("verify-container-continue-on-error", trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-continue-on-error-redis")
+            .WithContainerFiles("/tmp", [
+                new ContainerOpenSSLCertificateFile
+                {
+                    Name = "invalid-cert.pem",
+                    Contents = "not a real cert",
+                    // This would normally cause the container to fail, but with ContinueOnError it should be ignored.
+                    ContinueOnError = true,
+                },
+            ]);
+
+        await using var app = testProgram.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(container.Resource.Name, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
     public async Task VerifyContainerStopStartWorks()
     {
         using var testProgram = CreateTestProgram("container-start-stop", randomizePorts: false);

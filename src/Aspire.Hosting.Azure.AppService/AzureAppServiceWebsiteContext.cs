@@ -5,6 +5,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
@@ -28,6 +29,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     // bicep compatible values
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
+
+    private int? _targetPort;
 
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
@@ -89,6 +92,15 @@ internal sealed class AzureAppServiceWebsiteContext(
             throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
         }
 
+        // App Service supports only one target port
+        var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct().ToList();
+        if (targetPortEndpoints.Count > 1)
+        {
+            throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
+        }
+
+        _targetPort = targetPortEndpoints.FirstOrDefault();
+
         foreach (var endpoint in endpoints)
         {
             if (!endpoint.IsExternal)
@@ -141,21 +153,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             return (AllocateParameter(output, secretType: secretType), secretType);
         }
 
-        if (value is IUrlEncoderProvider encoder && encoder.ValueProvider is { } valueProvider)
-        {
-            // Evaluate the inner value to get the bicep expression
-            var (innerValue, secret) = ProcessValue(valueProvider, secretType: secretType, parent: parent);
-
-            var innerExpression = innerValue switch
-            {
-                ProvisioningParameter p => p.Value.Compile(),
-                IBicepValue b => b.Compile(),
-                _ => throw new ArgumentException($"Invalid expression type for url-encoding: {innerValue.GetType()}")
-            };
-
-            return (new FunctionCallExpression(new IdentifierExpression("uriComponent"), innerExpression), secret);
-        }
-
         if (value is IAzureKeyVaultSecretReference vaultSecretReference)
         {
             if (parent is null)
@@ -178,7 +175,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+
+                if (expr.StringFormats[0] is string format)
+                {
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
+                }
+
+                return val;
             }
 
             var args = new object[expr.ValueProviders.Count];
@@ -192,6 +196,12 @@ internal sealed class AzureAppServiceWebsiteContext(
                 {
                     finalSecretType = SecretType.Normal;
                 }
+
+                if (expr.StringFormats[index] is string format)
+                {
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
+                }
+
                 args[index++] = val;
             }
 
@@ -266,7 +276,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        infra.Add(mainContainer);
+        if (_targetPort is not null)
+        {
+            mainContainer.TargetPort = _targetPort.Value.ToString(CultureInfo.InvariantCulture);
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = _targetPort.Value.ToString(CultureInfo.InvariantCulture) });
+        }
 
         foreach (var kv in EnvironmentVariables)
         {
@@ -301,8 +315,10 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            webSite.SiteConfig.AppCommandLine = Join(arrayExpression, " ");
+            mainContainer.StartUpCommand = Join(arrayExpression, " ");
         }
+
+        infra.Add(mainContainer);
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
         webSite.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();

@@ -12,6 +12,7 @@ import AspireRpcServer from "../server/AspireRpcServer";
 import { createDebugSessionConfiguration } from "./debuggerExtensions";
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 import { ICliRpcClient } from "../server/rpcClient";
+import path from "path";
 
 export class AspireDebugSession implements vscode.DebugAdapter {
   private readonly _onDidSendMessage = new EventEmitter<any>();
@@ -72,14 +73,22 @@ export class AspireDebugSession implements vscode.DebugAdapter {
       const appHostPath = this._session.configuration.program as string;
       const noDebug = !!message.arguments?.noDebug;
 
+      const args = ['run'];
+      if (!noDebug) {
+        args.push('--start-debug-session');
+      }
+
       if (isDirectory(appHostPath)) {
         this.sendMessageWithEmoji("📁", launchingWithDirectory(appHostPath));
-        this.spawnRunCommand(noDebug ? ['run'] : ['run', '--start-debug-session'], appHostPath, noDebug);
+
+        this.spawnRunCommand(args, appHostPath, noDebug);
       }
       else {
         this.sendMessageWithEmoji("📂", launchingWithAppHost(appHostPath));
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-        this.spawnRunCommand(noDebug ? ['run'] : ['run', '--start-debug-session'], workspaceFolder, noDebug);
+
+        const workspaceFolder = path.dirname(appHostPath);
+        args.push('--project', appHostPath);
+        this.spawnRunCommand(args, workspaceFolder, noDebug);
       }
     }
     else if (message.command === 'disconnect' || message.command === 'terminate') {

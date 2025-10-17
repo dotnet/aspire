@@ -47,7 +47,7 @@ internal sealed class ContainerExecSpec
     public List<string>? Args { get; set; }
 }
 
-internal sealed class ContainerExecStatus : V1Status
+internal sealed record ContainerExecStatus : V1Status
 {
     /// <summary>
     /// The current state of the container execution. See <see cref="ExecutableState"/> for possible values.

@@ -8,7 +8,7 @@ If you want the latest, unsupported build of Aspire to try, read on.
 
 See [machine-requirements.md](machine-requirements.md).
 
-## Install the daily CLI
+## Install the daily CLI only
 
 On Windows:
 
@@ -20,6 +20,22 @@ On Linux, or macOS:
 
 ```sh
 curl -sSL https://aspire.dev/install.sh | bash -s -- -q dev
+```
+
+## Install the daily CLI + VS Code extension
+
+The Aspire VS Code extension requires the Aspire CLI to be available on the path to work. You can install both using the installation script.
+
+On Windows:
+
+```powershell
+iex "& { $(irm https://aspire.dev/install.ps1) } -InstallExtension -Quality dev"
+```
+
+On Linux, or macOS:
+
+```sh
+curl -sSL https://aspire.dev/install.sh | bash -s -- --install-extension -q dev
 ```
 
 <!-- break between blocks -->

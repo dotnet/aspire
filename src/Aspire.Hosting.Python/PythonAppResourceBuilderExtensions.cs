@@ -273,6 +273,13 @@ public static class PythonAppResourceBuilderExtensions
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
             context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+
+            // Set PYTHONUTF8=1 on Windows in run mode to enable UTF-8 mode
+            // See: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONUTF8
+            if (OperatingSystem.IsWindows() && context.ExecutionContext.IsRunMode)
+            {
+                context.EnvironmentVariables["PYTHONUTF8"] = "1";
+            }
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable

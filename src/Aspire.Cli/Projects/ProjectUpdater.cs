@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -22,7 +23,7 @@ internal interface IProjectUpdater
     Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
+internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
@@ -270,6 +271,23 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
     {
+        if (string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            await UpdateSdkVersionInCsprojAppHostAsync(projectFile, package);
+        }
+        else if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            await UpdateSdkVersionInSingleFileAppHostAsync(projectFile, package);
+        }
+        else
+        {
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, 
+                "Unsupported AppHost file type: {0}. Expected .csproj or .cs file.", projectFile.Extension));
+        }
+    }
+
+    private static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
 
@@ -293,6 +311,29 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         await Task.CompletedTask;
     }
+
+    private static async Task UpdateSdkVersionInSingleFileAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    {
+        var fileContent = await File.ReadAllTextAsync(projectFile.FullName);
+        
+        // Look for the #:sdk Aspire.AppHost.Sdk@<version> directive
+        var match = SdkDirectiveRegex().Match(fileContent);
+        
+        if (!match.Success)
+        {
+            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, 
+                "Could not find '#:sdk Aspire.AppHost.Sdk@<version>' directive in single-file AppHost: {0}", projectFile.FullName));
+        }
+
+        // Replace the matched SDK directive with the new version
+        var newDirective = $"#:sdk Aspire.AppHost.Sdk@{package.Version}";
+        var updatedContent = SdkDirectiveRegex().Replace(fileContent, newDirective, 1);
+        
+        await File.WriteAllTextAsync(projectFile.FullName, updatedContent);
+    }
+
+    [GeneratedRegex(@"#:sdk\s+Aspire\.AppHost\.Sdk@(?:[\d\.\-a-zA-Z]+|\*)")]
+    internal static partial Regex SdkDirectiveRegex();
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
@@ -342,13 +383,22 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             else
             {
                 // Traditional package management - Version should be in PackageReference
-                if (!packageReference.TryGetProperty("Version", out var versionElement) || versionElement.GetString() is null)
+                if (!packageReference.TryGetProperty("Version", out var versionElement))
                 {
-                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                    // Version attribute is missing - treat as wildcard
+                    var packageVersion = "*";
+                    await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
                 }
-                
-                var packageVersion = versionElement.GetString()!;
-                await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                else
+                {
+                    var packageVersion = versionElement.GetString();
+                    if (string.IsNullOrEmpty(packageVersion) || packageVersion == "*")
+                    {
+                        // Version is * or empty - treat as wildcard
+                        packageVersion = "*";
+                    }
+                    await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                }
             }
         }
     }
