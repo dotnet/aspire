@@ -439,7 +439,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         _app.UseMiddleware<ValidateTokenMiddleware>();
 
-        _app.MapMcp(_dashboardOptionsMonitor.CurrentValue.Mcp.Path).RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
+        if (!_dashboardOptionsMonitor.CurrentValue.Mcp.Disabled.GetValueOrDefault())
+        {
+            _app.MapMcp(_dashboardOptionsMonitor.CurrentValue.Mcp.Path).RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
+        }
 
         // Configure the HTTP request pipeline.
         if (!_app.Environment.IsDevelopment())

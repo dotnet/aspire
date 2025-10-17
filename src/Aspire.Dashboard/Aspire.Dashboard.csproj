@@ -20,7 +20,10 @@
 
     <DefineConstants>$(DefineConstants);ASPIRE_DASHBOARD</DefineConstants>
 
-    <!-- Enable raw string literals support in Razor -->
+    <!--
+      Enable raw string literals support in Razor. Can remove when target switches to .NET 10+.
+      See https://devblogs.microsoft.com/dotnet/enhancing-razor-productivity-with-new-features/
+    -->
     <Features>use-roslyn-tokenizer</Features>
   </PropertyGroup>
 
