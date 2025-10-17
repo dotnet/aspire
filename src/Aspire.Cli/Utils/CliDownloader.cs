@@ -26,9 +26,9 @@ internal class CliDownloader(
 
     private static readonly Dictionary<string, string> s_qualityBaseUrls = new()
     {
-        ["dev"] = "https://aka.ms/dotnet/9/aspire/daily",
+        ["daily"] = "https://aka.ms/dotnet/9/aspire/daily",
         ["staging"] = "https://aka.ms/dotnet/9/aspire/rc/daily",
-        ["release"] = "https://aka.ms/dotnet/9/aspire/ga/daily"
+        ["stable"] = "https://aka.ms/dotnet/9/aspire/ga/daily"
     };
 
     public async Task<string> DownloadLatestCliAsync(string quality, CancellationToken cancellationToken)
