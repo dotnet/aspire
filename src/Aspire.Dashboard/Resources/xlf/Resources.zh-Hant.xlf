@@ -4,17 +4,17 @@
     <body>
       <trans-unit id="HealthCheckStatusJustNowFormat">
         <source>{0} (just now)</source>
-        <target state="new">{0} (just now)</target>
+        <target state="translated">{0} (剛剛)</target>
         <note>{0} is the health status like "Unhealthy"</note>
       </trans-unit>
       <trans-unit id="HealthCheckStatusWithTimeFormat">
         <source>{0} ({1} ago)</source>
-        <target state="new">{0} ({1} ago)</target>
+        <target state="translated">{0} ({1} 前)</target>
         <note>{0} is the health status like "Unhealthy", {1} is a duration like "2s" or "5m"</note>
       </trans-unit>
       <trans-unit id="HealthCheckStatusWithTimeTooltipFormat">
         <source>{0} (last run at {1})</source>
-        <target state="new">{0} (last run at {1})</target>
+        <target state="translated">{0} (上次執行時間為 {1})</target>
         <note>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</note>
       </trans-unit>
       <trans-unit id="ResourceActionCommandsText">
