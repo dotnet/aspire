@@ -33,9 +33,8 @@ internal sealed class SelfUpdateCommand : BaseCommand
         _logger = logger;
         _cliDownloader = cliDownloader;
 
-        var qualityOption = new Option<string>("--quality");
-        qualityOption.Description = "Quality level to update to (release, staging, dev)";
-        qualityOption.DefaultValueFactory = (result) => "release";
+        var qualityOption = new Option<string?>("--quality");
+        qualityOption.Description = "Quality level to update to (stable, staging, daily)";
         Options.Add(qualityOption);
     }
 
@@ -43,7 +42,18 @@ internal sealed class SelfUpdateCommand : BaseCommand
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        var quality = parseResult.GetValue<string>("--quality") ?? "release";
+        var quality = parseResult.GetValue<string?>("--quality");
+
+        // If quality is not specified, prompt the user
+        if (string.IsNullOrEmpty(quality))
+        {
+            var qualities = new[] { "stable", "staging", "daily" };
+            quality = await InteractionService.PromptForSelectionAsync(
+                "Select the quality level to update to:",
+                qualities,
+                q => q,
+                cancellationToken);
+        }
 
         try
         {

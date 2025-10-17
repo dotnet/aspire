@@ -212,21 +212,24 @@ aspire self update [options]
 ```
 
 **Options:**
-- `--quality <quality>` - Quality level to update to (release, staging, dev) [default: release]
+- `--quality <quality>` - Quality level to update to (stable, staging, daily)
 
 **Description:**
-Updates the Aspire CLI to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure.
+Updates the Aspire CLI to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure. If the quality level is not specified, an interactive prompt will appear to select from the available options.
 
 **Quality Levels:**
-- `release` - Latest stable release version (default)
+- `stable` - Latest stable release version
 - `staging` - Latest release candidate/staging version
-- `dev` - Latest development build from main branch
+- `daily` - Latest development build from main branch
 
 **Example:**
 ```cli
-# Update to latest release
+# Update with interactive quality selection
 aspire self update
 
+# Update to latest stable release
+aspire self update --quality stable
+
 # Update to latest development build
-aspire self update --quality dev
+aspire self update --quality daily
 ```
