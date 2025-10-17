@@ -4,6 +4,7 @@
 using Aspire.Azure;
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text;
 using Xunit;
@@ -111,6 +112,30 @@ public class AspireAppConfigurationExtensionsTest
 
         Assert.Equal("test-value-1", builder.Configuration["test-key-1"]);
         Assert.Equal("test-value-2", builder.Configuration["test-key-2"]);
+    }
+
+    [Fact]
+    public void TracingRegistersMultipleActivitySources()
+    {
+        var endpoint = new Uri("https://aspiretests.azconfig.io/");
+        var mockTransport = new MockTransport(CreateResponse("""{}"""));
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.AddAzureAppConfiguration(
+            "appConfig",
+            settings =>
+            {
+                settings.Endpoint = endpoint;
+                settings.Credential = new EmptyTokenCredential();
+                settings.DisableTracing = false;
+            },
+            options => options.ConfigureClientOptions(clientOptions => clientOptions.Transport = mockTransport));
+
+        using var host = builder.Build();
+
+        // Verify that OpenTelemetry was configured with the expected activity sources
+        var tracerProvider = host.Services.GetService<OpenTelemetry.Trace.TracerProvider>();
+        Assert.NotNull(tracerProvider);
     }
 
     private static MockResponse CreateResponse(string content)

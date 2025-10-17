@@ -18,7 +18,7 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireAppConfigurationExtensions
 {
     internal const string DefaultConfigSectionName = "Aspire:Microsoft:Extensions:Configuration:AzureAppConfiguration";
-    internal const string ActivitySourceName = "Microsoft.Extensions.Configuration.AzureAppConfiguration";
+    internal static readonly string[] s_activitySourceNames = ["Microsoft.Extensions.Configuration.AzureAppConfiguration", "Azure.Data.AppConfiguration"];
 
     internal sealed class RemoveAuthorizationHeaderPolicy : HttpPipelinePolicy
     {
@@ -97,7 +97,7 @@ public static class AspireAppConfigurationExtensions
         {
             builder.Services.AddOpenTelemetry()
                 .WithTracing(traceBuilder =>
-                    traceBuilder.AddSource(ActivitySourceName));
+                    traceBuilder.AddSource(s_activitySourceNames));
         }
 
         if (!settings.DisableHealthChecks)
