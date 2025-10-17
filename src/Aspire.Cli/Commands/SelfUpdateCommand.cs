@@ -185,23 +185,18 @@ internal sealed class SelfUpdateCommand : BaseCommand
 
     private static void SetExecutablePermission(string filePath)
     {
-        try
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var psi = new ProcessStartInfo
+            try
             {
-                FileName = "chmod",
-                Arguments = $"+x \"{filePath}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            };
-
-            using var process = Process.Start(psi);
-            process?.WaitForExit();
-        }
-        catch
-        {
-            // Best effort, ignore failures
+                var mode = File.GetUnixFileMode(filePath);
+                mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                File.SetUnixFileMode(filePath, mode);
+            }
+            catch
+            {
+                // Best effort, ignore failures
+            }
         }
     }
 
