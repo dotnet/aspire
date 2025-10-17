@@ -87,6 +87,20 @@ public static class AspireAppConfigurationExtensions
                             clientOptions.AddPolicy(new RemoveAuthorizationHeaderPolicy(), HttpPipelinePosition.PerRetry));
                     }
                 }
+
+                // Configure refresh if RefreshKey is present in the connection string
+                if (settings.RefreshKey is not null)
+                {
+                    options.ConfigureRefresh(refresh =>
+                    {
+                        refresh.Register(settings.RefreshKey, refreshAll: true);
+                        if (settings.RefreshIntervalInSeconds.HasValue)
+                        {
+                            refresh.SetRefreshInterval(TimeSpan.FromSeconds(settings.RefreshIntervalInSeconds.Value));
+                        }
+                    });
+                }
+
                 configureOptions?.Invoke(options);
             },
             settings.Optional);

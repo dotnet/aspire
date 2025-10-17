@@ -3,14 +3,7 @@
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddAzureAppConfiguration("appconfig", configureOptions: options =>
-{
-    options.ConfigureRefresh(refresh =>
-    {
-        refresh.RegisterAll();
-        refresh.SetRefreshInterval(TimeSpan.FromSeconds(10));
-    });
-});
+builder.AddAzureAppConfiguration("appconfig");
 
 var app = builder.Build();
 
