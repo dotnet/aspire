@@ -203,11 +203,17 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         ConfigurePublishingOptions(options);
         var isExecMode = ConfigureExecOptions(options);
+        
+        // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
+        // otherwise fall back to the environment's ApplicationName
+        var dashboardApplicationName = options.DashboardApplicationName ?? _innerBuilder.Environment.ApplicationName;
+        
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
