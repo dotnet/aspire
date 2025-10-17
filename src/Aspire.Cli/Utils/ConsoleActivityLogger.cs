@@ -411,8 +411,6 @@ internal sealed class ConsoleActivityLogger
         return sb.ToString();
     }
 
-    // (kept previously for fixed-width layout; currently unused after switching to markup layout)
-    // private static string Truncate(string value, int max) => value.Length <= max ? value : value[..(max - 1)] + "…";
 
     private static bool DetectColorSupport()
     {
