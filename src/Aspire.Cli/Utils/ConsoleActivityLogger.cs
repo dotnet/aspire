@@ -46,6 +46,12 @@ internal sealed class ConsoleActivityLogger
     public ConsoleActivityLogger(bool? forceColor = null)
     {
         _enableColor = forceColor ?? DetectColorSupport();
+        
+        // Disable spinner in CI environments
+        if (CIEnvironmentDetector.IsCI)
+        {
+            _spinning = false;
+        }
     }
 
     public enum ActivityState
@@ -85,7 +91,8 @@ internal sealed class ConsoleActivityLogger
 
     public void StartSpinner()
     {
-        if (_spinning)
+        // Skip spinner in CI environments
+        if (CIEnvironmentDetector.IsCI || _spinning)
         {
             return;
         }
@@ -247,9 +254,16 @@ internal sealed class ConsoleActivityLogger
             }
             if (!string.IsNullOrEmpty(dashboardUrl))
             {
-                // Render dashboard URL as clickable link
+                // Render dashboard URL as clickable link in interactive terminals, plain in CI
                 var url = dashboardUrl;
-                AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                if (CIEnvironmentDetector.IsCI || !_enableColor)
+                {
+                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                }
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
@@ -391,6 +405,12 @@ internal sealed class ConsoleActivityLogger
             return input.EscapeMarkup();
         }
 
+        // In CI environments, just output URLs as-is without [link] markup
+        if (CIEnvironmentDetector.IsCI)
+        {
+            return input.EscapeMarkup();
+        }
+
         var sb = new StringBuilder(input.Length + 32);
         var lastIndex = 0;
         foreach (Match match in matches)
@@ -415,6 +435,13 @@ internal sealed class ConsoleActivityLogger
     {
         try
         {
+            // In CI environments, we should still use ANSI colors for better readability
+            if (CIEnvironmentDetector.IsCI)
+            {
+                // Most modern CI systems support ANSI colors
+                return true;
+            }
+            
             if (Console.IsOutputRedirected)
             {
                 return false;

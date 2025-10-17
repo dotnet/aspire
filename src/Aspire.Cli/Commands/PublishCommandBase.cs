@@ -733,6 +733,11 @@ internal abstract class PublishCommandBase : BaseCommand
     /// </summary>
     private static void StartTerminalProgressBar()
     {
+        // Skip terminal progress bar in CI environments
+        if (CIEnvironmentDetector.IsCI)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;3\u001b\\");
     }
 
@@ -741,6 +746,11 @@ internal abstract class PublishCommandBase : BaseCommand
     /// </summary>
     private static void StopTerminalProgressBar()
     {
+        // Skip terminal progress bar in CI environments
+        if (CIEnvironmentDetector.IsCI)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;0\u001b\\");
     }
 }

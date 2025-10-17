@@ -29,8 +29,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || CIEnvironmentDetector.IsCI)
         {
             DisplaySubtleMessage(statusText);
             return await action();
@@ -43,8 +43,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || CIEnvironmentDetector.IsCI)
         {
             DisplaySubtleMessage(statusText);
             action();
