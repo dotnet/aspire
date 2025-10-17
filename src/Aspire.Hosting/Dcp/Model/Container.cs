@@ -434,7 +434,7 @@ internal static class ContainerFileSystemEntryType
     public const string OpenSSL = "openssl";
 }
 
-internal sealed class ContainerStatus : V1Status
+internal sealed record ContainerStatus : V1Status
 {
     // Container name displayed in Docker
     [JsonPropertyName("containerName")]

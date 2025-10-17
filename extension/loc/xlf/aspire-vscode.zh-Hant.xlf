@@ -4,251 +4,251 @@
     <body>
       <trans-unit id="aspire-vscode.strings.debugSessionAlreadyExists">
         <source xml:lang="en">A debug session is already active for id {0}.</source>
-        <target state="new">A debug session is already active for id {0}.</target>
+        <target state="translated">識別碼 {0} 的偵錯工作階段已在使用中。</target>
       </trans-unit>
       <trans-unit id="command.add">
         <source xml:lang="en">Add an integration</source>
-        <target state="new">Add an integration</target>
+        <target state="translated">新增整合</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireCliVersion">
         <source xml:lang="en">Aspire CLI Version: {0}.</source>
-        <target state="new">Aspire CLI Version: {0}.</target>
+        <target state="translated">Aspire CLI 版本: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireOutputChannelName">
         <source xml:lang="en">Aspire Extension</source>
-        <target state="new">Aspire Extension</target>
+        <target state="translated">Aspire 延伸模組</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireHostingSdkVersion">
         <source xml:lang="en">Aspire Hosting SDK Version: {0}.</source>
-        <target state="new">Aspire Hosting SDK Version: {0}.</target>
+        <target state="translated">Aspire Hosting SDK 版本: {0}。</target>
       </trans-unit>
       <trans-unit id="extension.title">
         <source xml:lang="en">Aspire VSCode</source>
-        <target state="new">Aspire VSCode</target>
+        <target state="translated">Aspire VSCode</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireConfigExists">
         <source xml:lang="en">Aspire launch configuration already exists in launch.json.</source>
-        <target state="new">Aspire launch configuration already exists in launch.json.</target>
+        <target state="translated">Aspire 個啟動設定已存在於 launch.json。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.aspireTerminalName">
         <source xml:lang="en">Aspire terminal</source>
-        <target state="new">Aspire terminal</target>
+        <target state="translated">Aspire 終端</target>
       </trans-unit>
       <trans-unit id="extension.debug.defaultConfiguration.name">
         <source xml:lang="en">Aspire: Launch default apphost</source>
-        <target state="new">Aspire: Launch default apphost</target>
+        <target state="translated">Aspire: 啟動預設的 apphost</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.unsupportedResourceType">
         <source xml:lang="en">Attempted to start unsupported resource type: {0}.</source>
-        <target state="new">Attempted to start unsupported resource type: {0}.</target>
+        <target state="translated">已嘗試啟動不支援的資源類型: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.buildFailedWithExitCode">
         <source xml:lang="en">Build failed with exit code {0}.</source>
-        <target state="new">Build failed with exit code {0}.</target>
+        <target state="translated">建置失敗，結束代碼 {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
         <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
-        <target state="new">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</target>
+        <target state="translated">未在此工作區中啟用 C# 支援。此專案應該已透過 Aspire CLI 啟動。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.codespacesUrl">
         <source xml:lang="en">Codespaces: {0}</source>
-        <target state="new">Codespaces: {0}</target>
+        <target state="translated">Codespaces: {0}</target>
       </trans-unit>
       <trans-unit id="extension.debug.debuggers">
         <source xml:lang="en">Configuration to apply when launching resources of specific types</source>
-        <target state="new">Configuration to apply when launching resources of specific types</target>
+        <target state="translated">啟動特定類型資源時要套用的設定</target>
       </trans-unit>
       <trans-unit id="command.configureLaunchJson">
         <source xml:lang="en">Configure launch.json file</source>
-        <target state="new">Configure launch.json file</target>
+        <target state="translated">設定 launch.json 檔案</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
         <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
-        <target state="new">DCP server not initialized - cannot forward debug output.</target>
+        <target state="translated">DCP 伺服器未初始化 - 無法轉送偵錯輸出。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.debugProject">
         <source xml:lang="en">Debug {0}</source>
-        <target state="new">Debug {0}</target>
+        <target state="translated">偵錯 {0}</target>
       </trans-unit>
       <trans-unit id="command.deploy">
         <source xml:lang="en">Deploy app</source>
-        <target state="new">Deploy app</target>
+        <target state="translated">部署應用程式</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.directUrl">
         <source xml:lang="en">Direct: {0}</source>
-        <target state="new">Direct: {0}</target>
+        <target state="translated">直接: {0}</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
         <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
-        <target state="new">Disconnecting from Aspire debug session... Child processes will be stopped.</target>
+        <target state="translated">正在中斷與 Aspire 偵錯工作階段的連線...子程序將會停止。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
         <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
-        <target state="new">Encountered an exception ({0}) while running the following command: {1}.</target>
+        <target state="translated">執行下列命令時發生例外狀況 ({0}): {1}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.errorRetrievingAppHosts">
         <source xml:lang="en">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</source>
-        <target state="new">Error retrieving apphosts in the current workspace. Debug options may be incomplete.</target>
+        <target state="translated">在目前的工作區中擷取 apphosts 時發生錯誤。偵錯選項可能不完整。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.error">
         <source xml:lang="en">Error: {0}</source>
-        <target state="new">Error: {0}</target>
+        <target state="translated">錯誤: {0}</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
         <source xml:lang="en">Extension context is not initialized.</source>
-        <target state="new">Extension context is not initialized.</target>
+        <target state="translated">延伸模組內容未初始化。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
         <source xml:lang="en">Failed to configure launch.json: {0}.</source>
-        <target state="new">Failed to configure launch.json: {0}.</target>
+        <target state="translated">無法設定 launch.json: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.addressError">
         <source xml:lang="en">Failed to get RPC server address. The extension may not function correctly.</source>
-        <target state="new">Failed to get RPC server address. The extension may not function correctly.</target>
+        <target state="translated">無法取得 RPC 伺服器位址。延伸模組可能無法正確運作。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToGetTargetPath">
         <source xml:lang="en">Failed to get TargetPath: {0}.</source>
-        <target state="new">Failed to get TargetPath: {0}.</target>
+        <target state="translated">無法取得 TargetPath: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToShowPromptEmpty">
         <source xml:lang="en">Failed to show prompt, text was empty.</source>
-        <target state="new">Failed to show prompt, text was empty.</target>
+        <target state="translated">無法顯示提示，文字是空的。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartPythonProgram">
         <source xml:lang="en">Failed to start Python program: {0}.</source>
-        <target state="new">Failed to start Python program: {0}.</target>
+        <target state="translated">無法啟動 Python 程式: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartDebugSession">
         <source xml:lang="en">Failed to start debug session.</source>
-        <target state="new">Failed to start debug session.</target>
+        <target state="translated">無法啟動偵錯工作階段。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.failedToStartProject">
         <source xml:lang="en">Failed to start project: {0}.</source>
-        <target state="new">Failed to start project: {0}.</target>
+        <target state="translated">無法啟動專案: {0}。</target>
       </trans-unit>
       <trans-unit id="command.init">
         <source xml:lang="en">Initialize Aspire</source>
-        <target state="new">Initialize Aspire</target>
+        <target state="translated">初始化 Aspire</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.invalidLaunchConfiguration">
         <source xml:lang="en">Invalid launch configuration for {0}.</source>
-        <target state="new">Invalid launch configuration for {0}.</target>
+        <target state="translated">{0} 無效的啟動設定。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.invalidTokenProvided">
         <source xml:lang="en">Invalid token provided.</source>
-        <target state="new">Invalid token provided.</target>
+        <target state="translated">提供的權杖無效。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.openAspireDashboard">
         <source xml:lang="en">Launch Aspire Dashboard</source>
-        <target state="new">Launch Aspire Dashboard</target>
+        <target state="translated">啟動 Aspire 儀表板</target>
       </trans-unit>
       <trans-unit id="extension.debug.defaultConfiguration.description">
         <source xml:lang="en">Launch the effective Aspire apphost in your workspace</source>
-        <target state="new">Launch the effective Aspire apphost in your workspace</target>
+        <target state="translated">啟動您的工作區中有效的 Aspire apphost</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.launchingWithAppHost">
         <source xml:lang="en">Launching Aspire debug session for apphost {0}...</source>
-        <target state="new">Launching Aspire debug session for apphost {0}...</target>
+        <target state="translated">正在啟動 apphost {0} 的 Aspire 偵錯工作階段...</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.launchingWithDirectory">
         <source xml:lang="en">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</source>
-        <target state="new">Launching Aspire debug session using directory {0}: attempting to determine effective apphost...</target>
+        <target state="translated">正在使用目錄 {0} 啟動 Aspire 偵錯工作階段: 正在嘗試判斷有效的 apphost...</target>
       </trans-unit>
       <trans-unit id="command.config">
         <source xml:lang="en">Manage configuration settings</source>
-        <target state="new">Manage configuration settings</target>
+        <target state="translated">管理組態設定</target>
       </trans-unit>
       <trans-unit id="command.new">
         <source xml:lang="en">New Aspire project</source>
-        <target state="new">New Aspire project</target>
+        <target state="translated">新增 Aspire 專案</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.no">
         <source xml:lang="en">No</source>
-        <target state="new">No</target>
+        <target state="translated">否</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noCsharpBuildTask">
         <source xml:lang="en">No C# Dev Kit build task found.</source>
-        <target state="new">No C# Dev Kit build task found.</target>
+        <target state="translated">找不到 C# 開發人員套件建置工作。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noCsprojFound">
         <source xml:lang="en">No apphost found in the current workspace.</source>
-        <target state="new">No apphost found in the current workspace.</target>
+        <target state="translated">在目前的工作區中找不到 apphost。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noOutputFromMsbuild">
         <source xml:lang="en">No output from msbuild.</source>
-        <target state="new">No output from msbuild.</target>
+        <target state="translated">沒有來自 msbuild 的輸出。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWatchTask">
         <source xml:lang="en">No watch task found. Please ensure a watch task is defined in your workspace.</source>
-        <target state="new">No watch task found. Please ensure a watch task is defined in your workspace.</target>
+        <target state="translated">找不到監視工作。請確保您的工作區中已定義監視工作。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWorkspaceFolder">
         <source xml:lang="en">No workspace folder found.</source>
-        <target state="new">No workspace folder found.</target>
+        <target state="translated">找不到工作區資料夾。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.noWorkspaceOpen">
         <source xml:lang="en">No workspace is open. Please open a folder or workspace before running this command.</source>
-        <target state="new">No workspace is open. Please open a folder or workspace before running this command.</target>
+        <target state="translated">未開啟工作區。執行此命令之前，請先開啟資料夾或工作區。</target>
       </trans-unit>
       <trans-unit id="extension.description">
         <source xml:lang="en">Official Aspire extension for Visual Studio Code</source>
-        <target state="new">Official Aspire extension for Visual Studio Code</target>
+        <target state="translated">Visual Studio Code 的官方 Aspire 延伸模組</target>
       </trans-unit>
       <trans-unit id="command.openTerminal">
         <source xml:lang="en">Open Aspire terminal</source>
-        <target state="new">Open Aspire terminal</target>
+        <target state="translated">開啟 Aspire 終端</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.codespacesLink">
         <source xml:lang="en">Open codespaces URL</source>
-        <target state="new">Open codespaces URL</target>
+        <target state="translated">開啟 Codespaces URL</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.directLink">
         <source xml:lang="en">Open local URL</source>
-        <target state="new">Open local URL</target>
+        <target state="translated">開啟本機 URL</target>
       </trans-unit>
       <trans-unit id="extension.debug.program">
         <source xml:lang="en">Path to the apphost to run</source>
-        <target state="new">Path to the apphost to run</target>
+        <target state="translated">要執行的 apphost 的路徑</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.processExitedWithCode">
         <source xml:lang="en">Process exited with code {0}.</source>
-        <target state="new">Process exited with code {0}.</target>
+        <target state="translated">程序已結束，代碼為 {0}。</target>
       </trans-unit>
       <trans-unit id="command.publish">
         <source xml:lang="en">Publish deployment artifacts</source>
-        <target state="new">Publish deployment artifacts</target>
+        <target state="translated">發佈部署成品</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.rpcServerError">
         <source xml:lang="en">RPC server error: {0}.</source>
-        <target state="new">RPC server error: {0}.</target>
+        <target state="translated">RPC 伺服器錯誤: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.rpcServerNotInitialized">
         <source xml:lang="en">RPC server is not initialized.</source>
-        <target state="new">RPC server is not initialized.</target>
+        <target state="translated">RPC 伺服器未初始化。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.requiredCapability">
         <source xml:lang="en">Required capability: {0}.</source>
-        <target state="new">Required capability: {0}.</target>
+        <target state="translated">需要的功能: {0}。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
         <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
-        <target state="new">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</target>
+        <target state="translated">apphost 不相容。考慮升級 apphost 或 Aspire CLI。</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.fieldRequired">
         <source xml:lang="en">This field is required.</source>
-        <target state="new">This field is required.</target>
+        <target state="translated">這是必要欄位。</target>
       </trans-unit>
       <trans-unit id="command.update">
         <source xml:lang="en">Update integrations</source>
-        <target state="new">Update integrations</target>
+        <target state="translated">更新整合</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.watchProject">
         <source xml:lang="en">Watch {0} ({1})</source>
-        <target state="new">Watch {0} ({1})</target>
+        <target state="translated">監視 {0} ({1})</target>
       </trans-unit>
       <trans-unit id="aspire-vscode.strings.yes">
         <source xml:lang="en">Yes</source>
-        <target state="new">Yes</target>
+        <target state="translated">是</target>
       </trans-unit>
     </body>
   </file>

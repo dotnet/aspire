@@ -1,6 +1,6 @@
 import path from "path";
 import { ExecutableLaunchConfiguration, EnvVar, LaunchOptions, AspireResourceExtendedDebugConfiguration, AspireExtendedDebugConfiguration } from "../dcp/types";
-import { debugProject } from "../loc/strings";
+import { debugProject, runProject } from "../loc/strings";
 import { mergeEnvs } from "../utils/environment";
 import { extensionLogOutputChannel } from "../utils/logging";
 import { projectDebuggerExtension } from "./languages/dotnet";
@@ -15,6 +15,7 @@ export interface ResourceDebuggerExtension {
     extensionId: string | null;
     displayName: string;
     getProjectFile: (launchConfig: ExecutableLaunchConfiguration) => string;
+    getSupportedFileTypes: () => string[];
     createDebugSessionConfigurationCallback?: (launchConfig: ExecutableLaunchConfiguration, args: string[] | undefined, env: EnvVar[], launchOptions: LaunchOptions, debugConfiguration: AspireResourceExtendedDebugConfiguration) => Promise<void>;
 }
 
@@ -24,11 +25,12 @@ export async function createDebugSessionConfiguration(debugSessionConfig: Aspire
     }
 
     const projectPath = debuggerExtension.getProjectFile(launchConfig);
+    const displayName = `${debuggerExtension.displayName ?? launchConfig.type}: ${path.basename(projectPath)}`;
 
     const configuration: AspireResourceExtendedDebugConfiguration = {
         type: debuggerExtension.debugAdapter || launchConfig.type,
         request: 'launch',
-        name: debugProject(`${debuggerExtension.displayName ?? launchConfig.type}: ${path.basename(projectPath)}`),
+        name: launchOptions.debug ? debugProject(displayName) : runProject(displayName),
         program: projectPath,
         args: args,
         cwd: path.dirname(projectPath),

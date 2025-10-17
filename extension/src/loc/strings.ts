@@ -20,6 +20,7 @@ export const requiredCapability = (capability: string) => vscode.l10n.t('Require
 export const aspireTerminalName = vscode.l10n.t('Aspire terminal');
 export const aspireOutputChannelName = vscode.l10n.t('Aspire Extension');
 export const fieldRequired = vscode.l10n.t('This field is required.');
+export const runProject = (projectName: string) => vscode.l10n.t('Run {0}', projectName);
 export const debugProject = (projectName: string) => vscode.l10n.t('Debug {0}', projectName);
 export const watchProject = (projectName: string, projectType: string) => vscode.l10n.t('Watch {0} ({1})', projectName, projectType);
 export const noCsharpBuildTask = vscode.l10n.t('No C# Dev Kit build task found.');
@@ -49,3 +50,4 @@ export const debugSessionAlreadyExists = (id: string) => vscode.l10n.t('A debug 
 export const processExceptionOccurred = (error: string, command: string) => vscode.l10n.t('Encountered an exception ({0}) while running the following command: {1}.', error, command);
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => vscode.l10n.t('Invalid launch configuration for {0}.', projectPath);
+export const noAppHostInWorkspace = vscode.l10n.t('No apphost found in the Aspire settings file.');

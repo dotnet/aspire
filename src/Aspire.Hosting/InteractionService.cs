@@ -109,21 +109,21 @@ internal class InteractionService : IInteractionService
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
-            if (input.DynamicOptions is { } dynamicOptions)
+            if (input.DynamicLoading is { } dynamic)
             {
-                if (dynamicOptions.DependsOnInputs != null)
+                if (dynamic.DependsOnInputs != null)
                 {
-                    foreach (var dependsOnInputName in dynamicOptions.DependsOnInputs)
+                    foreach (var dependsOnInputName in dynamic.DependsOnInputs)
                     {
                         // Validate dependency input exists and is defined before this input.
                         // We check that the dependency is defined before this input so that experiences such as the CLI, where inputs are forward only, work correctly.
                         if (!inputCollection.TryGetByName(dependsOnInputName, out var dependsOnInput))
                         {
-                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicOptions)} that depends on an input named '{dependsOnInputName}', but no such input exists.");
+                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicLoading)} that depends on an input named '{dependsOnInputName}', but no such input exists.");
                         }
                         if (inputCollection.IndexOf(dependsOnInput) >= i)
                         {
-                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicOptions)} that depends on an input named '{dependsOnInputName}', but that input is not defined before it. Inputs must be defined in order so that dependencies are always to earlier inputs.");
+                            throw new InvalidOperationException($"The input '{input.Name}' has {nameof(InteractionInput.DynamicLoading)} that depends on an input named '{dependsOnInputName}', but that input is not defined before it. Inputs must be defined in order so that dependencies are always to earlier inputs.");
                         }
                     }
                 }
@@ -143,11 +143,11 @@ internal class InteractionService : IInteractionService
 
             foreach (var input in inputs)
             {
-                if (input.DynamicOptions is { } dynamicOptions)
+                if (input.DynamicLoading is { } dynamic)
                 {
-                    var dynamicState = new DynamicInputState(dynamicOptions)
+                    var dynamicState = new InputLoadingState(dynamic)
                     {
-                        OnDataRefresh = (input) =>
+                        OnLoadComplete = (input) =>
                         {
                             // Options or value on a choice could have changed. Ensure the value is still valid.
                             if (input.InputType == InputType.Choice)
@@ -169,15 +169,15 @@ internal class InteractionService : IInteractionService
                         }
                     };
 
-                    input.DynamicState = dynamicState;
+                    input.DynamicLoadingState = dynamicState;
 
                     // Refresh input on start if:
                     // -The dynamic input doesn't depend on other inputs, or
                     // -Has been configured to always update
-                    if (dynamicOptions.DependsOnInputs == null || dynamicOptions.DependsOnInputs.Count == 0 || dynamicOptions.AlwaysUpdateOnStart)
+                    if (dynamic.DependsOnInputs == null || dynamic.DependsOnInputs.Count == 0 || dynamic.AlwaysLoadOnStart)
                     {
-                        var refreshOptions = new DynamicRefreshOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
-                        input.DynamicState.RefreshInput(refreshOptions);
+                        var refreshOptions = new QueueLoadOptions(_logger, interactionCts.Token, input, inputCollection, _serviceProvider);
+                        input.DynamicLoadingState.QueueLoad(refreshOptions);
                     }
                 }
             }
