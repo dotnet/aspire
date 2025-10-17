@@ -46,6 +46,7 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
 |---------|-------------|
 | C# | project |
 | Python | python |
+| Java | java |
 
 The debuggers property stores common debug configuration properties for different types of Aspire services.
 C#-based services have common debugging properties under `project`. Python-based services have their common properties under `python`.
@@ -70,6 +71,12 @@ There is also a special entry for the apphost (`apphost`). For example:
     }
 }
 ```
+
+Available configuration options for each debugger type can be found in the corresponding extension's documentation:
+
+- [C# debugger options](https://code.visualstudio.com/docs/csharp/debugging#_configuration-options)
+- [Python debugger options](https://code.visualstudio.com/docs/python/debugging#_set-configuration-options)
+- [Java debugger options](https://code.visualstudio.com/docs/java/java-debugging#_configuration-options)
 
 ## Requirements
 
