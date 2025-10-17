@@ -6,7 +6,7 @@ This directory contains scenario definitions for the `/test-scenario` workflow c
 
 Each scenario is a subdirectory with a `prompt.md` file:
 
-```
+```text
 agent-scenarios/
 ├── scenario-name/
 │   └── prompt.md
@@ -39,12 +39,13 @@ agent-scenarios/
 
 To trigger an agent scenario on a pull request, comment:
 
-```
+```bash
 /test-scenario scenario-name
 ```
 
 For example:
-```
+
+```bash
 /test-scenario starter-app
 ```
 
