@@ -149,14 +149,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
                     Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
                 });
             }
-
-            if (resource.EnableApplicationInsights && resource.ApplicationInsightsLocationParameter is not null)
-            {
-                infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_LOCATION", typeof(string))
-                {
-                    Value = resource.ApplicationInsightsLocationParameter
-                });
-            }
         });
 
         if (!builder.ExecutionContext.IsPublishMode)
@@ -183,7 +175,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="enable">Whether to include Azure Application Insights. Default is true.</param>
+    /// <param name="enable">Whether to enable Application Insights. Default is true.</param>
     /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true, string? applicationInsightsLocation = null)
@@ -199,24 +191,13 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="enable">Whether to include Azure Application Insights. Default is true.</param>
     /// <param name="applicationInsightsLocation">The location parameter for Application Insights.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true, IResourceBuilder<ParameterResource>? applicationInsightsLocation = null)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> applicationInsightsLocation)
     {
         ArgumentNullException.ThrowIfNull(builder);
-
-        if (builder.Resource is not AzureAppServiceEnvironmentResource env)
-        {
-            throw new ArgumentException("Cannot enable application insights if the resource is not AzureAppServiceEnvironmentResource");
-        }
-
-        builder.ConfigureInfrastructure(infra =>
-        {
-            ArgumentNullException.ThrowIfNull(infra);
-            env.EnableApplicationInsights = enable;
-            env.ApplicationInsightsLocationParameter = applicationInsightsLocation?.AsProvisioningParameter(infra);
-        });
+        builder.Resource.EnableApplicationInsights = true;
+        builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
         return builder;
     }
 }
