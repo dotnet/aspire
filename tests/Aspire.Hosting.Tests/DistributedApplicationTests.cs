@@ -730,12 +730,12 @@ public class DistributedApplicationTests
 
         await using var app = testProgram.Build();
 
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
         await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
 
-        var s = app.Services.GetRequiredService<IKubernetesService>();
-        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
-        var createdContainer = Assert.Single(list);
-        Assert.Equal(ContainerState.Running, createdContainer?.Status?.State);
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(container.Resource.Name, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
