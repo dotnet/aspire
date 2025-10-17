@@ -3,11 +3,11 @@
 
 using Aspire.Azure.Common;
 using Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration;
-using Azure.Core.Pipeline;
 using Azure.Core;
+using Azure.Core.Pipeline;
 using Azure.Identity;
-using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration.AzureAppConfiguration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.Extensions.Hosting;
