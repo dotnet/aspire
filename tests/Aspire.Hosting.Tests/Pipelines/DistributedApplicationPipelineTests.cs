@@ -1356,6 +1356,52 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_FailedStepsCanBeUsedForDetailedErrorReporting()
+    {
+        // This test demonstrates how the CLI or Publisher can use FailedSteps for error reporting
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var exception1 = new InvalidOperationException("Database connection failed");
+        var exception2 = new TimeoutException("Deployment timeout");
+
+        pipeline.AddStep("deploy-database", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw exception1;
+        });
+
+        pipeline.AddStep("deploy-service", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw exception2;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
+
+        // Verify we can access detailed failure information for reporting
+        Assert.Equal(2, pipeline.FailedSteps.Count);
+
+        // Simulate building an error report like the CLI would
+        var errorReport = string.Join(", ", pipeline.FailedSteps.Select(f => $"{f.StepName}: {f.Exception.Message}"));
+        Assert.Contains("deploy-database", errorReport);
+        Assert.Contains("Database connection failed", errorReport);
+        Assert.Contains("deploy-service", errorReport);
+        Assert.Contains("Deployment timeout", errorReport);
+
+        // Verify exception types are preserved
+        var dbFailure = pipeline.FailedSteps.First(f => f.StepName == "deploy-database");
+        Assert.IsType<InvalidOperationException>(dbFailure.Exception);
+        Assert.Contains("Database connection failed", dbFailure.Exception.Message);
+
+        var serviceFailure = pipeline.FailedSteps.First(f => f.StepName == "deploy-service");
+        Assert.IsType<InvalidOperationException>(serviceFailure.Exception);
+        Assert.Contains("Deployment timeout", serviceFailure.Exception.Message);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
