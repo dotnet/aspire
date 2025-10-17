@@ -1044,14 +1044,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
+                    // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
                     if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
                         projectArgs.AddRange([
                             "run",
-                            "--no-build",
                             projectMetadata.IsFileBasedApp ? "--file" : "--project",
                             projectMetadata.ProjectPath,
                         ]);
+                        if (projectMetadata.SuppressBuild)
+                        {
+                            projectArgs.Add("--no-build");
+                        }
                     }
                     else
                     {
@@ -1066,7 +1070,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
-                        projectArgs.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
+                        projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
                     }
 
                     // We pretty much always want to suppress the normal launch profile handling

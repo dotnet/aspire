@@ -289,12 +289,29 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds a C# project or file-based app to the application model.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="path"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="path">The path to the file-based app file, project file, or project directory.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
+    /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
+    /// If the path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <example>
+    /// Add a file-based app to the app model via a file path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
     {
@@ -306,15 +323,32 @@ public static class ProjectResourceBuilderExtensions
     }
 
     /// <summary>
-    /// 
+    /// Adds a C# project or file-based app to the application model.
     /// </summary>
-    /// <param name="builder"></param>
-    /// <param name="name"></param>
-    /// <param name="path"></param>
-    /// <param name="configure"></param>
-    /// <returns></returns>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="path">The path to the file-based app file, project file, or project directory.</param>
+    /// <param name="configure">An optional action to configure the C# app resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
+    /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
+    /// If the path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <example>
+    /// Add a file-based app to the app model via a file path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
     [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
+    public static IResourceBuilder<CSharpAppResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(name);
@@ -324,24 +358,25 @@ public static class ProjectResourceBuilderExtensions
         var options = new ProjectResourceOptions();
         configure(options);
 
-        var project = new ProjectResource(name);
+        var app = new CSharpAppResource(name);
 
         path = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, path));
         IProjectMetadata projectMetadata = new ProjectMetadata(path);
 
-        if (projectMetadata.IsFileBasedApp && (RuntimeUtils.TryGetVersion(out var version) && version.Major < 10))
+        if (projectMetadata.IsFileBasedApp && RuntimeUtils.TryGetVersion(out var version) && version.Major < 10)
         {
-            // File-based apps are only supported on .NET 10 and later
-            throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 and later. The current version is {version?.ToString() ?? "unknown"}.");
+            // File-based apps are only supported on .NET 10 or later
+            throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The current version is {version?.ToString() ?? "unknown"}.");
         }
 
-        return builder.AddResource(project)
+        return builder.AddResource(app)
                       .WithAnnotation(projectMetadata)
-                      .WithVSCodeDebugSupport(path, "coreclr", "ms-dotnettools.csharp")
+                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)
+    private static IResourceBuilder<TProjectResource> WithProjectDefaults<TProjectResource>(this IResourceBuilder<TProjectResource> builder, ProjectResourceOptions options)
+        where TProjectResource : ProjectResource
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.

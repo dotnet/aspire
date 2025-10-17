@@ -4,6 +4,10 @@
     <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
 
 </Project>

@@ -4,16 +4,17 @@
     <!-- Do not import the workload targets as this project is instead using the Aspire.AppHost.Sdk -->
     <SkipAspireWorkloadManifest>true</SkipAspireWorkloadManifest>
     <IsAspireHost>true</IsAspireHost>
+    <!-- Auto-import the Microsoft.NET.Sdk if not already imported -->
+    <_ImportMicrosoftNETSdkFromAspireSdk Condition=" '$(UsingMicrosoftNETSdk)' == '' ">true</_ImportMicrosoftNETSdkFromAspireSdk>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(FileBasedProgram)' == 'true' ">
+    <!-- Disable AOT and Trimming for file-based apps -->
     <PublishAot>false</PublishAot>
-    <PublishTrimmed>false</PublishTrimmed>
+    <!-- <PublishTrimmed>false</PublishTrimmed>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
-    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
-    <_ImportMicrosoftNETSdkFromAspireSdk Condition=" '$(UsingMicrosoftNETSdk)' == '' ">true</_ImportMicrosoftNETSdkFromAspireSdk>
-    <_ForceAspireFileBasedAppHostDefaults Condition=" '$(IsAspireHost)' == 'true' ">true</_ForceAspireFileBasedAppHostDefaults>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer> -->
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />

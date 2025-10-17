@@ -39,3 +39,13 @@ public class ProjectResource(string name)
             .Any(f => !f(endpoint));
     }
 }
+
+/// <summary>
+/// A resource that represents a specified C# project or file-based app.
+/// </summary>
+/// <param name="name">The name of the resource.</param>
+public class CSharpAppResource(string name)
+    : ProjectResource(name)
+{
+
+}

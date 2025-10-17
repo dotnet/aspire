@@ -25,6 +25,11 @@ public interface IProjectMetadata : IResourceAnnotation
     // Internal for testing.
     internal IConfiguration? Configuration => null;
 
+    /// <summary>
+    /// Gets a value indicating whether building the project before running it should be suppressed.
+    /// </summary>
+    public bool SuppressBuild => false;
+
     internal bool IsFileBasedApp => string.Equals(Path.GetExtension(ProjectPath), ".cs", StringComparison.OrdinalIgnoreCase);
 }
 
@@ -32,6 +37,8 @@ public interface IProjectMetadata : IResourceAnnotation
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
     public string ProjectPath { get; } = ResolveProjectPath(projectPath);
+
+    public bool SuppressBuild => false;
 
     private static string ResolveProjectPath(string path)
     {
