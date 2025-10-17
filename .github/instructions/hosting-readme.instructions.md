@@ -1,3 +1,7 @@
+---
+applyTo: "src/Aspire.Hosting*/README.md"
+---
+
 # README.md Instructions for Hosting Integration Packages
 
 This document provides guidelines for writing and maintaining README.md files for Aspire hosting integration packages located under `src/Aspire.Hosting*/README.md`.

@@ -1,3 +1,7 @@
+---
+applyTo: "src/Components/**/README.md"
+---
+
 # README.md Instructions for Client Integration Packages
 
 This document provides guidelines for writing and maintaining README.md files for Aspire client integration packages located under `src/Components/**/README.md`.
