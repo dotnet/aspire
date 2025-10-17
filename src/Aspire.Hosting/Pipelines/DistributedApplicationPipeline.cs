@@ -49,6 +49,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     /// <summary>
     /// Gets the list of steps that failed during the last execution.
+    /// Only includes steps that threw exceptions during execution, not steps that were skipped due to dependency failures.
+    /// This list is cleared at the start of each execution.
     /// </summary>
     public IReadOnlyList<PipelineStepFailure> FailedSteps => _failedSteps;
 
