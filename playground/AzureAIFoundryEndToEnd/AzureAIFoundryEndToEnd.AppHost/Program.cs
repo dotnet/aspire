@@ -13,8 +13,6 @@ var model = foundry.Resource.IsEmulator
     ? AIFoundryModel.Local.Phi4Mini
     : AIFoundryModel.Microsoft.Phi4MiniInstruct;
 
-var hostedModel = AIFoundryModel.Microsoft.Phi4MiniReasoning;
-
 var chat = foundry.AddDeployment("chat", model);
 
 builder.AddProject<Projects.AzureAIFoundryEndToEnd_WebStory>("webstory")

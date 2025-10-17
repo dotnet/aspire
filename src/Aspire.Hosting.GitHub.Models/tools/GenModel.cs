@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 var token = Environment.GetEnvironmentVariable("GITHUB_TOKEN") ?? throw new InvalidOperationException("GITHUB_TOKEN is not set");
 using var ghClient = new GitHubModelClient(token);
@@ -67,7 +68,7 @@ internal sealed class GitHubModelClient : IDisposable
     public void Dispose() => _http.Dispose();
 }
 
-internal sealed class GitHubModelClassGenerator
+internal partial class GitHubModelClassGenerator
 {
     public static string GenerateCode(string ns, List<GitHubModel> models)
     {
@@ -84,81 +85,107 @@ internal sealed class GitHubModelClassGenerator
         var groups = models.Where(m => !string.IsNullOrEmpty(m.Publisher) && !string.IsNullOrEmpty(m.Name))
                            .GroupBy(m => m.Publisher)
                            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+        var firstClass = true;
         foreach (var g in groups)
         {
-            var className = ToId(g.Key);
+            if (!firstClass)
+            {
+                sb.AppendLine();
+            }
+
+            firstClass = false;
+        
+            var className = ToPascalCase(g.Key);
             sb.AppendLine("    /// <summary>");
             sb.AppendLine(CultureInfo.InvariantCulture, $"    /// Models published by {EscapeXml(g.Key)}.");
             sb.AppendLine("    /// </summary>");
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    public static class {className}");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    public static partial class {className}");
             sb.AppendLine("    {");
+
+            var firstMethod = true;
             foreach (var m in g.OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase))
             {
-                var prop = ToId(m.Name);
+                if (!firstMethod)
+                {
+                    sb.AppendLine();
+                }
+
+                firstMethod = false;
+            
+                var prop = ToPascalCase(m.Name);
                 var desc = EscapeXml(Clean(m.Summary ?? $"Descriptor for {m.Name}"));
                 sb.AppendLine("        /// <summary>");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        /// {desc}");
                 sb.AppendLine("        /// </summary>");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"        public static readonly GitHubModel {prop} = new() {{ Id = \"{Esc(m.Id)}\" }};");
-                sb.AppendLine();
             }
             sb.AppendLine("    }");
-            sb.AppendLine();
         }
         sb.AppendLine("}");
         return sb.ToString();
     }
-    private static string ToId(string value)
-    {
-        // First, remove or replace invalid characters with spaces, but preserve + as Plus
-        var cleaned = value.Replace('-', ' ').Replace('.', ' ').Replace('_', ' ')
-                           .Replace("+", " Plus ") // Preserve + as "Plus" to avoid clashes
-                           .Replace('(', ' ').Replace(')', ' ').Replace('[', ' ').Replace(']', ' ')
-                           .Replace('{', ' ').Replace('}', ' ').Replace('/', ' ').Replace('\\', ' ')
-                           .Replace(':', ' ').Replace(';', ' ').Replace(',', ' ').Replace('|', ' ')
-                           .Replace('&', ' ').Replace('%', ' ').Replace('$', ' ').Replace('#', ' ')
-                           .Replace('@', ' ').Replace('!', ' ').Replace('?', ' ').Replace('<', ' ')
-                           .Replace('>', ' ').Replace('=', ' ').Replace('~', ' ')
-                           .Replace('`', ' ').Replace('^', ' ').Replace('*', ' ');
 
-        var parts = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var sb = new StringBuilder();
-        foreach (var p in parts)
+    static string ToPascalCase(string modelName)
+    {
+        // Insert a separator when an uppercase letter is found after a lowercase letter or digit
+        // e.g. OpenAI-GPT3 -> Open AI GPT3
+        // e.g. DeepSeek-V3 -> Deep Seek V3
+        // e.g. AI21Labs -> AI 21 Labs
+
+        modelName = LowerToUpper().Replace(modelName, "$1 $2");
+        modelName = LetterToDigit().Replace(modelName, "$1 $2");
+
+        // Convert model name to PascalCase method name
+        var parts = modelName
+            .Replace("-", " ")
+            .Replace(".", " ")
+            .Replace("_", " ")
+            .Replace("+", " Plus ")
+            .Replace("(", " ")
+            .Replace(")", " ")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var result = new StringBuilder();
+        foreach (var part in parts)
         {
-            if (p.Length == 0)
+            if (part.Length > 0)
             {
-                continue;
-            }
-            if (char.IsDigit(p[0]))
-            {
-                sb.Append(p);
-                continue;
-            }
-            // Preserve original casing; only capitalize a leading lowercase letter for each token.
-            if (char.IsLower(p[0]))
-            {
-                sb.Append(char.ToUpperInvariant(p[0]));
-                if (p.Length > 1)
+                // Handle special cases for numbers and versions
+                if (char.IsDigit(part[0]))
                 {
-                    sb.Append(p.AsSpan(1));
+                    result.Append(part);
+                }
+                else
+                {
+                    if (part.All(char.IsUpper) && part.Length < 3)
+                    {
+                        // Keep acronyms in uppercase when less than 3 chars
+                        result.Append(part);
+                        continue;
+                    }
+                    else
+                    {
+                        // Convert to PascalCase
+                        result.Append(char.ToUpper(part[0]));
+                        if (part.Length > 1)
+                        {
+                            result.Append(part[1..].ToLower());
+                        }
+                    }
                 }
             }
-            else
-            {
-                sb.Append(p);
-            }
-        }
-        var result = sb.ToString();
-
-        // Ensure we have a valid identifier (start with letter or underscore)
-        if (result.Length == 0 || char.IsDigit(result[0]))
-        {
-            result = "_" + result;
         }
 
-        return result;
+        return result.ToString();
     }
     private static string Clean(string s) => s.Replace('\n', ' ').Replace('\r', ' ').Replace("  ", " ").Trim();
     private static string Esc(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
     private static string EscapeXml(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;").Replace("'", "&apos;");
+
+    [GeneratedRegex("([a-z0-9])([A-Z])")]
+    public static partial Regex LowerToUpper();
+
+    [GeneratedRegex("([a-zA-Z])([0-9])")]
+    public static partial Regex LetterToDigit();
+
 }
