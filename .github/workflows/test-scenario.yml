@@ -124,8 +124,8 @@ jobs:
 
             Scenario: **${scenarioName}**
 
-            An AI agent has been triggered to create an Aspire
-            application. You can track the progress here:
+            An AI agent has been triggered to execute this scenario.
+            You can track the progress here:
 
             ${prUrl}`;
 
