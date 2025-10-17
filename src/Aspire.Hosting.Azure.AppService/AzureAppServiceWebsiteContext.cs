@@ -485,7 +485,13 @@ internal sealed class AzureAppServiceWebsiteContext(
 
         if (environmentContext.Environment.ApplicationInsightsLocation is not null)
         {
-            applicationInsights.Location = new AzureLocation(environmentContext.Environment.ApplicationInsightsLocation);
+            var applicationInsightsLocation = new AzureLocation(environmentContext.Environment.ApplicationInsightsLocation);
+            applicationInsights.Location = applicationInsightsLocation;
+        }
+        else if (environmentContext.Environment.ApplicationInsightsLocationParameter is not null)
+        {
+            var applicationInsightsLocationParameter = environmentContext.Environment.ApplicationInsightsLocationParameterReference.AsProvisioningParameter(Infra);
+            applicationInsights.Location = applicationInsightsLocationParameter;
         }
 
         Infra.Add(applicationInsights);

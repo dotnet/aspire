@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Primitives;
 
@@ -28,7 +29,7 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
     internal BicepOutputReference WebsiteContributorManagedIdentityId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID", this);
     internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
-
+    internal BicepOutputReference ApplicationInsightsLocationParameterReference => new("AZURE_APPLICATION_INSIGHTS_LOCATION", this);
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the app service environment.
     /// Default is true.
@@ -37,14 +38,18 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 
     /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the app service environment.
-    /// Default is true.
     /// </summary>
-    internal bool EnableApplicationInsights { get; set; } = true;
+    internal bool EnableApplicationInsights { get; set; }
 
     /// <summary>
     /// Location for the Application Insights resource.
     /// </summary>
-    internal string? ApplicationInsightsLocation { get; set; }
+    public string? ApplicationInsightsLocation { get; internal set; }
+
+    /// <summary>
+    /// Parameter resource for the Application Insights location.
+    /// </summary>
+    public ProvisioningParameter? ApplicationInsightsLocationParameter { get; internal set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.
