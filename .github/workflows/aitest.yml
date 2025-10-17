@@ -21,7 +21,7 @@ jobs:
       REPO_OWNER: dotnet
       REPO_NAME: aspire
       GH_CLI_VERSION: 2.80.0
-      GH_TOKEN: ${{ secrets.GH_USER_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
@@ -61,43 +61,40 @@ jobs:
           echo "Found prompt file: $PROMPT_FILE"
           echo "prompt_file=$PROMPT_FILE" >> $GITHUB_OUTPUT
 
-      - name: Read prompt file
-        id: read_prompt
-        run: |
-          PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
-          PROMPT=$(cat "$PROMPT_FILE")
-
-          echo "Prompt content:"
-          echo "$PROMPT"
-
-          # Store prompt in output (escape newlines for GitHub Actions)
-          echo "prompt<<EOF" >> $GITHUB_OUTPUT
-          echo "$PROMPT" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Download and install GitHub CLI
         run: |
-          echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
-          DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}"
-          ARCHIVE_NAME="gh_${GH_CLI_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL "${DOWNLOAD_URL}/${ARCHIVE_NAME}" -o gh.tar.gz
-          tar -xzf gh.tar.gz
-          sudo mv "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh" /usr/local/bin/
-          rm -rf gh.tar.gz "gh_${GH_CLI_VERSION}_linux_amd64"
+          CURRENT_VERSION=""
+          if command -v gh &> /dev/null; then
+            CURRENT_VERSION=$(gh --version | \
+              grep -oP 'gh version \K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            echo "Current GitHub CLI version: $CURRENT_VERSION"
+          fi
 
-          echo "Verifying GitHub CLI installation..."
-          gh --version
+          if [ "$CURRENT_VERSION" = "$GH_CLI_VERSION" ]; then
+            echo "GitHub CLI v${GH_CLI_VERSION} already installed"
+          else
+            echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
+            DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}"
+            ARCHIVE_NAME="gh_${GH_CLI_VERSION}_linux_amd64.tar.gz"
+            curl -fsSL "${DOWNLOAD_URL}/${ARCHIVE_NAME}" -o gh.tar.gz
+            tar -xzf gh.tar.gz
+            sudo mv "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh" /usr/local/bin/
+            rm -rf gh.tar.gz "gh_${GH_CLI_VERSION}_linux_amd64"
+
+            echo "Verifying GitHub CLI installation..."
+            gh --version
+          fi
 
       - name: Create agent task
         id: create_agent_task
         run: |
           echo "Creating agent task..."
-          PROMPT="${{ steps.read_prompt.outputs.prompt }}"
+          PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
 
-          # Create the agent task and capture the output
-          OUTPUT=$(gh agent-task create \
+          # Create the agent task using stdin and capture the output
+          OUTPUT=$(cat "$PROMPT_FILE" | gh agent-task create \
             --repo "${REPO_OWNER}/${REPO_NAME}" \
-            --prompt "$PROMPT" \
+            -F - \
             2>&1)
 
           echo "Agent task output:"
