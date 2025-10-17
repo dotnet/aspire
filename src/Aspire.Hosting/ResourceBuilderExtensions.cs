@@ -2163,8 +2163,8 @@ public static class ResourceBuilderExtensions
     /// <param name="scope">The scope to apply to custom certificate authorities associated with the resource.</param>
     /// <returns>The <see cref="IResourceBuilder{TResource}"/>.</returns>
     /// <remarks>
-    /// The default scope is <see cref="CustomCertificateAuthoritiesScope.Append"/> which means that custom certificate authorities
-    /// should be appended to the default trusted certificate authorities for the resource. Setting the scope to
+    /// The default scope if not overridden is <see cref="CustomCertificateAuthoritiesScope.Append"/> which means that custom certificate
+    /// authorities should be appended to the default trusted certificate authorities for the resource. Setting the scope to
     /// <see cref="CustomCertificateAuthoritiesScope.Override"/> indicates the set of certificates in referenced
     /// <see cref="CertificateAuthorityCollection"/> (and optionally Aspire developer certificiates) should be used as the
     /// exclusive source of trust for a resource.

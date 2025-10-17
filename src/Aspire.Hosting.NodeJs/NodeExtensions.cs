@@ -81,6 +81,7 @@ public static class NodeAppHostingExtension
                 else
                 {
                     ctx.CertificateTrustArguments.Add("--use-openssl-ca");
+                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
                 }
 
                 return Task.CompletedTask;

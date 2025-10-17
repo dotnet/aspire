@@ -2067,6 +2067,22 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
         }
 
+        if (scope == CustomCertificateAuthoritiesScope.None)
+        {
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CustomCertificateAuthoritiesScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            foreach (var location in Enum.GetValues<StoreLocation>())
+            {
+                using var rootStore = new X509Store(StoreName.Root, location);
+                rootStore.Open(OpenFlags.ReadOnly);
+                certificates.AddRange(rootStore.Certificates);
+            }
+        }
+
         if (trustDevCert)
         {
             foreach (var cert in _developerCertificateService.Certificates)
@@ -2176,6 +2192,23 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
         }
 
+        if (scope == CustomCertificateAuthoritiesScope.None)
+        {
+            // Resource has disabled custom certificate authorities
+            return (new List<string>(), new List<EnvVar>(), new List<ContainerCreateFileSystem>(), false);
+        }
+
+        if (scope == CustomCertificateAuthoritiesScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            foreach (var location in Enum.GetValues<StoreLocation>())
+            {
+                using var rootStore = new X509Store(StoreName.Root, location);
+                rootStore.Open(OpenFlags.ReadOnly);
+                certificates.AddRange(rootStore.Certificates);
+            }
+        }
+
         if (trustDevCert)
         {
             foreach (var cert in _developerCertificateService.Certificates)
@@ -2191,9 +2224,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             Certificates = certificates,
             CancellationToken = cancellationToken
         };
-        if (scope == CustomCertificateAuthoritiesScope.Override)
+
+        if (scope != CustomCertificateAuthoritiesScope.Append)
         {
-            // Override default OpenSSL certificate bundle path resolution
+            // When not in Append scope, override the default OpenSSL certificate bundle path resolution
             // SSL_CERT_FILE is always added to the defaults when the scope is Override
             // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
             context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
@@ -2312,9 +2346,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 ],
             });
 
-            if (scope == CustomCertificateAuthoritiesScope.Override)
+            if (scope != CustomCertificateAuthoritiesScope.Append)
             {
-                // If overriding the system CA bundle, then we want to copy our bundle to the well-known locations
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
                 foreach (var bundlePath in context.DefaultContainerCertificateAuthorityBundlePaths)
                 {
