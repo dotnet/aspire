@@ -118,7 +118,7 @@ internal sealed class ConsoleActivityLogger
 
     public void Progress(string taskKey, string message)
     {
-    WriteLine(taskKey, InProgressSymbol, message, ActivityState.InProgress);
+        WriteLine(taskKey, InProgressSymbol, message, ActivityState.InProgress);
     }
 
     public void Success(string taskKey, string message, double? seconds = null)
