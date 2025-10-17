@@ -12,6 +12,7 @@ public class McpOptions
     private byte[]? _primaryApiKeyBytes;
     private byte[]? _secondaryApiKeyBytes;
 
+    public bool? Disabled { get; set; }
     public McpAuthMode? AuthMode { get; set; }
     public string Path { get; set; } = "/mcp";
     public string? PrimaryApiKey { get; set; }
