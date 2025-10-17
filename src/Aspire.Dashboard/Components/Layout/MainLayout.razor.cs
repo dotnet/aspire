@@ -204,7 +204,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
     {
         DialogParameters parameters = new()
         {
-            Title = "MCP server",
+            Title = "Aspire MCP server",
             DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
             PrimaryAction = "Close",
             PrimaryActionEnabled = true,
