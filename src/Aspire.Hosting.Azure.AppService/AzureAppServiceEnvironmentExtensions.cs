@@ -175,14 +175,13 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
     /// </summary>
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
-    /// <param name="enable">Whether to enable Application Insights. Default is true.</param>
     /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true, string? applicationInsightsLocation = null)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string? applicationInsightsLocation = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        builder.Resource.EnableApplicationInsights = enable;
+        builder.Resource.EnableApplicationInsights = true;
         builder.Resource.ApplicationInsightsLocation = applicationInsightsLocation;
         return builder;
     }
