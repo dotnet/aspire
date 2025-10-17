@@ -193,3 +193,40 @@ aspire config delete <key> [options]
 
 **Description:**
 Manages CLI configuration settings. Configuration can be set locally (per project) or globally (user-wide). Local settings are stored in the current directory, while global settings are stored in `$HOME/.aspire/settings.json`.
+
+### self
+
+Manage the Aspire CLI itself.
+
+```cli
+aspire self [command] [options]
+```
+
+**Subcommands:**
+
+#### update
+Update the Aspire CLI to the latest version.
+
+```cli
+aspire self update [options]
+```
+
+**Options:**
+- `--quality <quality>` - Quality level to update to (release, staging, dev) [default: release]
+
+**Description:**
+Updates the Aspire CLI to the latest available version for the current platform. The command automatically detects the operating system and architecture, downloads the appropriate CLI package, validates its checksum, and performs an in-place update with automatic backup and rollback on failure.
+
+**Quality Levels:**
+- `release` - Latest stable release version (default)
+- `staging` - Latest release candidate/staging version
+- `dev` - Latest development build from main branch
+
+**Example:**
+```cli
+# Update to latest release
+aspire self update
+
+# Update to latest development build
+aspire self update --quality dev
+```
