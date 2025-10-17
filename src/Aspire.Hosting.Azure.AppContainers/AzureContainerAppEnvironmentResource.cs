@@ -68,10 +68,6 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        if (resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this) is null)
-        {
-            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
-        }
 
         var builder = new ReferenceExpressionBuilder();
         builder.Append($"{resource.Name.ToLowerInvariant()}");

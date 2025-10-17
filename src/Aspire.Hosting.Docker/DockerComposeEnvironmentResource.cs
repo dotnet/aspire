@@ -65,14 +65,9 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
     /// </summary>
     /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
     /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the specified compute resource is not deployed to this compute environment.</exception>
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        if (resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this) is null)
-        {
-            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
-        }
 
         // In Docker Compose, services can communicate using their service names
         // Docker Compose automatically creates a network where services can reach each other by service name

@@ -92,14 +92,9 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     /// </summary>
     /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
     /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the specified compute resource is not deployed to this compute environment.</exception>
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        if (resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this) is null)
-        {
-            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
-        }
 
         return ReferenceExpression.Create($"{resource.Name.ToServiceName()}");
     }

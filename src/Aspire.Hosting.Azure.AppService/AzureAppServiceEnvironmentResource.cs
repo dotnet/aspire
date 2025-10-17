@@ -67,11 +67,6 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        if (resource.GetDeploymentTargetAnnotation(targetComputeEnvironment: this) is null)
-        {
-            throw new InvalidOperationException("The specified compute resource is not deployed to this compute environment.");
-        }
-
         return ReferenceExpression.Create($"{resource.Name.ToLower()}-{WebSiteSuffix}.azurewebsites.net");
     }
 
