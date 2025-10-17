@@ -20,7 +20,7 @@ public enum CustomCertificateAuthoritiesScope
     /// </summary>
     Override,
     /// <summary>
-    /// Attempt to configure the resource to trust default system certificate authorities in addition to
+    /// Attempt to configure the resource to trust the default system certificate authorities in addition to
     /// any configured custom certificate trust. This mode is useful for resources that don't otherwise
     /// allow appending to their default trusted certificate authorities but do allow overriding the set
     /// of trusted certificates (e.g. Python, Rust, etc.).

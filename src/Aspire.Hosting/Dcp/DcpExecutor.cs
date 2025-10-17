@@ -2075,12 +2075,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         if (scope == CustomCertificateAuthoritiesScope.System)
         {
             // Read the system root certificates and add them to the collection
-            foreach (var location in Enum.GetValues<StoreLocation>())
-            {
-                using var rootStore = new X509Store(StoreName.Root, location);
-                rootStore.Open(OpenFlags.ReadOnly);
-                certificates.AddRange(rootStore.Certificates);
-            }
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2201,12 +2196,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         if (scope == CustomCertificateAuthoritiesScope.System)
         {
             // Read the system root certificates and add them to the collection
-            foreach (var location in Enum.GetValues<StoreLocation>())
-            {
-                using var rootStore = new X509Store(StoreName.Root, location);
-                rootStore.Open(OpenFlags.ReadOnly);
-                certificates.AddRange(rootStore.Certificates);
-            }
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2227,8 +2217,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         if (scope != CustomCertificateAuthoritiesScope.Append)
         {
-            // When not in Append scope, override the default OpenSSL certificate bundle path resolution
-            // SSL_CERT_FILE is always added to the defaults when the scope is Override
+            // When Override or System scope is set (not Append), override the default OpenSSL certificate bundle path
+            // resolution by setting the SSL_CERT_FILE environment variable.
             // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
             context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
         }
