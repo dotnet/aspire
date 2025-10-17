@@ -27,6 +27,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IDotNetSdkInstaller _sdkInstaller;
 
     private readonly IFeatures _features;
+    private readonly Option<bool> _nonInteractiveOption;
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -66,6 +67,12 @@ internal abstract class PublishCommandBase : BaseCommand
             Description = GetOutputPathDescription()
         };
         Options.Add(outputPath);
+
+        _nonInteractiveOption = new Option<bool>("--non-interactive")
+        {
+            Description = "Run the command in non-interactive mode, disabling all interactive prompts"
+        };
+        Options.Add(_nonInteractiveOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -122,8 +129,12 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var env = new Dictionary<string, string>();
 
-            // Disable interactivity for publish/deploy operations as they run in automation contexts
-            env[KnownConfigNames.InteractivityEnabled] = "false";
+            var nonInteractive = parseResult.GetValue(_nonInteractiveOption);
+            if (nonInteractive)
+            {
+                // Disable interactivity when --non-interactive flag is used
+                env[KnownConfigNames.InteractivityEnabled] = "false";
+            }
 
             var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
