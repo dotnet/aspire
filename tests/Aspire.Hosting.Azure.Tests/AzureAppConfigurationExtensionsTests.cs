@@ -175,4 +175,18 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
         Assert.Throws<ArgumentOutOfRangeException>(() => appConfig.WithRefreshKey("TestKey", 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => appConfig.WithRefreshKey("TestKey", -1));
     }
+
+    [Fact]
+    public void WithRefreshKey_WorksWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var appConfig = builder.AddAzureAppConfiguration("appConfig")
+            .RunAsEmulator()
+            .WithRefreshKey("TestKey", 30);
+
+        // Verify the annotation is present by checking annotations count and type
+        var refreshAnnotations = appConfig.Resource.Annotations.Where(a => a.GetType().Name == "AzureAppConfigurationRefreshAnnotation").ToList();
+        Assert.Single(refreshAnnotations);
+    }
 }
