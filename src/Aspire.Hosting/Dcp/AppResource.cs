@@ -7,23 +7,34 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.Dcp;
 
-[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}")]
-internal class AppResource : IResourceReference
+[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
+internal class AppResource
 {
-    public IResource ModelResource { get; }
     public CustomResource DcpResource { get; }
     public string DcpResourceName => DcpResource.Metadata.Name;
+    public string DcpResourceKind => DcpResource.Kind;
     public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
     public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
 
-    public AppResource(IResource modelResource, CustomResource dcpResource)
+    public AppResource(CustomResource dcpResource)
     {
-        ModelResource = modelResource;
         DcpResource = dcpResource;
     }
 }
 
-internal sealed class ServiceAppResource : AppResource
+[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
+internal class RenderedModelResource : AppResource, IResourceReference
+{
+    public IResource ModelResource { get; }
+    
+
+    public RenderedModelResource(IResource modelResource, CustomResource dcpResource): base(dcpResource)
+    {
+        ModelResource = modelResource;
+    }
+}
+
+internal sealed class ServiceAppResource : RenderedModelResource
 {
     public Service Service => (Service)DcpResource;
     public EndpointAnnotation EndpointAnnotation { get; }

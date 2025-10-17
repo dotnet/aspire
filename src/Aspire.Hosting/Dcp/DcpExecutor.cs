@@ -147,6 +147,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         try
         {
+            PrepareContainerNetworks();
             PrepareServices();
             PrepareContainers();
             PrepareExecutables();
@@ -158,7 +159,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             await CreateServicesAsync(cancellationToken).ConfigureAwait(false);
 
-            await CreateContainerNetworksAsync(cancellationToken).ConfigureAwait(false);
+            await CreateAllDcpObjectsAsync<ContainerNetwork>(cancellationToken).ConfigureAwait(false);
+
+            await CreateAllDcpObjectsAsync<ContainerNetworkTunnelProxy>(cancellationToken).ConfigureAwait(false);
 
             await CreateContainersAndExecutablesAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -790,21 +793,26 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateContainerNetworksAsync(CancellationToken cancellationToken)
+    private async Task CreateAllDcpObjectsAsync<T>(CancellationToken cancellationToken) where T: CustomResource
     {
-        var toCreate = _appResources.Where(r => r.DcpResource is ContainerNetwork);
-        foreach (var containerNetwork in toCreate)
+        var toCreate = _appResources.Select(r => r.DcpResource).Where(r => r is { } T);
+        if (!toCreate.Any())
         {
-            if (containerNetwork.DcpResource is ContainerNetwork cn)
-            {
-                await _kubernetesService.CreateAsync(cn, cancellationToken).ConfigureAwait(false);
-            }
+            return;
         }
+
+        var tasks = new List<Task>();
+        foreach (var cn in toCreate)
+        {
+            tasks.Add(Task.Run(() => _kubernetesService.CreateAsync(cn, cancellationToken), cancellationToken));
+        }
+
+        await Task.WhenAll(tasks).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task CreateContainersAndExecutablesAsync(CancellationToken cancellationToken)
     {
-        var toCreate = _appResources.Where(r => r.DcpResource is Container or Executable or ContainerExec);
+        var toCreate = _appResources.OfType<RenderedModelResource>().Where(r => r.DcpResource is Container or Executable or ContainerExec);
         AddAllocatedEndpointInfo(toCreate);
 
         await _executorEvents.PublishAsync(new OnEndpointsAllocatedContext(cancellationToken)).ConfigureAwait(false);
@@ -830,11 +838,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         await Task.WhenAll(containersTask, executablesTask, containerExecsTask).WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    private void AddAllocatedEndpointInfo(IEnumerable<AppResource> resources)
+    private void AddAllocatedEndpointInfo(IEnumerable<RenderedModelResource> resources)
     {
         var containerHost = DefaultContainerHostName;
 
-        foreach (var appResource in resources)
+        foreach (var appResource in resources.Where(r => r.ModelResource is not null))
         {
             foreach (var sp in appResource.ServicesProduced)
             {
@@ -858,10 +866,38 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     targetHost,
                     (int)svc.AllocatedPort!,
                     bindingMode,
-                    containerHostAddress: appResource.ModelResource.IsContainer() ? containerHost : null,
+                    containerHostAddress: appResource.ModelResource!.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
             }
         }
+    }
+
+    private void PrepareContainerNetworks()
+    {
+        var containerResources = _model.Resources.Where(mr => mr.IsContainer());
+        if (!containerResources.Any()) { return; }
+
+        var network = ContainerNetwork.Create(DefaultAspireNetworkResourceName);
+        if (containerResources.Any(cr => cr.GetContainerLifetimeType() == ContainerLifetime.Persistent))
+        {
+            // If we have any persistent container resources
+            network.Spec.Persistent = true;
+            // Persistent networks require a predictable name to be reused between runs.
+            // Append the same project hash suffix used for persistent container names.
+            network.Spec.NetworkName = $"{DefaultAspirePersistentNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
+        }
+        else
+        {
+            network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{DcpNameGenerator.GetRandomNameSuffix()}";
+        }
+
+        if (!string.IsNullOrEmpty(_normalizedApplicationName))
+        {
+            var shortApplicationName = _normalizedApplicationName.Length < 32 ? _normalizedApplicationName : _normalizedApplicationName.Substring(0, 32);
+            network.Spec.NetworkName += $"-{shortApplicationName}"; // Limit to 32 characters to avoid exceeding resource name length limits.
+        }
+
+        _appResources.Add(new AppResource(network));
     }
 
     private void PrepareServices()
@@ -913,6 +949,63 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 _appResources.Add(new ServiceAppResource(sp.ModelResource, svc, endpoint));
             }
         }
+
+        // For container-to-host communication we need to create a service for each host Endpoint consumed by a Container resource.
+
+        var hostEndpointReferences = _model.GetContainerResources()
+            .Select(cr => (
+                ContainerResource: cr,
+                HostEndpointReferences: cr.Annotations.OfType<EndpointReferenceAnnotation>().Where(era => !era.Resource.IsContainer())
+            ))
+            .Where(cwhr => cwhr.HostEndpointReferences.Any())
+            .SelectMany(
+                cwhr => cwhr.HostEndpointReferences,
+                (cwhr, era) => (cwhr.ContainerResource, Annotation: era)
+            );
+
+        if (!hostEndpointReferences.Any())
+        {
+            return; // No containers with references to host services--nothing more to do.
+        }
+
+        // Eventually we might want to support multiple container networks, including user-defined ones,
+        // but for now we just have one container network per application.
+        var containerNetwork = _appResources.Select(ar => ar.DcpResource).OfType<ContainerNetwork>().FirstOrDefault();
+        if (containerNetwork is null)
+        {
+            // Should never happen
+            throw new InvalidOperationException("The model includes Container resources but no container network has been prepared");
+        }
+
+        // If multiple Containers take a reference to the same host endpoint, we should only create one Service for it.
+        HashSet<(string HostResourceName, string EndpointName)> processedEndpoints = new();
+        ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(containerNetwork.Metadata.Name);
+
+        foreach (var her in hostEndpointReferences)
+        {
+            IEnumerable<string> endpointNames = her.Annotation.EndpointNames;
+            if (her.Annotation.UseAllEndpoints)
+            {
+                // Do not use the (mis-named) GetEndpoints() extension method because it creates and returns new EndpointReferences, not existing Endpoints.
+                if (her.Annotation.Resource.TryGetEndpoints(out var endpoints))
+                {
+                    endpointNames = endpoints.Select(e => e.Name);
+                }
+            }
+
+            foreach (var endpointName in endpointNames)
+            {
+                if (!processedEndpoints.Add((her.Annotation.Resource.Name, endpointName)))
+                {
+                    continue; // Already processed this endpoint reference.
+                }
+            }
+
+            // TODO: continue here
+            
+        }
+
+        _appResources.Add(new AppResource(tunnelProxy));
     }
 
     private void PrepareExecutables()
@@ -946,7 +1039,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             containerExec.Annotate(CustomResource.ResourceNameAnnotation, containerExecutable.Name);
             SetInitialResourceState(containerExecutable, containerExec);
 
-            var exeAppResource = new AppResource(containerExecutable, containerExec);
+            var exeAppResource = new RenderedModelResource(containerExecutable, containerExec);
             _appResources.Add(exeAppResource);
         }
     }
@@ -987,7 +1080,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             SetInitialResourceState(executable, exe);
 
-            var exeAppResource = new AppResource(executable, exe);
+            var exeAppResource = new RenderedModelResource(executable, exe);
             AddServicesProducedInfo(executable, exe, exeAppResource);
             _appResources.Add(exeAppResource);
         }
@@ -1081,7 +1174,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 exeSpec.AnnotateAsObjectList(Executable.LaunchConfigurationsAnnotation, projectLaunchConfiguration);
                 exeSpec.SetAnnotationAsObjectList(CustomResource.ResourceProjectArgsAnnotation, projectArgs);
 
-                var exeAppResource = new AppResource(project, exeSpec);
+                var exeAppResource = new RenderedModelResource(project, exeSpec);
                 AddServicesProducedInfo(project, exeSpec, exeAppResource);
                 _appResources.Add(exeAppResource);
             }
@@ -1107,94 +1200,98 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     }
 
     private Task CreateSnapshotableResourcesAsync(
-        Func<AppResource, ILogger, CancellationToken, Task> createResourceFunc,
-        IEnumerable<AppResource> executables,
+        Func<RenderedModelResource, ILogger, CancellationToken, Task> createResourceFunc,
+        IEnumerable<RenderedModelResource> executables,
         CancellationToken cancellationToken)
     {
-        async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
-        {
-            var resourceLogger = _loggerService.GetLogger(resource);
-            var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
-
-            try
-            {
-                // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
-                // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
-                foreach (var er in executables)
-                {
-                    Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
-                    {
-                        Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
-                        ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
-                        _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
-                    };
-
-                    await _executorEvents.PublishAsync(new OnResourceChangedContext(
-                        _shutdownCancellation.Token, resourceType, resource,
-                        er.DcpResourceName, new ResourceStatus(null, null, null),
-                        snapshotBuild)
-                    ).ConfigureAwait(false);
-                }
-
-                await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-
-                foreach (var er in executables)
-                {
-                    if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _))
-                    {
-                        await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
-                        continue;
-                    }
-
-                    try
-                    {
-                        await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (FailedToApplyEnvironmentException)
-                    {
-                        // For this exception we don't want the noise of the stack trace, we've already
-                        // provided more detail where we detected the issue (e.g. envvar name). To get
-                        // more diagnostic information reduce logging level for DCP log category to Debug.
-                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // The purpose of this catch block is to ensure that if an individual executable resource fails
-                        // to start that it doesn't tear down the entire app host AND that we route the error to the
-                        // appropriate replica.
-                        resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
-                        await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // The purpose of this catch block is to ensure that if an error processing the overall
-                // configuration of the executable resource files. This is different to the exception handling
-                // block above because at this stage of processing we don't necessarily have any replicas
-                // yet. For example if a dependency fails to start.
-                resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
-                await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
-            }
-        }
-
         var tasks = new List<Task>();
         foreach (var group in executables.GroupBy(e => e.ModelResource))
         {
             // Force this to be async so that blocking code does not stop other executables from being created.
-            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
+            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, createResourceFunc, cancellationToken), cancellationToken));
         }
 
         return Task.WhenAll(tasks).WaitAsync(cancellationToken);
     }
 
-    private Task CreateContainerExecutablesAsync(IEnumerable<AppResource> containerExecAppResources, CancellationToken cancellationToken)
+    private Task CreateContainerExecutablesAsync(IEnumerable<RenderedModelResource> containerExecAppResources, CancellationToken cancellationToken)
         => CreateSnapshotableResourcesAsync(CreateContainerExecutableAsync, containerExecAppResources, cancellationToken);
 
-    private Task CreateExecutablesAsync(IEnumerable<AppResource> execAppResources, CancellationToken cancellationToken)
+    private Task CreateExecutablesAsync(IEnumerable<RenderedModelResource> execAppResources, CancellationToken cancellationToken)
         => CreateSnapshotableResourcesAsync(CreateExecutableAsync, execAppResources, cancellationToken);
 
-    private async Task CreateContainerExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    async Task CreateResourceExecutablesAsyncCore(
+        IResource resource,
+        IEnumerable<RenderedModelResource> executables,
+         Func<RenderedModelResource, ILogger, CancellationToken, Task> createResourceFunc,
+        CancellationToken cancellationToken)
+    {
+        var resourceLogger = _loggerService.GetLogger(resource);
+        var resourceType = resource is ProjectResource ? KnownResourceTypes.Project : KnownResourceTypes.Executable;
+
+        try
+        {
+            // Publish snapshots built from DCP resources. Do this now to populate more values from DCP (source) to ensure they're
+            // available if the resource isn't immediately started because it's waiting or is configured for explicit start.
+            foreach (var er in executables)
+            {
+                Func<CustomResourceSnapshot, CustomResourceSnapshot> snapshotBuild = er.DcpResource switch
+                {
+                    Executable exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                    ContainerExec exe => s => _snapshotBuilder.ToSnapshot(exe, s),
+                    _ => throw new NotImplementedException($"Does not support snapshots for resources of type like '{er.DcpResourceName}' is ")
+                };
+
+                await _executorEvents.PublishAsync(new OnResourceChangedContext(
+                    _shutdownCancellation.Token, resourceType, resource,
+                    er.DcpResourceName, new ResourceStatus(null, null, null),
+                    snapshotBuild)
+                ).ConfigureAwait(false);
+            }
+
+            await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
+
+            foreach (var er in executables)
+            {
+                if (er.ModelResource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _) is true)
+                {
+                    await _executorEvents.PublishAsync(new OnResourceChangedContext(cancellationToken, resourceType, resource, er.DcpResource.Metadata.Name, new ResourceStatus(KnownResourceStates.NotStarted, null, null), s => s with { State = new ResourceStateSnapshot(KnownResourceStates.NotStarted, null) })).ConfigureAwait(false);
+                    continue;
+                }
+
+                try
+                {
+                    await createResourceFunc(er, resourceLogger, cancellationToken).ConfigureAwait(false);
+                }
+                catch (FailedToApplyEnvironmentException)
+                {
+                    // For this exception we don't want the noise of the stack trace, we've already
+                    // provided more detail where we detected the issue (e.g. envvar name). To get
+                    // more diagnostic information reduce logging level for DCP log category to Debug.
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    // The purpose of this catch block is to ensure that if an individual executable resource fails
+                    // to start that it doesn't tear down the entire app host AND that we route the error to the
+                    // appropriate replica.
+                    resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", er.ModelResource.Name);
+                    await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, er.ModelResource, er.DcpResource.Metadata.Name)).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // The purpose of this catch block is to ensure that if an error processing the overall
+            // configuration of the executable resource files. This is different to the exception handling
+            // block above because at this stage of processing we don't necessarily have any replicas
+            // yet. For example if a dependency fails to start.
+            resourceLogger.LogError(ex, "Failed to create resource {ResourceName}", resource.Name);
+            await _executorEvents.PublishAsync(new OnResourceFailedToStartContext(cancellationToken, resourceType, resource, DcpResourceName: null)).ConfigureAwait(false);
+        }
+    }
+
+    private async Task CreateContainerExecutableAsync(RenderedModelResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         if (er.DcpResource is not ContainerExec containerExe)
         {
@@ -1213,7 +1310,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateExecutableAsync(AppResource er, ILogger resourceLogger, CancellationToken cancellationToken)
+    private async Task CreateExecutableAsync(RenderedModelResource er, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         if (er.DcpResource is not Executable exe)
         {
@@ -1277,7 +1374,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(AppResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
+    private static List<(string Value, bool IsSensitive, bool AnnotationOnly)> BuildLaunchArgs(RenderedModelResource er, ExecutableSpec spec, List<(string Value, bool IsSensitive)> appHostArgs)
     {
         // Launch args is the final list of args that are displayed in the UI and possibly added to the executable spec.
         // They're built from app host resource model args and any args in the effective launch profile.
@@ -1375,7 +1472,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             };
 
-            var containerAppResource = new AppResource(container, ctr);
+            var containerAppResource = new RenderedModelResource(container, ctr);
             AddServicesProducedInfo(container, ctr, containerAppResource);
             _appResources.Add(containerAppResource);
         }
@@ -1402,13 +1499,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         throw new DistributedApplicationException($"Couldn't find required instance ID for index {instanceIndex} on resource {resource.Name}.");
     }
 
-    private async Task CreateContainersAsync(IEnumerable<AppResource> containerResources, CancellationToken cancellationToken)
+    private async Task CreateContainersAsync(IEnumerable<RenderedModelResource> containerResources, CancellationToken cancellationToken)
     {
         try
         {
             AspireEventSource.Instance.DcpContainersCreateStart();
 
-            async Task CreateContainerAsyncCore(AppResource cr, CancellationToken cancellationToken)
+            async Task CreateContainerAsyncCore(RenderedModelResource cr, CancellationToken cancellationToken)
             {
                 var logger = _loggerService.GetLogger(cr.ModelResource);
 
@@ -1431,32 +1528,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var tasks = new List<Task>();
-
-            // Create a custom container network for Aspire if there are container resources
-            if (containerResources.Any())
-            {
-                var network = ContainerNetwork.Create(DefaultAspireNetworkResourceName);
-                if (containerResources.Any(cr => cr.ModelResource.GetContainerLifetimeType() == ContainerLifetime.Persistent))
-                {
-                    // If we have any persistent container resources
-                    network.Spec.Persistent = true;
-                    // Persistent networks require a predictable name to be reused between runs.
-                    // Append the same project hash suffix used for persistent container names.
-                    network.Spec.NetworkName = $"{DefaultAspirePersistentNetworkName}-{_nameGenerator.GetProjectHashSuffix()}";
-                }
-                else
-                {
-                    network.Spec.NetworkName = $"{DefaultAspireNetworkName}-{DcpNameGenerator.GetRandomNameSuffix()}";
-                }
-
-                if (!string.IsNullOrEmpty(_normalizedApplicationName))
-                {
-                    var shortApplicationName = _normalizedApplicationName.Length < 32 ? _normalizedApplicationName : _normalizedApplicationName.Substring(0, 32);
-                    network.Spec.NetworkName += $"-{shortApplicationName}"; // Limit to 32 characters to avoid exceeding resource name length limits.
-                }
-
-                tasks.Add(_kubernetesService.CreateAsync(network, cancellationToken));
-            }
 
             foreach (var cr in containerResources)
             {
@@ -1484,7 +1555,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateContainerAsync(AppResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
+    private async Task CreateContainerAsync(RenderedModelResource cr, ILogger resourceLogger, CancellationToken cancellationToken)
     {
         await _executorEvents.PublishAsync(new OnResourceStartingContext(cancellationToken, KnownResourceTypes.Container, cr.ModelResource, cr.DcpResource.Metadata.Name)).ConfigureAwait(false);
 
@@ -1623,7 +1694,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, AppResource appResource)
+    private void AddServicesProducedInfo(IResource modelResource, IAnnotationHolder dcpResource, RenderedModelResource appResource)
     {
         var modelResourceName = "(unknown)";
         try
@@ -1768,7 +1839,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var result = await DeleteResourceRetryPipeline.ExecuteAsync(async (resourceName, attemptCancellationToken) =>
         {
-            var appResource = (AppResource)resourceReference;
+            var appResource = (RenderedModelResource)resourceReference;
 
             V1Patch patch;
             switch (appResource.DcpResource)
@@ -1817,6 +1888,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     public IResourceReference GetResource(string resourceName)
     {
         var matchingResource = _appResources
+            .OfType<RenderedModelResource>()
             .Where(r => r.DcpResource is not Service)
             .SingleOrDefault(r => string.Equals(r.DcpResource.Metadata.Name, resourceName, StringComparisons.ResourceName));
         if (matchingResource == null)
@@ -1829,7 +1901,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     public async Task StartResourceAsync(IResourceReference resourceReference, CancellationToken cancellationToken)
     {
-        var appResource = (AppResource)resourceReference;
+        var appResource = (RenderedModelResource)resourceReference;
         var resourceType = GetResourceType(appResource.DcpResource, appResource.ModelResource);
         var resourceLogger = _loggerService.GetLogger(appResource.DcpResourceName);
 
@@ -2353,7 +2425,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return null;
     }
 
-    private static List<ContainerPortSpec> BuildContainerPorts(AppResource cr)
+    private static List<ContainerPortSpec> BuildContainerPorts(RenderedModelResource cr)
     {
         var ports = new List<ContainerPortSpec>();
 
