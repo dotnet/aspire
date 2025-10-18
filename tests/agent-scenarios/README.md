@@ -53,8 +53,10 @@ The workflow will:
 1. Validate the scenario name format
 2. Look for `tests/agent-scenarios/scenario-name/prompt.md`
 3. Read the prompt from the file
-4. Create an agent task using the GitHub CLI
-5. Post a comment with the scenario name and link to the agent's PR
+4. Create an issue in the `aspire-playground` repository with the prompt and PR context
+5. Assign the issue to the GitHub Copilot agent
+6. Wait for the agent to create a PR (up to 5 minutes)
+7. Post a comment with links to both the issue and the agent's PR (if available)
 
 ## Creating a New Scenario
 
