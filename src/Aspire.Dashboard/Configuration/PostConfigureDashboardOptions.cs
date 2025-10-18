@@ -41,6 +41,12 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Otlp.HttpEndpointUrl = otlpHttpUrl;
         }
 
+        // Copy aliased config values to the strongly typed options.
+        if (_configuration[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] is { Length: > 0 } mcpUrl)
+        {
+            options.Mcp.EndpointUrl = mcpUrl;
+        }
+
         if (_configuration[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] is { Length: > 0 } frontendUrls)
         {
             options.Frontend.EndpointUrls = frontendUrls;
