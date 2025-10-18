@@ -104,6 +104,8 @@ public sealed class ResourceIconHelpersTests
     }
 
     [Theory]
+    [InlineData(".cs", "CodeCsRectangle")]
+    [InlineData(".CS", "CodeCsRectangle")]
     [InlineData(".csproj", "CodeCsRectangle")]
     [InlineData(".CSPROJ", "CodeCsRectangle")]
     [InlineData(".fsproj", "CodeFsRectangle")]
