@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
-using System.Text.RegularExpressions;
 using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
@@ -235,7 +234,7 @@ internal sealed class ConsoleActivityLogger
                     };
                     var name = rec.DisplayName.EscapeMarkup();
                     var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
-                        ? ( _enableColor ? $" [red]— {HighlightAndEscape(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
@@ -321,8 +320,8 @@ internal sealed class ConsoleActivityLogger
 
             foreach (var line in SplitLinesPreserve(message))
             {
-                // Format: dim timestamp, colored step tag, symbol, escaped message
-                var escapedLine = HighlightAndEscape(line);
+                // Format: dim timestamp, colored step tag, symbol, message with Spectre markup
+                var highlightedLine = HighlightMessage(line);
                 var escapedTask = displayKey.EscapeMarkup();
                 var markup = new StringBuilder();
                 markup.Append("[dim]").Append(time).Append("[/] ");
@@ -332,21 +331,21 @@ internal sealed class ConsoleActivityLogger
                     if (state == ActivityState.Failure)
                     {
                         // Make the entire failure segment (symbol + message) red, not just the symbol
-                        markup.Append("[red]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[red]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else if (state == ActivityState.Warning)
                     {
                         // Optionally color whole warning message (improves scanability)
-                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else
                     {
-                        markup.Append(coloredSymbol).Append(' ').Append(escapedLine);
+                        markup.Append(coloredSymbol).Append(' ').Append(highlightedLine);
                     }
                 }
                 else
                 {
-                    markup.Append(symbol).Append(' ').Append(escapedLine);
+                    markup.Append(symbol).Append(' ').Append(highlightedLine);
                 }
                 AnsiConsole.MarkupLine(markup.ToString());
             }
@@ -388,80 +387,15 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    private static readonly Regex s_urlRegex = new(
-        pattern: @"(?:(?:https?|ftp)://)[^\s]+",
-        options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-    private static readonly Regex s_spectreMarkupRegex = new(
-        pattern: @"\[(?:/?(?:bold|italic|grey|gray|blue|green|yellow|cyan|red|orange3|magenta|purple|underline|strikethrough|dim|link=[^\]]+)|/)\]",
-        options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-    // Escapes non-markup portions while preserving Spectre markup tags and converting URLs to links.
-    private string HighlightAndEscape(string input)
+    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase,
+    // so we just pass them through for AnsiConsole.MarkupLine to render.
+    // This method is kept for consistency but now just returns the input as-is since
+    // the conversion is already done.
+    private static string HighlightMessage(string message)
     {
-        if (string.IsNullOrEmpty(input))
-        {
-            return string.Empty;
-        }
-
-        // First, identify all Spectre markup tags and URLs to preserve
-        var preserveRanges = new List<(int start, int end, string replacement)>();
-
-        // Add Spectre markup ranges
-        foreach (Match match in s_spectreMarkupRegex.Matches(input))
-        {
-            preserveRanges.Add((match.Index, match.Index + match.Length, match.Value));
-        }
-
-        // Add URL ranges (converted to link markup)
-        foreach (Match match in s_urlRegex.Matches(input))
-        {
-            var url = match.Value;
-            var replacement = $"[link={url}]{url}[/]";
-            preserveRanges.Add((match.Index, match.Index + match.Length, replacement));
-        }
-
-        // If nothing to preserve, just escape everything
-        if (preserveRanges.Count == 0)
-        {
-            return input.EscapeMarkup();
-        }
-
-        // In non-interactive environments, just output URLs as-is without [link] markup
-        if (!_hostEnvironment.SupportsInteractiveOutput)
-        {
-            return input.EscapeMarkup();
-        }
-
-        var sb = new StringBuilder(input.Length + 32);
-        var lastIndex = 0;
-
-        foreach (var (start, end, replacement) in preserveRanges)
-        {
-            // Skip if this range overlaps with previous (prefer earlier ranges)
-            if (start < lastIndex)
-            {
-                continue;
-            }
-
-            // Escape and append text before this preserved range
-            if (start > lastIndex)
-            {
-                var segment = input.Substring(lastIndex, start - lastIndex);
-                sb.Append(segment.EscapeMarkup());
-            }
-
-            // Append the preserved range (markup or link)
-            sb.Append(replacement);
-            lastIndex = end;
-        }
-
-        // Escape and append remaining text
-        if (lastIndex < input.Length)
-        {
-            sb.Append(input.Substring(lastIndex).EscapeMarkup());
-        }
-
-        return sb.ToString();
+        // Messages have already been converted from Markdown to Spectre markup,
+        // so we can pass them through directly to AnsiConsole.MarkupLine
+        return message;
     }
 
     // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly
