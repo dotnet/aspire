@@ -316,7 +316,7 @@ public sealed class DcpHostNotificationTests
         {
             await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, linkedCts.Token));
         }
-}
+    }
 
     [Fact]
     public async Task DcpHost_WithContainerRuntimeNotInstalled_ShowsNotificationWithoutPolling()
