@@ -136,8 +136,6 @@ output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env_mi.id
 
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID string = env_mi.properties.clientId
 
-output AZURE_APP_SERVICE_UNIQUE_STRING string = uniqueString(resourceGroup().id)
-
 output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID string = env_contributor_mi.id
 
 output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_contributor_mi.properties.principalId

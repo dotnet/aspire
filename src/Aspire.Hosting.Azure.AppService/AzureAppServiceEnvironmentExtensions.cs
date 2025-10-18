@@ -134,11 +134,6 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = identity.ClientId
             });
 
-            infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_UNIQUE_STRING", typeof(string))
-            {
-                Value = BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id)
-            });
-
             if (resource.EnableDashboard)
             {
                 // Add aspire dashboard website

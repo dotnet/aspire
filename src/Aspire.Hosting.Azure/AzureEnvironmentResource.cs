@@ -602,19 +602,6 @@ public sealed class AzureEnvironmentResource : Resource
             }
         }
 
-        // Check if the compute environment has the unique string used in Azure App Service name
-        if (azureComputeEnv is AzureProvisioningResource appServiceResource &&
-            appServiceResource.Outputs.TryGetValue("AZURE_APP_SERVICE_UNIQUE_STRING", value: out var uniqueIdentifier))
-        {
-            var hostname = $"{computeResource.Name.ToLowerInvariant()}-{uniqueIdentifier}";
-            if (hostname.Length > 60)
-            {
-                hostname = hostname.Substring(0, 60);
-            }
-            var endpoint = $"https://{hostname}.azurewebsites.net";
-            return $" to {endpoint}";
-        }
-
         return string.Empty;
     }
 

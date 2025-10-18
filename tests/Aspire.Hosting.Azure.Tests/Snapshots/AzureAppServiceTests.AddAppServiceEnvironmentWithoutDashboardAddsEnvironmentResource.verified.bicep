@@ -55,5 +55,3 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = env_acr.properties.loginServer
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = env_mi.id
 
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID string = env_mi.properties.clientId
-
-output AZURE_APP_SERVICE_UNIQUE_STRING string = uniqueString(resourceGroup().id)
