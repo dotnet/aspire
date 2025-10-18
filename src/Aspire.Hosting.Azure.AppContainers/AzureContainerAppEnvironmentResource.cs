@@ -70,7 +70,7 @@ public class AzureContainerAppEnvironmentResource(string name, Action<AzureResou
         var resource = endpointReference.Resource;
 
         var builder = new ReferenceExpressionBuilder();
-        builder.Append($"{resource.Name.ToLowerInvariant()}");
+        builder.AppendLiteral(resource.Name.ToLowerInvariant());
         if (!endpointReference.EndpointAnnotation.IsExternal)
         {
             builder.AppendLiteral(".internal");
