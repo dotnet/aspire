@@ -976,7 +976,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-
+        
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);

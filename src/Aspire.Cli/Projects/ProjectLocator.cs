@@ -352,12 +352,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
                 return projectFile;
             }
-            // Handle .fsproj files
-            else if (projectFile.Extension.Equals(".fsproj", StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
-                return projectFile;
-            }
             // Reject other extensions
             else
             {
