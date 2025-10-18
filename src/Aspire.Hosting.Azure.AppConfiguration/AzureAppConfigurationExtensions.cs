@@ -172,6 +172,35 @@ public static class AzureAppConfigurationExtensions
     }
 
     /// <summary>
+    /// Configures the Azure App Configuration resource to include refresh configuration in the connection string.
+    /// </summary>
+    /// <param name="builder">The Azure App Configuration resource builder.</param>
+    /// <param name="refreshKey">The configuration key to watch for changes.</param>
+    /// <param name="refreshIntervalInSeconds">The refresh interval in seconds. Defaults to 30 seconds.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// When this method is called, the connection string will include <c>RefreshKey</c> and <c>RefreshInterval</c> parameters.
+    /// The Aspire Azure App Configuration component will automatically configure refresh based on these parameters.
+    /// </remarks>
+    public static IResourceBuilder<AzureAppConfigurationResource> WithRefreshKey(
+        this IResourceBuilder<AzureAppConfigurationResource> builder,
+        string refreshKey,
+        int refreshIntervalInSeconds = 30)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(refreshKey);
+
+        if (refreshIntervalInSeconds <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(refreshIntervalInSeconds), "Refresh interval must be greater than 0.");
+        }
+
+        builder.WithAnnotation(new AzureAppConfigurationRefreshAnnotation(refreshKey, refreshIntervalInSeconds));
+
+        return builder;
+    }
+
+    /// <summary>
     /// Configures anonymous authentication for the Azure App Configuration emulator resource.
     /// </summary>
     /// <param name="builder">The resource builder for the Azure App Configuration emulator.</param>

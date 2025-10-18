@@ -4,6 +4,7 @@
 using Aspire.Azure;
 using Azure.Core;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text;
 using Xunit;
@@ -111,6 +112,38 @@ public class AspireAppConfigurationExtensionsTest
 
         Assert.Equal("test-value-1", builder.Configuration["test-key-1"]);
         Assert.Equal("test-value-2", builder.Configuration["test-key-2"]);
+    }
+
+    [Fact]
+    public void ConnectionStringWithRefreshParametersLoadsConfiguration()
+    {
+        var mockTransport = new MockTransport(CreateResponse("""
+            {
+                "items": [
+                    {
+                        "key": "test-key",
+                        "value": "test-value"
+                    },
+                    {
+                        "key": "TestKey",
+                        "value": "sentinel-value"
+                    }
+                ]
+            }
+            """));
+
+        var builder = Host.CreateEmptyApplicationBuilder(null);
+        builder.Configuration.AddInMemoryCollection([
+            new KeyValuePair<string, string?>("ConnectionStrings:appConfig", $"Endpoint={ConformanceTests.Endpoint};Id=xxxx;Secret=xxxx;RefreshKey=TestKey;RefreshInterval=60")
+        ]);
+
+        builder.AddAzureAppConfiguration(
+            "appConfig",
+            configureOptions: options => options.ConfigureClientOptions(clientOptions => clientOptions.Transport = mockTransport));
+
+        // Verify configuration was loaded
+        Assert.Equal("test-value", builder.Configuration["test-key"]);
+        Assert.Equal("sentinel-value", builder.Configuration["TestKey"]);
     }
 
     private static MockResponse CreateResponse(string content)

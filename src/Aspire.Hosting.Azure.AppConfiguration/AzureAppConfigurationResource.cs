@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppConfiguration;
 using Azure.Provisioning.AppConfiguration;
 using Azure.Provisioning.Primitives;
 
@@ -36,10 +37,29 @@ public class AzureAppConfigurationResource(string name, Action<AzureResourceInfr
     /// <summary>
     /// Gets the connection string template for the manifest for the Azure App Configuration resource.
     /// </summary>
-    public ReferenceExpression ConnectionStringExpression =>
-       IsEmulator
-        ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};Id=anonymous;Secret=abcdefghijklmnopqrstuvwxyz1234567890;Anonymous=True")
-        : ReferenceExpression.Create($"{Endpoint}");
+    public ReferenceExpression ConnectionStringExpression
+    {
+        get
+        {
+            var baseConnectionString = IsEmulator
+                ? ReferenceExpression.Create($"Endpoint={EmulatorEndpoint.Property(EndpointProperty.Url)};Id=anonymous;Secret=abcdefghijklmnopqrstuvwxyz1234567890;Anonymous=True")
+                : ReferenceExpression.Create($"{Endpoint}");
+
+            // Check if refresh configuration is present
+            var refreshAnnotation = this.TryGetLastAnnotation<AzureAppConfigurationRefreshAnnotation>(out var annotation)
+                ? annotation
+                : null;
+
+            if (refreshAnnotation is not null)
+            {
+                var refreshKey = refreshAnnotation.RefreshKey;
+                var refreshInterval = refreshAnnotation.RefreshIntervalInSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                return ReferenceExpression.Create($"{baseConnectionString};RefreshKey={refreshKey};RefreshInterval={refreshInterval}");
+            }
+
+            return baseConnectionString;
+        }
+    }
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

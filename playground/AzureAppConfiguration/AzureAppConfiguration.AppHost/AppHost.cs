@@ -8,7 +8,8 @@ var appConfig =
     .RunAsEmulator(emulator =>
     {
         emulator.WithDataBindMount();
-    });
+    })
+    .WithRefreshKey("Message", 10);
 
 builder.AddProject<Projects.AzureAppConfiguration_Web>("web")
     .WithReference(appConfig);
