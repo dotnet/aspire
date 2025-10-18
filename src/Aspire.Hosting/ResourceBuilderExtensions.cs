@@ -668,15 +668,19 @@ public static class ResourceBuilderExtensions
         {
             builder.WithEnvironment(async context =>
             {
-                string envVarName;
+                string discoveryEnvVarName;
+                string endpointEnvVarName;
+
                 if (context.ExecutionContext.IsPublishMode)
                 {
                     // In publish mode we can't read the parameter value to get the scheme so use 'default'
-                    envVarName = $"services__{externalService.Resource.Name}__default__0";
+                    discoveryEnvVarName = $"services__{externalService.Resource.Name}__default__0";
+                    endpointEnvVarName = externalService.Resource.Name.ToUpperInvariant();
                 }
                 else if (ExternalServiceResource.UrlIsValidForExternalService(await externalService.Resource.UrlParameter.GetValueAsync(context.CancellationToken).ConfigureAwait(false), out var uri, out var message))
                 {
-                    envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                    discoveryEnvVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                    endpointEnvVarName = $"{externalService.Resource.Name.ToUpperInvariant()}_{uri.Scheme.ToUpperInvariant()}";
                 }
                 else
                 {
@@ -685,13 +689,12 @@ public static class ResourceBuilderExtensions
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
                 {
-                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                    context.EnvironmentVariables[discoveryEnvVarName] = externalService.Resource.UrlParameter;
                 }
 
                 if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
                 {
-                    envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
-                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                    context.EnvironmentVariables[endpointEnvVarName] = externalService.Resource.UrlParameter;
                 }
             });
         }
