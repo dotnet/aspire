@@ -67,7 +67,7 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
     {
         var resource = endpointReference.Resource;
-        return ReferenceExpression.Create($"{resource.Name.ToLower()}-{WebSiteSuffix}.azurewebsites.net");
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
     }
 
     /// <inheritdoc/>
