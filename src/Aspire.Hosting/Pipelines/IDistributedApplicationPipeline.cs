@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -22,7 +21,7 @@ public interface IDistributedApplicationPipeline
     /// <param name="dependsOn">The name of the step this step depends on, or a list of step names.</param>
     /// <param name="requiredBy">The name of the step that requires this step, or a list of step names.</param>
     void AddStep(string name,
-                 Func<DeployingContext, Task> action,
+                 Func<PipelineStepContext, Task> action,
                  object? dependsOn = null,
                  object? requiredBy = null);
 
@@ -35,7 +34,7 @@ public interface IDistributedApplicationPipeline
     /// <summary>
     /// Executes all steps in the pipeline in dependency order.
     /// </summary>
-    /// <param name="context">The deploying context for the execution.</param>
+    /// <param name="context">The pipeline context for the execution.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    Task ExecuteAsync(DeployingContext context);
+    Task ExecuteAsync(PipelineContext context);
 }

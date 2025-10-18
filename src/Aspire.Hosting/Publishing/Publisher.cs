@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 internal class Publisher(
-    IPublishingActivityReporter progressReporter,
+    IPipelineActivityReporter progressReporter,
     ILogger<Publisher> logger,
     IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,
@@ -155,7 +155,7 @@ internal class Publisher(
             var parameterProcessor = serviceProvider.GetRequiredService<ParameterProcessor>();
             await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
-            var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
+            var deployingContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
                 Path.GetFullPath(options.Value.OutputPath) : null);
 
             // Execute the pipeline - it will collect steps from PipelineStepAnnotation on resources

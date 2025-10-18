@@ -3,13 +3,13 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Interface for reporting publishing activities.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IPublishingActivityReporter
+public interface IPipelineActivityReporter
 {
     /// <summary>
     /// Creates a new publishing step with the specified title.
@@ -17,7 +17,7 @@ public interface IPublishingActivityReporter
     /// <param name="title">The title of the publishing step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The publishing step</returns>
-    Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default);
+    Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Signals that the entire publishing process has completed.

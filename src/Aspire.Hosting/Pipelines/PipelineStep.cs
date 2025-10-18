@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -22,7 +21,7 @@ public class PipelineStep
     /// <summary>
     /// Gets or initializes the action to execute for this step.
     /// </summary>
-    public required Func<DeployingContext, Task> Action { get; init; }
+    public required Func<PipelineStepContext, Task> Action { get; init; }
 
     /// <summary>
     /// Gets the list of step names that this step depends on.
