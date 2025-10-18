@@ -585,13 +585,65 @@ function Expand-AspireCliArchive {
                 throw "tar command not found. Please install tar to extract tar.gz files."
             }
 
-            $currentLocation = Get-Location
-            try {
-                Set-Location $DestinationPath
-                & tar -xzf $ArchiveFile
+            # For Linux archives, detect structure (new: aspire/aspire, old: aspire in root)
+            if ($OS -eq "linux" -or $OS -eq "linux-musl") {
+                # Create a temporary directory for extraction
+                $tempExtractDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString("N").Substring(0, 8))
+                New-Item -ItemType Directory -Path $tempExtractDir -Force | Out-Null
+                
+                try {
+                    # Extract to temporary directory
+                    $currentLocation = Get-Location
+                    try {
+                        Set-Location $tempExtractDir
+                        & tar -xzf $ArchiveFile
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "tar command failed with exit code $LASTEXITCODE"
+                        }
+                    }
+                    finally {
+                        Set-Location $currentLocation
+                    }
+                    
+                    # Check for new structure (aspire/aspire) first, then fall back to old structure (aspire in root)
+                    $newStructureBinary = Join-Path $tempExtractDir "aspire" "aspire"
+                    $oldStructureBinary = Join-Path $tempExtractDir "aspire"
+                    $targetBinary = Join-Path $DestinationPath "aspire"
+                    
+                    if (Test-Path $newStructureBinary) {
+                        # New structure: binary is in aspire/ subdirectory
+                        Write-Message "Detected new archive structure (aspire/aspire)" -Level Verbose
+                        Move-Item -Path $newStructureBinary -Destination $targetBinary -Force
+                    }
+                    elseif (Test-Path $oldStructureBinary) {
+                        # Old structure: binary is in root
+                        Write-Message "Detected old archive structure (aspire in root)" -Level Verbose
+                        Move-Item -Path $oldStructureBinary -Destination $targetBinary -Force
+                    }
+                    else {
+                        throw "Expected aspire binary not found in archive (checked aspire/aspire and aspire)"
+                    }
+                }
+                finally {
+                    # Clean up temporary directory
+                    if (Test-Path $tempExtractDir) {
+                        Remove-Item $tempExtractDir -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+                }
             }
-            finally {
-                Set-Location $currentLocation
+            else {
+                # For other Unix systems (macOS), extract directly as before
+                $currentLocation = Get-Location
+                try {
+                    Set-Location $DestinationPath
+                    & tar -xzf $ArchiveFile
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "tar command failed with exit code $LASTEXITCODE"
+                    }
+                }
+                finally {
+                    Set-Location $currentLocation
+                }
             }
         }
 
