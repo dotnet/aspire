@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Spectre.Console;
 
 namespace Aspire.Cli.Utils;
@@ -387,14 +388,21 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase,
-    // so we just pass them through for AnsiConsole.MarkupLine to render.
-    // This method is kept for consistency but now just returns the input as-is since
-    // the conversion is already done.
-    private static string HighlightMessage(string message)
+    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase.
+    // When interactive output is not supported, we need to convert Spectre link markup
+    // back to plain text since clickable links won't work. Show the URL for accessibility.
+    private string HighlightMessage(string message)
     {
-        // Messages have already been converted from Markdown to Spectre markup,
-        // so we can pass them through directly to AnsiConsole.MarkupLine
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            // Convert Spectre link markup [cyan][link=url]text[/][/] to show URL
+            // Pattern matches: [cyan][link=URL]TEXT[/][/] and replaces with URL
+            return Regex.Replace(
+                message,
+                @"\[cyan\]\[link=([^\]]+)\]([^\[]+)\[/\]\[/\]",
+                "$1");
+        }
+
         return message;
     }
 

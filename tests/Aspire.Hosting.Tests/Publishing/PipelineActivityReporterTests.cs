@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREINTERACTION001
 
+using System.IO.Pipelines;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
 using Microsoft.AspNetCore.InternalTesting;
@@ -861,6 +862,181 @@ public class PublishingActivityReporterTests
         Assert.Equal(markdownCompletionMessage, activity.Data.CompletionMessage);
     }
 
+    [Fact]
+    public async Task TaskCompletionMessage_HandlesMultipleLinksWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        var markdownWithMultipleLinks = "Visit [cyan][link=https://portal.azure.com]Azure Portal[/][/] and [cyan][link=https://github.com]GitHub[/][/] for more info.";
+
+        // Act
+        await task.CompleteAsync(markdownWithMultipleLinks, cancellationToken: CancellationToken.None);
+
+        // Assert - verify that markdown with links is preserved in activity data
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.CompletionMessage);
+        Assert.Equal("Visit https://portal.azure.com and https://github.com for more info.", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task StepStatusText_RendersUrlsWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var statusTextWithLinks = "Deploying to [cyan][link=https://portal.azure.com/resourceGroups/rg-test]Azure Resource Group[/][/]";
+
+        // Act
+        _ = await reporter.CreateStepAsync(statusTextWithLinks, CancellationToken.None);
+
+        // Assert - verify that markdown with links is preserved in activity data
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(statusTextWithLinks, activity.Data.StatusText);
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.StatusText);
+        Assert.Equal("Deploying to https://portal.azure.com/resourceGroups/rg-test", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task TaskStatusText_RendersUrlsWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+
+        // Clear step creation activity
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        var taskStatusWithLinks = "Publishing to [cyan][link=https://myregistry.azurecr.io]Container Registry[/][/]";
+
+        // Act
+        _ = await step.CreateTaskAsync(taskStatusWithLinks, CancellationToken.None);
+
+        // Assert - verify that markdown with links is preserved in activity data
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal(taskStatusWithLinks, activity.Data.StatusText);
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.StatusText);
+        Assert.Equal("Publishing to https://myregistry.azurecr.io", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task TaskUpdateStatusAsync_RendersUrlsWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Initial Task", CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        var updatedStatusWithLinks = "Updated: Access your app at [cyan][link=https://myapp.azurecontainerapps.io]Container App URL[/][/]";
+
+        // Act
+        await task.UpdateStatusAsync(updatedStatusWithLinks, CancellationToken.None);
+
+        // Assert - verify that markdown with links is preserved in activity data
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal(updatedStatusWithLinks, activity.Data.StatusText);
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.StatusText);
+        Assert.Equal("Updated: Access your app at https://myapp.azurecontainerapps.io", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task TaskCompletionMessage_HandlesComplexUrlsWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        var markdownWithComplexUrl = "Access the [cyan][link=https://portal.azure.com/subscriptions/12345/resourceGroups/rg-test/providers/Microsoft.App/containerApps/myapp]Azure Container App[/][/] deployment.";
+
+        // Act
+        await task.CompleteAsync(markdownWithComplexUrl, cancellationToken: CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.CompletionMessage);
+        Assert.Equal("Access the https://portal.azure.com/subscriptions/12345/resourceGroups/rg-test/providers/Microsoft.App/containerApps/myapp deployment.", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task TaskCompletionMessage_HandlesEmptyMessageWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        var emptyMessage = "";
+
+        // Act
+        await task.CompleteAsync(emptyMessage, cancellationToken: CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.CompletionMessage);
+        Assert.Equal("", nonInteractiveMessage);
+    }
+
+    [Fact]
+    public async Task TaskCompletionMessage_HandlesMessageWithoutLinksWhenInteractiveOutputDisabled()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        var messageWithoutLinks = "This is a plain message without any links.";
+
+        // Act
+        await task.CompleteAsync(messageWithoutLinks, cancellationToken: CancellationToken.None);
+
+        // Assert
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+
+        // Simulate CLI processing for non-interactive output
+        var nonInteractiveMessage = SimulateNonInteractiveProcessing(activity.Data.CompletionMessage);
+        Assert.Equal(messageWithoutLinks, nonInteractiveMessage);
+    }
+
     private PipelineActivityReporter CreatePublishingReporter()
     {
         return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
@@ -875,5 +1051,23 @@ public class PublishingActivityReporterTests
         var logger = provider.GetRequiredService<ILogger<InteractionService>>();
         var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
         return new InteractionService(logger, new DistributedApplicationOptions(), provider, configuration);
+    }
+
+    /// <summary>
+    /// Simulates how ConsoleActivityLogger processes messages for non-interactive output.
+    /// Converts Spectre link markup to show URLs when interactive output is not supported.
+    /// </summary>
+    private static string SimulateNonInteractiveProcessing(string? message)
+    {
+        if (string.IsNullOrEmpty(message))
+        {
+            return string.Empty;
+        }
+
+        // This mimics the behavior of ConsoleActivityLogger.HighlightMessage when SupportsInteractiveOutput is false
+        return System.Text.RegularExpressions.Regex.Replace(
+            message,
+            @"\[cyan\]\[link=([^\]]+)\]([^\[]+)\[/\]\[/\]",
+            "$1");
     }
 }
