@@ -75,6 +75,12 @@ namespace Aspire.Cli.Resources {
             }
         }
 
+        public static string AspirePyStarter_Description {
+            get {
+                return ResourceManager.GetString("AspirePyStarter_Description", resourceCulture);
+            }
+        }
+        
         public static string AspireAppHostSingleFile_Description {
             get {
                 return ResourceManager.GetString("AspireAppHostSingleFile_Description", resourceCulture);

@@ -132,6 +132,9 @@
   <data name="AspireServiceDefaults_Description" xml:space="preserve">
     <value>Service defaults</value>
   </data>
+  <data name="AspirePyStarter_Description" xml:space="preserve">
+    <value>Python and JavaScript starter (experimental)</value>
+  </data>
   <data name="AspireAppHostSingleFile_Description" xml:space="preserve">
     <value>Single-file AppHost (experimental)</value>
   </data>
