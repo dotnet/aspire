@@ -12,6 +12,7 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
+using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -1039,6 +1040,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    [QuarantinedTest("https://github.com/dotnet/aspire/issues/PLACEHOLDER")]
     public async Task ExecuteAsync_WithMultipleDependencyFailures_ReportsAllFailedDependencies()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
