@@ -16,26 +16,6 @@ In your AppHost project, install the .NET Aspire Azure App Service Hosting libra
 dotnet add package Aspire.Hosting.Azure.AppService
 ```
 
-## Configure Azure Provisioning for local development
-
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
-for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
-to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
-automatically.
-
-```json
-{
-    "Azure": {
-      "SubscriptionId": "<your subscription id>",
-      "ResourceGroupPrefix": "<prefix for the resource group>",
-      "Location": "<azure location>"
-    }
-}
-```
-
-> NOTE: Developers must have Owner access to the target subscription so that role assignments
-> can be configured for the provisioned resources.
-
 ## Usage example
 
 In the _AppHost.cs_ file of `AppHost`, add an Azure App Service Environment and publish your project as an Azure App Service website:
@@ -91,11 +71,11 @@ The Azure App Service Environment resource creates the underlying infrastructure
 var appServiceEnvironment = builder.AddAzureAppServiceEnvironment("env");
 ```
 
-By default, the Aspire Dashboard is included in the App Service Environment. To disable the dashboard:
+By default, the Aspire Dashboard is included in the App Service Environment. To disable the dashboard, use the `WithDashboard` extension method:
 
 ```csharp
-var appServiceEnvironment = builder.AddAzureAppServiceEnvironment("env");
-appServiceEnvironment.Resource.EnableDashboard = false;
+var appServiceEnvironment = builder.AddAzureAppServiceEnvironment("env")
+    .WithDashboard(enable: false);
 ```
 
 ## Additional documentation
