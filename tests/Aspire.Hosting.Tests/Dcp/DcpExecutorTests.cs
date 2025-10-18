@@ -2014,12 +2014,14 @@ public class DcpExecutorTests
 
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
+        var testHostEnvironment = hostEnvironment ?? new TestHostEnvironment();
+        var testAppHostEnvironment = new TestAppHostEnvironment(configuration, testHostEnvironment);
 
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
             distributedAppModel,
-            hostEnvironment ?? new TestHostEnvironment(),
+            testAppHostEnvironment,
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
@@ -2031,7 +2033,7 @@ public class DcpExecutorTests
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
-            new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
+            new DcpNameGenerator(testAppHostEnvironment, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
             new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance));

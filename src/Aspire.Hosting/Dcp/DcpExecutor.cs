@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
+#pragma warning disable IDE0005 // IConfiguration is used in this file
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
