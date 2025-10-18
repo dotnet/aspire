@@ -58,6 +58,14 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 _ => { },
                 ApplySingleFileTemplate
                 );
+
+            yield return new CallbackTemplate(
+                "aspire-py-starter",
+                TemplatingStrings.AspirePyStarter_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplySingleFileTemplate
+                );
         }
 
         if (showAllTemplates)
