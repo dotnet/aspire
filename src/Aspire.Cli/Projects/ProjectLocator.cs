@@ -325,6 +325,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
 
+            var supportedProjectFileExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
             // Handle explicit apphost.cs files
             if (projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
             {
@@ -345,8 +346,8 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
                 }
             }
-            // Handle .csproj files
-            else if (projectFile.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
+            // Handle .cs|fs|vbproj files
+            else if (supportedProjectFileExtensions.Contains(projectFile.Extension))
             {
                 logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
                 return projectFile;

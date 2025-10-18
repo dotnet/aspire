@@ -244,12 +244,15 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         Assert.Equal("No project file found.", ex.Message);
     }
 
-    [Fact]
-    public async Task UseOrFindAppHostProjectFileReturnsExplicitProjectIfExistsAndProvided()
+    [Theory]
+    [InlineData(".csproj")]
+    [InlineData(".fsproj")]
+    [InlineData(".vbproj")]
+    public async Task UseOrFindAppHostProjectFileReturnsExplicitProjectIfExistsAndProvided(string projectFileExtension)
     {
         var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
-        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, $"AppHost{projectFileExtension}"));
         await File.WriteAllTextAsync(projectFile.FullName, "Not a real project file.");
 
         var runner = new TestDotNetCliRunner();
@@ -806,7 +809,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-        
+
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -868,7 +871,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-        
+
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -973,7 +976,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-        
+
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
