@@ -59,7 +59,7 @@ public sealed class AzureEnvironmentResource : Resource
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
 
-        Annotations.Add(new PipelineStepAnnotation(() =>
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
             ProvisioningContext? provisioningContext = null;
 

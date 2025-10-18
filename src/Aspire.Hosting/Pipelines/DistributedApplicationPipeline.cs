@@ -128,7 +128,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             foreach (var annotation in annotations)
             {
-                foreach (var step in annotation.CreateSteps())
+                var factoryContext = new PipelineStepFactoryContext
+                {
+                    PipelineContext = context,
+                    Resource = resource
+                };
+
+                foreach (var step in annotation.CreateSteps(factoryContext))
                 {
                     yield return step;
                 }
