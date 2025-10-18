@@ -1187,8 +1187,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         foreach (var group in groups)
         {
             var groupList = group.ToList();
-            // BUG FIX: Don't use Task.Run for parallel execution - it causes race conditions
-            // where only one of multiple executables gets created
+            // Materialize the group to avoid issues with deferred execution of IGrouping.
+            // Execute directly without Task.Run to maintain execution context and avoid subtle
+            // timing/synchronization issues. Concurrency is still achieved via Task.WhenAll.
             tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, groupList, cancellationToken));
         }
 
