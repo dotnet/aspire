@@ -1632,10 +1632,17 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        var builder1 = builder.AddResource(debuggableExecutable);
+        Assert.Same(debuggableExecutable, builder1.Resource);
+        builder1.WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
-        builder.AddResource(nonDebuggableExecutable);
+        var builder2 = builder.AddResource(nonDebuggableExecutable);
+        Assert.Same(nonDebuggableExecutable, builder2.Resource);
+        Assert.NotSame(debuggableExecutable, nonDebuggableExecutable);
+        
+        // Verify both resources are in the builder
+        Assert.Equal(2, builder.Resources.Count);
 
         // Simulate no extension endpoint (no extension mode) - this means no debug session port
         var configDict = new Dictionary<string, string?>
@@ -1649,24 +1656,10 @@ public class DcpExecutorTests
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         
-        // Debug: Check what resources exist in the model
-        var allResources = distributedAppModel.Resources.ToList();
-        Assert.Equal(2, allResources.Count); // Verify we have 2 total resources
-        
-        // Check what types the resources are
-        var resource1 = allResources[0];
-        var resource2 = allResources[1];
-        Assert.True(resource1 is ExecutableResource, $"Resource1 '{resource1.Name}' is of type {resource1.GetType().FullName}");
-        Assert.True(resource2 is ExecutableResource, $"Resource2 '{resource2.Name}' is of type {resource2.GetType().FullName}");
-        
-        // Try different ways to get ExecutableResources
-        var executableResources1 = distributedAppModel.Resources.OfType<ExecutableResource>().ToList();
-        var executableResources2 = distributedAppModel.GetExecutableResources().ToList();
-        var executableResources3 = allResources.OfType<ExecutableResource>().ToList();
-        
-        Assert.Equal(2, executableResources1.Count);
-        Assert.Equal(2, executableResources2.Count);
-        Assert.Equal(2, executableResources3.Count);
+        // Check what GetExecutableResources returns before RunApplicationAsync
+        var executablesBeforeRun = distributedAppModel.GetExecutableResources().ToList();
+        var execNames = string.Join(", ", executablesBeforeRun.Select(e => e.Name));
+        Assert.True(executablesBeforeRun.Count == 2, $"Expected 2 executables in model before run, got {executablesBeforeRun.Count}. Names: [{execNames}]");
         
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
 
@@ -1674,7 +1667,11 @@ public class DcpExecutorTests
         await appExecutor.RunApplicationAsync();
 
         // Assert
+        var allCreatedResources = kubernetesService.CreatedResources.ToList();
         var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
+        Assert.True(dcpExes.Count == 2, $"Expected 2 executables, got {dcpExes.Count}. " +
+            $"Executable names: [{string.Join(", ", dcpExes.Select(e => e.AppModelResourceName ?? "(null)"))}]. " +
+            $"Total created resources: {allCreatedResources.Count}");
         Assert.Equal(2, dcpExes.Count);
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
