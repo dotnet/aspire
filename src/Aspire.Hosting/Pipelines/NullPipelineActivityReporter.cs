@@ -14,9 +14,9 @@ namespace Aspire.Hosting.Pipelines;
 public sealed class NullPublishingActivityReporter : IPipelineActivityReporter
 {
     /// <inheritdoc />
-    public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+    public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IPublishingStep>(new NullPublishingStep());
+        return Task.FromResult<IReportingStep>(new NullPublishingStep());
     }
 
     /// <inheritdoc />
@@ -27,11 +27,11 @@ public sealed class NullPublishingActivityReporter : IPipelineActivityReporter
 }
 
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class NullPublishingStep : IPublishingStep
+internal sealed class NullPublishingStep : IReportingStep
 {
-    public Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+    public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult<IPublishingTask>(new NullPublishingTask());
+        return Task.FromResult<IReportingTask>(new NullPublishingTask());
     }
 
     public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
@@ -46,7 +46,7 @@ internal sealed class NullPublishingStep : IPublishingStep
 }
 
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class NullPublishingTask : IPublishingTask
+internal sealed class NullPublishingTask : IReportingTask
 {
     public Task UpdateAsync(string statusText, CancellationToken cancellationToken = default)
     {

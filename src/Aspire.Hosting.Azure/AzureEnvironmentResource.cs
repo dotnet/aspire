@@ -457,7 +457,7 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task AuthenticateToAcrHelper(IPublishingTask loginTask, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
+    private static async Task AuthenticateToAcrHelper(IReportingTask loginTask, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
     {
         var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
         try

@@ -12,11 +12,11 @@ namespace Aspire.Hosting.Pipelines;
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class PublishingStep : IPublishingStep
+internal sealed class ReportingStep : IReportingStep
 {
-    private readonly ConcurrentDictionary<string, PublishingTask> _tasks = new();
+    private readonly ConcurrentDictionary<string, ReportingTask> _tasks = new();
 
-    internal PublishingStep(PipelineActivityReporter reporter, string id, string title)
+    internal ReportingStep(PipelineActivityReporter reporter, string id, string title)
     {
         Reporter = reporter;
         Id = id;
@@ -53,7 +53,7 @@ internal sealed class PublishingStep : IPublishingStep
     /// <summary>
     /// The collection of child tasks belonging to this step.
     /// </summary>
-    public IReadOnlyDictionary<string, PublishingTask> Tasks => _tasks;
+    public IReadOnlyDictionary<string, ReportingTask> Tasks => _tasks;
 
     /// <summary>
     /// The progress reporter that created this step.
@@ -63,7 +63,7 @@ internal sealed class PublishingStep : IPublishingStep
     /// <summary>
     /// Adds a task to this step.
     /// </summary>
-    internal void AddTask(PublishingTask task)
+    internal void AddTask(ReportingTask task)
     {
         _tasks.TryAdd(task.Id, task);
     }
@@ -95,7 +95,7 @@ internal sealed class PublishingStep : IPublishingStep
     /// <param name="statusText">The initial status text for the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
-    public async Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+    public async Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
     {
         if (Reporter is null)
         {

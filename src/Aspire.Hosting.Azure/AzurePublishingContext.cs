@@ -118,7 +118,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IReportingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)

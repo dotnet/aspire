@@ -17,7 +17,7 @@ public interface IPipelineActivityReporter
     /// <param name="title">The title of the publishing step.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The publishing step</returns>
-    Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default);
+    Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Signals that the entire publishing process has completed.

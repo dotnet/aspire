@@ -195,7 +195,7 @@ internal sealed class ResourceContainerImageBuilder(
         return BuildImageAsync(step: null, resource, options, cancellationToken);
     }
 
-    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildImageAsync(IReportingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
@@ -239,7 +239,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -346,7 +346,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -459,8 +459,8 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<IPublishingTask?> CreateTaskAsync(
-        IPublishingStep? step,
+    private static async Task<IReportingTask?> CreateTaskAsync(
+        IReportingStep? step,
         string description,
         CancellationToken cancellationToken)
     {

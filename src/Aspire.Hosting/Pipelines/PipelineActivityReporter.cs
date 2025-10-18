@@ -16,7 +16,7 @@ namespace Aspire.Hosting.Pipelines;
 
 internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, PublishingStep> _steps = new();
+    private readonly ConcurrentDictionary<string, ReportingStep> _steps = new();
     private readonly InteractionService _interactionService;
     private readonly ILogger<PipelineActivityReporter> _logger;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
@@ -38,9 +38,9 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         _ => CompletionStates.InProgress
     };
 
-    public async Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+    public async Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
     {
-        var step = new PublishingStep(this, Guid.NewGuid().ToString(), title);
+        var step = new ReportingStep(this, Guid.NewGuid().ToString(), title);
         _steps.TryAdd(step.Id, step);
 
         var state = new PublishingActivity
@@ -59,7 +59,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return step;
     }
 
-    public async Task<PublishingTask> CreateTaskAsync(PublishingStep step, string statusText, CancellationToken cancellationToken)
+    public async Task<ReportingTask> CreateTaskAsync(ReportingStep step, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(step.Id, out var parentStep))
         {
@@ -74,7 +74,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
             }
         }
 
-        var task = new PublishingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
+        var task = new ReportingTask(Guid.NewGuid().ToString(), step.Id, statusText, parentStep);
 
         // Add task to parent step
         parentStep.AddTask(task);
@@ -95,7 +95,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         return task;
     }
 
-    public async Task CompleteStepAsync(PublishingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken)
+    public async Task CompleteStepAsync(ReportingStep step, string completionText, CompletionState completionState, CancellationToken cancellationToken)
     {
         lock (step)
         {
@@ -124,7 +124,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task UpdateTaskAsync(PublishingTask task, string statusText, CancellationToken cancellationToken)
+    public async Task UpdateTaskAsync(ReportingTask task, string statusText, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
@@ -156,7 +156,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task CompleteTaskAsync(PublishingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
+    public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))
         {
