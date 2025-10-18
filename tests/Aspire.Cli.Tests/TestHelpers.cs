@@ -11,6 +11,6 @@ internal static class TestHelpers
     public static ICliHostEnvironment CreateInteractiveHostEnvironment()
     {
         var configuration = new ConfigurationBuilder().Build();
-        return new CliHostEnvironment(configuration);
+        return new CliHostEnvironment(configuration, nonInteractive: false);
     }
 }

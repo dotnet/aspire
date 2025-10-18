@@ -15,7 +15,7 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.True(env.SupportsInteractiveInput);
@@ -28,7 +28,7 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.True(env.SupportsInteractiveOutput);
@@ -41,7 +41,7 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.True(env.SupportsAnsi);
@@ -61,7 +61,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveInput);
@@ -81,7 +81,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
@@ -104,7 +104,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveInput);
@@ -126,7 +126,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
@@ -147,7 +147,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.True(env.SupportsAnsi);
@@ -165,9 +165,48 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
         Assert.False(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsFalse_WhenNonInteractiveTrue()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        Assert.False(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveOutput_ReturnsFalse_WhenNonInteractiveTrue()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        Assert.False(env.SupportsInteractiveOutput);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenNonInteractiveTrue()
+    {
+        // Arrange - ANSI should still be supported even in non-interactive mode
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
     }
 }

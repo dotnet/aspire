@@ -63,15 +63,6 @@ public class Program
         };
         settings.Configuration.AddEnvironmentVariables();
 
-        // Add --non-interactive flag to configuration if present
-        if (nonInteractive)
-        {
-            settings.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ASPIRE_NON_INTERACTIVE"] = "true"
-            });
-        }
-
         var builder = Host.CreateEmptyApplicationBuilder(settings);
 
         // Set up settings with appropriate paths.
@@ -121,7 +112,11 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
-        builder.Services.AddSingleton<ICliHostEnvironment, CliHostEnvironment>();
+        builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            return new CliHostEnvironment(configuration, nonInteractive);
+        });
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();

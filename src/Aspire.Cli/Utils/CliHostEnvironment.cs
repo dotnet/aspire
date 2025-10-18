@@ -29,22 +29,39 @@ internal interface ICliHostEnvironment
 /// <summary>
 /// Default implementation that detects CLI host environment capabilities from configuration.
 /// </summary>
-internal sealed class CliHostEnvironment(IConfiguration configuration) : ICliHostEnvironment
+internal sealed class CliHostEnvironment : ICliHostEnvironment
 {
     /// <summary>
     /// Gets whether the host supports interactive input (e.g., prompts, user input).
     /// </summary>
-    public bool SupportsInteractiveInput { get; } = DetectInteractiveInput(configuration);
+    public bool SupportsInteractiveInput { get; }
 
     /// <summary>
     /// Gets whether the host supports interactive output (e.g., spinners, progress bars).
     /// </summary>
-    public bool SupportsInteractiveOutput { get; } = DetectInteractiveOutput(configuration);
+    public bool SupportsInteractiveOutput { get; }
 
     /// <summary>
     /// Gets whether the host supports colors and ANSI codes.
     /// </summary>
-    public bool SupportsAnsi { get; } = DetectAnsiSupport(configuration);
+    public bool SupportsAnsi { get; }
+
+    public CliHostEnvironment(IConfiguration configuration, bool nonInteractive)
+    {
+        // If --non-interactive is explicitly set, disable interactive input and output
+        if (nonInteractive)
+        {
+            SupportsInteractiveInput = false;
+            SupportsInteractiveOutput = false;
+        }
+        else
+        {
+            SupportsInteractiveInput = DetectInteractiveInput(configuration);
+            SupportsInteractiveOutput = DetectInteractiveOutput(configuration);
+        }
+
+        SupportsAnsi = DetectAnsiSupport(configuration);
+    }
 
     private static bool DetectInteractiveInput(IConfiguration configuration)
     {
