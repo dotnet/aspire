@@ -21,7 +21,7 @@ public static class PipelineStepExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="factory">A factory function that creates the pipeline step.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStep<T>(
+    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, PipelineStep> factory) where T : IResource
     {
@@ -38,7 +38,7 @@ public static class PipelineStepExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="factory">An async factory function that creates the pipeline step.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStep<T>(
+    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, Task<PipelineStep>> factory) where T : IResource
     {
@@ -55,7 +55,7 @@ public static class PipelineStepExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="factory">A factory function that creates multiple pipeline steps.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStep<T>(
+    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory) where T : IResource
     {
@@ -72,7 +72,7 @@ public static class PipelineStepExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="factory">An async factory function that creates multiple pipeline steps.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelineStep<T>(
+    public static IResourceBuilder<T> WithPipelineStepFactory<T>(
         this IResourceBuilder<T> builder,
         Func<PipelineStepFactoryContext, Task<IEnumerable<PipelineStep>>> factory) where T : IResource
     {
