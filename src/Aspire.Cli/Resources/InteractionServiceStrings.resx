@@ -214,4 +214,7 @@
   <data name="CustomChoiceLabel" xml:space="preserve">
     <value>Other (specify next)</value>
   </data>
+  <data name="InteractiveInputNotSupported" xml:space="preserve">
+    <value>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</value>
+  </data>
 </root>

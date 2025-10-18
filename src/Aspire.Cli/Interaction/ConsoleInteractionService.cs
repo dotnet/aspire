@@ -62,6 +62,12 @@ internal class ConsoleInteractionService : IInteractionService
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         var prompt = new TextPrompt<string>(promptText)
         {
             IsSecret = isSecret,
@@ -89,6 +95,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
@@ -110,6 +121,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
 
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
@@ -206,6 +222,11 @@ internal class ConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 

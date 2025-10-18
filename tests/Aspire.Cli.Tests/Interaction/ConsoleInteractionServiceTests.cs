@@ -221,4 +221,62 @@ public class ConsoleInteractionServiceTests
         Assert.Contains(statusText, outputString);
         // In debug mode, should use DisplaySubtleMessage instead of spinner
     }
+
+    [Fact]
+    public async Task PromptForStringAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForStringAsync("Enter value:", null, null, false, false, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task PromptForSelectionAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+        var choices = new[] { "option1", "option2" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task PromptForSelectionsAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+        var choices = new[] { "option1", "option2" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.ConfirmAsync("Confirm?", true, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
 }
