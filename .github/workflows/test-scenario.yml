@@ -100,22 +100,23 @@ jobs:
 
           # Build the issue body with context from the source PR and the prompt
           ISSUE_TITLE="Test Scenario: ${SCENARIO_NAME}"
-          ISSUE_BODY=$(cat <<EOFBODY
-          ## Test Scenario Request
-
-          **Scenario:** ${SCENARIO_NAME}
-          **Source PR:** ${SOURCE_PR_URL}
-          **Source Repository:** ${SOURCE_REPO}
-
-          ---
-
-          $(cat "$PROMPT_FILE")
-
-          ---
-
-          This issue was created automatically from PR #${SOURCE_PR_NUMBER} in ${SOURCE_REPO}.
-          EOFBODY
-          )
+          
+          # Create issue body using printf to avoid YAML parsing issues
+          PROMPT_CONTENT=$(cat "$PROMPT_FILE")
+          printf -v ISSUE_BODY '%s\n' \
+            "## Test Scenario Request" \
+            "" \
+            "**Scenario:** ${SCENARIO_NAME}" \
+            "**Source PR:** ${SOURCE_PR_URL}" \
+            "**Source Repository:** ${SOURCE_REPO}" \
+            "" \
+            "---" \
+            "" \
+            "${PROMPT_CONTENT}" \
+            "" \
+            "---" \
+            "" \
+            "This issue was created automatically from PR #${SOURCE_PR_NUMBER} in ${SOURCE_REPO}."
 
           # Create the issue and assign to copilot
           echo "Creating issue with title: $ISSUE_TITLE"
