@@ -281,7 +281,8 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        var deploymentTag = Aspire.Hosting.Utils.DockerImageTagHelpers.SanitizeTag($"aspire-deploy-{timestamp}");
         foreach (var resource in computeResources)
         {
             if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
@@ -289,7 +290,7 @@ public sealed class AzureEnvironmentResource : Resource
                 continue;
             }
             resource.Annotations.Add(
-                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
+                new DeploymentImageTagCallbackAnnotation(ctx => Task.FromResult(deploymentTag)));
         }
 
         await containerImageBuilder.BuildImagesAsync(
