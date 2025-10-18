@@ -954,8 +954,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private void PreparePlainExecutables()
     {
         var modelExecutableResources = _model.GetExecutableResources();
+        var executablesList = modelExecutableResources.ToList(); // Materialize to check count
 
-        foreach (var executable in modelExecutableResources)
+        foreach (var executable in executablesList)
         {
             EnsureRequiredAnnotations(executable);
 
@@ -1111,6 +1112,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         IEnumerable<AppResource> executables,
         CancellationToken cancellationToken)
     {
+        var executablesList = executables.ToList();
+        
         async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
         {
             var resourceLogger = _loggerService.GetLogger(resource);
@@ -1179,10 +1182,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         var tasks = new List<Task>();
-        foreach (var group in executables.GroupBy(e => e.ModelResource))
+        var groups = executablesList.GroupBy(e => e.ModelResource).ToList();
+        
+        foreach (var group in groups)
         {
+            var groupList = group.ToList();
+            var groupKey = group.Key;
+            // Materialize the group with ToList() to avoid issues with deferred execution of IGrouping.
             // Force this to be async so that blocking code does not stop other executables from being created.
-            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(group.Key, group, cancellationToken), cancellationToken));
+            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(groupKey, groupList, cancellationToken), cancellationToken));
         }
 
         return Task.WhenAll(tasks).WaitAsync(cancellationToken);
