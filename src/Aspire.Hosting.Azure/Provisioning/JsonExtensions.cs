@@ -18,12 +18,17 @@ internal static class JsonExtensions
             return node;
         }
 
-        // Create a new node and add it
-        // Note: This method should only be called from within a synchronized context
-        // (e.g., within ProvisioningContext.WithDeploymentState) when multiple threads
-        // may be accessing the same JsonObject concurrently
+        // Create a new node and try to add it
         node = new JsonObject();
-        jsonObj.Add(key, node);
+
+        if (!jsonObj.TryAdd(key, node))
+        {
+            node = jsonObj[key];
+            if (node is null)
+            {
+                throw new InvalidOperationException($"Failed to get or create property '{key}'");
+            }
+        }
 
         return node;
     }
