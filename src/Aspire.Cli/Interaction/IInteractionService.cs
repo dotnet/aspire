@@ -21,6 +21,7 @@ internal interface IInteractionService
     void DisplayMarkdown(string markdown);
     void DisplaySuccess(string message);
     void DisplaySubtleMessage(string message);
+    void DisplaySubtleMessage(string message, bool escapeMarkup);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();

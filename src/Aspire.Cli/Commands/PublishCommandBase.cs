@@ -298,7 +298,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     // New step - log it
                     var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {statusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -307,7 +307,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {statusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -324,17 +324,17 @@ internal abstract class PublishCommandBase : BaseCommand
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
                     var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {statusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
                         var completionMessage = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.CompletionMessage);
-                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {completionMessage}");
+                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {completionMessage}", escapeMarkup: false);
                     }
                 }
                 else
                 {
                     var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {statusText}");
+                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
                 }
             }
         }
@@ -346,7 +346,7 @@ internal abstract class PublishCommandBase : BaseCommand
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
             var statusText = MarkdownToSpectreConverter.ConvertToSpectre(publishingActivity.Data.StatusText);
-            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {statusText}");
+            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");

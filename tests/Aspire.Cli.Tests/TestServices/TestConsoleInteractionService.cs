@@ -84,6 +84,11 @@ internal sealed class TestConsoleInteractionService : IInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
+        DisplaySubtleMessage(message, escapeMarkup: true);
+    }
+
+    public void DisplaySubtleMessage(string message, bool escapeMarkup)
+    {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
 

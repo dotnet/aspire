@@ -232,7 +232,13 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
-        _ansiConsole.MarkupLine($"[dim]{message.EscapeMarkup()}[/]");
+        DisplaySubtleMessage(message, escapeMarkup: true);
+    }
+
+    public void DisplaySubtleMessage(string message, bool escapeMarkup)
+    {
+        var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
+        _ansiConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()

@@ -248,9 +248,14 @@ internal class ExtensionInteractionService : IExtensionInteractionService
 
     public void DisplaySubtleMessage(string message)
     {
+        DisplaySubtleMessage(message, escapeMarkup: true);
+    }
+
+    public void DisplaySubtleMessage(string message, bool escapeMarkup)
+    {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySubtleMessage(message);
+        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
     }
 
     public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
