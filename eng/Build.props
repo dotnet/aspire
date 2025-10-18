@@ -17,9 +17,9 @@
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
   </PropertyGroup>
 
-  <!-- `$(BuildTestsOnly)` allows building only test projects, skipping src, playground,
-        and pack projects. This is useful for reducing disk space usage when only test
-        projects need to be built, such as during test runsheet generation. -->
+  <!-- `$(BuildTestsOnly)` allows building only test projects, skipping the following directories:
+        src, playground, eng/dcppack, and eng/dashboardpack. This is useful for reducing disk space
+        usage when only test projects need to be built, such as during test runsheet generation. -->
   <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(BuildTestsOnly)' != 'true'">
     <!-- Project name validation runs once in the outer build -->
     <ProjectToBuild Include="$(RepoRoot)eng\OuterPreBuild.proj" />
