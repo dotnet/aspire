@@ -202,6 +202,24 @@ public class DockerComposeTests(ITestOutputHelper output)
         await Verify(composeContent, "yaml");
     }
 
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddDockerComposeEnvironment("env");
+
+        var project = builder
+            .AddProject<Projects.ServiceA>("Project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1", endpointReferenceEx.Format);
+        Assert.Empty(endpointReferenceEx.ValueProviders);
+    }
+
     private sealed class MockImageBuilder : IResourceContainerImageBuilder
     {
         public bool BuildImageCalled { get; private set; }
