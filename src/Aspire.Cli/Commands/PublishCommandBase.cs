@@ -297,7 +297,8 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -305,7 +306,8 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -321,15 +323,18 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
+                        var completionMessage = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.CompletionMessage);
+                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", escapeMarkup: false);
                     }
                 }
                 else
                 {
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
                 }
             }
         }
@@ -340,7 +345,8 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+            var statusText = MarkdownToSpectreConverter.ConvertToSpectre(publishingActivity.Data.StatusText);
+            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");
@@ -372,10 +378,11 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     if (!steps.TryGetValue(activity.Data.Id, out var stepInfo))
                     {
+                        var title = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
                         stepInfo = new StepInfo
                         {
                             Id = activity.Data.Id,
-                            Title = activity.Data.StatusText,
+                            Title = title,
                             Number = stepCounter++,
                             StartTime = DateTime.UtcNow,
                             CompletionState = activity.Data.CompletionState
@@ -388,7 +395,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
-                        stepInfo.CompletionText = activity.Data.StatusText;
+                        stepInfo.CompletionText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
                         stepInfo.EndTime = DateTime.UtcNow;
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
@@ -424,24 +431,27 @@ internal abstract class PublishCommandBase : BaseCommand
 
                     if (!tasks.TryGetValue(activity.Data.Id, out var task))
                     {
+                        var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
                         task = new TaskInfo
                         {
                             Id = activity.Data.Id,
-                            StatusText = activity.Data.StatusText,
+                            StatusText = statusText,
                             StartTime = DateTime.UtcNow,
                             CompletionState = activity.Data.CompletionState
                         };
 
                         tasks[activity.Data.Id] = task;
-                        logger.Progress(stepInfo.Id, activity.Data.StatusText);
+                        logger.Progress(stepInfo.Id, statusText);
                     }
 
-                    task.StatusText = activity.Data.StatusText;
+                    task.StatusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
                     task.CompletionState = activity.Data.CompletionState;
 
                     if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
-                        task.CompletionMessage = activity.Data.CompletionMessage;
+                        task.CompletionMessage = !string.IsNullOrEmpty(activity.Data.CompletionMessage)
+                            ? MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.CompletionMessage)
+                            : null;
 
                         var duration = DateTime.UtcNow - task.StartTime;
                         var durationStr = $"({duration.TotalSeconds:F1}s)";

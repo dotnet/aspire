@@ -82,7 +82,7 @@ internal sealed class TestConsoleInteractionService : IInteractionService
         return Task.FromResult(ConfirmCallback != null? ConfirmCallback(promptText, defaultValue) : defaultValue);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }

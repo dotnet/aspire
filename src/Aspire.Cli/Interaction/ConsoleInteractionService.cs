@@ -230,9 +230,10 @@ internal class ConsoleInteractionService : IInteractionService
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
-        _ansiConsole.MarkupLine($"[dim]{message.EscapeMarkup()}[/]");
+        var displayMessage = escapeMarkup ? message.EscapeMarkup() : message;
+        _ansiConsole.MarkupLine($"[dim]{displayMessage}[/]");
     }
 
     public void DisplayEmptyLine()
