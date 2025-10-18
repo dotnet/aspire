@@ -15,7 +15,7 @@ const config = {
     certFile: process.env['HTTPS_CERT_FILE'] ?? '',
     certKeyFile: process.env['HTTPS_CERT_KEY_FILE'] ?? '',
     cacheUrl: process.env['CACHE_URI'] ?? '',
-    apiServer: process.env['services__weatherapi__https__0'] ?? process.env['services__weatherapi__http__0']
+    apiServer: process.env['WEATHERAPI_HTTPS'] ?? process.env['WEATHERAPI_HTTP']
 };
 console.log(`config: ${JSON.stringify(config)}`);
 
