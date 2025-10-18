@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Prázdná aplikace Aspire",
-  "description": "Šablona projektu pro vytvoření prázdné aplikace Aspire.",
+  "name": "Úvodní aplikace Aspire Python",
+  "description": "Šablona projektu pro vytvoření aplikace Aspire se službou API backendového jazyka Python a front-endem JavaScriptu pomocí Vite a React.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

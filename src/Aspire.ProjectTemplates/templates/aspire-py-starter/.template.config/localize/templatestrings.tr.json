@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire Boş Uygulama",
-  "description": "Boş bir Aspire uygulaması oluşturmak için proje şablonu.",
+  "name": "Aspire Python Başlangıç Uygulaması",
+  "description": "Python arka uç API hizmeti ve Vite ve React kullanan bir JavaScript ön ucu ile bir Aspire uygulaması oluşturmak için proje şablonu.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

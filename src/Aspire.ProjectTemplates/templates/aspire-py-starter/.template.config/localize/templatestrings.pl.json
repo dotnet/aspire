@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Pusta aplikacja Aspire",
-  "description": "Szablon projektu służący do tworzenia pustej aplikacji Aspire.",
+  "name": "Aplikacja startowa Python Aspire",
+  "description": "Szablon projektu do tworzenia aplikacji Aspire z usługą interfejsu API zaplecza języka Python i frontendem JavaScript przy użyciu narzędzi Vite i React.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

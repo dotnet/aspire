@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire 빈 앱",
-  "description": "빈 Aspire 앱을 만들기 위한 프로젝트 템플릿입니다.",
+  "name": "Aspire Python 시작 앱",
+  "description": "Python 백엔드 API 서비스와 Vite 및 React를 사용하는 JavaScript 프런트 엔드가 포함된 Aspire 앱을 만들기 위한 프로젝트 템플릿입니다.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

@@ -1,7 +1,7 @@
 ﻿{
   "author": "Майкрософт",
-  "name": "Пустое приложение Aspire",
-  "description": "Шаблон проекта для создания пустого приложения Aspire.",
+  "name": "Начальное приложение Aspire Python",
+  "description": "Шаблон проекта для создания приложения Aspire со службой API серверной части Python и внешним интерфейсом JavaScript с использованием Vite и React.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

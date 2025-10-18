@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire の空のアプリ",
-  "description": "空の Aspire アプリを作成するためのプロジェクト テンプレート。",
+  "name": "Aspire Python スターター アプリ",
+  "description": "Python バックエンド API サービスと Vite および React を使用した JavaScript フロントエンドを含む Aspire アプリを作成するためのプロジェクト テンプレート。",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",

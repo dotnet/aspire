@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Leere Aspire-App",
-  "description": "Eine Projektvorlage zum Erstellen einer leeren Aspire-App.",
+  "name": "Aspire Python Starter-App",
+  "description": "Eine Projektvorlage zum Erstellen einer Aspire-App mit einem Python-Backend-API-Dienst und einem JavaScript-Frontend mit Vite und React.",
   "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
   "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",
