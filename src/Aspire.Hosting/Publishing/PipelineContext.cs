@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.ApplicationModel;
@@ -54,12 +53,4 @@ public sealed class PipelineContext(
     /// Gets the output path for deployment artifacts.
     /// </summary>
     public string? OutputPath { get; } = outputPath;
-
-    /// <summary>
-    /// Gets the publishing step associated with this pipeline context.
-    /// </summary>
-    /// <value>
-    /// The <see cref="IPublishingStep"/> instance that can be used to create tasks and manage the publishing process.
-    /// </value>
-    public IPublishingStep PublishingStep { get; internal set; } = null!;
 }

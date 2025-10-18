@@ -135,7 +135,7 @@ public sealed class AzureEnvironmentResource : Resource
         return publishingContext.WriteModelAsync(context.Model, this);
     }
 
-    private static async Task ValidateAzureCliLoginAsync(PipelineContext context)
+    private static async Task ValidateAzureCliLoginAsync(PipelineStepContext context)
     {
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
@@ -165,7 +165,7 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task<ProvisioningContext> CreateProvisioningContextAsync(PipelineContext context)
+    private static async Task<ProvisioningContext> CreateProvisioningContextAsync(PipelineStepContext context)
     {
         var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
         var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
@@ -188,7 +188,7 @@ public sealed class AzureEnvironmentResource : Resource
         return provisioningContext;
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(PipelineContext context, ProvisioningContext provisioningContext)
+    private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
@@ -268,7 +268,7 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task BuildContainerImagesAsync(PipelineContext context)
+    private static async Task BuildContainerImagesAsync(PipelineStepContext context)
     {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
@@ -301,7 +301,7 @@ public sealed class AzureEnvironmentResource : Resource
             context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task PushContainerImagesAsync(PipelineContext context)
+    private static async Task PushContainerImagesAsync(PipelineStepContext context)
     {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
@@ -337,7 +337,7 @@ public sealed class AzureEnvironmentResource : Resource
             .ConfigureAwait(false);
     }
 
-    private static async Task DeployComputeResourcesAsync(PipelineContext context, ProvisioningContext provisioningContext)
+    private static async Task DeployComputeResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var computeResources = context.Model.GetComputeResources().ToList();
@@ -427,7 +427,7 @@ public sealed class AzureEnvironmentResource : Resource
         return false;
     }
 
-    private static async Task LoginToAllRegistriesAsync(IEnumerable<IContainerRegistry> registries, PipelineContext context, IProcessRunner processRunner, IConfiguration configuration)
+    private static async Task LoginToAllRegistriesAsync(IEnumerable<IContainerRegistry> registries, PipelineStepContext context, IProcessRunner processRunner, IConfiguration configuration)
     {
         var registryList = registries.ToList();
         if (!registryList.Any())
@@ -502,7 +502,7 @@ public sealed class AzureEnvironmentResource : Resource
         return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
     }
 
-    private static async Task PushImagesToAllRegistriesAsync(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, PipelineContext context, IResourceContainerImageBuilder containerImageBuilder)
+    private static async Task PushImagesToAllRegistriesAsync(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, PipelineStepContext context, IResourceContainerImageBuilder containerImageBuilder)
     {
         var allPushTasks = new List<Task>();
 
@@ -663,7 +663,7 @@ public sealed class AzureEnvironmentResource : Resource
         return string.Empty;
     }
 
-    private static async Task PrintDashboardUrlAsync(PipelineContext context)
+    private static async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
         var dashboardUrl = TryGetDashboardUrl(context.Model);
 

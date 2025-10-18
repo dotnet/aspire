@@ -57,7 +57,7 @@ public static class DistributedApplicationPipelineExtensions
     }
 
     private static async Task DeployProjectToAppServiceAsync(
-        PipelineContext context,
+        PipelineStepContext context,
         ProjectResource projectResource,
         AzureAppServiceWebSiteResource websiteResource,
         AzureAppServiceEnvironmentResource appServiceEnvironment,

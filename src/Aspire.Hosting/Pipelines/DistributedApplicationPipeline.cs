@@ -22,7 +22,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     public bool HasSteps => _steps.Count > 0;
 
     public void AddStep(string name,
-        Func<PipelineContext, Task> action,
+        Func<PipelineStepContext, Task> action,
         object? dependsOn = null,
         object? requiredBy = null)
     {
@@ -240,8 +240,12 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     await using (publishingStep.ConfigureAwait(false))
                     {
-                        context.PublishingStep = publishingStep;
-                        await ExecuteStepAsync(step, context).ConfigureAwait(false);
+                        var stepContext = new ApplicationModel.PipelineStepContext
+                        {
+                            PipelineContext = context,
+                            PublishingStep = publishingStep
+                        };
+                        await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                     }
 
                     stepTcs.TrySetResult();
@@ -417,18 +421,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private static async Task ExecuteStepAsync(PipelineStep step, PipelineContext context)
+    private static async Task ExecuteStepAsync(PipelineStep step, ApplicationModel.PipelineStepContext stepContext)
     {
         try
         {
-            var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
-            var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
-
-            await using (publishingStep.ConfigureAwait(false))
-            {
-                context.PublishingStep = publishingStep;
-                await step.Action(context).ConfigureAwait(false);
-            }
+            await step.Action(stepContext).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

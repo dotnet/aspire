@@ -22,7 +22,7 @@ public class PipelineStep
     /// <summary>
     /// Gets or initializes the action to execute for this step.
     /// </summary>
-    public required Func<PipelineContext, Task> Action { get; init; }
+    public required Func<PipelineStepContext, Task> Action { get; init; }
 
     /// <summary>
     /// Gets the list of step names that this step depends on.

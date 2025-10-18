@@ -22,7 +22,7 @@ public interface IDistributedApplicationPipeline
     /// <param name="dependsOn">The name of the step this step depends on, or a list of step names.</param>
     /// <param name="requiredBy">The name of the step that requires this step, or a list of step names.</param>
     void AddStep(string name,
-                 Func<PipelineContext, Task> action,
+                 Func<PipelineStepContext, Task> action,
                  object? dependsOn = null,
                  object? requiredBy = null);
 
