@@ -50,12 +50,11 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         string id = GetNewProjectId(prefix: "aspire_CPM");
         await using var project = await AspireProject.CreateNewTemplateProjectAsync(
             id,
-            "aspire-starter",
+            "aspire",
             _testOutput,
-            buildEnvironment: BuildEnvironment.ForDefaultFramework,
-            extraArgs: "--use-redis-cache");
+            buildEnvironment: BuildEnvironment.ForDefaultFramework);
 
-        string version = ExtractVersionFromSdkAndRemovePackageVersion(project);
+        string version = ExtractVersionFromSdkAndAddRedisPackageReference(project);
 
         CreateCPMFile(project, version);
 
@@ -63,7 +62,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.StartAppHostAsync();
         await project.StopAppHostAsync();
 
-        static string ExtractVersionFromSdkAndRemovePackageVersion(AspireProject project)
+        static string ExtractVersionFromSdkAndAddRedisPackageReference(AspireProject project)
         {
             var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
             Assert.False(string.IsNullOrEmpty(projectName));
@@ -74,7 +73,13 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
             File.WriteAllText(
                 projectName,
-                RedisVersionRegex().Replace(projectContents, @"<PackageReference Include=""Aspire.Hosting.Redis"" />")
+                ProjectClosingTagRegex().Replace(projectContents,
+                """
+                  <ItemGroup>
+                    <PackageReference Include="Aspire.Hosting.Redis" />
+                  </ItemGroup>
+                </Project>
+                """)
             );
 
             return match.Groups[1].Value;
@@ -181,8 +186,8 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.AppHost""\s+Version=""([^""]+)""\s+/>")]
     private static partial Regex AppHostVersionRegex();
 
-    [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.Redis""\s+Version=""([^""]+)""\s+/>")]
-    private static partial Regex RedisVersionRegex();
+    [GeneratedRegex(@"</Project>")]
+    private static partial Regex ProjectClosingTagRegex();
 
     [GeneratedRegex(@"<Project\s+Sdk=""Aspire\.AppHost\.Sdk/([^""]+)""\s+>")]
     private static partial Regex ProjectSdkVersionRegex();
