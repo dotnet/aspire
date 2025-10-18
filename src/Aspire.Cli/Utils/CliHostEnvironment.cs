@@ -31,6 +31,25 @@ internal interface ICliHostEnvironment
 /// </summary>
 internal sealed class CliHostEnvironment : ICliHostEnvironment
 {
+    // Common CI environment variables
+    // https://github.com/watson/ci-info/blob/master/vendors.json
+    private static readonly string[] s_ciEnvironmentVariables =
+    [
+        "CI", // Generic CI indicator
+        "GITHUB_ACTIONS",
+        "AZURE_PIPELINES",
+        "TF_BUILD", // Azure Pipelines alternative
+        "JENKINS_URL",
+        "GITLAB_CI",
+        "CIRCLECI",
+        "TRAVIS",
+        "BUILDKITE",
+        "APPVEYOR",
+        "TEAMCITY_VERSION",
+        "BITBUCKET_BUILD_NUMBER",
+        "CODEBUILD_BUILD_ID", // AWS CodeBuild
+    ];
+
     /// <summary>
     /// Gets whether the host supports interactive input (e.g., prompts, user input).
     /// </summary>
@@ -118,26 +137,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     private static bool IsCI(IConfiguration configuration)
     {
-        // Check for common CI environment variables
-        // https://github.com/watson/ci-info/blob/master/vendors.json
-        var ciEnvVars = new[]
-        {
-            "CI", // Generic CI indicator
-            "GITHUB_ACTIONS",
-            "AZURE_PIPELINES",
-            "TF_BUILD", // Azure Pipelines alternative
-            "JENKINS_URL",
-            "GITLAB_CI",
-            "CIRCLECI",
-            "TRAVIS",
-            "BUILDKITE",
-            "APPVEYOR",
-            "TEAMCITY_VERSION",
-            "BITBUCKET_BUILD_NUMBER",
-            "CODEBUILD_BUILD_ID", // AWS CodeBuild
-        };
-
-        foreach (var envVar in ciEnvVars)
+        foreach (var envVar in s_ciEnvironmentVariables)
         {
             var value = configuration[envVar];
             if (!string.IsNullOrEmpty(value))
