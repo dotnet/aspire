@@ -96,7 +96,9 @@ public static partial class AspireEFMySqlExtensions
             // use the legacy method of setting the ILoggerFactory because Pomelo EF Core doesn't use MySqlDataSource
             if (serviceProvider.GetService<ILoggerFactory>() is { } loggerFactory)
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 MySqlConnectorLogManager.Provider = new MicrosoftExtensionsLoggingLoggerProvider(loggerFactory);
+#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             var connectionString = settings.ConnectionString ?? string.Empty;

@@ -13,6 +13,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" VersionOverride="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
      <Compile Include="$(TestsSharedDir)AsyncTestHelpers.cs" Link="shared/AsyncTestHelpers.cs" />
   </ItemGroup>
 
