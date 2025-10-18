@@ -104,6 +104,31 @@ jobs:
             9.x
             10.x
 
+      - name: Compute RID for cache key
+        if: ${{ inputs.enablePlaywrightInstall }}
+        id: compute_cache_rid
+        shell: pwsh
+        run: |
+          $os = "${{ inputs.os }}"
+          switch ($os) {
+            'ubuntu-latest' { $rid = 'linux-x64' }
+            'macos-latest'  { $rid = 'osx-arm64' }
+            'windows-latest'{ $rid = 'win-x64' }
+            Default { Write-Error "Unknown OS '$os' for RID mapping"; exit 1 }
+          }
+          Write-Host "Using cache RID=$rid"
+          "rid=$rid" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Restore Playwright dependencies from cache
+        if: ${{ inputs.enablePlaywrightInstall }}
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: artifacts/bin/playwright-deps
+          key: playwright-deps-v1-${{ steps.compute_cache_rid.outputs.rid }}
+          restore-keys: |
+            playwright-deps-v1-${{ steps.compute_cache_rid.outputs.rid }}
+
       - name: Trust HTTPS development certificate (Linux)
         if: inputs.os == 'ubuntu-latest'
         run: ${{ env.DOTNET_SCRIPT }} dev-certs https --trust
