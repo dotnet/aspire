@@ -21,7 +21,7 @@ jobs:
       REPO_OWNER: dotnet
       REPO_NAME: aspire-playground
       GH_CLI_VERSION: 2.81.0
-      GH_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
+      GH_PLAYGROUND_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
@@ -90,6 +90,9 @@ jobs:
         run: |
           echo "Creating agent task..."
           PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
+
+          # Auth using the token
+          gh auth login --with-token <<< "$GH_PLAYGROUND_TOKEN"
 
           # Create the agent task using stdin and capture the output
           OUTPUT=$(cat "$PROMPT_FILE" | gh agent-task create \
