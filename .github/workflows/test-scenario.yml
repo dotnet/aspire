@@ -91,6 +91,9 @@ jobs:
           echo "Creating agent task..."
           PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
 
+          # Auth using the token
+          gh auth login
+
           # Create the agent task using stdin and capture the output
           OUTPUT=$(cat "$PROMPT_FILE" | gh agent-task create \
             --repo "${REPO_OWNER}/${REPO_NAME}" \
