@@ -15,7 +15,7 @@ namespace Aspire.Hosting;
 internal sealed class ResourceLoggerForwarderService(
     ResourceNotificationService resourceNotificationService,
     ResourceLoggerService resourceLoggerService,
-    IHostEnvironment hostEnvironment,
+    IAppHostEnvironment appHostEnvironment,
     ILoggerFactory loggerFactory)
     : BackgroundService
 {
@@ -62,7 +62,7 @@ internal sealed class ResourceLoggerForwarderService(
     {
         try
         {
-            var applicationName = hostEnvironment.ApplicationName;
+            var applicationName = appHostEnvironment.ProjectName;
             var logger = loggerFactory.CreateLogger($"{applicationName}.Resources.{resource.Name}");
             await foreach (var logEvent in resourceLoggerService.WatchAsync(resourceId).WithCancellation(cancellationToken).ConfigureAwait(false))
             {

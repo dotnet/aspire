@@ -19,17 +19,17 @@ internal class DashboardOptions
     public bool? TelemetryOptOut { get; set; }
 }
 
-internal class ConfigureDefaultDashboardOptions(IConfiguration configuration, IOptions<DcpOptions> dcpOptions) : IConfigureOptions<DashboardOptions>
+internal class ConfigureDefaultDashboardOptions(IAppHostEnvironment appHostEnvironment, IOptions<DcpOptions> dcpOptions, IConfiguration configuration) : IConfigureOptions<DashboardOptions>
 {
     public void Configure(DashboardOptions options)
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
         options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
-        options.DashboardToken = configuration["AppHost:BrowserToken"];
+        options.DashboardToken = appHostEnvironment.BrowserToken;
 
         options.OtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
         options.OtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);
-        options.OtlpApiKey = configuration["AppHost:OtlpApiKey"];
+        options.OtlpApiKey = appHostEnvironment.OtlpApiKey;
 
         options.AspNetCoreEnvironment = configuration["ASPNETCORE_ENVIRONMENT"] ?? "Production";
 

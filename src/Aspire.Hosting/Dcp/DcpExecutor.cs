@@ -93,11 +93,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private readonly record struct LogInformationEntry(string ResourceName, bool? LogsAvailable, bool? HasSubscribers);
     private readonly Channel<LogInformationEntry> _logInformationChannel = Channel.CreateUnbounded<LogInformationEntry>(
         new UnboundedChannelOptions { SingleReader = true });
+    private readonly IAppHostEnvironment _appHostEnvironment;
 
     public DcpExecutor(ILogger<DcpExecutor> logger,
                        ILogger<DistributedApplication> distributedApplicationLogger,
                        DistributedApplicationModel model,
-                       IHostEnvironment hostEnvironment,
+                       IAppHostEnvironment appHostEnvironment,
                        IKubernetesService kubernetesService,
                        IConfiguration configuration,
                        IDistributedApplicationEventing distributedApplicationEventing,
@@ -126,16 +127,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         _executionContext = executionContext;
         _resourceState = new(model.Resources.ToDictionary(r => r.Name), _appResources);
         _snapshotBuilder = new(_resourceState);
-        _normalizedApplicationName = NormalizeApplicationName(hostEnvironment.ApplicationName);
+        _normalizedApplicationName = NormalizeApplicationName(appHostEnvironment.ProjectName);
         _locations = locations;
         _developerCertificateService = developerCertificateService;
+        _appHostEnvironment = appHostEnvironment;
 
         DeleteResourceRetryPipeline = DcpPipelineBuilder.BuildDeleteRetryPipeline(logger);
         CreateServiceRetryPipeline = DcpPipelineBuilder.BuildCreateServiceRetryPipeline(options.Value, logger);
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
-    private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
+    private string DefaultContainerHostName => _appHostEnvironment.ContainerHostname ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {

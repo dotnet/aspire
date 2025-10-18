@@ -5,7 +5,6 @@
 
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -17,7 +16,7 @@ namespace Aspire.Hosting.Publishing.Internal;
 /// </summary>
 public sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
-    IConfiguration configuration,
+    IAppHostEnvironment appHostEnvironment,
     IHostEnvironment hostEnvironment,
     IOptions<PublishingOptions> publishingOptions) : IDeploymentStateManager
 {
@@ -32,7 +31,7 @@ public sealed class FileDeploymentStateManager(
     private string? GetDeploymentStatePath()
     {
         // Use PathSha256 for deployment state to disambiguate projects with the same name in different locations
-        var appHostSha = configuration["AppHost:PathSha256"];
+        var appHostSha = appHostEnvironment.PathSha256;
         if (string.IsNullOrEmpty(appHostSha))
         {
             return null;

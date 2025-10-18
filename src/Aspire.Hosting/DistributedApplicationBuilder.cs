@@ -60,9 +60,13 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     private readonly DistributedApplicationOptions _options;
     private readonly HostApplicationBuilder _innerBuilder;
+    private readonly AppHostEnvironment _appHostEnvironment;
 
     /// <inheritdoc />
     public IHostEnvironment Environment => _innerBuilder.Environment;
+
+    /// <inheritdoc />
+    public IAppHostEnvironment AppHostEnvironment => _appHostEnvironment;
 
     /// <inheritdoc />
     public ConfigurationManager Configuration => _innerBuilder.Configuration;
@@ -466,6 +470,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
+        _innerBuilder.Services.AddSingleton<IAppHostEnvironment, AppHostEnvironment>();
+        
+        // Initialize the AppHostEnvironment for use within the builder
+        _appHostEnvironment = new AppHostEnvironment(_innerBuilder.Configuration, _innerBuilder.Environment);
+        
         LogBuilderConstructed(this);
     }
 

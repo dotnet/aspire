@@ -4,7 +4,6 @@
 using System.Collections.Immutable;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Dcp;
@@ -16,12 +15,12 @@ internal sealed class DcpNameGenerator
     // The length of 8 achieves that while keeping the names relatively short and readable.
     // The second purpose of the suffix is to play a role of a unique OpenTelemetry service instance ID.
     private const int RandomNameSuffixLength = 8;
-    private readonly IConfiguration _configuration;
+    private readonly IAppHostEnvironment _appHostEnvironment;
     private readonly IOptions<DcpOptions> _options;
 
-    public DcpNameGenerator(IConfiguration configuration, IOptions<DcpOptions> options)
+    public DcpNameGenerator(IAppHostEnvironment appHostEnvironment, IOptions<DcpOptions> options)
     {
-        _configuration = configuration;
+        _appHostEnvironment = appHostEnvironment;
         _options = options;
     }
 
@@ -115,7 +114,7 @@ internal sealed class DcpNameGenerator
     public string GetProjectHashSuffix()
     {
         // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar resource names
-        var suffix = _configuration["AppHost:Sha256"]!.Substring(0, RandomNameSuffixLength).ToLowerInvariant();
+        var suffix = _appHostEnvironment.Sha256.Substring(0, RandomNameSuffixLength).ToLowerInvariant();
         return suffix;
     }
 
