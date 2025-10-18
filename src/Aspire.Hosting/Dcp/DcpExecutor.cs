@@ -2063,7 +2063,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
 
         var certificates = new X509Certificate2Collection();
-        var scope = CustomCertificateAuthoritiesScope.Append;
+        var scope = CertificateTrustScope.Append;
         if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
@@ -2073,6 +2073,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2172,7 +2183,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
 
         var certificates = new X509Certificate2Collection();
-        var scope = CustomCertificateAuthoritiesScope.Append;
+        var scope = CertificateTrustScope.Append;
         if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
@@ -2182,6 +2193,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            // Resource has disabled custom certificate authorities
+            return (new List<string>(), new List<EnvVar>(), new List<ContainerCreateFileSystem>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2199,10 +2222,11 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             Certificates = certificates,
             CancellationToken = cancellationToken
         };
-        if (scope == CustomCertificateAuthoritiesScope.Override)
+
+        if (scope != CertificateTrustScope.Append)
         {
-            // Override default OpenSSL certificate bundle path resolution
-            // SSL_CERT_FILE is always added to the defaults when the scope is Override
+            // When Override or System scope is set (not Append), override the default OpenSSL certificate bundle path
+            // resolution by setting the SSL_CERT_FILE environment variable.
             // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
             context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
         }
@@ -2262,7 +2286,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var caDirEnvValue = caFilesPath;
-            if (scope == CustomCertificateAuthoritiesScope.Append)
+            if (scope == CertificateTrustScope.Append)
             {
                 foreach (var defaultCaDir in context.DefaultContainerCertificatesDirectoryPaths)
                 {
@@ -2321,9 +2345,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 ],
             });
 
-            if (scope == CustomCertificateAuthoritiesScope.Override)
+            if (scope != CertificateTrustScope.Append)
             {
-                // If overriding the system CA bundle, then we want to copy our bundle to the well-known locations
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
                 foreach (var bundlePath in context.DefaultContainerCertificateAuthorityBundlePaths)
                 {

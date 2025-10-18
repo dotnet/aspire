@@ -28,9 +28,9 @@ public sealed class ExecutableCertificateTrustCallbackAnnotationContext
     public required IResource Resource { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="CustomCertificateAuthoritiesScope"/> of trust for the resource.
+    /// Gets the <see cref="CertificateTrustScope"/> of trust for the resource.
     /// </summary>
-    public required CustomCertificateAuthoritiesScope Scope { get; init; }
+    public required CertificateTrustScope Scope { get; init; }
 
     /// <summary>
     /// Gets the <see cref="X509Certificate2Collection"/> of certificates for this resource.
