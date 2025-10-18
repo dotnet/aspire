@@ -481,8 +481,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             IngestionMode = ComponentIngestionMode.LogAnalytics
         };
 
-        applicationInsights.WorkspaceResourceId = logAnalyticsWorkspace.Id;
-
         if (environmentContext.Environment.ApplicationInsightsLocation is not null)
         {
             var applicationInsightsLocation = new AzureLocation(environmentContext.Environment.ApplicationInsightsLocation);

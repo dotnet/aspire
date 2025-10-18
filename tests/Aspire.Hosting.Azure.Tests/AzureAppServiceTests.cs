@@ -603,8 +603,6 @@ public class AzureAppServiceTests
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
-
         project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
@@ -669,8 +667,6 @@ public class AzureAppServiceTests
         using var app = builder.Build();
 
         await ExecuteBeforeStartHooksAsync(app, default);
-
-        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
         project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
