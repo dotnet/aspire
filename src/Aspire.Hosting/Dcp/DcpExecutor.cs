@@ -1187,10 +1187,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         foreach (var group in groups)
         {
             var groupList = group.ToList();
-            // Materialize the group to avoid issues with deferred execution of IGrouping.
-            // Execute directly without Task.Run to maintain execution context and avoid subtle
-            // timing/synchronization issues. Concurrency is still achieved via Task.WhenAll.
-            tasks.Add(CreateResourceExecutablesAsyncCore(group.Key, groupList, cancellationToken));
+            var groupKey = group.Key;
+            // Materialize the group with ToList() to avoid issues with deferred execution of IGrouping.
+            // Force this to be async so that blocking code does not stop other executables from being created.
+            tasks.Add(Task.Run(() => CreateResourceExecutablesAsyncCore(groupKey, groupList, cancellationToken), cancellationToken));
         }
 
         return Task.WhenAll(tasks).WaitAsync(cancellationToken);
