@@ -29,7 +29,7 @@ public static class VolumeNameGenerator
 
         // Compute a short hash of the content root path to differentiate between multiple AppHost projects with similar volume names
         var safeApplicationName = Sanitize(builder.ApplicationBuilder.AppHostEnvironment.ProjectName).ToLowerInvariant();
-        var applicationHash = builder.ApplicationBuilder.AppHostEnvironment.Sha256[..10].ToLowerInvariant();
+        var applicationHash = builder.ApplicationBuilder.AppHostEnvironment.DefaultHash[..10].ToLowerInvariant();
         var resourceName = builder.Resource.Name;
         return $"{safeApplicationName}-{applicationHash}-{resourceName}-{suffix}";
     }

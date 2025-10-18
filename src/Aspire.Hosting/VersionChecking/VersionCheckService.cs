@@ -99,7 +99,7 @@ internal sealed class VersionCheckService : BackgroundService
         SemVersion? storedKnownLatestVersion = null;
         if (checkForLatestVersion)
         {
-            var appHostDirectory = _appHostEnvironment.Directory;
+            var appHostDirectory = _appHostEnvironment.ProjectDirectory;
 
             SecretsStore.TrySetUserSecret(_options.Assembly, LastCheckDateKey, now.ToString("o", CultureInfo.InvariantCulture));
             packages = await _packageFetcher.TryFetchPackagesAsync(appHostDirectory, cancellationToken).ConfigureAwait(false);

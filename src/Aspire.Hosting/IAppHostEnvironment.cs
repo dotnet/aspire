@@ -20,12 +20,12 @@ public interface IAppHostEnvironment
     /// <summary>
     /// Gets the directory of the project where the app host is located.
     /// </summary>
-    string Directory { get; }
+    string ProjectDirectory { get; }
 
     /// <summary>
     /// Gets the full path to the app host.
     /// </summary>
-    string Path { get; }
+    string FullPath { get; }
 
     /// <summary>
     /// Gets the application name used for the dashboard.
@@ -38,9 +38,9 @@ public interface IAppHostEnvironment
     /// <remarks>
     /// For backward compatibility, this uses mode-dependent logic:
     /// - Publish mode: ProjectNameSha (stable across paths)
-    /// - Run mode: PathSha (disambiguates by path)
+    /// - Run mode: FullPathHash (disambiguates by path)
     /// </remarks>
-    string Sha256 { get; }
+    string DefaultHash { get; }
 
     /// <summary>
     /// Gets the SHA256 hash based on the app host path.
@@ -48,7 +48,7 @@ public interface IAppHostEnvironment
     /// <remarks>
     /// Used for disambiguating projects with the same name in different locations (deployment state).
     /// </remarks>
-    string PathSha256 { get; }
+    string FullPathHash { get; }
 
     /// <summary>
     /// Gets the SHA256 hash based on the project name.
@@ -72,11 +72,6 @@ public interface IAppHostEnvironment
     /// Gets the OTLP API key.
     /// </summary>
     string? OtlpApiKey { get; }
-
-    /// <summary>
-    /// Gets the browser token for the dashboard.
-    /// </summary>
-    string? BrowserToken { get; }
 
     /// <summary>
     /// Gets the resource service API key.

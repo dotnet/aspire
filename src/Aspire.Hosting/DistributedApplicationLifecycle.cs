@@ -40,7 +40,7 @@ internal sealed class DistributedApplicationLifecycle(
         if (executionContext.IsRunMode)
         {
             logger.LogInformation("Distributed application starting.");
-            logger.LogInformation("Application host directory is: {AppHostDirectory}", appHostEnvironment.Directory);
+            logger.LogInformation("Application host directory is: {AppHostDirectory}", appHostEnvironment.ProjectDirectory);
         }
 
         if (localeOverrideContext.OverrideErrorMessage is { Length: > 0 } localOverrideError)

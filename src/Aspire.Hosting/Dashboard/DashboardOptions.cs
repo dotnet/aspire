@@ -25,7 +25,7 @@ internal class ConfigureDefaultDashboardOptions(IAppHostEnvironment appHostEnvir
     {
         options.DashboardPath = dcpOptions.Value.DashboardPath;
         options.DashboardUrl = configuration[KnownConfigNames.AspNetCoreUrls];
-        options.DashboardToken = appHostEnvironment.BrowserToken;
+        options.DashboardToken = configuration["AppHost:BrowserToken"];
 
         options.OtlpGrpcEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpGrpcEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpGrpcEndpointUrl);
         options.OtlpHttpEndpointUrl = configuration.GetString(KnownConfigNames.DashboardOtlpHttpEndpointUrl, KnownConfigNames.Legacy.DashboardOtlpHttpEndpointUrl);

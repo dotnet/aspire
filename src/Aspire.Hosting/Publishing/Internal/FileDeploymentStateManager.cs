@@ -30,8 +30,8 @@ public sealed class FileDeploymentStateManager(
 
     private string? GetDeploymentStatePath()
     {
-        // Use PathSha256 for deployment state to disambiguate projects with the same name in different locations
-        var appHostSha = appHostEnvironment.PathSha256;
+        // Use FullPathHash for deployment state to disambiguate projects with the same name in different locations
+        var appHostSha = appHostEnvironment.FullPathHash;
         if (string.IsNullOrEmpty(appHostSha))
         {
             return null;

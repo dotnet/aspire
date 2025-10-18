@@ -75,7 +75,7 @@ public interface IDistributedApplicationBuilder
     /// <summary>
     /// Provides information about the AppHost environment.
     /// </summary>
-    public IAppHostEnvironment AppHostEnvironment { get; }
+    public IAppHostEnvironment AppHostEnvironment => throw new NotImplementedException();
 
     /// <inheritdoc cref="HostApplicationBuilder.Services" />
     public IServiceCollection Services { get; }

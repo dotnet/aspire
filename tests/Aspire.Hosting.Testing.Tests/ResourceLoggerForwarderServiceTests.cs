@@ -185,16 +185,15 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         }
 
         public string ProjectName => _hostEnvironment?.ApplicationName ?? "TestApp";
-        public string Directory => "/test";
-        public string Path => "/test/TestApp";
+        public string ProjectDirectory => "/test";
+        public string FullPath => "/test/TestApp";
         public string DashboardApplicationName => _hostEnvironment?.ApplicationName ?? "TestApp";
-        public string Sha256 => "0000000000000000000000000000000000000000000000000000000000000000";
-        public string PathSha256 => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string DefaultHash => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string FullPathHash => "0000000000000000000000000000000000000000000000000000000000000000";
         public string ProjectNameSha256 => "0000000000000000000000000000000000000000000000000000000000000000";
         public string? ContainerHostname => null;
         public string? DefaultLaunchProfileName => null;
         public string? OtlpApiKey => null;
-        public string? BrowserToken => null;
         public string? ResourceServiceApiKey => null;
         public string? ResourceServiceAuthMode => null;
     }
