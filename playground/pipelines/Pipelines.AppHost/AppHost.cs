@@ -45,9 +45,9 @@ var withBindMount = builder.AddDockerfile("with-bind-mount", ".", "./Dockerfile.
 
 // This step could also be modeled as a Bicep resource with the role assignment
 // for the principalId associated with the deployment.
-builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
+builder.Pipeline.AddStep("assign-storage-role", async (context) =>
 {
-    var resourcesWithBindMounts = deployingContext.Model.Resources
+    var resourcesWithBindMounts = context.Model.Resources
         .Where(r => r.TryGetContainerMounts(out var mounts) &&
                     mounts.Any(m => m.Type == ContainerMountType.BindMount))
         .ToList();
@@ -64,8 +64,8 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
         return;
     }
 
-    var assignRoleTask = await deployingContext.ReportingStep
-        .CreateTaskAsync($"Granting file share access to current user", deployingContext.CancellationToken)
+    var assignRoleTask = await context.ReportingStep
+        .CreateTaskAsync($"Granting file share access to current user", context.CancellationToken)
         .ConfigureAwait(false);
 
     await using (assignRoleTask.ConfigureAwait(false))
@@ -88,22 +88,22 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
                 await assignRoleTask.CompleteAsync(
                     "Failed to start az CLI process",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
-            var userObjectId = await getUserProcess.StandardOutput.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            var userObjectId = await getUserProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
             userObjectId = userObjectId.Trim();
 
-            await getUserProcess.WaitForExitAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            await getUserProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
 
             if (getUserProcess.ExitCode != 0)
             {
-                var error = await getUserProcess.StandardError.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+                var error = await getUserProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
                 await assignRoleTask.CompleteAsync(
                     $"Failed to get signed-in user: {error}",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -123,22 +123,22 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
                 await assignRoleTask.CompleteAsync(
                     "Failed to get subscription ID",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
-            var subscriptionId = await getSubscriptionProcess.StandardOutput.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            var subscriptionId = await getSubscriptionProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
             subscriptionId = subscriptionId.Trim();
 
-            await getSubscriptionProcess.WaitForExitAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            await getSubscriptionProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
 
             if (getSubscriptionProcess.ExitCode != 0)
             {
-                var error = await getSubscriptionProcess.StandardError.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+                var error = await getSubscriptionProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
                 await assignRoleTask.CompleteAsync(
                     $"Failed to get subscription ID: {error}",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -158,22 +158,22 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
                 await assignRoleTask.CompleteAsync(
                     "Failed to get resource group",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
-            var resourceGroup = await getResourceGroupProcess.StandardOutput.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            var resourceGroup = await getResourceGroupProcess.StandardOutput.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
             resourceGroup = resourceGroup.Trim();
 
-            await getResourceGroupProcess.WaitForExitAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            await getResourceGroupProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
 
             if (getResourceGroupProcess.ExitCode != 0)
             {
-                var error = await getResourceGroupProcess.StandardError.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+                var error = await getResourceGroupProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
                 await assignRoleTask.CompleteAsync(
                     $"Failed to get resource group: {error}",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
@@ -196,33 +196,33 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
                 await assignRoleTask.CompleteAsync(
                     "Failed to start az CLI process for role assignment",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
-            await assignRoleProcess.WaitForExitAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+            await assignRoleProcess.WaitForExitAsync(context.CancellationToken).ConfigureAwait(false);
 
             if (assignRoleProcess.ExitCode != 0)
             {
-                var error = await assignRoleProcess.StandardError.ReadToEndAsync(deployingContext.CancellationToken).ConfigureAwait(false);
+                var error = await assignRoleProcess.StandardError.ReadToEndAsync(context.CancellationToken).ConfigureAwait(false);
                 await assignRoleTask.CompleteAsync(
                     $"Failed to assign role: {error}",
                     CompletionState.CompletedWithWarning,
-                    deployingContext.CancellationToken).ConfigureAwait(false);
+                    context.CancellationToken).ConfigureAwait(false);
                 return;
             }
 
             await assignRoleTask.CompleteAsync(
                 $"Successfully assigned Storage File Data Privileged Contributor role",
                 CompletionState.Completed,
-                deployingContext.CancellationToken).ConfigureAwait(false);
+                context.CancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             await assignRoleTask.CompleteAsync(
                 $"Error assigning role: {ex.Message}",
                 CompletionState.CompletedWithWarning,
-                deployingContext.CancellationToken).ConfigureAwait(false);
+                context.CancellationToken).ConfigureAwait(false);
         }
     }
 }, requiredBy: "upload-bind-mounts", dependsOn: WellKnownPipelineSteps.ProvisionInfrastructure);
