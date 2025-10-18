@@ -27,6 +27,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IDotNetSdkInstaller _sdkInstaller;
 
     private readonly IFeatures _features;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -40,7 +41,7 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -48,12 +49,14 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(features);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _features = features;
+        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -121,6 +124,12 @@ internal abstract class PublishCommandBase : BaseCommand
             }
 
             var env = new Dictionary<string, string>();
+
+            // Set interactivity enabled based on host environment capabilities
+            if (!_hostEnvironment.SupportsInteractiveInput)
+            {
+                env[KnownConfigNames.InteractivityEnabled] = "false";
+            }
 
             var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
@@ -345,7 +354,7 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger();
+        var logger = new ConsoleActivityLogger(_hostEnvironment);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 
@@ -731,16 +740,26 @@ internal abstract class PublishCommandBase : BaseCommand
     /// <summary>
     /// Starts the terminal infinite progress bar.
     /// </summary>
-    private static void StartTerminalProgressBar()
+    private void StartTerminalProgressBar()
     {
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;3\u001b\\");
     }
 
     /// <summary>
     /// Stops the terminal progress bar.
     /// </summary>
-    private static void StopTerminalProgressBar()
+    private void StopTerminalProgressBar()
     {
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;0\u001b\\");
     }
 }

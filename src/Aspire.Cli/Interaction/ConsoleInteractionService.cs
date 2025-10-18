@@ -18,19 +18,22 @@ internal class ConsoleInteractionService : IInteractionService
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(executionContext);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         _ansiConsole = ansiConsole;
         _executionContext = executionContext;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             return await action();
@@ -43,8 +46,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             action();
@@ -59,6 +62,12 @@ internal class ConsoleInteractionService : IInteractionService
     public async Task<string> PromptForStringAsync(string promptText, string? defaultValue = null, Func<string, ValidationResult>? validator = null, bool isSecret = false, bool required = false, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         var prompt = new TextPrompt<string>(promptText)
         {
             IsSecret = isSecret,
@@ -86,6 +95,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
 
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
         {
@@ -107,6 +121,11 @@ internal class ConsoleInteractionService : IInteractionService
         ArgumentNullException.ThrowIfNull(promptText, nameof(promptText));
         ArgumentNullException.ThrowIfNull(choices, nameof(choices));
         ArgumentNullException.ThrowIfNull(choiceFormatter, nameof(choiceFormatter));
+
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
 
         // Check if the choices collection is empty to avoid throwing an InvalidOperationException
         if (!choices.Any())
@@ -203,6 +222,11 @@ internal class ConsoleInteractionService : IInteractionService
 
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default)
     {
+        if (!_hostEnvironment.SupportsInteractiveInput)
+        {
+            throw new InvalidOperationException(InteractionServiceStrings.InteractiveInputNotSupported);
+        }
+
         return _ansiConsole.ConfirmAsync(promptText, defaultValue, cancellationToken);
     }
 

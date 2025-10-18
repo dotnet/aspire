@@ -798,6 +798,7 @@ public class PublishingActivityReporterTests
         services.AddSingleton<InteractionService>();
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<InteractionService>>();
-        return new InteractionService(logger, new DistributedApplicationOptions(), provider);
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
+        return new InteractionService(logger, new DistributedApplicationOptions(), provider, configuration);
     }
 }

@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Spectre.Console;
@@ -18,6 +17,7 @@ namespace Aspire.Cli.Utils;
 internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -43,9 +43,16 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
     {
-        _enableColor = forceColor ?? DetectColorSupport();
+        _hostEnvironment = hostEnvironment;
+        _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
+        
+        // Disable spinner in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            _spinning = false;
+        }
     }
 
     public enum ActivityState
@@ -85,7 +92,8 @@ internal sealed class ConsoleActivityLogger
 
     public void StartSpinner()
     {
-        if (_spinning)
+        // Skip spinner in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput || _spinning)
         {
             return;
         }
@@ -247,9 +255,16 @@ internal sealed class ConsoleActivityLogger
             }
             if (!string.IsNullOrEmpty(dashboardUrl))
             {
-                // Render dashboard URL as clickable link
+                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
                 var url = dashboardUrl;
-                AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
+                {
+                    AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
+                }
+                else
+                {
+                    AnsiConsole.MarkupLine($"Dashboard: [link={url}]{url}[/]");
+                }
             }
             AnsiConsole.MarkupLine(line);
             AnsiConsole.WriteLine(); // Ensure final newline after deployment summary
@@ -378,7 +393,7 @@ internal sealed class ConsoleActivityLogger
         options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
-    private static string HighlightAndEscape(string input)
+    private string HighlightAndEscape(string input)
     {
         if (string.IsNullOrEmpty(input))
         {
@@ -387,6 +402,12 @@ internal sealed class ConsoleActivityLogger
 
         var matches = s_urlRegex.Matches(input);
         if (matches.Count == 0)
+        {
+            return input.EscapeMarkup();
+        }
+
+        // In non-interactive environments, just output URLs as-is without [link] markup
+        if (!_hostEnvironment.SupportsInteractiveOutput)
         {
             return input.EscapeMarkup();
         }
@@ -411,23 +432,5 @@ internal sealed class ConsoleActivityLogger
         return sb.ToString();
     }
 
-    private static bool DetectColorSupport()
-    {
-        try
-        {
-            if (Console.IsOutputRedirected)
-            {
-                return false;
-            }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return true; // Modern Windows terminals support ANSI
-            }
-            return true; // Assume ANSI on Unix
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly
 }
