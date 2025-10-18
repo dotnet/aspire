@@ -77,10 +77,10 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout();
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -126,21 +126,17 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         var hasInteraction = false;
         try
         {
-            await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout(100);
+            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
             hasInteraction = true;
         }
         catch (OperationCanceledException)
-        {
-            // Expected - no notification should be sent
-        }
-        catch (TimeoutException)
         {
             // Expected - no notification should be sent
         }
@@ -185,21 +181,17 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         var hasInteraction = false;
         try
         {
-            await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout(100);
+            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
             hasInteraction = true;
         }
         catch (OperationCanceledException)
-        {
-            // Expected - no notification should be sent when dashboard is disabled
-        }
-        catch (TimeoutException)
         {
             // Expected - no notification should be sent when dashboard is disabled
         }
@@ -244,10 +236,10 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout();
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -294,11 +286,11 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use ReadAsync with timeout to wait for the notification
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout();
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
         
         // Assert - Verify notification was shown initially
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -319,7 +311,7 @@ public sealed class DcpHostNotificationTests
         timeProvider.Advance(TimeSpan.FromSeconds(5));
 
         // Assert - The notification should now be cancelled
-        await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken));
+        await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken)).DefaultTimeout();
     }
 
     [Fact]
@@ -358,10 +350,10 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token).DefaultTimeout();
+        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeNotInstalledTitle, interaction.Title);
@@ -374,7 +366,7 @@ public sealed class DcpHostNotificationTests
 
         // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay
         // This tests that the function returns immediately and doesn't start the polling task
-        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        await Task.Delay(TimeSpan.FromMilliseconds(100)).DefaultTimeout();
         Assert.False(interaction.CancellationToken.IsCancellationRequested);
     }
 
