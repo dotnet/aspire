@@ -56,13 +56,17 @@ internal class CliDownloader(
             var checksumPath = Path.Combine(tempDir, checksumFilename);
 
             // Download archive
-            interactionService.DisplayMessage(":down_arrow:", $"Downloading Aspire CLI from: {archiveUrl}");
-            logger.LogDebug("Downloading archive from {Url} to {Path}", archiveUrl, archivePath);
-            await DownloadFileAsync(archiveUrl, archivePath, ArchiveDownloadTimeoutSeconds, cancellationToken);
+            _ = await interactionService.ShowStatusAsync($"Downloading Aspire CLI from: {archiveUrl}", async () =>
+            {
+                logger.LogDebug("Downloading archive from {Url} to {Path}", archiveUrl, archivePath);
+                await DownloadFileAsync(archiveUrl, archivePath, ArchiveDownloadTimeoutSeconds, cancellationToken);
 
-            // Download checksum
-            logger.LogDebug("Downloading checksum from {Url} to {Path}", checksumUrl, checksumPath);
-            await DownloadFileAsync(checksumUrl, checksumPath, ChecksumDownloadTimeoutSeconds, cancellationToken);
+                // Download checksum
+                logger.LogDebug("Downloading checksum from {Url} to {Path}", checksumUrl, checksumPath);
+                await DownloadFileAsync(checksumUrl, checksumPath, ChecksumDownloadTimeoutSeconds, cancellationToken);
+                
+                return 0; // Return dummy value for ShowStatusAsync
+            });
 
             // Validate checksum
             interactionService.DisplayMessage(":check_mark:", "Validating downloaded file...");
