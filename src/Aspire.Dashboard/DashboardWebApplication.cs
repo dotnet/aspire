@@ -50,6 +50,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 {
     private const string DashboardAuthCookieName = ".Aspire.Dashboard.Auth";
     private const string DashboardAntiForgeryCookieName = ".Aspire.Dashboard.Antiforgery";
+    private static readonly List<ConnectionType> s_allConnectionTypes = [ConnectionType.Frontend, ConnectionType.Otlp, ConnectionType.Mcp];
 
     private readonly WebApplication _app;
     private readonly ILogger<DashboardWebApplication> _logger;
@@ -58,6 +59,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     private readonly List<Func<EndpointInfo>> _frontendEndPointAccessor = new();
     private Func<EndpointInfo>? _otlpServiceGrpcEndPointAccessor;
     private Func<EndpointInfo>? _otlpServiceHttpEndPointAccessor;
+    private Func<EndpointInfo>? _mcpEndPointAccessor;
 
     public List<Func<EndpointInfo>> FrontendEndPointsAccessor
     {
@@ -97,6 +99,11 @@ public sealed class DashboardWebApplication : IAsyncDisposable
     public Func<EndpointInfo> OtlpServiceHttpEndPointAccessor
     {
         get => _otlpServiceHttpEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
+    }
+
+    public Func<EndpointInfo> McpEndPointAccessor
+    {
+        get => _mcpEndPointAccessor ?? throw new InvalidOperationException("WebApplication not started yet.");
     }
 
     public IOptionsMonitor<DashboardOptions> DashboardOptionsMonitor => _dashboardOptionsMonitor;
@@ -441,7 +448,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
         if (!_dashboardOptionsMonitor.CurrentValue.Mcp.Disabled.GetValueOrDefault())
         {
-            _app.MapMcp(_dashboardOptionsMonitor.CurrentValue.Mcp.Path).RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
+            _app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationHandler.PolicyName);
         }
 
         // Configure the HTTP request pipeline.
@@ -557,7 +564,8 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         var frontendAddresses = dashboardOptions.Frontend.GetEndpointAddresses();
         var otlpGrpcAddress = dashboardOptions.Otlp.GetGrpcEndpointAddress();
         var otlpHttpAddress = dashboardOptions.Otlp.GetHttpEndpointAddress();
-        var hasSingleEndpoint = frontendAddresses.Count == 1 && IsSameOrNull(frontendAddresses[0], otlpGrpcAddress) && IsSameOrNull(frontendAddresses[0], otlpHttpAddress);
+        var mcpAddress = dashboardOptions.Mcp.GetEndpointAddress();
+        var hasSingleEndpoint = frontendAddresses.Count == 1 && IsSameOrNull(frontendAddresses[0], otlpGrpcAddress) && IsSameOrNull(frontendAddresses[0], otlpHttpAddress) && IsSameOrNull(frontendAddresses[0], mcpAddress);
 
         var initialValues = new Dictionary<string, string?>();
         var browserEndpointNames = new List<string>(capacity: frontendAddresses.Count);
@@ -573,6 +581,10 @@ public sealed class DashboardWebApplication : IAsyncDisposable
             if (otlpHttpAddress != null)
             {
                 AddEndpointConfiguration(initialValues, "OtlpHttp", otlpHttpAddress.ToString(), HttpProtocols.Http1AndHttp2, requiredClientCertificate: dashboardOptions.Otlp.AuthMode == OtlpAuthMode.ClientCertificate);
+            }
+            if (mcpAddress != null)
+            {
+                AddEndpointConfiguration(initialValues, "Mcp", mcpAddress.ToString(), HttpProtocols.Http1AndHttp2);
             }
 
             if (frontendAddresses.Count == 1)
@@ -642,17 +654,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _otlpServiceGrpcEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
-                    logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
-
-                    if (!endpointConfiguration.IsHttps)
-                    {
-                        logger.LogWarning(
-                            "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
-                            "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
-                    }
-
-                    connectionTypes.Add(ConnectionType.Frontend);
-                    _frontendEndPointAccessor.Add(_otlpServiceGrpcEndPointAccessor);
+                    ConfigureSingleEndpoint(logger, endpointConfiguration.IsHttps, _otlpServiceGrpcEndPointAccessor, _frontendEndPointAccessor, connectionTypes);
                 }
 
                 endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
@@ -674,17 +676,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _otlpServiceHttpEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
                 if (hasSingleEndpoint)
                 {
-                    logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
-
-                    if (!endpointConfiguration.IsHttps)
-                    {
-                        logger.LogWarning(
-                            "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
-                            "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
-                    }
-
-                    connectionTypes.Add(ConnectionType.Frontend);
-                    _frontendEndPointAccessor.Add(_otlpServiceHttpEndPointAccessor);
+                    ConfigureSingleEndpoint(logger, endpointConfiguration.IsHttps, _otlpServiceHttpEndPointAccessor, _frontendEndPointAccessor, connectionTypes);
                 }
 
                 endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
@@ -695,7 +687,42 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                     endpointConfiguration.HttpsOptions.ClientCertificateValidation = (certificate, chain, sslPolicyErrors) => { return true; };
                 }
             });
+
+            configurationLoader.Endpoint("Mcp", endpointConfiguration =>
+            {
+                var connectionTypes = new List<ConnectionType> { ConnectionType.Mcp };
+
+                _mcpEndPointAccessor ??= CreateEndPointAccessor(endpointConfiguration);
+                if (hasSingleEndpoint)
+                {
+                    ConfigureSingleEndpoint(logger, endpointConfiguration.IsHttps, _mcpEndPointAccessor, _frontendEndPointAccessor, connectionTypes);
+                }
+
+                endpointConfiguration.ListenOptions.UseConnectionTypes(connectionTypes.ToArray());
+            });
         });
+
+        static void ConfigureSingleEndpoint(ILogger logger, bool isHttps, Func<EndpointInfo> endpointAccessor, List<Func<EndpointInfo>> frontEndPointAccessors, List<ConnectionType> connectionTypes)
+        {
+            logger.LogDebug("Browser and OTLP accessible on a single endpoint.");
+
+            if (!isHttps)
+            {
+                logger.LogWarning(
+                    "The dashboard is configured with a shared endpoint for browser access and the OTLP service. " +
+                    "The endpoint doesn't use TLS so browser access is only possible via a TLS terminating proxy.");
+            }
+
+            foreach (var connectionType in s_allConnectionTypes)
+            {
+                if (!connectionTypes.Contains(connectionType))
+                {
+                    connectionTypes.Add(connectionType);
+                }
+            }
+
+            frontEndPointAccessors.Add(endpointAccessor);
+        }
 
         static Func<EndpointInfo> CreateEndPointAccessor(EndpointConfiguration endpointConfiguration)
         {

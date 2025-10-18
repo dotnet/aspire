@@ -112,11 +112,6 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
 
         }
 
-        if (string.IsNullOrEmpty(options.Mcp.Path))
-        {
-            errorMessages.Add($"{DashboardConfigNames.DashboardMcpPathName.ConfigKey} must be specified and non-empty.");
-        }
-
         if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
         {
             errorMessages.Add(resourceServiceClientParseErrorMessage);

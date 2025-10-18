@@ -13,7 +13,7 @@ public sealed class McpServerModel
     public Dictionary<string, string>? Headers { get; init; }
 }
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = true)]
 [JsonSerializable(typeof(McpServerModel))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 public sealed partial class McpServerModelContext : JsonSerializerContext;

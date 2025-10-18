@@ -148,6 +148,48 @@ public sealed class OtlpOptions
     }
 }
 
+public class McpOptions
+{
+    private BindingAddress? _parsedEndpointAddress;
+    private byte[]? _primaryApiKeyBytes;
+    private byte[]? _secondaryApiKeyBytes;
+
+    public bool? Disabled { get; set; }
+    public McpAuthMode? AuthMode { get; set; }
+    public string? PrimaryApiKey { get; set; }
+    public string? SecondaryApiKey { get; set; }
+    public string? EndpointUrl { get; set; }
+    public string? PublicUrl { get; set; }
+
+    public BindingAddress? GetEndpointAddress()
+    {
+        return _parsedEndpointAddress;
+    }
+
+    public byte[] GetPrimaryApiKeyBytes()
+    {
+        Debug.Assert(_primaryApiKeyBytes is not null, "Should have been parsed during validation.");
+        return _primaryApiKeyBytes;
+    }
+
+    public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
+
+    internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
+    {
+        if (!string.IsNullOrEmpty(EndpointUrl) && !OptionsHelpers.TryParseBindingAddress(EndpointUrl, out _parsedEndpointAddress))
+        {
+            errorMessage = $"Failed to parse MCP endpoint URL '{EndpointUrl}'.";
+            return false;
+        }
+
+        _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
+        _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
+
+        errorMessage = null;
+        return true;
+    }
+}
+
 public sealed class OtlpCors
 {
     public string? AllowedOrigins { get; set; }
