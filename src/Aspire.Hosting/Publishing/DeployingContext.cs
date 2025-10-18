@@ -55,9 +55,9 @@ public sealed class DeployingContext(
     public ILogger Logger { get; } = logger;
 
     /// <summary>
-    /// Gets the cancellation token for the deploying operation.
+    /// Gets or sets the cancellation token for the deploying operation.
     /// </summary>
-    public CancellationToken CancellationToken { get; } = cancellationToken;
+    public CancellationToken CancellationToken { get; set; } = cancellationToken;
 
     /// <summary>
     /// Gets the output path for deployment artifacts.

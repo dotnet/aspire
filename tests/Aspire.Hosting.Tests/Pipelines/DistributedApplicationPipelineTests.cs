@@ -1237,6 +1237,37 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithFailure_PreventsOtherStepsFromStarting()
+    {
+        // Test that when one step fails, other steps that haven't started yet don't start
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step2Started = false;
+
+        // Step 1 will fail after a short delay
+        pipeline.AddStep("step1", async (context) =>
+        {
+            await Task.Delay(50);
+            throw new InvalidOperationException("Step 1 failed");
+        });
+
+        // Step 2 depends on step1, so it definitely shouldn't start
+        pipeline.AddStep("step2", async (context) =>
+        {
+            step2Started = true;
+            await Task.CompletedTask;
+        }, dependsOn: "step1");
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Step 2 should never start because its dependency failed
+        Assert.False(step2Started, "Step depending on failed step should not start");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
