@@ -6,10 +6,12 @@
 /src/Aspire.Hosting.Azure.AppContainers  @captainsafia @eerhardt
 /src/Aspire.Hosting.Azure.AppService  @captainsafia @eerhardt
 /src/Aspire.Hosting.Docker            @captainsafia
+/src/Aspire.Hosting.Maui              @jfversluis
 
 # tests
 
 /tests/Aspire.EndToEnd.Tests          @radical @eerhardt
+/tests/Aspire.Hosting.Maui.Tests      @jfversluis
 /tests/Aspire.Hosting.Testing.Tests   @reubenbond
 /tests/Aspire.Hosting.Tests           @mitchdenny
 /tests/Aspire.Templates.Tests          @radical @eerhardt
@@ -20,3 +22,4 @@
 # playground apps
 /playground/deployers                @captainsafia
 /playground/publishers               @captainsafia
+/playground/AspireWithMaui           @jfversluis
