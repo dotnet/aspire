@@ -96,7 +96,7 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     {
         var resource = endpointReference.Resource;
 
-        return ReferenceExpression.Create($"{resource.Name.ToServiceName()}");
+        return ReferenceExpression.Create(resource.Name.ToServiceName());
     }
 
     private Task PublishAsync(PublishingContext context)
