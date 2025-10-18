@@ -366,7 +366,7 @@ public sealed class DcpHostNotificationTests
 
         // Verify that no polling is started by ensuring the cancellation token is not cancelled after a delay
         // This tests that the function returns immediately and doesn't start the polling task
-        await Task.Delay(TimeSpan.FromMilliseconds(100)).DefaultTimeout();
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
         Assert.False(interaction.CancellationToken.IsCancellationRequested);
     }
 
