@@ -14,30 +14,30 @@ namespace Aspire.Hosting.Pipelines;
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PipelineStepAnnotation : IResourceAnnotation
 {
-    private readonly Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> _factory;
+    private readonly Func<PipelineStepFactoryContext, Task<IEnumerable<PipelineStep>>> _factory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStepAnnotation"/> class.
     /// </summary>
-    /// <param name="factory">A factory function that creates the pipeline step.</param>
-    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, PipelineStep> factory)
+    /// <param name="factory">An async factory function that creates the pipeline step.</param>
+    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, Task<PipelineStep>> factory)
     {
-        _factory = (context) => [factory(context)];
+        _factory = async (context) => [await factory(context).ConfigureAwait(false)];
     }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStepAnnotation"/> class with a factory that creates multiple pipeline steps.
     /// </summary>
-    /// <param name="factory">A factory function that creates multiple pipeline steps.</param>
-    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory)
+    /// <param name="factory">An async factory function that creates multiple pipeline steps.</param>
+    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, Task<IEnumerable<PipelineStep>>> factory)
     {
         _factory = factory;
     }
 
     /// <summary>
-    /// Creates pipeline steps.
+    /// Creates pipeline steps asynchronously.
     /// </summary>
     /// <param name="context">The factory context containing the pipeline context and resource.</param>
-    /// <returns>The created pipeline steps.</returns>
-    public IEnumerable<PipelineStep> CreateSteps(PipelineStepFactoryContext context) => _factory(context);
+    /// <returns>A task that represents the asynchronous operation and contains the created pipeline steps.</returns>
+    public Task<IEnumerable<PipelineStep>> CreateStepsAsync(PipelineStepFactoryContext context) => _factory(context);
 }

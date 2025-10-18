@@ -112,7 +112,7 @@ public sealed class AzureEnvironmentResource : Resource
             };
             printDashboardUrlStep.DependsOn(deployStep);
 
-            return [validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            return Task.FromResult<IEnumerable<PipelineStep>>([validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep]);
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
