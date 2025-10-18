@@ -12,9 +12,12 @@ namespace Aspire.Hosting.ApplicationModel;
 public interface IComputeEnvironmentResource : IResource
 {
     /// <summary>
-    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
+    /// Gets a <see cref="ReferenceExpression"/> representing the host address or host name for the specified <see cref="EndpointReference"/>.
     /// </summary>
-    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
-    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
+    /// <param name="endpointReference">The endpoint reference for which to retrieve the host address or host name.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the host address or host name (not a full URL).</returns>
+    /// <remarks>
+    /// The returned value typically contains only the host name or address, without scheme, port, or path information.
+    /// </remarks>
     ReferenceExpression GetHostAddressExpression(EndpointReference endpointReference) => throw new NotImplementedException();
 }
