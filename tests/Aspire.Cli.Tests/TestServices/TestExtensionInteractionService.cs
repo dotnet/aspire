@@ -112,12 +112,7 @@ internal sealed class TestExtensionInteractionService(IServiceProvider servicePr
         return Task.FromResult(true);
     }
 
-    public void DisplaySubtleMessage(string message)
-    {
-        DisplaySubtleMessage(message, escapeMarkup: true);
-    }
-
-    public void DisplaySubtleMessage(string message, bool escapeMarkup)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         DisplaySubtleMessageCallback?.Invoke(message);
     }
