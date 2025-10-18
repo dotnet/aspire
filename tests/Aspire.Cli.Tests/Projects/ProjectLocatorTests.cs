@@ -809,7 +809,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-
+        
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -871,7 +871,7 @@ builder.Build().Run();");
             }
             return (0, false, null);
         };
-
+        
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
@@ -1173,3 +1173,4 @@ builder.Build().Run();");
         Assert.Contains(executableProjects, p => p.FullName == winExeFile.FullName);
     }
 }
+
