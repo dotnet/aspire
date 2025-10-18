@@ -32,8 +32,9 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var resourceLoggerService = new ResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment();
+        var appHostEnvironment = new TestAppHostEnvironment(hostEnvironment: hostEnvironment);
         var loggerFactory = new NullLoggerFactory();
-        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, loggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, appHostEnvironment, loggerFactory);
 
         await resourceLogForwarder.StartAsync(hostApplicationLifetime.ApplicationStopping);
 
@@ -53,9 +54,10 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         var resourceLoggerService = ConsoleLoggingTestHelpers.GetResourceLoggerService();
         var resourceNotificationService = CreateResourceNotificationService(hostApplicationLifetime, resourceLoggerService);
         var hostEnvironment = new HostingEnvironment { ApplicationName = "TestApp.AppHost" };
+        var appHostEnvironment = new TestAppHostEnvironment(hostEnvironment: hostEnvironment);
         var fakeLoggerProvider = new FakeLoggerProvider();
         var fakeLoggerFactory = new LoggerFactory([fakeLoggerProvider, new XunitLoggerProvider(output)]);
-        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, hostEnvironment, fakeLoggerFactory);
+        var resourceLogForwarder = new ResourceLoggerForwarderService(resourceNotificationService, resourceLoggerService, appHostEnvironment, fakeLoggerFactory);
 
         var subscribedTcs = new TaskCompletionSource();
         var subscriberLoop = Task.Run(async () =>
@@ -171,5 +173,29 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
             _stoppingCts.Dispose();
             _stoppedCts.Dispose();
         }
+    }
+
+    private sealed class TestAppHostEnvironment : IAppHostEnvironment
+    {
+        private readonly IHostEnvironment? _hostEnvironment;
+
+        public TestAppHostEnvironment(IHostEnvironment? hostEnvironment = null)
+        {
+            _hostEnvironment = hostEnvironment;
+        }
+
+        public string ProjectName => _hostEnvironment?.ApplicationName ?? "TestApp";
+        public string Directory => "/test";
+        public string Path => "/test/TestApp";
+        public string DashboardApplicationName => _hostEnvironment?.ApplicationName ?? "TestApp";
+        public string Sha256 => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string PathSha256 => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string ProjectNameSha256 => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string? ContainerHostname => null;
+        public string? DefaultLaunchProfileName => null;
+        public string? OtlpApiKey => null;
+        public string? BrowserToken => null;
+        public string? ResourceServiceApiKey => null;
+        public string? ResourceServiceAuthMode => null;
     }
 }
