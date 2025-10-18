@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -78,8 +79,7 @@ public sealed class DcpHostNotificationTests
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -128,14 +128,13 @@ public sealed class DcpHostNotificationTests
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use a short timeout to check that no notification is sent
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         var hasInteraction = false;
         try
         {
-            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+            await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout(100);
             hasInteraction = true;
         }
-        catch (OperationCanceledException)
+        catch (TimeoutException)
         {
             // Expected - no notification should be sent
         }
@@ -183,14 +182,13 @@ public sealed class DcpHostNotificationTests
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use a short timeout to check that no notification is sent
-        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         var hasInteraction = false;
         try
         {
-            await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+            await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout(100);
             hasInteraction = true;
         }
-        catch (OperationCanceledException)
+        catch (TimeoutException)
         {
             // Expected - no notification should be sent when dashboard is disabled
         }
@@ -237,8 +235,7 @@ public sealed class DcpHostNotificationTests
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -288,8 +285,7 @@ public sealed class DcpHostNotificationTests
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
         // Use ReadAsync with timeout to wait for the notification
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
         
         // Assert - Verify notification was shown initially
         Assert.Equal(InteractionStrings.ContainerRuntimeUnhealthyTitle, interaction.Title);
@@ -351,8 +347,7 @@ public sealed class DcpHostNotificationTests
         // Act
         await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
+        var interaction = await interactionService.Interactions.Reader.ReadAsync().DefaultTimeout();
 
         // Assert
         Assert.Equal(InteractionStrings.ContainerRuntimeNotInstalledTitle, interaction.Title);
