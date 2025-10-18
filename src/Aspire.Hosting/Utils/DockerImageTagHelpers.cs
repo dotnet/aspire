@@ -3,12 +3,12 @@
 
 using System.Text;
 
-namespace Aspire.Hosting.Azure.Utils;
+namespace Aspire.Hosting.Utils;
 
 /// <summary>
 /// Provides helper methods for sanitizing Docker image tags.
 /// </summary>
-internal static class DockerImageTagHelpers
+public static class DockerImageTagHelpers
 {
     private const int MaxDockerTagLength = 128;
     private const string DefaultTag = "aspire-deploy";
@@ -19,7 +19,7 @@ internal static class DockerImageTagHelpers
     /// </summary>
     /// <param name="input">The input string to sanitize.</param>
     /// <returns>A sanitized Docker image tag, or "aspire-deploy" if the input is null, empty, or results in an empty string after sanitization.</returns>
-    internal static string SanitizeTag(string? input)
+    public static string SanitizeTag(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
         {
