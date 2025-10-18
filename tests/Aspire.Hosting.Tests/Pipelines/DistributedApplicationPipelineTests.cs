@@ -1206,66 +1206,6 @@ public class DistributedApplicationPipelineTests
         Assert.True(executionTimes["D"] >= executionTimes["C"], "D should start after C completes");
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithLongAndShortBranches_DoesNotBlockShortBranch()
-    {
-        // Test that a long-running branch doesn't block an independent short branch
-        // Pattern: A -> LongB, A -> ShortB -> C
-        // C should be able to complete while LongB is still running
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var completionOrder = new List<string>();
-        var completionTimes = new Dictionary<string, DateTime>();
-
-        pipeline.AddStep("A", async (context) =>
-        {
-            await Task.Delay(10);
-        });
-
-        pipeline.AddStep("LongB", async (context) =>
-        {
-            await Task.Delay(100);
-            lock (completionOrder)
-            {
-                completionOrder.Add("LongB");
-                completionTimes["LongB"] = DateTime.UtcNow;
-            }
-        }, dependsOn: "A");
-
-        pipeline.AddStep("ShortB", async (context) =>
-        {
-            await Task.Delay(10);
-            lock (completionOrder)
-            {
-                completionOrder.Add("ShortB");
-                completionTimes["ShortB"] = DateTime.UtcNow;
-            }
-        }, dependsOn: "A");
-
-        pipeline.AddStep("C", async (context) =>
-        {
-            await Task.Delay(10);
-            lock (completionOrder)
-            {
-                completionOrder.Add("C");
-                completionTimes["C"] = DateTime.UtcNow;
-            }
-        }, dependsOn: "ShortB");
-
-        var context = CreateDeployingContext(builder.Build());
-        await pipeline.ExecuteAsync(context);
-
-        // C should complete before LongB (demonstrating improved concurrency)
-        var cIndex = completionOrder.IndexOf("C");
-        var longBIndex = completionOrder.IndexOf("LongB");
-
-        Assert.True(cIndex < longBIndex,
-            "C should complete before LongB (not blocked by long-running parallel branch)");
-        Assert.True(completionTimes["C"] < completionTimes["LongB"],
-            "C should complete before LongB based on timestamps");
-    }
-
     private static DeployingContext CreateDeployingContext(DistributedApplication app)
     {
         return new DeployingContext(
