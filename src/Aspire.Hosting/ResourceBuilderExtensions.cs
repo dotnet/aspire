@@ -404,14 +404,25 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation)
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation, string? specificEndpointName = null, string ? name = null)
     {
         return (context) =>
         {
             var annotation = endpointReferencesAnnotation;
-            var serviceName = annotation.Resource.Name;
+            var serviceName = name ?? annotation.Resource.Name;
+
+            // Determine what to inject based on the annotation on the destination resource
+            var injectionAnnotation = context.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+            var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
             foreach (var endpoint in annotation.Resource.GetEndpoints())
             {
+                if (specificEndpointName != null && !string.Equals(endpoint.EndpointName, specificEndpointName, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Skip this endpoint since it's not the one we want to reference.
+                    continue;
+                }
+
                 var endpointName = endpoint.EndpointName;
                 if (!annotation.UseAllEndpoints && !annotation.EndpointNames.Contains(endpointName))
                 {
@@ -420,19 +431,29 @@ public static class ResourceBuilderExtensions
                 }
 
                 // Add the endpoint, rewriting localhost to the container host if necessary.
-                context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+                {
+                    var serviceKey = name is null ? serviceName.ToUpperInvariant() : name;
+                    context.EnvironmentVariables[$"{serviceKey}_{endpointName.ToUpperInvariant()}"] = endpoint;
+                }
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                {
+                    context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = endpoint;
+                }
             }
         };
     }
 
     /// <summary>
-    /// Configures how connection information is injected into environment variables when the resource references other resources.
+    /// Configures how information is injected into environment variables when the resource references other resources.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource to configure.</param>
-    /// <param name="flags">The injection flags determining which connection information is emitted.</param>
+    /// <param name="flags">The injection flags determining which reference information is emitted.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TDestination> WithConnectionProperties<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
+    public static IResourceBuilder<TDestination> WithReferenceEnvironment<TDestination>(this IResourceBuilder<TDestination> builder, ReferenceEnvironmentInjectionFlags flags)
         where TDestination : IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);
@@ -527,8 +548,9 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
-    /// Each endpoint defined on the project resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
+    /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -545,8 +567,29 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information as environment variables from the uri into the destination resource, using the name as the service name.
-    /// The uri will be injected using the format "services__{name}__default__0={uri}."
+    /// Injects service discovery and endpoint information as environment variables from the project resource into the destination resource, using the source resource's name as the service name.
+    /// Each endpoint defined on the project resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{name}_{ENDPOINT}={uri}" for endpoint injection.
+    /// </summary>
+    /// <typeparam name="TDestination">The destination resource.</typeparam>
+    /// <param name="builder">The resource where the service discovery information will be injected.</param>
+    /// <param name="source">The resource from which to extract service discovery information.</param>
+    /// <param name="name">The name of the resource for the environment variable.</param>
+    /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string name)
+        where TDestination : IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+
+        ApplyEndpoints(builder, source.Resource, endpointName: null, name);
+        return builder;
+    }
+
+    /// <summary>
+    /// Injects service discovery and endpoint information as environment variables from the uri into the destination resource, using the name as the service name.
+    /// The uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__default__0={uri}" for .NET service discovery, or "{name}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination"></typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -570,7 +613,21 @@ public static class ResourceBuilderExtensions
             throw new InvalidOperationException("The uri absolute path must be \"/\".");
         }
 
-        return builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+        {
+            builder.WithEnvironment($"services__{name}__default__0", uri.ToString());
+        }
+
+        if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+        {
+            builder.WithEnvironment($"{name}", uri.ToString());
+        }
+
+        return builder;
     }
 
     /// <summary>
@@ -589,10 +646,23 @@ public static class ResourceBuilderExtensions
 
         builder.WithReferenceRelationship(externalService.Resource);
 
+        // Determine what to inject based on the annotation on the destination resource
+        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
         if (externalService.Resource.Uri is { } uri)
         {
-            var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
-            builder.WithEnvironment(envVarName, uri.ToString());
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+            {
+                var envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
+                builder.WithEnvironment(envVarName, uri.ToString());
+            }
+
+            if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+            {
+                var envVarName = $"services__{externalService.Resource.Name}__{uri.Scheme}__0";
+                builder.WithEnvironment(envVarName, uri.ToString());
+            }
         }
         else if (externalService.Resource.UrlParameter is not null)
         {
@@ -612,7 +682,17 @@ public static class ResourceBuilderExtensions
                 {
                     throw new DistributedApplicationException($"The URL parameter '{externalService.Resource.UrlParameter.Name}' for the external service '{externalService.Resource.Name}' is invalid: {message}");
                 }
-                context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                {
+                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                }
+
+                if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+                {
+                    envVarName = $"{externalService.Resource.Name.ToUpperInvariant()}";
+                    context.EnvironmentVariables[envVarName] = externalService.Resource.UrlParameter;
+                }
             });
         }
 
@@ -620,8 +700,9 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information from the specified endpoint into the project resource using the source resource's name as the service name.
-    /// Each endpoint will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
+    /// Injects service discovery and endpoint information from the specified endpoint into the project resource using the source resource's name as the service name.
+    /// Each endpoint uri will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{name}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{NAME}_{ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <typeparam name="TDestination">The destination resource.</typeparam>
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
@@ -637,7 +718,7 @@ public static class ResourceBuilderExtensions
         return builder;
     }
 
-    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null)
+    private static void ApplyEndpoints<T>(this IResourceBuilder<T> builder, IResourceWithEndpoints resourceWithEndpoints, string? endpointName = null, string? name = null)
         where T : IResourceWithEnvironment
     {
         // When adding an endpoint we get to see whether there is an EndpointReferenceAnnotation
@@ -654,7 +735,7 @@ public static class ResourceBuilderExtensions
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
             builder.WithAnnotation(endpointReferenceAnnotation);
 
-            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);
+            var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation, null, name);
             builder.WithEnvironment(callback);
         }
 

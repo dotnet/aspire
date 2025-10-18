@@ -30,12 +30,9 @@ public class WithReferenceTests
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
     [Fact]
@@ -110,12 +107,9 @@ public class WithReferenceTests
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
     [Fact]
@@ -139,12 +133,9 @@ public class WithReferenceTests
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(projectA.Resource, r.Resource);
-            });
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(projectA.Resource, r.Resource);
     }
 
     [Fact]
@@ -299,13 +290,9 @@ public class WithReferenceTests
         Assert.Equal("Endpoint=http://localhost:3452;Key=secretKey", config["ConnectionStrings__cs"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
-        Assert.Collection(relationships,
-            r =>
-            {
-                Assert.Equal("Reference", r.Type);
-                Assert.Same(resource.Resource, r.Resource);
-            });
-
+        var r = Assert.Single(relationships);
+        Assert.Equal("Reference", r.Type);
+        Assert.Same(resource.Resource, r.Resource);
         Assert.True(resource.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var csRelationships));
         Assert.Collection(csRelationships,
             r =>
@@ -549,7 +536,7 @@ public class WithReferenceTests
 
         // Create a container and explicitly configure it to emit only connection properties
         var container = builder.AddContainer("mycontainer", "myimage")
-                               .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionProperties)
+                               .WithReferenceEnvironment(ReferenceEnvironmentInjectionFlags.ConnectionProperties)
                                .WithReference(resource);
 
         // Call environment variable callbacks.
@@ -578,7 +565,7 @@ public class WithReferenceTests
         // ProjectResource defaults to ReferenceEnvironmentInjectionFlags.All
         // Here we configure it to only inject ConnectionString (not ConnectionProperties)
         var projectB = builder.AddProject<ProjectB>("projectb")
-                              .WithConnectionProperties(ReferenceEnvironmentInjectionFlags.ConnectionString)
+                              .WithReferenceEnvironment(ReferenceEnvironmentInjectionFlags.ConnectionString)
                               .WithReference(resource);
 
         // Call environment variable callbacks.
