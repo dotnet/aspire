@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       REPO_OWNER: dotnet
-      REPO_NAME: aspire
-      GH_CLI_VERSION: 2.80.0
+      REPO_NAME: aspire-playground
+      GH_CLI_VERSION: 2.81.0
       GH_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
     steps:
       - name: Checkout repository
