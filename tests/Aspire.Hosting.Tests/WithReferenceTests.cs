@@ -407,7 +407,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore__default__0" && kvp.Value == "https://petstore.swagger.io/");
-        Assert.Contains(config, kvp => kvp.Key == "PETSTORE" && kvp.Value == "https://petstore.swagger.io/");
+        Assert.Contains(config, kvp => kvp.Key == "petstore" && kvp.Value == "https://petstore.swagger.io/");
     }
 
     [Fact]

@@ -148,7 +148,7 @@ public class ExternalServiceTests
 
         // Check that service discovery information was injected with the correct scheme from parameter value
         Assert.Contains(config, kvp => kvp.Key == "services__nuget__https__0" && kvp.Value == "https://nuget.org/");
-        Assert.Contains(config, kvp => kvp.Key == "NUGET" && kvp.Value == "https://nuget.org/");
+        Assert.Contains(config, kvp => kvp.Key == "NUGET_HTTPS" && kvp.Value == "https://nuget.org/");
     }
 
     [Fact]
