@@ -28,8 +28,7 @@ public static class PipelineStepExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(factory);
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(
-            (context) => Task.FromResult(factory(context))));
+        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
     }
 
     /// <summary>
@@ -63,8 +62,7 @@ public static class PipelineStepExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(factory);
 
-        return builder.WithAnnotation(new PipelineStepAnnotation(
-            (context) => Task.FromResult(factory(context))));
+        return builder.WithAnnotation(new PipelineStepAnnotation(factory));
     }
 
     /// <summary>

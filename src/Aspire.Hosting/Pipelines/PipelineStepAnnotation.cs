@@ -19,10 +19,28 @@ public class PipelineStepAnnotation : IResourceAnnotation
     /// <summary>
     /// Initializes a new instance of the <see cref="PipelineStepAnnotation"/> class.
     /// </summary>
+    /// <param name="factory">A factory function that creates the pipeline step.</param>
+    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, PipelineStep> factory)
+    {
+        _factory = (context) => Task.FromResult<IEnumerable<PipelineStep>>([factory(context)]);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PipelineStepAnnotation"/> class.
+    /// </summary>
     /// <param name="factory">An async factory function that creates the pipeline step.</param>
     public PipelineStepAnnotation(Func<PipelineStepFactoryContext, Task<PipelineStep>> factory)
     {
         _factory = async (context) => [await factory(context).ConfigureAwait(false)];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PipelineStepAnnotation"/> class with a factory that creates multiple pipeline steps.
+    /// </summary>
+    /// <param name="factory">A factory function that creates multiple pipeline steps.</param>
+    public PipelineStepAnnotation(Func<PipelineStepFactoryContext, IEnumerable<PipelineStep>> factory)
+    {
+        _factory = (context) => Task.FromResult(factory(context));
     }
 
     /// <summary>
