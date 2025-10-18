@@ -6,10 +6,13 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Utils;
+using Azure.Core;
 using Azure.Provisioning;
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Resources;
 
 namespace Aspire.Hosting.Azure.AppService;
@@ -383,6 +386,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(webSiteRa);
         }
 
+        if (environmentContext.Environment.EnableApplicationInsights)
+        {
+            EnableApplicationInsightsForWebSite(webSite);
+        }
+
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {
@@ -449,6 +457,61 @@ internal sealed class AzureAppServiceWebsiteContext(
             PrincipalId = contributorPrincipalId,
             RoleDefinitionId = websiteRaId,
         };
+    }
+
+    private void EnableApplicationInsightsForWebSite(WebSite webSite)
+    {
+        // Create Log Analytics workspace
+        var logAnalyticsWorkspace = new OperationalInsightsWorkspace("law_" + Infra.BicepName)// AspireResource.GetBicepIdentifier())
+        {
+            Sku = new OperationalInsightsWorkspaceSku()
+            {
+                Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+            }
+        };
+
+        Infra.Add(logAnalyticsWorkspace);
+
+        // Create Application Insights resource linked to the Log Analytics workspace
+        var applicationInsights = new ApplicationInsightsComponent("ai_" + Infra.BicepName)
+        {
+            ApplicationType = ApplicationInsightsApplicationType.Web,
+            Kind = "web",
+            WorkspaceResourceId = logAnalyticsWorkspace.Id,
+            IngestionMode = ComponentIngestionMode.LogAnalytics
+        };
+
+        if (environmentContext.Environment.ApplicationInsightsLocation is not null)
+        {
+            var applicationInsightsLocation = new AzureLocation(environmentContext.Environment.ApplicationInsightsLocation);
+            applicationInsights.Location = applicationInsightsLocation;
+        }
+        else if (environmentContext.Environment.ApplicationInsightsLocationParameter is not null)
+        {
+            var applicationInsightsLocationParameter = environmentContext.Environment.ApplicationInsightsLocationParameter.AsProvisioningParameter(Infra);
+            applicationInsights.Location = applicationInsightsLocationParameter;
+        }
+
+        Infra.Add(applicationInsights);
+
+        // Website configuration for Application Insights
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = applicationInsights.InstrumentationKey
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = applicationInsights.ConnectionString
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });
     }
 
     enum SecretType

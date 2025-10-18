@@ -30,10 +30,28 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
 
     /// <summary>
-    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the app service environment.
     /// Default is true.
     /// </summary>
     internal bool EnableDashboard { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether Application Insights telemetry should be enabled in the app service environment.
+    /// </summary>
+    internal bool EnableApplicationInsights { get; set; }
+
+    /// <summary>
+    /// Gets the location for the Application Insights resource. If <c>null</c>, the resource group location is used.
+    /// </summary>
+    /// <remarks>
+    /// This property is mutually exclusive with <see cref="ApplicationInsightsLocationParameter"/>.
+    /// </remarks>
+    public string? ApplicationInsightsLocation { get; internal set; }
+
+    /// <summary>
+    /// Parameter resource for the Application Insights location.
+    /// </summary>
+    public ParameterResource? ApplicationInsightsLocationParameter { get; internal set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

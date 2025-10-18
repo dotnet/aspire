@@ -165,4 +165,33 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.Resource.EnableDashboard = enable;
         return builder;
     }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, string? applicationInsightsLocation = null)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        builder.Resource.EnableApplicationInsights = true;
+        builder.Resource.ApplicationInsightsLocation = applicationInsightsLocation;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="applicationInsightsLocation">The location parameter for Application Insights.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<ParameterResource> applicationInsightsLocation)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Resource.EnableApplicationInsights = true;
+        builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
+        return builder;
+    }
 }
