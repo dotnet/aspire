@@ -735,19 +735,19 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddStep("failing-step1", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Error 1");
         });
 
         pipeline.AddStep("failing-step2", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Error 2");
         });
 
         pipeline.AddStep("failing-step3", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Error 3");
         });
 
@@ -768,19 +768,19 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddStep("invalid-op-step", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Invalid operation");
         });
 
         pipeline.AddStep("not-supported-step", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new NotSupportedException("Not supported");
         });
 
         pipeline.AddStep("argument-step", async (context) =>
         {
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new ArgumentException("Bad argument");
         });
 
@@ -826,26 +826,26 @@ public class DistributedApplicationPipelineTests
         pipeline.AddStep("success1", async (context) =>
         {
             lock (executedSteps) { executedSteps.Add("success1"); }
-            await Task.CompletedTask;
+            await Task.Yield();
         });
 
         pipeline.AddStep("fail1", async (context) =>
         {
             lock (executedSteps) { executedSteps.Add("fail1"); }
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Failure 1");
         });
 
         pipeline.AddStep("success2", async (context) =>
         {
             lock (executedSteps) { executedSteps.Add("success2"); }
-            await Task.CompletedTask;
+            await Task.Yield();
         });
 
         pipeline.AddStep("fail2", async (context) =>
         {
             lock (executedSteps) { executedSteps.Add("fail2"); }
-            await Task.CompletedTask;
+            await Task.Yield();
             throw new InvalidOperationException("Failure 2");
         });
 
