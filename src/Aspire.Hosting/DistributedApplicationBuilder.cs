@@ -443,8 +443,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
+        _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton(Pipeline);
 
         // Register IDeploymentStateManager based on execution context

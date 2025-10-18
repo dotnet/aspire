@@ -7,7 +7,7 @@
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,7 +27,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
-    IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
+    IPipelineActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
         options,
         environment,
