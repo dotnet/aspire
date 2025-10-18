@@ -1,10 +1,5 @@
 ﻿{
   "author": "Майкрософт",
   "name": "Пустое приложение Aspire",
-  "description": "Шаблон проекта для создания пустого приложения Aspire.",
-  "symbols/Framework/description": "Целевая платформа для проекта.",
-  "symbols/Framework/choices/net8.0/description": "Целевая среда net8.0",
-  "symbols/Framework/choices/net9.0/description": "Целевая среда net9.0",
-  "symbols/Framework/choices/net10.0/description": "Целевая платформа .NET 10.0",
-  "symbols/skipRestore/description": "Если установлено, автоматическое восстановление проекта при создании пропускается."
+  "description": "Шаблон проекта для создания пустого приложения Aspire."
 }

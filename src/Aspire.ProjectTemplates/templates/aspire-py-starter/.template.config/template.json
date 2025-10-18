@@ -20,12 +20,10 @@
   "preferNameDirectory": true,
   "tags": {
     "language": "C#",
-    "type": "solution",
-    "editorTreatAs": "solution",
-    "aspire-13.0-tfms": "net8.0;net9.0;net10.0"
+    "type": "project"
   },
   "precedence": "9000",
-  "identity": "Aspire.PyStarter.CSharp.8.0",
+  "identity": "Aspire.PyStarter.CSharp",
   "thirdPartyNotices": "https://aka.ms/dotnet/aspire/third-party-notices",
   "groupIdentity": "Aspire.PyStarter",
   "guids": [
@@ -39,36 +37,9 @@
     }
   ],
   "symbols": {
-    "Framework": {
-      "type": "parameter",
-      "description": "The target framework for the project.",
-      "datatype": "choice",
-      "choices": [
-        {
-          "choice": "net8.0",
-          "description": "Target net8.0"
-        },
-        {
-          "choice": "net9.0",
-          "description": "Target net9.0"
-        },
-        {
-          "choice": "net10.0",
-          "description": "Target net10.0"
-        }
-      ],
-      "replaces": "net8.0",
-      "defaultValue": "net9.0"
-    },
     "hostIdentifier": {
       "type": "bind",
       "binding": "HostIdentifier"
-    },
-    "skipRestore": {
-      "type": "parameter",
-      "datatype": "bool",
-      "description": "If specified, skips the automatic restore of the project on create.",
-      "defaultValue": "false"
     }
   },
   "primaryOutputs": [

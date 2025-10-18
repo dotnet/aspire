@@ -1,10 +1,5 @@
 ﻿{
   "author": "Microsoft",
   "name": "App Aspire vuota",
-  "description": "Modello di progetto per la creazione di un'app Aspire vuota.",
-  "symbols/Framework/description": "Il framework di destinazione per il progetto.",
-  "symbols/Framework/choices/net8.0/description": "Destinazione net8.0",
-  "symbols/Framework/choices/net9.0/description": "Net9.0 di destinazione",
-  "symbols/Framework/choices/net10.0/description": "Destinazione net10.0",
-  "symbols/skipRestore/description": "Se specificato, ignora il ripristino automatico del progetto durante la creazione."
+  "description": "Modello di progetto per la creazione di un'app Aspire vuota."
 }
