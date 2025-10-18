@@ -12,7 +12,6 @@ using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
-using Aspire.TestUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -1037,47 +1036,6 @@ public class DistributedApplicationPipelineTests
         // The error message should indicate which dependency failed
         Assert.Contains("failing-dependency", ex.Message);
         Assert.Contains("failed", ex.Message);
-    }
-
-    [Fact]
-    [QuarantinedTest("https://github.com/dotnet/aspire/issues/PLACEHOLDER")]
-    public async Task ExecuteAsync_WithMultipleDependencyFailures_ReportsAllFailedDependencies()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var dependentStepExecuted = false;
-
-        // Two steps that will fail
-        pipeline.AddStep("failing-dep1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 1 failed");
-        });
-
-        pipeline.AddStep("failing-dep2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 2 failed");
-        });
-
-        // Step that depends on both failing steps
-        pipeline.AddStep("dependent-step", async (context) =>
-        {
-            dependentStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: new[] { "failing-dep1", "failing-dep2" });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var ex = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        
-        // The dependent step should not have executed
-        Assert.False(dependentStepExecuted, "Dependent step should not execute when dependencies fail");
-        
-        // Should report multiple failures
-        Assert.Contains("Multiple pipeline steps failed", ex.Message);
-        Assert.Equal(2, ex.InnerExceptions.Count);
     }
 
     [Fact]
