@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) postgresql postgres npgsql sql</PackageTags>
     <Description>A PostgreSQL® client that integrates with Aspire, including health checks, metrics, logging, and telemetry.</Description>
