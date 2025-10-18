@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 
 namespace Aspire.Dashboard.Configuration;
@@ -13,6 +14,7 @@ public sealed class DashboardOptions
 {
     public string? ApplicationName { get; set; }
     public OtlpOptions Otlp { get; set; } = new();
+    public McpOptions Mcp { get; set; } = new();
     public FrontendOptions Frontend { get; set; } = new();
     public ResourceServiceClientOptions ResourceServiceClient { get; set; } = new();
     public TelemetryLimitOptions TelemetryLimits { get; set; } = new();
@@ -135,6 +137,48 @@ public sealed class OtlpOptions
         if (string.IsNullOrEmpty(HttpEndpointUrl) && !string.IsNullOrEmpty(Cors.AllowedOrigins))
         {
             errorMessage = $"CORS configured without an OTLP HTTP endpoint. Either remove CORS configuration or specify a {DashboardConfigNames.DashboardOtlpHttpUrlName.EnvVarName} value.";
+            return false;
+        }
+
+        _primaryApiKeyBytes = PrimaryApiKey != null ? Encoding.UTF8.GetBytes(PrimaryApiKey) : null;
+        _secondaryApiKeyBytes = SecondaryApiKey != null ? Encoding.UTF8.GetBytes(SecondaryApiKey) : null;
+
+        errorMessage = null;
+        return true;
+    }
+}
+
+public class McpOptions
+{
+    private BindingAddress? _parsedEndpointAddress;
+    private byte[]? _primaryApiKeyBytes;
+    private byte[]? _secondaryApiKeyBytes;
+
+    public bool? Disabled { get; set; }
+    public McpAuthMode? AuthMode { get; set; }
+    public string? PrimaryApiKey { get; set; }
+    public string? SecondaryApiKey { get; set; }
+    public string? EndpointUrl { get; set; }
+    public string? PublicUrl { get; set; }
+
+    public BindingAddress? GetEndpointAddress()
+    {
+        return _parsedEndpointAddress;
+    }
+
+    public byte[] GetPrimaryApiKeyBytes()
+    {
+        Debug.Assert(_primaryApiKeyBytes is not null, "Should have been parsed during validation.");
+        return _primaryApiKeyBytes;
+    }
+
+    public byte[]? GetSecondaryApiKeyBytes() => _secondaryApiKeyBytes;
+
+    internal bool TryParseOptions([NotNullWhen(false)] out string? errorMessage)
+    {
+        if (!string.IsNullOrEmpty(EndpointUrl) && !OptionsHelpers.TryParseBindingAddress(EndpointUrl, out _parsedEndpointAddress))
+        {
+            errorMessage = $"Failed to parse MCP endpoint URL '{EndpointUrl}'.";
             return false;
         }
 

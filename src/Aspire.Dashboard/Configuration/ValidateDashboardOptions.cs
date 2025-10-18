@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -91,6 +92,24 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
             default:
                 errorMessages.Add($"Unexpected OTLP authentication mode: {options.Otlp.AuthMode}");
                 break;
+        }
+
+        if (!options.Mcp.TryParseOptions(out var mcpParseErrorMessage))
+        {
+            errorMessages.Add(mcpParseErrorMessage);
+        }
+
+        switch (options.Mcp.AuthMode)
+        {
+            case McpAuthMode.Unsecured:
+                break;
+            case McpAuthMode.ApiKey:
+                if (string.IsNullOrEmpty(options.Mcp.PrimaryApiKey))
+                {
+                    errorMessages.Add($"PrimaryApiKey is required when MCP authentication mode is API key. Specify a {DashboardConfigNames.DashboardMcpPrimaryApiKeyName.ConfigKey} value.");
+                }
+                break;
+
         }
 
         if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
