@@ -150,14 +150,14 @@ public sealed class AzureEnvironmentResource : Resource
             await azureCliCredential.GetTokenAsync(tokenRequest, context.CancellationToken)
                 .ConfigureAwait(false);
 
-            await context.PublishingStep.CompleteAsync(
+            await context.ReportingStep.CompleteAsync(
                 "Azure CLI authentication validated successfully",
                 CompletionState.Completed,
                 context.CancellationToken).ConfigureAwait(false);
         }
         catch (Exception)
         {
-            await context.PublishingStep.CompleteAsync(
+            await context.ReportingStep.CompleteAsync(
                 "Azure CLI authentication failed. Please run 'az login' to authenticate before deploying.",
                 CompletionState.CompletedWithError,
                 context.CancellationToken).ConfigureAwait(false);
@@ -207,7 +207,7 @@ public sealed class AzureEnvironmentResource : Resource
 
         var provisioningTasks = bicepResources.Select(async resource =>
         {
-            var resourceTask = await context.PublishingStep
+            var resourceTask = await context.ReportingStep
                 .CreateTaskAsync($"Deploying {resource.Name}", context.CancellationToken)
                 .ConfigureAwait(false);
 
@@ -349,7 +349,7 @@ public sealed class AzureEnvironmentResource : Resource
 
         var deploymentTasks = computeResources.Select(async computeResource =>
         {
-            var resourceTask = await context.PublishingStep
+            var resourceTask = await context.ReportingStep
                 .CreateTaskAsync($"Deploying {computeResource.Name}", context.CancellationToken)
                 .ConfigureAwait(false);
 
@@ -442,7 +442,7 @@ public sealed class AzureEnvironmentResource : Resource
                 var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
                                  throw new InvalidOperationException("Failed to retrieve container registry information.");
 
-                var loginTask = await context.PublishingStep.CreateTaskAsync($"Logging in to {registryName}", context.CancellationToken).ConfigureAwait(false);
+                var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to {registryName}", context.CancellationToken).ConfigureAwait(false);
                 await using (loginTask.ConfigureAwait(false))
                 {
                     await AuthenticateToAcrHelper(loginTask, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
@@ -523,7 +523,7 @@ public sealed class AzureEnvironmentResource : Resource
                     IValueProvider cir = new ContainerImageReference(resource);
                     var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
 
-                    var pushTask = await context.PublishingStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", context.CancellationToken).ConfigureAwait(false);
+                    var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", context.CancellationToken).ConfigureAwait(false);
                     await using (pushTask.ConfigureAwait(false))
                     {
                         try
@@ -669,7 +669,7 @@ public sealed class AzureEnvironmentResource : Resource
 
         if (dashboardUrl != null)
         {
-            await context.PublishingStep.CompleteAsync(
+            await context.ReportingStep.CompleteAsync(
                 $"Dashboard available at: {dashboardUrl}",
                 CompletionState.Completed,
                 context.CancellationToken).ConfigureAwait(false);

@@ -28,7 +28,7 @@ public sealed class PipelineStepContext
     /// <value>
     /// The <see cref="IReportingStep"/> instance that can be used to create tasks and manage the publishing process for this step.
     /// </value>
-    public required IReportingStep PublishingStep { get; init; }
+    public required IReportingStep ReportingStep { get; init; }
 
     /// <summary>
     /// Gets the distributed application model to be deployed.

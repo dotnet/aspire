@@ -65,7 +65,7 @@ public static class DistributedApplicationPipelineExtensions
         var projectMetadata = projectResource.GetProjectMetadata();
         var projectPath = projectMetadata.ProjectPath;
 
-        var publishTask = await context.PublishingStep.CreateTaskAsync($"Publishing {projectResource.Name}", cancellationToken).ConfigureAwait(false);
+        var publishTask = await context.ReportingStep.CreateTaskAsync($"Publishing {projectResource.Name}", cancellationToken).ConfigureAwait(false);
         await using (publishTask.ConfigureAwait(false))
         {
             var publishDir = Path.Combine(Path.GetTempPath(), $"aspire-publish-{Guid.NewGuid()}");
@@ -109,7 +109,7 @@ public static class DistributedApplicationPipelineExtensions
                     CompletionState.Completed,
                     cancellationToken).ConfigureAwait(false);
 
-                var zipTask = await context.PublishingStep.CreateTaskAsync($"Creating deployment package", cancellationToken).ConfigureAwait(false);
+                var zipTask = await context.ReportingStep.CreateTaskAsync($"Creating deployment package", cancellationToken).ConfigureAwait(false);
                 await using (zipTask.ConfigureAwait(false))
                 {
                     var zipPath = Path.Combine(Path.GetTempPath(), $"aspire-deploy-{Guid.NewGuid()}.zip");
@@ -121,7 +121,7 @@ public static class DistributedApplicationPipelineExtensions
                         CompletionState.Completed,
                         cancellationToken).ConfigureAwait(false);
 
-                    var uploadTask = await context.PublishingStep.CreateTaskAsync($"Uploading to {projectResource.Name}", cancellationToken).ConfigureAwait(false);
+                    var uploadTask = await context.ReportingStep.CreateTaskAsync($"Uploading to {projectResource.Name}", cancellationToken).ConfigureAwait(false);
                     await using (uploadTask.ConfigureAwait(false))
                     {
                         try

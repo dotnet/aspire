@@ -64,7 +64,7 @@ builder.Pipeline.AddStep("assign-storage-role", async (deployingContext) =>
         return;
     }
 
-    var assignRoleTask = await deployingContext.PublishingStep
+    var assignRoleTask = await deployingContext.ReportingStep
         .CreateTaskAsync($"Granting file share access to current user", deployingContext.CancellationToken)
         .ConfigureAwait(false);
 
@@ -263,7 +263,7 @@ builder.Pipeline.AddStep("upload-bind-mounts", async (deployingContext) =>
 
         var fileShareName = await acaEnv.GetOutput($"shareS_{i}_NAME").GetValueAsync();
 
-        var uploadTask = await deployingContext.PublishingStep
+        var uploadTask = await deployingContext.ReportingStep
             .CreateTaskAsync($"Uploading {Path.GetFileName(sourcePath)} to {fileShareName}", deployingContext.CancellationToken)
             .ConfigureAwait(false);
 

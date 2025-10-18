@@ -241,7 +241,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         var stepContext = new PipelineStepContext
                         {
                             PipelineContext = context,
-                            PublishingStep = publishingStep
+                            ReportingStep = publishingStep
                         };
                         await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                     }
