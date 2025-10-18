@@ -1254,6 +1254,136 @@ public class DistributedApplicationPipelineTests
         Assert.Contains("annotated-step", executedSteps);
     }
 
+    [Fact]
+    public async Task WithPipelineStep_SyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStep((factoryContext) => new PipelineStep
+            {
+                Name = "sync-step",
+                Action = async (ctx) =>
+                {
+                    lock (executedSteps) { executedSteps.Add("sync-step"); }
+                    await Task.CompletedTask;
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStep_AsyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStep(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return new PipelineStep
+                {
+                    Name = "async-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("async-step"); }
+                        await Task.CompletedTask;
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStep_MultipleStepsSyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStep((factoryContext) => new[]
+            {
+                new PipelineStep
+                {
+                    Name = "sync-step-1",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-1"); }
+                        await Task.CompletedTask;
+                    }
+                },
+                new PipelineStep
+                {
+                    Name = "sync-step-2",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-2"); }
+                        await Task.CompletedTask;
+                    }
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step-1", executedSteps);
+        Assert.Contains("sync-step-2", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStep_MultipleStepsAsyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStep(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return new[]
+                {
+                    new PipelineStep
+                    {
+                        Name = "async-step-1",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-1"); }
+                            await Task.CompletedTask;
+                        }
+                    },
+                    new PipelineStep
+                    {
+                        Name = "async-step-2",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-2"); }
+                            await Task.CompletedTask;
+                        }
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step-1", executedSteps);
+        Assert.Contains("async-step-2", executedSteps);
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }
