@@ -43,6 +43,9 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class Core42
         {
+            public static readonly GitHubModel Jais30bChat;
+            [System.Obsolete("Use Jais30bChat instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel JAIS30bChat;
         }
 
@@ -66,6 +69,9 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class Microsoft
         {
+            public static readonly GitHubModel MaiDSR1;
+            [System.Obsolete("Use MaiDSR1 instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel MAIDSR1;
             public static readonly GitHubModel Phi4;
             public static readonly GitHubModel Phi4MiniInstruct;
@@ -86,10 +92,25 @@ namespace Aspire.Hosting.GitHub
 
         public static partial class OpenAI
         {
+            public static readonly GitHubModel OpenAIGpt41;
+            [System.Obsolete("Use OpenAIGpt41 instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel OpenAIGPT41;
+            public static readonly GitHubModel OpenAIGpt41Mini;
+            [System.Obsolete("Use OpenAIGpt41Mini instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel OpenAIGPT41Mini;
+            public static readonly GitHubModel OpenAIGpt41Nano;
+            [System.Obsolete("Use OpenAIGpt41Nano instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel OpenAIGPT41Nano;
+            public static readonly GitHubModel OpenAIGpt4o;
+            [System.Obsolete("Use OpenAIGpt4o instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel OpenAIGPT4o;
+            public static readonly GitHubModel OpenAIGpt4oMini;
+            [System.Obsolete("Use OpenAIGpt4oMini instead.")]
+            [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
             public static readonly GitHubModel OpenAIGPT4oMini;
             public static readonly GitHubModel OpenAIGpt5;
             public static readonly GitHubModel OpenAIGpt5ChatPreview;
@@ -126,5 +147,9 @@ namespace Aspire.Hosting.GitHub.Models
         public string Model { get { throw null; } set { } }
 
         public ApplicationModel.ParameterResource? Organization { get { throw null; } set { } }
+
+        public ApplicationModel.ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ApplicationModel.ReferenceExpression>> ApplicationModel.IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
