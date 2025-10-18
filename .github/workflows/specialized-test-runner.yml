@@ -73,7 +73,7 @@ jobs:
         if: ${{ always() }}
         run: |-
           df -h
-          du -d 1 h ~/.nuget/packages
+          du -d 1 -h ~/.nuget/packages
           du -d 1 -h ${{ github.workspace }}
           du -d 1 -h ${{ github.workspace }}/artifacts
 
