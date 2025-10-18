@@ -46,12 +46,21 @@ var builder = DistributedApplication.CreateBuilder(args);
 var appServiceEnvironment = builder.AddAzureAppServiceEnvironment("env");
 
 builder.AddProject<Projects.MyWebApp>("webapp")
+    .WithExternalHttpEndpoints()
     .PublishAsAzureAppServiceWebsite((infrastructure, site) =>
     {
         // Configure the App Service website
         site.SiteConfig.IsWebSocketsEnabled = true;
     });
 ```
+
+## Azure App Service constraints
+
+When deploying to Azure App Service, the following constraints apply:
+
+- **External endpoints only**: App Service only supports external endpoints. All endpoints must be configured using `WithExternalHttpEndpoints()`.
+- **HTTP/HTTPS only**: Only HTTP and HTTPS endpoints are supported. Other protocols are not supported.
+- **Single endpoint**: App Service supports only a single target port. Resources with multiple external endpoints with different target ports are not supported.
 
 ### Publishing compute resources to Azure App Service
 
@@ -60,6 +69,7 @@ The `PublishAsAzureAppServiceWebsite` extension method is used to configure a co
 ```csharp
 builder.AddProject<Projects.MyApi>("api")
     .WithHttpEndpoint()
+    .WithExternalHttpEndpoints()
     .PublishAsAzureAppServiceWebsite((infrastructure, site) =>
     {
         // Customize the App Service website settings
