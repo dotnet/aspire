@@ -95,13 +95,13 @@ internal static class ProvisioningTestHelpers
     }
 
     /// <summary>
-    /// Creates a test host environment.
+    /// Creates a test AppHost environment.
     /// </summary>
-    public static IHostEnvironment CreateEnvironment()
+    public static IAppHostEnvironment CreateAppHostEnvironment()
     {
-        var environment = new TestHostEnvironment
+        var environment = new TestAppHostEnvironment
         {
-            ApplicationName = "TestApp"
+            ProjectName = "TestApp"
         };
         return environment;
     }
@@ -556,6 +556,25 @@ internal sealed class TestHostEnvironment : IHostEnvironment
     public string ApplicationName { get; set; } = "TestApp";
     public string ContentRootPath { get; set; } = "/test";
     public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+}
+
+/// <summary>
+/// Test implementation of <see cref="IAppHostEnvironment"/>.
+/// </summary>
+internal sealed class TestAppHostEnvironment : IAppHostEnvironment
+{
+    public string ProjectName { get; set; } = "TestApp";
+    public string ProjectDirectory { get; set; } = "/test";
+    public string FullPath { get; set; } = "/test/TestApp";
+    public string DashboardApplicationName { get; set; } = "TestApp";
+    public string DefaultHash { get; set; } = "0000000000000000000000000000000000000000000000000000000000000000";
+    public string FullPathHash { get; set; } = "0000000000000000000000000000000000000000000000000000000000000000";
+    public string ProjectNameHash { get; set; } = "0000000000000000000000000000000000000000000000000000000000000000";
+    public string? ContainerHostname { get; set; }
+    public string? DefaultLaunchProfileName { get; set; }
+    public string? OtlpApiKey { get; set; }
+    public string? ResourceServiceApiKey { get; set; }
+    public string? ResourceServiceAuthMode { get; set; }
 }
 
 internal sealed class TestBicepCompiler : IBicepCompiler

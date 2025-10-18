@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -20,7 +19,7 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal abstract partial class BaseProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
-    IHostEnvironment environment,
+    IAppHostEnvironment appHostEnvironment,
     ILogger logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
@@ -33,7 +32,7 @@ internal abstract partial class BaseProvisioningContextProvider(
 
     protected readonly IInteractionService _interactionService = interactionService;
     protected readonly AzureProvisionerOptions _options = options.Value;
-    protected readonly IHostEnvironment _environment = environment;
+    protected readonly IAppHostEnvironment _appHostEnvironment = appHostEnvironment;
     protected readonly ILogger _logger = logger;
     protected readonly IArmClientProvider _armClientProvider = armClientProvider;
     protected readonly IUserPrincipalProvider _userPrincipalProvider = userPrincipalProvider;

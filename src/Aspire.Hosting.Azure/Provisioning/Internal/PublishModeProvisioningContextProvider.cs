@@ -8,7 +8,6 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -21,7 +20,7 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class PublishModeProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
-    IHostEnvironment environment,
+    IAppHostEnvironment appHostEnvironment,
     ILogger<PublishModeProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
@@ -30,7 +29,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IPublishingActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
         options,
-        environment,
+        appHostEnvironment,
         logger,
         armClientProvider,
         userPrincipalProvider,
@@ -48,7 +47,7 @@ internal sealed class PublishModeProvisioningContextProvider(
 
         var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - 1; // extra '-'
 
-        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(_environment.ApplicationName.ToLowerInvariant());
+        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(_appHostEnvironment.ProjectName.ToLowerInvariant());
         if (normalizedApplicationName.Length > maxApplicationNameSize)
         {
             normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];
