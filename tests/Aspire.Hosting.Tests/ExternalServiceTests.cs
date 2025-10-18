@@ -112,6 +112,7 @@ public class ExternalServiceTests
 
         // Check that service discovery information was injected with https scheme
         Assert.Contains(config, kvp => kvp.Key == "services__nuget__https__0" && kvp.Value == "https://nuget.org/");
+        Assert.Contains(config, kvp => kvp.Key == "NUGET" && kvp.Value == "https://nuget.org/");
     }
 
     [Fact]
@@ -128,6 +129,7 @@ public class ExternalServiceTests
 
         // Check that service discovery information was injected with http scheme
         Assert.Contains(config, kvp => kvp.Key == "services__nuget__http__0" && kvp.Value == "http://nuget.org/");
+        Assert.Contains(config, kvp => kvp.Key == "NUGET" && kvp.Value == "http://nuget.org/");
     }
 
     [Fact]
@@ -145,10 +147,8 @@ public class ExternalServiceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(project.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         // Check that service discovery information was injected with the correct scheme from parameter value
-        Assert.Contains(config, kvp => kvp.Key == "services__nuget__https__0");
-        // The value should be the URL value from the parameter
-        var urlValue = config["services__nuget__https__0"];
-        Assert.Equal("https://nuget.org/", urlValue);
+        Assert.Contains(config, kvp => kvp.Key == "services__nuget__https__0" && kvp.Value == "https://nuget.org/");
+        Assert.Contains(config, kvp => kvp.Key == "NUGET" && kvp.Value == "https://nuget.org/");
     }
 
     [Fact]
@@ -170,6 +170,7 @@ public class ExternalServiceTests
         Assert.Contains(config, kvp => kvp.Key == "services__nuget__default__0");
         var urlValue = config["services__nuget__default__0"];
         Assert.Equal(urlParam.Resource.ValueExpression, urlValue);
+        Assert.Contains(config, kvp => kvp.Key == "NUGET" && kvp.Value == urlValue);
     }
 
     [Fact]

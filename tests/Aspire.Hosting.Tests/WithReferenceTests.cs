@@ -28,6 +28,7 @@ public class WithReferenceTests
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
         var r = Assert.Single(relationships);
@@ -57,6 +58,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__myconflictingbinding__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("https://localhost:3000", config["PROJECTA_MYCONFLICTINGBINDING"]);
     }
 
     [Fact]
@@ -82,6 +86,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mynonconflictingbinding__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("http://localhost:3000", config["PROJECTA_MYNONCONFLICTINGBINDING"]);
     }
 
     [Fact]
@@ -105,6 +112,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("https://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("https://localhost:3000", config["PROJECTA_MYBINDING2"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
         var r = Assert.Single(relationships);
@@ -131,6 +141,9 @@ public class WithReferenceTests
 
         Assert.Equal("https://localhost:2000", config["services__projecta__mybinding__0"]);
         Assert.Equal("http://localhost:3000", config["services__projecta__mybinding2__0"]);
+
+        Assert.Equal("https://localhost:2000", config["PROJECTA_MYBINDING"]);
+        Assert.Equal("http://localhost:3000", config["PROJECTA_MYBINDING2"]);
 
         Assert.True(projectB.Resource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
         var r = Assert.Single(relationships);
@@ -394,6 +407,7 @@ public class WithReferenceTests
         var servicesKeysCount = config.Keys.Count(k => k.StartsWith("services__"));
         Assert.Equal(1, servicesKeysCount);
         Assert.Contains(config, kvp => kvp.Key == "services__petstore__default__0" && kvp.Value == "https://petstore.swagger.io/");
+        Assert.Contains(config, kvp => kvp.Key == "PETSTORE" && kvp.Value == "https://petstore.swagger.io/");
     }
 
     [Fact]
