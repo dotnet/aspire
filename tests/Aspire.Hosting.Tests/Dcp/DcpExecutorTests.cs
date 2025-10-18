@@ -1648,6 +1648,26 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        
+        // Debug: Check what resources exist in the model
+        var allResources = distributedAppModel.Resources.ToList();
+        Assert.Equal(2, allResources.Count); // Verify we have 2 total resources
+        
+        // Check what types the resources are
+        var resource1 = allResources[0];
+        var resource2 = allResources[1];
+        Assert.True(resource1 is ExecutableResource, $"Resource1 '{resource1.Name}' is of type {resource1.GetType().FullName}");
+        Assert.True(resource2 is ExecutableResource, $"Resource2 '{resource2.Name}' is of type {resource2.GetType().FullName}");
+        
+        // Try different ways to get ExecutableResources
+        var executableResources1 = distributedAppModel.Resources.OfType<ExecutableResource>().ToList();
+        var executableResources2 = distributedAppModel.GetExecutableResources().ToList();
+        var executableResources3 = allResources.OfType<ExecutableResource>().ToList();
+        
+        Assert.Equal(2, executableResources1.Count);
+        Assert.Equal(2, executableResources2.Count);
+        Assert.Equal(2, executableResources3.Count);
+        
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
 
         // Act
