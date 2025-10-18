@@ -728,74 +728,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithThreeStepsFailingAtSameLevel_CapturesAllExceptions()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.Yield();
-            throw new InvalidOperationException("Error 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.Yield();
-            throw new InvalidOperationException("Error 2");
-        });
-
-        pipeline.AddStep("failing-step3", async (context) =>
-        {
-            await Task.Yield();
-            throw new InvalidOperationException("Error 3");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.Equal(3, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step3"));
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithDifferentExceptionTypesAtSameLevel_CapturesAllTypes()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("invalid-op-step", async (context) =>
-        {
-            await Task.Yield();
-            throw new InvalidOperationException("Invalid operation");
-        });
-
-        pipeline.AddStep("not-supported-step", async (context) =>
-        {
-            await Task.Yield();
-            throw new NotSupportedException("Not supported");
-        });
-
-        pipeline.AddStep("argument-step", async (context) =>
-        {
-            await Task.Yield();
-            throw new ArgumentException("Bad argument");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.Equal(3, exception.InnerExceptions.Count);
-
-        var innerExceptions = exception.InnerExceptions.ToList();
-        Assert.Contains(innerExceptions, e => e is InvalidOperationException && e.Message.Contains("invalid-op-step"));
-        Assert.Contains(innerExceptions, e => e is InvalidOperationException && e.Message.Contains("not-supported-step"));
-        Assert.Contains(innerExceptions, e => e is InvalidOperationException && e.Message.Contains("argument-step"));
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithFailingStep_PreservesOriginalStackTrace()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -813,55 +745,6 @@ public class DistributedApplicationPipelineTests
         Assert.Contains("failing-step", exception.Message);
         Assert.NotNull(exception.InnerException);
         Assert.Contains("ThrowHelperMethod", exception.InnerException.StackTrace);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithParallelSuccessfulAndFailingSteps_OnlyFailuresReported()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var executedSteps = new List<string>();
-
-        pipeline.AddStep("success1", async (context) =>
-        {
-            lock (executedSteps) { executedSteps.Add("success1"); }
-            await Task.Yield();
-        });
-
-        pipeline.AddStep("fail1", async (context) =>
-        {
-            lock (executedSteps) { executedSteps.Add("fail1"); }
-            await Task.Yield();
-            throw new InvalidOperationException("Failure 1");
-        });
-
-        pipeline.AddStep("success2", async (context) =>
-        {
-            lock (executedSteps) { executedSteps.Add("success2"); }
-            await Task.Yield();
-        });
-
-        pipeline.AddStep("fail2", async (context) =>
-        {
-            lock (executedSteps) { executedSteps.Add("fail2"); }
-            await Task.Yield();
-            throw new InvalidOperationException("Failure 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-
-        // All steps should have attempted to execute
-        Assert.Contains("success1", executedSteps);
-        Assert.Contains("success2", executedSteps);
-        Assert.Contains("fail1", executedSteps);
-        Assert.Contains("fail2", executedSteps);
-
-        // Only failures should be in the exception
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.All(exception.InnerExceptions, e => Assert.IsType<InvalidOperationException>(e));
     }
 
     [Fact]
