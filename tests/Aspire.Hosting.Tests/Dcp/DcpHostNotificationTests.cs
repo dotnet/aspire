@@ -311,8 +311,11 @@ public sealed class DcpHostNotificationTests
         timeProvider.Advance(TimeSpan.FromSeconds(5));
 
         // Assert - The notification should now be cancelled
-        await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken)).DefaultTimeout();
-    }
+        using (var testTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(interaction.CancellationToken, testTimeoutCts.Token))
+        {
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, linkedCts.Token));
+        }
 
     [Fact]
     public async Task DcpHost_WithContainerRuntimeNotInstalled_ShowsNotificationWithoutPolling()
