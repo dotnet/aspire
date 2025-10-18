@@ -391,19 +391,12 @@ internal sealed class ConsoleActivityLogger
     private static readonly Regex s_urlRegex = new(
         pattern: @"(?:(?:https?|ftp)://)[^\s]+",
         options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-<<<<<<< HEAD
-    // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
-    private string HighlightAndEscape(string input)
-=======
-    // Pattern to detect Spectre markup tags like [bold], [/], [cyan link=url], etc.
     private static readonly Regex s_spectreMarkupRegex = new(
         pattern: @"\[(?:/?(?:bold|italic|grey|gray|blue|green|yellow|cyan|red|orange3|magenta|purple|underline|strikethrough|dim|link=[^\]]+)|/)\]",
         options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
     // Escapes non-markup portions while preserving Spectre markup tags and converting URLs to links.
-    private static string HighlightAndEscape(string input)
->>>>>>> ba395e998 (Fix ConsoleActivityLogger to preserve Spectre markup from markdown conversion)
+    private string HighlightAndEscape(string input)
     {
         if (string.IsNullOrEmpty(input))
         {
