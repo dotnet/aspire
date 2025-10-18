@@ -1,0 +1,8 @@
+﻿{
+  "type": "azure.bicep.v0",
+  "path": "storage-operator-adminGroupObjectId.module.bicep",
+  "params": {
+    "operatorPrincipalId": "{adminGroupObjectId.value}",
+    "storage_outputs_name": "{storage.outputs.name}"
+  }
+}
