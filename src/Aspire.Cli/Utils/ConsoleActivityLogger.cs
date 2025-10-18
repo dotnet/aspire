@@ -53,6 +53,9 @@ internal sealed class ConsoleActivityLogger
         {
             _spinning = false;
         }
+
+        // Set a large width to prevent truncation of long lines - terminal will handle wrapping
+        AnsiConsole.Profile.Width = int.MaxValue;
     }
 
     public enum ActivityState
