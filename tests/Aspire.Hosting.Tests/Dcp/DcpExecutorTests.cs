@@ -1632,17 +1632,10 @@ public class DcpExecutorTests
 
         // Create executable resources with SupportsDebuggingAnnotation
         var debuggableExecutable = new TestExecutableResource("test-working-directory");
-        var builder1 = builder.AddResource(debuggableExecutable);
-        Assert.Same(debuggableExecutable, builder1.Resource);
-        builder1.WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
+        builder.AddResource(debuggableExecutable).WithVSCodeDebugSupport(_ => new ExecutableLaunchConfiguration("test"), "test");
 
         var nonDebuggableExecutable = new TestOtherExecutableResource("test-working-directory-2");
-        var builder2 = builder.AddResource(nonDebuggableExecutable);
-        Assert.Same(nonDebuggableExecutable, builder2.Resource);
-        Assert.NotSame(debuggableExecutable, nonDebuggableExecutable);
-        
-        // Verify both resources are in the builder
-        Assert.Equal(2, builder.Resources.Count);
+        builder.AddResource(nonDebuggableExecutable);
 
         // Simulate no extension endpoint (no extension mode) - this means no debug session port
         var configDict = new Dictionary<string, string?>
@@ -1655,23 +1648,13 @@ public class DcpExecutorTests
         var kubernetesService = new TestKubernetesService();
         using var app = builder.Build();
         var distributedAppModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        
-        // Check what GetExecutableResources returns before RunApplicationAsync
-        var executablesBeforeRun = distributedAppModel.GetExecutableResources().ToList();
-        var execNames = string.Join(", ", executablesBeforeRun.Select(e => e.Name));
-        Assert.True(executablesBeforeRun.Count == 2, $"Expected 2 executables in model before run, got {executablesBeforeRun.Count}. Names: [{execNames}]");
-        
         var appExecutor = CreateAppExecutor(distributedAppModel, kubernetesService: kubernetesService, configuration: configuration);
 
         // Act
         await appExecutor.RunApplicationAsync();
 
         // Assert
-        var allCreatedResources = kubernetesService.CreatedResources.ToList();
         var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-        Assert.True(dcpExes.Count == 2, $"Expected 2 executables, got {dcpExes.Count}. " +
-            $"Executable names: [{string.Join(", ", dcpExes.Select(e => e.AppModelResourceName ?? "(null)"))}]. " +
-            $"Total created resources: {allCreatedResources.Count}");
         Assert.Equal(2, dcpExes.Count);
 
         var debuggableExe = Assert.Single(dcpExes, e => e.AppModelResourceName == "TestExecutable");
