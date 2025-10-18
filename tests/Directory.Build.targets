@@ -37,43 +37,84 @@
                   Overwrite="true" />
   </Target>
 
-  <!-- Used for running one helix job per test class -->
-  <Target Name="ExtractTestClassNames"
-          Condition=" '$(IsTestProject)' == 'true' and '$(ExtractTestClassNamesForHelix)' == 'true' and '$(PrepareForHelix)' == 'true' and '$(IsTestUtilityProject)' != 'true'"
+  <!-- Enhanced test splitting with auto-detection (v3) -->
+  <Target Name="ExtractTestClassNamesV3"
+          Condition=" '$(IsTestProject)' == 'true' and '$(SplitTestsOnCI)' == 'true' and ('$(PrepareForHelix)' == 'true' or '$(GenerateCIPartitions)' == 'true') and '$(IsTestUtilityProject)' != 'true'"
           BeforeTargets="ZipTestArchive">
 
-    <Error Condition="'$(ExtractTestClassNamesPrefix)' == ''"
-           Text="%24(ExtractTestClassNamesPrefix) should be set, for example - Aspire.Templates.Tests" />
+    <Error Condition="'$(TestClassNamesPrefix)' == ''"
+           Text="%24(TestClassNamesPrefix) must be set when SplitTestsOnCI=true. Example: -p:TestClassNamesPrefix=Aspire.Hosting.Tests" />
 
-    <Exec Command="&quot;$(RunCommand)&quot; --filter-not-trait category=failing --list-tests" ConsoleToMSBuild="true">
-      <Output TaskParameter="ConsoleOutput" ItemName="_ListOfTestsLines" />
-    </Exec>
+    <Message Text="[$(MSBuildProjectName)] Starting test metadata extraction (v3 auto-detection)..." Importance="High" />
 
     <PropertyGroup>
-      <_Regex>^\s*($(ExtractTestClassNamesPrefix)[^\($]+)</_Regex>
+      <!-- Path to discovery helper script -->
+      <_DiscoveryScriptPath>$(RepoRoot)eng\scripts\split-test-projects-for-ci.ps1</_DiscoveryScriptPath>
+
+      <!-- Output files -->
+      <_TestListFile>$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list</_TestListFile>
+      <_TestListFileAbs>$([MSBuild]::NormalizePath('$(RepoRoot)', '$(_TestListFile)'))</_TestListFileAbs>
+      <_MetadataFile>$(TestArchiveTestsDir)$(MSBuildProjectName).tests.metadata.json</_MetadataFile>
+      <_MetadataFileAbs>$([MSBuild]::NormalizePath('$(RepoRoot)', '$(_MetadataFile)'))</_MetadataFileAbs>
+
+      <!-- Normalize path separators for cross-platform compatibility -->
+      <_RelativeProjectPath>$(MSBuildProjectDirectory.Replace('$(RepoRoot)', ''))</_RelativeProjectPath>
+      <_RelativeProjectPath>$(_RelativeProjectPath.Replace('\', '/'))</_RelativeProjectPath>
+
+      <!-- Collections to skip (if any) -->
+      <_CollectionsToSkip Condition="'$(TestCollectionsToSkipSplitting)' != ''">$(TestCollectionsToSkipSplitting)</_CollectionsToSkip>
+      <_CollectionsToSkip Condition="'$(TestCollectionsToSkipSplitting)' == ''"></_CollectionsToSkip>
     </PropertyGroup>
+
+    <!-- Ensure output directory exists -->
+    <MakeDir Directories="$(TestArchiveTestsDir)" />
+
+    <!-- Write initial metadata file for the script to update -->
     <ItemGroup>
-      <_TestLines0 Include="$([System.Text.RegularExpressions.Regex]::Match('%(_ListOfTestsLines.Identity)', '$(_Regex)'))" />
-      <TestClassName Include="$([System.IO.Path]::GetFileNameWithoutExtension('%(_TestLines0.Identity)'))" />
+      <_InitialMetadataLines Include="{" />
+      <_InitialMetadataLines Include="  &quot;projectName&quot;: &quot;$(MSBuildProjectName)&quot;," />
+      <_InitialMetadataLines Include="  &quot;testClassNamesPrefix&quot;: &quot;$(TestClassNamesPrefix)&quot;," />
+      <_InitialMetadataLines Include="  &quot;testProjectPath&quot;: &quot;$(_RelativeProjectPath)/$(MSBuildProjectFile)&quot;," />
+      <_InitialMetadataLines Include="  &quot;requiresNugets&quot;: &quot;$(RequiresNugetsForSplitTests)&quot;," />
+      <_InitialMetadataLines Include="  &quot;requiresTestSdk&quot;: &quot;$(RequiresTestSdkForSplitTests)&quot;," />
+      <_InitialMetadataLines Include="  &quot;testSessionTimeout&quot;: &quot;$(TestSessionTimeout)&quot;," />
+      <_InitialMetadataLines Include="  &quot;testHangTimeout&quot;: &quot;$(TestHangTimeout)&quot;," />
+      <_InitialMetadataLines Include="  &quot;uncollectedTestsSessionTimeout&quot;: &quot;$(UncollectedTestsSessionTimeout)&quot;," />
+      <_InitialMetadataLines Include="  &quot;uncollectedTestsHangTimeout&quot;: &quot;$(UncollectedTestsHangTimeout)&quot;" />
+      <_InitialMetadataLines Include="}" />
     </ItemGroup>
 
-    <ItemGroup>
-      <UniqueTestClassNamesFiltered Include="@(TestClassName->Distinct())" Exclude="@(TestClassNamesToSkipTests)" />
-    </ItemGroup>
-
-    <Error Text="No $(ExtractTestClassNamesPrefix) test classes found!" Condition="'@(TestClassName)' == ''" />
-
-    <WriteLinesToFile File="$(TestArchiveTestsDir)$(MSBuildProjectName).tests.list"
-                      Lines="@(UniqueTestClassNamesFiltered)"
+    <WriteLinesToFile File="$(_MetadataFileAbs)"
+                      Lines="@(_InitialMetadataLines)"
                       Overwrite="true" />
-  </Target>
 
-  <Target Name="GetRunTestsOnGithubActions" Returns="@(TestProject)">
-    <ItemGroup>
-      <TestProject Condition="'$(BuildOs)' == 'windows'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsWindows)" />
-      <TestProject Condition="'$(BuildOs)' == 'linux'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsLinux)" />
-      <TestProject Condition="'$(BuildOs)' == 'darwin'" Include="$(MSBuildProjectFullPath)" RunTestsOnGithubActions="$(RunOnGithubActionsMacOS)" />
-    </ItemGroup>
+    <!-- Call PowerShell discovery helper (optimized to only run list-tests when needed) -->
+    <Message Text="[$(MSBuildProjectName)] Running discovery helper..." Importance="High" />
+
+    <PropertyGroup>
+      <_PwshCommand>pwsh</_PwshCommand>
+      <_PwshCommand Condition="'$(OS)' == 'Windows_NT'">powershell</_PwshCommand>
+      <_TestAssemblyPath>$(TargetDir)$(TargetFileName)</_TestAssemblyPath>
+      <_DiscoveryCommand>$(_PwshCommand) -NoProfile -ExecutionPolicy Bypass -File &quot;$(_DiscoveryScriptPath)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -TestAssemblyPath &quot;$(_TestAssemblyPath)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -RunCommand &quot;$(RunCommand)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -TestClassNamesPrefix &quot;$(TestClassNamesPrefix)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand Condition="'$(_CollectionsToSkip)' != ''">$(_DiscoveryCommand) -TestCollectionsToSkip &quot;$(_CollectionsToSkip)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -OutputListFile &quot;$(_TestListFileAbs)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -MetadataJsonFile &quot;$(_MetadataFileAbs)&quot;</_DiscoveryCommand>
+      <_DiscoveryCommand>$(_DiscoveryCommand) -RepoRoot &quot;$(RepoRoot)&quot;</_DiscoveryCommand>
+    </PropertyGroup>
+
+    <Exec Command="$(_DiscoveryCommand)"
+          IgnoreExitCode="false"
+          WorkingDirectory="$(RepoRoot)" />
+
+    <!-- Verify output file was created -->
+    <Error Condition="!Exists('$(_TestListFileAbs)')"
+           Text="Discovery helper failed to generate test list file: $(_TestListFileAbs)" />
+
+    <Message Text="[$(MSBuildProjectName)] ✅ Test metadata extraction complete!" Importance="High" />
+    <Message Text="[$(MSBuildProjectName)] Files: $(_TestListFile), $(_MetadataFile)" Importance="High" />
   </Target>
 
   <Import Project="$(TestsSharedDir)Aspire.Templates.Testing.targets" Condition="'$(IsTemplateTestProject)' == 'true'" />

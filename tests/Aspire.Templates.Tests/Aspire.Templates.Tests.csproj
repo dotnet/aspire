@@ -13,8 +13,18 @@
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(PrepareForHelix)' == 'true' and '$(ContinuousIntegrationBuild)' == 'true'">true</InstallBrowsersForPlaywright>
     <InstallBrowsersForPlaywright Condition="'$(InstallBrowsersForPlaywright)' == '' and '$(OS)' == 'Windows_NT' and '$(ContinuousIntegrationBuild)' != 'true'">true</InstallBrowsersForPlaywright>
 
-    <ExtractTestClassNamesForHelix Condition="'$(ContinuousIntegrationBuild)' == 'true' or '$(PrepareForHelix)' == 'true'">true</ExtractTestClassNamesForHelix>
-    <ExtractTestClassNamesPrefix>Aspire.Templates.Tests</ExtractTestClassNamesPrefix>
+    <SplitTestsOnCI>true</SplitTestsOnCI>
+    <TestClassNamesPrefix>Aspire.Templates.Tests</TestClassNamesPrefix>
+
+    <!-- FIXME: remove *ForSplitTests suffix -->
+    <!-- Templates tests require packages and SDK -->
+    <RequiresNugetsForSplitTests>true</RequiresNugetsForSplitTests>
+    <RequiresTestSdkForSplitTests>true</RequiresTestSdkForSplitTests>
+    <EnablePlaywrightInstallForSplitTests>true</EnablePlaywrightInstallForSplitTests>
+
+    <!-- Timeout configuration -->
+    <TestSessionTimeout>20m</TestSessionTimeout>
+    <TestHangTimeout>15m</TestHangTimeout>
 
     <!--
       FIXME: https://github.com/dotnet/aspire/issues/8488
