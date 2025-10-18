@@ -56,7 +56,7 @@ public interface IAppHostEnvironment
     /// <remarks>
     /// Used for stable naming across deployments regardless of path (Azure Functions, Azure environments).
     /// </remarks>
-    string ProjectNameSha256 { get; }
+    string ProjectNameHash { get; }
 
     /// <summary>
     /// Gets the container hostname.

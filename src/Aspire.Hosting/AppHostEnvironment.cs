@@ -44,7 +44,7 @@ internal sealed class AppHostEnvironment : IAppHostEnvironment
     public string FullPathHash => _configuration["AppHost:PathSha256"]!;
 
     /// <inheritdoc />
-    public string ProjectNameSha256 => _configuration["AppHost:ProjectNameSha256"]!;
+    public string ProjectNameHash => _configuration["AppHost:ProjectNameSha256"]!;
 
     /// <inheritdoc />
     public string? ContainerHostname => _configuration["AppHost:ContainerHostname"];

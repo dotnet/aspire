@@ -190,7 +190,7 @@ public class ResourceLoggerForwarderServiceTests(ITestOutputHelper output)
         public string DashboardApplicationName => _hostEnvironment?.ApplicationName ?? "TestApp";
         public string DefaultHash => "0000000000000000000000000000000000000000000000000000000000000000";
         public string FullPathHash => "0000000000000000000000000000000000000000000000000000000000000000";
-        public string ProjectNameSha256 => "0000000000000000000000000000000000000000000000000000000000000000";
+        public string ProjectNameHash => "0000000000000000000000000000000000000000000000000000000000000000";
         public string? ContainerHostname => null;
         public string? DefaultLaunchProfileName => null;
         public string? OtlpApiKey => null;

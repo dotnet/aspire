@@ -470,10 +470,10 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         }
 
         _innerBuilder.Services.AddSingleton(ExecutionContext);
-        _innerBuilder.Services.AddSingleton<IAppHostEnvironment, AppHostEnvironment>();
         
-        // Initialize the AppHostEnvironment for use within the builder
+        // Initialize the AppHostEnvironment for use within the builder and register in DI
         _appHostEnvironment = new AppHostEnvironment(_innerBuilder.Configuration, _innerBuilder.Environment);
+        _innerBuilder.Services.AddSingleton<IAppHostEnvironment>(_appHostEnvironment);
         
         LogBuilderConstructed(this);
     }

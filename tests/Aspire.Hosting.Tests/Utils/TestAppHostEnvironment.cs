@@ -23,7 +23,7 @@ internal sealed class TestAppHostEnvironment : IAppHostEnvironment
     public string DashboardApplicationName => _configuration?["AppHost:DashboardApplicationName"] ?? _hostEnvironment?.ApplicationName ?? "TestApp";
     public string DefaultHash => _configuration?["AppHost:Sha256"] ?? "0000000000000000000000000000000000000000000000000000000000000000";
     public string FullPathHash => _configuration?["AppHost:PathSha256"] ?? "0000000000000000000000000000000000000000000000000000000000000000";
-    public string ProjectNameSha256 => _configuration?["AppHost:ProjectNameSha256"] ?? "0000000000000000000000000000000000000000000000000000000000000000";
+    public string ProjectNameHash => _configuration?["AppHost:ProjectNameSha256"] ?? "0000000000000000000000000000000000000000000000000000000000000000";
     public string? ContainerHostname => _configuration?["AppHost:ContainerHostname"];
     public string? DefaultLaunchProfileName => _configuration?["AppHost:DefaultLaunchProfileName"];
     public string? OtlpApiKey => _configuration?["AppHost:OtlpApiKey"];

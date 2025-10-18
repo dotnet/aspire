@@ -252,7 +252,7 @@ public class DistributedApplicationBuilderTests
         Assert.NotNull(appBuilder.AppHostEnvironment.DashboardApplicationName);
         Assert.NotNull(appBuilder.AppHostEnvironment.DefaultHash);
         Assert.NotNull(appBuilder.AppHostEnvironment.FullPathHash);
-        Assert.NotNull(appBuilder.AppHostEnvironment.ProjectNameSha256);
+        Assert.NotNull(appBuilder.AppHostEnvironment.ProjectNameHash);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class DistributedApplicationBuilderTests
         
         Assert.Equal(config["AppHost:Sha256"], appHostEnvironment.DefaultHash);
         Assert.Equal(config["AppHost:PathSha256"], appHostEnvironment.FullPathHash);
-        Assert.Equal(config["AppHost:ProjectNameSha256"], appHostEnvironment.ProjectNameSha256);
+        Assert.Equal(config["AppHost:ProjectNameSha256"], appHostEnvironment.ProjectNameHash);
     }
 
     [Fact]
