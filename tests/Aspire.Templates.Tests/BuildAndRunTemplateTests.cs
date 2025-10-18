@@ -48,9 +48,14 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     public async Task BuildAndRunAspireTemplateWithCentralPackageManagement()
     {
         string id = GetNewProjectId(prefix: "aspire_CPM");
-        await using var project = await AspireProject.CreateNewTemplateProjectAsync(id, "aspire", _testOutput, buildEnvironment: BuildEnvironment.ForDefaultFramework);
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire-starter",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework,
+            extraArgs: "--use-redis-cache");
 
-        string version = ExtractAndRemoveVersionFromPackageReference(project);
+        string version = ExtractVersionFromSdkAndRemovePackageVersion(project);
 
         CreateCPMFile(project, version);
 
@@ -58,18 +63,18 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         await project.StartAppHostAsync();
         await project.StopAppHostAsync();
 
-        static string ExtractAndRemoveVersionFromPackageReference(AspireProject project)
+        static string ExtractVersionFromSdkAndRemovePackageVersion(AspireProject project)
         {
             var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
             Assert.False(string.IsNullOrEmpty(projectName));
 
             var projectContents = File.ReadAllText(projectName);
 
-            var match = AppHostVersionRegex().Match(projectContents);
+            var match = ProjectSdkVersionRegex().Match(projectContents);
 
             File.WriteAllText(
                 projectName,
-                AppHostVersionRegex().Replace(projectContents, @"<PackageReference Include=""Aspire.Hosting.AppHost"" />")
+                RedisVersionRegex().Replace(projectContents, @"<PackageReference Include=""Aspire.Hosting.Redis"" />")
             );
 
             return match.Groups[1].Value;
@@ -78,16 +83,18 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
         static void CreateCPMFile(AspireProject project, string version)
         {
             var cpmFilePath = Path.Combine(project.RootDir, "Directory.Packages.props");
-            var cpmContent = $@"<Project>
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <!-- Do not warn for not using package source mapping when using CPM -->
-    <NoWarn>NU1507;$(NoWarn)</NoWarn>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageVersion Include=""Aspire.Hosting.AppHost"" Version=""{version}"" />
-  </ItemGroup>
-</Project>";
+            var cpmContent = $"""
+                <Project>
+                  <PropertyGroup>
+                    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+                    <!-- Do not warn for not using package source mapping when using CPM -->
+                    <NoWarn>NU1507;$(NoWarn)</NoWarn>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <PackageVersion Include="Aspire.Hosting.Redis" Version="{version}" />
+                  </ItemGroup>
+                </Project>
+                """;
 
             File.WriteAllText(cpmFilePath, cpmContent);
         }
@@ -173,4 +180,10 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
 
     [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.AppHost""\s+Version=""([^""]+)""\s+/>")]
     private static partial Regex AppHostVersionRegex();
+
+    [GeneratedRegex(@"<PackageReference\s+Include=""Aspire\.Hosting\.Redis""\s+Version=""([^""]+)""\s+/>")]
+    private static partial Regex RedisVersionRegex();
+
+    [GeneratedRegex(@"<Project\s+Sdk=""Aspire\.AppHost\.Sdk/([^""]+)""\s+>")]
+    private static partial Regex ProjectSdkVersionRegex();
 }
