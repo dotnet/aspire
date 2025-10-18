@@ -1,0 +1,56 @@
+name: 'Cache .NET SDK for Arcade'
+description: |
+  Cache the .NET SDK in the .dotnet directory using actions/cache@v4.
+
+  This action caches the .dotnet directory and only runs SDK installation on cache misses.
+  The cache key includes all version files (global.json and eng/Versions.props)
+  to ensure proper invalidation when SDK versions change.
+
+  For pull requests, the cache operates in read-only mode to prevent cache pollution
+  and save storage quota while still benefiting from caches saved by the main branch.
+
+  Why we can't use actions/setup-dotnet:
+  The Aspire repository uses advanced global.json features that actions/setup-dotnet
+  doesn't support, variable substitution in runtime versions,
+  and architecture-specific runtimes. Instead, we use Arcade's build infrastructure
+  (eng/build.ps1 or build.sh) which properly handles these requirements.
+
+inputs:
+  key-prefix:
+    description: 'Prefix for the cache key'
+    required: false
+    default: 'dotnet-sdk-v1'
+
+outputs:
+  cache-hit:
+    description: 'A boolean value to indicate an exact match was found for the cache-key'
+    value: ${{ steps.cache-dotnet.outputs.cache-hit }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cache .dotnet directory
+      id: cache-dotnet
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: .dotnet
+        key: ${{ inputs.key-prefix }}-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('global.json', 'eng/Versions.props', 'eng/SdksForTesting.Versions.props', 'eng/Version.Details.xml') }}
+        lookup-only: ${{ github.event_name == 'pull_request' }}
+
+    - name: Install Sdks (Windows)
+      if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path ./artifacts/tmp -Force | Out-Null
+        '<Project />' | Out-File -FilePath ./artifacts/tmp/install-sdks.proj -Encoding utf8
+        ./eng/build.ps1 -restore -projects ./artifacts/tmp/install-sdks.proj
+        Remove-Item -Path ./artifacts/tmp/install-sdks.proj -Force
+
+    - name: Install Sdks (Linux/macOS)
+      if: steps.cache-dotnet.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
+      run: |
+        mkdir -p ./artifacts/tmp
+        echo '<Project />' > ./artifacts/tmp/install-sdks.proj
+        ./build.sh -restore -projects $PWD/artifacts/tmp/install-sdks.proj
+        rm -f ./artifacts/tmp/install-sdks.proj
