@@ -185,8 +185,8 @@ internal static partial class MarkdownToSpectreConverter
 
     private static string ConvertLinks(string text)
     {
-        // Convert [text](url) to Spectre.Console link format
-        return LinkRegex().Replace(text, "[link=$2]$1[/]");
+        // Convert [text](url) to Spectre.Console link format with cyan color
+        return LinkRegex().Replace(text, "[cyan][link=$2]$1[/][/]");
     }
 
     private static string EscapeRemainingSquareBrackets(string text)
