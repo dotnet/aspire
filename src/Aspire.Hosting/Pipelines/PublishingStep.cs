@@ -6,7 +6,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.

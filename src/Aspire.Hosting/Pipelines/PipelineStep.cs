@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
-using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 

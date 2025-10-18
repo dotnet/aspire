@@ -9,7 +9,6 @@ using System.Net.Http.Headers;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Azure.Identity;
 using Azure.Provisioning;

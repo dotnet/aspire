@@ -8,8 +8,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
-using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Pipelines;
@@ -240,7 +238,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     await using (publishingStep.ConfigureAwait(false))
                     {
-                        var stepContext = new ApplicationModel.PipelineStepContext
+                        var stepContext = new PipelineStepContext
                         {
                             PipelineContext = context,
                             PublishingStep = publishingStep
@@ -421,7 +419,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
     }
 
-    private static async Task ExecuteStepAsync(PipelineStep step, ApplicationModel.PipelineStepContext stepContext)
+    private static async Task ExecuteStepAsync(PipelineStep step, PipelineStepContext stepContext)
     {
         try
         {

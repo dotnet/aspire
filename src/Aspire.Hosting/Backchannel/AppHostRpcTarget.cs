@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Exec;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

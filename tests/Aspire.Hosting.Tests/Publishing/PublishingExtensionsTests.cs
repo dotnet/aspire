@@ -3,7 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Publishing;

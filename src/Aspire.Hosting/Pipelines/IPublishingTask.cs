@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing task, which belongs to a step.

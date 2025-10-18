@@ -5,7 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Extension methods for <see cref="IPublishingStep"/> and <see cref="IPublishingTask"/> to provide direct operations.

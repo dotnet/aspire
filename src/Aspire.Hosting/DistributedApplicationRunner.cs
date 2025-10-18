@@ -6,6 +6,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

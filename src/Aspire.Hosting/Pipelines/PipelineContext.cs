@@ -2,9 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.ApplicationModel;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Provides contextual information and services for the pipeline execution process of a distributed application.

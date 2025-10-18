@@ -5,7 +5,7 @@
 #pragma warning disable ASPIREINTERACTION001
 
 using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

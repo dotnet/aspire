@@ -12,7 +12,7 @@ using Aspire.Hosting.Dashboard;
 using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsyncDisposable
 {
