@@ -12,6 +12,7 @@ using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -292,7 +293,8 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+        var deploymentTag = DockerImageTagHelpers.SanitizeTag($"aspire-deploy-{timestamp}");
         foreach (var resource in computeResources)
         {
             if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
