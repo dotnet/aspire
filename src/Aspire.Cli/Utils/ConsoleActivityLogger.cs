@@ -47,7 +47,7 @@ internal sealed class ConsoleActivityLogger
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
-        
+
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
         {
@@ -392,16 +392,43 @@ internal sealed class ConsoleActivityLogger
         pattern: @"(?:(?:https?|ftp)://)[^\s]+",
         options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
 
+<<<<<<< HEAD
     // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
     private string HighlightAndEscape(string input)
+=======
+    // Pattern to detect Spectre markup tags like [bold], [/], [cyan link=url], etc.
+    private static readonly Regex s_spectreMarkupRegex = new(
+        pattern: @"\[(?:/?(?:bold|italic|grey|gray|blue|green|yellow|cyan|red|orange3|magenta|purple|underline|strikethrough|dim|link=[^\]]+)|/)\]",
+        options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+
+    // Escapes non-markup portions while preserving Spectre markup tags and converting URLs to links.
+    private static string HighlightAndEscape(string input)
+>>>>>>> ba395e998 (Fix ConsoleActivityLogger to preserve Spectre markup from markdown conversion)
     {
         if (string.IsNullOrEmpty(input))
         {
             return string.Empty;
         }
 
-        var matches = s_urlRegex.Matches(input);
-        if (matches.Count == 0)
+        // First, identify all Spectre markup tags and URLs to preserve
+        var preserveRanges = new List<(int start, int end, string replacement)>();
+
+        // Add Spectre markup ranges
+        foreach (Match match in s_spectreMarkupRegex.Matches(input))
+        {
+            preserveRanges.Add((match.Index, match.Index + match.Length, match.Value));
+        }
+
+        // Add URL ranges (converted to link markup)
+        foreach (Match match in s_urlRegex.Matches(input))
+        {
+            var url = match.Value;
+            var replacement = $"[link={url}]{url}[/]";
+            preserveRanges.Add((match.Index, match.Index + match.Length, replacement));
+        }
+
+        // If nothing to preserve, just escape everything
+        if (preserveRanges.Count == 0)
         {
             return input.EscapeMarkup();
         }
@@ -414,21 +441,33 @@ internal sealed class ConsoleActivityLogger
 
         var sb = new StringBuilder(input.Length + 32);
         var lastIndex = 0;
-        foreach (Match match in matches)
+
+        foreach (var (start, end, replacement) in preserveRanges)
         {
-            if (match.Index > lastIndex)
+            // Skip if this range overlaps with previous (prefer earlier ranges)
+            if (start < lastIndex)
             {
-                var segment = input.Substring(lastIndex, match.Index - lastIndex);
+                continue;
+            }
+
+            // Escape and append text before this preserved range
+            if (start > lastIndex)
+            {
+                var segment = input.Substring(lastIndex, start - lastIndex);
                 sb.Append(segment.EscapeMarkup());
             }
-            var url = match.Value; // Do not EscapeMarkup inside [link] to keep it functional.
-            sb.Append("[link=").Append(url).Append(']').Append(url).Append("[/]");
-            lastIndex = match.Index + match.Length;
+
+            // Append the preserved range (markup or link)
+            sb.Append(replacement);
+            lastIndex = end;
         }
+
+        // Escape and append remaining text
         if (lastIndex < input.Length)
         {
             sb.Append(input.Substring(lastIndex).EscapeMarkup());
         }
+
         return sb.ToString();
     }
 
