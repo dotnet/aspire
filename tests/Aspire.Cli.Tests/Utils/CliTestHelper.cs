@@ -240,7 +240,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ConsoleInteractionService(ansiConsole, executionContext, TestHelpers.CreateNonCIDetector());
+        return new ConsoleInteractionService(ansiConsole, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>

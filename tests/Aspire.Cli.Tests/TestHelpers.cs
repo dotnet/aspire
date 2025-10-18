@@ -8,9 +8,9 @@ namespace Aspire.Cli.Tests;
 
 internal static class TestHelpers
 {
-    public static ICIEnvironmentDetector CreateNonCIDetector()
+    public static ICliHostEnvironment CreateInteractiveHostEnvironment()
     {
         var configuration = new ConfigurationBuilder().Build();
-        return new CIEnvironmentDetector(configuration);
+        return new CliHostEnvironment(configuration);
     }
 }

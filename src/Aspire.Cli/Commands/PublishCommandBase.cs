@@ -27,7 +27,7 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IDotNetSdkInstaller _sdkInstaller;
 
     private readonly IFeatures _features;
-    private readonly ICIEnvironmentDetector _ciDetector;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -41,7 +41,7 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICIEnvironmentDetector ciDetector)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -49,14 +49,14 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(ciDetector);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
         _features = features;
-        _ciDetector = ciDetector;
+        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
@@ -348,7 +348,7 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger(_ciDetector);
+        var logger = new ConsoleActivityLogger(_hostEnvironment);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 
@@ -736,8 +736,8 @@ internal abstract class PublishCommandBase : BaseCommand
     /// </summary>
     private void StartTerminalProgressBar()
     {
-        // Skip terminal progress bar in CI environments
-        if (_ciDetector.IsCI)
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
         {
             return;
         }
@@ -749,8 +749,8 @@ internal abstract class PublishCommandBase : BaseCommand
     /// </summary>
     private void StopTerminalProgressBar()
     {
-        // Skip terminal progress bar in CI environments
-        if (_ciDetector.IsCI)
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
         {
             return;
         }

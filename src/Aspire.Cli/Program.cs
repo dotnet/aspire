@@ -54,11 +54,23 @@ public class Program
 
     private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
+        // Check for --non-interactive flag early
+        var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
+
         var settings = new HostApplicationBuilderSettings
         {
             Configuration = new ConfigurationManager()
         };
         settings.Configuration.AddEnvironmentVariables();
+
+        // Add --non-interactive flag to configuration if present
+        if (nonInteractive)
+        {
+            settings.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_NON_INTERACTIVE"] = "true"
+            });
+        }
 
         var builder = Host.CreateEmptyApplicationBuilder(settings);
 
@@ -109,7 +121,7 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
-        builder.Services.AddSingleton<ICIEnvironmentDetector, CIEnvironmentDetector>();
+        builder.Services.AddSingleton<ICliHostEnvironment, CliHostEnvironment>();
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
@@ -263,8 +275,8 @@ public class Program
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                var ciDetector = provider.GetRequiredService<ICIEnvironmentDetector>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, ciDetector);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
@@ -281,8 +293,8 @@ public class Program
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                var ciDetector = provider.GetRequiredService<ICIEnvironmentDetector>();
-                return new ConsoleInteractionService(ansiConsole, executionContext, ciDetector);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
             });
         }
     }

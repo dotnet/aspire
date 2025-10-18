@@ -18,22 +18,22 @@ internal class ConsoleInteractionService : IInteractionService
 
     private readonly IAnsiConsole _ansiConsole;
     private readonly CliExecutionContext _executionContext;
-    private readonly ICIEnvironmentDetector _ciDetector;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
-    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICIEnvironmentDetector ciDetector)
+    public ConsoleInteractionService(IAnsiConsole ansiConsole, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(executionContext);
-        ArgumentNullException.ThrowIfNull(ciDetector);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         _ansiConsole = ansiConsole;
         _executionContext = executionContext;
-        _ciDetector = ciDetector;
+        _hostEnvironment = hostEnvironment;
     }
 
     public async Task<T> ShowStatusAsync<T>(string statusText, Func<Task<T>> action)
     {
-        // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || _ciDetector.IsCI)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             return await action();
@@ -46,8 +46,8 @@ internal class ConsoleInteractionService : IInteractionService
 
     public void ShowStatus(string statusText, Action action)
     {
-        // In debug mode or CI environments, avoid interactive progress as it conflicts with debug logging
-        if (_executionContext.DebugMode || _ciDetector.IsCI)
+        // In debug mode or non-interactive environments, avoid interactive progress as it conflicts with debug logging
+        if (_executionContext.DebugMode || !_hostEnvironment.SupportsInteractiveOutput)
         {
             DisplaySubtleMessage(statusText);
             action();

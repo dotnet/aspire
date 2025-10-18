@@ -3,7 +3,6 @@
 
 using System.Diagnostics;
 using System.Globalization;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Spectre.Console;
@@ -18,7 +17,7 @@ namespace Aspire.Cli.Utils;
 internal sealed class ConsoleActivityLogger
 {
     private readonly bool _enableColor;
-    private readonly ICIEnvironmentDetector _ciDetector;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly object _lock = new();
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
     private readonly Dictionary<string, string> _stepColors = new();
@@ -44,13 +43,13 @@ internal sealed class ConsoleActivityLogger
     private const string InProgressSymbol = "→";
     private const string InfoSymbol = "i";
 
-    public ConsoleActivityLogger(ICIEnvironmentDetector ciDetector, bool? forceColor = null)
+    public ConsoleActivityLogger(ICliHostEnvironment hostEnvironment, bool? forceColor = null)
     {
-        _ciDetector = ciDetector;
-        _enableColor = forceColor ?? DetectColorSupport();
+        _hostEnvironment = hostEnvironment;
+        _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
         
-        // Disable spinner in CI environments
-        if (_ciDetector.IsCI)
+        // Disable spinner in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
         {
             _spinning = false;
         }
@@ -93,8 +92,8 @@ internal sealed class ConsoleActivityLogger
 
     public void StartSpinner()
     {
-        // Skip spinner in CI environments
-        if (_ciDetector.IsCI || _spinning)
+        // Skip spinner in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput || _spinning)
         {
             return;
         }
@@ -256,9 +255,9 @@ internal sealed class ConsoleActivityLogger
             }
             if (!string.IsNullOrEmpty(dashboardUrl))
             {
-                // Render dashboard URL as clickable link in interactive terminals, plain in CI
+                // Render dashboard URL as clickable link in interactive terminals, plain in non-interactive
                 var url = dashboardUrl;
-                if (_ciDetector.IsCI || !_enableColor)
+                if (!_hostEnvironment.SupportsInteractiveOutput || !_enableColor)
                 {
                     AnsiConsole.MarkupLine($"Dashboard: {url.EscapeMarkup()}");
                 }
@@ -407,8 +406,8 @@ internal sealed class ConsoleActivityLogger
             return input.EscapeMarkup();
         }
 
-        // In CI environments, just output URLs as-is without [link] markup
-        if (_ciDetector.IsCI)
+        // In non-interactive environments, just output URLs as-is without [link] markup
+        if (!_hostEnvironment.SupportsInteractiveOutput)
         {
             return input.EscapeMarkup();
         }
@@ -433,30 +432,5 @@ internal sealed class ConsoleActivityLogger
         return sb.ToString();
     }
 
-    private bool DetectColorSupport()
-    {
-        try
-        {
-            // In CI environments, we should still use ANSI colors for better readability
-            if (_ciDetector.IsCI)
-            {
-                // Most modern CI systems support ANSI colors
-                return true;
-            }
-            
-            if (Console.IsOutputRedirected)
-            {
-                return false;
-            }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return true; // Modern Windows terminals support ANSI
-            }
-            return true; // Assume ANSI on Unix
-        }
-        catch
-        {
-            return false;
-        }
-    }
+    // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly
 }
