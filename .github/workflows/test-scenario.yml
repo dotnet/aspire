@@ -1,0 +1,137 @@
+name: Test Scenario Workflow
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test-scenario:
+    # Only run when the comment starts with /test-scenario on a PR
+    if: >-
+      ${{
+        startsWith(github.event.comment.body, '/test-scenario') &&
+        github.event.issue.pull_request
+      }}
+    runs-on: ubuntu-latest
+    env:
+      REPO_OWNER: dotnet
+      REPO_NAME: aspire
+      GH_CLI_VERSION: 2.80.0
+      GH_TOKEN: ${{ secrets.GH_PLAYGROUND_TOKEN }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Parse and validate scenario name
+        id: parse_scenario
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          echo "Comment body: $COMMENT_BODY"
+
+          # Extract scenario name from comment
+          SCENARIO_NAME=$(echo "$COMMENT_BODY" | \
+            grep -oP '^/test-scenario\s+\K[a-z0-9]+(-[a-z0-9]+)*[a-z0-9]$' | head -1)
+
+          if [ -z "$SCENARIO_NAME" ]; then
+            echo "Error: Invalid or missing scenario name"
+            echo "Expected format: /test-scenario scenario-name"
+            echo "Scenario name must be lowercase alphanumeric with hyphens"
+            exit 1
+          fi
+
+          echo "Scenario name: $SCENARIO_NAME"
+          echo "scenario_name=$SCENARIO_NAME" >> $GITHUB_OUTPUT
+
+      - name: Check for prompt file
+        id: check_prompt
+        run: |
+          SCENARIO_NAME="${{ steps.parse_scenario.outputs.scenario_name }}"
+          PROMPT_FILE="tests/agent-scenarios/${SCENARIO_NAME}/prompt.md"
+
+          if [ ! -f "$PROMPT_FILE" ]; then
+            echo "Error: Prompt file not found at $PROMPT_FILE"
+            exit 1
+          fi
+
+          echo "Found prompt file: $PROMPT_FILE"
+          echo "prompt_file=$PROMPT_FILE" >> $GITHUB_OUTPUT
+
+      - name: Download and install GitHub CLI
+        run: |
+          CURRENT_VERSION=""
+          if command -v gh &> /dev/null; then
+            CURRENT_VERSION=$(gh --version | \
+              grep -oP 'gh version \K[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            echo "Current GitHub CLI version: $CURRENT_VERSION"
+          fi
+
+          if [ "$CURRENT_VERSION" = "$GH_CLI_VERSION" ]; then
+            echo "GitHub CLI v${GH_CLI_VERSION} already installed"
+          else
+            echo "Downloading GitHub CLI v${GH_CLI_VERSION}..."
+            DOWNLOAD_URL="https://github.com/cli/cli/releases/download/v${GH_CLI_VERSION}"
+            ARCHIVE_NAME="gh_${GH_CLI_VERSION}_linux_amd64.tar.gz"
+            curl -fsSL "${DOWNLOAD_URL}/${ARCHIVE_NAME}" -o gh.tar.gz
+            tar -xzf gh.tar.gz
+            sudo mv "gh_${GH_CLI_VERSION}_linux_amd64/bin/gh" /usr/local/bin/
+            rm -rf gh.tar.gz "gh_${GH_CLI_VERSION}_linux_amd64"
+
+            echo "Verifying GitHub CLI installation..."
+            gh --version
+          fi
+
+      - name: Create agent task
+        id: create_agent_task
+        run: |
+          echo "Creating agent task..."
+          PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
+
+          # Create the agent task using stdin and capture the output
+          OUTPUT=$(cat "$PROMPT_FILE" | gh agent-task create \
+            --repo "${REPO_OWNER}/${REPO_NAME}" \
+            -F - \
+            2>&1)
+
+          echo "Agent task output:"
+          echo "$OUTPUT"
+
+          # Extract the PR URL from the output
+          PR_URL=$(echo "$OUTPUT" | \
+            grep -oP 'https://github.com/[^/]+/[^/]+/pull/\d+' | head -1)
+
+          if [ -z "$PR_URL" ]; then
+            echo "Warning: Could not extract PR URL from output"
+            echo "pr_url=" >> $GITHUB_OUTPUT
+          else
+            echo "Successfully created agent task with PR: $PR_URL"
+            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR with agent task link
+        if: steps.create_agent_task.outputs.pr_url != ''
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prUrl = '${{ steps.create_agent_task.outputs.pr_url }}';
+            const scenarioName = '${{ steps.parse_scenario.outputs.scenario_name }}';
+            const comment = `🤖 **AI Agent Task Created**
+
+            Scenario: **${scenarioName}**
+
+            An AI agent has been triggered to execute this scenario.
+            You can track the progress here:
+
+            ${prUrl}`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
