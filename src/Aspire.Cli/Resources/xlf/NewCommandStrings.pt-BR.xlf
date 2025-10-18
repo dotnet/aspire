@@ -33,8 +33,8 @@
         <note />
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
-        <source>Select a project template:</source>
-        <target state="translated">Selecione um modelo de projeto:</target>
+        <source>Select a template:</source>
+        <target state="needs-review-translation">Selecione um modelo de projeto:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">

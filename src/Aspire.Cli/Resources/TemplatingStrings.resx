@@ -121,7 +121,7 @@
     <value>At least one template factory must be provided.</value>
   </data>
   <data name="AspireStarter_Description" xml:space="preserve">
-    <value>Starter template</value>
+    <value>Blazor &amp; Minimal API starter</value>
   </data>
   <data name="AspireEmpty_Description" xml:space="preserve">
     <value>AppHost and service defaults</value>
@@ -133,10 +133,10 @@
     <value>Service defaults</value>
   </data>
   <data name="AspirePyStarter_Description" xml:space="preserve">
-    <value>Python and JavaScript starter (experimental)</value>
+    <value>React (Vite) &amp; FastAPI starter</value>
   </data>
   <data name="AspireAppHostSingleFile_Description" xml:space="preserve">
-    <value>Single-file AppHost (experimental)</value>
+    <value>Empty AppHost</value>
   </data>
   <data name="AspireMSTest_Description" xml:space="preserve">
     <value>MSTest</value>

@@ -39,14 +39,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
-        yield return new CallbackTemplate(
-            "aspire",
-            TemplatingStrings.AspireEmpty_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
-
         // Single-file AppHost template (gated by feature flag). This template only exists in the pack
         // and should be surfaced to the user when the single-file AppHost feature is enabled.
         if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
@@ -70,6 +62,14 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         if (showAllTemplates)
         {
+            yield return new CallbackTemplate(
+                "aspire",
+                TemplatingStrings.AspireEmpty_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+
             yield return new CallbackTemplate(
                 "aspire-apphost",
                 TemplatingStrings.AspireAppHost_Description,
