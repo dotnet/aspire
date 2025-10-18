@@ -972,10 +972,12 @@ public class InteractionServiceTests
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
     {
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build();
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
     }
 }
 

@@ -227,7 +227,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var interactionService = new InteractionService(
             loggerFactory.CreateLogger<InteractionService>(),
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -296,7 +297,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var interactionService = new InteractionService(
             loggerFactory.CreateLogger<InteractionService>(),
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -342,7 +344,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var interactionService = new InteractionService(
             loggerFactory.CreateLogger<InteractionService>(),
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -400,7 +403,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var interactionService = new InteractionService(
             loggerFactory.CreateLogger<InteractionService>(),
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -436,7 +440,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         var interactionService = new InteractionService(
             loggerFactory.CreateLogger<InteractionService>(),
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         using var dashboardServiceData = CreateDashboardServiceData(loggerFactory: loggerFactory, interactionService: interactionService);
         var dashboardService = new DashboardServiceImpl(dashboardServiceData, new TestHostEnvironment(), new TestHostApplicationLifetime(), new ConfigurationBuilder().Build(), loggerFactory.CreateLogger<DashboardServiceImpl>());
 
@@ -583,7 +588,8 @@ public class DashboardServiceTests(ITestOutputHelper testOutputHelper)
         interactionService ??= new InteractionService(
             NullLogger<InteractionService>.Instance,
             new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
 
         return new DashboardServiceData(
             resourceNotificationService,

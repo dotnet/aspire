@@ -479,7 +479,8 @@ public class ApplicationOrchestratorTests
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
     }
 
     private sealed class MockDeploymentStateManager : IDeploymentStateManager

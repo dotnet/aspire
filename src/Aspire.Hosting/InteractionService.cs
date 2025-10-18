@@ -22,15 +22,37 @@ internal class InteractionService : IInteractionService
     private readonly ILogger<InteractionService> _logger;
     private readonly DistributedApplicationOptions _distributedApplicationOptions;
     private readonly IServiceProvider _serviceProvider;
+    private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
 
-    public InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions, IServiceProvider serviceProvider)
+    public InteractionService(ILogger<InteractionService> logger, DistributedApplicationOptions distributedApplicationOptions, IServiceProvider serviceProvider, Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         _logger = logger;
         _distributedApplicationOptions = distributedApplicationOptions;
         _serviceProvider = serviceProvider;
+        _configuration = configuration;
     }
 
-    public bool IsAvailable => !_distributedApplicationOptions.DisableDashboard;
+    public bool IsAvailable
+    {
+        get
+        {
+            if (_distributedApplicationOptions.DisableDashboard)
+            {
+                return false;
+            }
+
+            // Check if interactivity is explicitly disabled via configuration
+            var interactivityEnabled = _configuration[KnownConfigNames.InteractivityEnabled];
+            if (!string.IsNullOrEmpty(interactivityEnabled) &&
+                bool.TryParse(interactivityEnabled, out var enabled) &&
+                !enabled)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
 
     public async Task<InteractionResult<bool>> PromptConfirmationAsync(string title, string message, MessageBoxInteractionOptions? options = null, CancellationToken cancellationToken = default)
     {
