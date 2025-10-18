@@ -8,6 +8,14 @@ namespace Aspire.Hosting.Utils;
 /// <summary>
 /// Provides helper methods for sanitizing Docker image tags.
 /// </summary>
+/// <remarks>
+/// Docker image tags must conform to specific format requirements:
+/// <list type="bullet">
+/// <item>Only contain lowercase and uppercase ASCII letters, digits, underscores, periods, and hyphens</item>
+/// <item>Cannot start with a period or hyphen</item>
+/// <item>Maximum 128 characters</item>
+/// </list>
+/// </remarks>
 public static class DockerImageTagHelpers
 {
     private const int MaxDockerTagLength = 128;
@@ -15,10 +23,39 @@ public static class DockerImageTagHelpers
 
     /// <summary>
     /// Sanitizes a string to be a valid Docker image tag.
-    /// Docker image tags must match the pattern [a-zA-Z0-9_.-]+ and cannot start with a period or hyphen.
     /// </summary>
     /// <param name="input">The input string to sanitize.</param>
-    /// <returns>A sanitized Docker image tag, or "aspire-deploy" if the input is null, empty, or results in an empty string after sanitization.</returns>
+    /// <returns>
+    /// A sanitized Docker image tag that conforms to Docker naming requirements.
+    /// Returns "aspire-deploy" if the input is <c>null</c>, empty, or results in an empty string after sanitization.
+    /// </returns>
+    /// <remarks>
+    /// <para>
+    /// The method performs the following transformations:
+    /// </para>
+    /// <list type="bullet">
+    /// <item>Converts all characters to lowercase</item>
+    /// <item>Replaces invalid characters (anything other than a-z, 0-9, underscore, period, or hyphen) with hyphens</item>
+    /// <item>Removes leading periods and hyphens</item>
+    /// <item>Truncates to 128 characters if necessary</item>
+    /// </list>
+    /// </remarks>
+    /// <example>
+    /// Sanitizing various input strings:
+    /// <code>
+    /// var tag1 = DockerImageTagHelpers.SanitizeTag("MyEnvironment");
+    /// // Returns: "myenvironment"
+    ///
+    /// var tag2 = DockerImageTagHelpers.SanitizeTag("My-Env@2024");
+    /// // Returns: "my-env-2024"
+    ///
+    /// var tag3 = DockerImageTagHelpers.SanitizeTag(".invalid");
+    /// // Returns: "invalid"
+    ///
+    /// var tag4 = DockerImageTagHelpers.SanitizeTag("@#$%");
+    /// // Returns: "aspire-deploy"
+    /// </code>
+    /// </example>
     public static string SanitizeTag(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
