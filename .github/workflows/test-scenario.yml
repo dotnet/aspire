@@ -101,9 +101,11 @@ jobs:
           # Build the issue body with context from the source PR and the prompt
           ISSUE_TITLE="Test Scenario: ${SCENARIO_NAME}"
           
-          # Create issue body using printf to avoid YAML parsing issues
+          # Read prompt content first
           PROMPT_CONTENT=$(cat "$PROMPT_FILE")
-          printf -v ISSUE_BODY '%s\n' \
+          
+          # Build issue body using printf with proper format strings to avoid injection
+          printf -v ISSUE_BODY '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
             "## Test Scenario Request" \
             "" \
             "**Scenario:** ${SCENARIO_NAME}" \
@@ -112,7 +114,7 @@ jobs:
             "" \
             "---" \
             "" \
-            "${PROMPT_CONTENT}" \
+            "$PROMPT_CONTENT" \
             "" \
             "---" \
             "" \
