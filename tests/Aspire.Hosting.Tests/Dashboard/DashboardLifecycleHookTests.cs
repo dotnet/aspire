@@ -505,6 +505,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
         var rewriter = new CodespacesUrlRewriter(codespacesOptions);
 
         return new DashboardEventHandlers(
+            new TestAppHostEnvironment(configuration),
             configuration,
             dashboardOptions,
             NullLogger<DistributedApplication>.Instance,
@@ -513,7 +514,7 @@ public class DashboardLifecycleHookTests(ITestOutputHelper testOutputHelper)
             resourceNotificationService,
             resourceLoggerService,
             loggerFactory ?? NullLoggerFactory.Instance,
-            new DcpNameGenerator(configuration, Options.Create(new DcpOptions())),
+            new DcpNameGenerator(new TestAppHostEnvironment(configuration), Options.Create(new DcpOptions())),
             new TestHostApplicationLifetime(),
             new Hosting.Eventing.DistributedApplicationEventing(),
             rewriter

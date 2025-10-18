@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Tests.Utils;
 using Aspire.Hosting.VersionChecking;
 using Aspire.Shared;
 using Microsoft.AspNetCore.InternalTesting;
@@ -251,10 +252,12 @@ public class VersionCheckServiceTests
         DistributedApplicationOptions? options = null,
         IPackageVersionProvider? packageVersionProvider = null)
     {
+        var config = configuration ?? new ConfigurationManager();
         return new VersionCheckService(
             interactionService ?? new TestInteractionService(),
             NullLogger<VersionCheckService>.Instance,
-            configuration ?? new ConfigurationManager(),
+            config,
+            new TestAppHostEnvironment(config),
             options ?? new DistributedApplicationOptions(),
             packageFetcher ?? new TestPackageFetcher(),
             new DistributedApplicationExecutionContext(new DistributedApplicationOperation()),

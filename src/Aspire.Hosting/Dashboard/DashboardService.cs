@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Aspire.DashboardService.Proto.V1;
 using Grpc.Core;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using static Aspire.Hosting.Interaction;
@@ -20,7 +19,7 @@ namespace Aspire.Hosting.Dashboard;
 /// required beyond a single request. Longer-scoped data is stored in <see cref="DashboardServiceData"/>.
 /// </remarks>
 [Authorize(Policy = ResourceServiceApiKeyAuthorization.PolicyName)]
-internal sealed partial class DashboardService(DashboardServiceData serviceData, IHostEnvironment hostEnvironment, IHostApplicationLifetime hostApplicationLifetime, IConfiguration configuration, ILogger<DashboardService> logger)
+internal sealed partial class DashboardService(DashboardServiceData serviceData, IAppHostEnvironment appHostEnvironment, IHostApplicationLifetime hostApplicationLifetime, ILogger<DashboardService> logger)
     : Aspire.DashboardService.Proto.V1.DashboardService.DashboardServiceBase
 {
     // gRPC has a maximum receive size of 4MB. Force logs into batches to avoid exceeding receive size.
@@ -38,8 +37,8 @@ internal sealed partial class DashboardService(DashboardServiceData serviceData,
         ApplicationInformationRequest request,
         ServerCallContext context)
     {
-        // Read the application name from configuration if available, otherwise fall back to the environment
-        var applicationName = configuration["AppHost:DashboardApplicationName"] ?? hostEnvironment.ApplicationName;
+        // Use the dashboard application name from the AppHostEnvironment
+        var applicationName = appHostEnvironment.DashboardApplicationName;
         
         return Task.FromResult(new ApplicationInformationResponse
         {

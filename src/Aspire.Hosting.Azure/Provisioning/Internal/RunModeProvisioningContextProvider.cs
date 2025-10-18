@@ -7,7 +7,6 @@ using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -19,7 +18,7 @@ namespace Aspire.Hosting.Azure.Provisioning.Internal;
 internal sealed class RunModeProvisioningContextProvider(
     IInteractionService interactionService,
     IOptions<AzureProvisionerOptions> options,
-    IHostEnvironment environment,
+    IAppHostEnvironment appHostEnvironment,
     ILogger<RunModeProvisioningContextProvider> logger,
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
@@ -27,7 +26,7 @@ internal sealed class RunModeProvisioningContextProvider(
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
-        environment,
+        appHostEnvironment,
         logger,
         armClientProvider,
         userPrincipalProvider,
@@ -49,7 +48,7 @@ internal sealed class RunModeProvisioningContextProvider(
 
         var maxApplicationNameSize = ResourceGroupNameHelpers.MaxResourceGroupNameLength - prefix.Length - suffix.Length - 2; // extra '-'s
 
-        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(_environment.ApplicationName.ToLowerInvariant());
+        var normalizedApplicationName = ResourceGroupNameHelpers.NormalizeResourceGroupName(_appHostEnvironment.ProjectName.ToLowerInvariant());
         if (normalizedApplicationName.Length > maxApplicationNameSize)
         {
             normalizedApplicationName = normalizedApplicationName[..maxApplicationNameSize];

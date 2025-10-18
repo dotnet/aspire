@@ -240,6 +240,89 @@ public class DistributedApplicationBuilderTests
         Assert.Equal(projectNameSha, legacySha);
     }
 
+    [Fact]
+    public void AppHostEnvironmentIsAvailableFromBuilder()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        
+        Assert.NotNull(appBuilder.AppHostEnvironment);
+        Assert.NotNull(appBuilder.AppHostEnvironment.ProjectName);
+        Assert.NotNull(appBuilder.AppHostEnvironment.ProjectDirectory);
+        Assert.NotNull(appBuilder.AppHostEnvironment.FullPath);
+        Assert.NotNull(appBuilder.AppHostEnvironment.DashboardApplicationName);
+        Assert.NotNull(appBuilder.AppHostEnvironment.DefaultHash);
+        Assert.NotNull(appBuilder.AppHostEnvironment.FullPathHash);
+        Assert.NotNull(appBuilder.AppHostEnvironment.ProjectNameHash);
+    }
+
+    [Fact]
+    public void AppHostEnvironmentIsAvailableFromDI()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var appHostEnvironment = app.Services.GetRequiredService<IAppHostEnvironment>();
+        Assert.NotNull(appHostEnvironment);
+        Assert.NotNull(appHostEnvironment.ProjectName);
+        Assert.NotNull(appHostEnvironment.ProjectDirectory);
+        Assert.NotNull(appHostEnvironment.FullPath);
+    }
+
+    [Fact]
+    public void AppHostEnvironmentProjectNameMatchesConfiguration()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var appHostEnvironment = app.Services.GetRequiredService<IAppHostEnvironment>();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        
+        var configDashboardAppName = config["AppHost:DashboardApplicationName"];
+        Assert.Equal(configDashboardAppName, appHostEnvironment.ProjectName);
+        Assert.Equal(configDashboardAppName, appHostEnvironment.DashboardApplicationName);
+    }
+
+    [Fact]
+    public void AppHostEnvironmentDirectoryMatchesConfiguration()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var appHostEnvironment = app.Services.GetRequiredService<IAppHostEnvironment>();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        
+        Assert.Equal(config["AppHost:Directory"], appHostEnvironment.ProjectDirectory);
+        Assert.Equal(config["AppHost:Path"], appHostEnvironment.FullPath);
+    }
+
+    [Fact]
+    public void AppHostEnvironmentSha256MatchesConfiguration()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var appHostEnvironment = app.Services.GetRequiredService<IAppHostEnvironment>();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        
+        Assert.Equal(config["AppHost:Sha256"], appHostEnvironment.DefaultHash);
+        Assert.Equal(config["AppHost:PathSha256"], appHostEnvironment.FullPathHash);
+        Assert.Equal(config["AppHost:ProjectNameSha256"], appHostEnvironment.ProjectNameHash);
+    }
+
+    [Fact]
+    public void AppHostEnvironmentSecurityConfigMatchesConfiguration()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+        using var app = appBuilder.Build();
+
+        var appHostEnvironment = app.Services.GetRequiredService<IAppHostEnvironment>();
+        var config = app.Services.GetRequiredService<IConfiguration>();
+        
+        Assert.Equal(config["AppHost:OtlpApiKey"], appHostEnvironment.OtlpApiKey);
+        Assert.Equal(config["AppHost:ResourceService:ApiKey"], appHostEnvironment.ResourceServiceApiKey);
+        Assert.Equal(config["AppHost:ResourceService:AuthMode"], appHostEnvironment.ResourceServiceAuthMode);
+    }
+
     private sealed class TestResource : IResource
     {
         public string Name => nameof(TestResource);

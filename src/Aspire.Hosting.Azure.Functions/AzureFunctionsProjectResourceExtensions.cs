@@ -250,8 +250,8 @@ public static class AzureFunctionsProjectResourceExtensions
 
     private static string CreateDefaultStorageName(this IDistributedApplicationBuilder builder)
     {
-        // Use ProjectNameSha256 for stable naming across deployments regardless of path
-        var applicationHash = builder.Configuration["AppHost:ProjectNameSha256"]![..5].ToLowerInvariant();
+        // Use ProjectNameHash for stable naming across deployments regardless of path
+        var applicationHash = builder.AppHostEnvironment.ProjectNameHash[..5].ToLowerInvariant();
         return $"{DefaultAzureFunctionsHostStorageName}{applicationHash}";
     }
 }
