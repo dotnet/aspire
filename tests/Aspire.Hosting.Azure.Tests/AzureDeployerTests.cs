@@ -19,6 +19,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -1195,18 +1196,18 @@ public class AzureDeployerTests(ITestOutputHelper output)
             return Task.CompletedTask;
         }
 
-        public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+        public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
         {
             CreatedSteps.Add(title);
-            return Task.FromResult<IPublishingStep>(new TestPublishingStep(this, title));
+            return Task.FromResult<IReportingStep>(new TestReportingStep(this, title));
         }
 
-        private sealed class TestPublishingStep : IPublishingStep
+        private sealed class TestReportingStep : IReportingStep
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _title;
 
-            public TestPublishingStep(TestPublishingActivityReporter reporter, string title)
+            public TestReportingStep(TestPublishingActivityReporter reporter, string title)
             {
                 _reporter = reporter;
                 _title = title;
@@ -1220,19 +1221,19 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 return Task.CompletedTask;
             }
 
-            public Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+            public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
             {
                 _reporter.CreatedTasks.Add((_title, statusText));
-                return Task.FromResult<IPublishingTask>(new TestPublishingTask(_reporter, statusText));
+                return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
             }
         }
 
-        private sealed class TestPublishingTask : IPublishingTask
+        private sealed class TestReportingTask : IReportingTask
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _initialStatusText;
 
-            public TestPublishingTask(TestPublishingActivityReporter reporter, string initialStatusText)
+            public TestReportingTask(TestPublishingActivityReporter reporter, string initialStatusText)
             {
                 _reporter = reporter;
                 _initialStatusText = initialStatusText;
