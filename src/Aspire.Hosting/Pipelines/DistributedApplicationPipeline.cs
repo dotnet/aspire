@@ -250,15 +250,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                         catch (Exception ex)
                         {
                             // Report the failure to the activity reporter before disposing
-                            try
-                            {
-                                await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
-                            }
-                            catch
-                            {
-                                // Ignore errors during failure reporting to avoid masking the original exception
-                            }
-
+                            await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
                             throw;
                         }
                     }
