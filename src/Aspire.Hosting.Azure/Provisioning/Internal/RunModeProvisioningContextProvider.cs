@@ -261,9 +261,9 @@ internal sealed class RunModeProvisioningContextProvider(
                 if (!result.Canceled)
                 {
                     // Only set tenant ID if it was part of the input (when subscription ID wasn't already set)
-                    if (string.IsNullOrEmpty(_options.SubscriptionId))
+                    if (result.Data.TryGetByName(TenantName, out var tenantInput))
                     {
-                        _options.TenantId = result.Data[TenantName].Value;
+                        _options.TenantId = tenantInput.Value;
                     }
                     _options.Location = result.Data[LocationName].Value;
                     _options.SubscriptionId ??= result.Data[SubscriptionIdName].Value;
