@@ -23,8 +23,8 @@
         <note />
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
-        <source>Python and JavaScript starter (experimental)</source>
-        <target state="new">Python and JavaScript starter (experimental)</target>
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="new">React (Vite) &amp; FastAPI starter</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -33,13 +33,13 @@
         <note />
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
-        <source>Single-file AppHost (experimental)</source>
-        <target state="translated">Однофайловый AppHost (экспериментальная функция)</target>
+        <source>Empty AppHost</source>
+        <target state="needs-review-translation">Однофайловый AppHost (экспериментальная функция)</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Starter template</source>
-        <target state="translated">Шаблон для начинающих</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="needs-review-translation">Шаблон для начинающих</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">

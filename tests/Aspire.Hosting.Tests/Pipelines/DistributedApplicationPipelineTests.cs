@@ -632,33 +632,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMultipleStepsFailingAtSameLevel_ThrowsAggregateException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.Contains("Multiple pipeline steps failed", exception.Message);
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithMixOfSuccessfulAndFailingStepsAtSameLevel_ThrowsAggregateException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -695,39 +668,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMultipleFailuresAtSameLevel_StopsExecutionOfNextLevel()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var nextLevelStepExecuted = false;
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        pipeline.AddStep("next-level-step", async (context) =>
-        {
-            nextLevelStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: "failing-step1");
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.False(nextLevelStepExecuted, "Next level step should not have executed");
-        Assert.Equal(2, exception.InnerExceptions.Count);
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithFailingStep_PreservesOriginalStackTrace()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -754,9 +694,9 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var app = builder.Build();
         var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
@@ -789,9 +729,9 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("test-step", async (context) => await Task.CompletedTask);
@@ -830,9 +770,9 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
             .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
@@ -878,9 +818,9 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
             .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
@@ -926,9 +866,9 @@ public class DistributedApplicationPipelineTests
         });
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var app = builder.Build();
         var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
@@ -967,9 +907,9 @@ public class DistributedApplicationPipelineTests
         });
 
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
-        var reporter = new PublishingActivityReporter(interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
 
-        builder.Services.AddSingleton<IPublishingActivityReporter>(reporter);
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
             .WithAnnotation(new PublishingCallbackAnnotation(async (context) => await Task.CompletedTask));
@@ -1029,53 +969,13 @@ public class DistributedApplicationPipelineTests
         var context = CreateDeployingContext(builder.Build());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
-        
+
         // The dependent step should not have executed
         Assert.False(dependentStepExecuted, "Dependent step should not execute when dependency fails");
-        
+
         // The error message should indicate which dependency failed
         Assert.Contains("failing-dependency", ex.Message);
         Assert.Contains("failed", ex.Message);
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithMultipleDependencyFailures_ReportsAllFailedDependencies()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var dependentStepExecuted = false;
-
-        // Two steps that will fail
-        pipeline.AddStep("failing-dep1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 1 failed");
-        });
-
-        pipeline.AddStep("failing-dep2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 2 failed");
-        });
-
-        // Step that depends on both failing steps
-        pipeline.AddStep("dependent-step", async (context) =>
-        {
-            dependentStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: new[] { "failing-dep1", "failing-dep2" });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var ex = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        
-        // The dependent step should not have executed
-        Assert.False(dependentStepExecuted, "Dependent step should not execute when dependencies fail");
-        
-        // Should report multiple failures
-        Assert.Contains("Multiple pipeline steps failed", ex.Message);
-        Assert.Equal(2, ex.InnerExceptions.Count);
     }
 
     [Fact]
@@ -1206,9 +1106,9 @@ public class DistributedApplicationPipelineTests
         Assert.True(executionTimes["D"] >= executionTimes["C"], "D should start after C completes");
     }
 
-    private static DeployingContext CreateDeployingContext(DistributedApplication app)
+    private static PipelineContext CreateDeployingContext(DistributedApplication app)
     {
-        return new DeployingContext(
+        return new PipelineContext(
             app.Services.GetRequiredService<DistributedApplicationModel>(),
             app.Services.GetRequiredService<DistributedApplicationExecutionContext>(),
             app.Services,

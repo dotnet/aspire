@@ -300,7 +300,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-starter", templateNames);
-        Assert.Contains("aspire", templateNames);
+        Assert.DoesNotContain("aspire", templateNames);
         Assert.DoesNotContain("aspire-apphost", templateNames);
         Assert.DoesNotContain("aspire-servicedefaults", templateNames);
         Assert.DoesNotContain("aspire-test", templateNames);

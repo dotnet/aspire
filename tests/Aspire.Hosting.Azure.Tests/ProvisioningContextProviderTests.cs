@@ -6,8 +6,8 @@
 
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
 

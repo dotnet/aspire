@@ -5,15 +5,15 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing task, which belongs to a step.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class PublishingTask : IPublishingTask
+internal sealed class ReportingTask : IReportingTask
 {
-    internal PublishingTask(string id, string stepId, string statusText, PublishingStep parentStep)
+    internal ReportingTask(string id, string stepId, string statusText, ReportingStep parentStep)
     {
         Id = id;
         StepId = stepId;
@@ -34,7 +34,7 @@ internal sealed class PublishingTask : IPublishingTask
     /// <summary>
     /// Reference to the parent step this task belongs to.
     /// </summary>
-    public PublishingStep ParentStep { get; }
+    public ReportingStep ParentStep { get; }
 
     /// <summary>
     /// The current status text of the task.

@@ -137,6 +137,6 @@
     <value>Invalid project name.</value>
   </data>
   <data name="SelectAProjectTemplate" xml:space="preserve">
-    <value>Select a project template:</value>
+    <value>Select a template:</value>
   </data>
 </root>

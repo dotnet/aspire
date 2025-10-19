@@ -3,13 +3,13 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Aspire.Hosting.Publishing;
+namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
 /// Represents a publishing step, which can contain multiple tasks.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public interface IPublishingStep : IAsyncDisposable
+public interface IReportingStep : IAsyncDisposable
 {
     /// <summary>
     /// Creates a new task within this step.
@@ -17,7 +17,7 @@ public interface IPublishingStep : IAsyncDisposable
     /// <param name="statusText">The initial status text for the task.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created task.</returns>
-    Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default);
+    Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Completes the step with the specified completion text and state.

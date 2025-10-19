@@ -5,7 +5,7 @@
 #pragma warning disable ASPIREINTERACTION001
 
 using Aspire.Hosting.Backchannel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -29,7 +29,7 @@ public class PublishingActivityReporterTests
 
         // Assert
         Assert.NotNull(step);
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.NotNull(stepInternal.Id);
         Assert.NotEmpty(stepInternal.Id);
         Assert.Equal(title, stepInternal.Title);
@@ -57,7 +57,7 @@ public class PublishingActivityReporterTests
 
         // Create parent step first
         var step = await reporter.CreateStepAsync("Parent Step", CancellationToken.None);
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
 
         // Clear the step creation activity
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
@@ -67,7 +67,7 @@ public class PublishingActivityReporterTests
 
         // Assert
         Assert.NotNull(task);
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.NotNull(taskInternal.Id);
         Assert.NotEmpty(taskInternal.Id);
         Assert.Equal(stepInternal.Id, taskInternal.StepId);
@@ -92,7 +92,7 @@ public class PublishingActivityReporterTests
     {
         // Arrange
         var reporter = CreatePublishingReporter();
-        var nonExistentStep = new PublishingStep(reporter, "non-existent-step", "Non-existent Step");
+        var nonExistentStep = new ReportingStep(reporter, "non-existent-step", "Non-existent Step");
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -115,7 +115,7 @@ public class PublishingActivityReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => step.CreateTaskAsync("Test Task", CancellationToken.None));
 
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Contains($"Cannot create task for step '{stepInternal.Id}' because the step is already complete.", exception.Message);
     }
 
@@ -136,7 +136,7 @@ public class PublishingActivityReporterTests
         await step.CompleteAsync(completionText, isError ? CompletionState.CompletedWithError : CompletionState.Completed, CancellationToken.None);
 
         // Assert
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.NotEqual(CompletionState.InProgress, stepInternal.CompletionState);
         Assert.Equal(completionText, stepInternal.CompletionText);
 
@@ -169,8 +169,8 @@ public class PublishingActivityReporterTests
         await task.UpdateAsync(newStatusText, CancellationToken.None);
 
         // Assert
-        var taskInternal = Assert.IsType<PublishingTask>(task);
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(newStatusText, taskInternal.StatusText);
 
         // Verify activity was emitted
@@ -194,9 +194,9 @@ public class PublishingActivityReporterTests
 
         // Simulate step removal by creating a task with invalid step ID
         var dummyStep = await reporter.CreateStepAsync("Dummy Step", CancellationToken.None);
-        var dummyStepInternal = Assert.IsType<PublishingStep>(dummyStep);
-        var taskInternal = Assert.IsType<PublishingTask>(task);
-        var invalidTask = new PublishingTask(taskInternal.Id, "non-existent-step", "Initial status", dummyStepInternal);
+        var dummyStepInternal = Assert.IsType<ReportingStep>(dummyStep);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        var invalidTask = new ReportingTask(taskInternal.Id, "non-existent-step", "Initial status", dummyStepInternal);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -219,7 +219,7 @@ public class PublishingActivityReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.UpdateAsync("New status", CancellationToken.None));
 
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Contains($"Cannot update task '{taskInternal.Id}' because its parent step", exception.Message);
     }
 
@@ -241,8 +241,8 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync(completionMessage, cancellationToken: CancellationToken.None);
 
         // Assert
-        var taskInternal = Assert.IsType<PublishingTask>(task);
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, taskInternal.CompletionState);
         Assert.Equal(completionMessage, taskInternal.CompletionMessage);
 
@@ -273,7 +273,7 @@ public class PublishingActivityReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
 
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Contains($"Cannot complete task '{taskInternal.Id}' because its parent step", exception.Message);
     }
 
@@ -371,7 +371,7 @@ public class PublishingActivityReporterTests
         await task.CompleteAsync(null, cancellationToken: CancellationToken.None);
 
         // Assert
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Equal(string.Empty, taskInternal.CompletionMessage);
     }
 
@@ -391,7 +391,7 @@ public class PublishingActivityReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.CompleteAsync(null, cancellationToken: CancellationToken.None));
 
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Contains($"Cannot complete task '{taskInternal.Id}' with state 'Completed'. Only 'InProgress' tasks can be completed.", exception.Message);
     }
 
@@ -410,7 +410,7 @@ public class PublishingActivityReporterTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => step.CompleteAsync("Complete again", cancellationToken: CancellationToken.None));
 
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Contains($"Cannot complete step '{stepInternal.Id}' with state 'Completed'. Only 'InProgress' steps can be completed.", exception.Message);
     }
 
@@ -433,7 +433,7 @@ public class PublishingActivityReporterTests
         // because the step is complete (not because it's been removed)
         var updateException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => task.UpdateAsync("New status", CancellationToken.None));
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         Assert.Contains($"Cannot update task '{taskInternal.Id}' because its parent step", updateException.Message);
 
         // For CompleteTaskAsync, it will first check if the task is already completed, so we expect that error instead
@@ -444,7 +444,7 @@ public class PublishingActivityReporterTests
         // Creating new tasks for the completed step should also fail because the step is complete
         var createException = await Assert.ThrowsAsync<InvalidOperationException>(
             () => step.CreateTaskAsync("New Task", CancellationToken.None));
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Contains($"Cannot create task for step '{stepInternal.Id}' because the step is already complete.", createException.Message);
     }
 
@@ -581,7 +581,7 @@ public class PublishingActivityReporterTests
         var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
 
         // Act
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         var aggregatedState = stepInternal.CalculateAggregatedState();
 
         // Assert
@@ -602,7 +602,7 @@ public class PublishingActivityReporterTests
         await step.DisposeAsync();
 
         // Assert
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
 
         // Verify activity was emitted for step completion
@@ -636,7 +636,7 @@ public class PublishingActivityReporterTests
         await step.DisposeAsync();
 
         // Assert
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
 
         // Verify activity was emitted for step completion
@@ -668,7 +668,7 @@ public class PublishingActivityReporterTests
 
         // Assert - No new activities should be emitted
         Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.Completed, stepInternal.CompletionState);
         Assert.Equal("Step completed manually", stepInternal.CompletionText);
     }
@@ -688,11 +688,11 @@ public class PublishingActivityReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         await taskInternal.WarnAsync(completionMessage, CancellationToken.None);
 
         // Assert
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.CompletedWithWarning, taskInternal.CompletionState);
         Assert.Equal(completionMessage, taskInternal.CompletionMessage);
 
@@ -723,11 +723,11 @@ public class PublishingActivityReporterTests
         reporter.ActivityItemUpdated.Reader.TryRead(out _);
 
         // Act
-        var taskInternal = Assert.IsType<PublishingTask>(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
         await taskInternal.FailAsync(completionMessage, CancellationToken.None);
 
         // Assert
-        var stepInternal = Assert.IsType<PublishingStep>(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
         Assert.Equal(CompletionState.CompletedWithError, taskInternal.CompletionState);
         Assert.Equal(completionMessage, taskInternal.CompletionMessage);
 
@@ -786,9 +786,9 @@ public class PublishingActivityReporterTests
         Assert.True(activity.Data.IsError);
     }
 
-    private PublishingActivityReporter CreatePublishingReporter()
+    private PipelineActivityReporter CreatePublishingReporter()
     {
-        return new PublishingActivityReporter(_interactionService, NullLogger<PublishingActivityReporter>.Instance);
+        return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
     }
 
     internal static InteractionService CreateInteractionService()
