@@ -331,8 +331,8 @@ public class AddCommandTests(ITestOutputHelper outputHelper)
         Assert.Equal(0, exitCode);
         Assert.Collection(
             promptedPackages!,
-            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id),
-            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id)
+            p => Assert.Equal("Aspire.Hosting.Redis", p.Package.Id),
+            p => Assert.Equal("Aspire.Hosting.Azure.Redis", p.Package.Id)
             );
         Assert.Equal("Aspire.Hosting.Redis", addedPackageName);
         Assert.Equal("9.2.0", addedPackageVersion);
@@ -773,7 +773,7 @@ internal sealed class TestAddCommandPrompter(IInteractionService interactionServ
 public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
 {
     [Fact]
-    public async Task AddCommand_WithTypo_FindsMatchUsingFuzzySearch()
+    public async Task AddCommand_WithStartsWith_FindsMatchUsingFuzzySearch()
     {
         var promptedPackages = new List<(string FriendlyName, NuGetPackage Package, PackageChannel Channel)>();
         var addedPackage = string.Empty;
@@ -935,7 +935,7 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
-    public async Task AddCommand_WithAcronym_FindsMatchUsingFuzzySearch()
+    public async Task AddCommand_WithTypo_FindsMatchUsingFuzzySearch()
     {
         var addedPackage = string.Empty;
 
@@ -994,8 +994,8 @@ public class AddCommandFuzzySearchTests(ITestOutputHelper outputHelper)
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<AddCommand>();
-        // Use "aca" (Azure Container Apps acronym) - should find AppContainers via fuzzy search
-        var result = command.Parse("add aca");
+        // Use "azureapp" (Azure AppContainers) - should find Azure.AppContainers via fuzzy search
+        var result = command.Parse("add azureapp");
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);

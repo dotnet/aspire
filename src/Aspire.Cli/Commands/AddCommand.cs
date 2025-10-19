@@ -177,7 +177,7 @@ internal sealed class AddCommand : BaseCommand
                             FriendlyNameScore = StringUtils.CalculateFuzzyScore(integrationName, p.FriendlyName),
                             PackageIdScore = StringUtils.CalculateFuzzyScore(integrationName, p.Package.Id)
                         })
-                        .Where(x => x.FriendlyNameScore > 0.0 || x.PackageIdScore > 0.0)
+                        .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
                         .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
                         .Select(x => x.Package);
             }
