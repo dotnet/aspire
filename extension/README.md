@@ -50,6 +50,8 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
 
 The debuggers property stores common debug configuration properties for different types of Aspire services.
 C#-based services have common debugging properties under `project`. Python-based services have their common properties under `python`.
+Java-based services have their common properties under `java`. 
+
 There is also a special entry for the apphost (`apphost`). For example:
 
 ```json
