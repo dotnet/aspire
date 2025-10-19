@@ -295,9 +295,7 @@ internal sealed class UpdateCommand : BaseCommand
 
     private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
     {
-        var extension = Path.GetExtension(archivePath).ToLowerInvariant();
-
-        if (extension == ".zip" || archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        if (archivePath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
             ZipFile.ExtractToDirectory(archivePath, destinationPath, overwriteFiles: true);
         }
