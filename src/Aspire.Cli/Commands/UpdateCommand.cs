@@ -144,7 +144,7 @@ internal sealed class UpdateCommand : BaseCommand
 
         try
         {
-            // Get current executable path
+            // Get current executable path for display purposes only
             var currentExePath = Environment.ProcessPath;
             if (string.IsNullOrEmpty(currentExePath))
             {
@@ -153,13 +153,13 @@ internal sealed class UpdateCommand : BaseCommand
             }
 
             InteractionService.DisplayMessage("package", $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage("arrow_up", $"Updating to quality level: {quality}");
+            InteractionService.DisplayMessage("up_arrow", $"Updating to quality level: {quality}");
 
             // Download the latest CLI
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(quality, cancellationToken);
 
-            // Extract and update
-            await ExtractAndUpdateAsync(currentExePath, archivePath, cancellationToken);
+            // Extract and update to $HOME/.aspire/bin
+            await ExtractAndUpdateAsync(archivePath, cancellationToken);
 
             return 0;
         }
@@ -171,15 +171,20 @@ internal sealed class UpdateCommand : BaseCommand
         }
     }
 
-    private async Task ExtractAndUpdateAsync(string currentExePath, string archivePath, CancellationToken cancellationToken)
+    private async Task ExtractAndUpdateAsync(string archivePath, CancellationToken cancellationToken)
     {
-        var installDir = Path.GetDirectoryName(currentExePath);
-        if (string.IsNullOrEmpty(installDir))
+        // Always install to $HOME/.aspire/bin
+        var homeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrEmpty(homeDir))
         {
-            throw new InvalidOperationException("Unable to determine installation directory.");
+            throw new InvalidOperationException("Unable to determine home directory.");
         }
 
-        var exeName = Path.GetFileName(currentExePath);
+        var installDir = Path.Combine(homeDir, ".aspire", "bin");
+        Directory.CreateDirectory(installDir);
+
+        var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
+        var targetExePath = Path.Combine(installDir, exeName);
         var tempExtractDir = Path.Combine(Path.GetTempPath(), $"aspire-cli-extract-{Guid.NewGuid():N}");
 
         try
@@ -197,43 +202,55 @@ internal sealed class UpdateCommand : BaseCommand
                 throw new FileNotFoundException($"Extracted CLI executable not found: {newExePath}");
             }
 
-            // Backup current executable
-            var backupPath = $"{currentExePath}.old";
-            InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
-            _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
-
-            // Remove old backup if it exists
-            if (File.Exists(backupPath))
+            // Backup current executable if it exists
+            var backupPath = $"{targetExePath}.old";
+            if (File.Exists(targetExePath))
             {
-                File.Delete(backupPath);
-            }
+                InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
+                _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
-            // Rename current executable to .old
-            File.Move(currentExePath, backupPath);
+                // Remove old backup if it exists
+                if (File.Exists(backupPath))
+                {
+                    File.Delete(backupPath);
+                }
+
+                // Rename current executable to .old
+                File.Move(targetExePath, backupPath);
+            }
 
             try
             {
                 // Copy new executable to install location
-                InteractionService.DisplayMessage("wrench", "Installing new CLI...");
-                File.Copy(newExePath, currentExePath, overwrite: true);
+                InteractionService.DisplayMessage("wrench", $"Installing new CLI to {installDir}...");
+                File.Copy(newExePath, targetExePath, overwrite: true);
 
                 // On Unix systems, ensure the executable bit is set
                 if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
-                    SetExecutablePermission(currentExePath);
+                    SetExecutablePermission(targetExePath);
                 }
 
                 // Test the new executable and display its version
                 _logger.LogDebug("Testing new CLI executable and displaying version");
-                var newVersion = await GetNewVersionAsync(currentExePath, cancellationToken);
+                var newVersion = await GetNewVersionAsync(targetExePath, cancellationToken);
                 if (newVersion is null)
                 {
                     throw new InvalidOperationException("New CLI executable failed verification test.");
                 }
 
                 // If we get here, the update was successful, remove the backup
-                _logger.LogDebug("Update successful, removing backup");
-                File.Delete(backupPath);
+                if (File.Exists(backupPath))
+                {
+                    _logger.LogDebug("Update successful, removing backup");
+                    File.Delete(backupPath);
+                }
+
+                // Display helpful message about PATH
+                if (!IsInPath(installDir))
+                {
+                    InteractionService.DisplayMessage("information", $"Note: {installDir} is not in your PATH. Add it to use the updated CLI globally.");
+                }
             }
             catch
             {
@@ -241,11 +258,11 @@ internal sealed class UpdateCommand : BaseCommand
                 _logger.LogWarning("Update failed, restoring backup");
                 if (File.Exists(backupPath))
                 {
-                    if (File.Exists(currentExePath))
+                    if (File.Exists(targetExePath))
                     {
-                        File.Delete(currentExePath);
+                        File.Delete(targetExePath);
                     }
-                    File.Move(backupPath, currentExePath);
+                    File.Move(backupPath, targetExePath);
                 }
                 throw;
             }
@@ -256,6 +273,24 @@ internal sealed class UpdateCommand : BaseCommand
             CleanupDirectory(tempExtractDir);
             CleanupDirectory(Path.GetDirectoryName(archivePath)!);
         }
+    }
+
+    private static bool IsInPath(string directory)
+    {
+        var pathEnv = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrEmpty(pathEnv))
+        {
+            return false;
+        }
+
+        var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
+        var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        
+        return paths.Any(p => 
+            string.Equals(Path.GetFullPath(p.Trim()), Path.GetFullPath(directory), 
+                RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+                    ? StringComparison.OrdinalIgnoreCase 
+                    : StringComparison.Ordinal));
     }
 
     private static async Task ExtractArchiveAsync(string archivePath, string destinationPath, CancellationToken cancellationToken)
