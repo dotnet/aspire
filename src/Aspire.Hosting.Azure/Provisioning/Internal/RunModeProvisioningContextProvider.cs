@@ -233,17 +233,12 @@ internal sealed class RunModeProvisioningContextProvider(
                         ValidationCallback = (validationContext) =>
                         {
                             // Only validate tenant if it's included in the inputs
-                            try
+                            if (validationContext.Inputs.TryGetByName(TenantName, out var tenantInput))
                             {
-                                var tenantInput = validationContext.Inputs[TenantName];
                                 if (!string.IsNullOrWhiteSpace(tenantInput.Value) && !Guid.TryParse(tenantInput.Value, out _))
                                 {
                                     validationContext.AddValidationError(tenantInput, AzureProvisioningStrings.ValidationTenantIdInvalid);
                                 }
-                            }
-                            catch (KeyNotFoundException)
-                            {
-                                // Tenant input not present, skip validation
                             }
 
                             var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
