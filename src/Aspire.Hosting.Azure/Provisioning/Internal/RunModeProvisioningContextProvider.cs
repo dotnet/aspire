@@ -172,13 +172,8 @@ internal sealed class RunModeProvisioningContextProvider(
                                 return;
                             }
 
-                            string? tenantId = null;
-
                             // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
-                            if (string.IsNullOrEmpty(_options.SubscriptionId))
-                            {
-                                tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
-                            }
+                            var tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
 
                             var (subscriptionOptions, fetchSucceeded) =
                                 await TryGetSubscriptionsAsync(tenantId, cancellationToken).ConfigureAwait(false);
