@@ -44,16 +44,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
         {
             yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
+                "aspire-py-starter",
+                TemplatingStrings.AspirePyStarter_Description,
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplySingleFileTemplate
                 );
 
             yield return new CallbackTemplate(
-                "aspire-py-starter",
-                TemplatingStrings.AspirePyStarter_Description,
+                "aspire-apphost-singlefile",
+                TemplatingStrings.AspireAppHostSingleFile_Description,
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplySingleFileTemplate
