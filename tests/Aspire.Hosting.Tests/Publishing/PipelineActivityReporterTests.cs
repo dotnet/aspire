@@ -4,7 +4,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREINTERACTION001
 
-using System.IO.Pipelines;
 using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Pipelines;
 using Microsoft.AspNetCore.InternalTesting;
