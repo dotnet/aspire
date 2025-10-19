@@ -1051,6 +1051,52 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenStepThrows_ReportsFailureToActivityReporter()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        
+        var pipeline = new DistributedApplicationPipeline();
+        var exceptionMessage = "Test exception for reporting";
+        pipeline.AddStep("failing-step", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new NotSupportedException(exceptionMessage);
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Assert - Verify the exception was thrown
+        Assert.Contains("failing-step", ex.Message);
+        Assert.Contains("failed", ex.Message);
+
+        // Assert - Verify the step was reported as failed
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundFailedStep = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Step &&
+                activity.Data.IsError &&
+                activity.Data.StatusText?.Contains("failing-step") == true)
+            {
+                foundFailedStep = true;
+                break;
+            }
+        }
+
+        Assert.True(foundFailedStep, "Expected to find a step activity marked as failed with error state");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
