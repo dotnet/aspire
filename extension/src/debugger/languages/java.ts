@@ -7,6 +7,7 @@ export const javaDebuggerExtension: ResourceDebuggerExtension = {
     debugAdapter: 'java',
     extensionId: 'vscjava.vscode-java-pack',
     displayName: 'Java',
+    getSupportedFileTypes: () => ['.java'],
     getProjectFile: (launchConfig) => {
         if (isJavaLaunchConfiguration(launchConfig)) {
             const programPath = launchConfig.main_class_path || launchConfig.project_path;

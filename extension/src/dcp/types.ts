@@ -40,8 +40,8 @@ export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfig
 
 export interface JavaLaunchConfiguration extends ExecutableLaunchConfiguration {
     type: "java";
-    main_class_path?: string;
-    project_path?: string;
+    main_class_path?: string; // path to the Java program
+    project_path?: string; // leftover from 9.5 usage of project path
 }
 
 export function isJavaLaunchConfiguration(obj: any): obj is JavaLaunchConfiguration {
