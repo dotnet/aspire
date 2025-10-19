@@ -404,7 +404,7 @@ public static class ResourceBuilderExtensions
         return builder.WithAnnotation(new ConnectionStringRedirectAnnotation(resource), ResourceAnnotationMutationBehavior.Replace);
     }
 
-    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation, string? specificEndpointName = null, string ? name = null)
+    private static Action<EnvironmentCallbackContext> CreateEndpointReferenceEnvironmentPopulationCallback(EndpointReferenceAnnotation endpointReferencesAnnotation, string? specificEndpointName = null, string? name = null)
     {
         return (context) =>
         {
@@ -412,7 +412,7 @@ public static class ResourceBuilderExtensions
             var serviceName = name ?? annotation.Resource.Name;
 
             // Determine what to inject based on the annotation on the destination resource
-            var injectionAnnotation = context.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+            context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
             var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
             foreach (var endpoint in annotation.Resource.GetEndpoints())
@@ -492,7 +492,7 @@ public static class ResourceBuilderExtensions
         builder.WithReferenceRelationship(resource);
 
         // Determine what to inject based on the annotation on the destination resource
-        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
         var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         return builder.WithEnvironment(context =>
@@ -614,7 +614,7 @@ public static class ResourceBuilderExtensions
         }
 
         // Determine what to inject based on the annotation on the destination resource
-        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
         var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
@@ -647,7 +647,7 @@ public static class ResourceBuilderExtensions
         builder.WithReferenceRelationship(externalService.Resource);
 
         // Determine what to inject based on the annotation on the destination resource
-        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var injectionAnnotation);
         var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         if (externalService.Resource.Uri is { } uri)

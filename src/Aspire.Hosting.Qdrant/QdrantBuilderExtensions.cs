@@ -161,7 +161,7 @@ public static class QdrantBuilderExtensions
         var connectionStringName = resource.ConnectionStringEnvironmentVariable ?? $"ConnectionStrings__{connectionName}";
 
         // Determine what to inject based on the annotation on the destination resource
-        var injectionAnnotation = builder.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+        var injectionAnnotation = builder.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var annotation) ? annotation : null;
         var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
         if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ConnectionString))

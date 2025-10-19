@@ -424,7 +424,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             .WithEnvironment(context =>
             {
                 // Determine what to inject based on the annotation on the destination resource
-                var injectionAnnotation = context.Resource.Annotations.OfType<ReferenceEnvironmentInjectionAnnotation>().LastOrDefault();
+                var injectionAnnotation = context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var annotation) ? annotation : null;
                 var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
 
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
