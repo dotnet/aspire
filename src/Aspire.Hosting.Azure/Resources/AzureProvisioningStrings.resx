@@ -171,4 +171,22 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
   <data name="LocationSelectionMessage" xml:space="preserve">
     <value>Select your Azure location and specify resource group:</value>
   </data>
+  <data name="TenantDialogTitle" xml:space="preserve">
+    <value>Azure tenant</value>
+  </data>
+  <data name="TenantSelectionMessage" xml:space="preserve">
+    <value>Select your Azure tenant:</value>
+  </data>
+  <data name="TenantManualEntryMessage" xml:space="preserve">
+    <value>Enter your Azure tenant ID:</value>
+  </data>
+  <data name="TenantLabel" xml:space="preserve">
+    <value>Tenant ID</value>
+  </data>
+  <data name="TenantPlaceholder" xml:space="preserve">
+    <value>Select tenant ID</value>
+  </data>
+  <data name="ValidationTenantIdInvalid" xml:space="preserve">
+    <value>Tenant ID must be a valid GUID.</value>
+  </data>
 </root>

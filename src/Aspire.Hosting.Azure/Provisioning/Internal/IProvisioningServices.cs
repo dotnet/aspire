@@ -71,9 +71,19 @@ internal interface IArmClient
     Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all tenants accessible to the current user.
+    /// </summary>
+    Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all subscriptions accessible to the current user.
     /// </summary>
     Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all subscriptions accessible to the current user filtered by tenant ID.
+    /// </summary>
+    Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all available locations for the specified subscription.
@@ -173,6 +183,11 @@ internal interface ITenantResource
     /// Gets the tenant ID.
     /// </summary>
     Guid? TenantId { get; }
+
+    /// <summary>
+    /// Gets the display name.
+    /// </summary>
+    string? DisplayName { get; }
 
     /// <summary>
     /// Gets the default domain.

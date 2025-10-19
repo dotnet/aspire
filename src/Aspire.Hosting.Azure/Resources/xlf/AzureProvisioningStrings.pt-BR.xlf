@@ -81,6 +81,31 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
         <target state="translated">Selecione sua assinatura do Azure:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="new">Azure tenant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="new">Tenant ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="new">Enter your Azure tenant ID:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="new">Select tenant ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="new">Select your Azure tenant:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">O nome do grupo de recursos deve ser um nome válido de grupo de recursos do Azure.</target>
@@ -89,6 +114,11 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">A ID da assinatura deve ser um GUID válido.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="new">Tenant ID must be a valid GUID.</target>
         <note />
       </trans-unit>
     </body>

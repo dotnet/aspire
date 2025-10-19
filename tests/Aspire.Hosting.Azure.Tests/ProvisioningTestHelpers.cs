@@ -210,8 +210,29 @@ internal sealed class TestArmClient : IArmClient
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
     }
 
+    public Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default)
+    {
+        var tenants = new List<ITenantResource>
+        {
+            new TestTenantResource()
+        };
+        return Task.FromResult<IEnumerable<ITenantResource>>(tenants);
+    }
+
     public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
     {
+        var subscriptions = new List<ISubscriptionResource>
+        {
+            new TestSubscriptionResource()
+        };
+        return Task.FromResult<IEnumerable<ISubscriptionResource>>(subscriptions);
+    }
+
+    public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default)
+    {
+        // For testing, return the same subscription regardless of tenant filtering
+        _ = tenantId; // Suppress unused parameter warning
+        _ = cancellationToken; // Suppress unused parameter warning
         var subscriptions = new List<ISubscriptionResource>
         {
             new TestSubscriptionResource()
@@ -414,6 +435,7 @@ internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 internal sealed class TestTenantResource : ITenantResource
 {
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
+    public string? DisplayName { get; } = "Test Tenant";
     public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";
 }
 

@@ -62,10 +62,10 @@ internal sealed class RunModeProvisioningContextProvider(
     private void EnsureProvisioningOptions()
     {
         if (!_interactionService.IsAvailable ||
-            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId) && !string.IsNullOrEmpty(_options.TenantId)))
         {
             // If the interaction service is not available, or
-            // if both options are already set, we can skip the prompt
+            // if all options are already set, we can skip the prompt
             _provisioningOptionsAvailable.TrySetResult();
             return;
         }
@@ -120,66 +120,127 @@ internal sealed class RunModeProvisioningContextProvider(
 
             if (messageBarResult.Data)
             {
+                var inputs = new List<InteractionInput>();
+
+                // Skip tenant prompting if subscription ID is already set
+                if (string.IsNullOrEmpty(_options.SubscriptionId))
+                {
+                    inputs.Add(new InteractionInput
+                    {
+                        Name = TenantName,
+                        InputType = InputType.Choice,
+                        Label = AzureProvisioningStrings.TenantLabel,
+                        Required = true,
+                        AllowCustomChoice = true,
+                        Placeholder = AzureProvisioningStrings.TenantPlaceholder,
+                        DynamicLoading = new InputLoadOptions
+                        {
+                            LoadCallback = async (context) =>
+                            {
+                                var (tenantOptions, fetchSucceeded) =
+                                    await TryGetTenantsAsync(cancellationToken).ConfigureAwait(false);
+
+                                context.Input.Options = fetchSucceeded
+                                    ? tenantOptions!
+                                    : [];
+                            }
+                        }
+                    });
+                }
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = SubscriptionIdName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.SubscriptionIdLabel,
+                    Required = true,
+                    AllowCustomChoice = true,
+                    Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
+                    Disabled = string.IsNullOrEmpty(_options.SubscriptionId),
+                    DynamicLoading = new InputLoadOptions
+                    {
+                        LoadCallback = async (context) =>
+                        {
+                            if (!string.IsNullOrEmpty(_options.SubscriptionId))
+                            {
+                                context.Input.Options = [KeyValuePair.Create(_options.SubscriptionId, $"From Configuration ({_options.SubscriptionId})")];
+                                return;
+                            }
+
+                            string? tenantId = null;
+
+                            // Get tenant ID from input if tenant selection is enabled, otherwise use configured value
+                            if (string.IsNullOrEmpty(_options.SubscriptionId))
+                            {
+                                tenantId = context.AllInputs[TenantName].Value ?? string.Empty;
+                            }
+
+                            var (subscriptionOptions, fetchSucceeded) =
+                                await TryGetSubscriptionsAsync(tenantId, cancellationToken).ConfigureAwait(false);
+
+                            context.Input.Options = fetchSucceeded
+                                ? subscriptionOptions!
+                                : [];
+                            context.Input.Disabled = false;
+                        },
+                        DependsOnInputs = string.IsNullOrEmpty(_options.SubscriptionId) ? [TenantName] : []
+                    }
+                });
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = LocationName,
+                    InputType = InputType.Choice,
+                    Label = AzureProvisioningStrings.LocationLabel,
+                    Placeholder = AzureProvisioningStrings.LocationPlaceholder,
+                    Required = true,
+                    Disabled = true,
+                    DynamicLoading = new InputLoadOptions
+                    {
+                        LoadCallback = async (context) =>
+                        {
+                            var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+
+                            var (locationOptions, _) = await TryGetLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+
+                            context.Input.Options = locationOptions;
+                            context.Input.Disabled = false;
+                        },
+                        DependsOnInputs = [SubscriptionIdName]
+                    }
+                });
+
+                inputs.Add(new InteractionInput
+                {
+                    Name = ResourceGroupName,
+                    InputType = InputType.Text,
+                    Label = AzureProvisioningStrings.ResourceGroupLabel,
+                    Value = GetDefaultResourceGroupName()
+                });
+
                 var result = await _interactionService.PromptInputsAsync(
                     AzureProvisioningStrings.InputsTitle,
                     AzureProvisioningStrings.InputsMessage,
-                    [
-                        new InteractionInput
-                        {
-                            Name = SubscriptionIdName,
-                            InputType = InputType.Choice,
-                            Label = AzureProvisioningStrings.SubscriptionIdLabel,
-                            Required = true,
-                            AllowCustomChoice = true,
-                            Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                            DynamicLoading = new InputLoadOptions
-                            {
-                                LoadCallback = async (context) =>
-                                {
-                                    var (subscriptionOptions, fetchSucceeded) =
-                                        await TryGetSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
-
-                                    context.Input.Options = fetchSucceeded
-                                        ? subscriptionOptions!
-                                        : [];
-                                }
-                            }
-                        },
-                        new InteractionInput
-                        {
-                            Name = LocationName,
-                            InputType = InputType.Choice,
-                            Label = AzureProvisioningStrings.LocationLabel,
-                            Placeholder = AzureProvisioningStrings.LocationPlaceholder,
-                            Required = true,
-                            Disabled = true,
-                            DynamicLoading = new InputLoadOptions
-                            {
-                                LoadCallback = async (context) =>
-                                {
-                                    var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
-
-                                    var (locationOptions, _) = await TryGetLocationsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
-
-                                    context.Input.Options = locationOptions;
-                                    context.Input.Disabled = false;
-                                },
-                                DependsOnInputs = [SubscriptionIdName]
-                            }
-                        },
-                        new InteractionInput
-                        {
-                            Name = ResourceGroupName,
-                            InputType = InputType.Text,
-                            Label = AzureProvisioningStrings.ResourceGroupLabel,
-                            Value = GetDefaultResourceGroupName()
-                        }
-                    ],
+                    inputs,
                     new InputsDialogInteractionOptions
                     {
                         EnableMessageMarkdown = true,
-                        ValidationCallback = static (validationContext) =>
+                        ValidationCallback = (validationContext) =>
                         {
+                            // Only validate tenant if it's included in the inputs
+                            try
+                            {
+                                var tenantInput = validationContext.Inputs[TenantName];
+                                if (!string.IsNullOrWhiteSpace(tenantInput.Value) && !Guid.TryParse(tenantInput.Value, out _))
+                                {
+                                    validationContext.AddValidationError(tenantInput, AzureProvisioningStrings.ValidationTenantIdInvalid);
+                                }
+                            }
+                            catch (KeyNotFoundException)
+                            {
+                                // Tenant input not present, skip validation
+                            }
+
                             var subscriptionInput = validationContext.Inputs[SubscriptionIdName];
                             if (!string.IsNullOrWhiteSpace(subscriptionInput.Value) && !Guid.TryParse(subscriptionInput.Value, out _))
                             {
@@ -199,6 +260,11 @@ internal sealed class RunModeProvisioningContextProvider(
 
                 if (!result.Canceled)
                 {
+                    // Only set tenant ID if it was part of the input (when subscription ID wasn't already set)
+                    if (string.IsNullOrEmpty(_options.SubscriptionId))
+                    {
+                        _options.TenantId = result.Data[TenantName].Value;
+                    }
                     _options.Location = result.Data[LocationName].Value;
                     _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
                     _options.ResourceGroup = result.Data[ResourceGroupName].Value;
