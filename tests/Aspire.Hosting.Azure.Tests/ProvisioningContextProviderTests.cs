@@ -279,6 +279,13 @@ public class ProvisioningContextProviderTests
         Assert.Collection(inputsInteraction.Inputs,
             input =>
             {
+                Assert.Equal(BaseProvisioningContextProvider.TenantName, input.Name);
+                Assert.Equal("Tenant ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            },
+            input =>
+            {
                 Assert.Equal(BaseProvisioningContextProvider.SubscriptionIdName, input.Name);
                 Assert.Equal("Subscription ID", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
