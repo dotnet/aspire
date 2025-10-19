@@ -152,8 +152,8 @@ internal sealed class UpdateCommand : BaseCommand
                 return ExitCodeConstants.InvalidCommand;
             }
 
-            InteractionService.DisplayMessage(":package:", $"Current CLI location: {currentExePath}");
-            InteractionService.DisplayMessage(":arrow_up:", $"Updating to quality level: {quality}");
+            InteractionService.DisplayMessage("package", $"Current CLI location: {currentExePath}");
+            InteractionService.DisplayMessage("arrow_up", $"Updating to quality level: {quality}");
 
             // Download the latest CLI
             var archivePath = await _cliDownloader!.DownloadLatestCliAsync(quality, cancellationToken);
@@ -187,7 +187,7 @@ internal sealed class UpdateCommand : BaseCommand
             Directory.CreateDirectory(tempExtractDir);
 
             // Extract archive
-            InteractionService.DisplayMessage(":package:", "Extracting new CLI...");
+            InteractionService.DisplayMessage("package", "Extracting new CLI...");
             await ExtractArchiveAsync(archivePath, tempExtractDir, cancellationToken);
 
             // Find the aspire executable in the extracted files
@@ -199,7 +199,7 @@ internal sealed class UpdateCommand : BaseCommand
 
             // Backup current executable
             var backupPath = $"{currentExePath}.old";
-            InteractionService.DisplayMessage(":floppy_disk:", "Backing up current CLI...");
+            InteractionService.DisplayMessage("floppy_disk", "Backing up current CLI...");
             _logger.LogDebug("Creating backup: {BackupPath}", backupPath);
 
             // Remove old backup if it exists
@@ -214,7 +214,7 @@ internal sealed class UpdateCommand : BaseCommand
             try
             {
                 // Copy new executable to install location
-                InteractionService.DisplayMessage(":wrench:", "Installing new CLI...");
+                InteractionService.DisplayMessage("wrench", "Installing new CLI...");
                 File.Copy(newExePath, currentExePath, overwrite: true);
 
                 // On Unix systems, ensure the executable bit is set
