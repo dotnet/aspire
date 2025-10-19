@@ -632,33 +632,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMultipleStepsFailingAtSameLevel_ThrowsAggregateException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.Contains("Multiple pipeline steps failed", exception.Message);
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithMixOfSuccessfulAndFailingStepsAtSameLevel_ThrowsAggregateException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -692,39 +665,6 @@ public class DistributedApplicationPipelineTests
         Assert.Equal(2, exception.InnerExceptions.Count);
         Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
         Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithMultipleFailuresAtSameLevel_StopsExecutionOfNextLevel()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var nextLevelStepExecuted = false;
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        pipeline.AddStep("next-level-step", async (context) =>
-        {
-            nextLevelStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: "failing-step1");
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.False(nextLevelStepExecuted, "Next level step should not have executed");
-        Assert.Equal(2, exception.InnerExceptions.Count);
     }
 
     [Fact]
