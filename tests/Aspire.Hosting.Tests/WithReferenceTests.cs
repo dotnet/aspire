@@ -36,6 +36,59 @@ public class WithReferenceTests
         Assert.Same(projectA.Resource, r.Resource);
     }
 
+    [Theory]
+    [InlineData(ReferenceEnvironmentInjectionFlags.All)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ConnectionProperties)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ConnectionString)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.ServiceDiscovery)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.Endpoints)]
+    [InlineData(ReferenceEnvironmentInjectionFlags.None)]
+    public async Task ResourceWithEndpointRespectsCustomEnvironmentVariableNaming(ReferenceEnvironmentInjectionFlags flags)
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Create a binding and its matching annotation (simulating DCP behavior)
+        var projectA = builder.AddProject<ProjectA>("projecta")
+                .WithHttpsEndpoint(1000, 2000, "mybinding")
+                .WithEndpoint("mybinding", e => e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 2000));
+
+        // Get the service provider.
+        var projectB = builder.AddProject<ProjectB>("b")
+            .WithReference(projectA, "custom")
+            .WithReferenceEnvironment(flags);
+
+        // Call environment variable callbacks.
+        var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(projectB.Resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
+
+        switch (flags)
+        {
+            case ReferenceEnvironmentInjectionFlags.All:
+                Assert.Equal("https://localhost:2000", config["services__custom__mybinding__0"]);
+                Assert.Equal("https://localhost:2000", config["custom_MYBINDING"]);
+                break;
+            case ReferenceEnvironmentInjectionFlags.ConnectionProperties:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.ConnectionString:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.ServiceDiscovery:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.True(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.Endpoints:
+                Assert.True(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+            case ReferenceEnvironmentInjectionFlags.None:
+                Assert.False(config.ContainsKey("custom_MYBINDING"));
+                Assert.False(config.ContainsKey("services__custom__mybinding__0"));
+                break;
+        }
+    }
+    
     [Fact]
     public async Task ResourceWithConflictingEndpointsProducesFullyScopedEnvironmentVariables()
     {
