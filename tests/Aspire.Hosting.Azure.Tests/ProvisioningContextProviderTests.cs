@@ -394,6 +394,96 @@ public class ProvisioningContextProviderTests
     }
 
     [Fact]
+    public async Task CreateProvisioningContextAsync_DoesNotPromptForTenantWhenSubscriptionIdProvided()
+    {
+        // Arrange
+        var testInteractionService = new TestInteractionService();
+        var subscriptionId = "12345678-1234-1234-1234-123456789012";
+        var options = ProvisioningTestHelpers.CreateOptions(subscriptionId, null, null);
+        var environment = ProvisioningTestHelpers.CreateEnvironment();
+        var logger = ProvisioningTestHelpers.CreateLogger();
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var userPrincipalProvider = ProvisioningTestHelpers.CreateUserPrincipalProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var userSecrets = new JsonObject();
+
+        var provider = new RunModeProvisioningContextProvider(
+            testInteractionService,
+            options,
+            environment,
+            logger,
+            armClientProvider,
+            userPrincipalProvider,
+            tokenCredentialProvider,
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+
+        // Act
+        var createTask = provider.CreateProvisioningContextAsync(userSecrets);
+
+        // Assert - Wait for the first interaction (message bar)
+        var messageBarInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning", messageBarInteraction.Title);
+
+        // Complete the message bar interaction to proceed to inputs dialog
+        messageBarInteraction.CompletionTcs.SetResult(InteractionResult.Ok(true)); // Data = true (user clicked Enter Values)
+
+        // Wait for the inputs interaction
+        var inputsInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure provisioning", inputsInteraction.Title);
+        Assert.True(inputsInteraction.Options!.EnableMessageMarkdown);
+
+        // Assert that only 3 inputs are present (no tenant input since subscription is provided)
+        Assert.Collection(inputsInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal(BaseProvisioningContextProvider.SubscriptionIdName, input.Name);
+                Assert.Equal("Subscription ID", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.True(input.Disabled);
+                Assert.True(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal(BaseProvisioningContextProvider.LocationName, input.Name);
+                Assert.Equal("Location", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            },
+            input =>
+            {
+                Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Text, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Trigger dynamic update of locations based on subscription.
+        await inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].DynamicLoading!.LoadCallback(new LoadInputContext
+        {
+            AllInputs = inputsInteraction.Inputs,
+            CancellationToken = CancellationToken.None,
+            Input = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName],
+            ServiceProvider = new ServiceCollection().BuildServiceProvider()
+        });
+
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Value = inputsInteraction.Inputs[BaseProvisioningContextProvider.LocationName].Options!.First(kvp => kvp.Key == "westus").Value;
+        inputsInteraction.Inputs[BaseProvisioningContextProvider.ResourceGroupName].Value = "rg-myrg";
+
+        inputsInteraction.CompletionTcs.SetResult(InteractionResult.Ok(inputsInteraction.Inputs));
+
+        // Wait for the create task to complete
+        var context = await createTask;
+
+        // Assert
+        Assert.NotNull(context.Tenant);
+        Assert.Equal(Guid.Parse("87654321-4321-4321-4321-210987654321"), context.Tenant.TenantId);
+        Assert.Equal("testdomain.onmicrosoft.com", context.Tenant.DefaultDomain);
+        Assert.Equal("/subscriptions/12345678-1234-1234-1234-123456789012", context.Subscription.Id.ToString());
+        Assert.Equal("westus", context.Location.Name);
+        Assert.Equal("rg-myrg", context.ResourceGroup.Name);
+    }
+
+    [Fact]
     public async Task PublishMode_CreateProvisioningContextAsync_ReturnsValidContext()
     {
         // Arrange

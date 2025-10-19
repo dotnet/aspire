@@ -148,22 +148,27 @@ internal sealed class RunModeProvisioningContextProvider(
                     });
                 }
 
+                // If the subscription ID is already set
+                // show the value as from the configuration and disable the input
+                // there should be no option to change it
+
                 inputs.Add(new InteractionInput
                 {
                     Name = SubscriptionIdName,
-                    InputType = InputType.Choice,
+                    InputType = string.IsNullOrEmpty(_options.SubscriptionId) ? InputType.Choice : InputType.Text,
                     Label = AzureProvisioningStrings.SubscriptionIdLabel,
                     Required = true,
                     AllowCustomChoice = true,
                     Placeholder = AzureProvisioningStrings.SubscriptionIdPlaceholder,
-                    Disabled = string.IsNullOrEmpty(_options.SubscriptionId),
+                    Disabled = !string.IsNullOrEmpty(_options.SubscriptionId),
+                    Value = _options.SubscriptionId,
                     DynamicLoading = new InputLoadOptions
                     {
                         LoadCallback = async (context) =>
                         {
                             if (!string.IsNullOrEmpty(_options.SubscriptionId))
                             {
-                                context.Input.Options = [KeyValuePair.Create(_options.SubscriptionId, $"From Configuration ({_options.SubscriptionId})")];
+                                // If subscription ID is not set, we don't need to load options
                                 return;
                             }
 
@@ -266,7 +271,7 @@ internal sealed class RunModeProvisioningContextProvider(
                         _options.TenantId = result.Data[TenantName].Value;
                     }
                     _options.Location = result.Data[LocationName].Value;
-                    _options.SubscriptionId = result.Data[SubscriptionIdName].Value;
+                    _options.SubscriptionId ??= result.Data[SubscriptionIdName].Value;
                     _options.ResourceGroup = result.Data[ResourceGroupName].Value;
                     _options.AllowResourceGroupCreation = true; // Allow the creation of the resource group if it does not exist.
 
