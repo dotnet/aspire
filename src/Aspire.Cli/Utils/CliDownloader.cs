@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Packaging;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Cli.Utils;
@@ -14,29 +15,34 @@ namespace Aspire.Cli.Utils;
 /// </summary>
 internal interface ICliDownloader
 {
-    Task<string> DownloadLatestCliAsync(string quality, CancellationToken cancellationToken);
+    Task<string> DownloadLatestCliAsync(string channelName, CancellationToken cancellationToken);
 }
 
 internal class CliDownloader(
     ILogger<CliDownloader> logger,
-    IInteractionService interactionService) : ICliDownloader
+    IInteractionService interactionService,
+    IPackagingService packagingService) : ICliDownloader
 {
     private const int ArchiveDownloadTimeoutSeconds = 600;
     private const int ChecksumDownloadTimeoutSeconds = 120;
 
-    private static readonly Dictionary<string, string> s_qualityBaseUrls = new()
+    public async Task<string> DownloadLatestCliAsync(string channelName, CancellationToken cancellationToken)
     {
-        ["daily"] = "https://aka.ms/dotnet/9/aspire/daily",
-        ["staging"] = "https://aka.ms/dotnet/9/aspire/rc/daily",
-        ["stable"] = "https://aka.ms/dotnet/9/aspire/ga/daily"
-    };
-
-    public async Task<string> DownloadLatestCliAsync(string quality, CancellationToken cancellationToken)
-    {
-        if (!s_qualityBaseUrls.TryGetValue(quality, out var baseUrl))
+        // Get the channel information from PackagingService
+        var channels = await packagingService.GetChannelsAsync(cancellationToken);
+        var channel = channels.FirstOrDefault(c => c.Name.Equals(channelName, StringComparison.OrdinalIgnoreCase));
+        
+        if (channel is null)
         {
-            throw new ArgumentException($"Unsupported quality '{quality}'. Supported values are: dev, staging, release.");
+            throw new ArgumentException($"Unsupported channel '{channelName}'. Available channels: {string.Join(", ", channels.Select(c => c.Name))}");
         }
+
+        if (string.IsNullOrEmpty(channel.CliDownloadBaseUrl))
+        {
+            throw new InvalidOperationException($"Channel '{channelName}' does not support CLI downloads.");
+        }
+
+        var baseUrl = channel.CliDownloadBaseUrl;
 
         var (os, arch) = DetectPlatform();
         var runtimeIdentifier = $"{os}-{arch}";
