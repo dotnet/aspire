@@ -62,7 +62,7 @@ internal sealed class RunModeProvisioningContextProvider(
     private void EnsureProvisioningOptions()
     {
         if (!_interactionService.IsAvailable ||
-            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId) && !string.IsNullOrEmpty(_options.TenantId)))
+            (!string.IsNullOrEmpty(_options.Location) && !string.IsNullOrEmpty(_options.SubscriptionId)))
         {
             // If the interaction service is not available, or
             // if all options are already set, we can skip the prompt
