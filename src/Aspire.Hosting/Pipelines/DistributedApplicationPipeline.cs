@@ -236,32 +236,31 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                     var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
                     var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
 
-                    try
+                    await using (publishingStep.ConfigureAwait(false))
                     {
-                        var stepContext = new PipelineStepContext
-                        {
-                            PipelineContext = context,
-                            ReportingStep = publishingStep
-                        };
-                        await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Report the failure to the activity reporter before disposing
                         try
                         {
-                            await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+                            var stepContext = new PipelineStepContext
+                            {
+                                PipelineContext = context,
+                                ReportingStep = publishingStep
+                            };
+                            await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                         }
-                        catch
+                        catch (Exception ex)
                         {
-                            // Ignore errors during failure reporting to avoid masking the original exception
-                        }
+                            // Report the failure to the activity reporter before disposing
+                            try
+                            {
+                                await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                // Ignore errors during failure reporting to avoid masking the original exception
+                            }
 
-                        throw;
-                    }
-                    finally
-                    {
-                        await publishingStep.DisposeAsync().ConfigureAwait(false);
+                            throw;
+                        }
                     }
 
                     stepTcs.TrySetResult();
