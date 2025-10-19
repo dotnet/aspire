@@ -146,14 +146,13 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public async Task CheckAsync_UsesElevatedMinimumSdkVersion_WhenSingleFileAppHostEnabled()
+    public async Task CheckAsync_UsesMinimumSdkVersion()
     {
         var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
 
-        // Call the parameterless method that should use the elevated constant when flag is enabled
+        // Call the parameterless method that should use the minimum SDK version
         var (success, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
@@ -161,60 +160,14 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public async Task CheckAsync_UsesElevatedMinimumSdkVersion_WhenDefaultWatchEnabled()
+    public async Task CheckAsync_UsesOverrideVersion_WhenOverrideConfigured()
     {
         var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
-            .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        // Call the parameterless method that should use the elevated constant when flag is enabled
-        var (success, _, _) = await installer.CheckAsync();
-
-        // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
-        Assert.True(success == true || success == false);
-    }
-
-    [Fact]
-    public async Task CheckAsync_UsesBaselineMinimumSdkVersion_WhenDefaultWatchDisabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
-            .SetFeature(KnownFeatures.DefaultWatchEnabled, false);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        // Call the parameterless method that should use the baseline constant when flag is disabled
-        var (success, _, _) = await installer.CheckAsync();
-
-        // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
-        Assert.True(success == true || success == false);
-    }
-
-    [Fact]
-    public async Task CheckAsync_UsesBaselineMinimumSdkVersion_WhenSingleFileAppHostDisabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, false);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        // Call the parameterless method that should use the baseline constant when flag is disabled
-        var (success, _, _) = await installer.CheckAsync();
-
-        // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
-        Assert.True(success == true || success == false);
-    }
-
-    [Fact]
-    public async Task CheckAsync_UsesOverrideVersion_WhenOverrideConfigured_EvenWithSingleFileAppHostEnabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+            .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
         var installer = new DotNetSdkInstaller(features, configuration);
 
-        // The installer should use the override version instead of the elevated constant
+        // The installer should use the override version instead of the baseline constant
         var (success, _, _) = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
@@ -222,7 +175,7 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void GetEffectiveMinimumSdkVersion_ReturnsBaseline_WhenNoFlagsOrOverrides()
+    public void GetEffectiveMinimumSdkVersion_ReturnsBaseline_WhenNoOverrides()
     {
         var features = new TestFeatures();
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
@@ -233,47 +186,9 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenSingleFileAppHostEnabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
-
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
-    }
-
-    [Fact]
-    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenDefaultWatchEnabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
-
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
-    }
-
-    [Fact]
-    public void GetEffectiveMinimumSdkVersion_ReturnsElevated_WhenBothDefaultWatchEnabledAndSingleFileAppHostEnabled()
-    {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.DefaultWatchEnabled, true)
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration());
-
-        var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
-
-        Assert.Equal(DotNetSdkInstaller.MinimumSdkNet10SdkVersion, effectiveVersion);
-    }
-
-    [Fact]
     public void GetEffectiveMinimumSdkVersion_ReturnsOverride_WhenOverrideConfigured()
     {
-        var features = new TestFeatures()
-            .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var features = new TestFeatures();
         var configuration = CreateConfigurationWithOverride("7.0.0");
         var installer = new DotNetSdkInstaller(features, configuration);
 
@@ -285,17 +200,17 @@ public class DotNetSdkInstallerTests
     [Fact]
     public void ErrorMessage_Format_IsCorrect()
     {
-        // Test the new error message format with placeholders
+        // Test the error message format with placeholders
         var message = string.Format(CultureInfo.InvariantCulture,
             ErrorStrings.MinimumSdkVersionNotMet,
-            "9.0.302",
+            "10.0.100",
             "(not found)");
 
-        Assert.Equal("The Aspire CLI requires .NET SDK version 9.0.302 or later. Detected: (not found).", message);
+        Assert.Equal("The Aspire CLI requires .NET SDK version 10.0.100 or later. Detected: (not found).", message);
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_AllowsDotNet10Prereleases_ForSingleFileAppHost()
+    public void MeetsMinimumRequirement_AllowsDotNet10Prereleases()
     {
         // Test the logic we added for allowing .NET 10 prereleases
         var installedVersion = SemVersion.Parse("10.0.100-preview.1.25463.5", SemVersionStyles.Strict);
@@ -311,7 +226,7 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_AllowsDotNet10LatestPrerelease_ForSingleFileAppHost()
+    public void MeetsMinimumRequirement_AllowsDotNet10LatestPrerelease()
     {
         // Test with a more recent .NET 10 prerelease
         var installedVersion = SemVersion.Parse("10.1.0-preview.2.25999.99", SemVersionStyles.Strict);
@@ -327,9 +242,9 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_RejectsDotNet9_ForSingleFileAppHost()
+    public void MeetsMinimumRequirement_RejectsDotNet9()
     {
-        // Test that .NET 9 is still rejected for single file apphost requirements
+        // Test that .NET 9 is rejected
         var installedVersion = SemVersion.Parse("9.0.999", SemVersionStyles.Strict);
         var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
         var requiredVersionString = "10.0.100";
@@ -343,7 +258,7 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_UsesStrictComparison_ForNonSingleFileAppHost()
+    public void MeetsMinimumRequirement_UsesStrictComparison_ForOtherVersions()
     {
         // Test that other version requirements still use strict comparison
         var installedVersion = SemVersion.Parse("9.0.301", SemVersionStyles.Strict);

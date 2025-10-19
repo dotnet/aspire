@@ -39,26 +39,22 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
-        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
-        // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-        {
-            yield return new CallbackTemplate(
-                "aspire-py-starter",
-                TemplatingStrings.AspirePyStarter_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
-                );
+        // Single-file AppHost templates
+        yield return new CallbackTemplate(
+            "aspire-py-starter",
+            TemplatingStrings.AspirePyStarter_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplySingleFileTemplate
+            );
 
-            yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
-                );
-        }
+        yield return new CallbackTemplate(
+            "aspire-apphost-singlefile",
+            TemplatingStrings.AspireAppHostSingleFile_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplySingleFileTemplate
+            );
 
         if (showAllTemplates)
         {

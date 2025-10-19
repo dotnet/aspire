@@ -561,7 +561,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             options.ProjectLocatorFactory = _ => new SingleFileAppHostProjectLocator();
             options.AppHostBackchannelFactory = backchannelFactory;
             options.DotNetCliRunnerFactory = runnerFactory;
-            options.EnabledFeatures = [KnownFeatures.DefaultWatchEnabled, KnownFeatures.SingleFileAppHostEnabled];
+            options.EnabledFeatures = [KnownFeatures.DefaultWatchEnabled];
         });
 
         var provider = services.BuildServiceProvider();
