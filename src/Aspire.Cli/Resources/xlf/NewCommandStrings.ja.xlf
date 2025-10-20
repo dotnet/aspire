@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="SelectAProjectTemplate">
         <source>Select a template:</source>
-        <target state="new">Select a template:</target>
+        <target state="translated">テンプレートの選択:</target>
         <note />
       </trans-unit>
       <trans-unit id="SelectATemplateVersion">
