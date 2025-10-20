@@ -170,5 +170,11 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ReconnectRetryButtonText", resourceCulture);
             }
         }
+        
+        public static string NavMenuParametersTab {
+            get {
+                return ResourceManager.GetString("NavMenuParametersTab", resourceCulture);
+            }
+        }
     }
 }

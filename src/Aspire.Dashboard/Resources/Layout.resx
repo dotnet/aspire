@@ -180,4 +180,7 @@
   <data name="ReconnectRetryButtonText" xml:space="preserve">
     <value>Retry</value>
   </data>
+  <data name="NavMenuParametersTab" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
 </root>

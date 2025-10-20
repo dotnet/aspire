@@ -599,5 +599,23 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("WaitingHealthDataStatusMessage", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string ParametersHeader {
+            get {
+                return ResourceManager.GetString("ParametersHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} parameters.
+        /// </summary>
+        public static string ParametersPageTitle {
+            get {
+                return ResourceManager.GetString("ParametersPageTitle", resourceCulture);
+            }
+        }
     }
 }

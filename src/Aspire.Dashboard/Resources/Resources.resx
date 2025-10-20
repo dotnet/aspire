@@ -309,4 +309,11 @@
   <data name="ResourceActionUrlsText" xml:space="preserve">
     <value>URLs</value>
   </data>
+  <data name="ParametersPageTitle" xml:space="preserve">
+    <value>{0} parameters</value>
+    <comment>{0} is an application name</comment>
+  </data>
+  <data name="ParametersHeader" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
 </root>

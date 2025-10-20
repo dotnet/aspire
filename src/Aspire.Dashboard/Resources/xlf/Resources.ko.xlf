@@ -17,6 +17,16 @@
         <target state="translated">{0}({1}에 마지막으로 실행)</target>
         <note>{0} is the health status like "Unhealthy", {1} is the local time when the health check ran</note>
       </trans-unit>
+      <trans-unit id="ParametersHeader">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ParametersPageTitle">
+        <source>{0} parameters</source>
+        <target state="new">{0} parameters</target>
+        <note>{0} is an application name</note>
+      </trans-unit>
       <trans-unit id="ResourceActionCommandsText">
         <source>Commands</source>
         <target state="translated">명령</target>

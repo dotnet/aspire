@@ -26,7 +26,7 @@ using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons;
 
 namespace Aspire.Dashboard.Components.Pages;
 
-public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<Resources.ResourcesViewModel, Resources.ResourcesPageState>
+public partial class Parameters : ComponentBase, IComponentWithTelemetry, IAsyncDisposable, IPageWithSessionAndUrlState<Parameters.ParametersViewModel, Parameters.ParametersPageState>
 {
     private const string TypeColumn = nameof(TypeColumn);
     private const string NameColumn = nameof(NameColumn);
@@ -72,9 +72,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     [Inject]
     public required IconResolver IconResolver { get; init; }
 
-    public string BasePath => DashboardUrls.ResourcesBasePath;
-    public string SessionStorageKey => BrowserStorageKeys.ResourcesPageState;
-    public ResourcesViewModel PageViewModel { get; set; } = null!;
+    public string BasePath => DashboardUrls.ParametersBasePath;
+    public string SessionStorageKey => BrowserStorageKeys.ParametersPageState;
+    public ParametersViewModel PageViewModel { get; set; } = null!;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "view")]
@@ -117,7 +117,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private GridColumnManager _manager = null!;
     private int _maxHighlightedCount;
     private readonly List<MenuButtonItem> _resourcesMenuItems = new();
-    private DotNetObjectReference<ResourcesInterop>? _resourcesInteropReference;
+    private DotNetObjectReference<ParametersInterop>? _resourcesInteropReference;
     private IJSObjectReference? _jsModule;
     private bool _graphInitialized;
     private AspirePageContentLayout? _contentLayout;
@@ -142,7 +142,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
                && !resource.IsResourceHidden(_showHiddenResources)
-               && !StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Parameter);
+               && StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Parameter);
 
         static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
@@ -185,7 +185,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     protected override async Task OnInitializedAsync()
     {
         TelemetryContextProvider.Initialize(TelemetryContext);
-        _aiContext = AIContextProvider.AddNew(nameof(Resources), c =>
+        _aiContext = AIContextProvider.AddNew(nameof(Parameters), c =>
         {
             c.BuildIceBreakers = (builder, context) =>
             {
@@ -214,7 +214,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
         _hideResourceGraph = DashboardOptions.CurrentValue.UI.DisableResourceGraph ?? false;
 
-        PageViewModel = new ResourcesViewModel
+        PageViewModel = new ParametersViewModel
         {
             SelectedViewKind = ResourceViewKind.Table
         };
@@ -379,7 +379,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
             _jsModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/app-resourcegraph.js");
 
-            _resourcesInteropReference = DotNetObjectReference.Create(new ResourcesInterop(this));
+            _resourcesInteropReference = DotNetObjectReference.Create(new ParametersInterop(this));
 
             await _jsModule.InvokeVoidAsync("initializeResourcesGraph", _resourcesInteropReference);
             await UpdateResourceGraphResourcesAsync();
@@ -399,17 +399,17 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         await _jsModule.InvokeVoidAsync("updateResourcesGraph", resources);
     }
 
-    private class ResourcesInterop(Resources resources)
+    private class ParametersInterop(Parameters parameters)
     {
         [JSInvokable]
         public async Task SelectResource(string id)
         {
-            if (resources._resourceByName.TryGetValue(id, out var resource))
+            if (parameters._resourceByName.TryGetValue(id, out var resource))
             {
-                await resources.InvokeAsync(async () =>
+                await parameters.InvokeAsync(async () =>
                 {
-                    await resources.ShowResourceDetailsAsync(resource, null!);
-                    resources.StateHasChanged();
+                    await parameters.ShowResourceDetailsAsync(resource, null!);
+                    parameters.StateHasChanged();
                 });
             }
         }
@@ -417,11 +417,11 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         [JSInvokable]
         public async Task ResourceContextMenu(string id, int screenWidth, int screenHeight, int clientX, int clientY)
         {
-            if (resources._resourceByName.TryGetValue(id, out var resource))
+            if (parameters._resourceByName.TryGetValue(id, out var resource))
             {
-                await resources.InvokeAsync(async () =>
+                await parameters.InvokeAsync(async () =>
                 {
-                    await resources.ShowContextMenuAsync(resource, screenWidth, screenHeight, clientX, clientY);
+                    await parameters.ShowContextMenuAsync(resource, screenWidth, screenHeight, clientX, clientY);
                 });
             }
         }
@@ -858,7 +858,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
     }
 
-    public sealed class ResourcesViewModel
+    public sealed class ParametersViewModel
     {
         public required ResourceViewKind SelectedViewKind { get; set; }
         public ConcurrentDictionary<string, bool> ResourceTypesToVisibility { get; } = new(StringComparers.ResourceName);
@@ -866,7 +866,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         public ConcurrentDictionary<string, bool> ResourceHealthStatusesToVisibility { get; } = new(StringComparer.Ordinal);
     }
 
-    public class ResourcesPageState
+    public class ParametersPageState
     {
         public required string? ViewKind { get; set; }
         public required IDictionary<string, bool> ResourceTypesToVisibility { get; set; }
@@ -880,7 +880,7 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         Graph
     }
 
-    public Task UpdateViewModelFromQueryAsync(ResourcesViewModel viewModel)
+    public Task UpdateViewModelFromQueryAsync(ParametersViewModel viewModel)
     {
         // Don't allow the view to be updated from the query string if the resource graph is disabled.
         if (!_hideResourceGraph && Enum.TryParse(typeof(ResourceViewKind), ViewKindName, out var view) && view is ResourceViewKind vk)
@@ -891,9 +891,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         return Task.CompletedTask;
     }
 
-    public string GetUrlFromSerializableViewModel(ResourcesPageState serializable)
+    public string GetUrlFromSerializableViewModel(ParametersPageState serializable)
     {
-        return DashboardUrls.ResourcesUrl(
+        return DashboardUrls.ParametersUrl(
             view: serializable.ViewKind,
             // add resource?
             hiddenTypes: SerializeFiltersToString(serializable.ResourceTypesToVisibility),
@@ -907,9 +907,9 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         }
     }
 
-    public ResourcesPageState ConvertViewModelToSerializable()
+    public ParametersPageState ConvertViewModelToSerializable()
     {
-        return new ResourcesPageState
+        return new ParametersPageState
         {
             ViewKind = PageViewModel.SelectedViewKind != ResourceViewKind.Table ? PageViewModel.SelectedViewKind.ToString() : null,
             ResourceTypesToVisibility = PageViewModel.ResourceTypesToVisibility,
