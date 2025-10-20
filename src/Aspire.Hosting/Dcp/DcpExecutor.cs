@@ -2157,6 +2157,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             Directory.CreateDirectory(Path.Join(_locations.DcpSessionDir, modelResource.Name));
             File.WriteAllText(caBundlePath, caBundleBuilder.ToString());
         }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
+        }
 
         return (arguments, envVars, true);
     }
@@ -2356,6 +2366,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     });
                 }
             }
+        }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), createFiles, false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
         }
 
         return (arguments, envVars, createFiles, true);
