@@ -10,12 +10,17 @@ using Microsoft.Extensions.Logging;
 namespace Aspire.Cli.Projects;
 
 /// <summary>
-/// Provides fallback XML parsing capabilities when MSBuild evaluation fails.
+/// Provides fallback parsing capabilities when MSBuild evaluation fails.
+/// Supports both .csproj XML files and .cs single-file apphost files.
 /// Used primarily for AppHost projects with unresolvable SDK versions.
 /// </summary>
 internal sealed class FallbackProjectParser
 {
     private readonly ILogger<FallbackProjectParser> _logger;
+
+    // Regex patterns for parsing single-file apphost directives
+    private const string SdkDirectivePattern = @"#:sdk\s+Aspire\.AppHost\.Sdk@([\d\.\-a-zA-Z]+|\*)";
+    private const string PackageDirectivePattern = @"#:package\s+([a-zA-Z0-9\._]+)@([\d\.\-a-zA-Z]+|\*)";
 
     public FallbackProjectParser(ILogger<FallbackProjectParser> logger)
     {
@@ -236,8 +241,7 @@ internal sealed class FallbackProjectParser
     {
         // Match: #:sdk Aspire.AppHost.Sdk@<version>
         // Where version can be a semantic version or wildcard (*)
-        var sdkPattern = @"#:sdk\s+Aspire\.AppHost\.Sdk@([\d\.\-a-zA-Z]+|\*)";
-        var match = Regex.Match(fileContent, sdkPattern);
+        var match = Regex.Match(fileContent, SdkDirectivePattern);
         
         if (match.Success)
         {
@@ -256,8 +260,7 @@ internal sealed class FallbackProjectParser
 
         // Match: #:package <PackageId>@<version>
         // Where version can be a semantic version or wildcard (*)
-        var packagePattern = @"#:package\s+([a-zA-Z0-9\._]+)@([\d\.\-a-zA-Z]+|\*)";
-        var matches = Regex.Matches(fileContent, packagePattern);
+        var matches = Regex.Matches(fileContent, PackageDirectivePattern);
 
         foreach (Match match in matches)
         {
