@@ -159,6 +159,9 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                         // Verify that the --deploy flag is included in the arguments
                         Assert.Contains("--deploy", args);
 
+                        // Verify that --debug is always included to capture detailed logs
+                        Assert.Contains("--debug", args);
+
                         // Verify that --output-path is NOT included when not specified
                         Assert.DoesNotContain("--output-path", args);
 
@@ -231,7 +234,8 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                         Assert.Contains("publish", args);
                         Assert.Contains("--publisher", args);
                         Assert.Contains("default", args);
-                        Assert.Contains("true", args); // The value for --deploy flag
+                        Assert.Contains("--debug", args); // Always included to capture detailed logs
+                        Assert.Contains("true", args); // The value for --deploy and --debug flags
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel

@@ -81,7 +81,7 @@ internal sealed class DeploymentLogWriter : IDisposable
     /// <returns>The full path to the deployment log file.</returns>
     private static string GetDeploymentLogPath(string appHostSha)
     {
-        var timestamp = DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture);
+        var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
         var aspireDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             ".aspire",

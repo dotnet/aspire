@@ -91,8 +91,8 @@ public class DeploymentLogWriterTests
         {
             var logFileName = Path.GetFileName(writer.LogFilePath);
             
-            // Assert - verify the file name matches the expected timestamp pattern
-            Assert.Matches(@"\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.log", logFileName);
+            // Assert - verify the file name matches the expected timestamp pattern (yyyyMMdd-HHmmss.log)
+            Assert.Matches(@"\d{8}-\d{6}\.log", logFileName);
         }
     }
 }

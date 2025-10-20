@@ -83,6 +83,10 @@ internal sealed class DeployCommand : PublishCommandBase
             baseArgs.AddRange(["--clear-cache", "true"]);
         }
 
+        // Always pass --debug to ensure we get detailed logs for the log file
+        // The console output will be controlled separately based on the user's --debug flag
+        baseArgs.AddRange(["--debug", "true"]);
+
         baseArgs.AddRange(unmatchedTokens);
 
         return [.. baseArgs];
