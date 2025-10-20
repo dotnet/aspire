@@ -82,7 +82,10 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
                 """)
             );
 
-            return match.Groups[1].Value;
+            var version = match.Groups[1].Value;
+            Assert.NotNull(version);
+
+            return version;
         }
 
         static void CreateCPMFile(AspireProject project, string version)
@@ -189,6 +192,6 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     [GeneratedRegex(@"</Project>")]
     private static partial Regex ProjectClosingTagRegex();
 
-    [GeneratedRegex(@"<Project\s+Sdk=""Aspire\.AppHost\.Sdk/([^""]+)""\s+>")]
+    [GeneratedRegex(@"<Project\s+Sdk=""Aspire\.AppHost\.Sdk\/([^""]+)"">")]
     private static partial Regex ProjectSdkVersionRegex();
 }

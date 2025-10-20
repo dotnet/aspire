@@ -361,19 +361,36 @@ public static class ProjectResourceBuilderExtensions
         var app = new CSharpAppResource(name);
 
         path = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, path));
-        IProjectMetadata projectMetadata = new ProjectMetadata(path);
+        var projectMetadata = new ProjectMetadata(path);
 
-        var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath);
-        if (projectMetadata.IsFileBasedApp && DotnetSdkUtils.TryGetVersion(projectDirectoryPath, out var version) && version.Major < 10)
+        var resource = builder.AddResource(app)
+                              .WithAnnotation(projectMetadata)
+                              .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
+                              .WithProjectDefaults(options);
+
+        resource.OnBeforeResourceStarted(async (r, e, ct) =>
         {
-            // File-based apps are only supported on .NET 10 or later
-            throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The current version is {version?.ToString() ?? "unknown"}.");
-        }
+            var projectPath = projectMetadata.ProjectPath;
 
-        return builder.AddResource(app)
-                      .WithAnnotation(projectMetadata)
-                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
-                      .WithProjectDefaults(options);
+            // Validate project path
+            if (!(projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) || projectPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Project path did not resolve to a .csproj or .cs file
+                var message = Directory.Exists(projectPath)
+                    ? $"Path to C# project could not be determined. The directory '{projectPath}' must contain a single .csproj file."
+                    : $"The C# app path '{projectPath}' is invalid. The path must be to a .cs file, .csproj file, or directory containing a single .csproj file.";
+                throw new DistributedApplicationException(message);
+            }
+
+            // Validate .NET version
+            if (((IProjectMetadata)projectMetadata).IsFileBasedApp && DotnetSdkUtils.TryGetVersion(Path.GetDirectoryName(projectPath), out var version) && version.Major < 10)
+            {
+                // File-based apps are only supported on .NET 10 or later
+                throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The current version is {version?.ToString() ?? "unknown"}.");
+            }
+        });
+
+        return resource;
     }
 
     private static IResourceBuilder<TProjectResource> WithProjectDefaults<TProjectResource>(this IResourceBuilder<TProjectResource> builder, ProjectResourceOptions options)

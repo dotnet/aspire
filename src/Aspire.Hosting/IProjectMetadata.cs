@@ -39,7 +39,9 @@ public interface IProjectMetadata : IResourceAnnotation
 [DebuggerDisplay("Type = {GetType().Name,nq}, ProjectPath = {ProjectPath}")]
 internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
 {
-    public string ProjectPath { get; } = ResolveProjectPath(projectPath);
+    private string? _resolvedProjectPath;
+
+    public string ProjectPath => _resolvedProjectPath ??= ResolveProjectPath(projectPath);
 
     public bool SuppressBuild => false;
 
@@ -55,14 +57,10 @@ internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
                 IgnoreInaccessible = true
             });
 
-            if (projectFiles.Length == 0)
+            if (projectFiles.Length != 1)
             {
-                // No project files found, just let it pass through and be handled later
+                // No project files found, just let it pass through and be handled later during resource start
                 return path;
-            }
-            else if (projectFiles.Length > 1)
-            {
-                throw new InvalidOperationException($"The specified project directory '{path}' contains multiple project files. Please specify the path to a specific project file.");
             }
             else
             {

@@ -1,9 +1,18 @@
+// To run this app in this repo use the following command line to ensure latest changes are always picked up:
+// $ dotnet apphost.cs --no-cache
+
+// These directives are not required in regular apps, only here in the aspire repo itself
 #:property IsAspireHost=true
 #:property PublishAot=false
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.AddCSharpApp("api", "api.cs");
+// C# File-based app
+// NOTE: This is in a sub-folder to ensure it doesn't pickup .razor files from the FrontEnd project
+builder.AddCSharpApp("api", "./api/api.cs");
+
+// Traditional C# project added via same API just specifiying project directory
+builder.AddCSharpApp("frontend", "./FileBasedApps.WebFrontEnd/");
 
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
