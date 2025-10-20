@@ -21,8 +21,8 @@ public static class MauiProjectExtensions
     /// <param name="builder">The distributed application builder.</param>
     /// <param name="name">Logical name for the MAUI project.</param>
     /// <param name="projectPath">Relative path to the .csproj file.</param>
-    /// <returns>A <see cref="MauiProjectBuilder"/> that can be used to enable platforms.</returns>
-    public static MauiProjectBuilder AddMauiProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    public static IResourceBuilder<MauiProjectResource> AddMauiProject(this IDistributedApplicationBuilder builder, [ResourceName] string name, string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -33,8 +33,20 @@ public static class MauiProjectExtensions
 
         // Normalize the project path relative to the AppHost directory using shared PathNormalizer
         projectPath = Hosting.Utils.PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, projectPath));
-        // Do not register the logical grouping resource so it stays invisible in the dashboard; only per-platform resources appear.
-        var logical = new MauiProjectResource(name, projectPath);
-        return new MauiProjectBuilder(builder, logical, projectPath);
+
+        // Create the MAUI project resource and configuration
+        // Do not register the logical grouping resource with AddResource so it stays invisible in the dashboard
+        var resource = new MauiProjectResource(name, projectPath);
+        var availableTfms = MauiPlatformDetection.LoadTargetFrameworks(projectPath);
+        var configuration = new MauiProjectConfiguration(projectPath, availableTfms);
+
+        // Add configuration as annotation to the resource
+        resource.Annotations.Add(configuration);
+
+        // Create the resource builder without adding to the model
+        var resourceBuilder = builder.CreateResourceBuilder(resource);
+
+        // Register event handlers
+        return resourceBuilder.WithMauiEventHandlers();
     }
 }

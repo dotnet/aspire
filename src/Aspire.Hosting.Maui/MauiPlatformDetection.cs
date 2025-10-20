@@ -7,7 +7,6 @@ namespace Aspire.Hosting.Maui;
 
 /// <summary>
 /// Helper responsible for reading target frameworks from a MAUI project and selecting platforms for auto-detection.
-/// Kept separate from <see cref="MauiProjectBuilder"/> to keep the builder focused on resource wiring.
 /// </summary>
 internal static class MauiPlatformDetection
 {

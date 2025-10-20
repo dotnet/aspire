@@ -19,24 +19,25 @@ public class MauiUnsupportedPlatformTests
 
         string unsupportedPlatformMoniker;
         string[] tfms;
-        Action<Maui.MauiProjectBuilder> configure;
+        Action<ApplicationModel.IResourceBuilder<MauiProjectResource>> configure;
 
         if (OperatingSystem.IsWindows())
         {
             unsupportedPlatformMoniker = "maccatalyst";
             tfms = ["net10.0-maccatalyst"];
-            configure = mp => mp.WithMacCatalyst();
+            configure = (ApplicationModel.IResourceBuilder<MauiProjectResource> mp) => mp.WithMacCatalyst();
         }
         else // macOS
         {
             unsupportedPlatformMoniker = "windows";
             tfms = ["net10.0-windows10.0.19041.0"];
-            configure = mp => mp.WithWindows();
+            configure = (ApplicationModel.IResourceBuilder<MauiProjectResource> mp) => mp.WithWindows();
         }
 
         var csproj = MauiTestHelpers.CreateProject(tfms);
         var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions { DisableDashboard = true });
-        configure(builder.AddMauiProject("maui", csproj));
+        var mauiBuilder = builder.AddMauiProject("maui", csproj);
+        configure(mauiBuilder);
         using var app = builder.Build();
 
         // Find the unsupported platform resource.
@@ -72,24 +73,25 @@ public class MauiUnsupportedPlatformTests
 
         string unsupportedPlatformMoniker;
         string[] tfms;
-        Action<MauiProjectBuilder> configure;
+        Action<ApplicationModel.IResourceBuilder<MauiProjectResource>> configure;
 
         if (OperatingSystem.IsWindows())
         {
             unsupportedPlatformMoniker = "ios";
             tfms = ["net10.0-ios"];
-            configure = mp => mp.WithiOS();
+            configure = (ApplicationModel.IResourceBuilder<MauiProjectResource> mp) => mp.WithiOS();
         }
         else // macOS
         {
             unsupportedPlatformMoniker = "windows";
             tfms = ["net10.0-windows10.0.19041.0"];
-            configure = mp => mp.WithWindows();
+            configure = (ApplicationModel.IResourceBuilder<MauiProjectResource> mp) => mp.WithWindows();
         }
 
         var csproj = MauiTestHelpers.CreateProject(tfms);
         var builder = Hosting.DistributedApplication.CreateBuilder(new Hosting.DistributedApplicationOptions { DisableDashboard = true });
-        configure(builder.AddMauiProject("maui", csproj));
+        var mauiBuilder = builder.AddMauiProject("maui", csproj);
+        configure(mauiBuilder);
         using var app = builder.Build();
 
         var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);

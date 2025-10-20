@@ -110,7 +110,7 @@ public class MauiPlatformVisualizationTests
 
         string unsupportedPlatformMoniker;
         string[] tfms;
-        Action<Aspire.Hosting.Maui.MauiProjectBuilder> configure;
+        Action<ApplicationModel.IResourceBuilder<MauiProjectResource>> configure;
 
         if (OperatingSystem.IsWindows())
         {
@@ -127,7 +127,8 @@ public class MauiPlatformVisualizationTests
 
         var csproj = MauiTestHelpers.CreateProject(tfms);
         var builder = Hosting.DistributedApplication.CreateBuilder();
-        configure(builder.AddMauiProject("maui", csproj));
+        var mauiBuilder = builder.AddMauiProject("maui", csproj);
+        configure(mauiBuilder);
         
         using var app = builder.Build();
         var model = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Hosting.ApplicationModel.DistributedApplicationModel>(app.Services);

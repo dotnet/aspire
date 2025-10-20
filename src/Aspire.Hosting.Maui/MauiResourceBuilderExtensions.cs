@@ -1,147 +1,136 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.DevTunnels;
-using Aspire.Hosting.Maui.Platforms.iOS;
+using Aspire.Hosting.Maui;
 using Aspire.Hosting.Maui.DevTunnels;
-using Microsoft.Extensions.Logging;
+using Aspire.Hosting.Maui.Platforms.Android;
+using Aspire.Hosting.Maui.Platforms.iOS;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
-namespace Aspire.Hosting.Maui;
+namespace Aspire.Hosting;
 
 /// <summary>
-/// Builder used to configure platform specific resources for a MAUI project.
+/// Extension methods for configuring .NET MAUI project resources.
 /// </summary>
-public sealed class MauiProjectBuilder
+public static class MauiResourceBuilderExtensions
 {
-    private readonly IDistributedApplicationBuilder _appBuilder;
-    private readonly MauiProjectResource _mauiLogicalResource;
-    private readonly string _projectPath;
-    private readonly HashSet<string> _availableTfms;
-    private readonly List<IResourceBuilder<ProjectResource>> _platformResources = [];
-    private readonly HashSet<IResourceWithEndpoints> _referencedEndpointResources = [];
-    private IResourceBuilder<DevTunnelResource>? _otlpDevTunnel; // Dev tunnel dedicated to OTLP traffic
-    private OtlpLoopbackResource? _otlpStub; // Synthetic loopback resource representing local OTLP port
-    private int _otlpStubPort; // Cached OTLP port for manual allocation
-    private string? _otlpStubName; // Name of synthetic OTLP stub resource
-    private bool _enableOtelDebug; // Whether to inject verbose OTEL exporter debug env vars
-    private static readonly ConcurrentDictionary<string, Lazy<Task>> s_builds = new();
-
-    internal MauiProjectBuilder(IDistributedApplicationBuilder appBuilder, MauiProjectResource logical, string projectPath)
+    /// <summary>
+    /// Subscribes to lifecycle events for MAUI resource management.
+    /// </summary>
+    internal static IResourceBuilder<MauiProjectResource> WithMauiEventHandlers(this IResourceBuilder<MauiProjectResource> builder)
     {
-        _appBuilder = appBuilder;
-        _mauiLogicalResource = logical;
-        _projectPath = projectPath;
-        _availableTfms = MauiPlatformDetection.LoadTargetFrameworks(projectPath);
+        var appBuilder = builder.ApplicationBuilder;
+        var configuration = GetConfiguration(builder);
+        var resource = builder.Resource;
 
-        // We still log at BeforeStartEvent, but detection may already have happened earlier (e.g. via WithReference()).
         appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
         {
-            var logger = evt.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.Hosting.Maui");
+            var loggerFactory = evt.Services.GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger(typeof(MauiResourceBuilderExtensions));
 
-            // Emit warnings for any explicitly added but unsupported platform resources.
-            var unsupported = _platformResources
-                .Where(r => r.Resource.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().Any())
-                .Select(r => r.Resource.Name)
-                .ToList();
-            
-            if (unsupported.Count > 0)
+            // Log warnings for explicitly configured unsupported platforms
+            foreach (var platformResource in configuration.PlatformResources)
             {
-                logger.LogWarning("The following .NET MAUI platform resource(s) cannot run on this host OS and will fail to start: {Platforms}", string.Join(",", unsupported));
+                var unsupported = platformResource.Resource.Annotations.OfType<MauiUnsupportedPlatformAnnotation>().FirstOrDefault();
+                if (unsupported is not null)
+                {
+                    logger?.LogWarning(
+                        "MAUI platform '{Platform}' was explicitly configured but is not supported on this host: {Reason}",
+                        platformResource.Resource.Name,
+                        unsupported.Reason);
+                }
             }
 
-            if (_platformResources.Count == 0)
+            // Auto-detect platforms if none explicitly configured
+            var autoDetected = configuration.EnsureAutoDetection(appBuilder, moniker => builder.TryAddAutoDetectedPlatform(moniker));
+            if (autoDetected.Count > 0)
             {
-                // Final chance: perform detection so the user can still launch even if they never referenced anything.
-                var detected = EnsureAutoDetection();
-                if (detected.Count == 0)
-                {
-                    logger.LogWarning("No .NET MAUI platform resources were configured for '{Name}'. Call one of the WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() methods to enable launching a platform-specific app.", _mauiLogicalResource.Name);
-                }
-                else
-                {
-                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() in the AppHost.", string.Join(",", detected), _mauiLogicalResource.Name);
-                }
-            }
-            else if (_platformResources.Any(p => p.Resource.Annotations.OfType<MauiAutoDetectedPlatformAnnotation>().Any()))
-            {
-                var auto = GetAutoDetectedPlatformNames();
-                if (auto.Count > 0)
-                {
-                    logger.LogWarning("Auto-detected .NET MAUI platform(s) {Platforms} for '{Name}' based on TargetFrameworks. For clarity, explicitly call WithWindows()/WithAndroid()/WithiOS()/WithMacCatalyst() in the AppHost.", string.Join(",", auto), _mauiLogicalResource.Name);
-                }
+                logger?.LogWarning(
+                    "No MAUI platforms were explicitly configured for '{ResourceName}'. Auto-detected platforms: {Platforms}. " +
+                    "Use WithWindows(), WithAndroid(), WithiOS(), or WithMacCatalyst() to explicitly specify platforms.",
+                    resource.Name,
+                    string.Join(", ", autoDetected));
             }
 
             return Task.CompletedTask;
         });
-    }
 
-    /// <summary>
-    /// The MAUI project file path.
-    /// </summary>
-    public string ProjectPath => _projectPath;
+        return builder;
+    }
 
     /// <summary>
     /// Adds a Windows platform resource if the MAUI project targets windows.
     /// </summary>
-    public MauiProjectBuilder WithWindows(string? runtimeIdentifier = null)
+    public static IResourceBuilder<MauiProjectResource> WithWindows(this IResourceBuilder<MauiProjectResource> builder, string? runtimeIdentifier = null)
     {
-        AddPlatform("windows", runtimeIdentifier);
-        return this;
+        builder.AddPlatform("windows", runtimeIdentifier);
+        return builder;
     }
 
     /// <summary>
     /// Adds an Android platform resource if the MAUI project targets Android.
     /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
     /// <param name="adbTarget">Optional adb target passed as an MSBuild property (e.g. <c>-p:AdbTarget=-e</c>) to select a specific emulator or device.</param>
     /// <remarks>
     /// Android support is currently limited to adding the platform resource without additional provisioning logic.
     /// If <paramref name="adbTarget"/> is provided it is forwarded as an MSBuild property when the project is started.
     /// </remarks>
-    public MauiProjectBuilder WithAndroid(string? adbTarget = null)
+    public static IResourceBuilder<MauiProjectResource> WithAndroid(this IResourceBuilder<MauiProjectResource> builder, string? adbTarget = null)
     {
-        AddPlatform("android", msbuildProperty: adbTarget is null ? null : $"AdbTarget={adbTarget}");
-        return this;
+        builder.AddPlatform("android", msbuildProperty: adbTarget is null ? null : $"AdbTarget={adbTarget}");
+        return builder;
     }
 
     /// <summary>
     /// Adds an iOS platform resource if the MAUI project targets iOS.
     /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
     /// <param name="deviceUdid">Optional _DeviceName UDID (simulator or device) passed as -p:_DeviceName=&lt;UDID&gt;</param>
-    public MauiProjectBuilder WithiOS(string? deviceUdid = null)
+    public static IResourceBuilder<MauiProjectResource> WithiOS(this IResourceBuilder<MauiProjectResource> builder, string? deviceUdid = null)
     {
-        AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : $"_DeviceName={deviceUdid}");
-        return this;
+        builder.AddPlatform("ios", msbuildProperty: deviceUdid is null ? null : $"_DeviceName={deviceUdid}");
+        return builder;
     }
 
     /// <summary>
     /// Adds a MacCatalyst platform resource if the MAUI project targets MacCatalyst.
     /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
     /// <param name="runtimeIdentifier">Optional runtime identifier (e.g. maccatalyst-x64 or maccatalyst-arm64).</param>
-    public MauiProjectBuilder WithMacCatalyst(string? runtimeIdentifier = null)
+    public static IResourceBuilder<MauiProjectResource> WithMacCatalyst(this IResourceBuilder<MauiProjectResource> builder, string? runtimeIdentifier = null)
     {
-        AddPlatform("maccatalyst", runtimeIdentifier);
-        return this;
+        builder.AddPlatform("maccatalyst", runtimeIdentifier);
+        return builder;
     }
 
     /// <summary>
     /// Propagates a reference to another resource to all platform resources.
     /// </summary>
-    public MauiProjectBuilder WithReference<TSource>(IResourceBuilder<TSource> source, string? connectionName = null)
+    /// <typeparam name="TSource">The type of the source resource.</typeparam>
+    /// <param name="builder">The MAUI project resource builder.</param>
+    /// <param name="source">The resource builder for the source resource.</param>
+    /// <param name="connectionName">Optional connection name.</param>
+    public static IResourceBuilder<MauiProjectResource> WithReference<TSource>(this IResourceBuilder<MauiProjectResource> builder, IResourceBuilder<TSource> source, string? connectionName = null)
         where TSource : IResource
     {
-        // Ensure platforms are materialized early so service discovery / connection string references propagate.
-        EnsureAutoDetection();
+        ArgumentNullException.ThrowIfNull(source);
 
-        if (source.Resource is IResourceWithEndpoints endpointsResource && !_referencedEndpointResources.Contains(endpointsResource))
+        var configuration = GetConfiguration(builder);
+
+        // Ensure platforms are materialized early so service discovery / connection string references propagate.
+        configuration.EnsureAutoDetection(builder.ApplicationBuilder, builder.TryAddAutoDetectedPlatform);
+
+        if (source.Resource is IResourceWithEndpoints endpointsResource && !configuration.ReferencedEndpointResources.Contains(endpointsResource))
         {
-            _referencedEndpointResources.Add(endpointsResource);
+            configuration.ReferencedEndpointResources.Add(endpointsResource);
         }
 
-        foreach (var pr in _platformResources)
+        foreach (var pr in configuration.PlatformResources)
         {
             if (source.Resource is IResourceWithConnectionString && pr.Resource is IResourceWithEnvironment)
             {
@@ -152,7 +141,8 @@ public sealed class MauiProjectBuilder
                 pr.WithReference((IResourceBuilder<IResourceWithServiceDiscovery>)source);
             }
         }
-        return this;
+
+        return builder;
     }
 
     /// <summary>
@@ -160,20 +150,22 @@ public sealed class MauiProjectBuilder
     /// into all MAUI platform resources (tunneled service discovery). This allows a device/emulator to reach
     /// the service via the tunnel host instead of localhost.
     /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
     /// <param name="source">The endpoint-providing resource to expose via the tunnel.</param>
     /// <param name="tunnel">The dev tunnel resource already configured to reference <paramref name="source"/>.</param>
     /// <remarks>
     /// This keeps fluent syntax in the AppHost: <c>.WithReference(weatherApi, publicDevTunnel)</c> without requiring
     /// callers to access individual platform project resources.
     /// </remarks>
-    public MauiProjectBuilder WithReference(IResourceBuilder<IResourceWithEndpoints> source, IResourceBuilder<DevTunnelResource> tunnel)
+    public static IResourceBuilder<MauiProjectResource> WithReference(this IResourceBuilder<MauiProjectResource> builder, IResourceBuilder<IResourceWithEndpoints> source, IResourceBuilder<DevTunnelResource> tunnel)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(tunnel);
 
-        EnsureAutoDetection();
+        var configuration = GetConfiguration(builder);
+        configuration.EnsureAutoDetection(builder.ApplicationBuilder, builder.TryAddAutoDetectedPlatform);
 
-        foreach (var pr in _platformResources)
+        foreach (var pr in configuration.PlatformResources)
         {
             if (pr.Resource is IResourceWithEnvironment)
             {
@@ -181,40 +173,44 @@ public sealed class MauiProjectBuilder
             }
         }
 
-        return this;
+        return builder;
     }
 
     /// <summary>
     /// Creates a single Dev Tunnel exposing only the local OTLP port and rewrites the OTLP exporter endpoint
     /// to use the tunneled address for device/simulator telemetry.
     /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
     /// <param name="tunnelName">Optional tunnel resource name; defaults to &lt;logical-name&gt;-otlp.</param>
     /// <param name="enableOtelDebug">When true, injects verbose OTEL exporter debug env vars for troubleshooting (defaults to false).</param>
-    public MauiProjectBuilder WithOtlpDevTunnel(string? tunnelName = null, bool enableOtelDebug = false)
+    public static IResourceBuilder<MauiProjectResource> WithOtlpDevTunnel(this IResourceBuilder<MauiProjectResource> builder, string? tunnelName = null, bool enableOtelDebug = false)
     {
-        if (_otlpDevTunnel is not null)
+        var configuration = GetConfiguration(builder);
+        var appBuilder = builder.ApplicationBuilder;
+
+        if (configuration.OtlpDevTunnel is not null)
         {
-            return this; // already configured
+            return builder; // already configured
         }
 
         // Use a stable dev tunnel name distinct from the OTLP concept.
-        tunnelName ??= _mauiLogicalResource.Name + "-devtunnel";
-        _otlpDevTunnel = _appBuilder.AddDevTunnel(tunnelName).WithAnonymousAccess();
-        _enableOtelDebug = enableOtelDebug;
+        tunnelName ??= builder.Resource.Name + "-devtunnel";
+        configuration.OtlpDevTunnel = appBuilder.AddDevTunnel(tunnelName).WithAnonymousAccess();
+        configuration.EnableOtelDebug = enableOtelDebug;
 
         // Resolve OTLP endpoint (scheme & port) from configuration.
-        var (otlpScheme, otlpPort) = DevTunnels.OtlpEndpointResolver.Resolve(_appBuilder.Configuration);
+        var (otlpScheme, otlpPort) = OtlpEndpointResolver.Resolve(appBuilder.Configuration);
 
         // Create synthetic hidden stub resource referenced only for tunneling.
-        _otlpStubName = _mauiLogicalResource.Name + "-otlpstub";
-        if (_appBuilder.Resources.Any(r => string.Equals(r.Name, _otlpStubName, StringComparison.OrdinalIgnoreCase)))
+        configuration.OtlpStubName = builder.Resource.Name + "-otlpstub";
+        if (appBuilder.Resources.Any(r => string.Equals(r.Name, configuration.OtlpStubName, StringComparison.OrdinalIgnoreCase)))
         {
-            return this; // defensive (should not occur normally)
+            return builder; // defensive (should not occur normally)
         }
 
-        _otlpStub = new DevTunnels.OtlpLoopbackResource(_otlpStubName, otlpPort, otlpScheme);
-        _otlpStubPort = otlpPort;
-        var stubBuilder = _appBuilder.AddResource(_otlpStub)
+        configuration.OtlpStub = new OtlpLoopbackResource(configuration.OtlpStubName, otlpPort, otlpScheme);
+        configuration.OtlpStubPort = otlpPort;
+        var stubBuilder = appBuilder.AddResource(configuration.OtlpStub)
             .ExcludeFromManifest();
 
         // Hide synthetic stub (dashboard omission) while still allowing the Dev Tunnel to attach to an endpoint-providing resource.
@@ -230,8 +226,7 @@ public sealed class MauiProjectBuilder
         // this may still appear near the top level, but avoids coupling its hierarchy to the tunnel itself.
         try
         {
-            var logicalBuilder = _appBuilder.CreateResourceBuilder(_mauiLogicalResource);
-            stubBuilder.WithParentRelationship(logicalBuilder);
+            stubBuilder.WithParentRelationship(builder);
         }
         catch
         {
@@ -240,92 +235,102 @@ public sealed class MauiProjectBuilder
 
         // Force the dev tunnel port protocol to HTTPS regardless of the local collector's scheme so the
         // public tunnel endpoint is always an https:// URL (Dev Tunnels surface TLS endpoints).
-        _otlpDevTunnel.WithReference(stubBuilder, new DevTunnelPortOptions { Protocol = "https" });
-        var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
+        configuration.OtlpDevTunnel.WithReference(stubBuilder, new DevTunnelPortOptions { Protocol = "https" });
+        var stubEndpointsBuilder = appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(configuration.OtlpStub);
 
         // Ensure the stub endpoint appears allocated before the tunnel starts (the dev tunnel waits on allocation events).
         // We synthesize the allocation and raise ResourceEndpointsAllocatedEvent early.
-        _appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
+        appBuilder.Eventing.Subscribe<BeforeStartEvent>((evt, ct) =>
         {
-            if (_otlpStub is null)
+            if (configuration.OtlpStub is null)
             {
                 return Task.CompletedTask;
             }
-            var endpoint = _otlpStub.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
+            var endpoint = configuration.OtlpStub.Annotations.OfType<EndpointAnnotation>().FirstOrDefault();
             if (endpoint is null)
             {
                 return Task.CompletedTask;
             }
             if (endpoint.AllocatedEndpoint is null)
             {
-                endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", _otlpStubPort);
-                return _appBuilder.Eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(_otlpStub, evt.Services), ct);
+                endpoint.AllocatedEndpoint = new AllocatedEndpoint(endpoint, "localhost", configuration.OtlpStubPort);
+                return appBuilder.Eventing.PublishAsync<ResourceEndpointsAllocatedEvent>(new(configuration.OtlpStub, evt.Services), ct);
             }
             return Task.CompletedTask;
         });
 
         // Ensure platforms exist (auto-detect if user hasn't added explicitly yet) so we can wire env vars.
-        EnsureAutoDetection();
+        configuration.EnsureAutoDetection(appBuilder, builder.TryAddAutoDetectedPlatform);
 
-        foreach (var pr in _platformResources.Where(p => p.Resource is IResourceWithEnvironment))
+        foreach (var pr in configuration.PlatformResources.Where(p => p.Resource is IResourceWithEnvironment))
         {
-            ApplyOtlpConfigurationToPlatform(pr);
+            pr.ApplyOtlpConfigurationToPlatform(appBuilder, configuration);
         }
 
-        return this;
+        return builder;
     }
 
-    private void AddPlatform(string platformMoniker, string? runtimeIdentifier = null, string? msbuildProperty = null)
+    private static MauiProjectConfiguration GetConfiguration(IResourceBuilder<MauiProjectResource> builder)
     {
+        return builder.Resource.Annotations.OfType<MauiProjectConfiguration>().FirstOrDefault()
+            ?? throw new InvalidOperationException($"MauiProjectConfiguration not found on resource '{builder.Resource.Name}'");
+    }
+
+    private static void AddPlatform(this IResourceBuilder<MauiProjectResource> builder, string platformMoniker, string? runtimeIdentifier = null, string? msbuildProperty = null)
+    {
+        var configuration = GetConfiguration(builder);
+        var appBuilder = builder.ApplicationBuilder;
+        var mauiResource = builder.Resource;
+
         var platformConfig = MauiPlatformConfiguration.KnownPlatforms.GetByMoniker(platformMoniker);
         if (platformConfig is null)
         {
             return; // Unknown platform moniker
         }
 
-        var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
+        var resourceName = $"{mauiResource.Name}-{platformMoniker}";
 
         // Check if this platform has already been added (duplicate guard)
-        if (_platformResources.Any(pr => pr.Resource.Name.Equals(resourceName, StringComparison.OrdinalIgnoreCase)))
+        if (configuration.PlatformResources.Any(pr => pr.Resource.Name.Equals(resourceName, StringComparison.OrdinalIgnoreCase)))
         {
             // Platform already added - log a warning and skip
-            var loggerFactory = _appBuilder.Services.BuildServiceProvider().GetService<ILoggerFactory>();
-            var logger = loggerFactory?.CreateLogger<MauiProjectBuilder>();
-            logger?.LogWarning("Platform '{Platform}' has already been added to MAUI project '{Project}'. Ignoring duplicate call to With{Platform}().",
-                platformMoniker, _mauiLogicalResource.Name, char.ToUpper(platformMoniker[0]) + platformMoniker[1..]);
+            var loggerFactory = appBuilder.Services.BuildServiceProvider().GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger(typeof(MauiResourceBuilderExtensions));
+            logger?.LogWarning("Platform '{Platform}' has already been added to MAUI project '{Project}'. Ignoring duplicate call to With{PlatformTitle}().",
+                platformMoniker, mauiResource.Name, char.ToUpper(platformMoniker[0]) + platformMoniker[1..]);
             return;
         }
 
         // Identify TFM prefix e.g. net10.0-windows, net10.0-android
-        var tfm = _availableTfms.FirstOrDefault(t => t.Contains('-') && t.Split('-')[1].StartsWith(platformMoniker, StringComparison.OrdinalIgnoreCase));
+        var tfm = configuration.AvailableTfms.FirstOrDefault(t => t.Contains('-') && t.Split('-')[1].StartsWith(platformMoniker, StringComparison.OrdinalIgnoreCase));
         if (tfm is null)
         {
             // Platform was requested but project doesn't target this TFM - create a warning resource
-            ConfigureMissingTfmPlatform(platformMoniker, platformConfig);
+            builder.ConfigureMissingTfmPlatform(platformMoniker, platformConfig, configuration);
             return;
         }
 
         // Use existing AddProject API to create the platform-specific resource.
-        var builder = _appBuilder.AddProject(resourceName, _projectPath)
+        var platformBuilder = appBuilder.AddProject(resourceName, configuration.ProjectPath)
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
 
         // Configure OpenTelemetry service identification for this platform.
-        ConfigureOpenTelemetryEnvironment(builder, resourceName);
+        platformBuilder.ConfigureOpenTelemetryEnvironment(resourceName);
 
         // Add platform-specific icon for dashboard visualization.
-        builder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
+        platformBuilder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
 
         // Check if the platform is supported on the current host OS.
         var supported = platformConfig.IsSupportedOnCurrentHost();
 
         if (!supported)
         {
-            ConfigureUnsupportedPlatform(builder, platformConfig);
+            platformBuilder.ConfigureUnsupportedPlatform(appBuilder, platformConfig);
         }
 
         // Pass framework & device specific msbuild properties via args so launching uses correct target
-        builder.WithArgs(async context =>
+        platformBuilder.WithArgs(async context =>
         {
             context.Args.Add("-f");
             context.Args.Add(tfm);
@@ -356,17 +361,17 @@ public sealed class MauiProjectBuilder
 
             if (platformMoniker.Equals("android", StringComparison.OrdinalIgnoreCase))
             {
-                await Platforms.Android.AndroidEnvironmentTargetGenerator.AppendEnvironmentTargetsAsync(context).ConfigureAwait(false);
+                await AndroidEnvironmentTargetGenerator.AppendEnvironmentTargetsAsync(context).ConfigureAwait(false);
             }
         });
 
-        _platformResources.Add(builder);
+        configuration.PlatformResources.Add(platformBuilder);
 
         // If OTLP tunneling already configured, wire the new platform to the stub & tunnel now.
-        ApplyOtlpConfigurationIfNeeded(builder);
+        platformBuilder.ApplyOtlpConfigurationIfNeeded(appBuilder, configuration);
 
         // Conditional build hook executed right before the resource starts (per explicit start invocation).
-        builder.OnBeforeResourceStarted(async (res, evt, ct) =>
+        platformBuilder.OnBeforeResourceStarted(async (res, evt, ct) =>
         {
             var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
             var logger = loggerService?.GetLogger(res);
@@ -398,7 +403,7 @@ public sealed class MauiProjectBuilder
             }
 
             // Compose output directory (best-effort) - MAUI layout: bin/<config>/<tfm>/
-            var tfmDir = Path.Combine(Path.GetDirectoryName(_projectPath) ?? string.Empty, "bin", config, tfm);
+            var tfmDir = Path.Combine(Path.GetDirectoryName(configuration.ProjectPath) ?? string.Empty, "bin", config, tfm);
             bool NeedsBuild()
             {
                 try
@@ -424,8 +429,8 @@ public sealed class MauiProjectBuilder
                 return; // artifacts present
             }
 
-            var key = string.Join('|', _projectPath, tfm, config);
-            var lazy = s_builds.GetOrAdd(key, _ => new Lazy<Task>(() => RunBuildAsync(ct)));
+            var key = string.Join('|', configuration.ProjectPath, tfm, config);
+            var lazy = MauiProjectConfiguration.Builds.GetOrAdd(key, _ => new Lazy<Task>(() => RunBuildAsync(ct)));
             try
             {
                 await lazy.Value.ConfigureAwait(false);
@@ -433,7 +438,7 @@ public sealed class MauiProjectBuilder
             catch
             {
                 // If failed, remove so a retry start attempt can rebuild
-                s_builds.TryRemove(key, out _);
+                MauiProjectConfiguration.Builds.TryRemove(key, out _);
                 throw;
             }
 
@@ -450,7 +455,7 @@ public sealed class MauiProjectBuilder
                 };
 
                 psi.ArgumentList.Add("build");
-                psi.ArgumentList.Add(_projectPath);
+                psi.ArgumentList.Add(configuration.ProjectPath);
                 psi.ArgumentList.Add("-f");
                 psi.ArgumentList.Add(tfm);
 
@@ -493,68 +498,13 @@ public sealed class MauiProjectBuilder
                 logger?.LogInformation("Build succeeded in {Seconds}s for {Tfm}.", sw.Elapsed.TotalSeconds.ToString("F1", System.Globalization.CultureInfo.InvariantCulture), tfm);
             }
         });
-
-    }
-
-    // Attempt to add platform; returns true if a new platform resource was created and annotated as auto-detected.
-    private bool TryAddAutoDetectedPlatform(string moniker)
-    {
-        var before = _platformResources.Count;
-        AddPlatform(moniker);
-        if (_platformResources.Count > before)
-        {
-            _platformResources[^1].WithAnnotation(new MauiAutoDetectedPlatformAnnotation());
-            return true;
-        }
-        return false;
-    }
-
-    private readonly object _autoDetectLock = new();
-    private bool _autoDetectionAttempted;
-
-    // Returns the set of platforms that were auto-detected during this call (empty if already done or none found).
-    private List<string> EnsureAutoDetection()
-    {
-        if (_platformResources.Count != 0)
-        {
-            return [];
-        }
-
-        lock (_autoDetectLock)
-        {
-            if (_autoDetectionAttempted || _platformResources.Count != 0)
-            {
-                return [];
-            }
-            _autoDetectionAttempted = true;
-            return MauiPlatformDetection.AutoDetect(_availableTfms, TryAddAutoDetectedPlatform);
-        }
-    }
-
-    private List<string> GetAutoDetectedPlatformNames()
-    {
-        var list = new List<string>();
-        foreach (var b in _platformResources)
-        {
-            if (b.Resource.Annotations.OfType<MauiAutoDetectedPlatformAnnotation>().Any())
-            {
-                // Resource name pattern: <logical>-<platform>
-                var name = b.Resource.Name;
-                var idx = name.LastIndexOf('-');
-                if (idx >= 0 && idx < name.Length - 1)
-                {
-                    list.Add(name[(idx + 1)..]);
-                }
-            }
-        }
-        return list;
     }
 
     /// <summary>
     /// Configures OpenTelemetry environment variables for the platform resource.
     /// Overrides DCP interpolation templates with concrete values for local MAUI projects.
     /// </summary>
-    private static void ConfigureOpenTelemetryEnvironment(IResourceBuilder<ProjectResource> builder, string resourceName)
+    private static void ConfigureOpenTelemetryEnvironment(this IResourceBuilder<ProjectResource> builder, string resourceName)
     {
         // Override OTEL_SERVICE_NAME placeholder (the generic OTLP configuration sets a DCP interpolation template
         // like {{- index .Annotations "otel-service-name" -}} which is never resolved for a local MAUI project).
@@ -572,7 +522,7 @@ public sealed class MauiProjectBuilder
     /// Configures an unsupported platform to display a warning state in the dashboard
     /// and prevent lifecycle operations.
     /// </summary>
-    private void ConfigureUnsupportedPlatform(IResourceBuilder<ProjectResource> builder, MauiPlatformConfiguration platformConfig)
+    private static void ConfigureUnsupportedPlatform(this IResourceBuilder<ProjectResource> builder, IDistributedApplicationBuilder appBuilder, MauiPlatformConfiguration platformConfig)
     {
         builder.WithAnnotation(new MauiUnsupportedPlatformAnnotation(platformConfig.UnsupportedReason));
 
@@ -581,7 +531,7 @@ public sealed class MauiProjectBuilder
         // Note: Dashboard expects "warning" (not "warn" from KnownResourceStateStyles.Warn) for the warning icon to display.
         // This is a known inconsistency in the Aspire codebase between the hosting and dashboard layers.
         var resource = builder.Resource;
-        _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+        appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
         {
             var notificationService = evt.Services.GetService<ResourceNotificationService>();
             if (notificationService is not null)
@@ -600,26 +550,27 @@ public sealed class MauiProjectBuilder
     /// Configures a platform that was requested but doesn't have a matching TFM in the project.
     /// Creates a warning resource in the dashboard to inform the developer.
     /// </summary>
-    private void ConfigureMissingTfmPlatform(string platformMoniker, MauiPlatformConfiguration platformConfig)
+    private static void ConfigureMissingTfmPlatform(this IResourceBuilder<MauiProjectResource> builder, string platformMoniker, MauiPlatformConfiguration platformConfig, MauiProjectConfiguration configuration)
     {
-        var resourceName = $"{_mauiLogicalResource.Name}-{platformMoniker}";
+        var appBuilder = builder.ApplicationBuilder;
+        var resourceName = $"{builder.Resource.Name}-{platformMoniker}";
 
         // Create a placeholder project resource to show in the dashboard
-        var builder = _appBuilder.AddProject(resourceName, _projectPath)
+        var platformBuilder = appBuilder.AddProject(resourceName, configuration.ProjectPath)
             .WithExplicitStart()
             .WithAnnotation(ManifestPublishingCallbackAnnotation.Ignore);
 
         // Add platform-specific icon for dashboard visualization
-        builder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
+        platformBuilder.WithAnnotation(new ResourceIconAnnotation(platformConfig.IconName, IconVariant.Filled));
 
         // Track that this platform is missing the required TFM
         var warningMessage = $"Project does not target {platformMoniker}. Add 'net10.0-{platformMoniker}' to TargetFrameworks in the project file.";
-        builder.WithAnnotation(new MauiMissingTfmAnnotation(platformMoniker, warningMessage));
+        platformBuilder.WithAnnotation(new MauiMissingTfmAnnotation(platformMoniker, warningMessage));
 
         // Publish the warning state after resources are created
         // Note: Dashboard expects "warning" (not "warn" from KnownResourceStateStyles.Warn) for the warning icon to display.
-        var resource = builder.Resource;
-        _appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
+        var resource = platformBuilder.Resource;
+        appBuilder.Eventing.Subscribe<AfterResourcesCreatedEvent>((evt, ct) =>
         {
             var notificationService = evt.Services.GetService<ResourceNotificationService>();
             var loggerService = evt.Services.GetService<ResourceLoggerService>();
@@ -636,15 +587,15 @@ public sealed class MauiProjectBuilder
             if (loggerService is not null)
             {
                 var logger = loggerService.GetLogger(resource);
-                logger?.LogWarning("Platform '{Platform}' was requested but the project '{ProjectPath}' does not include 'net10.0-{Platform}' in its TargetFrameworks. Add it to the project file to enable this platform.", 
-                    platformMoniker, _projectPath, platformMoniker);
+                logger?.LogWarning("Platform '{Platform}' was requested but the project '{ProjectPath}' does not include 'net10.0-{Platform}' in its TargetFrameworks. Add it to the project file to enable this platform.",
+                    platformMoniker, configuration.ProjectPath, platformMoniker);
             }
 
             return Task.CompletedTask;
         });
 
         // Prevent this platform from being started
-        builder.OnBeforeResourceStarted((res, evt, ct) =>
+        platformBuilder.OnBeforeResourceStarted((res, evt, ct) =>
         {
             var loggerService = evt.Services.GetService(typeof(ResourceLoggerService)) as ResourceLoggerService;
             var logger = loggerService?.GetLogger(res);
@@ -654,43 +605,43 @@ public sealed class MauiProjectBuilder
             return Task.CompletedTask;
         });
 
-        _platformResources.Add(builder);
+        configuration.PlatformResources.Add(platformBuilder);
     }
 
     /// <summary>
     /// Applies OTLP dev tunnel configuration to a platform if OTLP dev tunnel is enabled.
     /// </summary>
-    private void ApplyOtlpConfigurationIfNeeded(IResourceBuilder<ProjectResource> builder)
+    private static void ApplyOtlpConfigurationIfNeeded(this IResourceBuilder<ProjectResource> builder, IDistributedApplicationBuilder appBuilder, MauiProjectConfiguration configuration)
     {
-        if (_otlpDevTunnel is null || _otlpStub is null || builder.Resource is not IResourceWithEnvironment)
+        if (configuration.OtlpDevTunnel is null || configuration.OtlpStub is null || builder.Resource is not IResourceWithEnvironment)
         {
             return;
         }
 
-        ApplyOtlpConfigurationToPlatform(builder);
+        builder.ApplyOtlpConfigurationToPlatform(appBuilder, configuration);
     }
 
     /// <summary>
     /// Applies OTLP dev tunnel configuration to a specific platform resource builder.
     /// </summary>
-    private void ApplyOtlpConfigurationToPlatform(IResourceBuilder<ProjectResource> builder)
+    private static void ApplyOtlpConfigurationToPlatform(this IResourceBuilder<ProjectResource> builder, IDistributedApplicationBuilder appBuilder, MauiProjectConfiguration configuration)
     {
-        if (_otlpDevTunnel is null || _otlpStub is null)
+        if (configuration.OtlpDevTunnel is null || configuration.OtlpStub is null)
         {
             return;
         }
 
-        var stubEndpointsBuilder = _appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(_otlpStub);
-        builder.WithReference(stubEndpointsBuilder, _otlpDevTunnel);
+        var stubEndpointsBuilder = appBuilder.CreateResourceBuilder<IResourceWithEndpoints>(configuration.OtlpStub);
+        builder.WithReference(stubEndpointsBuilder, configuration.OtlpDevTunnel);
 
         // iOS and Android require the stub name to locate the OTLP endpoint after dev tunnel allocation.
         var platformMoniker = ExtractPlatformMonikerFromResourceName(builder.Resource.Name);
-        if (_otlpStubName is not null && (platformMoniker == "ios" || platformMoniker == "android"))
+        if (configuration.OtlpStubName is not null && (platformMoniker == "ios" || platformMoniker == "android"))
         {
-            builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", _otlpStubName);
+            builder.WithEnvironment("ASPIRE_MAUI_OTLP_STUB_NAME", configuration.OtlpStubName);
         }
 
-        if (_enableOtelDebug)
+        if (configuration.EnableOtelDebug)
         {
             builder.WithEnvironment("OTEL_LOG_LEVEL", "debug")
                    .WithEnvironment("OTEL_BSP_SCHEDULE_DELAY", "200")
@@ -707,4 +658,19 @@ public sealed class MauiProjectBuilder
         return idx >= 0 && idx < resourceName.Length - 1 ? resourceName[(idx + 1)..] : string.Empty;
     }
 
+    /// <summary>
+    /// Attempt to add platform; returns true if a new platform resource was created and annotated as auto-detected.
+    /// </summary>
+    private static bool TryAddAutoDetectedPlatform(this IResourceBuilder<MauiProjectResource> builder, string moniker)
+    {
+        var configuration = GetConfiguration(builder);
+        var before = configuration.PlatformResources.Count;
+        builder.AddPlatform(moniker);
+        if (configuration.PlatformResources.Count > before)
+        {
+            configuration.PlatformResources[^1].WithAnnotation(new MauiAutoDetectedPlatformAnnotation());
+            return true;
+        }
+        return false;
+    }
 }
