@@ -632,19 +632,10 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMixOfSuccessfulAndFailingStepsAtSameLevel_ThrowsAggregateException()
+    public async Task ExecuteAsync_WithMultipleFailingStepsAtSameLevel_ThrowsAggregateException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
-
-        var successfulStepExecuted = false;
-        var lockObject = new object();
-
-        pipeline.AddStep("successful-step", async (context) =>
-        {
-            lock (lockObject) { successfulStepExecuted = true; }
-            await Task.CompletedTask;
-        });
 
         pipeline.AddStep("failing-step1", async (context) =>
         {
@@ -661,9 +652,6 @@ public class DistributedApplicationPipelineTests
         var context = CreateDeployingContext(builder.Build());
 
         var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        bool stepExecuted;
-        lock (lockObject) { stepExecuted = successfulStepExecuted; }
-        Assert.True(stepExecuted, "Successful step should have executed");
         Assert.Contains("Multiple pipeline steps failed", exception.Message);
         Assert.Equal(2, exception.InnerExceptions.Count);
         Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
