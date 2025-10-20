@@ -447,7 +447,7 @@ internal abstract class PublishCommandBase : BaseCommand
                         var durationStr = $"({duration.TotalSeconds:F1}s)";
 
                         var message = !string.IsNullOrEmpty(task.CompletionMessage)
-                            ? $"{task.StatusText}: {task.CompletionMessage} {durationStr}"
+                            ? $"{task.CompletionMessage} {durationStr}"
                             : $"{task.StatusText} {durationStr}";
 
                         if (IsCompletionStateError(task.CompletionState))
