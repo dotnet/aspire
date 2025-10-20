@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
         <source>Empty AppHost</source>
-        <target state="needs-review-translation">Single-File-AppHost (experimentell)</target>
+        <target state="new">Empty AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Blazor &amp; Minimal API starter</source>
-        <target state="needs-review-translation">Startervorlage</target>
+        <target state="new">Blazor &amp; Minimal API starter</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
