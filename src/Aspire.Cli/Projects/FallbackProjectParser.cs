@@ -14,13 +14,15 @@ namespace Aspire.Cli.Projects;
 /// Supports both .csproj XML files and .cs single-file apphost files.
 /// Used primarily for AppHost projects with unresolvable SDK versions.
 /// </summary>
-internal sealed class FallbackProjectParser
+internal sealed partial class FallbackProjectParser
 {
     private readonly ILogger<FallbackProjectParser> _logger;
 
-    // Regex patterns for parsing single-file apphost directives
-    private const string SdkDirectivePattern = @"#:sdk\s+Aspire\.AppHost\.Sdk@([\d\.\-a-zA-Z]+|\*)";
-    private const string PackageDirectivePattern = @"#:package\s+([a-zA-Z0-9\._]+)@([\d\.\-a-zA-Z]+|\*)";
+    [GeneratedRegex(@"#:sdk\s+Aspire\.AppHost\.Sdk@([\d\.\-a-zA-Z]+|\*)")]
+    private static partial Regex SdkDirectiveRegex();
+
+    [GeneratedRegex(@"#:package\s+([a-zA-Z0-9\._]+)@([\d\.\-a-zA-Z]+|\*)")]
+    private static partial Regex PackageDirectiveRegex();
 
     public FallbackProjectParser(ILogger<FallbackProjectParser> logger)
     {
@@ -241,7 +243,7 @@ internal sealed class FallbackProjectParser
     {
         // Match: #:sdk Aspire.AppHost.Sdk@<version>
         // Where version can be a semantic version or wildcard (*)
-        var match = Regex.Match(fileContent, SdkDirectivePattern);
+        var match = SdkDirectiveRegex().Match(fileContent);
         
         if (match.Success)
         {
@@ -260,7 +262,7 @@ internal sealed class FallbackProjectParser
 
         // Match: #:package <PackageId>@<version>
         // Where version can be a semantic version or wildcard (*)
-        var matches = Regex.Matches(fileContent, PackageDirectivePattern);
+        var matches = PackageDirectiveRegex().Matches(fileContent);
 
         foreach (Match match in matches)
         {
