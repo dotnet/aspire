@@ -1,10 +1,10 @@
 import { AspireTerminalProvider } from '../utils/AspireTerminalProvider';
-import { isWorkspaceOpen } from '../utils/workspace';
+import { getOpenApphostFile, isWorkspaceOpen } from '../utils/workspace';
 
 export async function addCommand(terminalProvider: AspireTerminalProvider) {
     if (!isWorkspaceOpen()) {
         return;
     }
 
-    terminalProvider.sendToAspireTerminal("aspire add");
+    terminalProvider.sendToAspireTerminal("aspire add", getOpenApphostFile());
 }
