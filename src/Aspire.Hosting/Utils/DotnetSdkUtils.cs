@@ -1,74 +1,56 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.Dcp.Process;
 
 namespace Aspire.Hosting.Utils;
 
 internal static class DotnetSdkUtils
 {
-    public static bool TryGetVersion(string? workingDirectory, [NotNullWhen(true)] out Version? version)
+    private static readonly Dictionary<string, string> s_dotnetCliEnvVars = new()
     {
-        var task = TryGetVersionAsync(workingDirectory);
-        task.GetAwaiter().GetResult();
-        version = task.Result;
-        return version is not null;
-    }
+        ["DOTNET_NOLOGO"] = "true",
+        ["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false",
+        ["DOTNET_CLI_TELEMETRY_OPTOUT"] = "true",
+        ["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "true",
+        ["SuppressNETCoreSdkPreviewMessage"] = "true"
+    };
 
     public static async Task<Version?> TryGetVersionAsync(string? workingDirectory)
     {
         // Get version by parsing the SDK version string
-        var startInfo = new ProcessStartInfo("dotnet", ["--version"])
-        {
-            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            WindowStyle = ProcessWindowStyle.Hidden,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        };
-        startInfo.EnvironmentVariables.Add("DOTNET_NOLOGO", "true");
-        startInfo.EnvironmentVariables.Add("DOTNET_GENERATE_ASPNET_CERTIFICATE", "false");
-        startInfo.EnvironmentVariables.Add("DOTNET_CLI_TELEMETRY_OPTOUT", "true");
-        startInfo.EnvironmentVariables.Add("DOTNET_SKIP_FIRST_TIME_EXPERIENCE", "true");
-        startInfo.EnvironmentVariables.Add("SuppressNETCoreSdkPreviewMessage", "true");
+        Version? parsedVersion = null;
 
         try
         {
-            using var process = new Process { StartInfo = startInfo };
-
-            Version? parsedVersion = null;
-            process.OutputDataReceived += (_, e) =>
+            var (task, _) = ProcessUtil.Run(new("dotnet")
             {
-                if (!string.IsNullOrWhiteSpace(e.Data))
+                WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
+                Arguments = "--version",
+                EnvironmentVariables = s_dotnetCliEnvVars,
+                OnOutputData = data =>
                 {
-                    // The SDK version is in the first line of output
-                    var line = e.Data.AsSpan().Trim();
-                    // Trim any pre-release suffix
-                    var hyphenIndex = line.IndexOf('-');
-                    var versionSpan = hyphenIndex >= 0 ? line[..hyphenIndex] : line;
-                    if (Version.TryParse(versionSpan, out var v))
+                    if (!string.IsNullOrWhiteSpace(data))
                     {
-                        parsedVersion = v;
+                        // The SDK version is in the first line of output
+                        var line = data.AsSpan().Trim();
+                        // Trim any pre-release suffix
+                        var hyphenIndex = line.IndexOf('-');
+                        var versionSpan = hyphenIndex >= 0 ? line[..hyphenIndex] : line;
+                        if (Version.TryParse(versionSpan, out var v))
+                        {
+                            parsedVersion = v;
+                        }
                     }
                 }
-            };
-
-            if (!process.Start())
+            });
+            var result = await task.ConfigureAwait(false);
+            if (result.ExitCode == 0)
             {
-                return null;
+                return parsedVersion;
             }
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            await process.WaitForExitAsync().ConfigureAwait(false);
-
-            return parsedVersion;
         }
-        catch (Exception)
-        {
-            return null;
-        }
+        catch (Exception) { }
+        return null;
     }
 }

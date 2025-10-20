@@ -341,7 +341,7 @@ public static class ProjectResourceBuilderExtensions
     /// <code lang="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs");
+    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs", o => o.LaunchProfileName = "https");
     ///
     /// builder.Build().Run();
     /// </code>
@@ -383,10 +383,15 @@ public static class ProjectResourceBuilderExtensions
             }
 
             // Validate .NET version
-            if (((IProjectMetadata)projectMetadata).IsFileBasedApp && DotnetSdkUtils.TryGetVersion(Path.GetDirectoryName(projectPath), out var version) && version.Major < 10)
+            if (((IProjectMetadata)projectMetadata).IsFileBasedApp
+                && await DotnetSdkUtils.TryGetVersionAsync(Path.GetDirectoryName(projectPath)).ConfigureAwait(false) is { } version
+                && version.Major < 10)
             {
                 // File-based apps are only supported on .NET 10 or later
-                throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The current version is {version?.ToString() ?? "unknown"}.");
+                var versionValue = version is not null
+                    ? $"is {version}"
+                    : "could not be determined";
+                throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The version active in '{Path.GetDirectoryName(projectPath)}' {versionValue}.");
             }
         });
 
