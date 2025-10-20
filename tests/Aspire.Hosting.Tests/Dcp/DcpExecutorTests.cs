@@ -1571,8 +1571,13 @@ public class DcpExecutorTests
         // Act
         await appExecutor.RunApplicationAsync();
 
-        await Task.Delay(2000);
-        // Assert
+        // Assert - Poll for the expected number of executables with exponential backoff
+        // This replaces the fixed 2-second delay which was both too short and source of test instability
+        await AsyncTestHelpers.AssertIsTrueRetryAsync(
+            () => kubernetesService.CreatedResources.OfType<Executable>().Count() == 2,
+            "Expected 2 executables to be created",
+            retries: 12); // With exponential backoff formula: (i+1)^2 * 50ms, this gives ~33 seconds total timeout
+
         var dcpExes = kubernetesService.CreatedResources.OfType<Executable>().ToList();
         Assert.Equal(2, dcpExes.Count);
 
