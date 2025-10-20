@@ -271,7 +271,10 @@ internal class AddCommandPrompter(IInteractionService interactionService) : IAdd
         static string FormatVersionLabel((string FriendlyName, NuGetPackage Package, PackageChannel Channel) item)
         {
             var pkg = item.Package;
-            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
+            // For implicit channels, show "based on nuget.config" instead of the raw feed URL
+            var source = item.Channel.Type is Packaging.PackageChannelType.Implicit
+                ? "based on nuget.config"
+                : (pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name);
             return $"{pkg.Version} ({source})";
         }
 
