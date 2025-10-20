@@ -30,5 +30,5 @@ def configure_opentelemetry():
 
     logging.basicConfig(
         level=logging.INFO,
-        handlers=[otel_sdk_logs.LoggingHandler(logger_provider=otel_logs.get_logger_provider())]
+        handlers=[logging.StreamHandler(), otel_sdk_logs.LoggingHandler(logger_provider=otel_logs.get_logger_provider())]
     )

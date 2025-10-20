@@ -48,7 +48,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 TemplatingStrings.AspirePyStarter_Description,
                 projectName => $"./{projectName}",
                 _ => { },
-                ApplySingleFileTemplate
+                (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
                 );
 
             yield return new CallbackTemplate(
@@ -56,7 +56,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 TemplatingStrings.AspireAppHostSingleFile_Description,
                 projectName => $"./{projectName}",
                 _ => { },
-                ApplySingleFileTemplate
+                ApplySingleFileTemplateWithNoExtraArgsAsync
                 );
         }
 
@@ -142,6 +142,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
         await PromptForTestFrameworkOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspirePythonStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
 
         return extraArgs.ToArray();
     }
@@ -253,7 +262,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ApplySingleFileTemplate(
+            template,
+            parseResult,
+            (_, _) => Task.FromResult(Array.Empty<string>()),
+            cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         if (parseResult.CommandResult.Command is InitCommand)
         {
@@ -262,7 +280,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 executionContext.WorkingDirectory.Name,
                 executionContext.WorkingDirectory.FullName,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
@@ -271,7 +289,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             return await ApplyTemplateAsync(
                 template,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
