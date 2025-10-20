@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Proxy API calls to the backend service and strip 'api' prefix
       '/api': {
-        target: process.env.ASPISERVICE_HTTPS || process.env.ASPISERVICE_HTTP,
+        target: process.env.APISERVICE_HTTPS || process.env.APISERVICE_HTTP,
         changeOrigin: true
       }
     }
