@@ -68,6 +68,22 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var runTask = Task.Run(app.Run);
 
         // Wait for the first interaction (subscription selection)
+        var tenantInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure tenant", tenantInteraction.Title);
+        Assert.False(tenantInteraction.Options!.EnableMessageMarkdown);
+
+        Assert.Collection(tenantInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Tenant ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
+
+        tenantInteraction.Inputs[0].Value = "87654321-4321-4321-4321-210987654321";
+        tenantInteraction.CompletionTcs.SetResult(InteractionResult.Ok(tenantInteraction.Inputs));
+
+        // Wait for the next interaction (subscription selection)
         var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure subscription", subscriptionInteraction.Title);
         Assert.False(subscriptionInteraction.Options!.EnableMessageMarkdown);
