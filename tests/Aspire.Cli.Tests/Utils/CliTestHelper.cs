@@ -91,6 +91,7 @@ internal static class CliTestHelper
         services.AddSingleton(options.CliExecutionContextFactory);
         services.AddSingleton(options.DiskCacheFactory);
         services.AddSingleton(options.CliHostEnvironmentFactory);
+        services.AddSingleton(options.CliDownloaderFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -336,6 +337,13 @@ internal sealed class CliServiceCollectionTestOptions
     };
 
     public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();
+
+    public Func<IServiceProvider, ICliDownloader> CliDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
+        return new TestCliDownloader(tmpDirectory);
+    };
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

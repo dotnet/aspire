@@ -786,6 +786,81 @@ public class PublishingActivityReporterTests
         Assert.True(activity.Data.IsError);
     }
 
+    [Fact]
+    public async Task CreateStepAsync_WithMarkdownText_PreservesMarkdown()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var markdownTitle = "Deploying **application** to `production`";
+
+        // Act
+        var step = await reporter.CreateStepAsync(markdownTitle, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(step);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+        Assert.Equal(markdownTitle, stepInternal.Title);
+
+        // Verify activity was emitted with markdown preserved
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Step, activity.Type);
+        Assert.Equal(markdownTitle, activity.Data.StatusText);
+    }
+
+    [Fact]
+    public async Task CreateTaskAsync_WithMarkdownText_PreservesMarkdown()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var markdownStatusText = "Building [Docker image](https://docker.com) with *optimization*";
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _); // Clear step activity
+
+        // Act
+        var task = await step.CreateTaskAsync(markdownStatusText, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(task);
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(markdownStatusText, taskInternal.StatusText);
+
+        // Verify activity was emitted with markdown preserved
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal(markdownStatusText, activity.Data.StatusText);
+    }
+
+    [Fact]
+    public async Task CompleteTaskAsync_WithMarkdownCompletionMessage_PreservesMarkdown()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var markdownCompletionMessage = "Deployed to **Azure** successfully! View at [Portal](https://portal.azure.com)";
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var task = await step.CreateTaskAsync("Test Task", CancellationToken.None);
+
+        // Clear previous activities
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act
+        await task.CompleteAsync(markdownCompletionMessage, cancellationToken: CancellationToken.None);
+
+        // Assert
+        var taskInternal = Assert.IsType<ReportingTask>(task);
+        Assert.Equal(markdownCompletionMessage, taskInternal.CompletionMessage);
+
+        // Verify activity was emitted with markdown preserved
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Task, activity.Type);
+        Assert.Equal(markdownCompletionMessage, activity.Data.CompletionMessage);
+    }
+
     private PipelineActivityReporter CreatePublishingReporter()
     {
         return new PipelineActivityReporter(_interactionService, NullLogger<PipelineActivityReporter>.Instance);
