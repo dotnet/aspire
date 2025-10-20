@@ -3,6 +3,8 @@
 
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Diagnostics;
+using System.Web;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Identity;
@@ -12,6 +14,7 @@ using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
@@ -36,7 +39,7 @@ public static class AzureKustoBuilderExtensions
     /// </para>
     /// <para>
     /// By default references to the Azure Data Explorer database resources will be assigned the following roles:
-    /// 
+    ///
     /// - <see cref="KustoDatabasePrincipalRole.User"/>
     /// </para>
     /// </remarks>
@@ -88,6 +91,7 @@ public static class AzureKustoBuilderExtensions
         var resourceBuilder = builder.AddResource(resource);
 
         AddKustoHealthChecksAndLifecycleManagement(resourceBuilder);
+        AddKustoCustomCommands(resourceBuilder);
 
         return resourceBuilder
             .WithAnnotation(new DefaultRoleAssignmentsAnnotation(new HashSet<RoleDefinition>()));
@@ -306,5 +310,46 @@ public static class AzureKustoBuilderExtensions
         }
 
         return builder;
+    }
+
+    private static void AddKustoCustomCommands(IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
+    {
+        var options = new CommandOptions
+        {
+            UpdateState = UpdateState,
+            IconName = "ServerLink"
+        };
+
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer",
+            displayName: "Open in Kusto Explorer (Desktop)",
+            executeCommand: context => OnOpenInKustoExplorer(resourceBuilder, context),
+            commandOptions: options);
+
+        static ResourceCommandState UpdateState(UpdateCommandStateContext context)
+        {
+            return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
+        }
+
+        static async Task<ExecuteCommandResult> OnOpenInKustoExplorer(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
+        {
+            var connectionString = await resourceBuilder
+                .Resource
+                .ConnectionStringExpression
+                .GetValueAsync(context.CancellationToken)
+                .ConfigureAwait(false) ??
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is not set.");
+
+            // TODO: This should be of the form http://<your_cluster>/?web=0, but the current redirect logic doesn't include the port. So for now we build it ourselves.
+            var uri = $"https://explorer.kusto.io/app/Kusto.Explorer.application?uri={Uri.EscapeDataString(connectionString)}&svc=engine&web=0";
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = uri,
+                UseShellExecute = true
+            });
+
+            return CommandResults.Success();
+        }
     }
 }
