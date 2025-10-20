@@ -2,12 +2,13 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.NuGet;
+using Aspire.Cli.Resources;
 using Semver;
 using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? sourceDetails = null)
+internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
 {
     public string Name { get; } = name;
     public PackageChannelQuality Quality { get; } = quality;
@@ -17,10 +18,30 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
     
     /// <summary>
     /// Gets the source details string to display alongside version information.
-    /// For implicit channels, this is "based on nuget.config".
-    /// For explicit channels, this is the URL or path to the package source.
+    /// For implicit channels, this is "based on NuGet.config".
+    /// For explicit channels with Aspire* package source mapping, this is the source URL or path.
+    /// For explicit channels without Aspire* package source mapping, this is "based on NuGet.config".
     /// </summary>
-    public string SourceDetails { get; } = sourceDetails ?? (mappings is null ? "based on nuget.config" : name);
+    public string SourceDetails { get; } = ComputeSourceDetails(mappings);
+    
+    private static string ComputeSourceDetails(PackageMapping[]? mappings)
+    {
+        // Rule 1: If the PackageChannel is implicit, show "based on NuGet.config"
+        if (mappings is null)
+        {
+            return PackagingStrings.BasedOnNuGetConfig;
+        }
+        
+        // Rule 2: If the PackageChannel is explicit and has a package source mapping for Aspire*, use the Source
+        var aspireMapping = mappings.FirstOrDefault(m => m.PackageFilter.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase));
+        if (aspireMapping is not null)
+        {
+            return aspireMapping.Source;
+        }
+        
+        // Rule 3: If the PackageChannel is explicit but does not have a package source mapping for Aspire*, show "based on NuGet.config"
+        return PackagingStrings.BasedOnNuGetConfig;
+    }
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
@@ -158,9 +179,9 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         return filteredPackages;
     }
 
-    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? sourceDetails = null)
+    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
     {
-        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder, sourceDetails);
+        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder);
     }
 
     public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)
@@ -170,6 +191,6 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         // in the case of implicit feeds we want to be able to show that, along side the stable
         // version. Not really an issue for template selection though (unless we start allowing)
         // for broader templating options.
-        return new PackageChannel("default", PackageChannelQuality.Both, null, nuGetPackageCache, configureGlobalPackagesFolder: false, sourceDetails: "based on nuget.config");
+        return new PackageChannel("default", PackageChannelQuality.Both, null, nuGetPackageCache);
     }
 }
