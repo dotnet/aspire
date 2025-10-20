@@ -7,13 +7,20 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
+internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? sourceDetails = null)
 {
     public string Name { get; } = name;
     public PackageChannelQuality Quality { get; } = quality;
     public PackageMapping[]? Mappings { get; } = mappings;
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
     public bool ConfigureGlobalPackagesFolder { get; } = configureGlobalPackagesFolder;
+    
+    /// <summary>
+    /// Gets the source details string to display alongside version information.
+    /// For implicit channels, this is "based on nuget.config".
+    /// For explicit channels, this is the URL or path to the package source.
+    /// </summary>
+    public string SourceDetails { get; } = sourceDetails ?? (mappings is null ? "based on nuget.config" : name);
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
     {
@@ -151,9 +158,9 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         return filteredPackages;
     }
 
-    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
+    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? sourceDetails = null)
     {
-        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder);
+        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder, sourceDetails);
     }
 
     public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)
@@ -163,6 +170,6 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         // in the case of implicit feeds we want to be able to show that, along side the stable
         // version. Not really an issue for template selection though (unless we start allowing)
         // for broader templating options.
-        return new PackageChannel("default", PackageChannelQuality.Both, null, nuGetPackageCache);
+        return new PackageChannel("default", PackageChannelQuality.Both, null, nuGetPackageCache, configureGlobalPackagesFolder: false, sourceDetails: "based on nuget.config");
     }
 }

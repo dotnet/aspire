@@ -22,13 +22,13 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         var stableChannel = PackageChannel.CreateExplicitChannel("stable", PackageChannelQuality.Stable, new[]
         {
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache);
+        }, nuGetPackageCache, sourceDetails: "https://api.nuget.org/v3/index.json");
 
         var dailyChannel = PackageChannel.CreateExplicitChannel("daily", PackageChannelQuality.Prerelease, new[]
         {
             new PackageMapping("Aspire*", "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json"),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache);
+        }, nuGetPackageCache, sourceDetails: "https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json");
 
         var prPackageChannels = new List<PackageChannel>();
 
@@ -45,7 +45,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
                 {
                     new PackageMapping("Aspire*", prHive.FullName),
                     new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-                }, nuGetPackageCache);
+                }, nuGetPackageCache, sourceDetails: prHive.FullName);
 
                 prPackageChannels.Add(prChannel);
             }
@@ -80,7 +80,7 @@ internal class PackagingService(CliExecutionContext executionContext, INuGetPack
         {
             new PackageMapping("Aspire*", stagingFeedUrl),
             new PackageMapping(PackageMapping.AllPackages, "https://api.nuget.org/v3/index.json")
-        }, nuGetPackageCache, configureGlobalPackagesFolder: true);
+        }, nuGetPackageCache, configureGlobalPackagesFolder: true, sourceDetails: stagingFeedUrl);
 
         return stagingChannel;
     }

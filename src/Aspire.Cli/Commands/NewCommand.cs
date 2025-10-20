@@ -159,12 +159,7 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
         {
             // Keep it concise: "Version (source)"
-            var pkg = item.Package;
-            // For implicit channels, show "based on nuget.config" instead of the raw feed URL
-            var source = item.Channel.Type is Packaging.PackageChannelType.Implicit
-                ? "based on nuget.config"
-                : (pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name);
-            return $"{pkg.Version} ({source})";
+            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
         }
 
         async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(
