@@ -70,7 +70,8 @@ async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
             logger.warning(f"Redis cache read error: {e}")
 
 #else
-async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
+async def weather_forecast():
+    """Weather forecast endpoint."""
 #endif
     # Generate fresh data if not in cache or cache unavailable.
     summaries = [
