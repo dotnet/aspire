@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
-using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -56,41 +55,4 @@ internal sealed class DeployCommand : PublishCommandBase
     protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
 
     protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
-
-    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        // Extract and display the target environment
-        var environment = GetEnvironmentFromParseResult(parseResult);
-        InteractionService.DisplayMessage("rocket", string.Format(CultureInfo.CurrentCulture, DeployCommandStrings.DeployingToEnvironment, environment));
-        InteractionService.DisplayEmptyLine();
-
-        // Continue with the base execution
-        return await base.ExecuteAsync(parseResult, cancellationToken);
-    }
-
-    private static string GetEnvironmentFromParseResult(ParseResult parseResult)
-    {
-        // Check for --environment in unmatched tokens
-        var unmatchedTokens = parseResult.UnmatchedTokens.ToArray();
-        
-        for (int i = 0; i < unmatchedTokens.Length; i++)
-        {
-            var token = unmatchedTokens[i];
-            
-            // Check for --environment=Value format
-            if (token.StartsWith("--environment=", StringComparison.OrdinalIgnoreCase))
-            {
-                return token.Substring("--environment=".Length).ToLowerInvariant();
-            }
-            
-            // Check for --environment Value format (space-separated)
-            if (token.Equals("--environment", StringComparison.OrdinalIgnoreCase) && i + 1 < unmatchedTokens.Length)
-            {
-                return unmatchedTokens[i + 1].ToLowerInvariant();
-            }
-        }
-
-        // Default to Production if not specified
-        return "production";
-    }
 }

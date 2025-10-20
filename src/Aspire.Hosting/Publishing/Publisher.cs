@@ -67,6 +67,31 @@ internal class Publisher(
             }
         }
 
+        // Add a step to display the target environment when deploying
+        if (options.Value.Deploy)
+        {
+            var environmentStep = await progressReporter.CreateStepAsync(
+                "display-environment",
+                cancellationToken).ConfigureAwait(false);
+
+            await using (environmentStep.ConfigureAwait(false))
+            {
+                var hostEnvironment = serviceProvider.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+                var environmentName = hostEnvironment?.EnvironmentName ?? "Production";
+
+                var environmentTask = await environmentStep.CreateTaskAsync(
+                    $"Deploying to environment: {environmentName.ToLowerInvariant()}",
+                    cancellationToken)
+                    .ConfigureAwait(false);
+
+                await environmentTask.CompleteAsync(
+                    null,
+                    CompletionState.Completed,
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+
         // Add a step to do model analysis before publishing/deploying
         var step = await progressReporter.CreateStepAsync(
             "analyze-model",
