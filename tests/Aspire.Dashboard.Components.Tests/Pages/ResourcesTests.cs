@@ -353,6 +353,40 @@ public partial class ResourcesTests : DashboardTestContext
         Assert.Contains(filteredResources, r => r.Name == "Resource3");
     }
 
+    [Fact]
+    public void ResourcesPage_ExcludesParameters()
+    {
+        // Arrange
+        var viewport = new ViewportInformation(IsDesktop: true, IsUltraLowHeight: false, IsUltraLowWidth: false);
+        var initialResources = new List<ResourceViewModel>
+        {
+            CreateResource("Resource1", "Container", "Running", null),
+            CreateResource("Param1", KnownResourceTypes.Parameter, "Running", null),
+            CreateResource("Resource2", "Project", "Running", null),
+            CreateResource("Param2", KnownResourceTypes.Parameter, "Running", null),
+        };
+        var dashboardClient = new TestDashboardClient(isEnabled: true, initialResources: initialResources, resourceChannelProvider: Channel.CreateUnbounded<IReadOnlyList<ResourceViewModelChange>>);
+        ResourceSetupHelpers.SetupResourcesPage(
+            this,
+            viewport,
+            dashboardClient);
+
+        // Act
+        var cut = RenderComponent<Components.Pages.Resources>(builder =>
+        {
+            builder.AddCascadingValue(viewport);
+        });
+
+        cut.WaitForState(() => cut.Instance.GetFilteredResources().Any());
+
+        // Assert - parameters should be filtered out
+        var filteredResources = cut.Instance.GetFilteredResources().ToList();
+        Assert.Equal(2, filteredResources.Count);
+        Assert.Contains(filteredResources, r => r.Name == "Resource1" && r.ResourceType == "Container");
+        Assert.Contains(filteredResources, r => r.Name == "Resource2" && r.ResourceType == "Project");
+        Assert.DoesNotContain(filteredResources, r => r.ResourceType == KnownResourceTypes.Parameter);
+    }
+
     private static ResourceViewModel CreateResource(string name, string type, string? state, ImmutableArray<HealthReportViewModel>? healthReports)
     {
         return new ResourceViewModel
