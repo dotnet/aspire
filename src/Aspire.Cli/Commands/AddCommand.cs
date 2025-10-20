@@ -179,6 +179,7 @@ internal sealed class AddCommand : BaseCommand
                         })
                         .Where(x => x.FriendlyNameScore > 0.3 || x.PackageIdScore > 0.3)
                         .OrderByDescending(x => Math.Max(x.FriendlyNameScore, x.PackageIdScore))
+                        .ThenByDescending(x => x.Package.FriendlyName, new CommunityToolkitFirstComparer())
                         .Select(x => x.Package);
             }
 
