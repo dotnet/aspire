@@ -11,10 +11,6 @@
   <PropertyGroup Condition=" '$(FileBasedProgram)' == 'true' ">
     <!-- Disable AOT and Trimming for file-based apps -->
     <PublishAot>false</PublishAot>
-    <!-- <PublishTrimmed>false</PublishTrimmed>
-    <EnableAotAnalyzer>false</EnableAotAnalyzer>
-    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
-    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer> -->
   </PropertyGroup>
 
   <Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" Condition=" '$(_ImportMicrosoftNETSdkFromAspireSdk)' == 'true' " />
