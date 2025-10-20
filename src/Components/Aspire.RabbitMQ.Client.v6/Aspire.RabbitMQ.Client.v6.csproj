@@ -4,8 +4,9 @@
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
-    <Description>A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>
+    <Description>A RabbitMQ client (version 6+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
+    <DefineConstants>$(DefineConstants);RABBITMQ_V6</DefineConstants>
     <!-- Disable package validation as this package hasn't shipped yet. -->
     <EnablePackageValidation>false</EnablePackageValidation>
 
@@ -26,17 +27,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq" />
+    <PackageReference Include="AspNetCore.HealthChecks.Rabbitmq.v6" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.1.2" />
+    <PackageReference Include="RabbitMQ.Client" VersionOverride="[6.8.1,7.0.0)" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.v7.Tests" />
+    <InternalsVisibleTo Include="Aspire.RabbitMQ.Client.v6.Tests" />
   </ItemGroup>
 
 </Project>

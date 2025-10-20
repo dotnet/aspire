@@ -42,12 +42,12 @@ In the situation that a client library associated with an Aspire client integrat
 
 To understand how this will work, an example of this is the `RabbitMQ.Client` library made many large breaking changes between version `6.8.1` and `7.0.0`. To handle this:
 
-1. For the current `Aspire.RabbitMQ.Client` package, we put a NuGet version limit on our dependency: `[6.8.1,7.0.0)`. This way people won't be able to update to the `7.0.0` version, which will break their app.
-2. When `RabbitMQ.Client` ships an official `7.0.0` stable package during the .NET Aspire `8.x` lifetime, we can add a new, forked client integration named `Aspire.RabbitMQ.Client.v7` which will have a dependency on `7.0.0` and contain any updates so the .NET Aspire client integration will work with v7. People who explicitly want to use v7 can opt into using this package.
-3. When .NET Aspire 9 ships, we can "swap" the dependencies around.
-    - The `Aspire.RabbitMQ.Client` package will be updated to depend on v7 of `RabbitMQ.Client`.
-    - If `RabbitMQ.Client` v6 is still in support, we can create `Aspire.RabbitMQ.Client.v6` which has the dependency limit `[6.8.1, 7.0.0)` and works with the version 6 of RabbitMQ.Client.
-    - `Aspire.RabbitMQ.Client.v7` will be dead-ended. We won't make new .NET Aspire 9 versions of this package.
+1. For .NET Aspire 8.x, the `Aspire.RabbitMQ.Client` package had a NuGet version limit on the dependency: `[6.8.1,7.0.0)` to support v6 of RabbitMQ.Client.
+2. During the .NET Aspire `8.x` and `9.x` lifetime, `Aspire.RabbitMQ.Client.v7` was available for users who wanted to opt into using v7 of RabbitMQ.Client.
+3. Starting with .NET Aspire 13, the dependencies have been "swapped":
+    - The `Aspire.RabbitMQ.Client` package now depends on v7 of `RabbitMQ.Client` (version 7.1.2).
+    - For users who need to continue using v6, `Aspire.RabbitMQ.Client.v6` is available with the dependency limit `[6.8.1, 7.0.0)`.
+    - `Aspire.RabbitMQ.Client.v7` has been dead-ended. There are no new .NET Aspire 13 versions of this package.
 
 ## Icon
 
