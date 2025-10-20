@@ -30,6 +30,7 @@ internal abstract partial class BaseProvisioningContextProvider(
     internal const string LocationName = "Location";
     internal const string SubscriptionIdName = "SubscriptionId";
     internal const string ResourceGroupName = "ResourceGroup";
+    internal const string TenantName = "Tenant";
 
     protected readonly IInteractionService _interactionService = interactionService;
     protected readonly AzureProvisionerOptions _options = options.Value;
@@ -161,6 +162,10 @@ internal abstract partial class BaseProvisioningContextProvider(
         azureSection["Location"] = _options.Location;
         azureSection["SubscriptionId"] = _options.SubscriptionId;
         azureSection["ResourceGroup"] = resourceGroupName;
+        if (!string.IsNullOrEmpty(_options.TenantId))
+        {
+            azureSection["TenantId"] = _options.TenantId;
+        }
         if (_options.AllowResourceGroupCreation.HasValue)
         {
             azureSection["AllowResourceGroupCreation"] = _options.AllowResourceGroupCreation.Value;
@@ -180,7 +185,56 @@ internal abstract partial class BaseProvisioningContextProvider(
 
     protected abstract string GetDefaultResourceGroupName();
 
-    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    protected async Task<(List<KeyValuePair<string, string>>? tenantOptions, bool fetchSucceeded)> TryGetTenantsAsync(CancellationToken cancellationToken)
+    {
+        List<KeyValuePair<string, string>>? tenantOptions = null;
+        var fetchSucceeded = false;
+
+        try
+        {
+            var credential = _tokenCredentialProvider.TokenCredential;
+            var armClient = _armClientProvider.GetArmClient(credential);
+            var availableTenants = await armClient.GetAvailableTenantsAsync(cancellationToken).ConfigureAwait(false);
+            var tenantList = availableTenants.ToList();
+
+            if (tenantList.Count > 0)
+            {
+                tenantOptions = tenantList
+                    .Select(t => 
+                    {
+                        var tenantId = t.TenantId?.ToString() ?? "";
+                        
+                        // Build display name: prefer DisplayName, fall back to domain, then to "Unknown"
+                        var displayName = !string.IsNullOrEmpty(t.DisplayName) 
+                            ? t.DisplayName 
+                            : !string.IsNullOrEmpty(t.DefaultDomain) 
+                                ? t.DefaultDomain 
+                                : "Unknown";
+                        
+                        // Build full description
+                        var description = displayName;
+                        if (!string.IsNullOrEmpty(t.DefaultDomain) && t.DisplayName != t.DefaultDomain)
+                        {
+                            description += $" ({t.DefaultDomain})";
+                        }
+                        description += $" — {tenantId}";
+                        
+                        return KeyValuePair.Create(tenantId, description);
+                    })
+                    .OrderBy(kvp => kvp.Value)
+                    .ToList();
+                fetchSucceeded = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to enumerate available tenants. Falling back to manual input.");
+        }
+
+        return (tenantOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? subscriptionOptions = null;
         var fetchSucceeded = false;
@@ -189,7 +243,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         {
             var credential = _tokenCredentialProvider.TokenCredential;
             var armClient = _armClientProvider.GetArmClient(credential);
-            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(cancellationToken).ConfigureAwait(false);
+            var availableSubscriptions = await armClient.GetAvailableSubscriptionsAsync(tenantId, cancellationToken).ConfigureAwait(false);
             var subscriptionList = availableSubscriptions.ToList();
 
             if (subscriptionList.Count > 0)
@@ -206,6 +260,11 @@ internal abstract partial class BaseProvisioningContextProvider(
         }
 
         return (subscriptionOptions, fetchSucceeded);
+    }
+
+    protected async Task<(List<KeyValuePair<string, string>>? subscriptionOptions, bool fetchSucceeded)> TryGetSubscriptionsAsync(CancellationToken cancellationToken)
+    {
+        return await TryGetSubscriptionsAsync(_options.TenantId, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)

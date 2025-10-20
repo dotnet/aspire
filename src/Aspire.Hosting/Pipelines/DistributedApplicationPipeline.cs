@@ -104,7 +104,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
     public async Task ExecuteAsync(PipelineContext context)
     {
-        var allSteps = _steps.Concat(CollectStepsFromAnnotations(context)).ToList();
+        var annotationSteps = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
+        var allSteps = _steps.Concat(annotationSteps).ToList();
 
         if (allSteps.Count == 0)
         {
@@ -119,8 +120,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         await ExecuteStepsAsTaskDag(allSteps, stepsByName, context).ConfigureAwait(false);
     }
 
-    private static IEnumerable<PipelineStep> CollectStepsFromAnnotations(PipelineContext context)
+    private static async Task<List<PipelineStep>> CollectStepsFromAnnotationsAsync(PipelineContext context)
     {
+        var steps = new List<PipelineStep>();
+
         foreach (var resource in context.Model.Resources)
         {
             var annotations = resource.Annotations
@@ -128,12 +131,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
             foreach (var annotation in annotations)
             {
-                foreach (var step in annotation.CreateSteps())
+                var factoryContext = new PipelineStepFactoryContext
                 {
-                    yield return step;
-                }
+                    PipelineContext = context,
+                    Resource = resource
+                };
+
+                var annotationSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
+                steps.AddRange(annotationSteps);
             }
         }
+
+        return steps;
     }
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)
@@ -238,12 +247,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     await using (publishingStep.ConfigureAwait(false))
                     {
-                        var stepContext = new PipelineStepContext
+                        try
                         {
-                            PipelineContext = context,
-                            ReportingStep = publishingStep
-                        };
-                        await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+                            var stepContext = new PipelineStepContext
+                            {
+                                PipelineContext = context,
+                                ReportingStep = publishingStep
+                            };
+                            await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Report the failure to the activity reporter before disposing
+                            await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+                            throw;
+                        }
                     }
 
                     stepTcs.TrySetResult();

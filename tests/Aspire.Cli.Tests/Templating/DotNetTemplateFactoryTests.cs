@@ -300,7 +300,7 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-starter", templateNames);
-        Assert.Contains("aspire", templateNames);
+        Assert.DoesNotContain("aspire", templateNames);
         Assert.DoesNotContain("aspire-apphost", templateNames);
         Assert.DoesNotContain("aspire-servicedefaults", templateNames);
         Assert.DoesNotContain("aspire-test", templateNames);
@@ -441,7 +441,7 @@ public class DotNetTemplateFactoryTests
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
         public void DisplayMarkdown(string markdown) { }
-        public void DisplaySubtleMessage(string message) { }
+        public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }

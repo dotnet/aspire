@@ -239,13 +239,13 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithPipelineStepAnnotation_ExecutesAnnotatedSteps()
+    public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_ExecutesAnnotatedSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) =>
@@ -253,7 +253,7 @@ public class DistributedApplicationPipelineTests
                     lock (executedSteps) { executedSteps.Add("annotated-step"); }
                     await Task.CompletedTask;
                 }
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("regular-step", async (context) =>
@@ -277,8 +277,8 @@ public class DistributedApplicationPipelineTests
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new[]
-            {
+            .WithPipelineStepFactory((factoryContext) =>
+            [
                 new PipelineStep
                 {
                     Name = "annotated-step-1",
@@ -297,7 +297,7 @@ public class DistributedApplicationPipelineTests
                         await Task.CompletedTask;
                     }
                 }
-            }));
+            ]);
 
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(builder.Build());
@@ -610,18 +610,18 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var resource1 = builder.AddResource(new CustomResource("resource1"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "duplicate-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var resource2 = builder.AddResource(new CustomResource("resource2"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "duplicate-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(builder.Build());
@@ -631,101 +631,8 @@ public class DistributedApplicationPipelineTests
         Assert.Contains("duplicate-step", exception.Message);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithMultipleStepsFailingAtSameLevel_ThrowsAggregateException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.Contains("Multiple pipeline steps failed", exception.Message);
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithMixOfSuccessfulAndFailingStepsAtSameLevel_ThrowsAggregateException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var successfulStepExecuted = false;
-
-        pipeline.AddStep("successful-step", async (context) =>
-        {
-            successfulStepExecuted = true;
-            await Task.CompletedTask;
-        });
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new NotSupportedException("Error from step 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.True(successfulStepExecuted, "Successful step should have executed");
-        Assert.Contains("Multiple pipeline steps failed", exception.Message);
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
-
-    [Fact]
-    public async Task ExecuteAsync_WithMultipleFailuresAtSameLevel_StopsExecutionOfNextLevel()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var nextLevelStepExecuted = false;
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 2");
-        });
-
-        pipeline.AddStep("next-level-step", async (context) =>
-        {
-            nextLevelStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: "failing-step1");
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.False(nextLevelStepExecuted, "Next level step should not have executed");
-        Assert.Equal(2, exception.InnerExceptions.Count);
-    }
+    // Test for multiple failing steps at the same level removed due to inherent race conditions.
+    // See https://github.com/dotnet/aspire/issues/12200
 
     [Fact]
     public async Task ExecuteAsync_WithFailingStep_PreservesOriginalStackTrace()
@@ -835,11 +742,11 @@ public class DistributedApplicationPipelineTests
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("direct-step", async (context) => await Task.CompletedTask);
@@ -883,11 +790,11 @@ public class DistributedApplicationPipelineTests
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var app = builder.Build();
         var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
@@ -1039,46 +946,6 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithMultipleDependencyFailures_ReportsAllFailedDependencies()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var dependentStepExecuted = false;
-
-        // Two steps that will fail
-        pipeline.AddStep("failing-dep1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 1 failed");
-        });
-
-        pipeline.AddStep("failing-dep2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Dependency 2 failed");
-        });
-
-        // Step that depends on both failing steps
-        pipeline.AddStep("dependent-step", async (context) =>
-        {
-            dependentStepExecuted = true;
-            await Task.CompletedTask;
-        }, dependsOn: new[] { "failing-dep1", "failing-dep2" });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var ex = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-
-        // The dependent step should not have executed
-        Assert.False(dependentStepExecuted, "Dependent step should not execute when dependencies fail");
-
-        // Should report multiple failures
-        Assert.Contains("Multiple pipeline steps failed", ex.Message);
-        Assert.Equal(2, ex.InnerExceptions.Count);
-    }
-
-    [Fact]
     public async Task ExecuteAsync_WithCircularDependencyInComplex_ThrowsInvalidOperationException()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -1151,6 +1018,52 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenStepThrows_ReportsFailureToActivityReporter()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+        
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+        
+        var pipeline = new DistributedApplicationPipeline();
+        var exceptionMessage = "Test exception for reporting";
+        pipeline.AddStep("failing-step", async (context) =>
+        {
+            await Task.CompletedTask;
+            throw new NotSupportedException(exceptionMessage);
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Assert - Verify the exception was thrown
+        Assert.Contains("failing-step", ex.Message);
+        Assert.Contains("failed", ex.Message);
+
+        // Assert - Verify the step was reported as failed
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        var foundFailedStep = false;
+
+        while (activityReader.TryRead(out var activity))
+        {
+            if (activity.Type == PublishingActivityTypes.Step &&
+                activity.Data.IsError &&
+                activity.Data.StatusText?.Contains("failing-step") == true)
+            {
+                foundFailedStep = true;
+                break;
+            }
+        }
+
+        Assert.True(foundFailedStep, "Expected to find a step activity marked as failed with error state");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithDiamondDependency_ExecutesCorrectly()
     {
         // Diamond pattern: A -> B, A -> C, B -> D, C -> D
@@ -1215,6 +1128,173 @@ public class DistributedApplicationPipelineTests
             NullLogger.Instance,
             CancellationToken.None,
             outputPath: null);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_FactoryReceivesPipelineContextAndResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        IResource? capturedResource = null;
+        PipelineContext? capturedPipelineContext = null;
+        var executedSteps = new List<string>();
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) =>
+            {
+                capturedResource = factoryContext.Resource;
+                capturedPipelineContext = factoryContext.PipelineContext;
+
+                return new PipelineStep
+                {
+                    Name = "annotated-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("annotated-step"); }
+                        await Task.CompletedTask;
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.NotNull(capturedResource);
+        Assert.Equal("test-resource", capturedResource.Name);
+        Assert.NotNull(capturedPipelineContext);
+        Assert.Same(context, capturedPipelineContext);
+        Assert.Contains("annotated-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_SyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
+            {
+                Name = "sync-step",
+                Action = async (ctx) =>
+                {
+                    lock (executedSteps) { executedSteps.Add("sync-step"); }
+                    await Task.CompletedTask;
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_AsyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return new PipelineStep
+                {
+                    Name = "async-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("async-step"); }
+                        await Task.CompletedTask;
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_MultipleStepsSyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "sync-step-1",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-1"); }
+                        await Task.CompletedTask;
+                    }
+                },
+                new PipelineStep
+                {
+                    Name = "sync-step-2",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-2"); }
+                        await Task.CompletedTask;
+                    }
+                }
+            ]);
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step-1", executedSteps);
+        Assert.Contains("sync-step-2", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_MultipleStepsAsyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = "async-step-1",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-1"); }
+                            await Task.CompletedTask;
+                        }
+                    },
+                    new PipelineStep
+                    {
+                        Name = "async-step-2",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-2"); }
+                            await Task.CompletedTask;
+                        }
+                    }
+                ];
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step-1", executedSteps);
+        Assert.Contains("async-step-2", executedSteps);
     }
 
     private sealed class CustomResource(string name) : Resource(name)

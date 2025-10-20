@@ -109,7 +109,11 @@ internal sealed class UpdateCommand : BaseCommand
 
             var channels = await _packagingService.GetChannelsAsync(cancellationToken);
 
-            var channel = await InteractionService.PromptForSelectionAsync(UpdateCommandStrings.SelectChannelPrompt, channels, (c) => c.Name, cancellationToken);
+            var channel = await InteractionService.PromptForSelectionAsync(
+                UpdateCommandStrings.SelectChannelPrompt,
+                channels,
+                (c) => $"{c.Name} ({c.SourceDetails})",
+                cancellationToken);
 
             await _projectUpdater.UpdateProjectAsync(projectFile!, channel, cancellationToken);
         }
