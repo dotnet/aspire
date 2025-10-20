@@ -238,12 +238,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     await using (publishingStep.ConfigureAwait(false))
                     {
-                        var stepContext = new PipelineStepContext
+                        try
                         {
-                            PipelineContext = context,
-                            ReportingStep = publishingStep
-                        };
-                        await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+                            var stepContext = new PipelineStepContext
+                            {
+                                PipelineContext = context,
+                                ReportingStep = publishingStep
+                            };
+                            await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            // Report the failure to the activity reporter before disposing
+                            await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
+                            throw;
+                        }
                     }
 
                     stepTcs.TrySetResult();
