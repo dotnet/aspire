@@ -191,12 +191,12 @@ public class PublishCommandTests(ITestOutputHelper outputHelper)
 
                     // Verify that --output-path is included with the default subdirectory
                     Assert.Contains("--output-path", args);
-                    
+
                     // Find the --output-path argument and verify it's a subdirectory
                     var outputPathIndex = Array.IndexOf(args, "--output-path");
                     Assert.True(outputPathIndex >= 0 && outputPathIndex < args.Length - 1);
                     var outputPath = args[outputPathIndex + 1];
-                    
+
                     // Should end with the default subdirectory name
                     Assert.EndsWith("aspire-output", outputPath);
                     // Should be an absolute path

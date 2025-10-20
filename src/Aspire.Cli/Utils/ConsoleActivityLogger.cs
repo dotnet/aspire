@@ -47,7 +47,7 @@ internal sealed class ConsoleActivityLogger
     {
         _hostEnvironment = hostEnvironment;
         _enableColor = forceColor ?? _hostEnvironment.SupportsAnsi;
-        
+
         // Disable spinner in non-interactive environments
         if (!_hostEnvironment.SupportsInteractiveOutput)
         {
@@ -235,7 +235,7 @@ internal sealed class ConsoleActivityLogger
                     };
                     var name = rec.DisplayName.EscapeMarkup();
                     var reason = rec.State == ActivityState.Failure && !string.IsNullOrEmpty(rec.FailureReason)
-                        ? ( _enableColor ? $" [red]— {HighlightAndEscape(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
+                        ? ( _enableColor ? $" [red]— {HighlightMessage(rec.FailureReason!)}[/]" : $" — {rec.FailureReason}" )
                         : string.Empty;
                     var lineSb = new StringBuilder();
                     lineSb.Append("  ")
@@ -321,8 +321,8 @@ internal sealed class ConsoleActivityLogger
 
             foreach (var line in SplitLinesPreserve(message))
             {
-                // Format: dim timestamp, colored step tag, symbol, escaped message
-                var escapedLine = HighlightAndEscape(line);
+                // Format: dim timestamp, colored step tag, symbol, message with Spectre markup
+                var highlightedLine = HighlightMessage(line);
                 var escapedTask = displayKey.EscapeMarkup();
                 var markup = new StringBuilder();
                 markup.Append("[dim]").Append(time).Append("[/] ");
@@ -332,21 +332,21 @@ internal sealed class ConsoleActivityLogger
                     if (state == ActivityState.Failure)
                     {
                         // Make the entire failure segment (symbol + message) red, not just the symbol
-                        markup.Append("[red]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[red]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else if (state == ActivityState.Warning)
                     {
                         // Optionally color whole warning message (improves scanability)
-                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(escapedLine).Append("[/]");
+                        markup.Append("[yellow]").Append(symbol).Append(' ').Append(highlightedLine).Append("[/]");
                     }
                     else
                     {
-                        markup.Append(coloredSymbol).Append(' ').Append(escapedLine);
+                        markup.Append(coloredSymbol).Append(' ').Append(highlightedLine);
                     }
                 }
                 else
                 {
-                    markup.Append(symbol).Append(' ').Append(escapedLine);
+                    markup.Append(symbol).Append(' ').Append(highlightedLine);
                 }
                 AnsiConsole.MarkupLine(markup.ToString());
             }
@@ -388,48 +388,22 @@ internal sealed class ConsoleActivityLogger
         _ => symbol
     };
 
-    private static readonly Regex s_urlRegex = new(
-        pattern: @"(?:(?:https?|ftp)://)[^\s]+",
-        options: RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
-
-    // Escapes non-URL portions for Spectre markup while preserving injected [link] markup unescaped.
-    private string HighlightAndEscape(string input)
+    // Messages are already converted from Markdown to Spectre markup in PublishCommandBase.
+    // When interactive output is not supported, we need to convert Spectre link markup
+    // back to plain text since clickable links won't work. Show the URL for accessibility.
+    private string HighlightMessage(string message)
     {
-        if (string.IsNullOrEmpty(input))
-        {
-            return string.Empty;
-        }
-
-        var matches = s_urlRegex.Matches(input);
-        if (matches.Count == 0)
-        {
-            return input.EscapeMarkup();
-        }
-
-        // In non-interactive environments, just output URLs as-is without [link] markup
         if (!_hostEnvironment.SupportsInteractiveOutput)
         {
-            return input.EscapeMarkup();
+            // Convert Spectre link markup [cyan][link=url]text[/][/] to show URL
+            // Pattern matches: [cyan][link=URL]TEXT[/][/] and replaces with URL
+            return Regex.Replace(
+                message,
+                @"\[cyan\]\[link=([^\]]+)\]([^\[]+)\[/\]\[/\]",
+                "$1");
         }
 
-        var sb = new StringBuilder(input.Length + 32);
-        var lastIndex = 0;
-        foreach (Match match in matches)
-        {
-            if (match.Index > lastIndex)
-            {
-                var segment = input.Substring(lastIndex, match.Index - lastIndex);
-                sb.Append(segment.EscapeMarkup());
-            }
-            var url = match.Value; // Do not EscapeMarkup inside [link] to keep it functional.
-            sb.Append("[link=").Append(url).Append(']').Append(url).Append("[/]");
-            lastIndex = match.Index + match.Length;
-        }
-        if (lastIndex < input.Length)
-        {
-            sb.Append(input.Substring(lastIndex).EscapeMarkup());
-        }
-        return sb.ToString();
+        return message;
     }
 
     // Note: DetectColorSupport is no longer needed as we use _hostEnvironment.SupportsAnsi directly
