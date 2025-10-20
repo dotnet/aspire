@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="AspirePyStarter_Description">
         <source>React (Vite) &amp; FastAPI starter</source>
-        <target state="new">React (Vite) &amp; FastAPI starter</target>
+        <target state="translated">Inicio rápido con React (Vite) y FastAPI</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
@@ -34,12 +34,12 @@
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
         <source>Empty AppHost</source>
-        <target state="new">Empty AppHost</target>
+        <target state="translated">AppHost vacío</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
         <source>Blazor &amp; Minimal API starter</source>
-        <target state="new">Blazor &amp; Minimal API starter</target>
+        <target state="translated">Inicio rápido de Blazor y API mínima</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">
