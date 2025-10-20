@@ -141,7 +141,7 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
                 projectName,
                 ProjectSdkVersionRegex().Replace(projectContents,
                 $"""
-                <Project Sdk=\"Microsoft.NET.Sdk\">
+                <Project Sdk="Microsoft.NET.Sdk">
                   <Sdk Name="Aspire.AppHost.Sdk" Version="{version}" />
                 """)
             );
