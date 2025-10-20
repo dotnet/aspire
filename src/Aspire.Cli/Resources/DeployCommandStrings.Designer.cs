@@ -104,5 +104,14 @@ namespace Aspire.Cli.Resources {
                 return ResourceManager.GetString("OperationFailedPrefix", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Deploying to environment: {0}.
+        /// </summary>
+        public static string DeployingToEnvironment {
+            get {
+                return ResourceManager.GetString("DeployingToEnvironment", resourceCulture);
+            }
+        }
     }
 }

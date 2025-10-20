@@ -132,4 +132,7 @@
   <data name="OperationFailedPrefix" xml:space="preserve">
     <value>DEPLOYMENT FAILED</value>
   </data>
+  <data name="DeployingToEnvironment" xml:space="preserve">
+    <value>Deploying to environment: {0}</value>
+  </data>
 </root>
