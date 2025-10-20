@@ -32,6 +32,7 @@ internal sealed class RunCommand : BaseCommand
     private readonly IDotNetSdkInstaller _sdkInstaller;
     private readonly IServiceProvider _serviceProvider;
     private readonly IFeatures _features;
+    private readonly ICliHostEnvironment _hostEnvironment;
 
     public RunCommand(
         IDotNetCliRunner runner,
@@ -45,7 +46,8 @@ internal sealed class RunCommand : BaseCommand
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
         IServiceProvider serviceProvider,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext,
+        ICliHostEnvironment hostEnvironment)
         : base("run", RunCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -56,6 +58,7 @@ internal sealed class RunCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _interactionService = interactionService;
@@ -67,6 +70,7 @@ internal sealed class RunCommand : BaseCommand
         _serviceProvider = serviceProvider;
         _sdkInstaller = sdkInstaller;
         _features = features;
+        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = RunCommandStrings.ProjectArgumentDescription;
@@ -99,7 +103,7 @@ internal sealed class RunCommand : BaseCommand
         }
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

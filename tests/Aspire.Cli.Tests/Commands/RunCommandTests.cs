@@ -779,9 +779,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -835,9 +833,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -887,9 +883,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = true };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -943,9 +937,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = false };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -994,9 +986,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions { Debug = true };
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -1046,9 +1036,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(
@@ -1098,9 +1086,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         var options = new DotNetCliRunnerInvocationOptions();
 
         var executionContext = new CliExecutionContext(
-            workingDirectory: workspace.WorkspaceRoot,
-            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
-            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+            workingDirectory: workspace.WorkspaceRoot, hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"), cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire", new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes"))).CreateSubdirectory("cache")
         );
 
         var runner = new AssertingDotNetCliRunner(

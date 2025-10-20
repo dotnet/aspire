@@ -170,12 +170,20 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
+    private static DirectoryInfo GetRuntimesDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var runtimesPath = Path.Combine(homeDirectory, "runtimes");
+        return new DirectoryInfo(runtimesPath);
+    }
+
     private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+        var runtimesDirectory = GetRuntimesDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, runtimesDirectory, debugMode);
     }
 
     private static DirectoryInfo GetCacheDirectory()

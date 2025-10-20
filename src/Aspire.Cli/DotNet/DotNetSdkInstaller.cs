@@ -12,7 +12,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -112,7 +112,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     {
         var sdkVersion = GetEffectiveMinimumSdkVersion();
         var runtimesDirectory = GetRuntimesDirectory();
-        var sdkInstallPath = Path.Combine(runtimesDirectory, sdkVersion);
+        var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
 
         // Check if SDK is already installed in the private location
         if (Directory.Exists(sdkInstallPath))
@@ -217,11 +217,9 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     /// Gets the directory where .NET runtimes are stored.
     /// </summary>
     /// <returns>The full path to the runtimes directory.</returns>
-    internal static string GetRuntimesDirectory()
+    private string GetRuntimesDirectory()
     {
-        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var runtimesPath = Path.Combine(homeDirectory, ".aspire", "runtimes", "dotnet");
-        return runtimesPath;
+        return executionContext.RuntimesDirectory.FullName;
     }
 
     /// <summary>

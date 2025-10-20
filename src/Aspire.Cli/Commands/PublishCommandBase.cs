@@ -48,6 +48,7 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
 
@@ -55,6 +56,7 @@ internal abstract class PublishCommandBase : BaseCommand
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _hostEnvironment = hostEnvironment;
 
@@ -86,7 +88,7 @@ internal abstract class PublishCommandBase : BaseCommand
         StartTerminalProgressBar();
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _hostEnvironment, cancellationToken))
         {
             // Send terminal progress bar stop sequence
             StopTerminalProgressBar();

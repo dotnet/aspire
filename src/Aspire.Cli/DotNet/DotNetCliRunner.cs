@@ -1186,8 +1186,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (sdkInstaller is DotNetSdkInstaller installer)
         {
             var sdkVersion = installer.GetEffectiveMinimumSdkVersion();
-            var runtimesDirectory = DotNetSdkInstaller.GetRuntimesDirectory();
-            var sdkInstallPath = Path.Combine(runtimesDirectory, sdkVersion);
+            var runtimesDirectory = executionContext.RuntimesDirectory.FullName;
+            var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
 
             // Check if the private SDK exists
             if (Directory.Exists(sdkInstallPath))

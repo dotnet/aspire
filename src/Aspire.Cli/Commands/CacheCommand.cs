@@ -79,7 +79,7 @@ internal sealed class CacheCommand : BaseCommand
                 }
 
                 // Also clear the runtimes directory
-                var runtimesDirectory = new DirectoryInfo(DotNet.DotNetSdkInstaller.GetRuntimesDirectory());
+                var runtimesDirectory = ExecutionContext.RuntimesDirectory;
                 if (runtimesDirectory.Exists)
                 {
                     foreach (var file in runtimesDirectory.GetFiles("*", SearchOption.AllDirectories))
