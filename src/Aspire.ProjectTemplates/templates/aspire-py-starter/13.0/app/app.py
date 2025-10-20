@@ -11,8 +11,10 @@ import fastapi
 import fastapi.responses
 import fastapi.staticfiles
 import opentelemetry.instrumentation.fastapi as otel_fastapi
+//#if UseRedisCache
 import opentelemetry.instrumentation.redis as otel_redis
 import redis
+//#endif
 
 @contextlib.asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
@@ -112,11 +114,14 @@ async def weather_forecast():
 
 
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
+//#if UseRedisCache
 async def health_check(redis_client = fastapi.Depends(get_redis_client)):
     """Health check endpoint."""
-//#if UseRedisCache
     if redis_client:
         redis_client.ping()
+//#else
+async def health_check():
+    """Health check endpoint."""
 //#endif
     return "Healthy"
 
