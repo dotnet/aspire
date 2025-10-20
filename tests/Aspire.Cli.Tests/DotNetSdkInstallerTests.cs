@@ -20,7 +20,7 @@ public class DotNetSdkInstallerTests
         var cacheDirectory = new DirectoryInfo(Path.Combine(tempPath, "cache"));
         var runtimesDirectory = new DirectoryInfo(Path.Combine(tempPath, "runtimes"));
         
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, runtimesDirectory, debugMode: false, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, runtimesDirectory, debugMode: false);
     }
 
     [Fact]
