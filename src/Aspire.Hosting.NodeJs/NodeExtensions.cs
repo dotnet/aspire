@@ -74,13 +74,14 @@ public static class NodeAppHostingExtension
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithExecutableCertificateTrustCallback((ctx) =>
             {
-                if (ctx.Scope == CustomCertificateAuthoritiesScope.Append)
+                if (ctx.Scope == CertificateTrustScope.Append)
                 {
                     ctx.CertificateBundleEnvironment.Add("NODE_EXTRA_CA_CERTS");
                 }
                 else
                 {
                     ctx.CertificateTrustArguments.Add("--use-openssl-ca");
+                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
                 }
 
                 return Task.CompletedTask;
