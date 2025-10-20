@@ -45,39 +45,67 @@ internal sealed class CacheCommand : BaseCommand
             try
             {
                 var cacheDirectory = ExecutionContext.CacheDirectory;
-                
-                if (!cacheDirectory.Exists)
-                {
-                    InteractionService.DisplayMessage("information", CacheCommandStrings.CacheAlreadyEmpty);
-                    return Task.FromResult(ExitCodeConstants.Success);
-                }
-
                 var filesDeleted = 0;
                 
-                // Delete all cache files and subdirectories
-                foreach (var file in cacheDirectory.GetFiles("*", SearchOption.AllDirectories))
+                // Delete cache files and subdirectories
+                if (cacheDirectory.Exists)
                 {
-                    try
+                    // Delete all cache files and subdirectories
+                    foreach (var file in cacheDirectory.GetFiles("*", SearchOption.AllDirectories))
                     {
-                        file.Delete();
-                        filesDeleted++;
+                        try
+                        {
+                            file.Delete();
+                            filesDeleted++;
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other files even if some fail
+                        }
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+
+                    // Delete subdirectories
+                    foreach (var directory in cacheDirectory.GetDirectories())
                     {
-                        // Continue deleting other files even if some fail
+                        try
+                        {
+                            directory.Delete(recursive: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other directories even if some fail
+                        }
                     }
                 }
 
-                // Delete subdirectories
-                foreach (var directory in cacheDirectory.GetDirectories())
+                // Also clear the runtimes directory
+                var runtimesDirectory = new DirectoryInfo(DotNet.DotNetSdkInstaller.GetRuntimesDirectory());
+                if (runtimesDirectory.Exists)
                 {
-                    try
+                    foreach (var file in runtimesDirectory.GetFiles("*", SearchOption.AllDirectories))
                     {
-                        directory.Delete(recursive: true);
+                        try
+                        {
+                            file.Delete();
+                            filesDeleted++;
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other files even if some fail
+                        }
                     }
-                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+
+                    // Delete subdirectories
+                    foreach (var directory in runtimesDirectory.GetDirectories())
                     {
-                        // Continue deleting other directories even if some fail
+                        try
+                        {
+                            directory.Delete(recursive: true);
+                        }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Security.SecurityException)
+                        {
+                            // Continue deleting other directories even if some fail
+                        }
                     }
                 }
 

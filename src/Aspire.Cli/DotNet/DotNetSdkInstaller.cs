@@ -108,10 +108,93 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     }
 
     /// <inheritdoc />
-    public Task InstallAsync(CancellationToken cancellationToken = default)
+    public async Task InstallAsync(CancellationToken cancellationToken = default)
     {
-        // Reserved for future implementation
-        throw new NotImplementedException("SDK installation is not yet implemented.");
+        var sdkVersion = GetEffectiveMinimumSdkVersion();
+        var runtimesDirectory = GetRuntimesDirectory();
+        var sdkInstallPath = Path.Combine(runtimesDirectory, sdkVersion);
+
+        // Check if SDK is already installed in the private location
+        if (Directory.Exists(sdkInstallPath))
+        {
+            // SDK already installed, nothing to do
+            return;
+        }
+
+        // Create the runtimes directory if it doesn't exist
+        Directory.CreateDirectory(runtimesDirectory);
+
+        // Determine which install script to use based on the platform
+        var (scriptUrl, scriptFileName, scriptRunner) = GetInstallScriptInfo();
+
+        // Download the install script
+        var scriptPath = Path.Combine(runtimesDirectory, scriptFileName);
+        using (var httpClient = new HttpClient())
+        {
+            httpClient.Timeout = TimeSpan.FromMinutes(5);
+            var scriptContent = await httpClient.GetStringAsync(scriptUrl, cancellationToken);
+            await File.WriteAllTextAsync(scriptPath, scriptContent, cancellationToken);
+        }
+
+        // Make the script executable on Unix-like systems
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            var chmodProcess = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "chmod",
+                    Arguments = $"+x {scriptPath}",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            chmodProcess.Start();
+            await chmodProcess.WaitForExitAsync(cancellationToken);
+        }
+
+        // Run the install script
+        var installProcess = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = scriptRunner,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            }
+        };
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            // PowerShell script arguments
+            installProcess.StartInfo.Arguments = $"-ExecutionPolicy Bypass -File \"{scriptPath}\" -Version {sdkVersion} -InstallDir \"{sdkInstallPath}\" -NoPath";
+        }
+        else
+        {
+            // Bash script arguments
+            installProcess.StartInfo.Arguments = $"\"{scriptPath}\" --version {sdkVersion} --install-dir \"{sdkInstallPath}\" --no-path";
+        }
+
+        installProcess.Start();
+        await installProcess.WaitForExitAsync(cancellationToken);
+
+        if (installProcess.ExitCode != 0)
+        {
+            var stderr = await installProcess.StandardError.ReadToEndAsync(cancellationToken);
+            throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}. Error: {stderr}");
+        }
+
+        // Clean up the install script
+        try
+        {
+            File.Delete(scriptPath);
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
     }
 
     /// <summary>
@@ -128,6 +211,41 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             Architecture.Arm => "arm",
             _ => "x64" // Default to x64 for unknown architectures
         };
+    }
+
+    /// <summary>
+    /// Gets the directory where .NET runtimes are stored.
+    /// </summary>
+    /// <returns>The full path to the runtimes directory.</returns>
+    internal static string GetRuntimesDirectory()
+    {
+        var homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var runtimesPath = Path.Combine(homeDirectory, ".aspire", "runtimes", "dotnet");
+        return runtimesPath;
+    }
+
+    /// <summary>
+    /// Gets the install script information based on the current platform.
+    /// </summary>
+    /// <returns>A tuple containing the script URL, script file name, and script runner command.</returns>
+    private static (string ScriptUrl, string ScriptFileName, string ScriptRunner) GetInstallScriptInfo()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return (
+                "https://dot.net/v1/dotnet-install.ps1",
+                "dotnet-install.ps1",
+                "powershell"
+            );
+        }
+        else
+        {
+            return (
+                "https://dot.net/v1/dotnet-install.sh",
+                "dotnet-install.sh",
+                "bash"
+            );
+        }
     }
 
     /// <summary>

@@ -544,6 +544,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
+        // Configure DOTNET_ROOT to point to the private SDK installation if it exists
+        ConfigurePrivateSdkEnvironment(startInfo);
+
         if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
             // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
@@ -1170,5 +1173,33 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Configures environment variables to use the private SDK installation if it exists.
+    /// </summary>
+    /// <param name="startInfo">The process start info to configure.</param>
+    private void ConfigurePrivateSdkEnvironment(ProcessStartInfo startInfo)
+    {
+        // Get the effective minimum SDK version to determine which private SDK to use
+        var sdkInstaller = serviceProvider.GetService<IDotNetSdkInstaller>();
+        if (sdkInstaller is DotNetSdkInstaller installer)
+        {
+            var sdkVersion = installer.GetEffectiveMinimumSdkVersion();
+            var runtimesDirectory = DotNetSdkInstaller.GetRuntimesDirectory();
+            var sdkInstallPath = Path.Combine(runtimesDirectory, sdkVersion);
+
+            // Check if the private SDK exists
+            if (Directory.Exists(sdkInstallPath))
+            {
+                // Set DOTNET_ROOT to point to the private SDK installation
+                startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
+                
+                // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
+                startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+                
+                logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
+            }
+        }
     }
 }
