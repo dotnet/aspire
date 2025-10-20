@@ -47,7 +47,8 @@ internal static class DotnetSdkUtils
                     var line = e.Data.AsSpan().Trim();
                     // Trim any pre-release suffix
                     var hyphenIndex = line.IndexOf('-');
-                    if (Version.TryParse(line[..hyphenIndex], out var v))
+                    var versionSpan = hyphenIndex >= 0 ? line[..hyphenIndex] : line;
+                    if (Version.TryParse(versionSpan, out var v))
                     {
                         parsedVersion = v;
                     }

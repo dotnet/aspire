@@ -62,10 +62,7 @@ internal sealed class ProjectMetadata(string projectPath) : IProjectMetadata
                 // No project files found, just let it pass through and be handled later during resource start
                 return path;
             }
-            else
-            {
-                return Path.GetFullPath(projectFiles[0]);
-            }
+            return Path.GetFullPath(projectFiles[0]);
         }
 
         return path;

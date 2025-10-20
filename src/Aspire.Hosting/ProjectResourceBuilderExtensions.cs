@@ -373,7 +373,7 @@ public static class ProjectResourceBuilderExtensions
             var projectPath = projectMetadata.ProjectPath;
 
             // Validate project path
-            if (!(projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) || projectPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)))
+            if (!projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) && !projectPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
             {
                 // Project path did not resolve to a .csproj or .cs file
                 var message = Directory.Exists(projectPath)
