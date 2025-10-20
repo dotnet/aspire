@@ -1,12 +1,12 @@
 ﻿{
   "author": "Microsoft",
-  "name": "App Starter Python Aspire",
-  "description": "Modello di progetto per la creazione di un'app Aspire con un servizio API backend Python e un frontend JavaScript che utilizza Vite e React.",
-  "symbols/appHostHttpPort/description": "Port number to use for the HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostOtlpHttpPort/description": "Port number to use for the OTLP HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostResourceHttpPort/description": "Port number to use for the resource service HTTP endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostHttpsPort/description": "Port number to use for the HTTPS endpoint in launchSettings.json of the AppHost project. This option is only applicable when the parameter no-https is not used.",
-  "symbols/appHostOtlpHttpsPort/description": "Port number to use for the OTLP HTTPS endpoint in launchSettings.json of the AppHost project.",
-  "symbols/appHostResourceHttpsPort/description": "Port number to use for the resource service HTTPS endpoint in launchSettings.json of the AppHost project.",
-  "symbols/NoHttps/description": "Whether to turn off HTTPS."
+  "name": "App Starter Aspire per Python",
+  "description": "Modello di progetto per creare un'app Aspire con un servizio API backend in Python e un frontend JavaScript basato su Vite e React.",
+  "symbols/appHostHttpPort/description": "Numero di porta da usare per l'endpoint HTTP in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostOtlpHttpPort/description": "Numero di porta da usare per l'endpoint OTLP HTTP in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostResourceHttpPort/description": "Numero di porta da usare per l'endpoint HTTP del servizio risorse in launchSettings.json del progetto AppHost.",
+  "symbols/appHostHttpsPort/description": "Numero di porta da usare per l'endpoint HTTPS in launchSettings.json. del progetto AppHost. Questa opzione è applicabile solo quando il parametro no-https non viene usato.",
+  "symbols/appHostOtlpHttpsPort/description": "Numero di porta da usare per l'endpoint OTLP HTTPS in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostResourceHttpsPort/description": "Numero di porta da usare per l'endpoint HTTPS del servizio risorse in launchSettings.json del progetto AppHost.",
+  "symbols/NoHttps/description": "Indica se disattivare HTTPS."
 }
