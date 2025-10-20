@@ -398,7 +398,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(0, exitCode);
-        Assert.Contains(capturedMessages, m => m.Contains("Production"));
+        Assert.Contains(capturedMessages, m => m.Contains("production"));
     }
 
     [Fact]
@@ -459,7 +459,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(0, exitCode);
-        Assert.Contains(capturedMessages, m => m.Contains("Staging"));
+        Assert.Contains(capturedMessages, m => m.Contains("staging"));
     }
 
     [Fact]
@@ -520,7 +520,7 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Assert
         Assert.Equal(0, exitCode);
-        Assert.Contains(capturedMessages, m => m.Contains("Development"));
+        Assert.Contains(capturedMessages, m => m.Contains("development"));
     }
 }
 

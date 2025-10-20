@@ -80,17 +80,17 @@ internal sealed class DeployCommand : PublishCommandBase
             // Check for --environment=Value format
             if (token.StartsWith("--environment=", StringComparison.OrdinalIgnoreCase))
             {
-                return token.Substring("--environment=".Length);
+                return token.Substring("--environment=".Length).ToLowerInvariant();
             }
             
             // Check for --environment Value format (space-separated)
             if (token.Equals("--environment", StringComparison.OrdinalIgnoreCase) && i + 1 < unmatchedTokens.Length)
             {
-                return unmatchedTokens[i + 1];
+                return unmatchedTokens[i + 1].ToLowerInvariant();
             }
         }
 
         // Default to Production if not specified
-        return "Production";
+        return "production";
     }
 }
