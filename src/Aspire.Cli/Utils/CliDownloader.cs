@@ -25,6 +25,8 @@ internal class CliDownloader(
 {
     private const int ArchiveDownloadTimeoutSeconds = 600;
     private const int ChecksumDownloadTimeoutSeconds = 120;
+    
+    private static readonly HttpClient s_httpClient = new();
 
     public async Task<string> DownloadLatestCliAsync(string channelName, CancellationToken cancellationToken)
     {
@@ -53,8 +55,7 @@ internal class CliDownloader(
         var checksumUrl = $"{baseUrl}/{checksumFilename}";
 
         // Create temp directory for download
-        var tempDir = Path.Combine(Path.GetTempPath(), $"aspire-cli-download-{Guid.NewGuid():N}");
-        Directory.CreateDirectory(tempDir);
+        var tempDir = Directory.CreateTempSubdirectory("aspire-cli-download").FullName;
 
         try
         {
@@ -170,16 +171,14 @@ internal class CliDownloader(
 
     private static async Task DownloadFileAsync(string url, string outputPath, int timeoutSeconds, CancellationToken cancellationToken)
     {
-        using var httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(timeoutSeconds)
-        };
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        cts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
-        using var response = await httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await s_httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token);
         response.EnsureSuccessStatusCode();
 
         await using var fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await response.Content.CopyToAsync(fileStream, cancellationToken);
+        await response.Content.CopyToAsync(fileStream, cts.Token);
     }
 
     private static async Task ValidateChecksumAsync(string archivePath, string checksumPath, CancellationToken cancellationToken)

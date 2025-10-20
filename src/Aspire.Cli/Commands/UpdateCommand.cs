@@ -185,11 +185,10 @@ internal sealed class UpdateCommand : BaseCommand
 
         var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "aspire.exe" : "aspire";
         var targetExePath = Path.Combine(installDir, exeName);
-        var tempExtractDir = Path.Combine(Path.GetTempPath(), $"aspire-cli-extract-{Guid.NewGuid():N}");
+        var tempExtractDir = Directory.CreateTempSubdirectory("aspire-cli-extract").FullName;
 
         try
         {
-            Directory.CreateDirectory(tempExtractDir);
 
             // Extract archive
             InteractionService.DisplayMessage("package", "Extracting new CLI...");
@@ -283,7 +282,7 @@ internal sealed class UpdateCommand : BaseCommand
             return false;
         }
 
-        var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ';' : ':';
+        var pathSeparator = Path.PathSeparator;
         var paths = pathEnv.Split(pathSeparator, StringSplitOptions.RemoveEmptyEntries);
         
         return paths.Any(p => 
@@ -311,7 +310,7 @@ internal sealed class UpdateCommand : BaseCommand
         }
     }
 
-    private static void SetExecutablePermission(string filePath)
+    private void SetExecutablePermission(string filePath)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -321,9 +320,9 @@ internal sealed class UpdateCommand : BaseCommand
                 mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
                 File.SetUnixFileMode(filePath, mode);
             }
-            catch
+            catch (Exception ex)
             {
-                // Best effort, ignore failures
+                _logger.LogWarning(ex, "Failed to set executable permission on {FilePath}", filePath);
             }
         }
     }
