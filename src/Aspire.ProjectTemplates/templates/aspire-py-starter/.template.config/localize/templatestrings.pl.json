@@ -1,7 +1,7 @@
 ﻿{
   "author": "Microsoft",
-  "name": "Aspire Python Starter App",
-  "description": "A project template for creating an Aspire app with a Python backend API service and a JavaScript frontend using Vite and React.",
+  "name": "Aplikacja startowa Aspire Python",
+  "description": "Szablon projektu służący do tworzenia aplikacji w języku Python w środowisku Aspire przy użyciu usługi interfejsu API wewnętrznej bazy danych języka Python i frontonu JavaScript korzystającego z programów Vite i React.",
   "symbols/appHostHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP OTLP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP usługi zasobów w pliku launchSettings.json projektu AppHost.",
