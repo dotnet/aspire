@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // Proxy API calls to the backend service and strip 'api' prefix
+      // Proxy API calls to the app service
       '/api': {
-        target: process.env.services__apiservice__https__0 || process.env.services__apiservice__http__0,
+        target: process.env.services__app__https__0 || process.env.services__app__http__0,
         changeOrigin: true
       }
     }

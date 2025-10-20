@@ -22,6 +22,7 @@ async def lifespan(app: fastapi.FastAPI):
 app = fastapi.FastAPI(lifespan=lifespan)
 otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 
+#if UseRedisCache
 # Initialize Redis client
 redis_client: redis.Redis | None = None
 otel_redis.RedisInstrumentor().instrument()
@@ -47,10 +48,12 @@ def get_redis_client() -> redis.Redis | None:
             )
     return redis_client
 
+#endif
 logger = logging.getLogger(__name__)
 
 
 @app.get("/api/weatherforecast", response_model=list[dict[str, Any]])
+#if UseRedisCache
 async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
     """Weather forecast endpoint."""
     cache_key = "weatherforecast"
@@ -66,6 +69,9 @@ async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
         except Exception as e:
             logger.warning(f"Redis cache read error: {e}")
 
+#else
+async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
+#endif
     # Generate fresh data if not in cache or cache unavailable.
     summaries = [
         "Freezing",
@@ -92,6 +98,7 @@ async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
         }
         forecast.append(forecast_item)
 
+#if UseRedisCache
     # Cache the data
     if redis_client:
         try:
@@ -99,6 +106,7 @@ async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
         except Exception as e:
             logger.warning(f"Redis cache write error: {e}")
 
+#endif
     return forecast
 
 
@@ -110,7 +118,9 @@ async def health_check(redis_client = fastapi.Depends(get_redis_client)):
     return "Healthy"
 
 
-app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True, check_dir=False), name="static")
+# Serve static files directly from root, if the "static" directory exists
+if os.path.exists("static"):
+    app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True), name="static")
 
 
 if __name__ == "__main__":

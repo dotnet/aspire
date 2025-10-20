@@ -8,13 +8,19 @@
 
 var builder = DistributedApplication.CreateBuilder(args);
 
+#if UseRedisCache
 var cache = builder.AddRedis("cache");
 
-var apiService = builder.AddPythonScript("apiservice", "./api_service", "app.py")
+#endif
+var apiService = builder.AddPythonScript("app", "./app", "app.py")
     .WithUvEnvironment()
-    .WithReference(cache)
     .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
+    .WithHttpHealthCheck("/health")
+#if UseRedisCache
+    .WithReference(cache)
+    .WaitFor(cache)
+#endif
     .PublishAsDockerFile(c =>
     {
         c.WithDockerfile(".");

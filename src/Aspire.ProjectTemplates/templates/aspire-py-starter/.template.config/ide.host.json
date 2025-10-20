@@ -4,5 +4,12 @@
     {
       "id": "vs"
     }
+  ],
+  "symbolInfo": [
+    {
+      "id": "UseRedisCache",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    }
   ]
 }

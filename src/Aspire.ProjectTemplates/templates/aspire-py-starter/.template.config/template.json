@@ -37,6 +37,13 @@
     }
   ],
   "symbols": {
+    "UseRedisCache": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "displayName": "_Use Redis for caching (requires a supported container runtime)",
+      "description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details."
+    },
     "appHostHttpPort": {
       "type": "parameter",
       "datatype": "integer",
