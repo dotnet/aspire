@@ -208,6 +208,17 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                     StepId = null
                 }
             };
+            yield return new PublishingActivity
+            {
+                Type = PublishingActivityTypes.PublishComplete,
+                Data = new PublishingActivityData
+                {
+                    Id = "publish-complete",
+                    StatusText = "Publish complete",
+                    CompletionState = CompletionStates.Completed,
+                    StepId = null
+                }
+            };
         }
     }
 
