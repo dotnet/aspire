@@ -65,8 +65,16 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: '9000'
         }
         {
+          name: 'PROJECT1_HTTPS'
+          value: 'https://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+        }
+        {
           name: 'services__project1__https__0'
           value: 'https://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
+        }
+        {
+          name: 'PROJECT1_HTTP'
+          value: 'http://${take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
         }
         {
           name: 'services__project1__http__0'
