@@ -1,14 +1,4 @@
 <Project TreatAsLocalProperty="TargetRids">
-  <!--
-    Properties:
-      SkipManagedBuild - if 'true', skips building all managed projects, defaults to 'false'
-      SkipNativeBuild  - if 'true', skips building all native projects, defaults to 'false'
-      BuildExtension   - if 'true', builds the extension project, defaults to 'false'
-      BuildTestsOnly   - if 'true', builds only test projects, defaults to 'false'
-      SkipTestProjects - if 'true', skips building test projects, defaults to 'false'
-      TargetRids       - colon separated list of RIDs to build native projects for
-  -->
-
   <PropertyGroup>
     <BuildRid>$([System.Runtime.InteropServices.RuntimeInformation]::RuntimeIdentifier)</BuildRid>
 
@@ -17,30 +7,17 @@
     <TargetRids Condition="'$(TargetRids)' == ''">$(BuildRid)</TargetRids>
   </PropertyGroup>
 
-  <!-- `$(BuildTestsOnly)` allows building only test projects, skipping the following directories:
-        src, playground, eng/dcppack, and eng/dashboardpack. This is useful for reducing disk space
-        usage when only test projects need to be built, such as during test runsheet generation. -->
-  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(BuildTestsOnly)' != 'true'">
-    <!-- Project name validation runs once in the outer build -->
-    <ProjectToBuild Include="$(RepoRoot)eng\OuterPreBuild.proj" />
-
+  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true'">
     <ProjectToBuild Include="$(RepoRoot)src\**\*.csproj" Exclude="$(RepoRoot)src\Aspire.ProjectTemplates\templates\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
 
     <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
-  </ItemGroup>
 
-  <!-- `$(SkipTestProjects)` allows skipping test projects from being
-        included in the build at all. This is useful for cases like when we are
-        just building the packages, and don't need to build the test projects. -->
-  <ItemGroup Condition="'$(SkipManagedBuild)' != 'true' and '$(SkipTestProjects)' != 'true'">
-    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" />
-  </ItemGroup>
-
-  <!-- Extension build project -->
-  <ItemGroup Condition="'$(BuildExtension)' == 'true'">
-    <ProjectToBuild Include="$(RepoRoot)extension\Extension.proj" />
+    <!-- `$(SkipTestProjects)` allows skipping test projects from being
+          included in the build at all. This is useful for cases like when we are
+          just building the packages, and don't need to build the test projects. -->
+    <ProjectToBuild Include="$(RepoRoot)tests\**\*.csproj" Condition="'$(SkipTestProjects)' != 'true'" />
   </ItemGroup>
 
   <!-- Native build only -->
