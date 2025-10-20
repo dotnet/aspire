@@ -239,13 +239,13 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithPipelineStepAnnotation_ExecutesAnnotatedSteps()
+    public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_ExecutesAnnotatedSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) =>
@@ -253,7 +253,7 @@ public class DistributedApplicationPipelineTests
                     lock (executedSteps) { executedSteps.Add("annotated-step"); }
                     await Task.CompletedTask;
                 }
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("regular-step", async (context) =>
@@ -277,8 +277,8 @@ public class DistributedApplicationPipelineTests
 
         var executedSteps = new List<string>();
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new[]
-            {
+            .WithPipelineStepFactory((factoryContext) =>
+            [
                 new PipelineStep
                 {
                     Name = "annotated-step-1",
@@ -297,7 +297,7 @@ public class DistributedApplicationPipelineTests
                         await Task.CompletedTask;
                     }
                 }
-            }));
+            ]);
 
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(builder.Build());
@@ -610,18 +610,18 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var resource1 = builder.AddResource(new CustomResource("resource1"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "duplicate-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var resource2 = builder.AddResource(new CustomResource("resource2"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "duplicate-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         var context = CreateDeployingContext(builder.Build());
@@ -775,11 +775,11 @@ public class DistributedApplicationPipelineTests
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var pipeline = new DistributedApplicationPipeline();
         pipeline.AddStep("direct-step", async (context) => await Task.CompletedTask);
@@ -823,11 +823,11 @@ public class DistributedApplicationPipelineTests
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithAnnotation(new PipelineStepAnnotation(() => new PipelineStep
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
             {
                 Name = "annotated-step",
                 Action = async (ctx) => await Task.CompletedTask
-            }));
+            });
 
         var app = builder.Build();
         var publisher = app.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("default");
@@ -1161,6 +1161,173 @@ public class DistributedApplicationPipelineTests
             NullLogger.Instance,
             CancellationToken.None,
             outputPath: null);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithPipelineStepFactoryAnnotation_FactoryReceivesPipelineContextAndResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        IResource? capturedResource = null;
+        PipelineContext? capturedPipelineContext = null;
+        var executedSteps = new List<string>();
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) =>
+            {
+                capturedResource = factoryContext.Resource;
+                capturedPipelineContext = factoryContext.PipelineContext;
+
+                return new PipelineStep
+                {
+                    Name = "annotated-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("annotated-step"); }
+                        await Task.CompletedTask;
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.NotNull(capturedResource);
+        Assert.Equal("test-resource", capturedResource.Name);
+        Assert.NotNull(capturedPipelineContext);
+        Assert.Same(context, capturedPipelineContext);
+        Assert.Contains("annotated-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_SyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
+            {
+                Name = "sync-step",
+                Action = async (ctx) =>
+                {
+                    lock (executedSteps) { executedSteps.Add("sync-step"); }
+                    await Task.CompletedTask;
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_AsyncOverload_ExecutesStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return new PipelineStep
+                {
+                    Name = "async-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("async-step"); }
+                        await Task.CompletedTask;
+                    }
+                };
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_MultipleStepsSyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "sync-step-1",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-1"); }
+                        await Task.CompletedTask;
+                    }
+                },
+                new PipelineStep
+                {
+                    Name = "sync-step-2",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("sync-step-2"); }
+                        await Task.CompletedTask;
+                    }
+                }
+            ]);
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("sync-step-1", executedSteps);
+        Assert.Contains("sync-step-2", executedSteps);
+    }
+
+    [Fact]
+    public async Task WithPipelineStepFactory_MultipleStepsAsyncOverload_ExecutesAllSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory(async (factoryContext) =>
+            {
+                await Task.CompletedTask;
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = "async-step-1",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-1"); }
+                            await Task.CompletedTask;
+                        }
+                    },
+                    new PipelineStep
+                    {
+                        Name = "async-step-2",
+                        Action = async (ctx) =>
+                        {
+                            lock (executedSteps) { executedSteps.Add("async-step-2"); }
+                            await Task.CompletedTask;
+                        }
+                    }
+                ];
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Contains("async-step-1", executedSteps);
+        Assert.Contains("async-step-2", executedSteps);
     }
 
     private sealed class CustomResource(string name) : Resource(name)

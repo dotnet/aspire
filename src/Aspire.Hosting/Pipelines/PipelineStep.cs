@@ -24,14 +24,14 @@ public class PipelineStep
     public required Func<PipelineStepContext, Task> Action { get; init; }
 
     /// <summary>
-    /// Gets the list of step names that this step depends on.
+    /// Gets or initializes the list of step names that this step depends on.
     /// </summary>
-    public List<string> DependsOnSteps { get; } = [];
+    public List<string> DependsOnSteps { get; init; } = [];
 
     /// <summary>
-    /// Gets the list of step names that require this step to complete before they can finish.
+    /// Gets or initializes the list of step names that require this step to complete before they can finish.
     /// </summary>
-    public List<string> RequiredBySteps { get; } = [];
+    public List<string> RequiredBySteps { get; init; } = [];
 
     /// <summary>
     /// Adds a dependency on another step.
