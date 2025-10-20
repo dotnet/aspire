@@ -120,6 +120,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
+            // Yield to ensure proper async behavior and prevent race conditions
+            await Task.Yield();
+            
             yield return new PublishingActivity
             {
                 Type = PublishingActivityTypes.Step,
