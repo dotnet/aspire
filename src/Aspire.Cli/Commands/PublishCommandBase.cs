@@ -32,6 +32,17 @@ internal abstract class PublishCommandBase : BaseCommand
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
 
+    /// <summary>
+    /// Creates a deployment log writer for the given AppHost file.
+    /// Override in subclasses to enable automatic logging.
+    /// </summary>
+    /// <param name="appHostFile">The AppHost project file.</param>
+    /// <returns>A deployment log writer, or null if logging is not enabled.</returns>
+    protected virtual DeploymentLogWriter? CreateDeploymentLogWriter(FileInfo appHostFile)
+    {
+        return null;
+    }
+
     private static bool IsCompletionStateComplete(string completionState) =>
         completionState is CompletionStates.Completed or CompletionStates.CompletedWithWarning or CompletionStates.CompletedWithError;
 
@@ -97,6 +108,7 @@ internal abstract class PublishCommandBase : BaseCommand
         var operationOutputCollector = new OutputCollector();
 
         (bool IsCompatibleAppHost, bool SupportsBackchannel, string? AspireHostingVersion)? appHostCompatibilityCheck = null;
+        DeploymentLogWriter? logWriter = null;
 
         try
         {
@@ -110,6 +122,22 @@ internal abstract class PublishCommandBase : BaseCommand
                 // Send terminal progress bar stop sequence
                 StopTerminalProgressBar();
                 return ExitCodeConstants.FailedToFindProject;
+            }
+
+            // Create deployment log writer if the subclass enables it
+            try
+            {
+                logWriter = CreateDeploymentLogWriter(effectiveAppHostFile);
+                if (logWriter is not null)
+                {
+                    logWriter.WriteLine("Starting deployment");
+                    logWriter.WriteLine($"AppHost: {effectiveAppHostFile.FullName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Best-effort logging - don't fail deployment if logging fails
+                InteractionService.DisplaySubtleMessage($"Warning: Failed to create deployment log: {ex.Message}");
             }
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
@@ -217,8 +245,8 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var noFailuresReported = debugMode switch
             {
-                true => await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, cancellationToken),
-                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, cancellationToken),
+                true => await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, logWriter, cancellationToken),
+                false => await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, logWriter, cancellationToken),
             };
 
             // Send terminal progress bar stop sequence
@@ -276,9 +304,18 @@ internal abstract class PublishCommandBase : BaseCommand
             InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.UnexpectedErrorOccurred, ex.Message));
             return ExitCodeConstants.FailedToBuildArtifacts;
         }
+        finally
+        {
+            logWriter?.Dispose();
+        }
     }
 
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        return await ProcessPublishingActivitiesDebugAsync(publishingActivities, backchannel, logWriter: null, cancellationToken);
+    }
+
+    public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, DeploymentLogWriter? logWriter, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, string>();
@@ -297,7 +334,9 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    var message = $"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}";
+                    InteractionService.DisplaySubtleMessage(message);
+                    logWriter?.WriteLine(message);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -305,7 +344,9 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    var message = $"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}";
+                    InteractionService.DisplaySubtleMessage(message);
+                    logWriter?.WriteLine(message);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
@@ -321,15 +362,21 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    var message = $"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}";
+                    InteractionService.DisplaySubtleMessage(message);
+                    logWriter?.WriteLine(message);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
+                        var completionMessage = $"[DEBUG]   {activity.Data.CompletionMessage}";
+                        InteractionService.DisplaySubtleMessage(completionMessage);
+                        logWriter?.WriteLine(completionMessage);
                     }
                 }
                 else
                 {
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                    var message = $"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}";
+                    InteractionService.DisplaySubtleMessage(message);
+                    logWriter?.WriteLine(message);
                 }
             }
         }
@@ -340,7 +387,9 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+            var message = $"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}";
+            InteractionService.DisplaySubtleMessage(message);
+            logWriter?.WriteLine(message);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");
@@ -351,6 +400,11 @@ internal abstract class PublishCommandBase : BaseCommand
     }
 
     public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        return await ProcessAndDisplayPublishingActivitiesAsync(publishingActivities, backchannel, logWriter: null, cancellationToken);
+    }
+
+    public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, DeploymentLogWriter? logWriter, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
@@ -376,7 +430,7 @@ internal abstract class PublishCommandBase : BaseCommand
                         {
                             Id = activity.Data.Id,
                             Title = activity.Data.StatusText,
-                            Number = stepCounter++,
+                            Number = stepCounter,
                             StartTime = DateTime.UtcNow,
                             CompletionState = activity.Data.CompletionState
                         };
@@ -384,12 +438,17 @@ internal abstract class PublishCommandBase : BaseCommand
                         steps[activity.Data.Id] = stepInfo;
                         // Use the stable step Id for logger state tracking (prevents duplicate counting when titles repeat)
                         logger.StartTask(stepInfo.Id, stepInfo.Title, $"Starting {stepInfo.Title}...");
+                        logWriter?.WriteLine($"Step {stepCounter++}: {activity.Data.StatusText}");
                     }
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
                         stepInfo.CompletionText = activity.Data.StatusText;
                         stepInfo.EndTime = DateTime.UtcNow;
+                        var status = IsCompletionStateError(stepInfo.CompletionState) ? "FAILED" :
+                            IsCompletionStateWarning(stepInfo.CompletionState) ? "WARNING" : "COMPLETED";
+                        logWriter?.WriteLine($"Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                        
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
                             logger.Failure(stepInfo.Id, stepInfo.CompletionText);
@@ -434,6 +493,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
                         tasks[activity.Data.Id] = task;
                         logger.Progress(stepInfo.Id, activity.Data.StatusText);
+                        logWriter?.WriteLine($"Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
                     }
 
                     task.StatusText = activity.Data.StatusText;
@@ -449,6 +509,10 @@ internal abstract class PublishCommandBase : BaseCommand
                         var message = !string.IsNullOrEmpty(task.CompletionMessage)
                             ? $"{task.StatusText}: {task.CompletionMessage} {durationStr}"
                             : $"{task.StatusText} {durationStr}";
+
+                        var status = IsCompletionStateError(task.CompletionState) ? "FAILED" :
+                            IsCompletionStateWarning(task.CompletionState) ? "WARNING" : "COMPLETED";
+                        logWriter?.WriteLine($"Task {activity.Data.Id} ({stepId}): {status} - {message}");
 
                         if (IsCompletionStateError(task.CompletionState))
                         {
@@ -476,6 +540,10 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 var hasErrors = IsCompletionStateError(publishingActivity.Data.CompletionState);
                 var hasWarnings = IsCompletionStateWarning(publishingActivity.Data.CompletionState);
+                
+                var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
+                logWriter?.WriteLine($"{OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+                
                 // Determine first failed step (if any) for failure detail.
                 string? failedStepTitle = null;
                 string? failedStepMessage = null;

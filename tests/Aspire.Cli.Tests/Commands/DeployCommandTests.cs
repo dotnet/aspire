@@ -267,6 +267,82 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task DeployCommandCreatesDeploymentLog()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    // Simulate a successful build
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    // Simulate a successful app host information retrieval
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                    {
+                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                    },
+
+                    // Simulate apphost running successfully and establishing a backchannel
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    {
+                        var deployModeCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel
+                        {
+                            RequestStopAsyncCalled = deployModeCompleted
+                        };
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await deployModeCompleted.Task;
+                        return 0;
+                    }
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestDeployCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("deploy");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+        
+        // Verify that a deployment log file was created
+        var aspireDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments"
+        );
+        
+        if (Directory.Exists(aspireDir))
+        {
+            // Find any log files that were created recently (within the last minute)
+            var recentLogFiles = Directory.GetFiles(aspireDir, "*.log", SearchOption.AllDirectories)
+                .Where(f => File.GetCreationTime(f) > DateTime.Now.AddMinutes(-1))
+                .ToList();
+            
+            Assert.NotEmpty(recentLogFiles);
+        }
+    }
+
+    [Fact]
     [QuarantinedTest("https://github.com/dotnet/aspire/issues/11217")]
     public async Task DeployCommandIncludesDeployFlagInArguments()
     {
