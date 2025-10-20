@@ -11,7 +11,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // NOTE: This is in a sub-folder to ensure it doesn't pickup .razor files from the FrontEnd project
 builder.AddCSharpApp("api", "./api/api.cs");
 
-// Traditional C# project added via same API just specifiying project directory
+// Traditional C# project added via same API just specifying project directory
 builder.AddCSharpApp("frontend", "./FileBasedApps.WebFrontEnd/");
 
 #if !SKIP_DASHBOARD_REFERENCE

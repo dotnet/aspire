@@ -109,6 +109,59 @@ public partial class BuildAndRunTemplateTests : TemplateTestsBase
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task BuildAndRunAspireTemplateWithExplicitSdkReference(bool includeAspireHostingAppHostPackageReference)
+    {
+        string id = GetNewProjectId(prefix: "aspire_explicit_SDK");
+        await using var project = await AspireProject.CreateNewTemplateProjectAsync(
+            id,
+            "aspire",
+            _testOutput,
+            buildEnvironment: BuildEnvironment.ForDefaultFramework);
+
+        UpdateSdkReferencesAndAddAppHostPackageReference(project, includeAspireHostingAppHostPackageReference);
+
+        await project.BuildAsync();
+        await project.StartAppHostAsync();
+        await project.StopAppHostAsync();
+
+        static void UpdateSdkReferencesAndAddAppHostPackageReference(AspireProject project, bool addPackageRef)
+        {
+            var projectName = Directory.GetFiles(project.AppHostProjectDirectory, "*.csproj").FirstOrDefault();
+            Assert.False(string.IsNullOrEmpty(projectName));
+
+            var projectContents = File.ReadAllText(projectName);
+
+            var match = ProjectSdkVersionRegex().Match(projectContents);
+            var version = match.Groups[1].Value;
+            Assert.NotNull(version);
+
+            File.WriteAllText(
+                projectName,
+                ProjectSdkVersionRegex().Replace(projectContents,
+                $"""
+                <Project Sdk=\"Microsoft.NET.Sdk\">
+                  <Sdk Name="Aspire.AppHost.Sdk" Version="{version}" />
+                """)
+            );
+
+            if (addPackageRef)
+            {
+                File.WriteAllText(
+                    projectName,
+                    ProjectClosingTagRegex().Replace(projectContents,
+                    $"""
+                      <ItemGroup>
+                        <PackageReference Include="Aspire.Hosting.AppHost" Version="{version}" />
+                      </ItemGroup>
+                    </Project>
+                    """));
+            }
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(BuildConfigurationsForTestData))]
     [RequiresSSLCertificate, RequiresPlaywright]
     [Trait("category", "basic-build")]
