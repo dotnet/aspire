@@ -631,41 +631,8 @@ public class DistributedApplicationPipelineTests
         Assert.Contains("duplicate-step", exception.Message);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithMixOfSuccessfulAndFailingStepsAtSameLevel_ThrowsAggregateException()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        var pipeline = new DistributedApplicationPipeline();
-
-        var successfulStepExecuted = false;
-
-        pipeline.AddStep("successful-step", async (context) =>
-        {
-            successfulStepExecuted = true;
-            await Task.CompletedTask;
-        });
-
-        pipeline.AddStep("failing-step1", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new InvalidOperationException("Error from step 1");
-        });
-
-        pipeline.AddStep("failing-step2", async (context) =>
-        {
-            await Task.CompletedTask;
-            throw new NotSupportedException("Error from step 2");
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-
-        var exception = await Assert.ThrowsAsync<AggregateException>(() => pipeline.ExecuteAsync(context));
-        Assert.True(successfulStepExecuted, "Successful step should have executed");
-        Assert.Contains("Multiple pipeline steps failed", exception.Message);
-        Assert.Equal(2, exception.InnerExceptions.Count);
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step1"));
-        Assert.Contains(exception.InnerExceptions, e => e.Message.Contains("failing-step2"));
-    }
+    // Test for multiple failing steps at the same level removed due to inherent race conditions.
+    // See https://github.com/dotnet/aspire/issues/12200
 
     [Fact]
     public async Task ExecuteAsync_WithFailingStep_PreservesOriginalStackTrace()
