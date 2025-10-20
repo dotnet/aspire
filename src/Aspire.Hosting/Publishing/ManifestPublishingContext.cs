@@ -726,10 +726,12 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
             var expression = referenceExpression.ManifestExpressions[i];
             var format = referenceExpression.StringFormats[i];
 
-            if (!string.IsNullOrEmpty(format) && referenceExpression.ValueProviders[i] is ParameterResource parameter)
+            if (!string.IsNullOrEmpty(format))
             {
-                var formattedResourceName = RegisterFormattedParameter(parameter, format);
-                expression = $"{{{formattedResourceName}.value}}";
+                if (GetFormattedResourceNameForProvider(referenceExpression.ValueProviders[i], format) is { } formattedResourceName)
+                {
+                    expression = $"{{{formattedResourceName}.value}}";
+                }
             }
 
             arguments[i] = expression;
@@ -752,10 +754,7 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
                 continue;
             }
 
-            if (providers[i] is ParameterResource parameter)
-            {
-                RegisterFormattedParameter(parameter, format);
-            }
+            _ = GetFormattedResourceNameForProvider(providers[i], format);
         }
     }
 
@@ -852,6 +851,31 @@ public sealed class ManifestPublishingContext(DistributedApplicationExecutionCon
         {
             WriteFormattedParameterResources(parameter);
         }
+    }
+
+    private string? GetFormattedResourceNameForProvider(object provider, string format)
+    {
+        return provider switch
+        {
+            ParameterResource parameter => RegisterFormattedParameter(parameter, format),
+            ReferenceExpression referenceExpression when TryGetSingleParameterProvider(referenceExpression, out var parameter) => RegisterFormattedParameter(parameter, format),
+            _ => null
+        };
+    }
+
+    private static bool TryGetSingleParameterProvider(ReferenceExpression referenceExpression, out ParameterResource parameter)
+    {
+        if (referenceExpression.ValueProviders.Count == 1 &&
+            referenceExpression.ValueProviders[0] is ParameterResource parameterResource &&
+            referenceExpression.ManifestExpressions.Count == 1 &&
+            referenceExpression.Format == "{0}")
+        {
+            parameter = parameterResource;
+            return true;
+        }
+
+        parameter = null!;
+        return false;
     }
 
     private async Task WriteReferencedResources(DistributedApplicationModel model)
