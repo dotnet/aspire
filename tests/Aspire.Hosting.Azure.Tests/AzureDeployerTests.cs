@@ -967,13 +967,15 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var internalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("internal-api"));
         Assert.NotNull(internalTask.CompletionMessage);
         Assert.DoesNotContain("https://", internalTask.CompletionMessage);
-        Assert.Equal("Successfully deployed internal-api", internalTask.CompletionMessage);
+        // Allow for markdown formatting (e.g., "Successfully deployed **internal-api**")
+        Assert.Matches(@"Successfully deployed \*?\*?internal-api\*?\*?", internalTask.CompletionMessage);
 
         // Assert - Verify that container with no endpoints does NOT show URL in completion message
         var noEndpointTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("worker"));
         Assert.NotNull(noEndpointTask.CompletionMessage);
         Assert.DoesNotContain("https://", noEndpointTask.CompletionMessage);
-        Assert.Equal("Successfully deployed worker", noEndpointTask.CompletionMessage);
+        // Allow for markdown formatting (e.g., "Successfully deployed **worker**")
+        Assert.Matches(@"Successfully deployed \*?\*?worker\*?\*?", noEndpointTask.CompletionMessage);
     }
 
     private sealed class Project : IProjectMetadata
