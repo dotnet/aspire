@@ -16,31 +16,26 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
     public bool ConfigureGlobalPackagesFolder { get; } = configureGlobalPackagesFolder;
     
-    /// <summary>
-    /// Gets the source details string to display alongside version information.
-    /// For implicit channels, this is "based on NuGet.config".
-    /// For explicit channels with Aspire* package source mapping, this is the source URL or path.
-    /// For explicit channels without Aspire* package source mapping, this is "based on NuGet.config".
-    /// </summary>
     public string SourceDetails { get; } = ComputeSourceDetails(mappings);
     
     private static string ComputeSourceDetails(PackageMapping[]? mappings)
     {
-        // Rule 1: If the PackageChannel is implicit, show "based on NuGet.config"
         if (mappings is null)
         {
             return PackagingStrings.BasedOnNuGetConfig;
         }
         
-        // Rule 2: If the PackageChannel is explicit and has a package source mapping for Aspire*, use the Source
         var aspireMapping = mappings.FirstOrDefault(m => m.PackageFilter.StartsWith("Aspire", StringComparison.OrdinalIgnoreCase));
+        var allPackagesMapping = mappings.FirstOrDefault(m => m.PackageFilter == PackageMapping.AllPackages);
+
         if (aspireMapping is not null)
         {
             return aspireMapping.Source;
         }
-        
-        // Rule 3: If the PackageChannel is explicit but does not have a package source mapping for Aspire*, show "based on NuGet.config"
-        return PackagingStrings.BasedOnNuGetConfig;
+        else
+        {
+            return allPackagesMapping?.Source ?? PackagingStrings.BasedOnNuGetConfig;
+        }
     }
 
     public async Task<IEnumerable<NuGetPackage>> GetTemplatePackagesAsync(DirectoryInfo workingDirectory, CancellationToken cancellationToken)
