@@ -208,7 +208,7 @@ public sealed class AzureEnvironmentResource : Resource
         var provisioningTasks = bicepResources.Select(async resource =>
         {
             var resourceTask = await context.ReportingStep
-                .CreateTaskAsync($"Deploying {resource.Name}", context.CancellationToken)
+                .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
                 .ConfigureAwait(false);
 
             await using (resourceTask.ConfigureAwait(false))
@@ -350,7 +350,7 @@ public sealed class AzureEnvironmentResource : Resource
         var deploymentTasks = computeResources.Select(async computeResource =>
         {
             var resourceTask = await context.ReportingStep
-                .CreateTaskAsync($"Deploying {computeResource.Name}", context.CancellationToken)
+                .CreateTaskAsync($"Deploying **{computeResource.Name}**", context.CancellationToken)
                 .ConfigureAwait(false);
 
             await using (resourceTask.ConfigureAwait(false))
