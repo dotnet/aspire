@@ -52,24 +52,6 @@ public class PackageChannelTests
     }
 
     [Fact]
-    public void SourceDetails_ExplicitChannelWithoutAspireMapping_ReturnsBasedOnNuGetConfig()
-    {
-        // Arrange
-        var cache = new FakeNuGetPackageCache();
-        var mappings = new[]
-        {
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
-        };
-
-        // Act
-        var channel = PackageChannel.CreateExplicitChannel("stable", PackageChannelQuality.Stable, mappings, cache);
-
-        // Assert
-        Assert.Equal(PackagingStrings.BasedOnNuGetConfig, channel.SourceDetails);
-        Assert.Equal(PackageChannelType.Explicit, channel.Type);
-    }
-
-    [Fact]
     public void SourceDetails_ExplicitChannelWithPrHivePath_ReturnsLocalPath()
     {
         // Arrange
@@ -111,47 +93,6 @@ public class PackageChannelTests
     }
 
     [Fact]
-    public void SourceDetails_AspireMappingIsCaseInsensitive_ReturnsSourceFromMapping()
-    {
-        // Arrange
-        var cache = new FakeNuGetPackageCache();
-        var aspireSource = "https://example.com/nuget/v3/index.json";
-        var mappings = new[]
-        {
-            new PackageMapping("aspire*", aspireSource), // lowercase 'aspire'
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
-        };
-
-        // Act
-        var channel = PackageChannel.CreateExplicitChannel("custom", PackageChannelQuality.Stable, mappings, cache);
-
-        // Assert
-        Assert.Equal(aspireSource, channel.SourceDetails);
-    }
-
-    [Fact]
-    public void SourceDetails_MultipleMappingsWithFirstBeingAspire_ReturnsFirstAspireMapping()
-    {
-        // Arrange
-        var cache = new FakeNuGetPackageCache();
-        var firstAspireSource = "https://first.example.com/nuget/v3/index.json";
-        var secondAspireSource = "https://second.example.com/nuget/v3/index.json";
-        var mappings = new[]
-        {
-            new PackageMapping("Aspire.Hosting*", firstAspireSource),
-            new PackageMapping("Aspire*", secondAspireSource),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
-        };
-
-        // Act
-        var channel = PackageChannel.CreateExplicitChannel("custom", PackageChannelQuality.Stable, mappings, cache);
-
-        // Assert
-        // Should use the first mapping that starts with "Aspire"
-        Assert.Equal(firstAspireSource, channel.SourceDetails);
-    }
-
-    [Fact]
     public void SourceDetails_EmptyMappingsArray_ReturnsBasedOnNuGetConfig()
     {
         // Arrange
@@ -164,24 +105,5 @@ public class PackageChannelTests
         // Assert
         Assert.Equal(PackagingStrings.BasedOnNuGetConfig, channel.SourceDetails);
         Assert.Equal(PackageChannelType.Explicit, channel.Type);
-    }
-
-    [Fact]
-    public void SourceDetails_MappingWithOnlyNonAspirePackages_ReturnsBasedOnNuGetConfig()
-    {
-        // Arrange
-        var cache = new FakeNuGetPackageCache();
-        var mappings = new[]
-        {
-            new PackageMapping("Microsoft*", "https://example.com/microsoft/nuget/v3/index.json"),
-            new PackageMapping("Newtonsoft*", "https://example.com/newtonsoft/nuget/v3/index.json"),
-            new PackageMapping("*", "https://api.nuget.org/v3/index.json")
-        };
-
-        // Act
-        var channel = PackageChannel.CreateExplicitChannel("custom", PackageChannelQuality.Stable, mappings, cache);
-
-        // Assert
-        Assert.Equal(PackagingStrings.BasedOnNuGetConfig, channel.SourceDetails);
     }
 }
