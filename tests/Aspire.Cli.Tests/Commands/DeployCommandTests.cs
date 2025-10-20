@@ -353,7 +353,6 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
             {
                 var testService = new TestConsoleInteractionService();
                 // Capture DisplayMessage calls
-                var originalDisplayMessage = testService.GetType().GetMethod("DisplayMessage");
                 return new TestInteractionServiceWrapper(testService, capturedMessages);
             };
 
