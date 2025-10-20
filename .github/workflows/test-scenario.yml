@@ -85,52 +85,149 @@ jobs:
             gh --version
           fi
 
-      - name: Create agent task
-        id: create_agent_task
+      - name: Create issue and assign to copilot
+        id: create_issue
         run: |
-          echo "Creating agent task..."
+          echo "Creating issue in aspire-playground repository..."
           PROMPT_FILE="${{ steps.check_prompt.outputs.prompt_file }}"
+          SCENARIO_NAME="${{ steps.parse_scenario.outputs.scenario_name }}"
+          SOURCE_PR_URL="${{ github.event.issue.html_url }}"
+          SOURCE_PR_NUMBER="${{ github.event.issue.number }}"
+          SOURCE_REPO="${{ github.repository }}"
 
           # Auth using the token
           gh auth login --with-token <<< "$GH_PLAYGROUND_TOKEN"
 
-          # Create the agent task using stdin and capture the output
-          OUTPUT=$(cat "$PROMPT_FILE" | gh agent-task create \
+          # Build the issue body with context from the source PR and the prompt
+          ISSUE_TITLE="Test Scenario: ${SCENARIO_NAME}"
+          
+          # Read prompt content first
+          PROMPT_CONTENT=$(cat "$PROMPT_FILE")
+          
+          # Build issue body using printf with proper format strings to avoid injection
+          printf -v ISSUE_BODY '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s' \
+            "## Test Scenario Request" \
+            "" \
+            "**Scenario:** ${SCENARIO_NAME}" \
+            "**Source PR:** ${SOURCE_PR_URL}" \
+            "**Source Repository:** ${SOURCE_REPO}" \
+            "" \
+            "---" \
+            "" \
+            "$PROMPT_CONTENT" \
+            "" \
+            "---" \
+            "" \
+            "This issue was created automatically from PR #${SOURCE_PR_NUMBER} in ${SOURCE_REPO}."
+
+          # Create the issue and assign to copilot
+          echo "Creating issue with title: $ISSUE_TITLE"
+          ISSUE_OUTPUT=$(gh issue create \
             --repo "${REPO_OWNER}/${REPO_NAME}" \
-            -F - \
+            --title "$ISSUE_TITLE" \
+            --body "$ISSUE_BODY" \
+            --assignee "copilot" \
             2>&1)
 
-          echo "Agent task output:"
-          echo "$OUTPUT"
+          echo "Issue creation output:"
+          echo "$ISSUE_OUTPUT"
 
-          # Extract the PR URL from the output
-          PR_URL=$(echo "$OUTPUT" | \
-            grep -oP 'https://github.com/[^/]+/[^/]+/pull/\d+' | head -1)
+          # Extract the issue URL from the output
+          ISSUE_URL=$(echo "$ISSUE_OUTPUT" | \
+            grep -oP 'https://github.com/[^/]+/[^/]+/issues/\d+' | head -1)
 
-          if [ -z "$PR_URL" ]; then
-            echo "Warning: Could not extract PR URL from output"
-            echo "pr_url=" >> $GITHUB_OUTPUT
-          else
-            echo "Successfully created agent task with PR: $PR_URL"
-            echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+          if [ -z "$ISSUE_URL" ]; then
+            echo "Error: Could not extract issue URL from output"
+            exit 1
           fi
 
-      - name: Comment on PR with agent task link
-        if: steps.create_agent_task.outputs.pr_url != ''
+          echo "Successfully created issue: $ISSUE_URL"
+          echo "issue_url=$ISSUE_URL" >> $GITHUB_OUTPUT
+
+          # Extract issue number for later use
+          ISSUE_NUMBER=$(echo "$ISSUE_URL" | grep -oP '/issues/\K\d+')
+          echo "issue_number=$ISSUE_NUMBER" >> $GITHUB_OUTPUT
+
+      - name: Wait for agent PR to be created
+        id: wait_for_pr
+        run: |
+          echo "Waiting for GitHub Copilot agent to create a PR..."
+          ISSUE_NUMBER="${{ steps.create_issue.outputs.issue_number }}"
+          MAX_ATTEMPTS=30
+          SLEEP_SECONDS=10
+          ATTEMPT=0
+          FOUND_PR=""
+
+          # Auth using the token
+          gh auth login --with-token <<< "$GH_PLAYGROUND_TOKEN"
+
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            ATTEMPT=$((ATTEMPT + 1))
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS..."
+
+            # Try to find linked PRs by searching for PRs that reference this issue
+            LINKED_PRS=$(gh pr list \
+              --repo "${REPO_OWNER}/${REPO_NAME}" \
+              --search "linked:issue-${ISSUE_NUMBER}" \
+              --json number,url,title \
+              --jq '.[0].url' 2>/dev/null || echo "")
+
+            if [ -n "$LINKED_PRS" ] && [ "$LINKED_PRS" != "null" ] && [ "$LINKED_PRS" != "" ]; then
+              echo "Found linked PR: $LINKED_PRS"
+              FOUND_PR="$LINKED_PRS"
+              break
+            fi
+
+            # Also check for PRs created by the copilot bot recently
+            COPILOT_PRS=$(gh pr list \
+              --repo "${REPO_OWNER}/${REPO_NAME}" \
+              --author "copilot" \
+              --limit 5 \
+              --json number,url,title,createdAt \
+              --jq 'sort_by(.createdAt) | reverse | .[0].url' 2>/dev/null || echo "")
+
+            if [ -n "$COPILOT_PRS" ] && [ "$COPILOT_PRS" != "null" ] && [ "$COPILOT_PRS" != "" ]; then
+              echo "Found recent copilot PR: $COPILOT_PRS"
+              FOUND_PR="$COPILOT_PRS"
+              break
+            fi
+
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "No PR found yet, waiting ${SLEEP_SECONDS} seconds..."
+              sleep $SLEEP_SECONDS
+            fi
+          done
+
+          if [ -n "$FOUND_PR" ]; then
+            echo "pr_url=$FOUND_PR" >> $GITHUB_OUTPUT
+          else
+            echo "Warning: No PR found after $MAX_ATTEMPTS attempts"
+            echo "The agent may still be working on it."
+            echo "pr_url=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR with issue and agent PR links
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea  # v7.0.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prUrl = '${{ steps.create_agent_task.outputs.pr_url }}';
+            const issueUrl = '${{ steps.create_issue.outputs.issue_url }}';
+            const prUrl = '${{ steps.wait_for_pr.outputs.pr_url }}';
             const scenarioName = '${{ steps.parse_scenario.outputs.scenario_name }}';
-            const comment = `🤖 **AI Agent Task Created**
+
+            let comment = `🤖 **AI Agent Task Created**
 
             Scenario: **${scenarioName}**
 
-            An AI agent has been triggered to execute this scenario.
-            You can track the progress here:
+            An AI agent has been assigned to execute this scenario.
 
-            ${prUrl}`;
+            📝 **Issue:** ${issueUrl}`;
+
+            if (prUrl) {
+              comment += `\n🔀 **Agent PR:** ${prUrl}`;
+            } else {
+              comment += `\n\n⏳ The agent is working on this task. The PR will be linked in the issue once created.`;
+            }
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
