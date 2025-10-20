@@ -19,11 +19,11 @@ WORKDIR /app
 
 # Install dependencies first for better layer caching
 # Uses BuildKit cache mounts to speed up repeated builds
-RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=./api_service/uv.lock,target=uv.lock --mount=type=bind,source=./api_service/pyproject.toml,target=pyproject.toml \
+RUN --mount=type=cache,target=/root/.cache/uv --mount=type=bind,source=./app/uv.lock,target=uv.lock --mount=type=bind,source=./app/pyproject.toml,target=pyproject.toml \
     uv sync --locked --no-install-project --no-dev
 
 # Copy the rest of the application source and install the project
-COPY ./api_service /app
+COPY ./app /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
 
