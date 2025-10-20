@@ -50,10 +50,17 @@ public static class MauiResourceBuilderExtensions
             if (autoDetected.Count > 0)
             {
                 logger?.LogWarning(
-                    "No MAUI platforms were explicitly configured for '{ResourceName}'. Auto-detected platforms: {Platforms}. " +
+                    "Auto-detected .NET MAUI platform resources: {Platforms}. " +
                     "Use WithWindows(), WithAndroid(), WithiOS(), or WithMacCatalyst() to explicitly specify platforms.",
-                    resource.Name,
                     string.Join(", ", autoDetected));
+            }
+            else if (configuration.PlatformResources.Count == 0)
+            {
+                // Auto-detection ran but found no platforms (e.g., on Linux where no platforms are supported)
+                logger?.LogWarning(
+                    "No .NET MAUI platform resources were configured for '{ResourceName}'. " +
+                    "Use WithWindows(), WithAndroid(), WithiOS(), or WithMacCatalyst() to add platforms.",
+                    resource.Name);
             }
 
             return Task.CompletedTask;
