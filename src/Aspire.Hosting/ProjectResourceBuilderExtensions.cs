@@ -363,7 +363,8 @@ public static class ProjectResourceBuilderExtensions
         path = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, path));
         IProjectMetadata projectMetadata = new ProjectMetadata(path);
 
-        if (projectMetadata.IsFileBasedApp && RuntimeUtils.TryGetVersion(out var version) && version.Major < 10)
+        var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath);
+        if (projectMetadata.IsFileBasedApp && DotnetSdkUtils.TryGetVersion(projectDirectoryPath, out var version) && version.Major < 10)
         {
             // File-based apps are only supported on .NET 10 or later
             throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The current version is {version?.ToString() ?? "unknown"}.");
