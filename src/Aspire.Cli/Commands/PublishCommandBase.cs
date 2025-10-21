@@ -315,6 +315,35 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
             }
+            else if (activity.Type == PublishingActivityTypes.Log)
+            {
+                // Log activity - display the log message
+                var logLevel = activity.Data.LogLevel ?? "Information";
+                var message = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                
+                // Use 3-letter prefixes for log levels
+                var logPrefix = logLevel.ToUpperInvariant() switch
+                {
+                    "DEBUG" => "DBG",
+                    "TRACE" => "TRC",
+                    "INFORMATION" => "INF",
+                    "WARNING" => "WRN",
+                    "ERROR" => "ERR",
+                    "CRITICAL" => "CRT",
+                    _ => "INF"
+                };
+                
+                // Make debug and trace logs more subtle
+                var formattedMessage = logLevel.ToUpperInvariant() switch
+                {
+                    "DEBUG" => $"[{timestamp}] [dim][[{logPrefix}]] {message}[/]",
+                    "TRACE" => $"[{timestamp}] [dim][[{logPrefix}]] {message}[/]",
+                    _ => $"[{timestamp}] [[{logPrefix}]] {message}"
+                };
+                
+                InteractionService.DisplaySubtleMessage(formattedMessage, escapeMarkup: false);
+            }
             else
             {
                 // Task activity - log it
@@ -416,6 +445,54 @@ internal abstract class PublishCommandBase : BaseCommand
                     await logger.StopSpinnerAsync();
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
                     logger.StartSpinner();
+                }
+                else if (activity.Type == PublishingActivityTypes.Log)
+                {
+                    // Log activity - display through logger based on log level
+                    var stepId = activity.Data.StepId;
+                    if (stepId != null && steps.TryGetValue(stepId, out var stepInfo))
+                    {
+                        var logLevel = activity.Data.LogLevel ?? "Information";
+                        var message = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                        
+                        // Add 3-letter prefix to message for consistency
+                        var logPrefix = logLevel.ToUpperInvariant() switch
+                        {
+                            "DEBUG" => "DBG",
+                            "TRACE" => "TRC", 
+                            "INFORMATION" => "INF",
+                            "WARNING" => "WRN",
+                            "ERROR" => "ERR",
+                            "CRITICAL" => "CRT",
+                            _ => "INF"
+                        };
+                        
+                        var prefixedMessage = $"[[{logPrefix}]] {message}";
+                        
+                        // Map log levels to appropriate console logger methods
+                        switch (logLevel.ToUpperInvariant())
+                        {
+                            case "ERROR":
+                            case "CRITICAL":
+                                logger.Failure(stepInfo.Id, prefixedMessage);
+                                break;
+                            case "WARNING":
+                            case "WARN":
+                                logger.Warning(stepInfo.Id, prefixedMessage);
+                                break;
+                            case "DEBUG":
+                            case "TRACE":
+                                // Use a more subtle approach for debug/trace - prefix with dim formatting
+                                var subtleMessage = $"[dim]{prefixedMessage}[/]";
+                                logger.Info(stepInfo.Id, subtleMessage);
+                                break;
+                            case "INFORMATION":
+                            case "INFO":
+                            default:
+                                logger.Info(stepInfo.Id, prefixedMessage);
+                                break;
+                        }
+                    }
                 }
                 else
                 {
