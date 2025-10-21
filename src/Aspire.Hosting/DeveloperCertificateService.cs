@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
@@ -10,10 +11,12 @@ namespace Aspire.Hosting;
 
 internal class DeveloperCertificateService : IDeveloperCertificateService
 {
+    internal const string DefaultConfigSectionName = "Aspire:DeveloperCertificate";
+
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
 
-    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger)
+    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
         _certificates = new Lazy<ImmutableList<X509Certificate2>>(() =>
         {
@@ -56,9 +59,26 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             logger.LogDebug("Container trust for developer certificates is {Status}.", containerTrustAvailable ? "available" : "not available");
             return containerTrustAvailable;
         });
+
+        if (options.TrustDeveloperCertificate.HasValue)
+        {
+            // Configuration from DistributedApplicationOptions takes precedence.
+            TrustCertificate = options.TrustDeveloperCertificate.Value;
+        }
+        else
+        {
+            // Otherwise, attempt to read from configuration. Default is true.
+            var configSection = configuration.GetSection(DefaultConfigSectionName);
+            TrustCertificate = configSection.GetBool("TrustCertificate", true);
+        }
     }
 
+    /// <inheritdoc />
     public ImmutableList<X509Certificate2> Certificates => _certificates.Value;
 
+    /// <inheritdoc />
     public bool SupportsContainerTrust => _supportsContainerTrust.Value;
+
+    /// <inheritdoc />
+    public bool TrustCertificate { get; }
 }
