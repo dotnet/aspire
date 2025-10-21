@@ -567,7 +567,7 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
         else
         {
-            context.EnvironmentVariables[DashboardConfigNames.DashboardOtlpAuthModeName.EnvVarName] = "Unsecured";
+            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpAuthModeName.EnvVarName] = "Unsecured";
         }
 
         // Change the dashboard formatter to use JSON so we can parse the logs and render them in the
