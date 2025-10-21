@@ -61,7 +61,13 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
                 throw new InvalidOperationException("User secrets path could not be determined.");
             }
 
-            var flattenedUserSecrets = FlattenJsonObject(state);
+            // Load current state from disk to merge with incoming state
+            var currentState = await LoadStateAsync(cancellationToken).ConfigureAwait(false);
+
+            // Merge incoming state into current state (preserves concurrent writes)
+            MergeJsonObjects(currentState, state);
+
+            var flattenedUserSecrets = FlattenJsonObject(currentState);
             Directory.CreateDirectory(Path.GetDirectoryName(userSecretsPath)!);
             await File.WriteAllTextAsync(userSecretsPath, flattenedUserSecrets.ToJsonString(s_jsonSerializerOptions), cancellationToken).ConfigureAwait(false);
 
@@ -74,6 +80,17 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save user secrets.");
+        }
+    }
+
+    /// <summary>
+    /// Merges properties from source JsonObject into target JsonObject, overwriting existing keys.
+    /// </summary>
+    private static void MergeJsonObjects(JsonObject target, JsonObject source)
+    {
+        foreach (var kvp in source)
+        {
+            target[kvp.Key] = kvp.Value?.DeepClone();
         }
     }
 

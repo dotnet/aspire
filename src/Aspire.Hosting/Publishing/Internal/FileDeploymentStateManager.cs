@@ -89,7 +89,13 @@ public sealed class FileDeploymentStateManager(
                 return;
             }
 
-            var flattenedSecrets = FlattenJsonObject(state);
+            // Load current state from disk to merge with incoming state
+            var currentState = await LoadStateAsync(cancellationToken).ConfigureAwait(false);
+
+            // Merge incoming state into current state (preserves concurrent writes)
+            MergeJsonObjects(currentState, state);
+
+            var flattenedSecrets = FlattenJsonObject(currentState);
             Directory.CreateDirectory(Path.GetDirectoryName(deploymentStatePath)!);
             await File.WriteAllTextAsync(
                 deploymentStatePath,
@@ -101,6 +107,17 @@ public sealed class FileDeploymentStateManager(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save deployment state.");
+        }
+    }
+
+    /// <summary>
+    /// Merges properties from source JsonObject into target JsonObject, overwriting existing keys.
+    /// </summary>
+    private static void MergeJsonObjects(JsonObject target, JsonObject source)
+    {
+        foreach (var kvp in source)
+        {
+            target[kvp.Key] = kvp.Value?.DeepClone();
         }
     }
 

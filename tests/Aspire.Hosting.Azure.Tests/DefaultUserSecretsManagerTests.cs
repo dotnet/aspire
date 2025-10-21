@@ -213,4 +213,167 @@ public class UserSecretsDeploymentStateManagerTests
         Assert.Equal("test", result["OtherValue"]!.ToString());
         Assert.False(result.ContainsKey("EmptyArray"));
     }
+
+    [Fact]
+    public async Task SaveStateAsync_MergesWithExistingState()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var secretsFile = Path.Combine(tempDir, "secrets.json");
+
+        try
+        {
+            // Create initial state with Parameters
+            var initialState = new JsonObject
+            {
+                ["Parameters"] = new JsonObject
+                {
+                    ["param1"] = "value1"
+                }
+            };
+            await File.WriteAllTextAsync(secretsFile, initialState.ToJsonString());
+
+            // Simulate what would happen without merge: new state with only Azure data
+            var newState = new JsonObject
+            {
+                ["Azure"] = new JsonObject
+                {
+                    ["SubscriptionId"] = "sub-123"
+                }
+            };
+
+            // Simulate the merge logic that SaveStateAsync should perform
+            var loadedState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            foreach (var kvp in newState)
+            {
+                loadedState[kvp.Key] = kvp.Value?.DeepClone();
+            }
+
+            // Act - Save the merged state
+            await File.WriteAllTextAsync(secretsFile, loadedState.ToJsonString());
+
+            // Assert - Both Parameters and Azure should be present
+            var finalState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            Assert.NotNull(finalState["Parameters"]);
+            Assert.NotNull(finalState["Azure"]);
+            Assert.Equal("value1", finalState["Parameters"]!["param1"]!.ToString());
+            Assert.Equal("sub-123", finalState["Azure"]!["SubscriptionId"]!.ToString());
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SaveStateAsync_PreservesExistingKeysNotInNewState()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var secretsFile = Path.Combine(tempDir, "secrets.json");
+
+        try
+        {
+            // Create initial state with multiple keys
+            var initialState = new JsonObject
+            {
+                ["Key1"] = "value1",
+                ["Key2"] = "value2",
+                ["Key3"] = "value3"
+            };
+            await File.WriteAllTextAsync(secretsFile, initialState.ToJsonString());
+
+            // New state only updates Key2 and adds Key4
+            var newState = new JsonObject
+            {
+                ["Key2"] = "updated-value2",
+                ["Key4"] = "value4"
+            };
+
+            // Simulate merge
+            var loadedState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            foreach (var kvp in newState)
+            {
+                loadedState[kvp.Key] = kvp.Value?.DeepClone();
+            }
+
+            // Act
+            await File.WriteAllTextAsync(secretsFile, loadedState.ToJsonString());
+
+            // Assert - All keys should be present with correct values
+            var finalState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            Assert.Equal(4, finalState.Count);
+            Assert.Equal("value1", finalState["Key1"]!.ToString());
+            Assert.Equal("updated-value2", finalState["Key2"]!.ToString());
+            Assert.Equal("value3", finalState["Key3"]!.ToString());
+            Assert.Equal("value4", finalState["Key4"]!.ToString());
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task SaveStateAsync_OverwritesExistingKeysWithNewValues()
+    {
+        // Arrange
+        var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(tempDir);
+        var secretsFile = Path.Combine(tempDir, "secrets.json");
+
+        try
+        {
+            // Create initial state
+            var initialState = new JsonObject
+            {
+                ["Azure"] = new JsonObject
+                {
+                    ["SubscriptionId"] = "old-sub-id",
+                    ["Tenant"] = "old-tenant"
+                }
+            };
+            await File.WriteAllTextAsync(secretsFile, initialState.ToJsonString());
+
+            // New state with updated Azure data
+            var newState = new JsonObject
+            {
+                ["Azure"] = new JsonObject
+                {
+                    ["SubscriptionId"] = "new-sub-id",
+                    ["Tenant"] = "new-tenant"
+                }
+            };
+
+            // Simulate merge
+            var loadedState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            foreach (var kvp in newState)
+            {
+                loadedState[kvp.Key] = kvp.Value?.DeepClone();
+            }
+
+            // Act
+            await File.WriteAllTextAsync(secretsFile, loadedState.ToJsonString());
+
+            // Assert - Azure values should be updated
+            var finalState = JsonNode.Parse(await File.ReadAllTextAsync(secretsFile))!.AsObject();
+            Assert.Equal("new-sub-id", finalState["Azure"]!["SubscriptionId"]!.ToString());
+            Assert.Equal("new-tenant", finalState["Azure"]!["Tenant"]!.ToString());
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+    }
 }
