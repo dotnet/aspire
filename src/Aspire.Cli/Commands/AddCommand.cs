@@ -97,7 +97,7 @@ internal sealed class AddCommand : BaseCommand
                     var packages = new List<(NuGetPackage Package, PackageChannel Channel)>();
                     var packagesLock = new object();
 
-                    await Parallel.ForEachAsync(channels, async (channel, ct) =>
+                    await Parallel.ForEachAsync(channels, cancellationToken, async (channel, ct) =>
                     {
                         var integrationPackages = await channel.GetIntegrationPackagesAsync(
                             workingDirectory: effectiveAppHostProjectFile.Directory!,
