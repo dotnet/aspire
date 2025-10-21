@@ -319,9 +319,8 @@ public static class AzureKustoBuilderExtensions
             IconName = "ServerLink"
         };
 
-        // TODO: What to do for remote deployment / SSH scenarios?
-
-        // Only add desktop command on Windows
+        // The Desktop Kusto.Explorer is a ClickOnce app that's only available on Windows, so don't add the command
+        // on other platforms.
         if (OperatingSystem.IsWindows())
         {
             resourceBuilder.WithCommand(
@@ -331,11 +330,15 @@ public static class AzureKustoBuilderExtensions
                 commandOptions: options);
         }
 
-        resourceBuilder.WithCommand(
-            name: "open-kusto-explorer-web",
-            displayName: "Open in Kusto Explorer (Web)",
-            executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
-            commandOptions: options);
+        // The web explorer will only auto-connect to allowlisted domains, so do not show this command when running as an emulator.
+        if (!resourceBuilder.Resource.IsEmulator)
+        {
+            resourceBuilder.WithCommand(
+                name: "open-kusto-explorer-web",
+                displayName: "Open in Kusto Explorer (Web)",
+                executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
+                commandOptions: options);
+        }
 
         static ResourceCommandState UpdateState(UpdateCommandStateContext context)
         {
