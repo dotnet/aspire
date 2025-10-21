@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentCommonPackageTags) Keycloak</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) Keycloak authentication identity security</PackageTags>
     <Description>Configures Keycloak as the authentication provider for ASP.NET Core applications.</Description>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>

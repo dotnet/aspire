@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting azure</PackageTags>
+    <PackageTags>aspire integration hosting azure monitoring observability cloud</PackageTags>
     <Description>Azure Application Insights resource types for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)AzureAppInsights_256x.png</PackageIconFullPath>
   </PropertyGroup>

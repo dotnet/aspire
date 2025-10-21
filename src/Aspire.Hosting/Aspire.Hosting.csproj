@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire hosting</PackageTags>
+    <PackageTags>aspire hosting orchestration</PackageTags>
     <Description>Core abstractions for the .NET Aspire application model.</Description>
   </PropertyGroup>
 

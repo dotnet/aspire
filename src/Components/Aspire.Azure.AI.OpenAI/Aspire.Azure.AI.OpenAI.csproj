@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) ai openai</PackageTags>
+    <PackageTags>$(ComponentAzurePackageTags) ai openai ai-search</PackageTags>
     <Description>A client for Azure OpenAI that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureOpenAI_256x.png</PackageIconFullPath>
     <!-- AOAI001 - AzureOpenAIClientOptions.DefaultHeaders/DefaultQueryParameters is experimental. -->

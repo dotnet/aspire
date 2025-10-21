@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentCommonPackageTags) ai openai</PackageTags>
+    <PackageTags>$(ComponentCommonPackageTags) ai openai ai-search</PackageTags>
     <Description>A client for OpenAI that integrates with Aspire, including metrics and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
     <!-- In preview until the public API is validated and the Microsoft.Extensions.AI integration is designed. -->
