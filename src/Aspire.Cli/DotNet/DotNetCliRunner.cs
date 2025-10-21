@@ -1182,24 +1182,21 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     private void ConfigurePrivateSdkEnvironment(ProcessStartInfo startInfo)
     {
         // Get the effective minimum SDK version to determine which private SDK to use
-        var sdkInstaller = serviceProvider.GetService<IDotNetSdkInstaller>();
-        if (sdkInstaller is DotNetSdkInstaller installer)
-        {
-            var sdkVersion = installer.GetEffectiveMinimumSdkVersion();
-            var runtimesDirectory = executionContext.RuntimesDirectory.FullName;
-            var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
+        var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
+        var sdkVersion = sdkInstaller.GetEffectiveMinimumSdkVersion();
+        var runtimesDirectory = executionContext.RuntimesDirectory.FullName;
+        var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
 
-            // Check if the private SDK exists
-            if (Directory.Exists(sdkInstallPath))
-            {
-                // Set DOTNET_ROOT to point to the private SDK installation
-                startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
-                
-                // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
-                startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
-                
-                logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
-            }
+        // Check if the private SDK exists
+        if (Directory.Exists(sdkInstallPath))
+        {
+            // Set DOTNET_ROOT to point to the private SDK installation
+            startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
+            
+            // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
+            startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            
+            logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
         }
     }
 }

@@ -21,4 +21,10 @@ internal interface IDotNetSdkInstaller
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task InstallAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the effective minimum SDK version based on configuration and feature flags.
+    /// </summary>
+    /// <returns>The minimum SDK version string.</returns>
+    string GetEffectiveMinimumSdkVersion();
 }
