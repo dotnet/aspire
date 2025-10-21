@@ -2,10 +2,10 @@ import { MessageConnection } from 'vscode-jsonrpc';
 import * as vscode from 'vscode';
 import * as fs from 'fs/promises';
 import { getRelativePathToWorkspace, isFolderOpenInWorkspace } from '../utils/workspace';
-import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession } from '../loc/strings';
+import { yesLabel, noLabel, directLink, codespacesLink, openAspireDashboard, failedToShowPromptEmpty, incompatibleAppHostError, aspireHostingSdkVersion, aspireCliVersion, requiredCapability, fieldRequired, aspireDebugSessionNotInitialized, errorMessage, failedToStartDebugSession, dashboard, codespaces } from '../loc/strings';
 import { ICliRpcClient } from './rpcClient';
 import { ProgressNotifier } from './progressNotifier';
-import { formatText } from '../utils/strings';
+import { applyTextStyle, formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
@@ -33,7 +33,7 @@ export interface IInteractionService {
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
     startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
-    writeDebugSessionMessage: (message: string, stdout: boolean) => void;
+    writeDebugSessionMessage: (message: string, stdout: boolean, textStyle?: string) => void;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -248,6 +248,12 @@ export class InteractionService implements IInteractionService {
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
         extensionLogOutputChannel.info(`Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
+        this.writeDebugSessionMessage(dashboard + ': ' + dashboardUrls.BaseUrlWithLoginToken, true, '\x1b[32m');
+
+        if (dashboardUrls.CodespacesUrlWithLoginToken) {
+            this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, '\x1b[32m');
+        }
+
         const actions: vscode.MessageItem[] = [
             { title: directLink }
         ];
@@ -340,14 +346,14 @@ export class InteractionService implements IInteractionService {
         }
     }
 
-    writeDebugSessionMessage(message: string, stdout: boolean) {
+    writeDebugSessionMessage(message: string, stdout: boolean, textStyle: string | null | undefined) {
         const debugSession = this._getAspireDebugSession();
         if (!debugSession) {
             extensionLogOutputChannel.warn('Attempted to write to debug session, but no active debug session exists.');
             return;
         }
 
-        debugSession.sendMessage(message, true, stdout ? 'stdout' : 'stderr');
+        debugSession.sendMessage(applyTextStyle(message, textStyle), true, stdout ? 'stdout' : 'stderr');
     }
 
     async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {

@@ -141,6 +141,8 @@ internal sealed class RunCommand : BaseCommand
 
             await _certificateService.EnsureCertificatesTrustedAsync(_runner, cancellationToken);
 
+            var shouldBuildAppHostInExtension = await ShouldBuildAppHostInExtensionAsync(InteractionService, isSingleFileAppHost, cancellationToken);
+
             var watch = !isSingleFileAppHost && (_features.IsFeatureEnabled(KnownFeatures.DefaultWatchEnabled, defaultValue: false) || (isExtensionHost && !startDebugSession));
 
             if (!watch)
@@ -154,9 +156,7 @@ internal sealed class RunCommand : BaseCommand
                     };
 
                     // The extension host will build the app host project itself, so we don't need to do it here if host exists.
-                    if (!ExtensionHelper.IsExtensionHost(InteractionService, out _, out var extensionBackchannel)
-                        || !await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken)
-                        || isSingleFileAppHost)
+                    if (!shouldBuildAppHostInExtension)
                     {
                         var buildExitCode = await AppHostHelper.BuildAppHostAsync(_runner, InteractionService, effectiveAppHostFile, buildOptions, ExecutionContext.WorkingDirectory, cancellationToken);
 
@@ -226,7 +226,7 @@ internal sealed class RunCommand : BaseCommand
                 cancellationToken);
 
             // Wait for the backchannel to be established.
-            var backchannel = await InteractionService.ShowStatusAsync(RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
+            var backchannel = await InteractionService.ShowStatusAsync(shouldBuildAppHostInExtension ? InteractionServiceStrings.BuildingAppHost : RunCommandStrings.ConnectingToAppHost, async () => { return await backchannelCompletitionSource.Task.WaitAsync(cancellationToken); });
 
             var logFile = GetAppHostLogFile();
 
@@ -264,10 +264,14 @@ internal sealed class RunCommand : BaseCommand
             var appHostRelativePath = Path.GetRelativePath(ExecutionContext.WorkingDirectory.FullName, effectiveAppHostFile.FullName);
             topGrid.AddRow(new Align(new Markup($"[bold green]{appHostLocalizedString}[/]:"), HorizontalAlignment.Right), new Text(appHostRelativePath));
             topGrid.AddRow(Text.Empty, Text.Empty);
-            topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
-            if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+
+            if (!isExtensionHost)
             {
-                topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
+                topGrid.AddRow(new Align(new Markup($"[bold green]{dashboardsLocalizedString}[/]:"), HorizontalAlignment.Right), new Markup($"[link={dashboardUrls.BaseUrlWithLoginToken}]{dashboardUrls.BaseUrlWithLoginToken}[/]"));
+                if (dashboardUrls.CodespacesUrlWithLoginToken is { } codespacesUrlWithLoginToken)
+                {
+                    topGrid.AddRow(Text.Empty, new Markup($"[link={codespacesUrlWithLoginToken}]{codespacesUrlWithLoginToken}[/]"));
+                }
             }
 
             topGrid.AddRow(Text.Empty, Text.Empty);
@@ -441,7 +445,7 @@ internal sealed class RunCommand : BaseCommand
                     if (entry.LogLevel is not LogLevel.Trace and not LogLevel.Debug)
                     {
                         // Send only information+ level logs to the extension host.
-                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical);
+                        extensionInteractionService.WriteDebugSessionMessage(entry.Message, entry.LogLevel is not LogLevel.Error and not LogLevel.Critical, "\x1b[2m");
                     }
                 }
 
@@ -488,5 +492,12 @@ internal sealed class RunCommand : BaseCommand
 
             _resourceStates[resourceState.Resource] = resourceState;
         }
+    }
+
+    private static async Task<bool> ShouldBuildAppHostInExtensionAsync(IInteractionService interactionService, bool isSingleFileAppHost, CancellationToken cancellationToken)
+    {
+        return ExtensionHelper.IsExtensionHost(interactionService, out _, out var extensionBackchannel)
+                        && await extensionBackchannel.HasCapabilityAsync(KnownCapabilities.DevKit, cancellationToken)
+                        && !isSingleFileAppHost;
     }
 }

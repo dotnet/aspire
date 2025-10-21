@@ -51,3 +51,5 @@ export const processExceptionOccurred = (error: string, command: string) => vsco
 export const failedToStartDebugSession = vscode.l10n.t('Failed to start debug session.');
 export const invalidLaunchConfiguration = (projectPath: string) => vscode.l10n.t('Invalid launch configuration for {0}.', projectPath);
 export const noAppHostInWorkspace = vscode.l10n.t('No apphost found in the Aspire settings file.');
+export const dashboard = vscode.l10n.t('Dashboard');
+export const codespaces = vscode.l10n.t('Codespaces');
