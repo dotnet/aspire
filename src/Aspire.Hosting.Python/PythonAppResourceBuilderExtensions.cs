@@ -3,10 +3,12 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-
-#pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIREEXTENSION001
 
 namespace Aspire.Hosting;
 
@@ -288,11 +290,21 @@ public static class PythonAppResourceBuilderExtensions
             .WithCertificateTrustScope(CertificateTrustScope.System)
             .WithExecutableCertificateTrustCallback(ctx =>
             {
-                if (ctx.Scope != CertificateTrustScope.Append)
+                if (ctx.Scope == CertificateTrustScope.Append)
+                {
+                    var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                    var logger = resourceLogger.GetLogger(ctx.Resource);
+                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                }
+                else
                 {
                     // Override default certificates path for the requests module.
                     // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
                     ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+
+                    // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
+                    // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
+                    ctx.CertificateBundleEnvironment.Add("CURL_CA_BUNDLE");
 
                     // Override default certificates path for Python modules that honor OpenSSL style paths.
                     // This has been tested with urllib, urllib3, httpx, and aiohttp.

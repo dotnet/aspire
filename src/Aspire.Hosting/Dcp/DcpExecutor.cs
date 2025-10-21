@@ -1117,7 +1117,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         CancellationToken cancellationToken)
     {
         var executablesList = executables.ToList();
-        
+
         async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
         {
             var resourceLogger = _loggerService.GetLogger(resource);
@@ -1187,7 +1187,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var tasks = new List<Task>();
         var groups = executablesList.GroupBy(e => e.ModelResource).ToList();
-        
+
         foreach (var group in groups)
         {
             var groupList = group.ToList();
@@ -2100,6 +2100,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ExecutableCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,
@@ -2231,6 +2232,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ContainerCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,
