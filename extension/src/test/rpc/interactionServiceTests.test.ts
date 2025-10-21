@@ -78,6 +78,34 @@ suite('InteractionService endpoints', () => {
 		showInputBoxStub.restore();
 	});
 
+	// confirm
+	test('confirm returns true when Yes is selected', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('Yes' as any);
+		const result = await testInfo.interactionService.confirm('Are you sure?', true);
+		assert.strictEqual(result, true);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		showQuickPickStub.restore();
+	});
+
+	test('confirm returns false when No is selected', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves('No' as any);
+		const result = await testInfo.interactionService.confirm('Are you sure?', false);
+		assert.strictEqual(result, false);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		showQuickPickStub.restore();
+	});
+
+	test('confirm returns null when cancelled', async () => {
+		const testInfo = await createTestRpcServer();
+		const showQuickPickStub = sinon.stub(vscode.window, 'showQuickPick').resolves(undefined);
+		const result = await testInfo.interactionService.confirm('Are you sure?', true);
+		assert.strictEqual(result, null);
+		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		showQuickPickStub.restore();
+	});
+
 	test('displayError endpoint', async () => {
 		const testInfo = await createTestRpcServer();
 		const showErrorMessageSpy = sinon.spy(vscode.window, 'showErrorMessage');
