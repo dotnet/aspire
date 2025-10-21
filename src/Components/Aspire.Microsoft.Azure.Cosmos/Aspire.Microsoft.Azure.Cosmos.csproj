@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) cosmos cosmosdb data database db cloud</PackageTags>
+    <PackageTags>$(ComponentAzurePackageTags) cosmos cosmosdb data database db nosql cloud</PackageTags>
     <Description>A client for Azure Cosmos DB that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureCosmosDB_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
