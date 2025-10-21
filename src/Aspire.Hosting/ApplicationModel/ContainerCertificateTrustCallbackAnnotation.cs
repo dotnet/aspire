@@ -23,6 +23,11 @@ public sealed class ContainerCertificateTrustCallbackAnnotation(Func<ContainerCe
 public sealed class ContainerCertificateTrustCallbackAnnotationContext
 {
     /// <summary>
+    /// Gets the <see cref="DistributedApplicationExecutionContext"/> for this session.
+    /// </summary>
+    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
+
+    /// <summary>
     /// Gets the resource to which the annotation is applied.
     /// </summary>
     public required IResource Resource { get; init; }
