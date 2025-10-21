@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Xml;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
@@ -22,7 +23,7 @@ internal interface IProjectUpdater
     Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default);
 }
 
-internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
+internal sealed partial class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliRunner runner, IInteractionService interactionService, IMemoryCache cache, CliExecutionContext executionContext, FallbackProjectParser fallbackParser) : IProjectUpdater
 {
     public async Task<ProjectUpdateResult> UpdateProjectAsync(FileInfo projectFile, PackageChannel channel, CancellationToken cancellationToken = default)
     {
@@ -121,7 +122,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         foreach (var updateStep in updateSteps)
         {
-            interactionService.DisplaySubtleMessage(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
+            interactionService.DisplaySubtleMessage(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.ExecutingUpdateStepFormat, updateStep.Description));
             await updateStep.Callback();
         }
 
@@ -172,7 +173,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var itemsKey = string.Join(",", items.OrderBy(x => x));
         var propertiesKey = string.Join(",", properties.OrderBy(x => x));
         var cacheKey = $"{ItemsAndPropertiesCacheKeyPrefix}_{projectFile.FullName}_{itemsKey}_{propertiesKey}";
-        
+
         var (exitCode, document) = await cache.GetOrCreateAsync(cacheKey, async entry =>
         {
             return await runner.GetProjectItemsAndPropertiesAsync(projectFile, items, properties, new(), cancellationToken);
@@ -180,7 +181,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         if (exitCode != 0 || document is null)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedFetchItemsAndPropertiesFormat, projectFile.FullName));
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.FailedFetchItemsAndPropertiesFormat, projectFile.FullName));
         }
 
         return document;
@@ -202,7 +203,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             // Only use fallback for AppHost projects
             logger.LogWarning("Falling back to XML parsing for '{ProjectFile}'. Reason: {Message}", projectFile.FullName, ex.Message);
-            
+
             if (!context.FallbackXmlParsing)
             {
                 context.FallbackXmlParsing = true;
@@ -223,7 +224,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var appHostSdkAnalyzeStep = new AnalyzeStep(UpdateCommandStrings.AnalyzeAppHostSdk, () => AnalyzeAppHostSdkAsync(context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostSdkAnalyzeStep);
 
-        var appHostProjectAnalyzeStep = new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, context.AppHostProjectFile.FullName), () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
+        var appHostProjectAnalyzeStep = new AnalyzeStep(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, context.AppHostProjectFile.FullName), () => AnalyzeProjectAsync(context.AppHostProjectFile, context, cancellationToken));
         context.AnalyzeSteps.Enqueue(appHostProjectAnalyzeStep);
 
         return Task.CompletedTask;
@@ -239,7 +240,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             return latestPackage;
         });
 
-        return latestPackage ?? throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.NoPackageFoundFormat, packageId, context.Channel.Name));
+        return latestPackage ?? throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.NoPackageFoundFormat, packageId, context.Channel.Name));
     }
 
     private async Task AnalyzeAppHostSdkAsync(UpdateContext context, CancellationToken cancellationToken)
@@ -259,7 +260,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var sdkUpdateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, "Aspire.AppHost.Sdk", sdkVersionElement.GetString(), latestSdkPackage?.Version),
             () => UpdateSdkVersionInAppHostAsync(context.AppHostProjectFile, latestSdkPackage!),
             "Aspire.AppHost.Sdk",
             sdkVersionElement.GetString() ?? "unknown",
@@ -270,6 +271,23 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
     private static async Task UpdateSdkVersionInAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
     {
+        if (string.Equals(projectFile.Extension, ".csproj", StringComparison.OrdinalIgnoreCase))
+        {
+            await UpdateSdkVersionInCsprojAppHostAsync(projectFile, package);
+        }
+        else if (string.Equals(projectFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase))
+        {
+            await UpdateSdkVersionInSingleFileAppHostAsync(projectFile, package);
+        }
+        else
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                "Unsupported AppHost file type: {0}. Expected .csproj or .cs file.", projectFile.Extension));
+        }
+    }
+
+    private static async Task UpdateSdkVersionInCsprojAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    {
         var projectDocument = new XmlDocument();
         projectDocument.PreserveWhitespace = true;
 
@@ -278,21 +296,55 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         var projectNode = projectDocument.SelectSingleNode("/Project");
         if (projectNode is null)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindRootProjectElementFormat, projectFile.FullName));
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindRootProjectElementFormat, projectFile.FullName));
         }
 
-        var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
-        if (sdkNode is null)
+        // Check if the SDK is set via the Sdk attribute on the Project element (new format)
+        var sdkAttribute = projectNode.Attributes?["Sdk"];
+        if (sdkAttribute is not null && sdkAttribute.Value.StartsWith("Aspire.AppHost.Sdk", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+            // New format: <Project Sdk="Aspire.AppHost.Sdk/version">
+            sdkAttribute.Value = $"Aspire.AppHost.Sdk/{package.Version}";
         }
+        else
+        {
+            // Old format: <Sdk Name="Aspire.AppHost.Sdk" Version="..." />
+            var sdkNode = projectNode.SelectSingleNode("Sdk[@Name='Aspire.AppHost.Sdk']");
+            if (sdkNode is null)
+            {
+                throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindSdkElementFormat, projectFile.FullName));
+            }
 
-        sdkNode.Attributes?["Version"]?.Value = package.Version;
+            sdkNode.Attributes?["Version"]?.Value = package.Version;
+        }
 
         projectDocument.Save(projectFile.FullName);
 
         await Task.CompletedTask;
     }
+
+    private static async Task UpdateSdkVersionInSingleFileAppHostAsync(FileInfo projectFile, NuGetPackageCli package)
+    {
+        var fileContent = await File.ReadAllTextAsync(projectFile.FullName);
+
+        // Look for the #:sdk Aspire.AppHost.Sdk@<version> directive
+        var match = SdkDirectiveRegex().Match(fileContent);
+
+        if (!match.Success)
+        {
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
+                "Could not find '#:sdk Aspire.AppHost.Sdk@<version>' directive in single-file AppHost: {0}", projectFile.FullName));
+        }
+
+        // Replace the matched SDK directive with the new version
+        var newDirective = $"#:sdk Aspire.AppHost.Sdk@{package.Version}";
+        var updatedContent = SdkDirectiveRegex().Replace(fileContent, newDirective, 1);
+
+        await File.WriteAllTextAsync(projectFile.FullName, updatedContent);
+    }
+
+    [GeneratedRegex(@"#:sdk\s+Aspire\.AppHost\.Sdk@(?:[\d\.\-a-zA-Z]+|\*)")]
+    internal static partial Regex SdkDirectiveRegex();
 
     private async Task AnalyzeProjectAsync(FileInfo projectFile, UpdateContext context, CancellationToken cancellationToken)
     {
@@ -319,7 +371,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             {
                 var referencedProjectPath = projectReference.GetProperty("FullPath").GetString() ?? throw new ProjectUpdaterException(UpdateCommandStrings.ProjectReferenceNoFullPath);
                 var referencedProjectFile = new FileInfo(referencedProjectPath);
-                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
+                context.AnalyzeSteps.Enqueue(new AnalyzeStep(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AnalyzeProjectFormat, referencedProjectFile.FullName), () => AnalyzeProjectAsync(referencedProjectFile, context, cancellationToken)));
             }
         }
 
@@ -342,13 +394,22 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             else
             {
                 // Traditional package management - Version should be in PackageReference
-                if (!packageReference.TryGetProperty("Version", out var versionElement) || versionElement.GetString() is null)
+                if (!packageReference.TryGetProperty("Version", out var versionElement))
                 {
-                    throw new ProjectUpdaterException(UpdateCommandStrings.PackageReferenceNoVersion);
+                    // Version attribute is missing - treat as wildcard
+                    var packageVersion = "*";
+                    await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
                 }
-                
-                var packageVersion = versionElement.GetString()!;
-                await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                else
+                {
+                    var packageVersion = versionElement.GetString();
+                    if (string.IsNullOrEmpty(packageVersion) || packageVersion == "*")
+                    {
+                        // Version is * or empty - treat as wildcard
+                        packageVersion = "*";
+                    }
+                    await AnalyzePackageForTraditionalManagementAsync(packageId, packageVersion, projectFile, context, cancellationToken);
+                }
             }
         }
     }
@@ -385,7 +446,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var updateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, packageVersion, latestPackage!.Version),
             () => UpdatePackageReferenceInProject(projectFile, latestPackage, cancellationToken),
             packageId,
             packageVersion,
@@ -397,7 +458,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private async Task AnalyzePackageForCentralPackageManagementAsync(string packageId, FileInfo projectFile, FileInfo directoryPackagesPropsFile, UpdateContext context, CancellationToken cancellationToken)
     {
         var currentVersion = await GetPackageVersionFromDirectoryPackagesPropsAsync(packageId, directoryPackagesPropsFile, projectFile, cancellationToken);
-        
+
         if (currentVersion is null)
         {
             logger.LogInformation("Package '{PackageId}' not found in Directory.Packages.props, skipping.", packageId);
@@ -413,7 +474,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         var updateStep = new PackageUpdateStep(
-            string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, currentVersion, latestPackage!.Version),
+            string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.UpdatePackageFormat, packageId, currentVersion, latestPackage!.Version),
             () => UpdatePackageVersionInDirectoryPackagesProps(packageId, latestPackage!.Version, directoryPackagesPropsFile),
             packageId,
             currentVersion,
@@ -430,7 +491,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
             doc.Load(directoryPackagesPropsFile.FullName);
             var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
             var versionAttribute = packageVersionNode?.Attributes?["Version"]?.Value;
-            
+
             if (versionAttribute is null)
             {
                 return null;
@@ -449,14 +510,14 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                     }
                     else
                     {
-                        throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, 
+                        throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
                             "Unable to resolve MSBuild property '{0}' to a valid semantic version. Expression: '{1}', Resolved value: '{2}'",
                             propertyName, versionAttribute, resolvedValue ?? "null"));
                     }
                 }
                 else
                 {
-                    throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                    throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture,
                         "Invalid MSBuild property expression in package version: '{0}'", versionAttribute));
                 }
             }
@@ -497,7 +558,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         try
         {
             var document = await GetItemsAndPropertiesAsync(
-                projectFile, 
+                projectFile,
                 Array.Empty<string>(), // No items needed
                 [propertyName], // Just the property we want
                 cancellationToken);
@@ -534,11 +595,11 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     {
         var doc = new XmlDocument { PreserveWhitespace = true };
         doc.Load(directoryPackagesPropsFile.FullName);
-        
+
         var packageVersionNode = doc.SelectSingleNode($"/Project/ItemGroup/PackageVersion[@Include='{packageId}']");
         if (packageVersionNode?.Attributes?["Version"] is null)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindPackageVersionInDirectoryPackagesProps, packageId, directoryPackagesPropsFile.FullName));
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.CouldNotFindPackageVersionInDirectoryPackagesProps, packageId, directoryPackagesPropsFile.FullName));
         }
 
         packageVersionNode.Attributes["Version"]!.Value = newVersion;
@@ -559,7 +620,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
 
         if (exitCode != 0)
         {
-            throw new ProjectUpdaterException(string.Format(System.Globalization.CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
+            throw new ProjectUpdaterException(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.FailedUpdatePackageReferenceFormat, package.Id, projectFile.FullName));
         }
     }
 
@@ -568,7 +629,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         interactionService.DisplayEmptyLine();
 
         var changes = AnalyzeNuGetConfigChanges(originalDocument, proposedDocument);
-        
+
         if (!changes.HasChanges)
         {
             interactionService.DisplayPlainText(UpdateCommandStrings.NoChangesDetectedInNuGetConfig);
@@ -576,7 +637,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         }
 
         DisplayNuGetConfigChanges(changes);
-        
+
         var shouldProceed = await interactionService.ConfirmAsync(
             UpdateCommandStrings.ApplyChangesToNuGetConfig,
             defaultValue: true,
@@ -615,7 +676,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private static List<PackageSourceInfo> ExtractPackageSources(XmlDocument? document)
     {
         var sources = new List<PackageSourceInfo>();
-        if (document?.DocumentElement == null) 
+        if (document?.DocumentElement == null)
         {
             return sources;
         }
@@ -644,7 +705,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
     private static Dictionary<string, List<string>> ExtractPackageSourceMappings(XmlDocument? document)
     {
         var mappings = new Dictionary<string, List<string>>();
-        if (document?.DocumentElement == null) 
+        if (document?.DocumentElement == null)
         {
             return mappings;
         }
@@ -716,7 +777,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.AddedFeedFormat, feed.Value));
             interactionService.DisplayEmptyLine();
-            
+
             if (changes.ProposedMappings.TryGetValue(feed.Key, out var patterns))
             {
                 foreach (var pattern in patterns)
@@ -739,7 +800,7 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
         {
             interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.RetainedFeedFormat, feed.Value));
             interactionService.DisplayEmptyLine();
-            
+
             if (mappingChangesBySource.TryGetValue(feed.Key, out var mappingChange))
             {
                 // Show added patterns
@@ -747,19 +808,19 @@ internal sealed class ProjectUpdater(ILogger<ProjectUpdater> logger, IDotNetCliR
                 {
                     interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingAddedFormat, pattern));
                 }
-                
+
                 // Show removed patterns
                 foreach (var pattern in mappingChange.RemovedPatterns)
                 {
                     interactionService.DisplayPlainText(string.Format(CultureInfo.InvariantCulture, UpdateCommandStrings.MappingRemovedFormat, pattern));
                 }
             }
-            
+
             // Show current/unchanged mappings in the proposed configuration
             if (changes.ProposedMappings.TryGetValue(feed.Key, out var currentPatterns))
             {
                 var addedPatterns = mappingChangesBySource.TryGetValue(feed.Key, out var currentMappingChange) ? currentMappingChange.AddedPatterns : new List<string>();
-                
+
                 foreach (var pattern in currentPatterns)
                 {
                     // Only show patterns that weren't added (they are existing/unchanged)
@@ -817,7 +878,7 @@ internal abstract record UpdateStep(string Description, Func<Task> Callback)
 /// Represents an update step for a package reference, containing package and project information.
 /// </summary>
 internal record PackageUpdateStep(
-    string Description, 
+    string Description,
     Func<Task> Callback,
     string PackageId,
     string CurrentVersion,

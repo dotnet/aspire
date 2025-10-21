@@ -23,6 +23,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
     authType: 'UserAssigned'
     image: api_containerimage
     isMain: true
+    targetPort: '80'
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
@@ -39,6 +40,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
+        {
+          name: 'WEBSITES_PORT'
+          value: '80'
+        }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
           value: 'true'

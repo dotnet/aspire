@@ -1,0 +1,14 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python 入門應用程式",
+  "description": "一個專案範本，用於建立具有 Python 後端 API 服務及使用 Vite 和 React 的 JavaScript 前端的 Aspire 應用程式。",
+  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
+  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
+  "symbols/appHostHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中 HTTP 端點的連接埠號碼。",
+  "symbols/appHostOtlpHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中 OTLP HTTP 端點的連接埠號碼。",
+  "symbols/appHostResourceHttpPort/description": "要用於 AppHost 專案 launchSettings.json 中資源服務 HTTP 端點的連接埠號碼。",
+  "symbols/appHostHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中 HTTPS 端點的連接埠號碼。只有在未使用參數 no-https 時，才適用此選項。",
+  "symbols/appHostOtlpHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中 OTLP HTTPS 端點的連接埠號碼。",
+  "symbols/appHostResourceHttpsPort/description": "要用於 AppHost 專案 launchSettings.json 中資源服務 HTTPS 端點的連接埠號碼。",
+  "symbols/NoHttps/description": "是否要關閉 HTTPS。"
+}

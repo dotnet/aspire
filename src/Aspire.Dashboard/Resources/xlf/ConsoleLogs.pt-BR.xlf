@@ -44,12 +44,12 @@
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseActive">
         <source>&lt;Log capture paused at {0}, {1} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Captura de log pausada às {0}, {1} logs filtrados&gt;</target>
+        <target state="translated">&lt;Captura de log em pausa às {0}, {1} logs filtrados&gt;</target>
         <note>{0} is a date, {1} is a number</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsPauseDetails">
         <source>&lt;Log capture paused between {0} and {1}, {2} log(s) filtered out&gt;</source>
-        <target state="translated">&lt;Captura de log pausada entre {0} e {1}, {2} logs filtrados&gt;</target>
+        <target state="translated">&lt;Captura de log em pausa entre {0} e {1}, {2} logs filtrados&gt;</target>
         <note>{0} is a date, {1} is a date, {2} is a number.</note>
       </trans-unit>
       <trans-unit id="ConsoleLogsSelectResourceToolbar">

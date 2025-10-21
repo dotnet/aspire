@@ -34,7 +34,7 @@
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorMessage">
         <source>An unhandled error has occurred.</source>
-        <target state="translated">Произошла неизвестная ошибка.</target>
+        <target state="translated">Возникла необрабатываемая ошибка.</target>
         <note />
       </trans-unit>
       <trans-unit id="MainLayoutUnhandledErrorReload">

@@ -59,12 +59,12 @@
       </trans-unit>
       <trans-unit id="ChartContainerOverflowDescription">
         <source>Some dimensions for the metric have been dropped by the OpenTelemetry SDK.</source>
-        <target state="translated">メトリックの一部のディメンションが、OpenTelemetry SDK によって削除されました。</target>
+        <target state="translated">OpenTelemetry SDK によって、メトリックの一部のディメンションが削除されました。</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowLink">
         <source>For more information, see &lt;a href="{0}" target="_blank"&gt;OpenTelemetry specification cardinality limits&lt;/a&gt;.</source>
-        <target state="translated">詳細情報については、「&lt;a href="{0}" target="_blank"&gt;OpenTelemetry 仕様のカーディナリティ制限&lt;/a&gt;」を参照してください。</target>
+        <target state="translated">詳細については、「&lt;a href="{0}" target="_blank"&gt;OpenTelemetry 仕様のカーディナリティ制限&lt;/a&gt;」を参照してください。</target>
         <note>OpenTelemetry is the name of the standard.</note>
       </trans-unit>
       <trans-unit id="ChartContainerOverflowTitle">

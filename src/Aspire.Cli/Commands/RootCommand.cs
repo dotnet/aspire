@@ -58,6 +58,11 @@ internal sealed class RootCommand : BaseRootCommand
         debugOption.Recursive = true;
         Options.Add(debugOption);
 
+        var nonInteractiveOption = new Option<bool>("--non-interactive");
+        nonInteractiveOption.Description = "Run the command in non-interactive mode, disabling all interactive prompts and spinners";
+        nonInteractiveOption.Recursive = true;
+        Options.Add(nonInteractiveOption);
+
         var waitForDebuggerOption = new Option<bool>("--wait-for-debugger");
         waitForDebuggerOption.Description = RootCommandStrings.WaitForDebuggerArgumentDescription;
         waitForDebuggerOption.Recursive = true;

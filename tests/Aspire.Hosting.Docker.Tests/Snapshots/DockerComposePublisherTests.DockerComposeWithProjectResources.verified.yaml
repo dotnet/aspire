@@ -25,7 +25,9 @@
   api:
     image: "reg:api"
     environment:
+      PROJECT1_HTTP: "http://project1:${PROJECT1_PORT}"
       services__project1__http__0: "http://project1:${PROJECT1_PORT}"
+      PROJECT1_HTTPS: "https://project1:${PROJECT1_PORT}"
     networks:
       - "aspire"
 networks:

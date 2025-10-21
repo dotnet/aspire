@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing;
 
 internal class Publisher(
-    IPublishingActivityReporter progressReporter,
+    IPipelineActivityReporter progressReporter,
     ILogger<Publisher> logger,
     IOptions<PublishingOptions> options,
     DistributedApplicationExecutionContext executionContext,
@@ -27,6 +27,31 @@ internal class Publisher(
             throw new DistributedApplicationException(
                 "The '--output-path [path]' option was not specified."
             );
+        }
+
+        // Add a step to display the target environment when deploying
+        if (options.Value.Deploy)
+        {
+            var environmentStep = await progressReporter.CreateStepAsync(
+                "display-environment",
+                cancellationToken).ConfigureAwait(false);
+
+            await using (environmentStep.ConfigureAwait(false))
+            {
+                var hostEnvironment = serviceProvider.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+                var environmentName = hostEnvironment?.EnvironmentName ?? "Production";
+
+                var environmentTask = await environmentStep.CreateTaskAsync(
+                    $"Discovering target environment",
+                    cancellationToken)
+                    .ConfigureAwait(false);
+
+                await environmentTask.CompleteAsync(
+                    $"Deploying to environment: {environmentName.ToLowerInvariant()}",
+                    CompletionState.Completed,
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            }
         }
 
         // Check if --clear-cache flag is set and prompt user before deleting deployment state
@@ -155,7 +180,7 @@ internal class Publisher(
             var parameterProcessor = serviceProvider.GetRequiredService<ParameterProcessor>();
             await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
 
-            var deployingContext = new DeployingContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
+            var deployingContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
                 Path.GetFullPath(options.Value.OutputPath) : null);
 
             // Execute the pipeline - it will collect steps from PipelineStepAnnotation on resources

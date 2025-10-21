@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) storage queue queues</PackageTags>
     <Description>A client for Azure Queue Storage that integrates with Aspire, including health checks, logging and telemetry.</Description>

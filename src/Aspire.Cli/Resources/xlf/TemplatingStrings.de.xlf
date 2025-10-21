@@ -22,19 +22,24 @@
         <target state="translated">NUnit</target>
         <note />
       </trans-unit>
+      <trans-unit id="AspirePyStarter_Description">
+        <source>React (Vite) &amp; FastAPI starter</source>
+        <target state="translated">React (Vite) und FastAPI-Starter</target>
+        <note />
+      </trans-unit>
       <trans-unit id="AspireServiceDefaults_Description">
         <source>Service defaults</source>
         <target state="translated">Dienststandardwerte</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireAppHostSingleFile_Description">
-        <source>Single-file AppHost (experimental)</source>
-        <target state="translated">Single-File-AppHost (experimentell)</target>
+        <source>Empty AppHost</source>
+        <target state="translated">Leerer AppHost</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireStarter_Description">
-        <source>Starter template</source>
-        <target state="translated">Startervorlage</target>
+        <source>Blazor &amp; Minimal API starter</source>
+        <target state="translated">Blazor und Minimal API-Starter</target>
         <note />
       </trans-unit>
       <trans-unit id="AspireXUnit_Description">

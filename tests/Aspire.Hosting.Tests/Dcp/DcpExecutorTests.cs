@@ -108,7 +108,7 @@ public class DcpExecutorTests
     }
 
     [Theory]
-    [InlineData(ExecutionType.IDE, false, null, new string[] { "--test1", "--test2" })]
+    [InlineData(ExecutionType.IDE, false, new string[] { }, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]
     [InlineData(ExecutionType.Process, false, new string[] { "--test1", "--test2" }, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.Process, true, new string[] { "--", "--test1", "--test2", "--withargs-test" }, new string[] { "--", "--test1", "--test2", "--withargs-test" })]
@@ -2032,7 +2032,9 @@ public class DcpExecutorTests
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
-            events ?? new DcpExecutorEvents());
+            events ?? new DcpExecutorEvents(),
+            new Locations(),
+            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance));
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);

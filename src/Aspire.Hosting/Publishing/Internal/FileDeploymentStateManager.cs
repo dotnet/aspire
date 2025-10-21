@@ -31,7 +31,8 @@ public sealed class FileDeploymentStateManager(
 
     private string? GetDeploymentStatePath()
     {
-        var appHostSha = configuration["AppHost:Sha256"];
+        // Use PathSha256 for deployment state to disambiguate projects with the same name in different locations
+        var appHostSha = configuration["AppHost:PathSha256"];
         if (string.IsNullOrEmpty(appHostSha))
         {
             return null;

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
     <Description>A RabbitMQ client (version 7+) that integrates with Aspire, including health checks, logging, and telemetry.</Description>

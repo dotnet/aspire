@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Globalization;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.ApplicationModel;
 
@@ -43,6 +44,13 @@ internal class ExpressionResolver(string containerHostName, CancellationToken ca
         {
             var result = await ResolveInternalAsync(expr.ValueProviders[i]).ConfigureAwait(false);
             args[i] = result?.Value;
+
+            // Apply string format if needed
+            if (expr.StringFormats[i] is { } stringFormat && args[i] is string s)
+            {
+                args[i] = FormattingHelpers.FormatValue(s, stringFormat);
+            }
+
             if (result?.IsSensitive is true)
             {
                 isSensitive = true;

@@ -49,7 +49,7 @@
       </trans-unit>
       <trans-unit id="ChartContainerGraphTab">
         <source>Graph</source>
-        <target state="translated">Graph</target>
+        <target state="translated">Graf</target>
         <note />
       </trans-unit>
       <trans-unit id="ChartContainerOptionsHeader">

@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Kubernetes.Extensions;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Kubernetes;
@@ -84,6 +85,18 @@ public sealed class KubernetesEnvironmentResource : Resource, IComputeEnvironmen
     public KubernetesEnvironmentResource(string name) : base(name)
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
+    }
+
+    /// <summary>
+    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
+    /// </summary>
+    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+
+        return ReferenceExpression.Create($"{resource.Name.ToServiceName()}");
     }
 
     private Task PublishAsync(PublishingContext context)

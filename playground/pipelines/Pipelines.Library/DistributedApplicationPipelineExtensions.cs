@@ -9,7 +9,6 @@ using System.Net.Http.Headers;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Azure.Core;
 using Azure.Identity;
 using Azure.Provisioning;
@@ -57,150 +56,139 @@ public static class DistributedApplicationPipelineExtensions
     }
 
     private static async Task DeployProjectToAppServiceAsync(
-        DeployingContext context,
+        PipelineStepContext context,
         ProjectResource projectResource,
         AzureAppServiceWebSiteResource websiteResource,
         AzureAppServiceEnvironmentResource appServiceEnvironment,
         CancellationToken cancellationToken)
     {
-        var stepName = $"deploy-{projectResource.Name}";
-        var step = await context.ActivityReporter.CreateStepAsync(stepName, cancellationToken).ConfigureAwait(false);
+        var projectMetadata = projectResource.GetProjectMetadata();
+        var projectPath = projectMetadata.ProjectPath;
 
-        await using (step.ConfigureAwait(false))
+        var publishTask = await context.ReportingStep.CreateTaskAsync($"Publishing {projectResource.Name}", cancellationToken).ConfigureAwait(false);
+        await using (publishTask.ConfigureAwait(false))
         {
-            var projectMetadata = projectResource.GetProjectMetadata();
-            var projectPath = projectMetadata.ProjectPath;
+            var publishDir = Path.Combine(Path.GetTempPath(), $"aspire-publish-{Guid.NewGuid()}");
+            Directory.CreateDirectory(publishDir);
 
-            var publishTask = await step.CreateTaskAsync($"Publishing {projectResource.Name}", cancellationToken).ConfigureAwait(false);
-            await using (publishTask.ConfigureAwait(false))
+            try
             {
-                var publishDir = Path.Combine(Path.GetTempPath(), $"aspire-publish-{Guid.NewGuid()}");
-                Directory.CreateDirectory(publishDir);
-
-                try
+                var publishProcess = Process.Start(new ProcessStartInfo
                 {
-                    var publishProcess = Process.Start(new ProcessStartInfo
-                    {
-                        FileName = "dotnet",
-                        Arguments = $"publish \"{projectPath}\" -c Release -o \"{publishDir}\"",
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    });
+                    FileName = "dotnet",
+                    Arguments = $"publish \"{projectPath}\" -c Release -o \"{publishDir}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
 
-                    if (publishProcess == null)
-                    {
-                        await publishTask.CompleteAsync(
-                            "Failed to start dotnet publish",
-                            CompletionState.CompletedWithError,
-                            cancellationToken).ConfigureAwait(false);
-                        return;
-                    }
-
-                    await publishProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-
-                    if (publishProcess.ExitCode != 0)
-                    {
-                        var error = await publishProcess.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-                        await publishTask.CompleteAsync(
-                            $"Publish failed: {error}",
-                            CompletionState.CompletedWithError,
-                            cancellationToken).ConfigureAwait(false);
-                        return;
-                    }
-
+                if (publishProcess == null)
+                {
                     await publishTask.CompleteAsync(
-                        "Publish completed",
+                        "Failed to start dotnet publish",
+                        CompletionState.CompletedWithError,
+                        cancellationToken).ConfigureAwait(false);
+                    return;
+                }
+
+                await publishProcess.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+                if (publishProcess.ExitCode != 0)
+                {
+                    var error = await publishProcess.StandardError.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+                    await publishTask.CompleteAsync(
+                        $"Publish failed: {error}",
+                        CompletionState.CompletedWithError,
+                        cancellationToken).ConfigureAwait(false);
+                    return;
+                }
+
+                await publishTask.CompleteAsync(
+                    "Publish completed",
+                    CompletionState.Completed,
+                    cancellationToken).ConfigureAwait(false);
+
+                var zipTask = await context.ReportingStep.CreateTaskAsync($"Creating deployment package", cancellationToken).ConfigureAwait(false);
+                await using (zipTask.ConfigureAwait(false))
+                {
+                    var zipPath = Path.Combine(Path.GetTempPath(), $"aspire-deploy-{Guid.NewGuid()}.zip");
+
+                    ZipFile.CreateFromDirectory(publishDir, zipPath);
+
+                    await zipTask.CompleteAsync(
+                        "Deployment package created",
                         CompletionState.Completed,
                         cancellationToken).ConfigureAwait(false);
 
-                    var zipTask = await step.CreateTaskAsync($"Creating deployment package", cancellationToken).ConfigureAwait(false);
-                    await using (zipTask.ConfigureAwait(false))
+                    var uploadTask = await context.ReportingStep.CreateTaskAsync($"Uploading to {projectResource.Name}", cancellationToken).ConfigureAwait(false);
+                    await using (uploadTask.ConfigureAwait(false))
                     {
-                        var zipPath = Path.Combine(Path.GetTempPath(), $"aspire-deploy-{Guid.NewGuid()}.zip");
-
-                        ZipFile.CreateFromDirectory(publishDir, zipPath);
-
-                        await zipTask.CompleteAsync(
-                            "Deployment package created",
-                            CompletionState.Completed,
-                            cancellationToken).ConfigureAwait(false);
-
-                        var uploadTask = await step.CreateTaskAsync($"Uploading to {projectResource.Name}", cancellationToken).ConfigureAwait(false);
-                        await using (uploadTask.ConfigureAwait(false))
+                        try
                         {
-                            try
+                            var siteName = websiteResource.Outputs[$"{Infrastructure.NormalizeBicepIdentifier(websiteResource.Name)}_name"]?.ToString();
+                            if (string.IsNullOrEmpty(siteName))
                             {
-                                var siteName = websiteResource.Outputs[$"{Infrastructure.NormalizeBicepIdentifier(websiteResource.Name)}_name"]?.ToString();
-                                if (string.IsNullOrEmpty(siteName))
-                                {
-                                    siteName = appServiceEnvironment.Outputs["name"]?.ToString();
-                                }
-
-                                if (string.IsNullOrEmpty(siteName))
-                                {
-                                    await uploadTask.CompleteAsync(
-                                        "Could not determine website name",
-                                        CompletionState.CompletedWithError,
-                                        cancellationToken).ConfigureAwait(false);
-                                    return;
-                                }
-
-                                var credential = new AzureCliCredential();
-                                var tokenRequestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
-                                var accessToken = await credential.GetTokenAsync(tokenRequestContext, cancellationToken).ConfigureAwait(false);
-
-                                var kuduUrl = $"https://{siteName}.scm.azurewebsites.net/api/zipdeploy";
-
-                                using var httpClient = new HttpClient();
-                                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Token);
-                                httpClient.Timeout = TimeSpan.FromMinutes(30);
-
-                                await using var zipStream = File.OpenRead(zipPath);
-                                using var content = new StreamContent(zipStream);
-                                content.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
-
-                                var response = await httpClient.PostAsync(kuduUrl, content, cancellationToken).ConfigureAwait(false);
-
-                                if (!response.IsSuccessStatusCode)
-                                {
-                                    var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-                                    await uploadTask.CompleteAsync(
-                                        $"Upload failed: {response.StatusCode} - {errorContent}",
-                                        CompletionState.CompletedWithError,
-                                        cancellationToken).ConfigureAwait(false);
-                                    return;
-                                }
-
-                                await uploadTask.CompleteAsync(
-                                    "Upload completed successfully",
-                                    CompletionState.Completed,
-                                    cancellationToken).ConfigureAwait(false);
+                                siteName = appServiceEnvironment.Outputs["name"]?.ToString();
                             }
-                            finally
+
+                            if (string.IsNullOrEmpty(siteName))
                             {
-                                if (File.Exists(zipPath))
-                                {
-                                    File.Delete(zipPath);
-                                }
+                                await uploadTask.CompleteAsync(
+                                    "Could not determine website name",
+                                    CompletionState.CompletedWithError,
+                                    cancellationToken).ConfigureAwait(false);
+                                return;
+                            }
+
+                            var credential = new AzureCliCredential();
+                            var tokenRequestContext = new TokenRequestContext(["https://management.azure.com/.default"]);
+                            var accessToken = await credential.GetTokenAsync(tokenRequestContext, cancellationToken).ConfigureAwait(false);
+
+                            var kuduUrl = $"https://{siteName}.scm.azurewebsites.net/api/zipdeploy";
+
+                            using var httpClient = new HttpClient();
+                            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken.Token);
+                            httpClient.Timeout = TimeSpan.FromMinutes(30);
+
+                            await using var zipStream = File.OpenRead(zipPath);
+                            using var content = new StreamContent(zipStream);
+                            content.Headers.ContentType = new MediaTypeHeaderValue("application/zip");
+
+                            var response = await httpClient.PostAsync(kuduUrl, content, cancellationToken).ConfigureAwait(false);
+
+                            if (!response.IsSuccessStatusCode)
+                            {
+                                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                                await uploadTask.CompleteAsync(
+                                    $"Upload failed: {response.StatusCode} - {errorContent}",
+                                    CompletionState.CompletedWithError,
+                                    cancellationToken).ConfigureAwait(false);
+                                return;
+                            }
+
+                            await uploadTask.CompleteAsync(
+                                "Upload completed successfully",
+                                CompletionState.Completed,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                        finally
+                        {
+                            if (File.Exists(zipPath))
+                            {
+                                File.Delete(zipPath);
                             }
                         }
                     }
                 }
-                finally
+            }
+            finally
+            {
+                if (Directory.Exists(publishDir))
                 {
-                    if (Directory.Exists(publishDir))
-                    {
-                        Directory.Delete(publishDir, recursive: true);
-                    }
+                    Directory.Delete(publishDir, recursive: true);
                 }
             }
-
-            await step.CompleteAsync(
-                "Deployment completed",
-                CompletionState.Completed,
-                cancellationToken).ConfigureAwait(false);
         }
     }
 }

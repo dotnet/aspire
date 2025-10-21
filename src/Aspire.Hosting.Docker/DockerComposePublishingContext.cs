@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +27,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityReporter activityReporter,
+    IPipelineActivityReporter activityReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -177,6 +178,7 @@ internal sealed class DockerComposePublishingContext(
                     foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                     {
                         var (key, (description, defaultValue, source)) = entry;
+                        var onlyIfMissing = true;
 
                         // If the source is a parameter and there's no explicit default value,
                         // resolve the parameter's default value asynchronously
@@ -185,7 +187,13 @@ internal sealed class DockerComposePublishingContext(
                             defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                         }
 
-                        envFile.AddIfMissing(key, defaultValue, description);
+                        if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
+                        {
+                            defaultValue = imageName;
+                            onlyIfMissing = false; // Always update the image name if it changes
+                        }
+
+                        envFile.Add(key, defaultValue, description, onlyIfMissing);
                     }
 
                     envFile.Save(envFilePath);

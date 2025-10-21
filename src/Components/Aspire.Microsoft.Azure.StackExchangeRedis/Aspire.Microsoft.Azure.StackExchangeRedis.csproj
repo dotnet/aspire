@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) redis azure cache</PackageTags>
     <Description>An Azure Cache for Redis® client that integrates with Aspire, including Azure AD authentication, health checks, logging and telemetry.</Description>

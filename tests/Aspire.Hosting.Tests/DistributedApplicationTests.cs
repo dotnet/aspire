@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit.Sdk;
 using TestConstants = Microsoft.AspNetCore.InternalTesting.TestConstants;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests;
 
@@ -561,7 +562,7 @@ public class DistributedApplicationTests
     [RequiresDocker]
     public async Task VerifyContainerCreateFile()
     {
-        using var testProgram = CreateTestProgram("verify-container-create-file");
+        using var testProgram = CreateTestProgram("verify-container-create-file", trustDeveloperCertificate: false);
         SetupXUnitLogging(testProgram.AppBuilder.Services);
 
         var destination = "/tmp";
@@ -619,6 +620,122 @@ public class DistributedApplicationTests
                 },
                 item.Spec.CreateFiles);
             });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Theory]
+    [RequiresDocker]
+    [RequiresDevCert]
+    [InlineData(null, null, true)]
+    [InlineData(null, false, false)]
+    [InlineData(null, true, true)]
+    [InlineData(false, null, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, null, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, true, true)]
+    public async Task VerifyContainerIncludesExpectedDevCertificateConfiguration(bool? implicitTrust, bool? explicitTrust, bool expectDevCert)
+    {
+        using var testProgram = CreateTestProgram("verify-container-dev-cert", trustDeveloperCertificate: implicitTrust);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-dev-cert-redis");
+        if (explicitTrust.HasValue)
+        {
+            container.WithDeveloperCertificateTrust(explicitTrust.Value);
+        }
+
+        await using var app = testProgram.Build();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+        var dc = app.Services.GetRequiredService<IDeveloperCertificateService>();
+        var list = await s.ListAsync<Container>().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        Assert.Collection(list,
+            item =>
+            {
+                Assert.Equal(RedisImageSource, item.Spec.Image);
+
+                if (expectDevCert)
+                {
+                    Assert.NotNull(item.Spec.Env);
+                    Assert.Collection(item.Spec.Env.OrderBy(e => e.Name),
+                        certDir =>
+                        {
+                            Assert.Equal("SSL_CERT_DIR", certDir.Name);
+                            Assert.StartsWith("/usr/lib/ssl/aspire/certs:", certDir.Value);
+                        });
+                    Assert.NotNull(item.Spec.CreateFiles);
+                    Assert.Collection(item.Spec.CreateFiles,
+                        createCerts =>
+                        {
+                            Assert.Equal("/usr/lib/ssl/aspire", createCerts.Destination);
+                            Assert.NotNull(createCerts.Entries);
+                            Assert.Collection(createCerts.Entries,
+                                bundle =>
+                                {
+                                    Assert.Equal("cert.pem", bundle.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.File, bundle.Type);
+                                    var certs = new X509Certificate2Collection();
+                                    certs.ImportFromPem(bundle.Contents);
+                                    Assert.Equal(dc.Certificates.Count, certs.Count);
+                                    Assert.All(certs, (cert) => cert.IsAspNetCoreDevelopmentCertificate());
+                                },
+                                dir =>
+                                {
+                                    Assert.Equal("certs", dir.Name);
+                                    Assert.Equal(ContainerFileSystemEntryType.Directory, dir.Type);
+                                    Assert.NotNull(dir.Entries);
+                                    Assert.Equal(dc.Certificates.Count, dir.Entries.Count);
+                                    foreach (var devCert in dc.Certificates)
+                                    {
+                                        Assert.Contains(dir.Entries, (cert) =>
+                                        {
+                                            return cert.Type == ContainerFileSystemEntryType.OpenSSL && string.Equals(cert.Name, devCert.Thumbprint + ".pem", StringComparison.Ordinal) && string.Equals(cert.Contents, devCert.ExportCertificatePem(), StringComparison.Ordinal);
+                                        });
+                                    }
+                                });
+                        });
+                }
+                else
+                {
+                    Assert.Empty(item.Spec.CreateFiles ?? []);
+                }
+            });
+
+        await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+    }
+
+    [Fact]
+    [RequiresDocker]
+    public async Task VerifyContainerSucceedsWithCreateFileContinueOnError()
+    {
+        using var testProgram = CreateTestProgram("verify-container-continue-on-error", trustDeveloperCertificate: false);
+        SetupXUnitLogging(testProgram.AppBuilder.Services);
+
+        var container = AddRedisContainer(testProgram.AppBuilder, "verify-container-continue-on-error-redis")
+            .WithContainerFiles("/tmp", [
+                new ContainerOpenSSLCertificateFile
+                {
+                    Name = "invalid-cert.pem",
+                    Contents = "not a real cert",
+                    // This would normally cause the container to fail, but with ContinueOnError it should be ignored.
+                    ContinueOnError = true,
+                },
+            ]);
+
+        await using var app = testProgram.Build();
+
+        var rns = app.Services.GetRequiredService<ResourceNotificationService>();
+        var s = app.Services.GetRequiredService<IKubernetesService>();
+
+        await app.StartAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
+
+        var dependentRunningResourceEvent = await rns.WaitForResourceAsync(container.Resource.Name, e => e.Snapshot.State?.Text == KnownResourceStates.Running).DefaultTimeout(TestConstants.LongTimeoutTimeSpan);
 
         await app.StopAsync().DefaultTimeout(TestConstants.DefaultOrchestratorTestLongTimeout);
     }
@@ -1428,11 +1545,13 @@ public class DistributedApplicationTests
         string[]? args = null,
         bool includeIntegrationServices = false,
         bool disableDashboard = true,
-        bool randomizePorts = true) =>
+        bool randomizePorts = true,
+        bool? trustDeveloperCertificate = null) =>
         TestProgram.Create<DistributedApplicationTests>(
             testName,
             args,
             includeIntegrationServices: includeIntegrationServices,
             disableDashboard: disableDashboard,
-            randomizePorts: randomizePorts);
+            randomizePorts: randomizePorts,
+            trustDeveloperCertificate: trustDeveloperCertificate);
 }

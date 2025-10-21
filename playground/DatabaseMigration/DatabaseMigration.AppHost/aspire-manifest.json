@@ -31,7 +31,13 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{api.bindings.http.targetPort}",
-        "ConnectionStrings__db1": "{db1.connectionString}"
+        "ConnectionStrings__db1": "{db1.connectionString}",
+        "DB1_HOST": "{sql1.bindings.tcp.host}",
+        "DB1_PORT": "{sql1.bindings.tcp.port}",
+        "DB1_USERNAME": "sa",
+        "DB1_PASSWORD": "{sql1-password.value}",
+        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};user=sa;password={sql1-password.value};databaseName=db1;trustServerCertificate=true",
+        "DB1_DATABASE": "db1"
       },
       "bindings": {
         "http": {
@@ -55,7 +61,13 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES": "true",
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
-        "ConnectionStrings__db1": "{db1.connectionString}"
+        "ConnectionStrings__db1": "{db1.connectionString}",
+        "DB1_HOST": "{sql1.bindings.tcp.host}",
+        "DB1_PORT": "{sql1.bindings.tcp.port}",
+        "DB1_USERNAME": "sa",
+        "DB1_PASSWORD": "{sql1-password.value}",
+        "DB1_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql1.bindings.tcp.host}:{sql1.bindings.tcp.port};user=sa;password={sql1-password.value};databaseName=db1;trustServerCertificate=true",
+        "DB1_DATABASE": "db1"
       }
     },
     "sql1-password": {
