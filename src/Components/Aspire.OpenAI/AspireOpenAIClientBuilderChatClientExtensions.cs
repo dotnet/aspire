@@ -60,11 +60,12 @@ public static class AspireOpenAIClientBuilderChatClientExtensions
         AspireOpenAIClientBuilder builder,
         string? deploymentName)
     {
+        deploymentName ??= builder.GetRequiredDeploymentName();
+
         var openAiClient = builder.ServiceKey is null
             ? services.GetRequiredService<OpenAIClient>()
             : services.GetRequiredKeyedService<OpenAIClient>(builder.ServiceKey);
 
-        deploymentName ??= builder.GetRequiredDeploymentName();
         var result = openAiClient.GetChatClient(deploymentName).AsIChatClient();
 
         if (builder.DisableTracing)
