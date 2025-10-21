@@ -94,12 +94,38 @@ suite('InteractionService endpoints', () => {
 		showInformationMessageSpy.restore();
 	});
 
+	test('displayMessage clears progress notification', async () => {
+		const testInfo = await createTestRpcServer();
+		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		// Access the private _progressNotifier via casting to any
+		const progressNotifier = (testInfo.interactionService as any)._progressNotifier;
+		const clearProgressSpy = sinon.spy(progressNotifier, 'clear');
+		testInfo.interactionService.displayMessage(":test_emoji:", 'Test info message');
+		assert.ok(showInformationMessageSpy.calledWith('Test info message'));
+		assert.ok(clearProgressSpy.calledOnce, 'ProgressNotifier.clear should be called once');
+		showInformationMessageSpy.restore();
+		clearProgressSpy.restore();
+	});
+
 	test("displaySuccess endpoint", async () => {
 		const testInfo = await createTestRpcServer();
 		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
 		testInfo.interactionService.displaySuccess('Test success message');
 		assert.ok(showInformationMessageSpy.calledWith('Test success message'));
 		showInformationMessageSpy.restore();
+	});
+
+	test("displaySuccess clears progress notification", async () => {
+		const testInfo = await createTestRpcServer();
+		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		// Access the private _progressNotifier via casting to any
+		const progressNotifier = (testInfo.interactionService as any)._progressNotifier;
+		const clearProgressSpy = sinon.spy(progressNotifier, 'clear');
+		testInfo.interactionService.displaySuccess('Test success message');
+		assert.ok(showInformationMessageSpy.calledWith('Test success message'));
+		assert.ok(clearProgressSpy.calledOnce, 'ProgressNotifier.clear should be called once');
+		showInformationMessageSpy.restore();
+		clearProgressSpy.restore();
 	});
 
 	test("displaySubtleMessage endpoint", async () => {
@@ -155,6 +181,19 @@ suite('InteractionService endpoints', () => {
 
 		assert.ok(openTextDocumentStub.calledOnce, 'openTextDocument should be called once');
 		openTextDocumentStub.restore();
+	});
+
+	test("displayPlainText clears progress notification", async () => {
+		const testInfo = await createTestRpcServer();
+		const showInformationMessageSpy = sinon.spy(vscode.window, 'showInformationMessage');
+		// Access the private _progressNotifier via casting to any
+		const progressNotifier = (testInfo.interactionService as any)._progressNotifier;
+		const clearProgressSpy = sinon.spy(progressNotifier, 'clear');
+		testInfo.interactionService.displayPlainText('Test plain text');
+		assert.ok(showInformationMessageSpy.calledWith('Test plain text'));
+		assert.ok(clearProgressSpy.calledOnce, 'ProgressNotifier.clear should be called once');
+		showInformationMessageSpy.restore();
+		clearProgressSpy.restore();
 	});
 });
 
