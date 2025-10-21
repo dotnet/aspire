@@ -14,23 +14,34 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var apiService = builder.AddPythonScript("app", "./app", "app.py")
+var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithUvEnvironment()
-    .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
 #if UseRedisCache
     .WithReference(cache)
     .WaitFor(cache)
 #endif
+    .WithHttpHealthCheck("/health");
+
+var frontend = builder.AddViteApp("frontend", "./frontend")
+    .WithNpmPackageInstallation()
+    .WithReference(app)
+    .WaitFor(app)
     .PublishAsDockerFile(c =>
     {
-        c.WithDockerfile(".");
-    });
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        c.WithDockerfileBuilder("./frontend", async context =>
+        {
+            context.Builder.From("node:22-slim")
+                .Copy(".", "/app")
+                .WorkDir("/app")
+                .Run("npm install")
+                .Run("npm run build");
+        });
+#pragma warning restore ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    })
+    .WithAnnotation(new StaticDockerFilesAnnotation() { SourcePath = "/app/dist" });
 
-builder.AddViteApp("frontend", "./frontend")
-    .WithNpmPackageInstallation()
-    .WithReference(apiService)
-    .WaitFor(apiService);
+app.PublishWithStaticFiles(frontend, "./static");
 
 builder.Build().Run();

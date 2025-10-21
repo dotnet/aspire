@@ -1271,6 +1271,30 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Adds static file resource information to the specified resource builder, enabling the resource to be associated
+    /// with static files for deployment or serving.
+    /// </summary>
+    /// <remarks>Use this method to indicate that the resource should include or serve static files as part of
+    /// its deployment. This is typically used in scenarios where resources need to expose static content, such as web
+    /// assets.</remarks>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResource"/>.</typeparam>
+    /// <param name="builder">The resource builder to which static file information will be added. Cannot be null.</param>
+    /// <param name="staticFilesResource">An object representing the static files to associate with the resource. Specifies the source of static files for
+    /// the resource.</param>
+    /// <param name="destination"></param>
+    /// <returns>The same resource builder instance with static file information attached, allowing for further configuration or
+    /// chaining.</returns>
+    public static IResourceBuilder<T> PublishWithStaticFiles<T>(
+         this IResourceBuilder<T> builder,
+         IResourceBuilder<IResourceWithStaticDockerFiles> staticFilesResource,
+         string destination) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        return builder.WithAnnotation(new StaticDockerFileDestinationAnnotation() { Source = staticFilesResource.Resource, DestinationPath = destination });
+    }
+
+    /// <summary>
     /// Excludes a resource from being published to the manifest.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

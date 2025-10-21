@@ -108,17 +108,17 @@ public class DockerfileStage : DockerfileStatement
     /// <summary>
     /// Adds a COPY statement to copy files from another stage.
     /// </summary>
-    /// <param name="stage">The source stage name.</param>
+    /// <param name="from">The source stage or image name.</param>
     /// <param name="source">The source path in the stage.</param>
     /// <param name="destination">The destination path.</param>
     /// <returns>The current stage.</returns>
     [Experimental("ASPIREDOCKERFILEBUILDER001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-    public DockerfileStage CopyFrom(string stage, string source, string destination)
+    public DockerfileStage CopyFrom(string from, string source, string destination)
     {
-        ArgumentException.ThrowIfNullOrEmpty(stage);
+        ArgumentException.ThrowIfNullOrEmpty(from);
         ArgumentException.ThrowIfNullOrEmpty(source);
         ArgumentException.ThrowIfNullOrEmpty(destination);
-        _statements.Add(new DockerfileCopyFromStatement(stage, source, destination));
+        _statements.Add(new DockerfileCopyFromStatement(from, source, destination));
         return this;
     }
 

@@ -106,6 +106,10 @@
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/playground/AspireWithPython/">
+    <Project Path="playground/AspireWithPython/AspireWithPython.AppHost/AspireWithPython.AppHost.csproj" />
+    <Project Path="playground/AspireWithPython/AspireWithPython.ServiceDefaults/AspireWithPython.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/playground/AzureAIFoundryEndToEnd/">
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
@@ -176,8 +180,8 @@
     <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/DevTunnels/">
-    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.ApiService/DevTunnels.ApiService.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.WebFrontEnd/DevTunnels.WebFrontEnd.csproj" />
   </Folder>
   <Folder Name="/playground/dockerfile/">
@@ -234,8 +238,8 @@
   </Folder>
   <Folder Name="/playground/node/">
     <Project Path="playground/AspireWithNode/AspireWithNode.AppHost/AspireWithNode.AppHost.csproj" />
-    <Project Path="playground/AspireWithNode/AspireWithNode.ServiceDefaults/AspireWithNode.ServiceDefaults.csproj" />
     <Project Path="playground/AspireWithNode/AspireWithNode.AspNetCoreApi/AspireWithNode.AspNetCoreApi.csproj" />
+    <Project Path="playground/AspireWithNode/AspireWithNode.ServiceDefaults/AspireWithNode.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/OpenAIEndToEnd/">
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
@@ -277,10 +281,6 @@
   </Folder>
   <Folder Name="/playground/python/">
     <Project Path="playground/python/Python.AppHost/Python.AppHost.csproj" />
-  </Folder>
-  <Folder Name="/playground/pythonweb/">
-    <Project Path="playground/AspireWithPython/AspireWithPython.AppHost/AspireWithPython.AppHost.csproj" />
-    <Project Path="playground/AspireWithPython/AspireWithPython.ServiceDefaults/AspireWithPython.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/qdrant/">
     <Project Path="playground/Qdrant/Qdrant.ApiService/Qdrant.ApiService.csproj" />
