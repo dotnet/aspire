@@ -30,8 +30,6 @@ internal sealed class AzureAppServiceWebsiteContext(
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
 
-    private int? _targetPort;
-
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
 
@@ -99,9 +97,16 @@ internal sealed class AzureAppServiceWebsiteContext(
             throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
         }
 
-        // If the target port is specified, use it; otherwise, allocate a default port
-        // There can only be a single target port with an HTTP binding in app service
-        _targetPort = targetPortEndpoints.FirstOrDefault() ?? 8000;
+        // Determine fallback target port if none is specified
+        int? fallbackTargetPort = (resource, targetPortEndpoints) switch
+        {
+            // Project resources will fallback to container port if no target port is specified
+            (ProjectResource, []) => null,
+            // For other resources, default to port 8000 if no target port is specified
+            (_, []) => 8000,
+            // There's a target port, so no need for a fallback
+            _ => null
+        };
 
         foreach (var endpoint in endpoints)
         {
@@ -115,7 +120,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: endpoint.TargetPort ?? _targetPort,
+                TargetPort: endpoint.TargetPort ?? fallbackTargetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }
@@ -240,7 +245,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-        
+
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
@@ -278,10 +283,13 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        if (_targetPort is not null)
+        // There should be a single valid target port
+        if (_endpointMapping.FirstOrDefault() is var  (_, mapping))
         {
-            mainContainer.TargetPort = _targetPort.Value.ToString(CultureInfo.InvariantCulture);
-            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = _targetPort.Value.ToString(CultureInfo.InvariantCulture) });
+            var targetPort = GetEndpointValue(mapping, EndpointProperty.TargetPort);
+
+            mainContainer.TargetPort = targetPort;
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = targetPort });
         }
 
         foreach (var kv in EnvironmentVariables)
