@@ -18,13 +18,13 @@ public class ExpressionResolverTests
         }
         else
         {
-            var resolvedValue = await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+            var resolvedValue = await ExpressionResolver.ResolveAsync(testData.ValueProvider, CancellationToken.None);
 
             Assert.Equal(expectedValue?.Value, resolvedValue.Value);
             Assert.Equal(expectedValue?.IsSensitive, resolvedValue.IsSensitive);
         }
 
-        async Task<ResolvedValue> ResolveAsync() => await ExpressionResolver.ResolveAsync(testData.SourceIsContainer, testData.ValueProvider, string.Empty, CancellationToken.None);
+        async Task<ResolvedValue> ResolveAsync() => await ExpressionResolver.ResolveAsync(testData.ValueProvider, CancellationToken.None);
     }
 
     public static TheoryData<ExpressionResolverTestData, Type?, (string? Value, bool IsSensitive)?> ResolveInternalAsync_ResolvesCorrectly_MemberData()
@@ -81,12 +81,12 @@ public class ExpressionResolverTests
             .WithEndpoint("endpoint1", e =>
             {
                 e.UriScheme = "http";
-                e.AllocatedEndpoint = new(e, "localhost", 12345, containerHostAddress: targetIsContainer ? "ContainerHostName" : null, targetPortExpression: "10000");
+                e.AllocatedEndpoint = new(e, "localhost", 12345, targetPortExpression: "10000");
             })
             .WithEndpoint("endpoint2", e =>
              {
                  e.UriScheme = "https";
-                 e.AllocatedEndpoint = new(e, "localhost", 12346, containerHostAddress: "ContainerHostName", targetPortExpression: "10001");
+                 e.AllocatedEndpoint = new(e, "localhost", 12346, targetPortExpression: "10001");
              })
              .WithEndpoint("endpoint3", e =>
              {
@@ -101,7 +101,7 @@ public class ExpressionResolverTests
 
         // First test ExpressionResolver directly
         var csRef = new ConnectionStringReference(target.Resource, false);
-        var connectionString = await ExpressionResolver.ResolveAsync(sourceIsContainer, csRef, "ContainerHostName", CancellationToken.None).DefaultTimeout();
+        var connectionString = await ExpressionResolver.ResolveAsync(csRef, CancellationToken.None).DefaultTimeout();
         Assert.Equal(expectedConnectionString, connectionString.Value);
 
         // Then test it indirectly with a resource reference, which exercises a more complete code path
@@ -179,7 +179,7 @@ public class ExpressionResolverTests
            .WithHttpEndpoint(targetPort: 8080)
            .WithEndpoint("http", e =>
            {
-               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, "ContainerHostName", "{{ targetPort }}");
+               e.AllocatedEndpoint = new AllocatedEndpoint(e, "localhost", 8001, "{{ targetPort }}");
            });
 
         var dep = builder.AddContainer("container", "redis")

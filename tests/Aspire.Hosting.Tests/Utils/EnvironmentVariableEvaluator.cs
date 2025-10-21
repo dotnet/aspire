@@ -32,8 +32,7 @@ public static class EnvironmentVariableEvaluator
                     environmentVariables[key] = s;
                 }
             },
-            NullLogger.Instance,
-            containerHostName: containerHostName);
+            NullLogger.Instance);
 
         return environmentVariables;
     }

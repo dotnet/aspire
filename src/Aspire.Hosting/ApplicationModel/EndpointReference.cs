@@ -110,11 +110,6 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     public string Host => AllocatedEndpoint.Address ?? "localhost";
 
     /// <summary>
-    /// Gets the container host for this endpoint.
-    /// </summary>
-    public string ContainerHost => AllocatedEndpoint.ContainerHostAddress ?? throw new InvalidOperationException($"The endpoint \"{EndpointName}\" has no associated container host name.");
-
-    /// <summary>
     /// Gets the scheme for this endpoint.
     /// </summary>
     public string Scheme => EndpointAnnotation.UriScheme;
@@ -244,7 +239,15 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
 
         async ValueTask<string?> ResolveValueWithAllocatedAddress()
         {
-            var allocatedEndpoint = await Endpoint.AllocatedEndpointSnapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);
+            // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
+            // and in future we might need some sort of polic to choose between them, but for now we just take the first one.
+            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == Endpoint.ContextNetworkID).FirstOrDefault();
+            if (nes is null)
+            {
+                return null;
+            }
+
+            var allocatedEndpoint = await nes.Snapshot.GetValueAsync(cancellationToken).ConfigureAwait(false);
 
             return Property switch
             {

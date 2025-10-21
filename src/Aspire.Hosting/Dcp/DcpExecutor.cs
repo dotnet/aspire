@@ -47,7 +47,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     internal const string DefaultAspirePersistentNetworkName = "aspire-persistent-network";
 
     // The host name for the container tunnel proxy providing host network connectivity to containers.
-    internal const string ContainerTunnelProxyHostName = "host.aspire.internal";
+    internal const string DefaultContainerTunnelProxyHostName = "host.aspire.internal";
 
     // Disposal of the DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
@@ -136,7 +136,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
-    private string DefaultContainerHostName => _configuration["AppHost:ContainerHostname"] ?? _dcpInfo?.Containers?.ContainerHostName ?? "host.docker.internal";
+    private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ?? DefaultContainerTunnelProxyHostName;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -846,7 +846,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
     private void AddAllocatedEndpointInfo(IEnumerable<RenderedModelResource> resources)
     {
-        var containerHost = DefaultContainerHostName;
         var tunnelProxyResource = _appResources.Where(r => r.DcpResource is ContainerNetworkTunnelProxy).FirstOrDefault();
 
         foreach (var appResource in resources)
@@ -874,7 +873,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     targetHost,
                     (int)svc.AllocatedPort!,
                     bindingMode,
-                    containerHostAddress: appResource.ModelResource!.IsContainer() ? containerHost : null,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
                     networkID);
             }
@@ -918,7 +916,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     targetHost,
                     (int)ts.Service!.AllocatedPort!,
                     bindingMode,
-                    containerHost,
                     targetPortExpression: $$$"""{{- portForServing "{{{ts.ClientServiceName}}}" -}}""",
                     KnownNetworkIdentifiers.DefaultAspireContainerNetwork
                 );
@@ -1025,7 +1022,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         // but for now we just have one container network per application, and so we need only one tunnel proxy.
         ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
         tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
-        tunnelProxy.Spec.Aliases = [ContainerTunnelProxyHostName];
+        tunnelProxy.Spec.Aliases = [ContainerHostName];
         tunnelProxy.Spec.Tunnels = [];
         var tunnelAppResource = new AppResource(tunnelProxy);
         _appResources.Add(tunnelAppResource);
@@ -2107,7 +2104,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             },
             resourceLogger,
-            DefaultContainerHostName,
             cancellationToken).ConfigureAwait(false);
 
         return (args, failedToApplyArgs);
@@ -2164,7 +2160,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             },
             resourceLogger,
-            DefaultContainerHostName,
             cancellationToken).ConfigureAwait(false);
 
         return (env, failedToApplyConfiguration);
@@ -2190,7 +2185,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
             },
             resourceLogger,
-            DefaultContainerHostName,
             cancellationToken).ConfigureAwait(false);
 
         return (runArgs, failedToApplyArgs);
