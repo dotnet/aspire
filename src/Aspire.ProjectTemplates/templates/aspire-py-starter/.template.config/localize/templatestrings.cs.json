@@ -2,8 +2,6 @@
   "author": "Microsoft",
   "name": "Úvodní aplikace Aspire pro Python",
   "description": "Šablona projektu pro vytvoření aplikace Aspire se službou rozhraní API back-endu v jazyce Python a front-endem v JavaScriptu využívajícím Vite a React",
-  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
-  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "Číslo portu, který se má použít pro koncový bod HTTP v launchSettings.json projektu AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Číslo portu, který se má použít pro koncový bod HTTP OTLP v launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpPort/description": "Číslo portu, který se má použít pro koncový bod HTTP služby prostředků v launchSettings.json projektu AppHost.",

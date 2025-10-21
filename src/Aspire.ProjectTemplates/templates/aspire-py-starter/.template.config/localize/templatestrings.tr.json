@@ -2,8 +2,6 @@
   "author": "Microsoft",
   "name": "Aspire Python Başlangıç Uygulaması",
   "description": "Python arka uç API'si hizmeti ve Vite ve React kullanılarak JavaScript ön uç ile Aspire uygulaması oluşturmak için bir proje şablonu.",
-  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
-  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
   "symbols/appHostOtlpHttpPort/description": "AppHost projesinin OTLP HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
   "symbols/appHostResourceHttpPort/description": "AppHost projesinin kaynak hizmeti HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
