@@ -268,34 +268,6 @@ public sealed class DashboardOptionsTests
 
     #endregion
 
-    [Fact]
-    public async Task McpOptions_NoEndpoint_DefaultFrontendEndpoint()
-    {
-        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
-        [
-            new("ASPNETCORE_URLS", "http://localhost:8000/;http://localhost:8001/"),
-            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
-            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey, "true"),
-        ]));
-        var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
-
-        Assert.Equal("http://localhost:8000", options.CurrentValue.Mcp.EndpointUrl);
-    }
-
-    [Fact]
-    public async Task McpOptions_NoEndpoint_DefaultFrontendEndpointHttps()
-    {
-        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
-        [
-            new("ASPNETCORE_URLS", "http://localhost:8000/;https://localhost:8001/;https://localhost:8002/"),
-            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
-            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey, "true"),
-        ]));
-        var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
-
-        Assert.Equal("https://localhost:8001", options.CurrentValue.Mcp.EndpointUrl);
-    }
-
     #region OpenIDConnect options
 
     [Fact]

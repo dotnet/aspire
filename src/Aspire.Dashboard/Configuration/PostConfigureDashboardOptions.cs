@@ -51,15 +51,6 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
             options.Frontend.EndpointUrls = frontendUrls;
         }
 
-        // If there's no MCP URL configured, default to frontend URL. Prefer HTTPS.
-        if (options.Mcp.EndpointUrl == null)
-        {
-            if (options.Frontend.TryParseOptions(out _) && options.Frontend.GetEndpointAddresses() is { Count: > 0 } frontendAddresses)
-            {
-                options.Mcp.EndpointUrl = (frontendAddresses.FirstOrDefault(e => e.Scheme == "https") ?? frontendAddresses[0]).ToString();
-            }
-        }
-
         if (_configuration.GetString(DashboardConfigNames.ResourceServiceUrlName.ConfigKey,
                                      DashboardConfigNames.Legacy.ResourceServiceUrlName.ConfigKey, fallbackOnEmpty: true) is { } resourceServiceUrl)
         {

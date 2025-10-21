@@ -44,11 +44,15 @@ public partial class McpServerDialog
         {
             _mcpServerJson = GetMcpServerJson();
         }
+        else
+        {
+            throw new InvalidOperationException("MCP server is not enabled or configured.");
+        }
     }
 
     [MemberNotNullWhen(true, nameof(_mcpServerJson))]
     [MemberNotNullWhen(true, nameof(_mcpUrl))]
-    private bool McpEnabled => !string.IsNullOrEmpty(_mcpUrl);
+    private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault() && !string.IsNullOrEmpty(_mcpUrl);
 
     private string GetMcpServerJson()
     {

@@ -45,6 +45,27 @@ public class McpServiceTests
     }
 
     [Fact]
+    public async Task CallService_McpEndPointDisabled_Failure()
+    {
+        // Arrange
+        await using var app = IntegrationTestHelpers.CreateDashboardWebApplication(_testOutputHelper, config =>
+        {
+            config[DashboardConfigNames.DashboardMcpDisableName.ConfigKey] = "true";
+        });
+        await app.StartAsync().DefaultTimeout();
+
+        using var httpClient = IntegrationTestHelpers.CreateHttpClient($"http://{app.McpEndPointAccessor().EndPoint}");
+
+        var request = CreateListToolsRequest();
+
+        // Act
+        var responseMessage = await httpClient.SendAsync(request).DefaultTimeout(TestConstants.LongTimeoutDuration);
+
+        // Assert
+        Assert.False(responseMessage.IsSuccessStatusCode);
+    }
+
+    [Fact]
     public async Task CallService_McpEndPoint_RequiredApiKeyWrong_Failure()
     {
         // Arrange
