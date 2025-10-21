@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Semver;
 
 namespace Aspire.Cli.DotNet;
@@ -12,7 +13,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext, ILogger<DotNetSdkInstaller> logger) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -184,12 +185,40 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         }
 
         installProcess.Start();
+        
+        // Capture and log stdout and stderr
+        var stdoutTask = Task.Run(async () =>
+        {
+            while (!installProcess.StandardOutput.EndOfStream)
+            {
+                var line = await installProcess.StandardOutput.ReadLineAsync(cancellationToken);
+                if (line != null)
+                {
+                    logger.LogDebug("dotnet-install stdout: {Line}", line);
+                }
+            }
+        }, cancellationToken);
+
+        var stderrTask = Task.Run(async () =>
+        {
+            while (!installProcess.StandardError.EndOfStream)
+            {
+                var line = await installProcess.StandardError.ReadLineAsync(cancellationToken);
+                if (line != null)
+                {
+                    logger.LogDebug("dotnet-install stderr: {Line}", line);
+                }
+            }
+        }, cancellationToken);
+
         await installProcess.WaitForExitAsync(cancellationToken);
+        
+        // Wait for output capture to complete
+        await Task.WhenAll(stdoutTask, stderrTask);
 
         if (installProcess.ExitCode != 0)
         {
-            var stderr = await installProcess.StandardError.ReadToEndAsync(cancellationToken);
-            throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}. Error: {stderr}");
+            throw new InvalidOperationException($"Failed to install .NET SDK {sdkVersion}. Exit code: {installProcess.ExitCode}");
         }
 
         // Clean up the install script
