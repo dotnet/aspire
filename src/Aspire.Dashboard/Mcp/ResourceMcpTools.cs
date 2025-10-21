@@ -38,7 +38,6 @@ internal sealed class ResourceMcpTools
     {
         try
         {
-            var cts = new CancellationTokenSource(millisecondsDelay: 500);
             var resources = _dashboardClient.GetResources();
 
             var resourceGraphData = AIHelpers.GetResponseGraphJson(resources.ToList());
