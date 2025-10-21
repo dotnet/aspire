@@ -29,6 +29,31 @@ internal class Publisher(
             );
         }
 
+        // Add a step to display the target environment when deploying
+        if (options.Value.Deploy)
+        {
+            var environmentStep = await progressReporter.CreateStepAsync(
+                "display-environment",
+                cancellationToken).ConfigureAwait(false);
+
+            await using (environmentStep.ConfigureAwait(false))
+            {
+                var hostEnvironment = serviceProvider.GetService<Microsoft.Extensions.Hosting.IHostEnvironment>();
+                var environmentName = hostEnvironment?.EnvironmentName ?? "Production";
+
+                var environmentTask = await environmentStep.CreateTaskAsync(
+                    $"Discovering target environment",
+                    cancellationToken)
+                    .ConfigureAwait(false);
+
+                await environmentTask.CompleteAsync(
+                    $"Deploying to environment: {environmentName.ToLowerInvariant()}",
+                    CompletionState.Completed,
+                    cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+
         // Check if --clear-cache flag is set and prompt user before deleting deployment state
         if (options.Value.Deploy && options.Value.ClearCache)
         {
