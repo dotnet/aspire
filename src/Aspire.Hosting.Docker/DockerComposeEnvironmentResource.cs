@@ -71,7 +71,7 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
 
         // In Docker Compose, services can communicate using their service names
         // Docker Compose automatically creates a network where services can reach each other by service name
-        return ReferenceExpression.Create(resource.Name.ToLowerInvariant());
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}");
     }
 
     private Task PublishAsync(PublishingContext context)
