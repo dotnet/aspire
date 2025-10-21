@@ -265,10 +265,12 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            // Try pwsh first (PowerShell Core), then fall back to powershell (Windows PowerShell)
+            var powerShellExecutable = GetAvailablePowerShell();
             return (
                 "https://dot.net/v1/dotnet-install.ps1",
                 "dotnet-install.ps1",
-                "powershell"
+                powerShellExecutable
             );
         }
         else
@@ -278,6 +280,64 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                 "dotnet-install.sh",
                 "bash"
             );
+        }
+    }
+
+    /// <summary>
+    /// Determines which PowerShell executable is available on the system.
+    /// Tries pwsh (PowerShell Core) first, then falls back to powershell (Windows PowerShell).
+    /// </summary>
+    /// <returns>The name of the available PowerShell executable.</returns>
+    private static string GetAvailablePowerShell()
+    {
+        // Try pwsh first (PowerShell Core - cross-platform)
+        if (IsPowerShellAvailable("pwsh"))
+        {
+            return "pwsh";
+        }
+
+        // Fall back to powershell (Windows PowerShell)
+        if (IsPowerShellAvailable("powershell"))
+        {
+            return "powershell";
+        }
+
+        // Default to powershell if neither can be verified
+        // The installation will fail later with a clear error if it's not available
+        return "powershell";
+    }
+
+    /// <summary>
+    /// Checks if a PowerShell executable is available by running it with --version.
+    /// </summary>
+    /// <param name="executable">The PowerShell executable name to check (pwsh or powershell).</param>
+    /// <returns>True if the executable is available and responds to --version.</returns>
+    private static bool IsPowerShellAvailable(string executable)
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = executable,
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.Start();
+            process.WaitForExit(1000); // Wait up to 1 second
+
+            return process.ExitCode == 0;
+        }
+        catch
+        {
+            // If the executable doesn't exist or can't be started, return false
+            return false;
         }
     }
 
