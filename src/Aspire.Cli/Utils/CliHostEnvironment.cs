@@ -136,10 +136,15 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     private static bool DetectAnsiSupport(IConfiguration configuration)
     {
-        // ANSI codes are supported even in CI environments for colored output
-        // Only disable if explicitly configured
+        // Check if explicitly disabled via NO_COLOR environment variable
         var noColor = configuration["NO_COLOR"];
         if (!string.IsNullOrEmpty(noColor))
+        {
+            return false;
+        }
+
+        // Disable ANSI colors when console output is redirected to avoid garbled output in files
+        if (Console.IsOutputRedirected)
         {
             return false;
         }

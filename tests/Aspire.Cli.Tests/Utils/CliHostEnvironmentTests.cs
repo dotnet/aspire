@@ -50,7 +50,10 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
-        Assert.True(env.SupportsAnsi);
+        // When console output is redirected (e.g., during test execution), ANSI colors are not supported
+        // In a normal console environment, this would return true
+        var expected = !Console.IsOutputRedirected;
+        Assert.Equal(expected, env.SupportsAnsi);
     }
 
     [Theory]
@@ -144,7 +147,7 @@ public class CliHostEnvironmentTests
     [InlineData("GITHUB_ACTIONS", "true")]
     public void SupportsAnsi_ReturnsTrue_InCIEnvironment(string envVar, string value)
     {
-        // Arrange - ANSI should still be supported in CI for colored output
+        // Arrange - ANSI can still be supported in CI if output is not redirected
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -156,7 +159,9 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
-        Assert.True(env.SupportsAnsi);
+        // ANSI is supported in CI unless output is redirected
+        var expected = !Console.IsOutputRedirected;
+        Assert.Equal(expected, env.SupportsAnsi);
     }
 
     [Fact]
@@ -206,13 +211,15 @@ public class CliHostEnvironmentTests
     [Fact]
     public void SupportsAnsi_ReturnsTrue_WhenNonInteractiveTrue()
     {
-        // Arrange - ANSI should still be supported even in non-interactive mode
+        // Arrange - ANSI can still be supported even in non-interactive mode
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
         
         // Assert
-        Assert.True(env.SupportsAnsi);
+        // ANSI is supported in non-interactive mode unless output is redirected
+        var expected = !Console.IsOutputRedirected;
+        Assert.Equal(expected, env.SupportsAnsi);
     }
 }
