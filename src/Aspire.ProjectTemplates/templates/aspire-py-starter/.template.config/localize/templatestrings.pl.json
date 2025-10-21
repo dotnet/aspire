@@ -2,6 +2,8 @@
   "author": "Microsoft",
   "name": "Aplikacja startowa Aspire Python",
   "description": "Szablon projektu służący do tworzenia aplikacji w języku Python w środowisku Aspire przy użyciu usługi interfejsu API wewnętrznej bazy danych języka Python i frontonu JavaScript korzystającego z programów Vite i React.",
+  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
+  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP OTLP w pliku launchSettings.json projektu AppHost.",
   "symbols/appHostResourceHttpPort/description": "Numer portu do użycia dla punktu końcowego HTTP usługi zasobów w pliku launchSettings.json projektu AppHost.",
