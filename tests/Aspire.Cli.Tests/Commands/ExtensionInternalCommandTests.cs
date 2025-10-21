@@ -240,9 +240,14 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         }
 
         public Task<FileInfo?> UseOrFindSolutionFileAsync(
-            FileInfo? solutionFile, 
-            bool createSettingsFile, 
+            FileInfo? solutionFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -293,9 +298,14 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         }
 
         public Task<FileInfo?> UseOrFindSolutionFileAsync(
-            FileInfo? solutionFile, 
-            bool createSettingsFile, 
+            FileInfo? solutionFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -338,9 +348,14 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         }
 
         public Task<FileInfo?> UseOrFindSolutionFileAsync(
-            FileInfo? solutionFile, 
-            bool createSettingsFile, 
+            FileInfo? solutionFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }
@@ -383,9 +398,14 @@ public class ExtensionInternalCommandTests(ITestOutputHelper outputHelper)
         }
 
         public Task<FileInfo?> UseOrFindSolutionFileAsync(
-            FileInfo? solutionFile, 
-            bool createSettingsFile, 
+            FileInfo? solutionFile,
+            bool createSettingsFile,
             CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+        
+        public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
         }

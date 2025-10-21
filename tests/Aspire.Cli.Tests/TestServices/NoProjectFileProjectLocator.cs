@@ -16,4 +16,9 @@ internal sealed class NoProjectFileProjectLocator : IProjectLocator
     {
         throw new ProjectLocatorException("No project file found.");
     }
+
+    public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException();
+    }
 }
