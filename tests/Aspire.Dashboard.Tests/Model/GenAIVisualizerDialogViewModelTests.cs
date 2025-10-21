@@ -8,7 +8,6 @@ using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Google.Protobuf.Collections;
-using Microsoft.Extensions.Logging.Abstractions;
 using OpenTelemetry.Proto.Logs.V1;
 using OpenTelemetry.Proto.Trace.V1;
 using Xunit;
@@ -500,7 +499,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
 
         // Assert
         Assert.Empty(vm.Items);
-        Assert.StartsWith("System.Text.Json.JsonException: ", vm.DisplayErrorMessage);
+        Assert.StartsWith("System.InvalidOperationException: ", vm.DisplayErrorMessage);
     }
 
     [Fact]
@@ -674,7 +673,7 @@ public sealed class GenAIVisualizerDialogViewModelTests
         return GenAIVisualizerDialogViewModel.Create(
             spanDetailsViewModel,
             selectedLogEntryId: null,
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             telemetryRepository: repository,
             () => [spanDetailsViewModel.Span]);
     }

@@ -60,7 +60,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 
@@ -218,13 +218,13 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Populate values into user-secrets during run mode
-        if (context.ExecutionContext.IsRunMode)
+        // Populate values into deployment state with thread-safe synchronization
+        context.WithDeploymentState(deploymentState =>
         {
-            var az = context.UserSecrets.Prop("Azure");
+            var az = deploymentState.Prop("Azure");
             az["Tenant"] = context.Tenant.DefaultDomain;
 
-            var resourceConfig = context.UserSecrets
+            var resourceConfig = deploymentState
                 .Prop("Azure")
                 .Prop("Deployments")
                 .Prop(resource.Name);
@@ -252,7 +252,7 @@ internal sealed class BicepProvisioner(
 
             // Save the checksum to the configuration
             resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
-        }
+        });
 
         if (outputObj is not null)
         {
@@ -260,7 +260,7 @@ internal sealed class BicepProvisioner(
             {
                 // TODO: Handle complex output types
                 // Populate the resource outputs
-                resource.Outputs[item.Key] = item.Value?.Prop("value").ToString();
+                resource.Outputs[item.Key] = item.Value?.Prop("value")?.ToString();
             }
         }
 

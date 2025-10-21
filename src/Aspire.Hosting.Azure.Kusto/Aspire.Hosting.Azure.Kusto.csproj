@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <RootNamespace>Aspire.Hosting.Azure</RootNamespace>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting azure kusto</PackageTags>
     <Description>Azure Kusto support for .NET Aspire.</Description>

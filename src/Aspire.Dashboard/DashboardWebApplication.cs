@@ -41,6 +41,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using OpenIdConnectOptions = Microsoft.AspNetCore.Authentication.OpenIdConnect.OpenIdConnectOptions;
 
 namespace Aspire.Dashboard;
 
@@ -263,6 +264,7 @@ public sealed class DashboardWebApplication : IAsyncDisposable
         builder.Services.TryAddSingleton<DashboardTelemetryService>();
         builder.Services.TryAddSingleton<IDashboardTelemetrySender, DashboardTelemetrySender>();
         builder.Services.AddSingleton<ILoggerProvider, TelemetryLoggerProvider>();
+        builder.Services.AddSingleton<ITelemetryErrorRecorder, TelemetryErrorRecorder>();
 
         // OTLP services.
         builder.Services.AddGrpc();
@@ -800,6 +802,17 @@ public sealed class DashboardWebApplication : IAsyncDisposable
 
                     // Avoid "message.State is null or empty" due to use of CallbackPath above.
                     options.SkipUnrecognizedRequests = true;
+
+                    // Configure additional ClaimActions
+                    var claimActions = dashboardOptions.Frontend.OpenIdConnect.ClaimActions;
+                    if (claimActions.Count > 0)
+                    {
+                        foreach (var claimAction in claimActions)
+                        {
+                            var configureAction = GetOidcClaimActionConfigure(claimAction);
+                            configureAction(options);
+                        }
+                    }
                 });
                 break;
             case FrontendAuthMode.BrowserToken:
@@ -875,6 +888,18 @@ public sealed class DashboardWebApplication : IAsyncDisposable
                 _ => CookieAuthenticationDefaults.AuthenticationScheme
             };
         }
+    }
+
+    internal static Action<OpenIdConnectOptions> GetOidcClaimActionConfigure(ClaimAction action)
+    {
+        Action<OpenIdConnectOptions> configureAction = (action.SubKey is null, action.IsUnique) switch
+        {
+            (true, true) => options => options.ClaimActions.MapUniqueJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (true, _) => options => options.ClaimActions.MapJsonKey(action.ClaimType, action.JsonKey, action.ValueType ?? ClaimValueTypes.String),
+            (false, _) => options => options.ClaimActions.MapJsonSubKey(action.ClaimType, action.JsonKey, action.SubKey!, action.ValueType ?? ClaimValueTypes.String)
+        };
+
+        return configureAction;
     }
 
     public int Run()

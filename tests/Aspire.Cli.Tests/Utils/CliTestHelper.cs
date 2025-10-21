@@ -90,6 +90,8 @@ internal static class CliTestHelper
         services.AddSingleton(options.PackagingServiceFactory);
         services.AddSingleton(options.CliExecutionContextFactory);
         services.AddSingleton(options.DiskCacheFactory);
+        services.AddSingleton(options.CliHostEnvironmentFactory);
+        services.AddSingleton(options.CliDownloaderFactory);
         services.AddSingleton<FallbackProjectParser>();
         services.AddSingleton(options.ProjectUpdaterFactory);
         services.AddSingleton<NuGetPackagePrefetcher>();
@@ -236,11 +238,18 @@ internal sealed class CliServiceCollectionTestOptions
         return new ProjectUpdater(logger, runner, interactionService, cache, executionContext, fallbackParser);
     };
 
+    public Func<IServiceProvider, ICliHostEnvironment> CliHostEnvironmentFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return new CliHostEnvironment(configuration, nonInteractive: false);
+    };
+
     public Func<IServiceProvider, IInteractionService> InteractionServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
     {
         var ansiConsole = serviceProvider.GetRequiredService<IAnsiConsole>();
         var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
-        return new ConsoleInteractionService(ansiConsole, executionContext);
+        var hostEnvironment = serviceProvider.GetRequiredService<ICliHostEnvironment>();
+        return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
     };
 
     public Func<IServiceProvider, ICertificateService> CertificateServiceFactory { get; set; } = (IServiceProvider serviceProvider) =>
@@ -328,6 +337,13 @@ internal sealed class CliServiceCollectionTestOptions
     };
 
     public Func<IServiceProvider, IDiskCache> DiskCacheFactory { get; set; } = (IServiceProvider serviceProvider) => new NullDiskCache();
+
+    public Func<IServiceProvider, ICliDownloader> CliDownloaderFactory { get; set; } = (IServiceProvider serviceProvider) =>
+    {
+        var executionContext = serviceProvider.GetRequiredService<CliExecutionContext>();
+        var tmpDirectory = new DirectoryInfo(Path.Combine(executionContext.WorkingDirectory.FullName, "tmp"));
+        return new TestCliDownloader(tmpDirectory);
+    };
 }
 
 internal sealed class TestOutputTextWriter : TextWriter

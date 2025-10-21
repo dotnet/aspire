@@ -1,7 +1,6 @@
 ﻿<configuration>
   <packageSources>
     <clear />
-    <add key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
     <add key="https://api.nuget.org/v3/index.json" value="https://api.nuget.org/v3/index.json" />
     <add key="companyfeed" value="https://companyfeed/v3/index.json" />
     <add key="{PR_HIVE}" value="{PR_HIVE}" />
@@ -9,9 +8,6 @@
   <packageSourceMapping>
     <packageSource key="https://api.nuget.org/v3/index.json">
       <package pattern="*" />
-    </packageSource>
-    <packageSource key="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json">
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
     <packageSource key="{PR_HIVE}">
       <package pattern="Aspire*" />

@@ -25,6 +25,7 @@ Only one IDE (one IDE session endpoint) is supported per DCP instance. The IDE s
 | `DEBUG_SESSION_PORT` | The port DCP should use to talk to the IDE session endpoint. DCP will use `http://localhost:<value of DEBUG_SESSION_PORT>` as the IDE session endpoint base URL. Required. |
 | `DEBUG_SESSION_TOKEN` | Security (bearer) token for talking to the IDE session endpoint. This token will be attached to every request via Authorization HTTP header. Required. |
 | `DEBUG_SESSION_SERVER_CERTIFICATE` | If present, provides base64-encoded server certificate used for authenticating IDE endpoint and securing the communication via TLS. <br/> The certificate can be self-signed, but it must include subject alternative name, set to "localhost". Setting canonical name (`cn`) is not sufficient. <br/> If the certificate is provided, all communication with the IDE will occur via `https` and `wss` (the latter for the session change notifications). There will be NO fallback to `http` or `ws` or un-authenticated mode. Using `https` and `wss` is optional but strongly recommended. |
+| `DEBUG_SESSION_INFO`               | If present, the same JSON document as returned by the `/info` request, defined below, used to determine which executable types are supported by the IDE |
 
 > Note: the most important use case for the IDE execution is to facilitate application services debugging. The word "debug" appears in environment variable names that DCP uses to connect to IDE session endpoint, but IDE execution does not always mean that the service is running under a debugger.
 
@@ -67,13 +68,13 @@ The payload is best explained using an example:
 {
     "launch_configurations": [
         {
-            // Indicates the type of the launch configuration. 
+            // Indicates the type of the launch configuration.
             // This is a required property for all kinds of launch configurations.
             // The value "project" indicates this is a service that has an associated Visual Studio project file.
             "type": "project",
 
             "project_path": "(Path to Visual Studio project file for the program)",
-            
+
             // ... other launch configuration properties
         }
 
@@ -138,7 +139,7 @@ If successful, the connection should be upgraded to a WebSocket connection, whic
 
 ### IDE endpoint information request
 
-Used by DCP to get information about capabilities of the IDE run session endpoint. 
+Used by DCP to get information about capabilities of the IDE run session endpoint.
 
 **HTTP verb and path** <br/>
 `GET /info`
@@ -151,8 +152,8 @@ Used by DCP to get information about capabilities of the IDE run session endpoin
 A JSON document describing the capabilities of the IDE run session endpoint. For example:
 ```jsonc
 {
-    "protocols_supported": [ "2024-03-03", "2025-10-01" ],
-    "supported_launch_configurations": [ "project", "blazor_webapp" ]
+    "protocols_supported": [ "2024-04-23", "2025-10-01" ],
+    "supported_launch_configurations": [ "project", "python" ]
 }
 ```
 
@@ -190,7 +191,7 @@ Launch profiles should be applied to service run sessions according to the follo
 2. Environment variable values (`env` property) and invocation arguments (`args` property) specified by the run session request always take precedence over settings present in the launch profile. Specifically:
 
     a. Environment variable values **override** (are applied on top of) the environment variable values from the base profile.
-    
+
     b. **If present**, invocation arguments from the run session request **completely replace** invocation arguments from the base profile. In particular, an empty array (`[]`) specified in the request means no invocation arguments should be used at all, even if base profile is present and has some invocation arguments specified. On the other hand, if the `args` run session request property is absent, or set to `null`, it means the run session request does not specify any invocation arguments for the service, and thus if the base profile exists and contains invocation arguments, those from the base profile should be used.
 
 3. The base profile is determined according to following rules:
@@ -203,7 +204,19 @@ Launch profiles should be applied to service run sessions according to the follo
 
 **Working folder for project execution**
 
-Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory). 
+Unless the launch profile specifies otherwise (via `WorkingDirectory` property), each project should be launched using its own folder as the working folder (working directory).
+
+### Python launch configuration (type: `python`)
+
+Python launch configuration contains details for launching python scripts.
+
+**Python launch configuration properties**
+
+| Property | Description | Required? |
+|----------------|--------|-------|
+| `type` | Launch configuration type indicator; must be `python`.  | Required |
+| `program_path` | Path to the python startup file. | Required |
+| `mode` | Specifies the launch mode. Currently supported modes are `Debug` (run the project under the debugger) and `NoDebug` (run the project without debugging). | Optional, defaults to `Debug`. |
 
 ## Run session change notifications
 
@@ -293,7 +306,7 @@ The value of the `error` property is an `ErrorDetail` object with the following 
 
 ## Protocol versioning
 
-When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example: 
+When making a request to the IDE, DCP will include an `api-version` parameter to indicate the version of the protocol used, for example:
 
 `PUT /run_session?api-version=2024-03-03`
 
@@ -311,8 +324,13 @@ If the protocol version is newer than the latest the IDE supports, the IDE shoul
 Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
 Changes: none (baseline version)
 
+**`2024-04-23`** <br/>
+Applicable Aspire versions: `9.0` up to and including `9.5`. <br/>
+Changes:
+- Expects the IDE endpoint to be able to respond to WebSocket `ping` messages with a proper `pong` message. Used for detecting notification connection failures.
+
 **`2025-10-01`** <br/>
-Applicable Aspire versions: `9.6` and above (DCP will downgrade to `2024-03-03` if necessary). <br/>
+Applicable Aspire versions: `13.0` and above (DCP will downgrade to `2024-03-03` or `2024-04-23` if necessary). <br/>
 Changes:
 - Adds [session message notification](#session-message-notification) as one of the run session change notification types.
 - Adds `supported_launch_configurations` property to [IDE endpoint information request](#ide-endpoint-information-request).

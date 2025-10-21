@@ -8,6 +8,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker.Resources;
 using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Docker.Resources.ServiceNodes;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Logging;
 
@@ -26,7 +27,7 @@ internal sealed class DockerComposePublishingContext(
     IResourceContainerImageBuilder imageBuilder,
     string outputPath,
     ILogger logger,
-    IPublishingActivityReporter activityReporter,
+    IPipelineActivityReporter activityReporter,
     CancellationToken cancellationToken = default)
 {
     private const UnixFileMode DefaultUmask = UnixFileMode.GroupExecute | UnixFileMode.GroupWrite | UnixFileMode.OtherExecute | UnixFileMode.OtherWrite;
@@ -87,6 +88,27 @@ internal sealed class DockerComposePublishingContext(
                     containerImagesToBuild.Add(serviceResource.TargetResource);
                 }
 
+                // Materialize Dockerfile factories for resources with DockerfileBuildAnnotation
+                if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = executionContext.ServiceProvider,
+                        Resource = serviceResource.TargetResource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(OutputPath, $"{serviceResource.TargetResource.Name}.Dockerfile");
+                    Directory.CreateDirectory(OutputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 var composeService = serviceResource.BuildComposeService();
 
                 HandleComposeFileVolumes(serviceResource, composeFile);
@@ -127,7 +149,7 @@ internal sealed class DockerComposePublishingContext(
         }
 
         var step = await activityReporter.CreateStepAsync(
-            "Writing Docker Compose file.",
+            "write-compose",
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -156,15 +178,22 @@ internal sealed class DockerComposePublishingContext(
                     foreach (var entry in environment.CapturedEnvironmentVariables ?? [])
                     {
                         var (key, (description, defaultValue, source)) = entry;
-                        
+                        var onlyIfMissing = true;
+
                         // If the source is a parameter and there's no explicit default value,
                         // resolve the parameter's default value asynchronously
                         if (defaultValue is null && source is ParameterResource parameter && !parameter.Secret && parameter.Default is not null)
                         {
                             defaultValue = await parameter.GetValueAsync(cancellationToken).ConfigureAwait(false);
                         }
-                        
-                        envFile.AddIfMissing(key, defaultValue, description);
+
+                        if (source is ContainerImageReference cir && cir.Resource.TryGetContainerImageName(out var imageName))
+                        {
+                            defaultValue = imageName;
+                            onlyIfMissing = false; // Always update the image name if it changes
+                        }
+
+                        envFile.Add(key, defaultValue, description, onlyIfMissing);
                     }
 
                     envFile.Save(envFilePath);

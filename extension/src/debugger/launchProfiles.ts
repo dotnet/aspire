@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import { LaunchConfiguration, EnvVar } from '../dcp/types';
+import { ExecutableLaunchConfiguration, EnvVar, ProjectLaunchConfiguration } from '../dcp/types';
 import { extensionLogOutputChannel } from '../utils/logging';
 
 /*
@@ -60,7 +60,7 @@ export async function readLaunchSettings(projectPath: string): Promise<LaunchSet
  * Determines the base launch profile according to the Aspire launch profile rules
  */
 export function determineBaseLaunchProfile(
-    launchConfig: LaunchConfiguration,
+    launchConfig: ProjectLaunchConfiguration,
     launchSettings: LaunchSettings | null
 ): LaunchProfileResult {
     // If disable_launch_profile property is set to true in project launch configuration, there is no base profile, regardless of the value of launch_profile property.

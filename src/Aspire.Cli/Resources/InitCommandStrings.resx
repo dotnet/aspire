@@ -87,4 +87,10 @@
   <data name="SolutionAlreadyInitialized" xml:space="preserve">
     <value>Solution has already been initialized with Aspire.</value>
   </data>
+  <data name="AddingAppHostProjectToSolution" xml:space="preserve">
+    <value>Adding AppHost project to solution...</value>
+  </data>
+  <data name="AddingServiceDefaultsProjectToSolution" xml:space="preserve">
+    <value>Adding ServiceDefaults project to solution...</value>
+  </data>
 </root>

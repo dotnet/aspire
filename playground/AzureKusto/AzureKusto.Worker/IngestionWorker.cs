@@ -1,24 +1,29 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Kusto.Data.Common;
+using System.Data;
+using Kusto.Ingest;
 using Microsoft.Extensions.Options;
+using Polly;
 
 namespace AzureKusto.Worker;
 
 internal sealed class IngestionWorker : BackgroundService
 {
-    private readonly ICslAdminProvider _adminClient;
+    private readonly IKustoIngestClient _ingestClient;
     private readonly IOptionsMonitor<WorkerOptions> _workerOptions;
-    private readonly ILogger<QueryWorker> _logger;
+    private readonly ResiliencePipeline _pipeline;
+    private readonly ILogger<IngestionWorker> _logger;
 
     public IngestionWorker(
-        ICslAdminProvider adminClient,
+        IKustoIngestClient ingestClient,
         IOptionsMonitor<WorkerOptions> workerOptions,
-        ILogger<QueryWorker> logger)
+        [FromKeyedServices("kusto-resilience")] ResiliencePipeline pipeline,
+        ILogger<IngestionWorker> logger)
     {
-        _adminClient = adminClient;
+        _ingestClient = ingestClient;
         _workerOptions = workerOptions;
+        _pipeline = pipeline;
         _logger = logger;
     }
 
@@ -26,23 +31,35 @@ internal sealed class IngestionWorker : BackgroundService
     {
         _logger.LogInformation("Starting ingestion worker");
 
-        // Option 2: Seed as part of worker startup
-        // This is another approach that is likely more versatile, where seeding occurs as part of startup (optionally only in development).
-        var command =
-            $"""
-                 .create-merge table {_workerOptions.CurrentValue.TableName} (Id: int, Name: string, Timestamp: datetime)
-            """;
-        await _adminClient.ExecuteControlCommandAsync(_adminClient.DefaultDatabaseName, command);
+        // Option: Ingest as part of worker startup
+        // This is another approach that is likely more versatile, where seeding occurs as part
+        // of startup (optionally only in development).
+        await IngestFromDataReaderAsync(stoppingToken);
 
-        command =
-            $"""
-                 .ingest inline into table {_workerOptions.CurrentValue.TableName} <|
-                     11,"Dave",datetime(2024-02-01T10:00:00Z)
-                     22,"Eve",datetime(2024-02-02T11:00:00Z)
-                     33,"Frank",datetime(2024-02-03T12:00:00Z)
-            """;
-        await _adminClient.ExecuteControlCommandAsync(_adminClient.DefaultDatabaseName, command);
         _logger.LogInformation("Ingestion complete");
         _workerOptions.CurrentValue.IsIngestionComplete = true;
+    }
+
+    private async Task IngestFromDataReaderAsync(CancellationToken stoppingToken)
+    {
+        var table = new DataTable();
+        table.Columns.Add("Id", typeof(int));
+        table.Columns.Add("Name", typeof(string));
+
+        table.Rows.Add(7, "George");
+        table.Rows.Add(8, "Henry");
+        table.Rows.Add(9, "Isabel");
+
+        var ingestionProps = new KustoIngestionProperties
+        {
+            DatabaseName = _workerOptions.CurrentValue.DatabaseName,
+            TableName = _workerOptions.CurrentValue.TableName,
+        };
+
+        await _pipeline.ExecuteAsync(async ct =>
+        {
+            using var reader = table.CreateDataReader();
+            await _ingestClient.IngestFromDataReaderAsync(reader, ingestionProps);
+        }, stoppingToken);
     }
 }

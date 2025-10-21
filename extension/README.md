@@ -40,6 +40,37 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
 }
 ```
 
+### Customizing debugger attributes for resources
+
+| Language | Debugger entry |
+|---------|-------------|
+| C# | project |
+| Python | python |
+
+The debuggers property stores common debug configuration properties for different types of Aspire services.
+C#-based services have common debugging properties under `project`. Python-based services have their common properties under `python`.
+There is also a special entry for the apphost (`apphost`). For example:
+
+```json
+{
+    "type": "aspire",
+    "request": "launch",
+    "name": "Aspire: Launch MyAppHost",
+    "program": "${workspaceFolder}/MyAppHost/MyAppHost.csproj",
+    "debuggers": {
+        "project": {
+            "console": "integratedTerminal",
+            "logging": {
+                "moduleLoad": false
+            }
+        },
+        "apphost": {
+            "stopAtEntry": true
+        }
+    }
+}
+```
+
 ## Requirements
 
 - The [Aspire CLI](https://learn.microsoft.com/en-us/dotnet/aspire/cli/install) must be installed and available on the path.

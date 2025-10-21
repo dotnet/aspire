@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) kafka</PackageTags>
     <Description>Confluent.Kafka based Kafka generic consumer and producer that integrates with Aspire, including healthchecks and metrics.</Description>

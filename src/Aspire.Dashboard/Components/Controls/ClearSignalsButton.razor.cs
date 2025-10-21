@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;

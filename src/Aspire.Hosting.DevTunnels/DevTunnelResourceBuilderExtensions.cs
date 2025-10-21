@@ -374,7 +374,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(targetEndpointReference);
 
         var portResource = tunnelBuilder.Resource.Ports
-            .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource 
+            .FirstOrDefault(p => p.TargetEndpoint.Resource == targetEndpointReference.Resource
                 && StringComparers.EndpointAnnotationName.Equals(p.TargetEndpoint.EndpointName, targetEndpointReference.EndpointName));
 
         if (portResource is null)
@@ -394,8 +394,9 @@ public static partial class DevTunnelsResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Injects service discovery information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
-    /// Each endpoint defined on the target resource will be injected using the format "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}".
+    /// Injects service discovery and endpoint information as environment variables from the dev tunnel resource into the destination resource, using the tunneled resource's name as the service name.
+    /// Each endpoint defined on the target resource will be injected using the format defined by the <see cref="ReferenceEnvironmentInjectionAnnotation"/> on the destination resource, i.e.
+    /// either "services__{sourceResourceName}__{endpointName}__{endpointIndex}={uriString}" for .NET service discovery, or "{RESOURCE_ENDPOINT}={uri}" for endpoint injection.
     /// </summary>
     /// <remarks>
     /// Referencing a dev tunnel will delay the start of the resource until the referenced dev tunnel's endpoint is allocated.
@@ -422,12 +423,25 @@ public static partial class DevTunnelsResourceBuilderExtensions
             .WithReferenceRelationship(tunnelResource)
             .WithEnvironment(context =>
             {
+                // Determine what to inject based on the annotation on the destination resource
+                var injectionAnnotation = context.Resource.TryGetLastAnnotation<ReferenceEnvironmentInjectionAnnotation>(out var annotation) ? annotation : null;
+                var flags = injectionAnnotation?.Flags ?? ReferenceEnvironmentInjectionFlags.All;
+
                 // Add environment variables for each tunnel port that references an endpoint on the target resource
                 foreach (var port in tunnelResource.Resource.Ports.Where(p => p.TargetEndpoint.Resource == targetResource.Resource))
                 {
                     var serviceName = targetResource.Resource.Name;
                     var endpointName = port.TargetEndpoint.EndpointName;
-                    context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+
+                    if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.ServiceDiscovery))
+                    {
+                        context.EnvironmentVariables[$"services__{serviceName}__{endpointName}__0"] = port.TunnelEndpoint;
+                    }
+
+                    if (flags.HasFlag(ReferenceEnvironmentInjectionFlags.Endpoints))
+                    {
+                        context.EnvironmentVariables[$"{serviceName.ToUpperInvariant()}_{endpointName.ToUpperInvariant()}"] = port.TunnelEndpoint;
+                    }
                 }
             });
 

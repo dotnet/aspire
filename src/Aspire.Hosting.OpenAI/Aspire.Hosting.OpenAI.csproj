@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Aspire.Hosting.OpenAI.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="$(SharedDir)IConfigurationExtensions.cs" Link="IConfigurationExtensions.cs" />
   </ItemGroup>
 

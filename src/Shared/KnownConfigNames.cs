@@ -32,6 +32,7 @@ internal static class KnownConfigNames
     public const string CliProcessStarted = "ASPIRE_CLI_STARTED";
     public const string ForceRichConsole = "ASPIRE_FORCE_RICH_CONSOLE";
     public const string TestingDisableHttpClient = "ASPIRE_TESTING_DISABLE_HTTP_CLIENT";
+    public const string InteractivityEnabled = "ASPIRE_INTERACTIVITY_ENABLED";
 
     public const string LocaleOverride = "ASPIRE_LOCALE_OVERRIDE";
     public const string DotnetCliUiLanguage = "DOTNET_CLI_UI_LANGUAGE";
@@ -41,9 +42,10 @@ internal static class KnownConfigNames
     public const string ExtensionPromptEnabled = "ASPIRE_EXTENSION_PROMPT_ENABLED";
     public const string ExtensionToken = "ASPIRE_EXTENSION_TOKEN";
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
-    public const string ExtensionCapabilities = "ASPIRE_EXTENSION_CAPABILITIES";
-    public const string ExtensionDebugRunMode = "ASPIRE_EXTENSION_DEBUG_RUN_MODE";
     public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
+
+    public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
+    public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";
 
     public static class Legacy
     {

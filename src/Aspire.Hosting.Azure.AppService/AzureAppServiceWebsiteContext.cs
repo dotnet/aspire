@@ -5,8 +5,10 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Authorization;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Resources;
 
@@ -27,6 +29,8 @@ internal sealed class AzureAppServiceWebsiteContext(
     // bicep compatible values
     public Dictionary<string, object> EnvironmentVariables { get; } = [];
     public List<object> Args { get; } = [];
+
+    private int? _targetPort;
 
     private AzureResourceInfrastructure? _infrastructure;
     public AzureResourceInfrastructure Infra => _infrastructure ?? throw new InvalidOperationException("Infra is not set");
@@ -87,6 +91,15 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             throw new NotSupportedException($"The endpoint(s) {string.Join(", ", unsupportedEndpoints.Select(e => $"'{e.Name}'"))} on resource '{resource.Name}' specifies an unsupported scheme. Only http and https are supported in App Service.");
         }
+
+        // App Service supports only one target port
+        var targetPortEndpoints = endpoints.Where(e => e.IsExternal && e.TargetPort is not null).Select(e => e.TargetPort).Distinct().ToList();
+        if (targetPortEndpoints.Count > 1)
+        {
+            throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
+        }
+
+        _targetPort = targetPortEndpoints.FirstOrDefault();
 
         foreach (var endpoint in endpoints)
         {
@@ -162,7 +175,14 @@ internal sealed class AzureAppServiceWebsiteContext(
         {
             if (expr.Format == "{0}" && expr.ValueProviders.Count == 1)
             {
-                return ProcessValue(expr.ValueProviders[0], secretType, parent);
+                var val = ProcessValue(expr.ValueProviders[0], secretType, parent: parent);
+
+                if (expr.StringFormats[0] is string format)
+                {
+                    val = (BicepFormattingHelpers.FormatBicepExpression(val, format), secretType);
+                }
+
+                return val;
             }
 
             var args = new object[expr.ValueProviders.Count];
@@ -176,6 +196,12 @@ internal sealed class AzureAppServiceWebsiteContext(
                 {
                     finalSecretType = SecretType.Normal;
                 }
+
+                if (expr.StringFormats[index] is string format)
+                {
+                    val = BicepFormattingHelpers.FormatBicepExpression(val, format);
+                }
+
                 args[index++] = val;
             }
 
@@ -212,7 +238,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         var acrMidParameter = environmentContext.Environment.ContainerRegistryManagedIdentityId.AsProvisioningParameter(infra);
         var acrClientIdParameter = environmentContext.Environment.ContainerRegistryClientId.AsProvisioningParameter(infra);
         var containerImage = AllocateParameter(new ContainerImageReference(Resource));
-
+        
         var webSite = new WebSite("webapp")
         {
             // Use the host name as the name of the web app
@@ -224,6 +250,12 @@ internal sealed class AzureAppServiceWebsiteContext(
                 LinuxFxVersion = "SITECONTAINERS",
                 AcrUserManagedIdentityId = acrClientIdParameter,
                 UseManagedIdentityCreds = true,
+                // Setting NumberOfWorkers to maximum allowed value for Premium SKU
+                // https://learn.microsoft.com/en-us/azure/app-service/manage-scale-up
+                // This is required due to use of feature PerSiteScaling for the App Service plan
+                // We want the web apps to scale normally as defined for the app service plan
+                // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
+                NumberOfWorkers = 30,
                 AppSettings = []
             },
             Identity = new ManagedServiceIdentity()
@@ -244,7 +276,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        infra.Add(mainContainer);
+        if (_targetPort is not null)
+        {
+            mainContainer.TargetPort = _targetPort.Value.ToString(CultureInfo.InvariantCulture);
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITES_PORT", Value = _targetPort.Value.ToString(CultureInfo.InvariantCulture) });
+        }
 
         foreach (var kv in EnvironmentVariables)
         {
@@ -279,8 +315,10 @@ internal sealed class AzureAppServiceWebsiteContext(
 
             var arrayExpression = new ArrayExpression([.. args.Select(a => a.Compile())]);
 
-            webSite.SiteConfig.AppCommandLine = Join(arrayExpression, " ");
+            mainContainer.StartUpCommand = Join(arrayExpression, " ");
         }
+
+        infra.Add(mainContainer);
 
         var id = BicepFunction.Interpolate($"{acrMidParameter}").Compile().ToString();
         webSite.Identity.UserAssignedIdentities[id] = new UserAssignedIdentityDetails();
@@ -304,7 +342,17 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Name = "AZURE_CLIENT_ID",
                 Value = appIdentityResource.ClientId.AsProvisioningParameter(infra)
             });
+
+            // DefaultAzureCredential should only use ManagedIdentityCredential when running in Azure
+            webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+            {
+                Name = "AZURE_TOKEN_CREDENTIALS",
+                Value = "ManagedIdentityCredential"
+            });
         }
+
+        // Added appsetting to identify the resource in a specific aspire environment
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "ASPIRE_ENVIRONMENT_NAME", Value = environmentContext.Environment.Name });
 
         // Probes
 #pragma warning disable ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
@@ -323,7 +371,17 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 #pragma warning restore ASPIREPROBES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+        RoleAssignment? webSiteRa = null;
+        if (environmentContext.Environment.EnableDashboard)
+        {
+            webSiteRa = AddDashboardPermissionAndSettings(webSite, acrClientIdParameter);
+        }
+
         infra.Add(webSite);
+        if (webSiteRa is not null)
+        {
+            infra.Add(webSiteRa);
+        }
 
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
@@ -361,6 +419,36 @@ internal sealed class AzureAppServiceWebsiteContext(
     private ProvisioningParameter AllocateParameter(IManifestExpressionProvider parameter, SecretType secretType = SecretType.None)
     {
         return parameter.AsProvisioningParameter(Infra, isSecure: secretType == SecretType.Normal);
+    }
+
+    private RoleAssignment AddDashboardPermissionAndSettings(WebSite webSite, ProvisioningParameter acrClientIdParameter)
+    {
+        var dashboardUri = environmentContext.Environment.DashboardUriReference.AsProvisioningParameter(Infra);
+        var contributorId = environmentContext.Environment.WebsiteContributorManagedIdentityId.AsProvisioningParameter(Infra);
+        var contributorPrincipalId = environmentContext.Environment.WebsiteContributorManagedIdentityPrincipalId.AsProvisioningParameter(Infra);
+
+        // Add the appsettings specific to sending telemetry data to dashboard
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_SERVICE_NAME", Value = resource.Name });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_PROTOCOL", Value = "grpc" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_EXPORTER_OTLP_ENDPOINT", Value = "http://localhost:6001" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "WEBSITE_ENABLE_ASPIRE_OTEL_SIDECAR", Value = "true" });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_COLLECTOR_URL", Value = dashboardUri });
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair { Name = "OTEL_CLIENT_ID", Value = acrClientIdParameter });
+
+        // Add Website Contributor role assignment to dashboard's managed identity for this webapp
+        var websiteRaId = BicepFunction.GetSubscriptionResourceId(
+                    "Microsoft.Authorization/roleDefinitions",
+                    "de139f84-1756-47ae-9be6-808fbbe84772");
+        var websiteRaName = BicepFunction.CreateGuid(webSite.Id, contributorId, websiteRaId);
+
+        return new RoleAssignment(Infrastructure.NormalizeBicepIdentifier($"{Infra.AspireResource.Name}_ra"))
+        {
+            Name = websiteRaName,
+            Scope = new IdentifierExpression(webSite.BicepIdentifier),
+            PrincipalType = RoleManagementPrincipalType.ServicePrincipal,
+            PrincipalId = contributorPrincipalId,
+            RoleDefinitionId = websiteRaId,
+        };
     }
 
     enum SecretType

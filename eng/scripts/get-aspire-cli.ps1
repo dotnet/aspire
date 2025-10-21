@@ -23,6 +23,12 @@ param(
     [Parameter(HelpMessage = "Keep downloaded archive files and temporary directory after installation")]
     [switch]$KeepArchive,
 
+    [Parameter(HelpMessage = "Install VS Code extension along with the CLI")]
+    [switch]$InstallExtension,
+
+    [Parameter(HelpMessage = "Install extension to VS Code Insiders instead of VS Code")]
+    [switch]$UseInsiders,
+
     [Parameter(HelpMessage = "Show help message")]
     [switch]$Help
 )
@@ -32,6 +38,7 @@ $Script:UserAgent = "get-aspire-cli.ps1/1.0"
 $Script:IsModernPowerShell = $PSVersionTable.PSVersion.Major -ge 6 -and $PSVersionTable.PSEdition -eq "Core"
 $Script:ArchiveDownloadTimeoutSec = 600
 $Script:ChecksumDownloadTimeoutSec = 120
+$Script:ExtensionArtifactName = "aspire-vscode.vsix.zip"
 
 # Configuration constants
 $Script:Config = @{
@@ -130,6 +137,8 @@ PARAMETERS:
     -Version <string>           Version of the Aspire CLI to download (default: unset)
     -OS <string>                Operating system (default: auto-detect)
     -Architecture <string>      Architecture (default: auto-detect)
+    -InstallExtension           Install VS Code extension along with the CLI
+    -UseInsiders                Install extension to VS Code Insiders instead of VS Code (requires -InstallExtension)
     -KeepArchive                Keep downloaded archive files and temporary directory after installation
     -Help                       Show this help message
 
@@ -150,6 +159,8 @@ EXAMPLES:
     .\get-aspire-cli.ps1 -Quality "staging"
     .\get-aspire-cli.ps1 -Version "9.5.0-preview.1.25366.3"
     .\get-aspire-cli.ps1 -OS "linux" -Architecture "x64"
+    .\get-aspire-cli.ps1 -InstallExtension
+    .\get-aspire-cli.ps1 -InstallExtension -UseInsiders
     .\get-aspire-cli.ps1 -KeepArchive
     .\get-aspire-cli.ps1 -WhatIf
     .\get-aspire-cli.ps1 -Help
@@ -498,6 +509,26 @@ function Invoke-FileDownload {
     }
 }
 
+# Function to check VS Code CLI dependency
+function Test-VSCodeCLIDependency {
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [switch]$UseInsiders
+    )
+
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    if (-not (Get-Command $vscodeCmd -ErrorAction SilentlyContinue)) {
+        Write-Message "$vscodeName CLI ($vscodeCmd) not found in PATH" -Level Warning
+        return $false
+    }
+
+    Write-Message "$vscodeName CLI ($vscodeCmd) found" -Level Verbose
+    return $true
+}
+
 # Enhanced checksum validation with proper error handling
 function Test-FileChecksum {
     [CmdletBinding()]
@@ -681,6 +712,142 @@ function Update-PathEnvironment {
     }
 }
 
+# Function to download VS Code extension
+function Get-AspireExtension {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$TempDir,
+
+        [Parameter()]
+        [string]$Version,
+
+        [Parameter()]
+        [string]$Quality
+    )
+
+    Write-Message "Downloading Aspire VS Code extension" -Level Info
+
+    $extensionUrl = Get-AspireExtensionUrl -Version $Version -Quality $Quality
+    $extensionArchive = Join-Path $TempDir $Script:ExtensionArtifactName
+
+    try {
+        if ($PSCmdlet.ShouldProcess($extensionArchive, "Download extension from $extensionUrl")) {
+            Write-Message "Downloading from: $extensionUrl" -Level Info
+            Invoke-FileDownload -Uri $extensionUrl -OutputPath $extensionArchive -TimeoutSec $Script:ArchiveDownloadTimeoutSec
+            Write-Message "Successfully downloaded extension archive" -Level Verbose
+        }
+
+        return $extensionArchive
+    }
+    catch {
+        Write-Message "Failed to download extension: $($_.Exception.Message)" -Level Error
+        throw
+    }
+}
+
+# Function to install VS Code extension
+function Install-AspireExtension {
+    [CmdletBinding(SupportsShouldProcess)]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ExtensionArchive,
+
+        [Parameter()]
+        [switch]$UseInsiders
+    )
+
+    $vscodeCmd = if ($UseInsiders) { "code-insiders" } else { "code" }
+    $vscodeName = if ($UseInsiders) { "VS Code Insiders" } else { "VS Code" }
+
+    Write-Message "Installing Aspire extension to $vscodeName" -Level Info
+
+    # Extract the zip to get the VSIX file
+    $extractDir = Join-Path ([System.IO.Path]::GetTempPath()) "aspire-extension-$([System.Guid]::NewGuid().ToString('N').Substring(0, 8))"
+
+    try {
+        if ($PSCmdlet.ShouldProcess($extractDir, "Extract extension archive")) {
+            # Expand the zip archive
+            if ($Script:IsModernPowerShell) {
+                Expand-Archive -Path $ExtensionArchive -DestinationPath $extractDir -Force
+            } else {
+                Add-Type -AssemblyName System.IO.Compression.FileSystem
+                [System.IO.Compression.ZipFile]::ExtractToDirectory($ExtensionArchive, $extractDir)
+            }
+
+            Write-Message "Extracted extension archive" -Level Verbose
+        }
+
+        # Find the VSIX file
+        $vsixFile = Get-ChildItem -Path $extractDir -Filter "*.vsix" | Select-Object -First 1
+
+        if (-not $vsixFile) {
+            throw "No VSIX file found in extension archive"
+        }
+
+        Write-Message "Found VSIX file: $($vsixFile.Name)" -Level Verbose
+
+        # Install the extension
+        if ($PSCmdlet.ShouldProcess($vsixFile.FullName, "Install extension using $vscodeCmd")) {
+            $installArgs = @("--install-extension", $vsixFile.FullName, "--force")
+            Write-Message "Running: $vscodeCmd $($installArgs -join ' ')" -Level Verbose
+
+            $output = & $vscodeCmd $installArgs 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "Extension installation failed with exit code $LASTEXITCODE`: $output"
+            }
+
+            Write-Message "Successfully installed Aspire extension to $vscodeName" -Level Success
+        }
+    }
+    finally {
+        # Clean up extraction directory
+        if (Test-Path $extractDir) {
+            try {
+                Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Message "Cleaned up extraction directory" -Level Verbose
+            }
+            catch {
+                Write-Message "Failed to clean up extraction directory: $($_.Exception.Message)" -Level Warning
+            }
+        }
+    }
+}
+
+# Function to construct VS Code extension URL
+function Get-AspireExtensionUrl {
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter()]
+        [string]$Version,
+
+        [Parameter()]
+        [string]$Quality
+    )
+
+    $extension = "vsix.zip"
+
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        # Validate quality against supported values
+        if ($Quality -notin $Script:Config.SupportedQualities) {
+            throw "Unsupported quality '$Quality'. Supported values are: $($Script:Config.SupportedQualities -join ", ")."
+        }
+
+        $baseUrl = $Script:Config.BaseUrls[$Quality]
+        if (-not $baseUrl) {
+            throw "No base URL configured for quality: $Quality"
+        }
+
+        return "$baseUrl/aspire-vscode.$extension"
+    }
+    else {
+        # Version-based URL
+        $baseUrl = $Script:Config.BaseUrls["versioned"]
+        return "$baseUrl/$Version/aspire-vscode-$Version.$extension"
+    }
+}
+
 # Enhanced URL construction function with configuration-based URLs
 function Get-AspireCliUrl {
     [CmdletBinding()]
@@ -815,6 +982,27 @@ function Install-AspireCli {
             Write-Message "Aspire CLI successfully installed to: $cliPath" -Level Success
         }
 
+        # Download and install VS Code extension if requested
+        if ($InstallExtension) {
+            Write-Message "" -Level Info
+            Write-Message "Installing VS Code extension" -Level Info
+
+            if (Test-VSCodeCLIDependency -UseInsiders:$UseInsiders) {
+                try {
+                    $extensionArchive = Get-AspireExtension -TempDir $tempDir -Version $Version -Quality $Quality
+                    Install-AspireExtension -ExtensionArchive $extensionArchive -UseInsiders:$UseInsiders
+                }
+                catch {
+                    Write-Message "Failed to install VS Code extension: $($_.Exception.Message)" -Level Warning
+                    Write-Message "The CLI was installed successfully, but the extension installation failed" -Level Warning
+                }
+            }
+            else {
+                Write-Message "Cannot install extension: VS Code CLI not found in PATH" -Level Warning
+                Write-Message "Please ensure VS Code is installed and available in PATH" -Level Info
+            }
+        }
+
         # Return the target OS for the caller to use
         return $targetOS
     }
@@ -861,6 +1049,11 @@ function Start-AspireCliInstallation {
 
         if (-not [string]::IsNullOrWhiteSpace($Architecture) -and $Architecture -notin $Script:Config.SupportedArchitectures) {
             throw "Unsupported Architecture $Architecture. Supported values are: $($Script:Config.SupportedArchitectures -join ", ")"
+        }
+
+        # Validate extension installation is only allowed with dev quality
+        if ($InstallExtension -and $Quality -ne "dev") {
+            throw "Extension installation is only supported with -Quality dev. Current quality: $Quality"
         }
 
         # Determine the installation path

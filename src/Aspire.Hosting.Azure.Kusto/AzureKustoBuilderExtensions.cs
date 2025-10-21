@@ -10,7 +10,6 @@ using Azure.Provisioning;
 using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;
-using Kusto.Data.Exceptions;
 using Kusto.Data.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -185,7 +184,7 @@ public static class AzureKustoBuilderExtensions
     /// </summary>
     /// <remarks>
     /// This script will only be executed when the Kusto resource is running in emulator mode. In production scenarios, the database creation should be handled as part of the provisioning process.
-    /// <value>Default script is <code>.create database DATABASE_NAME volatile</code></value>
+    /// <inheritdoc cref="AzureKustoReadWriteDatabaseResourceExtensions.GetDatabaseCreationScript(AzureKustoReadWriteDatabaseResource)"/>
     /// </remarks>
     /// <param name="builder">The resource builder to configure.</param>
     /// <param name="script">KQL script to create databases, tables, or data.</param>
@@ -273,8 +272,7 @@ public static class AzureKustoBuilderExtensions
         };
         crp.SetParameter(ClientRequestProperties.OptionQueryConsistency, ClientRequestProperties.OptionQueryConsistency_Strong);
 
-        var scriptAnnotation = databaseResource.Annotations.OfType<AzureKustoCreateDatabaseScriptAnnotation>().LastOrDefault();
-        var script = scriptAnnotation?.Script ?? $".create database {databaseResource.DatabaseName} volatile;";
+        var script = databaseResource.GetDatabaseCreationScript();
 
         var logger = serviceProvider.GetRequiredService<ResourceLoggerService>().GetLogger(databaseResource);
         var rns = serviceProvider.GetRequiredService<ResourceNotificationService>();
@@ -285,11 +283,6 @@ public static class AzureKustoBuilderExtensions
         {
             await AzureKustoEmulatorResiliencePipelines.Default.ExecuteAsync(async ct => await adminProvider.ExecuteControlCommandAsync(databaseResource.DatabaseName, script, crp).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
             logger.LogDebug("Database '{DatabaseName}' created successfully", databaseResource.DatabaseName);
-        }
-        catch (KustoBadRequestException e) when (e.Message.Contains("EntityNameAlreadyExistsException"))
-        {
-            // Ignore the error if the database already exists.
-            logger.LogDebug("Database '{DatabaseName}' already exists", databaseResource.DatabaseName);
         }
         catch (Exception e)
         {

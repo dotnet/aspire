@@ -1,0 +1,12 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aplicación de inicio de Aspire Python",
+  "description": "Una plantilla de proyecto para crear una aplicación Aspire con un servicio de API de back-end en Python y un front-end en JavaScript usando Vite y React.",
+  "symbols/appHostHttpPort/description": "Número de puerto que se va a usar para el punto de conexión HTTP en launchSettings.json del proyecto AppHost.",
+  "symbols/appHostOtlpHttpPort/description": "Número de puerto que se va a usar para el punto de conexión HTTP de OTLP en launchSettings.json del proyecto AppHost.",
+  "symbols/appHostResourceHttpPort/description": "Número de puerto que se va a usar para el punto de conexión HTTP del servicio de recursos en launchSettings.json del proyecto AppHost.",
+  "symbols/appHostHttpsPort/description": "Número de puerto que se va a usar para el punto de conexión HTTPS en launchSettings.json del proyecto AppHost. Esta opción solo es aplicable cuando no se usa el parámetro no-https.",
+  "symbols/appHostOtlpHttpsPort/description": "Número de puerto que se va a usar para el punto de conexión HTTPS de OTLP en launchSettings.json del proyecto AppHost.",
+  "symbols/appHostResourceHttpsPort/description": "Número de puerto a usar para el punto de conexión HTTPS del servicio de recursos en launchSettings.json del proyecto AppHost.",
+  "symbols/NoHttps/description": "Si se va a desactivar HTTPS."
+}

@@ -26,6 +26,16 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     public EndpointReference PrimaryEndpoint => _primaryEndpoint ??= new(this, PrimaryEndpointName);
 
     /// <summary>
+    /// Gets the host endpoint reference for the primary endpoint.
+    /// </summary>
+    public EndpointReferenceExpression Host => PrimaryEndpoint.Property(EndpointProperty.Host);
+
+    /// <summary>
+    /// Gets the port endpoint reference for the primary endpoint.
+    /// </summary>
+    public EndpointReferenceExpression Port => PrimaryEndpoint.Property(EndpointProperty.Port);
+
+    /// <summary>
     /// Gets the internal endpoint for the Kafka broker. This endpoint is used for container to broker communication.
     /// To connect to the Kafka broker from a host process, use <see cref="PrimaryEndpoint"/>.
     /// </summary>
@@ -36,4 +46,10 @@ public class KafkaServerResource(string name) : ContainerResource(name), IResour
     /// </summary>
     public ReferenceExpression ConnectionStringExpression =>
        ReferenceExpression.Create($"{PrimaryEndpoint.Property(EndpointProperty.HostAndPort)}");
+
+    IEnumerable<KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties()
+    {
+        yield return new("Host", ReferenceExpression.Create($"{Host}"));
+        yield return new("Port", ReferenceExpression.Create($"{Port}"));
+    }
 }

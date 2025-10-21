@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -282,7 +283,7 @@ public static class ProjectResourceBuilderExtensions
 
         return builder.AddResource(project)
                       .WithAnnotation(new ProjectMetadata(projectPath))
-                      .WithVSCodeDebugSupport(projectPath, "coreclr", "ms-dotnettools.csharp")
+                      .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectPath, Mode = mode }, "ms-dotnettools.csharp")
                       .WithProjectDefaults(options);
     }
 
@@ -675,6 +676,15 @@ public static class ProjectResourceBuilderExtensions
     {
         if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
+            return builder;
+        }
+
+        // Check if this resource has already been converted to a container resource.
+        // This makes the method idempotent - multiple calls won't cause errors.
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<ProjectContainerResource>(builder.Resource.Name, out var existingBuilder))
+        {
+            // Resource has already been converted, just invoke the configure callback if provided
+            configure?.Invoke(existingBuilder);
             return builder;
         }
 

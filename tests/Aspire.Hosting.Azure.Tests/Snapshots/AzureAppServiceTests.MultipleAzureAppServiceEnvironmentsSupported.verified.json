@@ -1,4 +1,4 @@
-﻿{
+{
   "$schema": "https://json.schemastore.org/aspire-8.0.json",
   "resources": {
     "env1": {
@@ -26,7 +26,10 @@
           "env1_outputs_azure_container_registry_managed_identity_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "env1_outputs_azure_container_registry_managed_identity_client_id": "{env1.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
           "servicea_containerimage": "{ServiceA.containerImage}",
-          "servicea_containerport": "{ServiceA.containerPort}"
+          "servicea_containerport": "{ServiceA.containerPort}",
+          "env1_outputs_azure_app_service_dashboard_uri": "{env1.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}",
+          "env1_outputs_azure_website_contributor_managed_identity_id": "{env1.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID}",
+          "env1_outputs_azure_website_contributor_managed_identity_principal_id": "{env1.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID}"
         }
       },
       "env": {
@@ -62,7 +65,10 @@
           "env2_outputs_azure_container_registry_managed_identity_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
           "env2_outputs_azure_container_registry_managed_identity_client_id": "{env2.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
           "serviceb_containerimage": "{ServiceB.containerImage}",
-          "serviceb_containerport": "{ServiceB.containerPort}"
+          "serviceb_containerport": "{ServiceB.containerPort}",
+          "env2_outputs_azure_app_service_dashboard_uri": "{env2.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}",
+          "env2_outputs_azure_website_contributor_managed_identity_id": "{env2.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID}",
+          "env2_outputs_azure_website_contributor_managed_identity_principal_id": "{env2.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID}"
         }
       },
       "env": {

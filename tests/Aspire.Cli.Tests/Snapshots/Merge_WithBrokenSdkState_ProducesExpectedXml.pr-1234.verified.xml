@@ -2,15 +2,11 @@
   <packageSources>
     <clear />
     <add key="https://api.nuget.org/v3/index.json" value="https://api.nuget.org/v3/index.json" />
-    <add key="C:\Users\davifowl\.aspire\hives\pr-11227" value="C:\Users\davifowl\.aspire\hives\pr-11227" />
     <add key="{PR_HIVE}" value="{PR_HIVE}" />
   </packageSources>
   <packageSourceMapping>
     <packageSource key="https://api.nuget.org/v3/index.json">
       <package pattern="*" />
-    </packageSource>
-    <packageSource key="C:\Users\davifowl\.aspire\hives\pr-11227">
-      <package pattern="Microsoft.Extensions.ServiceDiscovery*" />
     </packageSource>
     <packageSource key="{PR_HIVE}">
       <package pattern="Aspire*" />

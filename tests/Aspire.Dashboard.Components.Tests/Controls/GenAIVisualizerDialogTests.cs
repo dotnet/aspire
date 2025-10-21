@@ -6,7 +6,6 @@ using System.Text.Json.Nodes;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
-using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.GenAI;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
@@ -41,7 +40,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: CreateOtlpSpan(resource, trace, scope, spanId: "abc", parentSpanId: null, startDate: s_testTime),
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
@@ -109,7 +108,7 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
             span: span,
             selectedLogEntryId: null,
             telemetryRepository: Services.GetRequiredService<TelemetryRepository>(),
-            logger: NullLogger.Instance,
+            errorRecorder: new TestTelemetryErrorRecorder(),
             resources: [],
             getContextGenAISpans: () => []
             );
@@ -121,27 +120,8 @@ public class GenAIVisualizerDialogTests : DashboardTestContext
 
     private IRenderedFragment SetUpDialog(out IDialogService dialogService)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
-
-        Services.AddFluentUIComponents();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton(new ThemeManager(new TestThemeResolver()));
-
-        Services.AddLocalization();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-
-        var cut = Render(builder =>
-        {
-            builder.OpenComponent<FluentDialogProvider>(0);
-            builder.CloseComponent();
-        });
-
-        // Setting a provider ID on menu service is required to simulate <FluentMenuProvider> on the page.
-        // This makes FluentMenu render without error.
-        var menuService = Services.GetRequiredService<IMenuService>();
-        menuService.ProviderId = "Test";
+        FluentUISetupHelpers.SetupDialogInfrastructure(this);
+        var cut = FluentUISetupHelpers.RenderDialogProvider(this);
 
         dialogService = Services.GetRequiredService<IDialogService>();
         return cut;

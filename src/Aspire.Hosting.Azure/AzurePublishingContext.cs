@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -25,12 +25,15 @@ namespace Aspire.Hosting.Azure;
 public sealed class AzurePublishingContext(
     string outputPath,
     AzureProvisioningOptions provisioningOptions,
+    IServiceProvider serviceProvider,
     ILogger logger,
-    IPublishingActivityReporter activityReporter)
+    IPipelineActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityReporter ActivityReporter => activityReporter;
+    private IPipelineActivityReporter ActivityReporter => activityReporter;
+
+    private IServiceProvider ServiceProvider => serviceProvider;
 
     /// <summary>
     /// Gets the main.bicep infrastructure for the distributed application.
@@ -86,7 +89,7 @@ public sealed class AzurePublishingContext(
         }
 
         var step = await ActivityReporter.CreateStepAsync(
-            "Publishing Azure Bicep templates",
+            "publish-bicep",
             cancellationToken
         ).ConfigureAwait(false);
 
@@ -115,7 +118,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IReportingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)
@@ -310,6 +313,27 @@ public sealed class AzurePublishingContext(
         {
             if (resource.GetDeploymentTargetAnnotation() is { } annotation && annotation.DeploymentTarget is AzureBicepResource br)
             {
+                // Materialize Dockerfile factory if present
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
+                    dockerfileBuildAnnotation.DockerfileFactory is not null)
+                {
+                    var context = new DockerfileFactoryContext
+                    {
+                        Services = ServiceProvider,
+                        Resource = resource,
+                        CancellationToken = cancellationToken
+                    };
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+
+                    // Always write to the original DockerfilePath so code looking at that path still works
+                    await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+
+                    // Copy to a resource-specific path in the output folder for publishing
+                    var resourceDockerfilePath = Path.Combine(outputPath, $"{resource.Name}.Dockerfile");
+                    Directory.CreateDirectory(outputPath);
+                    File.Copy(dockerfileBuildAnnotation.DockerfilePath, resourceDockerfilePath, overwrite: true);
+                }
+
                 var task = await step.CreateTaskAsync(
                     $"Processing deployment target {resource.Name}",
                     cancellationToken: default

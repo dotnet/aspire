@@ -219,6 +219,29 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         await Verify(mainBicep, "bicep");
     }
 
+    [Fact]
+    public async Task PublishAsync_WithDockerfileFactory_WritesDockerfileToOutputFolder()
+    {
+        using var tempDir = new TempDirectory();
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", outputPath: tempDir.Path);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for azure'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithDockerfileFactory(".", context => dockerfileContent);
+
+        var app = builder.Build();
+        app.Run();
+
+        // Verify Dockerfile was written to resource-specific path
+        var dockerfilePath = Path.Combine(tempDir.Path, "testcontainer.Dockerfile");
+        Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+        var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+        
+        await Verify(actualContent);
+    }
+
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
     {
         public IDictionary<string, object?> Parameters { get; } = new Dictionary<string, object?>();

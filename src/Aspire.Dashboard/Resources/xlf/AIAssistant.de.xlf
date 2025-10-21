@@ -24,7 +24,7 @@
       </trans-unit>
       <trans-unit id="ChatModelSelectButtonTitle">
         <source>Select a model (current: {0})</source>
-        <target state="new">Select a model (current: {0})</target>
+        <target state="translated">Modell auswählen (aktuell: {0})</target>
         <note>{0} is an AI model display name</note>
       </trans-unit>
       <trans-unit id="ChatRefreshFollowUpPrompts">

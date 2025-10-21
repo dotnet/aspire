@@ -5,6 +5,7 @@ import { debugSessionAlreadyExists, extensionContextNotInitialized } from './loc
 import AspireRpcServer from './server/AspireRpcServer';
 import AspireDcpServer from './dcp/AspireDcpServer';
 import { AspireTerminalProvider } from './utils/AspireTerminalProvider';
+import { AspireEditorCommandProvider } from './editor/AspireEditorCommandProvider';
 
 export class AspireExtensionContext implements vscode.Disposable {
     private _rpcServer?: AspireRpcServer;
@@ -12,15 +13,17 @@ export class AspireExtensionContext implements vscode.Disposable {
     private _extensionContext?: vscode.ExtensionContext;
     private _debugConfigProvider?: AspireDebugConfigurationProvider;
     private _terminalProvider?: AspireTerminalProvider;
+    private _editorCommandProvider?: AspireEditorCommandProvider;
 
     private _aspireDebugSessions: AspireDebugSession[] = [];
 
-    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider): void {
+    initialize(rpcServer: AspireRpcServer, extensionContext: vscode.ExtensionContext, debugConfigProvider: AspireDebugConfigurationProvider, dcpServer: AspireDcpServer, terminalProvider: AspireTerminalProvider, editorCommandProvider: AspireEditorCommandProvider): void {
         this._rpcServer = rpcServer;
         this._extensionContext = extensionContext;
         this._debugConfigProvider = debugConfigProvider;
         this._dcpServer = dcpServer;
         this._terminalProvider = terminalProvider;
+        this._editorCommandProvider = editorCommandProvider;
     }
 
     get rpcServer(): AspireRpcServer {
@@ -77,5 +80,6 @@ export class AspireExtensionContext implements vscode.Disposable {
         this._dcpServer?.dispose();
         this._aspireDebugSessions.forEach(session => session.dispose());
         this._terminalProvider?.dispose();
+        this._editorCommandProvider?.dispose();
     }
 }

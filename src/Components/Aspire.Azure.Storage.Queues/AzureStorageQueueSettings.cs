@@ -16,7 +16,7 @@ public sealed partial class AzureStorageQueueSettings : AzureStorageQueuesSettin
     private static partial Regex QueueNameRegex();
 
     /// <summary>
-    ///  Gets or sets the name of the blob container.
+    ///  Gets or sets the name of the Queue.
     /// </summary>
     public string? QueueName { get; set; }
 

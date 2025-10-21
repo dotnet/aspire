@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>f6688234-abcb-49bc-91cc-04a541ddee18</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\KnownResourceNames.cs" Link="KnownResourceNames.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.AppHost" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Storage" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppContainers" />
+    <AspireProjectOrPackageReference Include="Aspire.Hosting.Azure.AppService" />
+    <PackageReference Include="Azure.Storage.Files.Shares" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\publishers\Publishers.ApiService\Publishers.ApiService.csproj" />
+    <ProjectReference Include="..\Pipelines.Library\Pipelines.Library.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+
+</Project>

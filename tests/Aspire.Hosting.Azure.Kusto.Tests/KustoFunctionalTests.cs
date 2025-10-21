@@ -234,19 +234,13 @@ public class KustoFunctionalTests
         using var builder = TestDistributedApplicationBuilder.Create(_testOutputHelper);
 
         const string dbName = "TestDb";
-        const string dbPath = "/kustodata";
+        const string dbPath = "/kustodata/";
+        var script = AzureKustoEmulatorContainerDefaults.DefaultCreateDatabaseCommand(dbName, dbPath);
         var kusto = builder.AddAzureKustoCluster("kusto").RunAsEmulator(configureContainer: container =>
         {
             container.WithBindMount(temp.Path, dbPath);
         });
-        var kustoDb = kusto.AddReadWriteDatabase("TestDb")
-            .WithCreationScript(
-            $"""
-            .create database {dbName} persist (
-                @"{dbPath}/dbs/{dbName}/md",
-                @"{dbPath}/dbs/{dbName}/data"
-            )
-            """);
+        var kustoDb = kusto.AddReadWriteDatabase(dbName).WithCreationScript(script);
 
         // Ensure the directory is empty before starting the application
         Assert.Empty(GetFilesInMount());

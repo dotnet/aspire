@@ -14,7 +14,7 @@ public class ConsoleInteractionServiceTests
     {
         // Arrange
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var choices = Array.Empty<string>();
 
         // Act & Assert
@@ -27,7 +27,7 @@ public class ConsoleInteractionServiceTests
     {
         // Arrange
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext);
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var choices = Array.Empty<string>();
 
         // Act & Assert
@@ -48,7 +48,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var errorMessage = "The JSON value could not be converted to <Type>. Path: $.values[0].Type | LineNumber: 0 | BytePositionInLine: 121.";
 
         // Act - this should not throw an exception due to markup parsing
@@ -73,7 +73,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var message = "Path with <brackets> and [markup] characters";
 
         // Act - this should not throw an exception due to markup parsing
@@ -98,7 +98,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var lines = new[] 
         {
             ("stdout", "Command output with <angle> brackets"),
@@ -129,7 +129,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var markdown = "# Header\nThis is **bold** and *italic* text with `code`.";
 
         // Act
@@ -156,7 +156,7 @@ public class ConsoleInteractionServiceTests
         });
         
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var plainText = "This is just plain text without any markdown.";
 
         // Act
@@ -181,7 +181,7 @@ public class ConsoleInteractionServiceTests
         });
 
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var statusText = "Processing request...";
         var result = "test result";
 
@@ -208,7 +208,7 @@ public class ConsoleInteractionServiceTests
         });
 
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), debugMode: true);
-        var interactionService = new ConsoleInteractionService(console, executionContext);
+        var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var statusText = "Processing synchronous request...";
         var actionCalled = false;
 
@@ -220,5 +220,63 @@ public class ConsoleInteractionServiceTests
         var outputString = output.ToString();
         Assert.Contains(statusText, outputString);
         // In debug mode, should use DisplaySubtleMessage instead of spinner
+    }
+
+    [Fact]
+    public async Task PromptForStringAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForStringAsync("Enter value:", null, null, false, false, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task PromptForSelectionAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+        var choices = new[] { "option1", "option2" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task PromptForSelectionsAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+        var choices = new[] { "option1", "option2" };
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
+    }
+
+    [Fact]
+    public async Task ConfirmAsync_WhenInteractiveInputNotSupported_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var hostEnvironment = TestHelpers.CreateNonInteractiveHostEnvironment();
+        var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
+
+        // Act & Assert
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            interactionService.ConfirmAsync("Confirm?", true, CancellationToken.None));
+        Assert.Contains("Interactive input is not supported", exception.Message);
     }
 }

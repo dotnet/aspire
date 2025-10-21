@@ -158,10 +158,8 @@ internal class NewCommandPrompter(IInteractionService interactionService) : INew
         // Local helpers
         static string FormatPackageLabel((NuGetPackage Package, PackageChannel Channel) item)
         {
-            // Keep it concise: "Id Version"
-            var pkg = item.Package;
-            var source = pkg.Source is not null && pkg.Source.Length > 0 ? pkg.Source : item.Channel.Name;
-            return $"{pkg.Version} ({source})";
+            // Keep it concise: "Version (source)"
+            return $"{item.Package.Version} ({item.Channel.SourceDetails})";
         }
 
         async Task<(NuGetPackage Package, PackageChannel Channel)> PromptForChannelPackagesAsync(

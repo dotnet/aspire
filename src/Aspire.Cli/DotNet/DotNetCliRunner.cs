@@ -159,7 +159,10 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
     {
         using var activity = telemetry.ActivitySource.StartActivity();
 
-        var cliArgsList = new List<string> { "msbuild" };
+        var isSingleFileAppHost = projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase);
+        
+        // If we are a single file app host then we use the build command instead of msbuild command.
+        var cliArgsList = new List<string> { isSingleFileAppHost ? "build" : "msbuild" };
 
         if (properties.Length > 0)
         {
@@ -248,9 +251,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         string[] cliArgs = isSingleFile switch
         {
             false => [watchOrRunCommand, nonInteractiveSwitch, verboseSwitch, noBuildSwitch, noProfileSwitch, "--project", projectFile.FullName, "--", .. args],
-            true => ["run", projectFile.FullName, "--", ..args]
+            true => ["run", noProfileSwitch, "--file", projectFile.FullName, "--", .. args]
         };
-        
+
+        cliArgs = [.. cliArgs.Where(arg => !string.IsNullOrWhiteSpace(arg))];
+
         // Inject DOTNET_CLI_USE_MSBUILD_SERVER when noBuild == false - we copy the
         // dictionary here because we don't want to mutate the input.
         IDictionary<string, string>? finalEnv = env;
@@ -542,8 +547,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         if (ExtensionHelper.IsExtensionHost(interactionService, out var extensionInteractionService, out var backchannel))
         {
             // Even if AppHost is launched through the CLI, we still need to set the extension capabilities so that supported resource types may be started through VS Code.
-            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionCapabilities] = string.Join(',', await backchannel.GetCapabilitiesAsync(cancellationToken));
-            startInfo.EnvironmentVariables[KnownConfigNames.ExtensionDebugRunMode] = options.StartDebugSession ? "Debug" : "NoDebug";
+            startInfo.EnvironmentVariables[KnownConfigNames.DebugSessionInfo] = configuration[KnownConfigNames.DebugSessionInfo];
 
             if (backchannelCompletionSource is not null
                 && projectFile is not null

@@ -300,17 +300,32 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-starter", templateNames);
-        Assert.Contains("aspire", templateNames);
+        Assert.DoesNotContain("aspire", templateNames);
         Assert.DoesNotContain("aspire-apphost", templateNames);
         Assert.DoesNotContain("aspire-servicedefaults", templateNames);
         Assert.DoesNotContain("aspire-test", templateNames);
     }
 
     [Fact]
-    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsAlsoHidden()
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsVisibleIfFeatureEnabled()
     {
         // Arrange - disable showAllTemplates but enable singleFileAppHost
         var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: true);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsDisabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - disable both showAllTemplates and singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: false, singleFileAppHostEnabled: false);
         var factory = CreateTemplateFactory(features);
 
         // Act
@@ -334,6 +349,21 @@ public class DotNetTemplateFactoryTests
         // Assert
         var templateNames = templates.Select(t => t.Name).ToList();
         Assert.Contains("aspire-apphost-singlefile", templateNames);
+    }
+
+    [Fact]
+    public void GetTemplates_WhenShowAllTemplatesIsEnabled_SingleFileAppHostIsHiddenIfFeatureDisabled()
+    {
+        // Arrange - enable showAllTemplates but disable singleFileAppHost
+        var features = new TestFeatures(showAllTemplates: true, singleFileAppHostEnabled: false);
+        var factory = CreateTemplateFactory(features);
+
+        // Act
+        var templates = factory.GetTemplates().ToList();
+
+        // Assert
+        var templateNames = templates.Select(t => t.Name).ToList();
+        Assert.DoesNotContain("aspire-apphost-singlefile", templateNames);
     }
 
     private static DotNetTemplateFactory CreateTemplateFactory(TestFeatures features)
@@ -411,7 +441,7 @@ public class DotNetTemplateFactoryTests
         public int DisplayIncompatibleVersionError(AppHostIncompatibleException ex, string appHostHostingVersion) => 0;
         public void DisplayPlainText(string text) { }
         public void DisplayMarkdown(string markdown) { }
-        public void DisplaySubtleMessage(string message) { }
+        public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
         public void DisplayEmptyLine() { }
         public void DisplayVersionUpdateNotification(string message) { }
         public void WriteConsoleLog(string message, int? resourceHashCode, string? resourceName, bool isError) { }
@@ -434,6 +464,12 @@ public class DotNetTemplateFactoryTests
         public Task<int> AddProjectToSolutionAsync(FileInfo solutionFile, FileInfo projectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
+        public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
+        public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProjectFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<(int ExitCode, NuGetPackageCli[]? Packages)> SearchPackagesAsync(DirectoryInfo workingDirectory, string query, bool prerelease, int take, int skip, FileInfo? nugetConfigFile, bool useCache, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
@@ -454,16 +490,6 @@ public class DotNetTemplateFactoryTests
 
         public Task<(int ExitCode, string[] ConfigPaths)> GetNuGetConfigPathsAsync(DirectoryInfo workingDirectory, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
             => throw new NotImplementedException();
-
-        public Task<(int ExitCode, IReadOnlyList<FileInfo> Projects)> GetSolutionProjectsAsync(FileInfo solutionFile, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<int> AddProjectReferenceAsync(FileInfo projectFile, FileInfo referencedProject, DotNetCliRunnerInvocationOptions options, CancellationToken cancellationToken)
-        {
-            throw new NotImplementedException();
-        }
     }
 
     private sealed class TestCertificateService : ICertificateService

@@ -26,11 +26,24 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference ContainerRegistryName => new("AZURE_CONTAINER_REGISTRY_NAME", this);
     internal BicepOutputReference ContainerRegistryManagedIdentityId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID", this);
     internal BicepOutputReference ContainerRegistryClientId => new("AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID", this);
+    internal BicepOutputReference WebsiteContributorManagedIdentityId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID", this);
+    internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableDashboard { get; set; } = true;
 
     /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
+
+    /// <summary>
+    /// Gets the URI of the App Service Environment dashboard.
+    /// </summary>
+    public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
 
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => 
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");

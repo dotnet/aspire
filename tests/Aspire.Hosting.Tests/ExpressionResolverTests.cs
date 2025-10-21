@@ -72,6 +72,7 @@ public class ExpressionResolverTests
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
     [InlineData("FullAndPartial", true, false, "Test1=http://ContainerHostName:12345/;Test2=https://localhost:12346/;")]
     [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
+    [InlineData("UrlEncodedHost", false, false, "Host=host%20with%20space;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -86,6 +87,11 @@ public class ExpressionResolverTests
              {
                  e.UriScheme = "https";
                  e.AllocatedEndpoint = new(e, "localhost", 12346, containerHostAddress: "ContainerHostName", targetPortExpression: "10001");
+             })
+             .WithEndpoint("endpoint3", e =>
+             {
+                 e.UriScheme = "https";
+                 e.AllocatedEndpoint = new(e, "host with space", 12346);
              });
 
         if (targetIsContainer)
@@ -212,6 +218,7 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
     readonly string _exprName;
     EndpointReference Endpoint1 => new(this, "endpoint1");
     EndpointReference Endpoint2 => new(this, "endpoint2");
+    EndpointReference Endpoint3 => new(this, "endpoint3");
     Dictionary<string, ReferenceExpression> Expressions { get; }
     public TestExpressionResolverResource(string exprName) : base("testresource")
     {
@@ -227,10 +234,11 @@ sealed class TestExpressionResolverResource : ContainerResource, IResourceWithEn
             { "HostAndPort", ReferenceExpression.Create($"HostPort={Endpoint1.Property(EndpointProperty.HostAndPort)}") },
             { "PortBeforeHost", ReferenceExpression.Create($"Port={Endpoint1.Property(EndpointProperty.Port)};Host={Endpoint1.Property(EndpointProperty.Host)};") },
             { "FullAndPartial", ReferenceExpression.Create($"Test1={Endpoint1.Property(EndpointProperty.Scheme)}://{Endpoint1.Property(EndpointProperty.IPV4Host)}:{Endpoint1.Property(EndpointProperty.Port)}/;Test2={Endpoint2.Property(EndpointProperty.Scheme)}://localhost:{Endpoint2.Property(EndpointProperty.Port)}/;") },
-            { "Empty", ReferenceExpression.Create($"") },
+            { "Empty", ReferenceExpression.Empty },
             { "String", ReferenceExpression.Create($"String") },
-            { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], []) },
-            { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], []) }
+            { "SecretParameter", ReferenceExpression.Create("SecretParameter", [new ParameterResource("SecretParameter", _ => "SecretParameter", secret: true)], [], [null]) },
+            { "NonSecretParameter", ReferenceExpression.Create("NonSecretParameter", [new ParameterResource("NonSecretParameter", _ => "NonSecretParameter", secret: false)], [], [null]) },
+            { "UrlEncodedHost", ReferenceExpression.Create($"Host={Endpoint3.Property(EndpointProperty.Host):uri};") },
         };
     }
 

@@ -4,9 +4,11 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -132,7 +134,7 @@ internal sealed class ResourceContainerImageBuilder(
     ILogger<ResourceContainerImageBuilder> logger,
     IOptions<DcpOptions> dcpOptions,
     IServiceProvider serviceProvider,
-    IPublishingActivityReporter activityReporter) : IResourceContainerImageBuilder
+    IPipelineActivityReporter activityReporter) : IResourceContainerImageBuilder
 {
     private IContainerRuntime? _containerRuntime;
     private IContainerRuntime ContainerRuntime => _containerRuntime ??= dcpOptions.Value.ContainerRuntime switch
@@ -144,7 +146,7 @@ internal sealed class ResourceContainerImageBuilder(
     public async Task BuildImagesAsync(IEnumerable<IResource> resources, ContainerBuildOptions? options = null, CancellationToken cancellationToken = default)
     {
         var step = await activityReporter.CreateStepAsync(
-            "Building container images for resources",
+            "build-images",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
@@ -193,7 +195,7 @@ internal sealed class ResourceContainerImageBuilder(
         return BuildImageAsync(step: null, resource, options, cancellationToken);
     }
 
-    private async Task BuildImageAsync(IPublishingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildImageAsync(IReportingStep? step, IResource resource, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         logger.LogInformation("Building container image for resource {ResourceName}", resource.Name);
 
@@ -208,20 +210,28 @@ internal sealed class ResourceContainerImageBuilder(
                 cancellationToken).ConfigureAwait(false);
             return;
         }
-        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation))
+        else if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
         {
-            if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation))
+            if (!resource.TryGetContainerImageName(out var imageName))
             {
-                // This is a container resource so we'll use the container runtime to build the image
-                await BuildContainerImageFromDockerfileAsync(
-                    resource.Name,
-                    dockerfileBuildAnnotation,
-                    containerImageAnnotation.Image,
-                    step,
-                    options,
-                    cancellationToken).ConfigureAwait(false);
-                return;
+                throw new InvalidOperationException("Resource image name could not be determined.");
             }
+
+            // This is a container resource so we'll use the container runtime to build the image
+            await BuildContainerImageFromDockerfileAsync(
+                resource,
+                dockerfileBuildAnnotation,
+                imageName,
+                step,
+                options,
+                cancellationToken).ConfigureAwait(false);
+            return;
+        }
+        else if (resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var _))
+        {
+            // This resource already has a container image associated with it so no build is needed.
+            logger.LogInformation("Resource {ResourceName} already has a container image associated and no build annotation. Skipping build.", resource.Name);
+            return;
         }
         else
         {
@@ -229,7 +239,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildProjectContainerImageAsync(IResource resource, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildProjectContainerImageAsync(IResource resource, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
@@ -336,13 +346,26 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private async Task BuildContainerImageFromDockerfileAsync(string resourceName, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IPublishingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
+    private async Task BuildContainerImageFromDockerfileAsync(IResource resource, DockerfileBuildAnnotation dockerfileBuildAnnotation, string imageName, IReportingStep? step, ContainerBuildOptions? options, CancellationToken cancellationToken)
     {
         var publishingTask = await CreateTaskAsync(
             step,
-            $"Building image: {resourceName}",
+            $"Building image: {resource.Name}",
             cancellationToken
             ).ConfigureAwait(false);
+
+        // If there's a factory, generate the Dockerfile content and write it to the specified path
+        if (dockerfileBuildAnnotation.DockerfileFactory is not null)
+        {
+            var context = new DockerfileFactoryContext
+            {
+                Services = serviceProvider,
+                Resource = resource,
+                CancellationToken = cancellationToken
+            };
+            var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+            await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);
+        }
 
         // Resolve build arguments
         var resolvedBuildArguments = new Dictionary<string, string?>();
@@ -380,12 +403,12 @@ internal sealed class ResourceContainerImageBuilder(
                         dockerfileBuildAnnotation.Stage,
                         cancellationToken).ConfigureAwait(false);
 
-                    await publishingTask.SucceedAsync($"Building image for {resourceName} completed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.SucceedAsync($"Building image for {resource.Name} completed", cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                    await publishingTask.FailAsync($"Building image for {resourceName} failed", cancellationToken).ConfigureAwait(false);
+                    await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
                     throw;
                 }
             }
@@ -413,7 +436,7 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
+    internal static async Task<string?> ResolveValue(object? value, CancellationToken cancellationToken)
     {
         try
         {
@@ -424,6 +447,7 @@ internal sealed class ResourceContainerImageBuilder(
                 IValueProvider valueProvider => await valueProvider.GetValueAsync(cancellationToken).ConfigureAwait(false),
                 bool boolValue => boolValue ? "true" : "false",
                 null => null,
+                IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
                 _ => value.ToString()
             };
         }
@@ -435,8 +459,8 @@ internal sealed class ResourceContainerImageBuilder(
         }
     }
 
-    private static async Task<IPublishingTask?> CreateTaskAsync(
-        IPublishingStep? step,
+    private static async Task<IReportingTask?> CreateTaskAsync(
+        IReportingStep? step,
         string description,
         CancellationToken cancellationToken)
     {

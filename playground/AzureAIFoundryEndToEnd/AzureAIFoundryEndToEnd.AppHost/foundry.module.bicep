@@ -26,7 +26,7 @@ resource chat 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   properties: {
     model: {
       format: 'Microsoft'
-      name: 'Phi-4-mini-reasoning'
+      name: 'Phi-4-mini-instruct'
       version: '1'
     }
   }

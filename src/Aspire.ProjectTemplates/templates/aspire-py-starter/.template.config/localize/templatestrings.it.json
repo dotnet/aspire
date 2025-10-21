@@ -1,0 +1,12 @@
+﻿{
+  "author": "Microsoft",
+  "name": "App Starter Aspire per Python",
+  "description": "Modello di progetto per creare un'app Aspire con un servizio API backend in Python e un frontend JavaScript basato su Vite e React.",
+  "symbols/appHostHttpPort/description": "Numero di porta da usare per l'endpoint HTTP in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostOtlpHttpPort/description": "Numero di porta da usare per l'endpoint OTLP HTTP in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostResourceHttpPort/description": "Numero di porta da usare per l'endpoint HTTP del servizio risorse in launchSettings.json del progetto AppHost.",
+  "symbols/appHostHttpsPort/description": "Numero di porta da usare per l'endpoint HTTPS in launchSettings.json. del progetto AppHost. Questa opzione è applicabile solo quando il parametro no-https non viene usato.",
+  "symbols/appHostOtlpHttpsPort/description": "Numero di porta da usare per l'endpoint OTLP HTTPS in launchSettings.json. del progetto AppHost.",
+  "symbols/appHostResourceHttpsPort/description": "Numero di porta da usare per l'endpoint HTTPS del servizio risorse in launchSettings.json del progetto AppHost.",
+  "symbols/NoHttps/description": "Indica se disattivare HTTPS."
+}

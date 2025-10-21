@@ -81,6 +81,31 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
         <target state="translated">选择 Azure 订阅:</target>
         <note />
       </trans-unit>
+      <trans-unit id="TenantDialogTitle">
+        <source>Azure tenant</source>
+        <target state="new">Azure tenant</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantLabel">
+        <source>Tenant ID</source>
+        <target state="new">Tenant ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantManualEntryMessage">
+        <source>Enter your Azure tenant ID:</source>
+        <target state="new">Enter your Azure tenant ID:</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantPlaceholder">
+        <source>Select tenant ID</source>
+        <target state="new">Select tenant ID</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="TenantSelectionMessage">
+        <source>Select your Azure tenant:</source>
+        <target state="new">Select your Azure tenant:</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
         <source>Resource group name must be a valid Azure resource group name.</source>
         <target state="translated">资源组名称必须是有效的 Azure 资源组名称。</target>
@@ -89,6 +114,11 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       <trans-unit id="ValidationSubscriptionIdInvalid">
         <source>Subscription ID must be a valid GUID.</source>
         <target state="translated">订阅 ID 必须是有效的 GUID。</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="ValidationTenantIdInvalid">
+        <source>Tenant ID must be a valid GUID.</source>
+        <target state="new">Tenant ID must be a valid GUID.</target>
         <note />
       </trans-unit>
     </body>

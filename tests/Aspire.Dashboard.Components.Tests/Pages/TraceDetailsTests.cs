@@ -6,14 +6,10 @@ using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Model;
-using Aspire.Dashboard.Model.Assistant;
-using Aspire.Dashboard.Model.BrowserStorage;
 using Aspire.Dashboard.Model.Otlp;
 using Aspire.Dashboard.Otlp.Model;
 using Aspire.Dashboard.Otlp.Storage;
 using Aspire.Dashboard.Telemetry;
-using Aspire.Dashboard.Tests;
 using Bunit;
 using Google.Protobuf.Collections;
 using Microsoft.AspNetCore.InternalTesting;
@@ -630,63 +626,27 @@ public partial class TraceDetailsTests : DashboardTestContext
 
     private void SetupTraceDetailsServices(ILoggerFactory? loggerFactory = null)
     {
-        var version = typeof(FluentMain).Assembly.GetName().Version!;
+        FluentUISetupHelpers.SetupFluentOverflow(this);
+        FluentUISetupHelpers.SetupFluentDivider(this);
+        FluentUISetupHelpers.SetupFluentInputLabel(this);
+        FluentUISetupHelpers.SetupFluentDataGrid(this);
+        FluentUISetupHelpers.SetupFluentAnchor(this);
+        FluentUISetupHelpers.SetupFluentAnchoredRegion(this);
+        FluentUISetupHelpers.SetupFluentList(this);
 
-        var overflowModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Overflow/FluentOverflow.razor.js", version));
-        overflowModule.SetupVoid("fluentOverflowInitialize", _ => true);
-        overflowModule.SetupVoid("fluentOverflowDispose", _ => true);
-
-        var dividerModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Divider/FluentDivider.razor.js", version));
-        dividerModule.SetupVoid("setDividerAriaOrientation");
-
-        var inputLabelModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Label/FluentInputLabel.razor.js", version));
-        inputLabelModule.SetupVoid("setInputAriaLabel", _ => true);
-
-        var dataGridModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/DataGrid/FluentDataGrid.razor.js", version));
-        var gridReference = dataGridModule.SetupModule("init", _ => true);
-        gridReference.SetupVoid("stop", _ => true);
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Anchor/FluentAnchor.razor.js", version));
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/List/ListComponentBase.razor.js", version));
-
-        var searchModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Search/FluentSearch.razor.js", version));
-        searchModule.SetupVoid("addAriaHidden", _ => true);
-
-        var keycodeModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/KeyCode/FluentKeyCode.razor.js", version));
-        keycodeModule.Setup<string>("RegisterKeyCode", _ => true);
-
-        var toolbarModule = JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Toolbar/FluentToolbar.razor.js", version));
-        toolbarModule.SetupVoid("removePreventArrowKeyNavigation", _ => true);
-
-        JSInterop.SetupModule(GetFluentFile("./_content/Microsoft.FluentUI.AspNetCore.Components/Components/Menu/FluentMenu.razor.js", version));
+        FluentUISetupHelpers.SetupFluentSearch(this);
+        FluentUISetupHelpers.SetupFluentKeyCode(this);
+        FluentUISetupHelpers.SetupFluentToolbar(this);
+        FluentUISetupHelpers.SetupFluentMenu(this);
 
         JSInterop.SetupVoid("initializeContinuousScroll");
 
         loggerFactory ??= NullLoggerFactory.Instance;
 
-        Services.AddLocalization();
-        Services.AddSingleton<BrowserTimeProvider, TestTimeProvider>();
-        Services.AddSingleton<PauseManager>();
-        Services.AddSingleton<TelemetryRepository>();
-        Services.AddSingleton<IMessageService, MessageService>();
+        FluentUISetupHelpers.AddCommonDashboardServices(this);
         Services.AddSingleton<IOptions<DashboardOptions>>(Options.Create(new DashboardOptions()));
         Services.AddSingleton<DimensionManager>();
         Services.AddSingleton<ILoggerFactory>(loggerFactory);
-        Services.AddSingleton<IDialogService, DialogService>();
-        Services.AddSingleton<ISessionStorage, TestSessionStorage>();
-        Services.AddSingleton<ILocalStorage, TestLocalStorage>();
-        Services.AddSingleton<ShortcutManager>();
-        Services.AddSingleton<LibraryConfiguration>();
-        Services.AddSingleton<IKeyCodeService, KeyCodeService>();
-        Services.AddSingleton<IDashboardTelemetrySender, TestDashboardTelemetrySender>();
-        Services.AddSingleton<DashboardTelemetryService>();
-        Services.AddSingleton<ComponentTelemetryContextProvider>();
-        Services.AddSingleton<IAIContextProvider, TestAIContextProvider>();
-    }
-
-    private static string GetFluentFile(string filePath, Version version)
-    {
-        return $"{filePath}?v={version}";
+        Services.AddSingleton<ITelemetryErrorRecorder, TestTelemetryErrorRecorder>();
     }
 }

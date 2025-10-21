@@ -36,7 +36,7 @@ public class AzureQueueStorageQueueResource(string name, string queueName, Azure
     /// <summary>
     /// Converts the current instance to a provisioning entity.
     /// </summary>
-    /// <returns>A <see cref="global::Azure.Provisioning.Storage.BlobContainer"/> instance.</returns>
+    /// <returns>A <see cref="global::Azure.Provisioning.Storage.StorageQueue"/> instance.</returns>
     internal global::Azure.Provisioning.Storage.StorageQueue ToProvisioningEntity()
     {
         global::Azure.Provisioning.Storage.StorageQueue queue = new(Infrastructure.NormalizeBicepIdentifier(Name))

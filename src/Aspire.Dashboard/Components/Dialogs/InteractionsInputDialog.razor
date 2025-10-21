@@ -33,118 +33,127 @@
             @foreach (var vm in _inputDialogInputViewModels)
             {
                 var localItem = vm;
-                var descriptionId = !string.IsNullOrEmpty(localItem.Input.Description)
-                    ? $"{_elementRefs[localItem]?.Id}-description"
-                    : null;
                 <div class="interaction-input">
                     @switch (vm.Input.InputType)
                     {
                         case InputType.Text:
-                            @*
-                            * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
-                            *@
-                            <FluentTextField @ref="@_elementRefs[localItem]"
-                                             @bind-Value="localItem.Value"
-                                             Label="@localItem.Input.Label"
-                                             Placeholder="@localItem.Input.Placeholder"
-                                             Required="localItem.Input.Required"
-                                             Immediate="true"
-                                             aria-describedby="@descriptionId"
-                                             Maxlength="@InteractionHelpers.GetMaxLength(localItem.Input.MaxLength)" />
-                            @GetDescriptionContent(localItem.Input, descriptionId)
-                            <ValidationMessage For="@(() => localItem.Value)" />
+                            <InteractionInputField ForId="@_elementRefs[localItem]?.Id"
+                                                   InputViewModel="@localItem"
+                                                   MarkdownProcessor="@_markdownProcessor"
+                                                   Context="input">
+                                @*
+                                * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
+                                *@
+                                <FluentTextField @ref="@_elementRefs[input.ViewModel]"
+                                                 @bind-Value="input.ViewModel.Value"
+                                                 Placeholder="@input.ViewModel.Input.Placeholder"
+                                                 Required="input.ViewModel.Input.Required"
+                                                 Immediate="true"
+                                                 Disabled="input.ViewModel.InputDisabled"
+                                                 aria-describedby="@input.DescriptionId"
+                                                 Maxlength="@InteractionHelpers.GetMaxLength(input.ViewModel.Input.MaxLength)" />
+                            </InteractionInputField>
                             break;
                         case InputType.SecretText:
-                            @*
-                            * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
-                            * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
-                            *@
-                            <FluentTextField @ref="@_elementRefs[localItem]"
-                                             @bind-Value="localItem.Value"
-                                             Label="@localItem.Input.Label"
-                                             Placeholder="@localItem.Input.Placeholder"
-                                             Required="localItem.Input.Required"
-                                             TextFieldType="TextFieldType.Password"
-                                             AutoComplete="one-time-code"
-                                             Immediate="true"
-                                             aria-describedby="@descriptionId"
-                                             Maxlength="@InteractionHelpers.GetMaxLength(localItem.Input.MaxLength)" />
-                            @GetDescriptionContent(localItem.Input, descriptionId)
-                            <ValidationMessage For="@(() => localItem.Value)" />
+                            <InteractionInputField ForId="@_elementRefs[localItem]?.Id"
+                                                   InputViewModel="@localItem"
+                                                   MarkdownProcessor="@_markdownProcessor"
+                                                   Context="input">
+                                @*
+                                * AutoComplete value of one-time-code on password input prevents the browser asking to save the value.
+                                * Immediate value of true on text input ensures the value is set to the server token with every key press in textbox.
+                                *@
+                                <FluentTextField @ref="@_elementRefs[input.ViewModel]"
+                                                 @bind-Value="input.ViewModel.Value"
+                                                 Placeholder="@input.ViewModel.Input.Placeholder"
+                                                 Required="input.ViewModel.Input.Required"
+                                                 TextFieldType="TextFieldType.Password"
+                                                 AutoComplete="one-time-code"
+                                                 Immediate="true"
+                                                 Disabled="input.ViewModel.InputDisabled"
+                                                 aria-describedby="@input.DescriptionId"
+                                                 Maxlength="@InteractionHelpers.GetMaxLength(input.ViewModel.Input.MaxLength)" />
+                            </InteractionInputField>
                             break;
                         case InputType.Choice:
-                            if (!localItem.Input.AllowCustomChoice)
-                            {
-                                <FluentSelect TOption="SelectViewModel<string>"
-                                              @ref="@_elementRefs[localItem]"
-                                              @bind-Value="localItem.Value"
-                                              Label="@localItem.Input.Label"
-                                              Placeholder="@localItem.Input.Placeholder"
-                                              AriaLabel="@localItem.Input.Description"
-                                              Required="localItem.Input.Required"
-                                              Items="localItem.SelectOptions"
-                                              OptionValue="@(vm => vm.Id)"
-                                              OptionText="@(vm => vm.Name)"
-                                              Height="250px"
-                                              Position="SelectPosition.Below"
-                                              aria-describedby="@descriptionId">
-                                    <OptionTemplate Context="optionContext">
-                                        @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                                        @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                                        <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                                            @optionContext.Name
-                                        </span>
-                                    </OptionTemplate>
-                                </FluentSelect>
-                            }
-                            else
-                            {
-                                <FluentCombobox TOption="SelectViewModel<string>"
-                                                @ref="@_elementRefs[localItem]"
-                                                @bind-Value="localItem.Value"
-                                                Label="@localItem.Input.Label"
-                                                Placeholder="@localItem.Input.Placeholder"
-                                                AriaLabel="@localItem.Input.Description"
-                                                Required="localItem.Input.Required"
-                                                Items="localItem.SelectOptions"
-                                                OptionValue="@(vm => vm.Id)"
-                                                OptionText="@(vm => vm.Name)"
-                                                Height="250px"
-                                                Position="SelectPosition.Below"
-                                                aria-describedby="@descriptionId">
-                                    <OptionTemplate Context="optionContext">
-                                        @* Allows long values to be viewed in option popup by adding a tooltip to options. *@
-                                        @* Better improvements could come from new FluentUI features. See https://github.com/microsoft/fluentui-blazor/issues/4136 *@
-                                        <span title="@(optionContext.Name?.Length > 30 ? optionContext.Name : null)">
-                                            @optionContext.Name
-                                        </span>
-                                    </OptionTemplate>
-                                </FluentCombobox>
-                            }
-                            @GetDescriptionContent(localItem.Input, descriptionId)
-                            <ValidationMessage For="@(() => localItem.Value)" />
+                            <InteractionInputField ForId="@_elementRefs[localItem]?.Id"
+                                                   InputViewModel="@localItem"
+                                                   MarkdownProcessor="@_markdownProcessor"
+                                                   Context="input">
+                                @*
+                                * Need to wrap the select in a div to display a progress bar next to it.
+                                * Because of this we have to use a separate label control rather than have the select be responsible for displaying it.
+                                *@
+                                @if (!localItem.Input.AllowCustomChoice)
+                                {
+                                    <FluentSelect TOption="SelectViewModel<string>"
+                                                  @ref="@_elementRefs[input.ViewModel]"
+                                                  @bind-Value="input.ViewModel.Value"
+                                                  Placeholder="@input.ViewModel.Input.Placeholder"
+                                                  Required="input.ViewModel.Input.Required"
+                                                  Items="input.ViewModel.SelectOptions"
+                                                  OptionValue="@(vm => vm.Id)"
+                                                  OptionText="@(vm => vm.Name)"
+                                                  OptionTitle="@(vm => DashboardUIHelpers.ResolveTooltip(vm.Name))"
+                                                  Height="250px"
+                                                  Position="SelectPosition.Below"
+                                                  Disabled="input.ViewModel.InputDisabled"
+                                                  aria-describedby="@input.DescriptionId">
+                                    </FluentSelect>
+                                }
+                                else
+                                {
+                                    <FluentCombobox TOption="SelectViewModel<string>"
+                                                    @ref="@_elementRefs[input.ViewModel]"
+                                                    @bind-Value="input.ViewModel.Value"
+                                                    Placeholder="@input.ViewModel.Input.Placeholder"
+                                                    Required="input.ViewModel.Input.Required"
+                                                    Items="@input.ViewModel.FilteredOptions()"
+                                                    OptionValue="@(vm => vm.Id)"
+                                                    OptionText="@(vm => vm.Name)"
+                                                    OptionTitle="@(vm => DashboardUIHelpers.ResolveTooltip(vm.Name))"
+                                                    Height="250px"
+                                                    Position="SelectPosition.Below"
+                                                    Disabled="input.ViewModel.InputDisabled"
+                                                    Immediate="true"
+                                                    ImmediateDelay="@FluentUIExtensions.InputDelay"
+                                                    aria-describedby="@input.DescriptionId">
+                                        <OptionTemplate Context="optionContext">
+                                            <FluentHighlighter Text="@optionContext.Name" HighlightedText="@input.ViewModel.Value" />
+                                        </OptionTemplate>
+                                    </FluentCombobox>
+                                }
+                            </InteractionInputField>
                             break;
                         case InputType.Boolean:
-                            <FluentCheckbox @ref="@_elementRefs[localItem]"
-                                            @bind-Value="localItem.IsChecked"
-                                            Label="@localItem.Input.Label"
-                                            Placeholder="@localItem.Input.Placeholder"
-                                            AriaLabel="@localItem.Input.Description"
-                                            aria-describedby="@descriptionId" />
-                            @GetDescriptionContent(localItem.Input, descriptionId)
+                            <InteractionInputField ForId="@_elementRefs[localItem]?.Id"
+                                                   InputViewModel="@localItem"
+                                                   MarkdownProcessor="@_markdownProcessor"
+                                                   Context="input">
+                                <FluentCheckbox @ref="@_elementRefs[input.ViewModel]"
+                                                @bind-Value="input.ViewModel.IsChecked"
+                                                Label="@input.ViewModel.Input.Label"
+                                                Placeholder="@input.ViewModel.Input.Placeholder"
+                                                AriaLabel="@input.ViewModel.Input.Description"
+                                                Disabled="input.ViewModel.InputDisabled"
+                                                aria-describedby="@input.DescriptionId" />
+                            </InteractionInputField>
                             break;
                         case InputType.Number:
-                            <FluentNumberField TValue="int?"
-                                               @ref="@_elementRefs[localItem]"
-                                               @bind-Value="localItem.NumberValue"
-                                               Label="@localItem.Input.Label"
-                                               Placeholder="@localItem.Input.Placeholder"
-                                               AriaLabel="@localItem.Input.Description"
-                                               Required="localItem.Input.Required"
-                                               Immediate="true"
-                                               aria-describedby="@descriptionId" />
-                            @GetDescriptionContent(localItem.Input, descriptionId)
-                            <ValidationMessage For="@(() => localItem.NumberValue)" />
+                            <InteractionInputField ForId="@_elementRefs[localItem]?.Id"
+                                                   InputViewModel="@localItem"
+                                                   MarkdownProcessor="@_markdownProcessor"
+                                                   Context="input">
+                                <FluentNumberField TValue="int?"
+                                                   @ref="@_elementRefs[input.ViewModel]"
+                                                   @bind-Value="input.ViewModel.NumberValue"
+                                                   Placeholder="@input.ViewModel.Input.Placeholder"
+                                                   AriaLabel="@input.ViewModel.Input.Description"
+                                                   Required="input.ViewModel.Input.Required"
+                                                   Immediate="true"
+                                                   Disabled="input.ViewModel.InputDisabled"
+                                                   aria-describedby="@input.DescriptionId" />
+                            </InteractionInputField>
                             break;
                         default:
                             @* Ignore unexpected InputTypes *@
@@ -178,14 +187,14 @@
         {
             return
             @<div class="input-description" id="@id">
-                @if (vm.EnableDescriptionMarkdown)
-                {
+            @if (vm.EnableDescriptionMarkdown)
+            {
                     <MarkdownRenderer MarkdownProcessor="@_markdownProcessor" Markdown="@vm.Description" SuppressParagraphOnNewLines="true" />
-                }
-                else
-                {
+            }
+            else
+            {
                     <span>@vm.Description</span>
-                }
+            }
             </div>;
         }
         return null;

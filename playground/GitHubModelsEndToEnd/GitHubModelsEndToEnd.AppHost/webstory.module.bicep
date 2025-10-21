@@ -26,6 +26,10 @@ resource webstory 'Microsoft.App/containerApps@2025-02-02-preview' = {
           name: 'connectionstrings--chat'
           value: 'Endpoint=https://models.github.ai/inference;Key=${chat_gh_apikey_value};Model=openai/gpt-4o-mini'
         }
+        {
+          name: 'chat-key'
+          value: chat_gh_apikey_value
+        }
       ]
       activeRevisionsMode: 'Single'
       ingress: {
@@ -75,6 +79,18 @@ resource webstory 'Microsoft.App/containerApps@2025-02-02-preview' = {
             {
               name: 'ConnectionStrings__chat'
               secretRef: 'connectionstrings--chat'
+            }
+            {
+              name: 'CHAT_URI'
+              value: 'https://models.github.ai/inference'
+            }
+            {
+              name: 'CHAT_KEY'
+              secretRef: 'chat-key'
+            }
+            {
+              name: 'CHAT_MODEL'
+              value: 'openai/gpt-4o-mini'
             }
           ]
         }

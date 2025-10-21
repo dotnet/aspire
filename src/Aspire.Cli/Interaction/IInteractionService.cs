@@ -20,7 +20,7 @@ internal interface IInteractionService
     void DisplayPlainText(string text);
     void DisplayMarkdown(string markdown);
     void DisplaySuccess(string message);
-    void DisplaySubtleMessage(string message);
+    void DisplaySubtleMessage(string message, bool escapeMarkup = true);
     void DisplayLines(IEnumerable<(string Stream, string Line)> lines);
     void DisplayCancellationMessage();
     void DisplayEmptyLine();

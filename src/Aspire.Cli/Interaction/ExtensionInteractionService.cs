@@ -20,6 +20,7 @@ internal interface IExtensionInteractionService : IInteractionService
     void NotifyAppHostStartupCompleted();
     void DisplayConsolePlainText(string message);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
+    void WriteDebugSessionMessage(string message, bool stdout);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -97,7 +98,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     {
                         // Check if extension supports the new secret prompts capability
                         var hasSecretPromptsCapability = await Backchannel.HasCapabilityAsync(ExtensionBackchannel.SecretPromptsCapability, _cancellationToken).ConfigureAwait(false);
-                        
+
                         if (hasSecretPromptsCapability)
                         {
                             // Use the new dedicated secret prompt method (no default value for secrets)
@@ -113,7 +114,7 @@ internal class ExtensionInteractionService : IExtensionInteractionService
                     {
                         result = await Backchannel.PromptForStringAsync(promptText.RemoveSpectreFormatting(), defaultValue, validator, required, _cancellationToken).ConfigureAwait(false);
                     }
-                    
+
                     tcs.SetResult(result);
                 }
                 catch (Exception ex)
@@ -245,11 +246,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
         _consoleInteractionService.DisplaySuccess(message);
     }
 
-    public void DisplaySubtleMessage(string message)
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true)
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySubtleMessage(message);
+        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
     }
 
     public void DisplayDashboardUrls(DashboardUrlsState dashboardUrls)
@@ -336,5 +337,11 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     public Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug)
     {
         return Backchannel.StartDebugSessionAsync(workingDirectory, projectFile, debug, _cancellationToken);
+    }
+
+    public void WriteDebugSessionMessage(string message, bool stdout)
+    {
+        var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.WriteDebugSessionMessageAsync(message.RemoveSpectreFormatting(), stdout, _cancellationToken));
+        Debug.Assert(result);
     }
 }

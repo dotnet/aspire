@@ -127,16 +127,24 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     {
         var solutionFile = initContext.SelectedSolutionFile!;
 
+        initContext.GetSolutionProjectsOutputCollector = new OutputCollector();
         var (getSolutionExitCode, solutionProjects) = await InteractionService.ShowStatusAsync("Reading solution...", async () =>
         {
+            var options = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = initContext.GetSolutionProjectsOutputCollector.AppendOutput,
+                StandardErrorCallback = initContext.GetSolutionProjectsOutputCollector.AppendError
+            };
+
             return await _runner.GetSolutionProjectsAsync(
                 solutionFile,
-                new DotNetCliRunnerInvocationOptions(),
+                options,
                 cancellationToken);
         });
 
         if (getSolutionExitCode != 0)
         {
+            InteractionService.DisplayLines(initContext.GetSolutionProjectsOutputCollector.GetLines());
             InteractionService.DisplayError("Failed to get projects from solution.");
             return getSolutionExitCode;
         }
@@ -176,7 +184,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var selectedProjects = await InteractionService.PromptForSelectionsAsync(
                 "Select projects to add to the AppHost:",
                 initContext.ExecutableProjects,
-                project => Path.GetFileNameWithoutExtension(project.Name),
+                project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
                 defaultSelector: null,
                 cancellationToken);
 
@@ -191,7 +199,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
                 foreach (var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
-                    InteractionService.DisplayMessage("check_box_with_check", project.Name);
+                    InteractionService.DisplayMessage("check_box_with_check", project.ProjectFile.Name);
                 }
 
                 var addServiceDefaultsMessage = """
@@ -230,12 +238,12 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         initContext.ProjectsToAddServiceDefaultsTo = await InteractionService.PromptForSelectionsAsync(
                             "Select projects to add ServiceDefaults reference to:",
                             initContext.ExecutableProjectsToAddToAppHost,
-                            project => Path.GetFileNameWithoutExtension(project.Name),
+                            project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
                             defaultSelector: null,
                             cancellationToken);
                         break;
                     case "none":
-                        initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<FileInfo>();
+                        initContext.ProjectsToAddServiceDefaultsTo = Array.Empty<ExecutableProjectInfo>();
                         break;
                 }
             }
@@ -243,6 +251,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
      
         // Get template version/channel selection using the same logic as NewCommand
         var selectedTemplateDetails = await GetProjectTemplatesVersionAsync(parseResult, cancellationToken);
+
+        // Create or update NuGet.config for explicit channels in the solution directory
+        // This matches the behavior of 'aspire new' when creating in-place
+        var nugetConfigPrompter = new NuGetConfigPrompter(InteractionService);
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(
+            ExecutionContext.WorkingDirectory,
+            selectedTemplateDetails.Channel,
+            cancellationToken);
         
         // Create a temporary directory for the template output
         var tempProjectDir = Path.Combine(Path.GetTempPath(), $"aspire-init-{Guid.NewGuid()}");
@@ -254,11 +270,17 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             using var temporaryConfig = selectedTemplateDetails.Channel.Type == PackageChannelType.Explicit ? await TemporaryNuGetConfig.CreateAsync(selectedTemplateDetails.Channel.Mappings!) : null;
             
             // Install templates first if needed
+            initContext.InstallTemplateOutputCollector = new OutputCollector();
             var templateInstallResult = await InteractionService.ShowStatusAsync(
                 "Getting templates...",
                 async () =>
                 {
-                    var options = new DotNetCliRunnerInvocationOptions();
+                    var options = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = initContext.InstallTemplateOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.InstallTemplateOutputCollector.AppendError
+                    };
+
                     return await _runner.InstallTemplateAsync(
                         packageName: "Aspire.ProjectTemplates",
                         version: selectedTemplateDetails.Package.Version,
@@ -271,25 +293,35 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             
             if (templateInstallResult.ExitCode != 0)
             {
+                InteractionService.DisplayLines(initContext.InstallTemplateOutputCollector.GetLines());
                 InteractionService.DisplayError("Failed to install Aspire templates.");
-                return ExitCodeConstants.FailedToCreateNewProject;
+                return ExitCodeConstants.FailedToInstallTemplates;
             }
             
+            initContext.NewProjectOutputCollector = new OutputCollector();
             var createResult = await InteractionService.ShowStatusAsync(
                 "Creating Aspire projects from template...",
                 async () =>
                 {
+                    var options = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = initContext.NewProjectOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.NewProjectOutputCollector.AppendError
+                    };
+
                     return await _runner.NewProjectAsync(
                         "aspire", 
                         initContext.SolutionName, 
                         tempProjectDir, 
-                        [], // No extra args needed for aspire template
-                        new DotNetCliRunnerInvocationOptions(), 
+                        ["--framework", initContext.RequiredAppHostFramework],
+                        options, 
                         cancellationToken);
                 });
             
             if (createResult != 0)
             {
+                InteractionService.DisplayLines(initContext.NewProjectOutputCollector.GetLines());
+                InteractionService.DisplayError($"Failed to create Aspire projects. Exit code: {createResult}");
                 return createResult;
             }
 
@@ -307,67 +339,100 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             var appHostProjectDir = appHostProjects[0];
             var serviceDefaultsProjectDir = serviceDefaultsProjects[0];
 
-            // Move the projects to the solution directory
+            // Copy the projects to the solution directory
+            // Using copy instead of move to support cross-drive operations on Windows
             var finalAppHostDir = Path.Combine(initContext.SolutionDirectory.FullName, appHostProjectDir.Name);
             var finalServiceDefaultsDir = Path.Combine(initContext.SolutionDirectory.FullName, serviceDefaultsProjectDir.Name);
 
-            Directory.Move(appHostProjectDir.FullName, finalAppHostDir);
-            Directory.Move(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
+            FileSystemHelper.CopyDirectory(appHostProjectDir.FullName, finalAppHostDir);
+            FileSystemHelper.CopyDirectory(serviceDefaultsProjectDir.FullName, finalServiceDefaultsDir);
 
-            // Add projects to solution
-            var addResult = await InteractionService.ShowStatusAsync(
-                InitCommandStrings.AddingProjectsToSolution,
-                async () =>
-                {
-                    var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
-                    var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            // Delete the temporary directory
+            Directory.Delete(tempProjectDir, recursive: true);
 
-                    var addAppHostResult = await _runner.AddProjectToSolutionAsync(
-                        solutionFile, 
-                        appHostProjectFile, 
-                        new DotNetCliRunnerInvocationOptions(), 
-                        cancellationToken);
-                    
-                    if (addAppHostResult != 0)
-                    {
-                        return addAppHostResult;
-                    }
-
-                    var addServiceDefaultsResult = await _runner.AddProjectToSolutionAsync(
-                        solutionFile, 
-                        serviceDefaultsProjectFile, 
-                        new DotNetCliRunnerInvocationOptions(), 
-                        cancellationToken);
-                    
-                    return addServiceDefaultsResult;
-                });
-            
-            if (addResult != 0)
-            {
-                return addResult;
-            }
-
+            // Add AppHost project to solution
             var appHostProjectFile = new FileInfo(Path.Combine(finalAppHostDir, $"{appHostProjectDir.Name}.csproj"));
             var serviceDefaultsProjectFile = new FileInfo(Path.Combine(finalServiceDefaultsDir, $"{serviceDefaultsProjectDir.Name}.csproj"));
+            initContext.AddAppHostToSolutionOutputCollector = new OutputCollector();
+            var addAppHostResult = await InteractionService.ShowStatusAsync(
+                InitCommandStrings.AddingAppHostProjectToSolution,
+                async () =>
+                {
+                    var options = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = initContext.AddAppHostToSolutionOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.AddAppHostToSolutionOutputCollector.AppendError
+                    };
+
+                    return await _runner.AddProjectToSolutionAsync(
+                        solutionFile, 
+                        appHostProjectFile, 
+                        options, 
+                        cancellationToken);
+                });
+            
+            if (addAppHostResult != 0)
+            {
+                InteractionService.DisplayLines(initContext.AddAppHostToSolutionOutputCollector.GetLines());
+                InteractionService.DisplayError($"Failed to add AppHost project to solution. Exit code: {addAppHostResult}");
+                return addAppHostResult;
+            }
+
+            // Add ServiceDefaults project to solution
+            initContext.AddServiceDefaultsToSolutionOutputCollector = new OutputCollector();
+            var addServiceDefaultsResult = await InteractionService.ShowStatusAsync(
+                InitCommandStrings.AddingServiceDefaultsProjectToSolution,
+                async () =>
+                {
+                    var options = new DotNetCliRunnerInvocationOptions
+                    {
+                        StandardOutputCallback = initContext.AddServiceDefaultsToSolutionOutputCollector.AppendOutput,
+                        StandardErrorCallback = initContext.AddServiceDefaultsToSolutionOutputCollector.AppendError
+                    };
+
+                    return await _runner.AddProjectToSolutionAsync(
+                        solutionFile, 
+                        serviceDefaultsProjectFile, 
+                        options, 
+                        cancellationToken);
+                });
+            
+            if (addServiceDefaultsResult != 0)
+            {
+                InteractionService.DisplayLines(initContext.AddServiceDefaultsToSolutionOutputCollector.GetLines());
+                InteractionService.DisplayError($"Failed to add ServiceDefaults project to solution. Exit code: {addServiceDefaultsResult}");
+                return addServiceDefaultsResult;
+            }
 
             // Add selected projects to appHost
             if (initContext.ExecutableProjectsToAddToAppHost.Count > 0)
             {
+                initContext.AddProjectReferenceOutputCollectors = new List<OutputCollector>();
                 foreach(var project in initContext.ExecutableProjectsToAddToAppHost)
                 {
+                    var outputCollector = new OutputCollector();
+                    initContext.AddProjectReferenceOutputCollectors.Add(outputCollector);
+
                     var addRefResult = await InteractionService.ShowStatusAsync(
-                        $"Adding {project.Name} to AppHost...", async () =>
+                        $"Adding {project.ProjectFile.Name} to AppHost...", async () =>
                         {
+                            var options = new DotNetCliRunnerInvocationOptions
+                            {
+                                StandardOutputCallback = outputCollector.AppendOutput,
+                                StandardErrorCallback = outputCollector.AppendError
+                            };
+
                             return await _runner.AddProjectReferenceAsync(
                                 appHostProjectFile,
-                                project,
-                                new DotNetCliRunnerInvocationOptions(),
+                                project.ProjectFile,
+                                options,
                                 cancellationToken);
                         });
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        InteractionService.DisplayLines(outputCollector.GetLines());
+                        InteractionService.DisplayError($"Failed to add reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
                 }
@@ -376,21 +441,32 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
             // Add ServiceDefaults references to selected projects
             if (initContext.ProjectsToAddServiceDefaultsTo.Count > 0)
             {
+                initContext.AddServiceDefaultsReferenceOutputCollectors = new List<OutputCollector>();
                 foreach (var project in initContext.ProjectsToAddServiceDefaultsTo)
                 {
+                    var outputCollector = new OutputCollector();
+                    initContext.AddServiceDefaultsReferenceOutputCollectors.Add(outputCollector);
+
                     var addRefResult = await InteractionService.ShowStatusAsync(
-                        $"Adding ServiceDefaults reference to {project.Name}...", async () =>
+                        $"Adding ServiceDefaults reference to {project.ProjectFile.Name}...", async () =>
                         {
+                            var options = new DotNetCliRunnerInvocationOptions
+                            {
+                                StandardOutputCallback = outputCollector.AppendOutput,
+                                StandardErrorCallback = outputCollector.AppendError
+                            };
+
                             return await _runner.AddProjectReferenceAsync(
-                                project,
+                                project.ProjectFile,
                                 serviceDefaultsProjectFile,
-                                new DotNetCliRunnerInvocationOptions(),
+                                options,
                                 cancellationToken);
                         });
 
                     if (addRefResult != 0)
                     {
-                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.Name)}.");
+                        InteractionService.DisplayLines(outputCollector.GetLines());
+                        InteractionService.DisplayError($"Failed to add ServiceDefaults reference to {Path.GetFileNameWithoutExtension(project.ProjectFile.Name)}.");
                         return addRefResult;
                     }
                 }
@@ -451,16 +527,24 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task EvaluateSolutionProjectsAsync(InitContext initContext, CancellationToken cancellationToken)
     {
-        var executableProjects = new List<FileInfo>();
+        var executableProjects = new List<ExecutableProjectInfo>();
+        
+        initContext.EvaluateSolutionProjectsOutputCollector = new OutputCollector();
         
         foreach (var project in initContext.SolutionProjects)
         {
-            // Get both IsAspireHost and OutputType properties in a single call
+            var options = new DotNetCliRunnerInvocationOptions
+            {
+                StandardOutputCallback = initContext.EvaluateSolutionProjectsOutputCollector.AppendOutput,
+                StandardErrorCallback = initContext.EvaluateSolutionProjectsOutputCollector.AppendError
+            };
+
+            // Get IsAspireHost, OutputType, and TargetFramework properties in a single call
             var (exitCode, jsonDoc) = await _runner.GetProjectItemsAndPropertiesAsync(
                 project,
                 [],
-                ["IsAspireHost", "OutputType"],
-                new DotNetCliRunnerInvocationOptions(),
+                ["IsAspireHost", "OutputType", "TargetFramework"],
+                options,
                 cancellationToken);
 
             if (exitCode == 0 && jsonDoc != null)
@@ -485,7 +569,22 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                         var outputType = outputTypeElement.GetString();
                         if (outputType == "Exe" || outputType == "WinExe")
                         {
-                            executableProjects.Add(project);
+                            // Get the target framework
+                            var targetFramework = "net9.0"; // Default if not found
+                            if (properties.TryGetProperty("TargetFramework", out var targetFrameworkElement))
+                            {
+                                targetFramework = targetFrameworkElement.GetString() ?? "net9.0";
+                            }
+
+                            // Only add projects with supported TFMs
+                            if (IsSupportedTfm(targetFramework))
+                            {
+                                executableProjects.Add(new ExecutableProjectInfo
+                                {
+                                    ProjectFile = project,
+                                    TargetFramework = targetFramework
+                                });
+                            }
                         }
                     }
                 }
@@ -493,6 +592,22 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         }
 
         initContext.ExecutableProjects = executableProjects;
+    }
+
+    /// <summary>
+    /// Determines if the specified target framework moniker is supported.
+    /// </summary>
+    /// <param name="tfm">The target framework moniker to check.</param>
+    /// <returns>True if the TFM is supported; otherwise, false.</returns>
+    private static bool IsSupportedTfm(string tfm)
+    {
+        return tfm switch
+        {
+            "net8.0" => true,
+            "net9.0" => true,
+            "net10.0" => true,
+            _ => false
+        };
     }
 
     private async Task<(NuGetPackage Package, PackageChannel Channel)> GetProjectTemplatesVersionAsync(ParseResult parseResult, CancellationToken cancellationToken)
@@ -553,6 +668,22 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 }
 
 /// <summary>
+/// Represents information about an executable project including its file and target framework.
+/// </summary>
+internal sealed class ExecutableProjectInfo
+{
+    /// <summary>
+    /// Gets the project file.
+    /// </summary>
+    public required FileInfo ProjectFile { get; init; }
+
+    /// <summary>
+    /// Gets the target framework moniker (e.g., "net9.0", "net10.0").
+    /// </summary>
+    public required string TargetFramework { get; init; }
+}
+
+/// <summary>
 /// Context class for building up a model of the init operation before executing changes.
 /// </summary>
 internal sealed class InitContext
@@ -595,15 +726,100 @@ internal sealed class InitContext
     /// <summary>
     /// List of executable projects found in the solution (excluding the AppHost).
     /// </summary>
-    public IReadOnlyList<FileInfo> ExecutableProjects { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ExecutableProjects { get; set; } = Array.Empty<ExecutableProjectInfo>();
 
     /// <summary>
     /// Executable projects selected by the user to add to the AppHost.
     /// </summary>
-    public IReadOnlyList<FileInfo> ExecutableProjectsToAddToAppHost { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ExecutableProjectsToAddToAppHost { get; set; } = Array.Empty<ExecutableProjectInfo>();
 
     /// <summary>
     /// Projects selected by the user to add ServiceDefaults reference to.
     /// </summary>
-    public IReadOnlyList<FileInfo> ProjectsToAddServiceDefaultsTo { get; set; } = Array.Empty<FileInfo>();
+    public IReadOnlyList<ExecutableProjectInfo> ProjectsToAddServiceDefaultsTo { get; set; } = Array.Empty<ExecutableProjectInfo>();
+
+    /// <summary>
+    /// Gets the required AppHost framework based on the highest TFM of all selected executable projects.
+    /// </summary>
+    public string RequiredAppHostFramework
+    {
+        get
+        {
+            if (ExecutableProjectsToAddToAppHost.Count == 0)
+            {
+                return "net9.0"; // Default framework if no projects selected
+            }
+
+            // Parse and compare TFMs to find the highest one using SemVersion
+            SemVersion? highestVersion = null;
+            var highestTfm = "net9.0";
+
+            foreach (var project in ExecutableProjectsToAddToAppHost)
+            {
+                var tfm = project.TargetFramework;
+                if (tfm.StartsWith("net", StringComparison.OrdinalIgnoreCase))
+                {
+                    var versionString = tfm[3..];
+                    // Add patch version if not present for SemVersion parsing
+                    // TFMs are in format "8.0", "9.0", "10.0", need to make them "8.0.0", "9.0.0", "10.0.0"
+                    var dotCount = versionString.Count(c => c == '.');
+                    if (dotCount == 1)
+                    {
+                        versionString += ".0";
+                    }
+                    
+                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var version))
+                    {
+                        if (highestVersion is null || SemVersion.ComparePrecedence(version, highestVersion) > 0)
+                        {
+                            highestVersion = version;
+                            highestTfm = tfm;
+                        }
+                    }
+                }
+            }
+
+            return highestTfm;
+        }
+    }
+
+    /// <summary>
+    /// OutputCollector for GetSolutionProjects operation.
+    /// </summary>
+    public OutputCollector? GetSolutionProjectsOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollector for EvaluateSolutionProjects operation.
+    /// </summary>
+    public OutputCollector? EvaluateSolutionProjectsOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollector for InstallTemplate operation.
+    /// </summary>
+    public OutputCollector? InstallTemplateOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollector for NewProject operation.
+    /// </summary>
+    public OutputCollector? NewProjectOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollector for AddAppHostToSolution operation.
+    /// </summary>
+    public OutputCollector? AddAppHostToSolutionOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollector for AddServiceDefaultsToSolution operation.
+    /// </summary>
+    public OutputCollector? AddServiceDefaultsToSolutionOutputCollector { get; set; }
+
+    /// <summary>
+    /// OutputCollectors for AddProjectReference operations (one per project reference added).
+    /// </summary>
+    public List<OutputCollector>? AddProjectReferenceOutputCollectors { get; set; }
+
+    /// <summary>
+    /// OutputCollectors for AddServiceDefaultsReference operations (one per ServiceDefaults reference added).
+    /// </summary>
+    public List<OutputCollector>? AddServiceDefaultsReferenceOutputCollectors { get; set; }
 }

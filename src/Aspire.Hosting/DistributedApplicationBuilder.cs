@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics;
 using System.Reflection;
@@ -12,6 +13,7 @@ using Aspire.Hosting.Backchannel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Devcontainers;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Eventing;
@@ -85,6 +87,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
     /// <inheritdoc />
     public IDistributedApplicationEventing Eventing { get; } = new DistributedApplicationEventing();
+
+    /// <inheritdoc />
+    public IDistributedApplicationPipeline Pipeline { get; } = new DistributedApplicationPipeline();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DistributedApplicationBuilder"/> class with the specified options.
@@ -196,40 +201,80 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        // Set configuration
         ConfigurePublishingOptions(options);
         var isExecMode = ConfigureExecOptions(options);
+        
+        // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
+        // otherwise fall back to the environment's ApplicationName
+        var dashboardApplicationName = options.DashboardApplicationName ?? _innerBuilder.Environment.ApplicationName;
+        
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
             // Make the app host directory available to the application via configuration
             ["AppHost:Directory"] = AppHostDirectory,
             ["AppHost:Path"] = AppHostPath,
+            ["AppHost:DashboardApplicationName"] = dashboardApplicationName,
             [AspireStore.AspireStorePathKeyName] = aspireDir
         });
 
         _executionContextOptions = BuildExecutionContextOptions();
         ExecutionContext = new DistributedApplicationExecutionContext(_executionContextOptions);
 
-        // Conditionally configure AppHostSha based on execution context. For local scenarios, we want to
-        // account for the path the AppHost is running from to disambiguate between different projects
-        // with the same name as seen in https://github.com/dotnet/aspire/issues/5413. For publish scenarios,
-        // we want to use a stable hash based only on the project name.
-        string appHostSha;
-        if (ExecutionContext.IsPublishMode)
+        // Compute both PathSha and ProjectNameSha to support different use cases:
+        // - PathSha: For disambiguating projects with the same name in different locations (deployment state)
+        // - ProjectNameSha: For stable naming across deployments regardless of path (Azure Functions, Azure environments)
+        string appHostPathSha;
+        string appHostProjectNameSha;
+        string appHostSha; // Legacy value, computed based on mode
+
+        // Check if AppHostSha is already configured (e.g., for testing scenarios)
+        var configuredAppHostSha = _innerBuilder.Configuration["AppHostSha"];
+        if (!string.IsNullOrEmpty(configuredAppHostSha))
         {
-            var appHostNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
-            appHostSha = Convert.ToHexString(appHostNameShaBytes);
+            // For backward compatibility with tests
+            appHostPathSha = configuredAppHostSha;
+            appHostProjectNameSha = configuredAppHostSha;
+            appHostSha = configuredAppHostSha;
         }
         else
         {
-            // Normalize the casing of AppHostPath
-            var appHostShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
-            appHostSha = Convert.ToHexString(appHostShaBytes);
+            // Normalize the casing of AppHostPath and compute PathSha
+            var appHostPathShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(AppHostPath.ToLowerInvariant()));
+            appHostPathSha = Convert.ToHexString(appHostPathShaBytes);
+
+            // Compute ProjectNameSha
+            var appHostProjectNameShaBytes = SHA256.HashData(Encoding.UTF8.GetBytes(appHostName));
+            appHostProjectNameSha = Convert.ToHexString(appHostProjectNameShaBytes);
+
+            // For backward compatibility, AppHost:Sha256 uses the old logic:
+            // - Publish mode: ProjectNameSha (stable across paths)
+            // - Run mode: PathSha (disambiguates by path)
+            if (ExecutionContext.IsPublishMode)
+            {
+                appHostSha = appHostProjectNameSha;
+            }
+            else
+            {
+                appHostSha = appHostPathSha;
+            }
         }
+
         _innerBuilder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            // PathSha for deployment state (path-based disambiguation)
+            ["AppHost:PathSha256"] = appHostPathSha,
+            // ProjectNameSha for Azure Functions and Azure environments (stable naming)
+            ["AppHost:ProjectNameSha256"] = appHostProjectNameSha,
+            // Legacy Sha256 for backward compatibility (mode-dependent)
             ["AppHost:Sha256"] = appHostSha
         });
+
+        // Load deployment state early in the configuration chain if in publish mode
+        // This must happen before command line args are added so they can override saved state
+        if (ExecutionContext.IsPublishMode)
+        {
+            LoadDeploymentState(appHostPathSha);
+        }
 
         // exec
         if (isExecMode)
@@ -275,6 +320,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
             return new AspireStore(Path.Combine(aspireDir, ".aspire"));
         });
+        _innerBuilder.Services.AddSingleton<IDeveloperCertificateService, DeveloperCertificateService>();
 
         // Shared DCP things (even though DCP isn't used in 'publish' and 'inspect' mode
         // we still honour the DCP options around container runtime selection.
@@ -397,8 +443,19 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
-        _innerBuilder.Services.AddSingleton<PublishingActivityReporter>();
-        _innerBuilder.Services.AddSingleton<IPublishingActivityReporter, PublishingActivityReporter>(sp => sp.GetRequiredService<PublishingActivityReporter>());
+        _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
+        _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
+        _innerBuilder.Services.AddSingleton(Pipeline);
+
+        // Register IDeploymentStateManager based on execution context
+        if (ExecutionContext.IsPublishMode)
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.FileDeploymentStateManager>();
+        }
+        else
+        {
+            _innerBuilder.Services.TryAddSingleton<IDeploymentStateManager, Publishing.Internal.UserSecretsDeploymentStateManager>();
+        }
 
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.ExcludeDashboardFromManifestAsync);
 
@@ -483,6 +540,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--deploy", "Publishing:Deploy" },
+            { "--clear-cache", "Publishing:ClearCache" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
@@ -630,6 +688,41 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     }
 
     /// <summary>
+    /// Loads deployment state from the filesystem based on the app host SHA and environment name.
+    /// Only loads if ClearCache is false.
+    /// </summary>
+    /// <param name="appHostSha">The SHA hash of the app host.</param>
+    private void LoadDeploymentState(string appHostSha)
+    {
+        // Only load if ClearCache is false
+        var clearCache = _innerBuilder.Configuration.GetValue<bool>("Publishing:ClearCache");
+        if (clearCache)
+        {
+            return;
+        }
+
+        var environment = _innerBuilder.Environment.EnvironmentName;
+        var deploymentStatePath = Path.Combine(
+            System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile),
+            ".aspire",
+            "deployments",
+            appHostSha,
+            $"{environment}.json"
+        );
+
+        if (!File.Exists(deploymentStatePath))
+        {
+            return;
+        }
+
+        try
+        {
+            _innerBuilder.Configuration.AddJsonFile(deploymentStatePath, optional: true, reloadOnChange: false);
+        }
+        catch { }
+    }
+
+    /// <summary>
     /// Gets the metadata value for the specified key from the assembly metadata.
     /// </summary>
     /// <param name="assemblyMetadata">The assembly metadata.</param>
@@ -638,3 +731,4 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
     private static string? GetMetadataValue(IEnumerable<AssemblyMetadataAttribute>? assemblyMetadata, string key) =>
         assemblyMetadata?.FirstOrDefault(a => string.Equals(a.Key, key, StringComparison.OrdinalIgnoreCase))?.Value;
 }
+

@@ -44,7 +44,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
         var resource = new AzureAppServiceEnvironmentResource(name, static infra =>
         {
             var prefix = infra.AspireResource.Name;
-            var resource = infra.AspireResource;
+            var resource = (AzureAppServiceEnvironmentResource)infra.AspireResource;
 
             // This tells azd to avoid creating infrastructure
             var userPrincipalId = new ProvisioningParameter(AzureBicepResource.KnownParameters.UserPrincipalId, typeof(string)) { Value = new BicepValue<string>(string.Empty) };
@@ -96,7 +96,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
                     Tier = "Premium"
                 },
                 Kind = "Linux",
-                IsReserved = true
+                IsReserved = true,
+                // Enable per-site scaling so each app service can scale independently
+                IsPerSiteScaling = true
             };
 
             infra.Add(plan);
@@ -131,6 +133,17 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 Value = identity.ClientId
             });
+
+            if (resource.EnableDashboard)
+            {
+                // Add aspire dashboard website
+                var website = AzureAppServiceEnvironmentUtility.AddDashboard(infra, identity, plan.Id);
+
+                infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
+                {
+                    Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                });
+            }
         });
 
         if (!builder.ExecutionContext.IsPublishMode)
@@ -139,5 +152,17 @@ public static partial class AzureAppServiceEnvironmentExtensions
         }
 
         return builder.AddResource(resource);
+    }
+
+    /// <summary>
+    /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableDashboard = enable;
+        return builder;
     }
 }

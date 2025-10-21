@@ -47,7 +47,7 @@ internal sealed class ContainerExecSpec
     public List<string>? Args { get; set; }
 }
 
-internal sealed class ContainerExecStatus : V1Status
+internal sealed record ContainerExecStatus : V1Status
 {
     /// <summary>
     /// The current state of the container execution. See <see cref="ExecutableState"/> for possible values.
@@ -141,8 +141,5 @@ internal sealed class ContainerExec : CustomResource<ContainerExecSpec, Containe
     }
 
     public bool LogsAvailable =>
-        this.Status?.State == ExecutableState.Running
-        || this.Status?.State == ExecutableState.Finished
-        || this.Status?.State == ExecutableState.Terminated
-        || this.Status?.State == ExecutableState.Stopping;
+        !string.IsNullOrEmpty(this.Status?.State);
 }

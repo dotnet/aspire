@@ -39,16 +39,37 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
-        yield return new CallbackTemplate(
-            "aspire",
-            TemplatingStrings.AspireEmpty_Description,
-            projectName => $"./{projectName}",
-            _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
-            );
+        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
+        // and should be surfaced to the user when the single-file AppHost feature is enabled.
+        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        {
+            yield return new CallbackTemplate(
+                "aspire-py-starter",
+                TemplatingStrings.AspirePyStarter_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
+                );
+
+            yield return new CallbackTemplate(
+                "aspire-apphost-singlefile",
+                TemplatingStrings.AspireAppHostSingleFile_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplySingleFileTemplateWithNoExtraArgsAsync
+                );
+        }
 
         if (showAllTemplates)
         {
+            yield return new CallbackTemplate(
+                "aspire",
+                TemplatingStrings.AspireEmpty_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+
             yield return new CallbackTemplate(
                 "aspire-apphost",
                 TemplatingStrings.AspireAppHost_Description,
@@ -63,19 +84,6 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 projectName => $"./{projectName}",
                 _ => { },
                 ApplyTemplateWithNoExtraArgsAsync
-                );
-        }
-
-        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
-        // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (showAllTemplates && features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-        {
-            yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
                 );
         }
 
@@ -134,6 +142,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
         await PromptForTestFrameworkOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspirePythonStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
 
         return extraArgs.ToArray();
     }
@@ -245,7 +262,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ApplySingleFileTemplate(
+            template,
+            parseResult,
+            (_, _) => Task.FromResult(Array.Empty<string>()),
+            cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         if (parseResult.CommandResult.Command is InitCommand)
         {
@@ -254,7 +280,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 executionContext.WorkingDirectory.Name,
                 executionContext.WorkingDirectory.FullName,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
@@ -263,7 +289,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             return await ApplyTemplateAsync(
                 template,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
@@ -480,60 +506,19 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         var normalizedWorkingPath = workingDir.FullName;
         var isInPlaceCreation = string.Equals(normalizedOutputPath, normalizedWorkingPath, StringComparison.OrdinalIgnoreCase);
 
+        var nugetConfigPrompter = new NuGetConfigPrompter(interactionService);
+
         if (!isInPlaceCreation)
         {
             // For subdirectory creation, always create/update NuGet.config in the output directory only
             // and ignore any existing NuGet.config in the working directory
-            await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
-            interactionService.DisplayMessage("package", "Created or updated NuGet.config in the project directory with required package sources.");
+            await nugetConfigPrompter.CreateOrUpdateWithoutPromptAsync(outputDir, channel, cancellationToken);
             return;
         }
 
         // In-place creation: preserve existing behavior
-        // Check if we need to create or update a NuGet.config in the working directory
-        var hasConfigInWorkingDir = TryFindNuGetConfigInDirectory(workingDir, out var nugetConfigFile);
-        var hasMissingSources = hasConfigInWorkingDir && NuGetConfigMerger.HasMissingSources(workingDir, channel);
-
-        if (!hasConfigInWorkingDir)
-        {
-            // Ask for confirmation before creating the file
-            var choice = await interactionService.PromptForSelectionAsync(
-                TemplatingStrings.CreateNugetConfigConfirmation,
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(choice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(outputDir, channel, cancellationToken: cancellationToken);
-                interactionService.DisplayMessage("package", TemplatingStrings.NuGetConfigCreatedConfirmationMessage);
-            }
-        }
-        else if (hasMissingSources)
-        {
-            var updateChoice = await interactionService.PromptForSelectionAsync(
-                "Update NuGet.config to add missing package sources for the selected channel?",
-                [TemplatingStrings.Yes, TemplatingStrings.No],
-                c => c,
-                cancellationToken);
-
-            if (string.Equals(updateChoice, TemplatingStrings.Yes, StringComparisons.CliInputOrOutput))
-            {
-                await NuGetConfigMerger.CreateOrUpdateAsync(workingDir, channel, cancellationToken: cancellationToken);
-                interactionService.DisplayMessage("package", "Updated NuGet.config with required package sources.");
-            }
-        }
-    }
-
-    private static bool TryFindNuGetConfigInDirectory(DirectoryInfo directory, out FileInfo? nugetConfigFile)
-    {
-        ArgumentNullException.ThrowIfNull(directory);
-
-        // Search only the specified directory for a file named "nuget.config", ignoring case
-        nugetConfigFile = directory
-            .EnumerateFiles("*", SearchOption.TopDirectoryOnly)
-            .FirstOrDefault(f => string.Equals(f.Name, "nuget.config", StringComparison.OrdinalIgnoreCase));
-        return nugetConfigFile is not null;
+        // Prompt user before creating or updating NuGet.config
+        await nugetConfigPrompter.PromptToCreateOrUpdateAsync(workingDir, channel, cancellationToken);
     }
 }
 

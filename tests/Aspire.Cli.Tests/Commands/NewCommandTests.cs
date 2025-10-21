@@ -676,7 +676,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
     public void DisplayLines(IEnumerable<(string Stream, string Line)> lines) { }
     public void DisplayCancellationMessage() { }
     public Task<bool> ConfirmAsync(string promptText, bool defaultValue = true, CancellationToken cancellationToken = default) => Task.FromResult(true);
-    public void DisplaySubtleMessage(string message) { }
+    public void DisplaySubtleMessage(string message, bool escapeMarkup = true) { }
     public void DisplayEmptyLine() { }
     public void DisplayPlainText(string text) { }
     public void DisplayMarkdown(string markdown) { }

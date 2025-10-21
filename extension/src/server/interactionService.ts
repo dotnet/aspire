@@ -33,6 +33,7 @@ export interface IInteractionService {
     stopDebugging: () => void;
     notifyAppHostStartupCompleted: () => void;
     startDebugSession: (workingDirectory: string, projectFile: string | null, debug: boolean) => Promise<void>;
+    writeDebugSessionMessage: (message: string, stdout: boolean) => void;
 }
 
 type CSLogLevel = 'Trace' | 'Debug' | 'Information' | 'Warn' | 'Error' | 'Critical';
@@ -87,7 +88,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
@@ -117,7 +119,8 @@ export class InteractionService implements IInteractionService {
                 }
 
                 return null;
-            }
+            },
+            ignoreFocusOut: true
         });
 
         return input || null;
@@ -317,11 +320,14 @@ export class InteractionService implements IInteractionService {
     }
 
     logMessage(logLevel: CSLogLevel, message: string) {
+        // Unable to log trace or debug messages, these levels are ignored by default
+        // and we cannot set the log level programmatically. So for now, log as info
+        // https://github.com/microsoft/vscode/issues/223536
         if (logLevel === 'Trace') {
-            extensionLogOutputChannel.trace(formatText(message));
+            extensionLogOutputChannel.info(`[trace] ${formatText(message)}`);
         }
         else if (logLevel === 'Debug') {
-            extensionLogOutputChannel.debug(formatText(message));
+            extensionLogOutputChannel.info(`[debug] ${formatText(message)}`);
         }
         else if (logLevel === 'Information') {
             extensionLogOutputChannel.info(formatText(message));
@@ -332,6 +338,16 @@ export class InteractionService implements IInteractionService {
         else if (logLevel === 'Error' || logLevel === 'Critical') {
             extensionLogOutputChannel.error(formatText(message));
         }
+    }
+
+    writeDebugSessionMessage(message: string, stdout: boolean) {
+        const debugSession = this._getAspireDebugSession();
+        if (!debugSession) {
+            extensionLogOutputChannel.warn('Attempted to write to debug session, but no active debug session exists.');
+            return;
+        }
+
+        debugSession.sendMessage(message, true, stdout ? 'stdout' : 'stderr');
     }
 
     async launchAppHost(projectFile: string, args: string[], environment: EnvVar[], debug: boolean): Promise<void> {
@@ -368,7 +384,8 @@ export class InteractionService implements IInteractionService {
             noDebug: !debug,
         };
 
-        const didDebugStart = await vscode.debug.startDebugging(vscode.workspace.workspaceFolders?.[0], debugConfiguration);
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(workingDirectory));
+        const didDebugStart = await vscode.debug.startDebugging(workspaceFolder, debugConfiguration);
         if (!didDebugStart) {
             throw new Error(failedToStartDebugSession);
         }
@@ -419,4 +436,5 @@ export function addInteractionServiceEndpoints(connection: MessageConnection, in
     connection.onRequest("stopDebugging", middleware('stopDebugging', interactionService.stopDebugging.bind(interactionService)));
     connection.onRequest("notifyAppHostStartupCompleted", middleware('notifyAppHostStartupCompleted', interactionService.notifyAppHostStartupCompleted.bind(interactionService)));
     connection.onRequest("startDebugSession", middleware('startDebugSession', async (workingDirectory: string, projectFile: string | null, debug: boolean) => interactionService.startDebugSession(workingDirectory, projectFile, debug)));
+    connection.onRequest("writeDebugSessionMessage", middleware('writeDebugSessionMessage', interactionService.writeDebugSessionMessage.bind(interactionService)));
 }

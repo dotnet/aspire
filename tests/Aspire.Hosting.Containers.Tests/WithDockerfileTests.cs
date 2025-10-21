@@ -98,8 +98,13 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerFile = builder.AddDockerfile(resourceName, tempContextPath, tempDockerfilePath);
 
-        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
-        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+        // The effective image name (from TryGetContainerImageName) should be the lowercase resource name
+        Assert.True(dockerFile.Resource.TryGetContainerImageName(out var imageName));
+        Assert.StartsWith(resourceName.ToLowerInvariant() + ":", imageName);
+        
+        // The DockerfileBuildAnnotation should have the generated image name
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), buildAnnotation.ImageName);
     }
 
     [Theory]
@@ -117,8 +122,17 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var dockerFile = builder.AddContainer(resourceName, "someimagename")
             .WithDockerfile(tempContextPath, tempDockerfilePath);
 
+        // After the changes, ContainerImageAnnotation should be preserved
         Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation));
-        Assert.Equal(resourceName.ToLowerInvariant(), containerImageAnnotation.Image);
+        Assert.Equal("someimagename", containerImageAnnotation.Image);
+        
+        // The generated image name should be stored in DockerfileBuildAnnotation
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation));
+        Assert.Equal(resourceName.ToLowerInvariant(), buildAnnotation.ImageName);
+        
+        // TryGetContainerImageName should return the DockerfileBuildAnnotation image name
+        Assert.True(dockerFile.Resource.TryGetContainerImageName(out var imageName));
+        Assert.StartsWith(resourceName.ToLowerInvariant() + ":", imageName);
     }
 
     [Fact]
@@ -131,12 +145,12 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
 
         var dockerFile = builder.AddContainer("testcontainer", "someimagename")
             .WithDockerfile(tempContextPath, tempDockerfilePath);
-        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
-        var tag1 = containerImageAnnotation1.Tag;
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation1));
+        var tag1 = buildAnnotation1.ImageTag;
 
         dockerFile.WithDockerfile(tempContextPath, tempDockerfilePath);
-        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
-        var tag2 = containerImageAnnotation2.Tag;
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation2));
+        var tag2 = buildAnnotation2.ImageTag;
 
         Assert.NotEqual(tag1, tag2);
     }
@@ -152,15 +166,19 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
         var dockerFile = builder.AddContainer("testcontainer", "someimagename")
             .WithDockerfile(tempContextPath, tempDockerfilePath);
 
-        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation1));
-        var generatedTag = containerImageAnnotation1.Tag;
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation1));
+        var generatedTag = buildAnnotation1.ImageTag;
 
         dockerFile.WithImageTag("latest");
-        Assert.True(dockerFile.Resource.TryGetLastAnnotation<ContainerImageAnnotation>(out var containerImageAnnotation2));
-        var overriddenTag = containerImageAnnotation2.Tag;
+        Assert.True(dockerFile.Resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var buildAnnotation2));
+        var overriddenTag = buildAnnotation2.ImageTag;
 
         Assert.NotEqual(generatedTag, overriddenTag);
         Assert.Equal("latest", overriddenTag);
+        
+        // Verify that TryGetContainerImageName returns the overridden tag
+        Assert.True(dockerFile.Resource.TryGetContainerImageName(out var imageName));
+        Assert.EndsWith(":latest", imageName);
     }
 
     [Fact]
@@ -738,5 +756,144 @@ public class WithDockerfileTests(ITestOutputHelper testOutputHelper)
     }
 
     private const string DefaultMessage = "aspire!";
+
+    [Fact]
+    public async Task WithDockerfileFactorySyncFactoryCreatesAnnotationWithFactory()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from factory'";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent);
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.NotNull(annotation.DockerfileFactory);
+
+        // Verify the factory produces the expected content
+        var context = new DockerfileFactoryContext 
+        { 
+            Services = builder.Services.BuildServiceProvider(), 
+            Resource = container.Resource,
+            CancellationToken = CancellationToken.None 
+        };
+        var generatedContent = await annotation.DockerfileFactory(context);
+
+        await Verify(generatedContent);
+    }
+
+    [Fact]
+    public async Task WithDockerfileFactoryAsyncFactoryCreatesAnnotationWithFactory()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Hello from async factory'";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfileFactory(tempContextPath, async context =>
+                               {
+                                   await Task.Delay(1, context.CancellationToken);
+                                   return dockerfileContent;
+                               });
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.NotNull(annotation.DockerfileFactory);
+
+        // Verify the factory produces the expected content
+        var context = new DockerfileFactoryContext 
+        { 
+            Services = builder.Services.BuildServiceProvider(), 
+            Resource = container.Resource,
+            CancellationToken = CancellationToken.None 
+        };
+        var generatedContent = await annotation.DockerfileFactory(context);
+
+        await Verify(generatedContent);
+    }
+
+    [Fact]
+    public async Task WithDockerfileFactoryGeneratesFileAtBuildTime()
+    {
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+        var manifestOutputPath = Path.Combine(tempContextPath, "aspire-manifest.json");
+        var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+        {
+            Args = ["--publisher", "manifest", "--output-path", manifestOutputPath],
+        });
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated at build time'";
+        var container = builder.AddContainer("testcontainer", "testimage")
+                               .WithHttpEndpoint(targetPort: 80)
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent);
+
+        var manifest = await ManifestUtils.GetManifest(container.Resource, manifestDirectory: tempContextPath);
+
+        await Verify(manifest.ToString());
+    }
+
+    [Fact]
+    public async Task WithDockerfileFactoryWithStageAndBuildArgs()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+        var (tempContextPath, _) = await DockerfileUtils.CreateTemporaryDockerfileAsync(createDockerfile: false);
+
+        var dockerfileContent = "FROM alpine:latest AS builder\nFROM alpine:latest AS runner";
+        var container = builder.AddContainer("mycontainer", "myimage")
+                               .WithDockerfileFactory(tempContextPath, context => dockerfileContent, "runner")
+                               .WithBuildArg("VERSION", "1.0");
+
+        var annotation = Assert.Single(container.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
+        Assert.Equal(tempContextPath, annotation.ContextPath);
+        Assert.Equal("runner", annotation.Stage);
+        Assert.NotNull(annotation.DockerfileFactory);
+        Assert.Single(annotation.BuildArguments);
+        Assert.Equal("1.0", annotation.BuildArguments["VERSION"]);
+    }
+
+    [Fact]
+    public async Task ManifestPublishingWritesDockerfileToResourceSpecificPath()
+    {
+        var tempDir = Directory.CreateTempSubdirectory();
+        try
+        {
+            var manifestPath = Path.Combine(tempDir.FullName, "manifest.json");
+            var builder = DistributedApplication.CreateBuilder(new DistributedApplicationOptions
+            {
+                Args = ["--publisher", "manifest", "--output-path", manifestPath],
+            });
+            builder.Services.AddLogging(b => b.AddXunit(testOutputHelper));
+
+            var dockerfileContent = "FROM alpine:latest\nRUN echo 'Generated for manifest'";
+            var container = builder.AddContainer("testcontainer", "testimage")
+                                   .WithDockerfileFactory(tempDir.FullName, context => dockerfileContent);
+
+            var app = builder.Build();
+            await app.RunAsync();
+
+            // Verify Dockerfile was written to resource-specific path
+            var dockerfilePath = Path.Combine(tempDir.FullName, "testcontainer.Dockerfile");
+            Assert.True(File.Exists(dockerfilePath), $"Dockerfile should exist at {dockerfilePath}");
+            var actualContent = await File.ReadAllTextAsync(dockerfilePath);
+
+            // Verify manifest references the Dockerfile
+            var manifestContent = await File.ReadAllTextAsync(manifestPath);
+
+            await Verify(actualContent)
+                  .AppendContentAsFile(manifestContent, "json");
+        }
+        finally
+        {
+            tempDir.Delete(recursive: true);
+        }
+    }
 
 }

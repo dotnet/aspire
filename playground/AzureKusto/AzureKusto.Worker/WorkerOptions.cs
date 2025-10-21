@@ -5,6 +5,8 @@ namespace AzureKusto.Worker;
 
 public class WorkerOptions
 {
+    public string DatabaseName { get; } = "testdb";
+
     public string TableName { get; } = "TestTable";
 
     public bool IsIngestionComplete { get; set; }
