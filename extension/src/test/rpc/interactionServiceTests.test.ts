@@ -85,6 +85,13 @@ suite('InteractionService endpoints', () => {
 		const result = await testInfo.interactionService.confirm('Are you sure?', true);
 		assert.strictEqual(result, true);
 		assert.ok(showQuickPickStub.calledOnce, 'showQuickPick should be called once');
+		
+		// Verify options passed to showQuickPick
+		const callArgs = showQuickPickStub.getCall(0).args;
+		assert.deepStrictEqual(callArgs[0], ['Yes', 'No'], 'should show Yes and No choices');
+		assert.strictEqual(callArgs[1]?.canPickMany, false, 'canPickMany should be false');
+		assert.strictEqual(callArgs[1]?.ignoreFocusOut, true, 'ignoreFocusOut should be true');
+		
 		showQuickPickStub.restore();
 	});
 
