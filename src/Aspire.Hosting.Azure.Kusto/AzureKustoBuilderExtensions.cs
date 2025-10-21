@@ -313,35 +313,45 @@ public static class AzureKustoBuilderExtensions
 
     private static void AddKustoCustomCommands(IResourceBuilder<AzureKustoClusterResource> resourceBuilder)
     {
-        var options = new CommandOptions
-        {
-            UpdateState = UpdateState,
-            IconName = "ServerLink"
-        };
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer-desktop",
+            displayName: "Open in Kusto Explorer (Desktop)",
+            executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
+            commandOptions: new CommandOptions
+            {
+                UpdateState = UpdateStateDesktop,
+                IconName = "ServerLink"
+            });
 
-        // The Desktop Kusto.Explorer is a ClickOnce app that's only available on Windows, so don't add the command
-        // on other platforms.
-        if (OperatingSystem.IsWindows())
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer-web",
+            displayName: "Open in Kusto Explorer (Web)",
+            executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
+            commandOptions: new CommandOptions
+            {
+                UpdateState = context => UpdateStateWeb(resourceBuilder, context),
+                IconName = "ServerLink"
+            });
+
+        static ResourceCommandState UpdateStateDesktop(UpdateCommandStateContext context)
         {
-            resourceBuilder.WithCommand(
-                name: "open-kusto-explorer-desktop",
-                displayName: "Open in Kusto Explorer (Desktop)",
-                executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
-                commandOptions: options);
+            // The Desktop Kusto.Explorer is only available on Windows, so don't show the command on other platforms.
+            if (!OperatingSystem.IsWindows())
+            {
+                return ResourceCommandState.Hidden;
+            }
+
+            return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
-        // The web explorer will only auto-connect to allowlisted domains, so do not show this command when running as an emulator.
-        if (!resourceBuilder.Resource.IsEmulator)
+        static ResourceCommandState UpdateStateWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, UpdateCommandStateContext context)
         {
-            resourceBuilder.WithCommand(
-                name: "open-kusto-explorer-web",
-                displayName: "Open in Kusto Explorer (Web)",
-                executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
-                commandOptions: options);
-        }
+            // The web explorer will only auto-connect to allowlisted domains, so do not show the command when running as an emulator.
+            if (resourceBuilder.Resource.IsEmulator)
+            {
+                return ResourceCommandState.Hidden;
+            }
 
-        static ResourceCommandState UpdateState(UpdateCommandStateContext context)
-        {
             return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
