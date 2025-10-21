@@ -321,11 +321,15 @@ public static class AzureKustoBuilderExtensions
 
         // TODO: What to do for remote deployment / SSH scenarios?
 
-        resourceBuilder.WithCommand(
-            name: "open-kusto-explorer-desktop",
-            displayName: "Open in Kusto Explorer (Desktop)",
-            executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
-            commandOptions: options);
+        // Only add desktop command on Windows
+        if (OperatingSystem.IsWindows())
+        {
+            resourceBuilder.WithCommand(
+                name: "open-kusto-explorer-desktop",
+                displayName: "Open in Kusto Explorer (Desktop)",
+                executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
+                commandOptions: options);
+        }
 
         resourceBuilder.WithCommand(
             name: "open-kusto-explorer-web",
