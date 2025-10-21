@@ -69,7 +69,7 @@
       </trans-unit>
       <trans-unit id="InteractiveInputNotSupported">
         <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
-        <target state="new">Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</target>
+        <target state="translated">L'input interattivo non è supportato in questo ambiente. Usare il flag --non interattivo, oppure assicurarsi che l'interfaccia della riga di comando sia in esecuzione in un terminale interattivo.</target>
         <note />
       </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
