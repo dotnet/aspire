@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Aspire.Cli.Backchannel;
@@ -1195,6 +1196,11 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             
             // Also set DOTNET_MULTILEVEL_LOOKUP to 0 to prevent fallback to system SDKs
             startInfo.EnvironmentVariables["DOTNET_MULTILEVEL_LOOKUP"] = "0";
+            
+            // Prepend the private SDK path to PATH so the dotnet executable from the private installation is found first
+            var currentPath = startInfo.EnvironmentVariables["PATH"] ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
+            startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{pathSeparator}{currentPath}";
             
             logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
         }
