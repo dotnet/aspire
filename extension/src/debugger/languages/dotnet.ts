@@ -185,6 +185,7 @@ export function createProjectDebuggerExtension(dotNetService: IDotNetService): R
         debugAdapter: 'coreclr',
         extensionId: 'ms-dotnettools.csharp',
         displayName: 'C#',
+        getSupportedFileTypes: () => ['.cs', '.csproj'],
         getProjectFile: (launchConfig) => {
             if (isProjectLaunchConfiguration(launchConfig)) {
                 return launchConfig.project_path;

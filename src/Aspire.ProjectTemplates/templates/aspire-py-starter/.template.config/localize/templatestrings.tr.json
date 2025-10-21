@@ -1,0 +1,12 @@
+﻿{
+  "author": "Microsoft",
+  "name": "Aspire Python Başlangıç Uygulaması",
+  "description": "Python arka uç API'si hizmeti ve Vite ve React kullanılarak JavaScript ön uç ile Aspire uygulaması oluşturmak için bir proje şablonu.",
+  "symbols/appHostHttpPort/description": "AppHost projesinin HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostOtlpHttpPort/description": "AppHost projesinin OTLP HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostResourceHttpPort/description": "AppHost projesinin kaynak hizmeti HTTP uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostHttpsPort/description": "AppHost projesinin HTTPS uç noktası launchSettings.json bağlantı noktası numarası. Bu seçenek yalnızca no-https parametresi kullanılmadığında uygulanabilir.",
+  "symbols/appHostOtlpHttpsPort/description": "AppHost projesinin OTLP HTTPS uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/appHostResourceHttpsPort/description": "AppHost projesinin kaynak hizmeti HTTPS uç noktası launchSettings.json bağlantı noktası numarası.",
+  "symbols/NoHttps/description": "HTTPS'nin kapatılıp kapatılmayacağı."
+}

@@ -67,6 +67,11 @@
         <target state="translated">apphost를 찾는 중...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">이 환경에서는 대화형 입력이 지원되지 않습니다. --non-interactive 플래그를 사용하거나 CLI가 대화형 터미널에서 실행되고 있는지 확인합니다.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
         <target state="translated">[dim]자세한 내용은 [link]{0}[/][/]을(를) 참조하세요.</target>

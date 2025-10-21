@@ -6,6 +6,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Cli;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +15,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
-internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPublishingActivityReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService, IOptions<PublishingOptions> publishingOptions) : BackgroundService
+internal sealed class DistributedApplicationRunner(ILogger<DistributedApplicationRunner> logger, IHostApplicationLifetime lifetime, DistributedApplicationExecutionContext executionContext, DistributedApplicationModel model, IServiceProvider serviceProvider, IPipelineActivityReporter activityReporter, IDistributedApplicationEventing eventing, BackchannelService backchannelService, IOptions<PublishingOptions> publishingOptions) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

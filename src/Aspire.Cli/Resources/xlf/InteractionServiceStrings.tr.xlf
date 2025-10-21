@@ -67,6 +67,11 @@
         <target state="translated">AppHost'lar bulunuyor...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">Bu ortamda etkileşimli giriş desteklenmemektedir. --non-interactive bayrağını kullanın veya CLI'nin etkileşimli bir terminalde çalıştığından emin olun.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
         <target state="translated">[dim]Daha fazla bilgi için bkz.: [link]{0}[/][/]</target>

@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREEXTENSION001
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
@@ -247,13 +248,13 @@ public static class ProjectResourceBuilderExtensions
     /// </summary>
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
-    /// <param name="projectPath">The path to the project file.</param>
+    /// <param name="projectPath">The path to the project file or directory.</param>
     /// <param name="configure">A callback to configure the project resource options.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <para>
     /// This overload of the <see cref="AddProject(IDistributedApplicationBuilder, string, string)"/> method adds a project to the application
-    /// model using a path to the project file. This allows for projects to be referenced that may not be part of the same solution. If the project
+    /// model using a path to the project file or directory. This allows for projects to be referenced that may not be part of the same solution. If the project
     /// path is not an absolute path then it will be computed relative to the app host directory.
     /// </para>
     /// <example>
@@ -287,7 +288,118 @@ public static class ProjectResourceBuilderExtensions
                       .WithProjectDefaults(options);
     }
 
-    private static IResourceBuilder<ProjectResource> WithProjectDefaults(this IResourceBuilder<ProjectResource> builder, ProjectResourceOptions options)
+    /// <summary>
+    /// Adds a C# project or file-based app to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="path">The path to the file-based app file, project file, or project directory.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
+    /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
+    /// If the path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <example>
+    /// Add a file-based app to the app model via a file path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<ProjectResource> AddCSharpApp(this IDistributedApplicationBuilder builder, string name, string path)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(path);
+
+        return builder.AddCSharpApp(name, path, _ => { });
+    }
+
+    /// <summary>
+    /// Adds a C# project or file-based app to the application model.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource. This name will be used for service discovery when referenced in a dependency.</param>
+    /// <param name="path">The path to the file-based app file, project file, or project directory.</param>
+    /// <param name="configure">An optional action to configure the C# app resource options.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// This overload of the <see cref="AddCSharpApp(IDistributedApplicationBuilder, string, string)"/> method adds a C# project or file-based app to the application
+    /// model using a path to the file-based app .cs file, project file (.csproj), or project directory.
+    /// If the path is not an absolute path then it will be computed relative to the app host directory.
+    /// </para>
+    /// <example>
+    /// Add a file-based app to the app model via a file path.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddCSharpApp("inventoryservice", @"..\InventoryService.cs", o => o.LaunchProfileName = "https");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    [Experimental("ASPIRECSHARPAPPS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public static IResourceBuilder<CSharpAppResource> AddCSharpApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string path, Action<ProjectResourceOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new ProjectResourceOptions();
+        configure(options);
+
+        var app = new CSharpAppResource(name);
+
+        path = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, path));
+        var projectMetadata = new ProjectMetadata(path);
+
+        var resource = builder.AddResource(app)
+                              .WithAnnotation(projectMetadata)
+                              .WithVSCodeDebugSupport(mode => new ProjectLaunchConfiguration { ProjectPath = projectMetadata.ProjectPath, Mode = mode }, "ms-dotnettools.csharp")
+                              .WithProjectDefaults(options);
+
+        resource.OnBeforeResourceStarted(async (r, e, ct) =>
+        {
+            var projectPath = projectMetadata.ProjectPath;
+
+            // Validate project path
+            if (!projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) && !projectPath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+            {
+                // Project path did not resolve to a .csproj or .cs file
+                var message = Directory.Exists(projectPath)
+                    ? $"Path to C# project could not be determined. The directory '{projectPath}' must contain a single .csproj file."
+                    : $"The C# app path '{projectPath}' is invalid. The path must be to a .cs file, .csproj file, or directory containing a single .csproj file.";
+                throw new DistributedApplicationException(message);
+            }
+
+            // Validate .NET version
+            if (((IProjectMetadata)projectMetadata).IsFileBasedApp
+                && await DotnetSdkUtils.TryGetVersionAsync(Path.GetDirectoryName(projectPath)).ConfigureAwait(false) is { } version
+                && version.Major < 10)
+            {
+                // File-based apps are only supported on .NET 10 or later
+                var versionValue = version is not null
+                    ? $"is {version}"
+                    : "could not be determined";
+                throw new DistributedApplicationException($"File-based apps are only supported on .NET 10 or later. The version active in '{Path.GetDirectoryName(projectPath)}' {versionValue}.");
+            }
+        });
+
+        return resource;
+    }
+
+    private static IResourceBuilder<TProjectResource> WithProjectDefaults<TProjectResource>(this IResourceBuilder<TProjectResource> builder, ProjectResourceOptions options)
+        where TProjectResource : ProjectResource
     {
         // We only want to turn these on for .NET projects, ConfigureOtlpEnvironment works for any resource type that
         // implements IDistributedApplicationResourceWithEnvironment.
@@ -679,6 +791,15 @@ public static class ProjectResourceBuilderExtensions
             return builder;
         }
 
+        // Check if this resource has already been converted to a container resource.
+        // This makes the method idempotent - multiple calls won't cause errors.
+        if (builder.ApplicationBuilder.TryCreateResourceBuilder<ProjectContainerResource>(builder.Resource.Name, out var existingBuilder))
+        {
+            // Resource has already been converted, just invoke the configure callback if provided
+            configure?.Invoke(existingBuilder);
+            return builder;
+        }
+
         // The implementation here is less than ideal, but we don't have a clean way of building resource types
         // that change their behavior based on the context. In this case, we want to change the behavior of the
         // resource from a ProjectResource to a ContainerResource. We do this by removing the ProjectResource
@@ -726,13 +847,19 @@ public static class ProjectResourceBuilderExtensions
         }
 
         var projectDirectoryPath = Path.GetDirectoryName(projectMetadata.ProjectPath)!;
-        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
         var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+        var appSettingsPath = Path.Combine(projectDirectoryPath, "appsettings.json");
         var appSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"appsettings.{env}.json");
+        // .NET 10 introduced support for application-specific settings files: https://github.com/dotnet/runtime/pull/116987
+        var appFileName = Path.GetFileName(projectDirectoryPath);
+        var appNameSettingsPath = Path.Combine(projectDirectoryPath, $"{appFileName}.settings.json");
+        var appNameSettingsEnvironmentPath = Path.Combine(projectDirectoryPath, $"{appFileName}.settings.{env}.json");
 
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddJsonFile(appSettingsPath, optional: true);
         configBuilder.AddJsonFile(appSettingsEnvironmentPath, optional: true);
+        configBuilder.AddJsonFile(appNameSettingsPath, optional: true);
+        configBuilder.AddJsonFile(appNameSettingsEnvironmentPath, optional: true);
         return configBuilder.Build();
     }
 

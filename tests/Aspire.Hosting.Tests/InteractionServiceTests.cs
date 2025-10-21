@@ -4,6 +4,7 @@
 using System.Threading.Channels;
 using Aspire.Hosting.Dashboard;
 using Microsoft.AspNetCore.InternalTesting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using static Aspire.Hosting.Dashboard.DashboardServiceData;
@@ -170,6 +171,103 @@ public class InteractionServiceTests
             () => interactionService.PromptNotificationAsync("Are you sure?", "Confirmation")).DefaultTimeout();
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => interactionService.PromptMessageBoxAsync("Are you sure?", "Confirmation")).DefaultTimeout();
+    }
+
+    [Fact]
+    public void IsAvailable_DashboardEnabled_ReturnsTrue()
+    {
+        // Arrange & Act
+        var interactionService = CreateInteractionService();
+
+        // Assert
+        Assert.True(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_DashboardDisabled_ReturnsFalse()
+    {
+        // Arrange & Act
+        var interactionService = CreateInteractionService(options: new DistributedApplicationOptions { DisableDashboard = true });
+
+        // Assert
+        Assert.False(interactionService.IsAvailable);
+    }
+
+    [Theory]
+    [InlineData("false", false)]
+    [InlineData("False", false)]
+    [InlineData("FALSE", false)]
+    [InlineData("true", true)]
+    [InlineData("True", true)]
+    [InlineData("TRUE", true)]
+    public void IsAvailable_InteractivityEnabledConfigured_ReturnsExpectedValue(string configValue, bool expected)
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = configValue
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert
+        Assert.Equal(expected, interactionService.IsAvailable);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("invalid")]
+    [InlineData("1")]
+    [InlineData("0")]
+    public void IsAvailable_InteractivityEnabledInvalidValue_ReturnsTrue(string configValue)
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = configValue
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions(),
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert - Invalid values should be ignored, defaulting to true (since dashboard is enabled)
+        Assert.True(interactionService.IsAvailable);
+    }
+
+    [Fact]
+    public void IsAvailable_InteractivityDisabledAndDashboardDisabled_ReturnsFalse()
+    {
+        // Arrange
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ASPIRE_INTERACTIVITY_ENABLED"] = "false"
+        });
+        var configuration = configBuilder.Build();
+
+        // Act
+        var interactionService = new InteractionService(
+            NullLogger<InteractionService>.Instance,
+            new DistributedApplicationOptions { DisableDashboard = true },
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
+
+        // Assert - Both conditions should result in false
+        Assert.False(interactionService.IsAvailable);
     }
 
     [Fact]
@@ -972,10 +1070,12 @@ public class InteractionServiceTests
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
     {
+        var configuration = new ConfigurationBuilder().Build();
         return new InteractionService(
             NullLogger<InteractionService>.Instance,
             options ?? new DistributedApplicationOptions(),
-            new ServiceCollection().BuildServiceProvider());
+            new ServiceCollection().BuildServiceProvider(),
+            configuration);
     }
 }
 

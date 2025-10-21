@@ -3,6 +3,7 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+
 #pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
@@ -271,23 +272,40 @@ public static class PythonAppResourceBuilderExtensions
             // Make sure to attach the logging instrumentation setting, so we can capture logs.
             // Without this you'll need to configure logging yourself. Which is kind of a pain.
             context.EnvironmentVariables["OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED"] = "true";
+
+            // Set PYTHONUTF8=1 on Windows in run mode to enable UTF-8 mode
+            // See: https://docs.python.org/3/using/cmdline.html#envvar-PYTHONUTF8
+            if (OperatingSystem.IsWindows() && context.ExecutionContext.IsRunMode)
+            {
+                context.EnvironmentVariables["PYTHONUTF8"] = "1";
+            }
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable
-        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
-        {
-            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
+        // way to simply append additional certificates to default Python trust stores such as certifi.
+        resourceBuilder
+            .WithCertificateTrustScope(CertificateTrustScope.System)
+            .WithExecutableCertificateTrustCallback(ctx =>
             {
-                // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
-            }
+                if (ctx.Scope != CertificateTrustScope.Append)
+                {
+                    // Override default certificates path for the requests module.
+                    // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+                    ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
 
-            // Override default opentelemetry-python certificate bundle path
-            // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+                    // Override default certificates path for Python modules that honor OpenSSL style paths.
+                    // This has been tested with urllib, urllib3, httpx, and aiohttp.
+                    // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
+                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+                }
 
-            return Task.CompletedTask;
-        });
+                // Override default opentelemetry-python certificate bundle path
+                // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
+                ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_CERTIFICATE");
+
+                return Task.CompletedTask;
+            });
 
         // VS Code debug support - only applicable for Script and Module types
         if (entrypointType is EntrypointType.Script or EntrypointType.Module)

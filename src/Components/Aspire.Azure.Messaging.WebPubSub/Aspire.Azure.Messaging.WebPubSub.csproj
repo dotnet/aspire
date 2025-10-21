@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentAzurePackageTags) webpubsub websocket pubsub</PackageTags>
     <Description>A service client for Azure Web PubSub that integrates with Aspire, including health checks, logging and telemetry.</Description>

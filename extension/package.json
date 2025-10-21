@@ -123,8 +123,56 @@
         "command": "aspire-vscode.configureLaunchJson",
         "title": "%command.configureLaunchJson%",
         "category": "Aspire"
+      },
+      {
+        "command": "aspire-vscode.runAppHost",
+        "title": "%command.runAppHost%",
+        "category": "Aspire",
+        "icon": "$(run-all)"
+      },
+      {
+        "command": "aspire-vscode.debugAppHost",
+        "title": "%command.debugAppHost%",
+        "category": "Aspire",
+        "icon": "$(debug-all)"
       }
     ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "group": "aspire_actions@1"
+        },
+        {
+          "command": "aspire-vscode.debugAppHost",
+          "when": "resourceExtname == .cs && resourceFilename =~ /apphost\\.cs$/i",
+          "group": "aspire_actions@2"
+        }
+      ],
+      "editor/title/run": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "group": "navigation@-4"
+        },
+        {
+          "command": "aspire-vscode.debugAppHost",
+          "when": "aspire.workspaceHasAppHost && aspire.editorSupportsRunDebug",
+          "group": "navigation@-3"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "aspire-vscode.runAppHost",
+          "when": "false"
+        },
+        {
+          "command": "aspire-vscode.debugAppHost",
+          "when": "false"
+        }
+      ]
+    },
     "configuration": {
       "title": "Aspire",
       "properties": {
@@ -155,8 +203,8 @@
     "test": "yarn unit-test",
     "l10n:export": "gulp prepare",
     "l10n:import": "gulp localizationBundle",
-    "precompile": "yarn l10n:export",
-    "prewatch": "yarn l10n:export",
+    "precompile": "yarn l10n:export && yarn l10n:import",
+    "prewatch": "yarn l10n:export && yarn l10n:import",
     "localize": "yarn l10n:export && yarn l10n:import"
   },
   "devDependencies": {

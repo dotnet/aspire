@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
+    <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentCommonPackageTags) Seq</PackageTags>
     <Description>A Seq client that connects an Aspire project's telemetry to Seq.</Description>

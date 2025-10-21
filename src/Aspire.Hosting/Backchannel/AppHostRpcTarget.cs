@@ -7,7 +7,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Devcontainers.Codespaces;
 using Aspire.Hosting.Exec;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,7 +20,7 @@ internal class AppHostRpcTarget(
     ILogger<AppHostRpcTarget> logger,
     ResourceNotificationService resourceNotificationService,
     IServiceProvider serviceProvider,
-    PublishingActivityReporter activityReporter,
+    PipelineActivityReporter activityReporter,
     IHostApplicationLifetime lifetime,
     DistributedApplicationOptions options)
 {
@@ -131,7 +131,7 @@ internal class AppHostRpcTarget(
         catch (DistributedApplicationException ex)
         {
             logger.LogWarning(ex, "An error occurred while waiting for the Aspire Dashboard to become healthy.");
-            
+
             return new DashboardUrlsState
             {
                 DashboardHealthy = false,
