@@ -11,8 +11,6 @@ namespace Aspire.Hosting;
 
 internal class DeveloperCertificateService : IDeveloperCertificateService
 {
-    internal const string DefaultConfigSectionName = "Aspire:DeveloperCertificate";
-
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
 
@@ -60,17 +58,10 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             return containerTrustAvailable;
         });
 
-        if (options.TrustDeveloperCertificate.HasValue)
-        {
-            // Configuration from DistributedApplicationOptions takes precedence.
-            TrustCertificate = options.TrustDeveloperCertificate.Value;
-        }
-        else
-        {
-            // Otherwise, attempt to read from configuration. Default is true.
-            var configSection = configuration.GetSection(DefaultConfigSectionName);
-            TrustCertificate = configSection.GetBool("TrustCertificate", true);
-        }
+        // Environment variable config > DistributedApplicationOptions > default true
+        TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
+            options.TrustDeveloperCertificate ??
+            true;
     }
 
     /// <inheritdoc />
