@@ -161,6 +161,8 @@ public class McpOptions
     public string? EndpointUrl { get; set; }
     public string? PublicUrl { get; set; }
 
+    public bool SuppressUnsecuredMessage { get; set; }
+
     public BindingAddress? GetEndpointAddress()
     {
         return _parsedEndpointAddress;

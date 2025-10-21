@@ -385,7 +385,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
 
             // Check browser access
-            using var httpClient = new HttpClient(new HttpClientHandler
+            using var browserHttpClient = new HttpClient(new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
                 {
@@ -396,7 +396,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
                 BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
             };
             var request = new HttpRequestMessage(HttpMethod.Get, "/");
-            var response = await httpClient.SendAsync(request).DefaultTimeout();
+            var response = await browserHttpClient.SendAsync(request).DefaultTimeout();
             response.EnsureSuccessStatusCode();
 
             // Check OTLP service
@@ -404,6 +404,29 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var client = new LogsService.LogsServiceClient(channel);
             var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync.DefaultTimeout();
             Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+
+            // Check MCP service
+            using var mcpHttpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.McpEndPointAccessor().EndPoint}")
+            };
+            var mcpRequest = McpServiceTests.CreateListToolsRequest();
+
+            var responseMessage = await mcpHttpClient.SendAsync(mcpRequest).DefaultTimeout(TestConstants.LongTimeoutDuration);
+            responseMessage.EnsureSuccessStatusCode();
+
+            var responseData = await McpServiceTests.GetDataFromSseResponseAsync(responseMessage);
+
+            var jsonResponse = JsonNode.Parse(responseData!)!;
+            var tools = jsonResponse["result"]!["tools"]!.AsArray();
+
+            Assert.NotEmpty(tools);
         }
         finally
         {

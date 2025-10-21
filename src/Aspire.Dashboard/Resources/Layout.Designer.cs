@@ -133,56 +133,38 @@ namespace Aspire.Dashboard.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Untrusted apps can access sensitive information about the running services..
-        /// </summary>
-        public static string MessageMcpBody {
-            get {
-                return ResourceManager.GetString("MessageMcpBody", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to More information.
         /// </summary>
-        public static string MessageMcpLink {
+        public static string MessageUnsecuredEndpointLink {
             get {
-                return ResourceManager.GetString("MessageMcpLink", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointLink", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to MCP endpoint is unsecured.
+        ///   Looks up a localized string similar to Untrusted apps can access sensitive information about the running services..
         /// </summary>
-        public static string MessageMcpTitle {
+        public static string MessageUnsecuredEndpointMcpBody {
             get {
-                return ResourceManager.GetString("MessageMcpTitle", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointMcpBody", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Untrusted apps can send telemetry to the dashboard..
         /// </summary>
-        public static string MessageTelemetryBody {
+        public static string MessageUnsecuredEndpointTelemetryBody {
             get {
-                return ResourceManager.GetString("MessageTelemetryBody", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointTelemetryBody", resourceCulture);
             }
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to More information.
+        ///   Looks up a localized string similar to Endpoint is unsecured.
         /// </summary>
-        public static string MessageTelemetryLink {
+        public static string MessageUnsecuredEndpointTitle {
             get {
-                return ResourceManager.GetString("MessageTelemetryLink", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Telemetry endpoint is unsecured.
-        /// </summary>
-        public static string MessageTelemetryTitle {
-            get {
-                return ResourceManager.GetString("MessageTelemetryTitle", resourceCulture);
+                return ResourceManager.GetString("MessageUnsecuredEndpointTitle", resourceCulture);
             }
         }
         

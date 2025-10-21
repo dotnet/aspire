@@ -1,9 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Utils;
@@ -116,67 +118,69 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         TimeProvider.SetBrowserTimeZone(result.TimeZone);
         TelemetryContextProvider.SetBrowserUserAgent(result.UserAgent);
 
-        if (Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredTelemetryMessage)
-        {
-            var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey);
-            var skipMessage = dismissedResult.Success && dismissedResult.Value;
-
-            if (!skipMessage)
-            {
-                // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
-                // I think this order allows the message bar provider to be fully initialized.
-                await MessageService.ShowMessageBarAsync(options =>
-                {
-                    options.Title = Loc[nameof(Resources.Layout.MessageTelemetryTitle)];
-                    options.Body = Loc[nameof(Resources.Layout.MessageTelemetryBody)];
-                    options.Link = new()
-                    {
-                        Text = Loc[nameof(Resources.Layout.MessageTelemetryLink)],
-                        Href = "https://aka.ms/dotnet/aspire/telemetry-unsecured",
-                        Target = "_blank"
-                    };
-                    options.Intent = MessageIntent.Warning;
-                    options.Section = DashboardUIHelpers.MessageBarSection;
-                    options.AllowDismiss = true;
-                    options.OnClose = async m =>
-                    {
-                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey, true);
-                    };
-                });
-            }
-        }
-
-        if (Options.CurrentValue.Mcp.AuthMode == Mcp.McpAuthMode.Unsecured)
-        {
-            var dismissedResult = await LocalStorage.GetUnprotectedAsync<bool>(BrowserStorageKeys.UnsecuredMcpMessageDismissedKey);
-            var skipMessage = dismissedResult.Success && dismissedResult.Value;
-
-            if (!skipMessage)
-            {
-                // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
-                // I think this order allows the message bar provider to be fully initialized.
-                await MessageService.ShowMessageBarAsync(options =>
-                {
-                    options.Title = Loc[nameof(Resources.Layout.MessageMcpTitle)];
-                    options.Body = Loc[nameof(Resources.Layout.MessageMcpBody)];
-                    options.Link = new()
-                    {
-                        Text = Loc[nameof(Resources.Layout.MessageMcpLink)],
-                        Href = "https://aka.ms/dotnet/aspire/mcp-unsecured",
-                        Target = "_blank"
-                    };
-                    options.Intent = MessageIntent.Warning;
-                    options.Section = DashboardUIHelpers.MessageBarSection;
-                    options.AllowDismiss = true;
-                    options.OnClose = async m =>
-                    {
-                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredMcpMessageDismissedKey, true);
-                    };
-                });
-            }
-        }
+        await DisplayUnsecuredEndpointsMessageAsync();
 
         _aiDisplayChangedSubscription = AIContextProvider.OnDisplayChanged(() => InvokeAsync(StateHasChanged));
+    }
+
+    private async Task DisplayUnsecuredEndpointsMessageAsync()
+    {
+        var unsecuredEndpointsMessage = new StringBuilder();
+        if (ShouldShowUnsecuredTelemetryMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointTelemetryBody)]);
+        }
+        if (ShouldShowUnsecuredMcpMessage())
+        {
+            unsecuredEndpointsMessage.AppendLine(Loc[nameof(Resources.Layout.MessageUnsecuredEndpointMcpBody)]);
+        }
+
+        if (unsecuredEndpointsMessage.Length > 0)
+        {
+            // Check UnsecuredTelemetryMessageDismissedKey for backwards compatibility.
+            var skipMessage = (await ShouldSkipMessageAsync(LocalStorage, BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey) ||
+                await ShouldSkipMessageAsync(LocalStorage, BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey));
+
+            if (!skipMessage)
+            {
+                // ShowMessageBarAsync must come after an await. Otherwise it will NRE.
+                // I think this order allows the message bar provider to be fully initialized.
+                await MessageService.ShowMessageBarAsync(options =>
+                {
+                    options.Title = Loc[nameof(Resources.Layout.MessageUnsecuredEndpointTitle)];
+                    options.Body = unsecuredEndpointsMessage.ToString();
+                    options.Link = new()
+                    {
+                        Text = Loc[nameof(Resources.Layout.MessageUnsecuredEndpointLink)],
+                        Href = "https://aka.ms/aspire/api-endpoint-unsecured",
+                        Target = "_blank"
+                    };
+                    options.Intent = MessageIntent.Warning;
+                    options.Section = DashboardUIHelpers.MessageBarSection;
+                    options.AllowDismiss = true;
+                    options.OnClose = async m =>
+                    {
+                        await LocalStorage.SetUnprotectedAsync(BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey, true);
+                    };
+                });
+            }
+        }
+
+        static async Task<bool> ShouldSkipMessageAsync(ILocalStorage localStorage, string storageKey)
+        {
+            var dismissedResult = await localStorage.GetUnprotectedAsync<bool>(storageKey);
+            return dismissedResult.Success && dismissedResult.Value;
+        }
+    }
+
+    private bool ShouldShowUnsecuredTelemetryMessage()
+    {
+        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredTelemetryMessage;
+    }
+
+    private bool ShouldShowUnsecuredMcpMessage()
+    {
+        return Options.CurrentValue.Mcp.AuthMode == McpAuthMode.Unsecured && !Options.CurrentValue.Mcp.SuppressUnsecuredMessage;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

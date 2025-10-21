@@ -115,7 +115,7 @@ public class McpServiceTests
         Assert.False(responseMessage.IsSuccessStatusCode);
     }
 
-    private static HttpRequestMessage CreateListToolsRequest()
+    internal static HttpRequestMessage CreateListToolsRequest()
     {
         var json =
             """
@@ -137,7 +137,7 @@ public class McpServiceTests
         return request;
     }
 
-    static async Task<string?> GetDataFromSseResponseAsync(HttpResponseMessage response)
+    internal static async Task<string?> GetDataFromSseResponseAsync(HttpResponseMessage response)
     {
         string responseText = await response.Content.ReadAsStringAsync();
 
