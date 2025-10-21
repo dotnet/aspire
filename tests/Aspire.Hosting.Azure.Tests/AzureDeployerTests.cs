@@ -9,6 +9,7 @@
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
@@ -1241,6 +1242,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
             {
                 _reporter.CreatedTasks.Add((_title, statusText));
                 return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
+            }
+
+            public void Log(LogLevel logLevel, string message)
+            {
+                // For testing purposes, we just track that Log was called
+                _ = logLevel;
+                _ = message;
             }
         }
 

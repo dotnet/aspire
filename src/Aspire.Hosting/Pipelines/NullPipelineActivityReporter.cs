@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -32,6 +33,11 @@ internal sealed class NullPublishingStep : IReportingStep
     public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<IReportingTask>(new NullPublishingTask());
+    }
+
+    public void Log(LogLevel logLevel, string message)
+    {
+        // No-op for null implementation
     }
 
     public Task CompleteAsync(string completionText, CompletionState completionState = CompletionState.Completed, CancellationToken cancellationToken = default)
