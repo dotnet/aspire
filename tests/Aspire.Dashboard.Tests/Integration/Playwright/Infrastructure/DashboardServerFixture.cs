@@ -3,7 +3,6 @@
 
 using System.Reflection;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;

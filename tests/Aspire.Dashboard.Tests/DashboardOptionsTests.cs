@@ -252,6 +252,20 @@ public sealed class DashboardOptionsTests
         Assert.Equal("Failed to parse OTLP HTTP endpoint URL 'invalid'.", result.FailureMessage);
     }
 
+    [Fact]
+    public async Task OtlpOptions_SuppressUnsecuredMessage_LegacyName()
+    {
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        [
+            new("ASPNETCORE_URLS", "http://localhost:8000/"),
+            new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),
+            new(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey, "true"),
+        ]));
+        var options = app.Services.GetService<IOptionsMonitor<DashboardOptions>>()!;
+
+        Assert.True(options.CurrentValue.Otlp.SuppressUnsecuredMessage);
+    }
+
     #endregion
 
     #region OpenIDConnect options
@@ -283,9 +297,9 @@ public sealed class DashboardOptionsTests
     }
 
     [Fact]
-    public void OpenIdConnectOptions_ClaimActions_MapJsonKeyTest()
+    public async Task OpenIdConnectOptions_ClaimActions_MapJsonKeyTestAsync()
     {
-        var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
+        await using var app = new DashboardWebApplication(builder => builder.Configuration.AddInMemoryCollection(
         [
             new("ASPNETCORE_URLS", "http://localhost:8000/"),
             new("ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL", "http://localhost:4319/"),

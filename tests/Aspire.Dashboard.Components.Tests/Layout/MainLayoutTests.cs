@@ -5,7 +5,6 @@ using Aspire.Dashboard.Components.Layout;
 using Aspire.Dashboard.Components.Resize;
 using Aspire.Dashboard.Components.Tests.Shared;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Tests.Shared;
 using Aspire.Dashboard.Utils;
@@ -141,7 +140,7 @@ public partial class MainLayoutTests : DashboardTestContext
 
         SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, configureOptions: o =>
         {
-            o.Otlp.SuppressUnsecuredTelemetryMessage = telemetrySuppressUnsecuredMessage;
+            o.Otlp.SuppressUnsecuredMessage = telemetrySuppressUnsecuredMessage;
             o.Mcp.SuppressUnsecuredMessage = mcpSuppressUnsecuredMessage;
         });
 

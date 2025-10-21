@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -83,5 +82,10 @@ public sealed class PostConfigureDashboardOptions : IPostConfigureOptions<Dashbo
         }
 
         options.AI.Disabled = _configuration.GetBool(DashboardConfigNames.DashboardAIDisabledName.ConfigKey);
+
+        if (_configuration.GetBool(DashboardConfigNames.Legacy.DashboardOtlpSuppressUnsecuredTelemetryMessage.ConfigKey) is { } suppressUnsecuredTelemetryMessage)
+        {
+            options.Otlp.SuppressUnsecuredMessage = suppressUnsecuredTelemetryMessage;
+        }
     }
 }

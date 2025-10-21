@@ -5,7 +5,6 @@ using System.Text;
 using Aspire.Dashboard.Components.Dialogs;
 using Aspire.Dashboard.Components.Pages;
 using Aspire.Dashboard.Configuration;
-using Aspire.Dashboard.Mcp;
 using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Utils;
@@ -175,7 +174,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
     private bool ShouldShowUnsecuredTelemetryMessage()
     {
-        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredTelemetryMessage;
+        return Options.CurrentValue.Otlp.AuthMode == OtlpAuthMode.Unsecured && !Options.CurrentValue.Otlp.SuppressUnsecuredMessage;
     }
 
     private bool ShouldShowUnsecuredMcpMessage()

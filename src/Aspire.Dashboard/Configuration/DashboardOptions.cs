@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using Aspire.Dashboard.Mcp;
 using Aspire.Hosting;
 
 namespace Aspire.Dashboard.Configuration;
@@ -88,11 +87,7 @@ public sealed class OtlpOptions
 
     public List<AllowedCertificateRule> AllowedCertificates { get; set; } = new();
 
-    /// <summary>
-    /// Gets or sets a value indicating whether to suppress the unsecured telemetry message in the dashboard UI.
-    /// When true, the warning message about unsecured OTLP endpoints will not be displayed.
-    /// </summary>
-    public bool SuppressUnsecuredTelemetryMessage { get; set; }
+    public bool SuppressUnsecuredMessage { get; set; }
 
     public BindingAddress? GetGrpcEndpointAddress()
     {
