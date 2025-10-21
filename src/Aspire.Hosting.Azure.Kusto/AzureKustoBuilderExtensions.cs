@@ -3,8 +3,6 @@
 
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Diagnostics;
-using System.Web;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Azure.Identity;
@@ -13,6 +11,7 @@ using Azure.Provisioning.Kusto;
 using Kusto.Data;
 using Kusto.Data.Common;
 using Kusto.Data.Net.Client;
+using Kusto.Data.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -340,16 +339,10 @@ public static class AzureKustoBuilderExtensions
                 .ConfigureAwait(false) ??
                 throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is not set.");
 
-            // TODO: This should be of the form http://<your_cluster>/?web=0, but the current redirect logic doesn't include the port. So for now we build it ourselves.
-            var uri = $"https://explorer.kusto.io/app/Kusto.Explorer.application?uri={Uri.EscapeDataString(connectionString)}&svc=engine&web=0";
+            var launcher = new KustoClientToolLauncher();
+            var result = launcher.TryLaunchKustoExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
 
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = uri,
-                UseShellExecute = true
-            });
-
-            return CommandResults.Success();
+            return result ? CommandResults.Success() : CommandResults.Failure();
         }
     }
 }
