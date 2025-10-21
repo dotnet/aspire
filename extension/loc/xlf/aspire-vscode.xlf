@@ -37,6 +37,9 @@
     <trans-unit id="aspire-vscode.strings.csharpSupportNotEnabled">
       <source xml:lang="en">C# support is not enabled in this workspace. This project should have started through the Aspire CLI.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.codespaces">
+      <source xml:lang="en">Codespaces</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.codespacesUrl">
       <source xml:lang="en">Codespaces: {0}</source>
     </trans-unit>
@@ -48,6 +51,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.dcpServerNotInitialized">
       <source xml:lang="en">DCP server not initialized - cannot forward debug output.</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dashboard">
+      <source xml:lang="en">Dashboard</source>
     </trans-unit>
     <trans-unit id="command.debugAppHost">
       <source xml:lang="en">Debug Aspire apphost</source>
