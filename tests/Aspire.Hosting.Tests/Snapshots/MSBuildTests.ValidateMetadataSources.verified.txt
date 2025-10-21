@@ -6,7 +6,7 @@ namespace Projects;
 
 #pragma warning disable CS8981 // The type name only contains lower-cased ascii characters. Such names may become reserved for the language.
 /// <summary>
-/// Metadata for the Aspire Host project.
+/// Metadata for the Aspire AppHost project.
 /// </summary>
 [global::System.CodeDom.Compiler.GeneratedCode("Aspire.Hosting", null)]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage(Justification = "Generated code.")]
@@ -41,6 +41,15 @@ public class App : global::Aspire.Hosting.IProjectMetadata
     /// The path to the App project.
     /// </summary>
     public string ProjectPath => """{AspirePath}/App/App.csproj""";
+
+    /// <summary>
+    /// Gets a value indicating whether building the project before running it should be suppressed.
+    /// </summary>
+    /// <remarks>
+    /// Projects added via ProjectReference items in the AppHost project file are built as part of building the AppHost project process
+    /// so building them again before running is unnecessary. This property always returns true.
+    /// </remarks>
+    public bool SuppressBuild => true;
 }
 
 }
