@@ -88,7 +88,7 @@ internal abstract class PublishCommandBase : BaseCommand
         StartTerminalProgressBar();
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _hostEnvironment, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             // Send terminal progress bar stop sequence
             StopTerminalProgressBar();
