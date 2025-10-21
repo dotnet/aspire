@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Interaction;
+using Aspire.Cli.Resources;
 using Spectre.Console;
 using System.Text;
 
@@ -18,7 +19,7 @@ public class ConsoleInteractionServiceTests
         var choices = Array.Empty<string>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<EmptyChoicesException>(() => 
+        await Assert.ThrowsAsync<EmptyChoicesException>(() =>
             interactionService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
     }
 
@@ -31,7 +32,7 @@ public class ConsoleInteractionServiceTests
         var choices = Array.Empty<string>();
 
         // Act & Assert
-        await Assert.ThrowsAsync<EmptyChoicesException>(() => 
+        await Assert.ThrowsAsync<EmptyChoicesException>(() =>
             interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
     }
 
@@ -46,7 +47,7 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var errorMessage = "The JSON value could not be converted to <Type>. Path: $.values[0].Type | LineNumber: 0 | BytePositionInLine: 121.";
@@ -71,7 +72,7 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var message = "Path with <brackets> and [markup] characters";
@@ -96,10 +97,10 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
-        var lines = new[] 
+        var lines = new[]
         {
             ("stdout", "Command output with <angle> brackets"),
             ("stderr", "Error output with [square] brackets")
@@ -127,7 +128,7 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var markdown = "# Header\nThis is **bold** and *italic* text with `code`.";
@@ -154,7 +155,7 @@ public class ConsoleInteractionServiceTests
             ColorSystem = ColorSystemSupport.NoColors,
             Out = new AnsiConsoleOutput(new StringWriter(output))
         });
-        
+
         var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
         var interactionService = new ConsoleInteractionService(console, executionContext, TestHelpers.CreateInteractiveHostEnvironment());
         var plainText = "This is just plain text without any markdown.";
@@ -231,9 +232,9 @@ public class ConsoleInteractionServiceTests
         var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             interactionService.PromptForStringAsync("Enter value:", null, null, false, false, CancellationToken.None));
-        Assert.Contains("Interactive input is not supported", exception.Message);
+        Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
 
     [Fact]
@@ -246,9 +247,9 @@ public class ConsoleInteractionServiceTests
         var choices = new[] { "option1", "option2" };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             interactionService.PromptForSelectionAsync("Select an item:", choices, x => x, CancellationToken.None));
-        Assert.Contains("Interactive input is not supported", exception.Message);
+        Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
 
     [Fact]
@@ -261,9 +262,9 @@ public class ConsoleInteractionServiceTests
         var choices = new[] { "option1", "option2" };
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             interactionService.PromptForSelectionsAsync("Select items:", choices, x => x, CancellationToken.None));
-        Assert.Contains("Interactive input is not supported", exception.Message);
+        Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
 
     [Fact]
@@ -275,8 +276,8 @@ public class ConsoleInteractionServiceTests
         var interactionService = new ConsoleInteractionService(AnsiConsole.Console, executionContext, hostEnvironment);
 
         // Act & Assert
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => 
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             interactionService.ConfirmAsync("Confirm?", true, CancellationToken.None));
-        Assert.Contains("Interactive input is not supported", exception.Message);
+        Assert.Contains(InteractionServiceStrings.InteractiveInputNotSupported, exception.Message);
     }
 }

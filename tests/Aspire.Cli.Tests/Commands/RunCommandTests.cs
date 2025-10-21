@@ -9,6 +9,7 @@ using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -407,8 +408,9 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
         testInteractionService.ShowStatusCallback = (statusText) =>
         {
             Assert.Contains(
-                $":hammer_and_wrench:  Building apphost... src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
-                statusText);
+                $"{InteractionServiceStrings.BuildingAppHost} src{Path.DirectorySeparatorChar}MyApp.AppHost{Path.DirectorySeparatorChar}MyApp.AppHost.csproj",
+                statusText
+            );
         };
 
         var testRunner = new TestDotNetCliRunner();

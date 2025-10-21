@@ -287,7 +287,7 @@ public class DotNetSdkInstallerTests
     {
         // Test the new error message format with placeholders
         var message = string.Format(CultureInfo.InvariantCulture,
-            ErrorStrings.MinimumSdkVersionNotMet,
+            ErrorStrings.ResourceManager.GetString("MinimumSdkVersionNotMet", CultureInfo.GetCultureInfo("en-US"))!,
             "9.0.302",
             "(not found)");
 
@@ -303,7 +303,7 @@ public class DotNetSdkInstallerTests
         var requiredVersionString = "10.0.100";
 
         // Use reflection to access the private method
-        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
 
@@ -319,7 +319,7 @@ public class DotNetSdkInstallerTests
         var requiredVersionString = "10.0.100";
 
         // Use reflection to access the private method
-        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
 
@@ -335,7 +335,7 @@ public class DotNetSdkInstallerTests
         var requiredVersionString = "10.0.100";
 
         // Use reflection to access the private method
-        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
 
@@ -351,7 +351,7 @@ public class DotNetSdkInstallerTests
         var requiredVersionString = "9.0.302";
 
         // Use reflection to access the private method
-        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
+        var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
         var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
 

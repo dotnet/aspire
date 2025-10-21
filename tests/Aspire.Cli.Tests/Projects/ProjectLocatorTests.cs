@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.Projects;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Telemetry;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -45,7 +46,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -241,7 +242,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
             await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         });
 
-        Assert.Equal("No project file found.", ex.Message);
+        Assert.Equal(ErrorStrings.NoProjectFileFound, ex.Message);
     }
 
     [Theory]
@@ -468,7 +469,7 @@ builder.Build().Run();");
         // Create a valid .csproj AppHost in subdirectory
         var subDir1 = workspace.WorkspaceRoot.CreateSubdirectory("ProjectAppHost");
         var csprojFile = new FileInfo(Path.Combine(subDir1.FullName, "AppHost.csproj"));
-        awaitÍ File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
         // Create a valid single-file AppHost in another subdirectory
         var subDir2 = workspace.WorkspaceRoot.CreateSubdirectory("SingleFileAppHost");
@@ -559,13 +560,12 @@ builder.Build().Run();");
             await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
-    public async Task UseOrFindAppHostProjectFileAsync_RejectsSingleFileAppHostWithSiblingCsproj()
+    public async Task UseOrFindAppHostProjectFileAsync_AllowsSingleFileAppHostWithSiblingCsproj()
     {
-        var logger = NullLogger<ProjectLocator>.Instance;
         using var workspace = TemporaryWorkspace.Create(outputHelper);
 
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
@@ -588,12 +588,8 @@ builder.Build().Run();");
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
 
-        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
-        {
-            await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
-        });
-
-        Assert.Equal("Project file does not exist.", ex.Message);
+        // Allow the single-file apphost to be used explicitly even with sibling .csproj
+        await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
     }
 
     [Fact]
@@ -616,7 +612,7 @@ builder.Build().Run();");
             await projectLocator.UseOrFindAppHostProjectFileAsync(txtFile, createSettingsFile: true, CancellationToken.None);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -845,7 +841,7 @@ builder.Build().Run();");
             await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -952,7 +948,7 @@ builder.Build().Run();");
             await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
         });
 
-        Assert.Equal("Project file does not exist.", ex.Message);
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
