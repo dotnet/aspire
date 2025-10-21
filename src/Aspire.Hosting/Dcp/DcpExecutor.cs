@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Data;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -730,8 +731,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             AspireEventSource.Instance.DcpServicesCreationStart();
 
             var needAddressAllocated = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (Service)r.DcpResource)
-                .Where(sr => !sr.HasCompleteAddress && sr.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
-                .ToList();
+                .Where(
+                    sr => !sr.HasCompleteAddress &&
+                    (
+                        (sr.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless) ||
+                        sr.Metadata.Annotations?.TryGetValue(CustomResource.ContainerTunnelClientServiceAnnotation, out _) is true
+                    )
+                ).ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
 
@@ -843,7 +849,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containerHost = DefaultContainerHostName;
         var tunnelProxyResource = _appResources.Where(r => r.DcpResource is ContainerNetworkTunnelProxy).FirstOrDefault();
 
-        foreach (var appResource in resources.Where(r => r.ModelResource is not null))
+        foreach (var appResource in resources)
         {
             foreach (var sp in appResource.ServicesProduced)
             {
@@ -875,6 +881,51 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             // If there are any additional services that are not directly produced by this resource,
             // but leverage its endpoints via container tunnel, we want to add allocated endpoint info for them as well.
+
+            var tunnelServices = _appResources.Select(r => (
+                    Service: r.DcpResource as Service,
+                    ResourceName: r.DcpResource.Metadata.Annotations?.TryGetValue(CustomResource.ResourceNameAnnotation, out var resourceName) == true ? resourceName : null,
+                    EndpointName: r.DcpResource.Metadata.Annotations?.TryGetValue(CustomResource.EndpointNameAnnotation, out var endpointName) == true ? endpointName : null,
+                    ClientServiceName: r.DcpResource.Metadata.Annotations?.TryGetValue(CustomResource.ContainerTunnelClientServiceAnnotation, out var clientServiceName) == true ? clientServiceName : null
+                ))
+                .Where(ts =>
+                    ts.Service is not null &&
+                    StringComparers.ResourceName.Equals(ts.ResourceName, appResource.ModelResource.Name) &&
+                    !string.IsNullOrEmpty(ts.EndpointName) &&
+                    !string.IsNullOrEmpty(ts.ClientServiceName)
+                );
+
+            foreach (var ts in tunnelServices)
+            {
+                if (!TryGetEndpoint(appResource.ModelResource, ts.EndpointName, out var endpoint))
+                {
+                    throw new InvalidDataException($"Service '{ts.Service!.Metadata.Name}' refers to endpoint '{ts.EndpointName}' that does not exist");
+                }
+
+                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
+                     StringComparers.ResourceName.Equals(swr.ModelResource.Name, ts.ResourceName) &&
+                     StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
+                 );
+                if (serverSvc is null)
+                {
+                    // Should never happen -- we should have created a Service for every endpoint exposed from a resource.
+                    throw new InvalidDataException($"The '{endpoint.Name}' on resource '{ts.ResourceName}' should have an associated DCP Service resource already set up");
+                }
+
+                var (targetHost, bindingMode) = NormalizeTargetHost(endpoint.TargetHost);
+                var tunnelAllocatedEndpoint = new AllocatedEndpoint(
+                    endpoint,
+                    targetHost,
+                    (int)ts.Service!.AllocatedPort!,
+                    bindingMode,
+                    containerHost,
+                    targetPortExpression: $$$"""{{- portForServing "{{{ts.ClientServiceName}}}" -}}""",
+                    KnownNetworkIdentifiers.DefaultAspireContainerNetwork
+                );
+                var nes = new NetworkEndpointSnapshot(new ValueSnapshot<AllocatedEndpoint>(), KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+                nes.Snapshot.SetValue(tunnelAllocatedEndpoint);
+                endpoint.AllAllocatedEndpoints.Add(nes);
+            }
         }
     }
 
@@ -1009,22 +1060,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Spec.Protocol = PortProtocol.TCP;
                 // Address and port will be set automatically by DCP.
 
-                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
-                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
-                svc.Annotate(CustomResource.ContainerNetworkTunnelProxyAnnntotation, tunnelProxy.Metadata.Name);
-
-                var svcAppResource = new ServiceAppResource(svc);
-                tunnelAppResource.ServicesProduced.Add(svcAppResource);
-                _appResources.Add(svcAppResource);
-
-                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr => swr.ModelResource.Name == re.Resource.Name && swr.EndpointAnnotation.Name == endpoint.Name);
+                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr =>
+                    StringComparers.ResourceName.Equals(swr.ModelResource.Name, re.Resource.Name) &&
+                    StringComparers.EndpointAnnotationName.Equals(swr.EndpointAnnotation.Name, endpoint.Name)
+                );
                 if (serverSvc is null)
                 {
                     // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
-                    resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' should have an associated DCP Service resource already set up",
-                        endpoint.Name,
-                        re.Resource.Name);
-                    continue;
+                    throw new InvalidDataException($"Host endpoint '{endpoint.Name}' on resource '{re.Resource.Name}' should have an associated DCP Service resource already set up");
                 }
                 var tunnelConfig = new TunnelConfiguration
                 {
@@ -1035,6 +1078,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     ClientServiceNamespace = string.Empty
                 };
                 tunnelProxy.Spec.Tunnels.Add(tunnelConfig);
+
+                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
+                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
+                svc.Annotate(CustomResource.ContainerTunnelClientServiceAnnotation, svc.Metadata.Name);
+
+                var svcAppResource = new ServiceAppResource(svc);
+                tunnelAppResource.ServicesProduced.Add(svcAppResource);
+                _appResources.Add(svcAppResource);
             }
 
         }
@@ -2517,5 +2568,15 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
 
         return volumeMounts;
+    }
+
+    private static bool TryGetEndpoint(IResource resource, string? endpointName, [NotNullWhen(true)] out EndpointAnnotation? endpoint)
+    {
+        endpoint = null;
+        if (resource.TryGetAnnotationsOfType<EndpointAnnotation>(out var endpoints))
+        {
+            endpoint = endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName));
+        }
+        return endpoint is not null;
     }
 }
