@@ -99,7 +99,9 @@ internal sealed class AzureAppServiceWebsiteContext(
             throw new NotSupportedException("App Service does not support resources with multiple external endpoints.");
         }
 
-        _targetPort = targetPortEndpoints.FirstOrDefault();
+        // If the target port is specified, use it; otherwise, allocate a default port
+        // There can only be a single target port with an HTTP binding in app service
+        _targetPort = targetPortEndpoints.FirstOrDefault() ?? 8000;
 
         foreach (var endpoint in endpoints)
         {
@@ -113,7 +115,7 @@ internal sealed class AzureAppServiceWebsiteContext(
                 Scheme: endpoint.UriScheme,
                 Host: HostName,
                 Port: endpoint.UriScheme == "https" ? 443 : 80,
-                TargetPort: endpoint.TargetPort,
+                TargetPort: endpoint.TargetPort ?? _targetPort,
                 IsHttpIngress: true,
                 External: true); // All App Service endpoints are external
         }
