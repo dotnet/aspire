@@ -22,6 +22,8 @@ internal interface IProjectLocator
 
 internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry, IFeatures features) : IProjectLocator
 {
+    private static readonly HashSet<string> s_supportedProjectFileExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
+
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
         var allCandidates = await FindAppHostProjectFilesAsync(new DirectoryInfo(searchDirectory), cancellationToken);
@@ -325,7 +327,6 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 throw new ProjectLocatorException(ErrorStrings.ProjectFileDoesntExist);
             }
 
-            var supportedProjectFileExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
             // Handle explicit apphost.cs files
             if (projectFile.Name.Equals("apphost.cs", StringComparison.OrdinalIgnoreCase))
             {
@@ -347,7 +348,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                 }
             }
             // Handle .cs|fs|vbproj files
-            else if (supportedProjectFileExtensions.Contains(projectFile.Extension))
+            else if (s_supportedProjectFileExtensions.Contains(projectFile.Extension))
             {
                 logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
                 return projectFile;
