@@ -381,6 +381,40 @@ builder.Build().Run();");
     }
 
     [Fact]
+    public async Task UseOrFindAppHostProjectFileAsync_RejectsSingleFileAppHostWithSiblingCsproj()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        // Add sibling .csproj file
+        var csprojFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "SomeProject.csproj"));
+        await File.WriteAllTextAsync(csprojFile.FullName, "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        var projectLocator = CreateProjectLocatorWithSingleFileEnabled(executionContext);
+
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
+        {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true, CancellationToken.None);
+        });
+
+        Assert.Equal("Project file does not exist.", ex.Message);
+    }
+
+    [Fact]
     public async Task UseOrFindAppHostProjectFileAsync_RejectsInvalidFileExtension()
     {
         var logger = NullLogger<ProjectLocator>.Instance;
@@ -512,6 +546,36 @@ builder.Build().Run();");
         var configurationService = new TestConfigurationService();
         var features = new TestFeatures().SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_IgnoresSingleFileAppHostWhenFeatureDisabled()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a valid single-file apphost
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var logger = NullLogger<ProjectLocator>.Instance;
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Use TestFeatures() with default values (feature disabled)
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find no files since the single-file apphost feature is disabled
+        Assert.Empty(foundFiles);
     }
 
     [Fact]
