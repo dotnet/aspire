@@ -320,7 +320,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 // Log activity - display the log message
                 var logLevel = activity.Data.LogLevel ?? "Information";
                 var message = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
-                var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTimeOffset.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
                 
                 // Use 3-letter prefixes for log levels
                 var logPrefix = logLevel.ToUpperInvariant() switch
