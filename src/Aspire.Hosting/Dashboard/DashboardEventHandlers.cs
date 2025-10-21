@@ -625,11 +625,21 @@ internal sealed class DashboardEventHandlers(IConfiguration configuration,
         }
 
         var mcp = dashboardResource.GetEndpoint(McpEndpointName);
+        if (!mcp.Exists)
+        {
+            // Fallback to frontend https or http endpoint if not configured.
+            mcp = dashboardResource.GetEndpoint("https");
+            if (!mcp.Exists)
+            {
+                mcp = dashboardResource.GetEndpoint("http");
+            }
+        }
+
         if (mcp.Exists)
         {
             // The URL that the dashboard binds to is proxied. We need to set the public URL to the proxied URL.
             // This lets the dashboard provide the correct URL to clients.
-            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPublicUrlName.EnvVarName] = context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUrlName.EnvVarName];
+            context.EnvironmentVariables[DashboardConfigNames.DashboardMcpPublicUrlName.EnvVarName] = mcp.Url;
 
             context.EnvironmentVariables[DashboardConfigNames.DashboardMcpUrlName.EnvVarName] = GetTargetUrlExpression(mcp);
         }

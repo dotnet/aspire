@@ -154,6 +154,8 @@ public class McpOptions
     public string? PrimaryApiKey { get; set; }
     public string? SecondaryApiKey { get; set; }
     public string? EndpointUrl { get; set; }
+
+    // Public URL could be different from the endpoint URL (e.g., when behind a proxy).
     public string? PublicUrl { get; set; }
 
     public bool SuppressUnsecuredMessage { get; set; }
