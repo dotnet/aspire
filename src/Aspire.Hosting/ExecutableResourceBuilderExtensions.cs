@@ -208,8 +208,9 @@ public static class ExecutableResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a resource needs to
-    /// configure itself for custom certificate trust.
+    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when an executable resource needs to configure itself for custom certificate trust. This is only supported in run mode;
+    /// certificate trust customization is not supported in publish or deploy.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>

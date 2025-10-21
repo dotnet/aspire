@@ -551,7 +551,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", context => 
+    ///        .WithDockerfileFactory("path/to/context", context =>
     ///        {
     ///            return "FROM alpine:latest\nRUN echo 'Hello World'";
     ///        });
@@ -596,7 +596,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", async context => 
+    ///        .WithDockerfileFactory("path/to/context", async context =>
     ///        {
     ///            var template = await File.ReadAllTextAsync("template.dockerfile", context.CancellationToken);
     ///            return template.Replace("{{VERSION}}", "1.0");
@@ -762,7 +762,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("alpine:latest")
     ///         .WorkDir("/app")
@@ -809,7 +809,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("node:18")
     ///         .WorkDir("/app")
@@ -1001,8 +1001,9 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
-    /// configure itself for custom certificate trust.
+    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is
+    /// invoked when a container resource needs to configure itself for custom certificate trust. This is only supported in run mode;
+    /// certificate trust customization is not supported in publish or deploy.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -1244,7 +1245,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("alpine:latest")
     ///                .WorkDir("/app")
@@ -1349,7 +1350,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("node:18")
     ///                .WorkDir("/app")
