@@ -18,7 +18,10 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
-        Assert.True(env.SupportsInteractiveInput);
+        // When console input is redirected (e.g., during test execution), interactive input is not supported
+        // In a normal console environment, this would return true
+        var expected = !Console.IsInputRedirected;
+        Assert.Equal(expected, env.SupportsInteractiveInput);
     }
 
     [Fact]
@@ -31,7 +34,10 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: false);
         
         // Assert
-        Assert.True(env.SupportsInteractiveOutput);
+        // When console output is redirected (e.g., during test execution), interactive output is not supported
+        // In a normal console environment, this would return true
+        var expected = !Console.IsOutputRedirected;
+        Assert.Equal(expected, env.SupportsInteractiveOutput);
     }
 
     [Fact]

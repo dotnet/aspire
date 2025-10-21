@@ -99,6 +99,12 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
             return false;
         }
 
+        // Check if console input is redirected (e.g., piped from a file or another command)
+        if (Console.IsInputRedirected)
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -115,6 +121,12 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
         // Check if running in CI environment (spinners pollute logs)
         if (IsCI(configuration))
+        {
+            return false;
+        }
+
+        // Check if console output is redirected (e.g., piped to a file or another command)
+        if (Console.IsOutputRedirected)
         {
             return false;
         }
