@@ -66,6 +66,11 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
     public bool SupportsAnsi { get; }
 
     public CliHostEnvironment(IConfiguration configuration, bool nonInteractive)
+        : this(configuration, nonInteractive, Console.IsInputRedirected, Console.IsOutputRedirected)
+    {
+    }
+
+    public CliHostEnvironment(IConfiguration configuration, bool nonInteractive, bool isInputRedirected, bool isOutputRedirected)
     {
         // If --non-interactive is explicitly set, disable interactive input and output
         if (nonInteractive)
@@ -75,14 +80,14 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
         else
         {
-            SupportsInteractiveInput = DetectInteractiveInput(configuration);
-            SupportsInteractiveOutput = DetectInteractiveOutput(configuration);
+            SupportsInteractiveInput = DetectInteractiveInput(configuration, isInputRedirected);
+            SupportsInteractiveOutput = DetectInteractiveOutput(configuration, isOutputRedirected);
         }
 
-        SupportsAnsi = DetectAnsiSupport(configuration);
+        SupportsAnsi = DetectAnsiSupport(configuration, isOutputRedirected);
     }
 
-    private static bool DetectInteractiveInput(IConfiguration configuration)
+    private static bool DetectInteractiveInput(IConfiguration configuration, bool isInputRedirected)
     {
         // Check if explicitly disabled via configuration
         var nonInteractive = configuration["ASPIRE_NON_INTERACTIVE"];
@@ -100,7 +105,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         // Check if console input is redirected (e.g., piped from a file or another command)
-        if (Console.IsInputRedirected)
+        if (isInputRedirected)
         {
             return false;
         }
@@ -108,7 +113,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return true;
     }
 
-    private static bool DetectInteractiveOutput(IConfiguration configuration)
+    private static bool DetectInteractiveOutput(IConfiguration configuration, bool isOutputRedirected)
     {
         // Check if explicitly disabled via configuration
         var nonInteractive = configuration["ASPIRE_NON_INTERACTIVE"];
@@ -126,7 +131,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         // Check if console output is redirected (e.g., piped to a file or another command)
-        if (Console.IsOutputRedirected)
+        if (isOutputRedirected)
         {
             return false;
         }
@@ -134,7 +139,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return true;
     }
 
-    private static bool DetectAnsiSupport(IConfiguration configuration)
+    private static bool DetectAnsiSupport(IConfiguration configuration, bool isOutputRedirected)
     {
         // Check if explicitly disabled via NO_COLOR environment variable
         var noColor = configuration["NO_COLOR"];
@@ -144,7 +149,7 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         // Disable ANSI colors when console output is redirected to avoid garbled output in files
-        if (Console.IsOutputRedirected)
+        if (isOutputRedirected)
         {
             return false;
         }

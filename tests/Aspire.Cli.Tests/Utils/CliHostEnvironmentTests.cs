@@ -15,13 +15,10 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
-        // When console input is redirected (e.g., during test execution), interactive input is not supported
-        // In a normal console environment, this would return true
-        var expected = !Console.IsInputRedirected;
-        Assert.Equal(expected, env.SupportsInteractiveInput);
+        Assert.True(env.SupportsInteractiveInput);
     }
 
     [Fact]
@@ -31,13 +28,10 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
-        // When console output is redirected (e.g., during test execution), interactive output is not supported
-        // In a normal console environment, this would return true
-        var expected = !Console.IsOutputRedirected;
-        Assert.Equal(expected, env.SupportsInteractiveOutput);
+        Assert.True(env.SupportsInteractiveOutput);
     }
 
     [Fact]
@@ -47,13 +41,10 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
-        // When console output is redirected (e.g., during test execution), ANSI colors are not supported
-        // In a normal console environment, this would return true
-        var expected = !Console.IsOutputRedirected;
-        Assert.Equal(expected, env.SupportsAnsi);
+        Assert.True(env.SupportsAnsi);
     }
 
     [Theory]
@@ -70,7 +61,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveInput);
@@ -90,7 +81,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
@@ -113,7 +104,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveInput);
@@ -135,7 +126,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
@@ -156,12 +147,10 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
-        // ANSI is supported in CI unless output is redirected
-        var expected = !Console.IsOutputRedirected;
-        Assert.Equal(expected, env.SupportsAnsi);
+        Assert.True(env.SupportsAnsi);
     }
 
     [Fact]
@@ -176,7 +165,7 @@ public class CliHostEnvironmentTests
             .Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsAnsi);
@@ -189,7 +178,7 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        var env = new CliHostEnvironment(configuration, nonInteractive: true, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveInput);
@@ -202,7 +191,7 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        var env = new CliHostEnvironment(configuration, nonInteractive: true, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
         Assert.False(env.SupportsInteractiveOutput);
@@ -215,11 +204,48 @@ public class CliHostEnvironmentTests
         var configuration = new ConfigurationBuilder().Build();
         
         // Act
-        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        var env = new CliHostEnvironment(configuration, nonInteractive: true, isInputRedirected: false, isOutputRedirected: false);
         
         // Assert
-        // ANSI is supported in non-interactive mode unless output is redirected
-        var expected = !Console.IsOutputRedirected;
-        Assert.Equal(expected, env.SupportsAnsi);
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsInteractiveInput_ReturnsFalse_WhenInputRedirected()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: true, isOutputRedirected: false);
+        
+        // Assert
+        Assert.False(env.SupportsInteractiveInput);
+    }
+
+    [Fact]
+    public void SupportsInteractiveOutput_ReturnsFalse_WhenOutputRedirected()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: true);
+        
+        // Assert
+        Assert.False(env.SupportsInteractiveOutput);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsFalse_WhenOutputRedirected()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder().Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: true);
+        
+        // Assert
+        Assert.False(env.SupportsAnsi);
     }
 }
