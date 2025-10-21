@@ -39,8 +39,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
-    
-
     // The base name for ephemeral container (Docker, Pdman etc) networks
     internal const string DefaultAspireNetworkName = "aspire-session-network";
 
@@ -731,8 +729,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
-            var needAddressAllocated = _appResources.OfType<ServiceWithModelResource>()
-                .Where(sr => !sr.Service.HasCompleteAddress && sr.Service.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
+            var needAddressAllocated = _appResources.Where(r => r.DcpResource is Service { }).Select(r => (Service)r.DcpResource)
+                .Where(sr => !sr.HasCompleteAddress && sr.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
                 .ToList();
 
             await CreateResourcesAsync<Service>(cancellationToken).ConfigureAwait(false);
@@ -754,7 +752,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         continue;
                     }
 
-                    var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Service.Metadata.Name == updated.Metadata.Name);
+                    var srvResource = needAddressAllocated.FirstOrDefault(sr => sr.Metadata.Name == updated.Metadata.Name);
                     if (srvResource == null)
                     {
                         // This service most likely already has full address information, so it is not on needAddressAllocated list.
@@ -763,7 +761,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (updated.HasCompleteAddress)
                     {
-                        srvResource.Service.ApplyAddressInfoFrom(updated);
+                        srvResource.ApplyAddressInfoFrom(updated);
                         needAddressAllocated.Remove(srvResource);
                     }
 
@@ -777,14 +775,14 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // If there are still services that need address allocated, try a final direct query in case the watch missed some updates.
             foreach (var sar in needAddressAllocated)
             {
-                var dcpSvc = await _kubernetesService.GetAsync<Service>(sar.Service.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var dcpSvc = await _kubernetesService.GetAsync<Service>(sar.Metadata.Name, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (dcpSvc.HasCompleteAddress)
                 {
-                    sar.Service.ApplyAddressInfoFrom(dcpSvc);
+                    sar.ApplyAddressInfoFrom(dcpSvc);
                 }
                 else
                 {
-                    _distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Service.Metadata.Name);
+                    _distributedApplicationLogger.LogWarning("Unable to allocate a network port for service '{ServiceName}'; service may be unreachable and its clients may not work properly.", sar.Metadata.Name);
                 }
             }
 
@@ -795,7 +793,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
     }
 
-    private async Task CreateAllDcpObjectsAsync<T>(CancellationToken cancellationToken) where T: CustomResource
+    private async Task CreateAllDcpObjectsAsync<T>(CancellationToken cancellationToken) where T : CustomResource
     {
         var toCreate = _appResources.Select(r => r.DcpResource).Where(r => r is { } T);
         if (!toCreate.Any())
@@ -960,9 +958,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         // For container-to-host communication we need to create a tunnel proxy, with a Service/tunnel for each host Endpoint consumed by a Container resource.
 
-        // TODO: this is unfortunately not good--we need to work off of EndpointReferences, not EndpointReferenceAnnotations
-        // (which aren't always present when EndpointReferences are used directly).
-
         var hostResourcesWithContainerReferences = _model.Resources.Where(r => r is IResourceWithEndpoints && !r.IsContainer())
             .Select(r => (
                 Resource: r,
@@ -974,12 +969,13 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             return; // No host resources referenced by container resources--nothing more to do.
         }
-        
+
         // Eventually we might want to support multiple container networks, including user-defined ones,
         // but for now we just have one container network per application, and so we need only one tunnel proxy.
         ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
         tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
         tunnelProxy.Spec.Aliases = [ContainerTunnelProxyHostName];
+        tunnelProxy.Spec.Tunnels = [];
         var tunnelAppResource = new AppResource(tunnelProxy);
         _appResources.Add(tunnelAppResource);
 
@@ -988,6 +984,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         foreach (var re in hostResourcesWithContainerReferences)
         {
+            var resourceLogger = _loggerService.GetLogger(re.Resource);
+
             foreach (var endpoint in re.Endpoints)
             {
                 if (!processedEndpoints.Add((re.Resource.Name, endpoint.Name)))
@@ -997,7 +995,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                 if (endpoint.Protocol != ProtocolType.Tcp)
                 {
-                    var resourceLogger = _loggerService.GetLogger(re.Resource);
                     resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' is referenced by a container resource, but the endpoint is using a network protocol '{Protocol}' other than TCP. Only TCP is supported for container-to-host references.",
                         endpoint.Name,
                         re.Resource.Name,
@@ -1012,14 +1009,32 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Spec.Protocol = PortProtocol.TCP;
                 // Address and port will be set automatically by DCP.
 
-                // Resource that implements the service behind the Endpoint.
-                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);
+                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);  // Resource that implements the service behind the Endpoint.
                 svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
                 svc.Annotate(CustomResource.ContainerNetworkTunnelProxyAnnntotation, tunnelProxy.Metadata.Name);
 
-                tunnelAppResource.ServicesProduced.Add(new ServiceAppResource(svc));
+                var svcAppResource = new ServiceAppResource(svc);
+                tunnelAppResource.ServicesProduced.Add(svcAppResource);
+                _appResources.Add(svcAppResource);
 
-                // TODO: create the service, and set us up for creating AllocatedEndpoint for the container tunnel proxy later on.
+                var serverSvc = _appResources.OfType<ServiceWithModelResource>().FirstOrDefault(swr => swr.ModelResource.Name == re.Resource.Name && swr.EndpointAnnotation.Name == endpoint.Name);
+                if (serverSvc is null)
+                {
+                    // This should never happen--if a host resource has an Endpoint, we should have created a Service for it.
+                    resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' should have an associated DCP Service resource already set up",
+                        endpoint.Name,
+                        re.Resource.Name);
+                    continue;
+                }
+                var tunnelConfig = new TunnelConfiguration
+                {
+                    Name = serviceName,
+                    ServerServiceName = serverSvc.DcpResource.Metadata.Name,
+                    ServerServiceNamespace = string.Empty,
+                    ClientServiceName = svc.Metadata.Name,
+                    ClientServiceNamespace = string.Empty
+                };
+                tunnelProxy.Spec.Tunnels.Add(tunnelConfig);
             }
 
         }
