@@ -4,6 +4,7 @@
 using System.Text.Encodings.Web;
 using Aspire.Dashboard.Authentication.Connection;
 using Aspire.Dashboard.Configuration;
+using Aspire.Dashboard.Startup;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
