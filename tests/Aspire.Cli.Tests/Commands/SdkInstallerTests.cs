@@ -20,6 +20,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -40,6 +42,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -60,6 +64,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -80,6 +86,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -100,6 +108,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
@@ -121,6 +131,8 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             {
                 CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
             };
+
+            options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
         });
         var provider = services.BuildServiceProvider();
 
