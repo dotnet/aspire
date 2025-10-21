@@ -1270,8 +1270,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env.AddRange(certificateEnv);
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
         }
         else
         {
@@ -1537,8 +1545,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env = (spec.Env ?? []).Concat(certificateEnv).ToList();
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
             spec.CreateFiles.AddRange(certificateFiles);
         }
         else
