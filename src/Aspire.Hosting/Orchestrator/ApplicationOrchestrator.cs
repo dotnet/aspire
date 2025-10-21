@@ -224,8 +224,6 @@ internal sealed class ApplicationOrchestrator
                     var endpointReference = new EndpointReference(resourceWithEndpoints, endpoint);
                     var url = new ResourceUrlAnnotation { Url = allocatedEndpoint.UriString, Endpoint = endpointReference };
 
-                    urls.Add(url);
-
                     // In the case that a service is bound to multiple addresses or a *.localhost address, we generate
                     // additional URLs to indicate to the user other ways their service can be reached. If the service
                     // is bound to all interfaces (0.0.0.0, ::, etc.) we use the machine name as the additional
@@ -251,6 +249,14 @@ internal sealed class ApplicationOrchestrator
                         },
                     };
 
+                    // If the additional URL is a *.localhost address we want to highlight that URL in the dashboard
+                    if (additionalUrl?.Endpoint?.EndpointAnnotation.TargetHost.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
+                        url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
+                    }
+
+                    urls.Add(url);
                     if (additionalUrl is not null)
                     {
                         urls.Add(additionalUrl);
