@@ -300,6 +300,20 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             }
         }
 
+        if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, true))
+        {
+            if (finalEnv == env)
+            {
+                finalEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
+            }
+
+            // Only set the environment variable if it's not already set by the user
+            if (finalEnv is not null && !finalEnv.ContainsKey("DOTNET_ROLL_FORWARD"))
+            {
+                finalEnv["DOTNET_ROLL_FORWARD"] = "LatestMajor";
+            }            
+        }
+
         return await ExecuteAsync(
             args: cliArgs,
             env: finalEnv,
@@ -1187,10 +1201,17 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         var sdkVersion = sdkInstaller.GetEffectiveMinimumSdkVersion();
         var runtimesDirectory = executionContext.RuntimesDirectory.FullName;
         var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
+        var dotnetExecutablePath = Path.Combine(
+            sdkInstallPath,
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"
+        );
 
         // Check if the private SDK exists
         if (Directory.Exists(sdkInstallPath))
         {
+            // Set the executable path to be the private SDK.
+            startInfo.FileName = dotnetExecutablePath;
+
             // Set DOTNET_ROOT to point to the private SDK installation
             startInfo.EnvironmentVariables["DOTNET_ROOT"] = sdkInstallPath;
             
