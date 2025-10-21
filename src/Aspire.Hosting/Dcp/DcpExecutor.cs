@@ -2080,7 +2080,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
         var scope = CertificateTrustScope.Append;
@@ -2211,7 +2211,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
         var scope = CertificateTrustScope.Append;

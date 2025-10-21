@@ -103,7 +103,7 @@ public sealed class DistributedApplicationOptions
     /// Whether to attempt to implicitly add trust for developer certificates (currently the ASP.NET developer certificate)
     /// by default at runtime.
     /// </summary>
-    public bool TrustDeveloperCertificate { get; set; } = true;
+    public bool? TrustDeveloperCertificate { get; set; }
 
     private string? ResolveProjectDirectory()
     {

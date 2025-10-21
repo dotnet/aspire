@@ -2015,6 +2015,8 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
+        var options = new DistributedApplicationOptions();
+
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -2023,7 +2025,7 @@ public class DcpExecutorTests
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
-            new DistributedApplicationOptions(),
+            options,
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
@@ -2034,7 +2036,7 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance));
+            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance, configuration, options));
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);

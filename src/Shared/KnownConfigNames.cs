@@ -44,6 +44,8 @@ internal static class KnownConfigNames
     public const string ExtensionCert = "ASPIRE_EXTENSION_CERT";
     public const string ExtensionDebugSessionId = "ASPIRE_EXTENSION_DEBUG_SESSION_ID";
 
+    public const string TrustDeveloperCertificate = "ASPIRE_DEVELOPER_CERTIFICATE_DEFAULT_TRUST";
+
     public const string DebugSessionInfo = "DEBUG_SESSION_INFO";
     public const string DebugSessionRunMode = "DEBUG_SESSION_RUN_MODE";
 
