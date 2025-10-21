@@ -15,6 +15,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
+    private readonly string _contextNetworkID;
 
     /// <summary>
     /// Gets the endpoint annotation associated with the endpoint reference.
@@ -56,6 +57,13 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The URL of the endpoint.</returns>
     public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default) => Property(EndpointProperty.Url).GetValueAsync(cancellationToken);
+
+    /// <summary>
+    /// The ID of the network that serves as the context fot the EndpointReference.
+    /// The reference will be resolved in the context of this network, which may be different
+    /// from the network associated with the default network of the referenced Endpoint.
+    /// </summary>
+    public string ContextNetworkID => _contextNetworkID;
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
@@ -123,17 +131,50 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         GetAllocatedEndpoint()
         ?? throw new InvalidOperationException($"The endpoint `{EndpointName}` is not allocated for the resource `{Resource.Name}`.");
 
-    private EndpointAnnotation? GetEndpointAnnotation() =>
-        _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>().SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+    private EndpointAnnotation? GetEndpointAnnotation()
+    {
+        if (_endpointAnnotation is not null)
+        {
+            return _endpointAnnotation;
+        }
 
-    private AllocatedEndpoint? GetAllocatedEndpoint() => GetEndpointAnnotation()?.AllocatedEndpoint;
+        _endpointAnnotation ??= Resource.Annotations.OfType<EndpointAnnotation>()
+            .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, EndpointName));
+        _endpointAnnotation?.References.Add(this);
+        return _endpointAnnotation;
+    }
+
+    private AllocatedEndpoint? GetAllocatedEndpoint()
+    {
+        var endpointAnnotation = GetEndpointAnnotation();
+        if (endpointAnnotation is null)
+        {
+            return null;
+        }
+
+        foreach (var nes in endpointAnnotation.AllAllocatedEndpoints)
+        {
+            if (StringComparers.NetworkID.Equals(nes.NetworkID, _contextNetworkID))
+            {
+                if (!nes.Snapshot.IsValueSet)
+                {
+                    continue;
+                }
+
+                return nes.Snapshot.GetValueAsync().GetAwaiter().GetResult();
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
     /// </summary>
-    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+    /// <param name="owner">The resource with endpoints that owns the referenced endpoint.</param>
     /// <param name="endpoint">The endpoint annotation.</param>
-    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint)
+    /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
+    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -141,20 +182,24 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         Resource = owner;
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
+        endpoint.References.Add(this);
+        _contextNetworkID = contextNetworkID;
     }
 
     /// <summary>
     /// Creates a new instance of <see cref="EndpointReference"/> with the specified endpoint name.
     /// </summary>
-    /// <param name="owner">The resource with endpoints that owns the endpoint reference.</param>
+    /// <param name="owner">The resource with endpoints that owns the referenced endpoint.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    public EndpointReference(IResourceWithEndpoints owner, string endpointName)
+    /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
+    public EndpointReference(IResourceWithEndpoints owner, string endpointName, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpointName);
 
         Resource = owner;
         EndpointName = endpointName;
+        _contextNetworkID = contextNetworkID;
     }
 }
 

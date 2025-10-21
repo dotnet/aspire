@@ -410,7 +410,7 @@ public static class ResourceBuilderExtensions
         {
             var annotation = endpointReferencesAnnotation;
             var serviceName = annotation.Resource.Name;
-            foreach (var endpoint in annotation.Resource.GetEndpoints())
+            foreach (var endpoint in annotation.Resource.GetEndpoints(annotation.ContextNetworkID))
             {
                 var endpointName = endpoint.EndpointName;
                 if (!annotation.UseAllEndpoints && !annotation.EndpointNames.Contains(endpointName))
@@ -652,6 +652,10 @@ public static class ResourceBuilderExtensions
         if (endpointReferenceAnnotation == null)
         {
             endpointReferenceAnnotation = new EndpointReferenceAnnotation(resourceWithEndpoints);
+            if (builder.Resource.IsContainer())
+            {
+                endpointReferenceAnnotation.ContextNetworkID = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+            }
             builder.WithAnnotation(endpointReferenceAnnotation);
 
             var callback = CreateEndpointReferenceEnvironmentPopulationCallback(endpointReferenceAnnotation);

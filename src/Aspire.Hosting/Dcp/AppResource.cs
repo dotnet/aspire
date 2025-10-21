@@ -7,48 +7,62 @@ using System.Diagnostics;
 
 namespace Aspire.Hosting.Dcp;
 
-[DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
+[DebuggerDisplay("DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
 internal class AppResource
 {
     public CustomResource DcpResource { get; }
     public string DcpResourceName => DcpResource.Metadata.Name;
     public string DcpResourceKind => DcpResource.Kind;
-    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
-    public virtual List<ServiceAppResource> ServicesConsumed { get; } = [];
-
+    
     public AppResource(CustomResource dcpResource)
     {
         DcpResource = dcpResource;
     }
+
+    public virtual List<ServiceAppResource> ServicesProduced { get; } = [];
 }
+
+internal class ServiceAppResource : AppResource
+{
+    public Service Service => (Service)DcpResource;
+    public ServiceAppResource(Service service) : base(service)
+    {
+    }
+    public override List<ServiceAppResource> ServicesProduced
+    {
+        get { throw new InvalidOperationException("Service resources do not produce any services"); }
+    }
+}   
 
 [DebuggerDisplay("ModelResource = {ModelResource}, DcpResourceName = {DcpResourceName}, DcpResourceKind = {DcpResourceKind}")]
 internal class RenderedModelResource : AppResource, IResourceReference
 {
     public IResource ModelResource { get; }
     
-
     public RenderedModelResource(IResource modelResource, CustomResource dcpResource): base(dcpResource)
     {
         ModelResource = modelResource;
     }
+
+    public new virtual List<ServiceWithModelResource> ServicesProduced { get; } = [];
+    public virtual List<ServiceWithModelResource> ServicesConsumed { get; } = [];
 }
 
-internal sealed class ServiceAppResource : RenderedModelResource
+internal sealed class ServiceWithModelResource : RenderedModelResource
 {
     public Service Service => (Service)DcpResource;
     public EndpointAnnotation EndpointAnnotation { get; }
 
-    public override List<ServiceAppResource> ServicesProduced
+    public override List<ServiceWithModelResource> ServicesProduced
     {
         get { throw new InvalidOperationException("Service resources do not produce any services"); }
     }
-    public override List<ServiceAppResource> ServicesConsumed
+    public override List<ServiceWithModelResource> ServicesConsumed
     {
         get { throw new InvalidOperationException("Service resources do not consume any services"); }
     }
 
-    public ServiceAppResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
+    public ServiceWithModelResource(IResource modelResource, Service service, EndpointAnnotation sba) : base(modelResource, service)
     {
         EndpointAnnotation = sba;
     }

@@ -504,15 +504,16 @@ public static class ResourceExtensions
     }
 
     /// <summary>
-    /// Gets the endpoints for the specified resource.
+    /// Gets references to all endpoints for the specified resource.
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
+    /// <param name="contextNetworkID">The ID of the network that serves as the context context for the endpoint references.</param>
     /// <returns>An enumeration of <see cref="EndpointReference"/> based on the <see cref="EndpointAnnotation"/> annotations from the resources' <see cref="IResource.Annotations"/> collection.</returns>
-    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource)
+    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
     {
         if (TryGetAnnotationsOfType<EndpointAnnotation>(resource, out var endpoints))
         {
-            return endpoints.Select(e => new EndpointReference(resource, e));
+            return endpoints.Select(e => new EndpointReference(resource, e, contextNetworkID));
         }
 
         return [];

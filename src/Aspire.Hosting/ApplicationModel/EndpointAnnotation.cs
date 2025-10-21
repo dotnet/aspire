@@ -20,6 +20,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _portSetToNull;
     private int? _targetPort;
     private bool _targetPortSetToNull;
+
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
     /// </summary>
@@ -31,7 +32,19 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     /// <param name="targetPort">This is the port the resource is listening on. If the endpoint is used for the container, it is the container port.</param>
     /// <param name="isExternal">Indicates that this endpoint should be exposed externally at publish time.</param>
     /// <param name="isProxied">Specifies if the endpoint will be proxied by DCP. Defaults to true.</param>
-    public EndpointAnnotation(ProtocolType protocol, string? uriScheme = null, string? transport = null, [EndpointName] string? name = null, int? port = null, int? targetPort = null, bool? isExternal = null, bool isProxied = true)
+    /// <param name="networkID">The ID of the network that is the "default" network for the Endpoint.
+    /// Clients connected to the same network can reach the endpoint without any routing or network address translation.</param>
+    public EndpointAnnotation(
+        ProtocolType protocol,
+        string? uriScheme = null,
+        string? transport = null,
+        [EndpointName] string? name = null,
+        int? port = null,
+        int? targetPort = null,
+        bool? isExternal = null,
+        bool isProxied = true,
+        string networkID = KnownNetworkIdentifiers.Localhost
+    )
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
         // protocol. If the name is null, we'll use the URI scheme as the default. This
@@ -51,6 +64,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _targetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
+        AllAllocatedEndpoints.Add(new NetworkEndpointSnapshot(AllocatedEndpointSnapshot, networkID));
     }
 
     /// <summary>
@@ -142,7 +156,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     internal string? TargetPortEnvironmentVariable { get; set; }
 
     /// <summary>
-    /// Gets or sets the allocated endpoint.
+    /// Gets or sets the default <see cref="AllocatedEndpoint"/> for this Endpoint.
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint
     {
@@ -173,7 +187,22 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     }
 
     /// <summary>
-    /// Gets the allocated endpoint snapshot.
+    /// Gets the <see cref="AllocatedEndpointSnapshot"/> for the drfault <see cref="AllocatedEndpoint"/>.
     /// </summary>
     public ValueSnapshot<AllocatedEndpoint> AllocatedEndpointSnapshot { get; } = new();
+
+    /// <summary>
+    /// Gets the lits of all AllocatedEndpoints associated with this Endpoint.
+    /// </summary>
+    public List<NetworkEndpointSnapshot> AllAllocatedEndpoints { get; } = new();
+
+    // All EndpointReferences that point to this EndpointAnnotation
+    internal List<EndpointReference> References { get; } = new();
 }
+
+/// <summary>
+/// Represents an AllocatedEndpoint snapshot associated with a specific network.
+/// </summary>
+/// <param name="Snapshot">AllocatedEndpoint snapshot</param>
+/// <param name="NetworkID">The ID of the network that is associated with the AllocatedEndpoint snapshot.</param>
+public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Snapshot, string NetworkID);

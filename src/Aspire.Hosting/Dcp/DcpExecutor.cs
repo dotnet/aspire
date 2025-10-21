@@ -39,14 +39,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 {
     internal const string DebugSessionPortVar = "DEBUG_SESSION_PORT";
 
-    // The resource name for the Aspire network resource.
-    internal const string DefaultAspireNetworkResourceName = "aspire-network";
+    
 
-    // The base name for ephemeral networks
+    // The base name for ephemeral container (Docker, Pdman etc) networks
     internal const string DefaultAspireNetworkName = "aspire-session-network";
 
-    // The base name for persistent networks
+    // The base name for persistent container (Docker, Pdman etc) networks
     internal const string DefaultAspirePersistentNetworkName = "aspire-persistent-network";
+
+    // The host name for the container tunnel proxy providing host network connectivity to containers.
+    internal const string ContainerTunnelProxyHostName = "host.aspire.internal";
 
     // Disposal of the DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
@@ -729,7 +731,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         {
             AspireEventSource.Instance.DcpServicesCreationStart();
 
-            var needAddressAllocated = _appResources.OfType<ServiceAppResource>()
+            var needAddressAllocated = _appResources.OfType<ServiceWithModelResource>()
                 .Where(sr => !sr.Service.HasCompleteAddress && sr.Service.Spec.AddressAllocationMode != AddressAllocationModes.Proxyless)
                 .ToList();
 
@@ -841,6 +843,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private void AddAllocatedEndpointInfo(IEnumerable<RenderedModelResource> resources)
     {
         var containerHost = DefaultContainerHostName;
+        var tunnelProxyResource = _appResources.Where(r => r.DcpResource is ContainerNetworkTunnelProxy).FirstOrDefault();
 
         foreach (var appResource in resources.Where(r => r.ModelResource is not null))
         {
@@ -860,6 +863,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
 
                 var (targetHost, bindingMode) = NormalizeTargetHost(sp.EndpointAnnotation.TargetHost);
+                var networkID = appResource.DcpResource is Executable ? KnownNetworkIdentifiers.Localhost : KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
@@ -867,8 +871,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     (int)svc.AllocatedPort!,
                     bindingMode,
                     containerHostAddress: appResource.ModelResource!.IsContainer() ? containerHost : null,
-                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""");
+                    targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
+                    networkID);
             }
+
+            // If there are any additional services that are not directly produced by this resource,
+            // but leverage its endpoints via container tunnel, we want to add allocated endpoint info for them as well.
         }
     }
 
@@ -877,7 +885,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containerResources = _model.Resources.Where(mr => mr.IsContainer());
         if (!containerResources.Any()) { return; }
 
-        var network = ContainerNetwork.Create(DefaultAspireNetworkResourceName);
+        var network = ContainerNetwork.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
         if (containerResources.Any(cr => cr.GetContainerLifetimeType() == ContainerLifetime.Persistent))
         {
             // If we have any persistent container resources
@@ -946,66 +954,75 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 svc.Annotate(CustomResource.ResourceNameAnnotation, sp.ModelResource.Name);
                 svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
 
-                _appResources.Add(new ServiceAppResource(sp.ModelResource, svc, endpoint));
+                _appResources.Add(new ServiceWithModelResource(sp.ModelResource, svc, endpoint));
             }
         }
 
-        // For container-to-host communication we need to create a service for each host Endpoint consumed by a Container resource.
+        // For container-to-host communication we need to create a tunnel proxy, with a Service/tunnel for each host Endpoint consumed by a Container resource.
 
-        var hostEndpointReferences = _model.GetContainerResources()
-            .Select(cr => (
-                ContainerResource: cr,
-                HostEndpointReferences: cr.Annotations.OfType<EndpointReferenceAnnotation>().Where(era => !era.Resource.IsContainer())
+        // TODO: this is unfortunately not good--we need to work off of EndpointReferences, not EndpointReferenceAnnotations
+        // (which aren't always present when EndpointReferences are used directly).
+
+        var hostResourcesWithContainerReferences = _model.Resources.Where(r => r is IResourceWithEndpoints && !r.IsContainer())
+            .Select(r => (
+                Resource: r,
+                Endpoints: r.Annotations.OfType<EndpointAnnotation>().Where(e => e.References.Any(er => er.ContextNetworkID == KnownNetworkIdentifiers.DefaultAspireContainerNetwork))
             ))
-            .Where(cwhr => cwhr.HostEndpointReferences.Any())
-            .SelectMany(
-                cwhr => cwhr.HostEndpointReferences,
-                (cwhr, era) => (cwhr.ContainerResource, Annotation: era)
-            );
+            .Where(re => re.Endpoints.Any());
 
-        if (!hostEndpointReferences.Any())
+        if (!hostResourcesWithContainerReferences.Any())
         {
-            return; // No containers with references to host services--nothing more to do.
+            return; // No host resources referenced by container resources--nothing more to do.
         }
-
+        
         // Eventually we might want to support multiple container networks, including user-defined ones,
-        // but for now we just have one container network per application.
-        var containerNetwork = _appResources.Select(ar => ar.DcpResource).OfType<ContainerNetwork>().FirstOrDefault();
-        if (containerNetwork is null)
-        {
-            // Should never happen
-            throw new InvalidOperationException("The model includes Container resources but no container network has been prepared");
-        }
+        // but for now we just have one container network per application, and so we need only one tunnel proxy.
+        ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+        tunnelProxy.Spec.Aliases = [ContainerTunnelProxyHostName];
+        var tunnelAppResource = new AppResource(tunnelProxy);
+        _appResources.Add(tunnelAppResource);
 
         // If multiple Containers take a reference to the same host endpoint, we should only create one Service for it.
-        HashSet<(string HostResourceName, string EndpointName)> processedEndpoints = new();
-        ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(containerNetwork.Metadata.Name);
+        HashSet<(string HostResourceName, string OriginalEndpointName)> processedEndpoints = new();
 
-        foreach (var her in hostEndpointReferences)
+        foreach (var re in hostResourcesWithContainerReferences)
         {
-            IEnumerable<string> endpointNames = her.Annotation.EndpointNames;
-            if (her.Annotation.UseAllEndpoints)
+            foreach (var endpoint in re.Endpoints)
             {
-                // Do not use the (mis-named) GetEndpoints() extension method because it creates and returns new EndpointReferences, not existing Endpoints.
-                if (her.Annotation.Resource.TryGetEndpoints(out var endpoints))
-                {
-                    endpointNames = endpoints.Select(e => e.Name);
-                }
-            }
-
-            foreach (var endpointName in endpointNames)
-            {
-                if (!processedEndpoints.Add((her.Annotation.Resource.Name, endpointName)))
+                if (!processedEndpoints.Add((re.Resource.Name, endpoint.Name)))
                 {
                     continue; // Already processed this endpoint reference.
                 }
+
+                if (endpoint.Protocol != ProtocolType.Tcp)
+                {
+                    var resourceLogger = _loggerService.GetLogger(re.Resource);
+                    resourceLogger.LogWarning("Host endpoint '{EndpointName}' on resource '{HostResource}' is referenced by a container resource, but the endpoint is using a network protocol '{Protocol}' other than TCP. Only TCP is supported for container-to-host references.",
+                        endpoint.Name,
+                        re.Resource.Name,
+                        endpoint.Protocol);
+                    continue;
+                }
+
+                var hasManyEndpoints = re.Resource.Annotations.OfType<EndpointAnnotation>().Count() > 1;
+                var serviceName = _nameGenerator.GetServiceName(re.Resource, endpoint, hasManyEndpoints, serviceNames);
+                var svc = Service.Create(serviceName);
+                svc.Spec.AddressAllocationMode = AddressAllocationModes.Proxyless;
+                svc.Spec.Protocol = PortProtocol.TCP;
+                // Address and port will be set automatically by DCP.
+
+                // Resource that implements the service behind the Endpoint.
+                svc.Annotate(CustomResource.ResourceNameAnnotation, re.Resource.Name);
+                svc.Annotate(CustomResource.EndpointNameAnnotation, endpoint.Name);
+                svc.Annotate(CustomResource.ContainerNetworkTunnelProxyAnnntotation, tunnelProxy.Metadata.Name);
+
+                tunnelAppResource.ServicesProduced.Add(new ServiceAppResource(svc));
+
+                // TODO: create the service, and set us up for creating AllocatedEndpoint for the container tunnel proxy later on.
             }
 
-            // TODO: continue here
-            
         }
-
-        _appResources.Add(new AppResource(tunnelProxy));
     }
 
     private void PrepareExecutables()
@@ -1467,7 +1484,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 new ContainerNetworkConnection
                 {
-                    Name = DefaultAspireNetworkResourceName,
+                    Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork,
                     Aliases = new List<string> { container.Name },
                 }
             };
@@ -1703,7 +1720,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         }
         catch { } // For error messages only, OK to fall back to (unknown)
 
-        var servicesProduced = _appResources.OfType<ServiceAppResource>().Where(r => r.ModelResource == modelResource);
+        var servicesProduced = _appResources.OfType<ServiceWithModelResource>().Where(r => r.ModelResource == modelResource);
         foreach (var sp in servicesProduced)
         {
             var ea = sp.EndpointAnnotation;

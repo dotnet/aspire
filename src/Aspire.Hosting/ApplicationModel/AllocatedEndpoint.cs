@@ -46,7 +46,15 @@ public class AllocatedEndpoint
     /// <param name="port">The port number of the endpoint.</param>
     /// <param name="targetPortExpression">A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.</param>
     /// <param name="bindingMode">The binding mode of the endpoint.</param>
-    public AllocatedEndpoint(EndpointAnnotation endpoint, string address, int port, EndpointBindingMode bindingMode, string? containerHostAddress = null, string? targetPortExpression = null)
+    /// <param name="networkID">The network identifier for the network associated with the endpoint.</param>
+    public AllocatedEndpoint(
+        EndpointAnnotation endpoint,
+        string address, int port,
+        EndpointBindingMode bindingMode,
+        string? containerHostAddress = null,
+        string? targetPortExpression = null,
+        string networkID = KnownNetworkIdentifiers.Localhost
+    )
     {
         ArgumentNullException.ThrowIfNull(endpoint);
         ArgumentOutOfRangeException.ThrowIfLessThan(port, 1, nameof(port));
@@ -58,6 +66,7 @@ public class AllocatedEndpoint
         ContainerHostAddress = containerHostAddress;
         Port = port;
         TargetPortExpression = targetPortExpression;
+        NetworkID = networkID;
     }
 
     /// <summary>
@@ -118,6 +127,11 @@ public class AllocatedEndpoint
     /// A string representing how to retrieve the target port of the <see cref="AllocatedEndpoint"/> instance.
     /// </summary>
     public string? TargetPortExpression { get; }
+
+    /// <summary>
+    /// Gets the network identifier for the network associated with the <see cref="AllocatedEndpoint"/> instance.
+    /// </summary>
+    public string NetworkID { get; private set; }
 
     /// <summary>
     /// Returns a string representation of the allocated endpoint URI.
