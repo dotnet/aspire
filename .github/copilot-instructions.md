@@ -196,7 +196,6 @@ The `*.Designer.cs` files are in the repo, but are intended to match same named 
 
 ## Localization files
 * Files matching the pattern `*/localize/templatestrings.*.json` are localization files. Do not translate their content. It is done by a dedicated workflow.
-  
 ## Trust These Instructions
 
 These instructions are comprehensive and tested. Only search for additional information if:
