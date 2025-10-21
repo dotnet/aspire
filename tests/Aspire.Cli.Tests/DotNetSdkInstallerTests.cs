@@ -29,7 +29,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext());
 
         // This test assumes the test environment has .NET SDK installed
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         Assert.True(success);
     }
@@ -43,7 +43,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext());
 
         // This test assumes the test environment has .NET SDK installed with a version >= 8.0.0
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         Assert.True(success);
     }
@@ -58,7 +58,7 @@ public class DotNetSdkInstallerTests
 
         // Use the actual minimum version constant and check the behavior
         // Since this test environment has 8.0.117, it should return false for 9.0.302
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // Don't assert the specific result, just ensure the method doesn't throw
         // The behavior will depend on what SDK versions are actually installed
@@ -74,7 +74,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext());
 
         // Use an unreasonably high version that should not exist
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         Assert.False(success);
     }
@@ -88,7 +88,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext());
 
         // Use an invalid version string
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         Assert.False(success);
     }
@@ -150,7 +150,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext());
 
         // Use an invalid version string
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         Assert.True(success);
     }
@@ -165,7 +165,7 @@ public class DotNetSdkInstallerTests
 
         // This test verifies that the architecture-specific command is used
         // Since the implementation adds --arch flag, it should still work correctly
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The test should pass if the command with --arch flag works
         Assert.True(success);
@@ -178,7 +178,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext());
 
         // The installer should use the override version instead of the constant
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 9.0.302, which should be available in test environment
         Assert.True(success);
@@ -190,7 +190,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext());
 
         // Call the parameterless method that should use the default constant
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -206,7 +206,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context);
 
         // Call the parameterless method that should use the elevated constant when flag is enabled
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -222,7 +222,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context);
 
         // Call the parameterless method that should use the elevated constant when flag is enabled
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -238,7 +238,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context);
 
         // Call the parameterless method that should use the baseline constant when flag is disabled
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -254,7 +254,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context);
 
         // Call the parameterless method that should use the baseline constant when flag is disabled
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
         Assert.True(success == true || success == false);
@@ -270,7 +270,7 @@ public class DotNetSdkInstallerTests
         var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext());
 
         // The installer should use the override version instead of the elevated constant
-        var (success, _, _) = await installer.CheckAsync();
+        var (success, _, _, _) = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
         Assert.True(success);

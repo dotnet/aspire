@@ -25,14 +25,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkNet10SdkVersion = "10.0.100";
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion)> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion();
+        
+        // Check if alwaysInstallSdk is enabled - this forces installation even when SDK check passes
+        var alwaysInstallSdk = configuration["alwaysInstallSdk"];
+        var forceInstall = !string.IsNullOrEmpty(alwaysInstallSdk) && 
+                          bool.TryParse(alwaysInstallSdk, out var alwaysInstall) && 
+                          alwaysInstall;
         
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
-            return (true, null, minimumVersion);
+            return (true, null, minimumVersion, forceInstall);
         }
 
         try
@@ -60,13 +66,13 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             if (process.ExitCode != 0)
             {
-                return (false, null, minimumVersion);
+                return (false, null, minimumVersion, forceInstall);
             }
 
             // Parse the minimum version requirement
             if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
             {
-                return (false, null, minimumVersion);
+                return (false, null, minimumVersion, forceInstall);
             }
 
             // Parse each line of the output to find SDK versions
@@ -98,12 +104,12 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                 }
             }
 
-            return (meetsMinimum, highestVersion?.ToString(), minimumVersion);
+            return (meetsMinimum, highestVersion?.ToString(), minimumVersion, forceInstall);
         }
         catch
         {
             // If we can't start the process, the SDK is not available
-            return (false, null, minimumVersion);
+            return (false, null, minimumVersion, forceInstall);
         }
     }
 

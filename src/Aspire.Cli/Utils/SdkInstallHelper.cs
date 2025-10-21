@@ -35,31 +35,47 @@ internal static class SdkInstallHelper
         ArgumentNullException.ThrowIfNull(interactionService);
         ArgumentNullException.ThrowIfNull(features);
 
-        var (success, highestVersion, minimumRequiredVersion) = await sdkInstaller.CheckAsync(cancellationToken);
+        var (success, highestVersion, minimumRequiredVersion, forceInstall) = await sdkInstaller.CheckAsync(cancellationToken);
 
-        if (!success)
+        if (!success || forceInstall)
         {
             var detectedVersion = highestVersion ?? "(not found)";
             
-            var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
-                ErrorStrings.MinimumSdkVersionNotMet, 
-                minimumRequiredVersion, 
-                detectedVersion);
-            interactionService.DisplayError(sdkErrorMessage);
+            // Only display error if SDK is actually missing
+            if (!success)
+            {
+                var sdkErrorMessage = string.Format(CultureInfo.InvariantCulture, 
+                    ErrorStrings.MinimumSdkVersionNotMet, 
+                    minimumRequiredVersion, 
+                    detectedVersion);
+                interactionService.DisplayError(sdkErrorMessage);
+            }
 
             // Only offer to install if:
             // 1. The feature is enabled (default: true)
-            // 2. We support interactive input
+            // 2. We support interactive input OR forceInstall is true (for testing)
             if (features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: true) &&
-                hostEnvironment?.SupportsInteractiveInput == true)
+                (hostEnvironment?.SupportsInteractiveInput == true || forceInstall))
             {
-                // Offer to install the SDK automatically
-                var shouldInstall = await interactionService.ConfirmAsync(
-                    string.Format(CultureInfo.InvariantCulture,
-                        "Would you like to install .NET SDK {0} automatically?",
-                        minimumRequiredVersion),
-                    defaultValue: true,
-                    cancellationToken: cancellationToken);
+                bool shouldInstall;
+                
+                if (forceInstall)
+                {
+                    // When alwaysInstallSdk is true, skip the prompt and install directly
+                    shouldInstall = true;
+                    interactionService.DisplayMessage("information", 
+                        "alwaysInstallSdk is enabled - forcing SDK installation for testing purposes.");
+                }
+                else
+                {
+                    // Offer to install the SDK automatically
+                    shouldInstall = await interactionService.ConfirmAsync(
+                        string.Format(CultureInfo.InvariantCulture,
+                            "Would you like to install .NET SDK {0} automatically?",
+                            minimumRequiredVersion),
+                        defaultValue: true,
+                        cancellationToken: cancellationToken);
+                }
 
                 if (shouldInstall)
                 {
@@ -90,7 +106,8 @@ internal static class SdkInstallHelper
                 }
             }
 
-            return false;
+            // If we didn't install and SDK check failed, return false
+            return success;
         }
 
         return true;
