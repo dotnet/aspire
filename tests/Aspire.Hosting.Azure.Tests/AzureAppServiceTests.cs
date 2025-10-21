@@ -584,6 +584,27 @@ public class AzureAppServiceTests
         Assert.Equal("App Service does not support resources with multiple external endpoints.", ex.Message);
     }
 
+    [Fact]
+    public async Task GetHostAddressExpression()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var env = builder.AddAzureAppServiceEnvironment("env");
+
+        var project = builder
+            .AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint();
+
+        var endpointReferenceEx = ((IComputeEnvironmentResource)env.Resource).GetHostAddressExpression(project.GetEndpoint("http"));
+        Assert.NotNull(endpointReferenceEx);
+
+        Assert.Equal("project1-{0}.azurewebsites.net", endpointReferenceEx.Format);
+        var provider = Assert.Single(endpointReferenceEx.ValueProviders);
+        var output = Assert.IsType<BicepOutputReference>(provider);
+        Assert.Equal(env.Resource, output.Resource);
+        Assert.Equal("webSiteSuffix", output.Name);
+    }
+
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>
         AzureManifestUtils.GetManifestWithBicep(resource, skipPreparer: true);
 
