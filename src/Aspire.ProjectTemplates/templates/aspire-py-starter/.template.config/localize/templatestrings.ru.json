@@ -2,6 +2,8 @@
   "author": "Майкрософт",
   "name": "Начальное приложение Aspire Python",
   "description": "Шаблон проекта для создания приложения Aspire со службой API серверной части на Python и интерфейсной частью на JavaScript с использованием Vite и React.",
+  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
+  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostOtlpHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP OTLP в файле launchSettings.json проекта AppHost.",
   "symbols/appHostResourceHttpPort/description": "Номер порта, который будет использоваться для конечной точки HTTP службы ресурсов в файле launchSettings.json проекта AppHost.",
