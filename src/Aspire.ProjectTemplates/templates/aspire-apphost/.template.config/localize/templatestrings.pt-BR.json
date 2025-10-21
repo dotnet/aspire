@@ -38,6 +38,8 @@
   "symbols/appHostResourceHttpsPort/description": "Número da porta a ser usado para o ponto de extremidade HTTPS do serviço de recurso launchSettings.json do projeto AppHost.",
   "symbols/skipRestore/description": "Se especificado, ignora a restauração automática do projeto sendo criado.",
   "symbols/NoHttps/description": "Se o HTTPS deve ser desativado.",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later.",
   "postActions/set-startup-project/description": "Define o projeto de inicialização na solução",
   "postActions/restore/description": "Restaure os pacotes NuGet exigidos por este projeto.",
   "postActions/restore/manualInstructions/default/text": "Executa 'dotnet restore'"

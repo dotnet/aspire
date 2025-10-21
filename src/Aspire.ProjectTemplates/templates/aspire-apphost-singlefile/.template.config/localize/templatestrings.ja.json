@@ -14,5 +14,7 @@
   "symbols/appHostHttpsPort/description": "AppHost プロジェクトの launchSettings.json の HTTPS エンドポイントに使用するポート番号。このオプションは、パラメーター no-https を使用しない場合にのみ適用されます。",
   "symbols/appHostOtlpHttpsPort/description": "AppHost プロジェクトの launchSettings.json で OTLP HTTPS エンドポイントに使用するポート番号。",
   "symbols/appHostResourceHttpsPort/description": "AppHost プロジェクトの launchSettings.json のリソース サービス HTTPS エンドポイントに使用するポート番号。",
-  "symbols/NoHttps/description": "HTTPS をオフにするかどうか。"
+  "symbols/NoHttps/description": "HTTPS をオフにするかどうか。",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
 }

@@ -63,6 +63,10 @@
       "TestFx": {
         "longName": "test-framework",
         "shortName": "t"
+      },
+      "LocalhostTld": {
+        "longName": "localhost-tld",
+        "shortName": ""
       }
     },
     "usageExamples": [

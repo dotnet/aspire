@@ -58,6 +58,8 @@
   "symbols/apiServiceHttpsPort/description": "Número de puerto que se va a usar para el punto de conexión HTTPS en launchSettings.json del proyecto ApiService. Esta opción solo es aplicable cuando no se usa el parámetro no-https.",
   "symbols/skipRestore/description": "Si se especifica, se omite la restauración automática del proyecto durante la creación.",
   "symbols/NoHttps/description": "Si se va a desactivar HTTPS.",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later.",
   "postActions/set-startup-project/description": "Establece el proyecto de inicio en la solución",
   "postActions/restore/description": "Restaure los paquetes NuGet necesarios para este proyecto.",
   "postActions/restore/manualInstructions/default/text": "Ejecutar \"dotnet restore\""

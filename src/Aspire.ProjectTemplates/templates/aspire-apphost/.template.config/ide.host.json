@@ -19,6 +19,12 @@
     {
       "id": "AspireVersionNet10",
       "isVisible": true
+    },
+    {
+      "id": "LocalhostTld",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "Aspire"
     }
   ],
   "unsupportedHosts": [
