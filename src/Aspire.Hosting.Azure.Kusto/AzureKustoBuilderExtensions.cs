@@ -319,10 +319,18 @@ public static class AzureKustoBuilderExtensions
             IconName = "ServerLink"
         };
 
+        // TODO: What to do for remote deployment / SSH scenarios?
+
         resourceBuilder.WithCommand(
-            name: "open-kusto-explorer",
+            name: "open-kusto-explorer-desktop",
             displayName: "Open in Kusto Explorer (Desktop)",
-            executeCommand: context => OnOpenInKustoExplorer(resourceBuilder, context),
+            executeCommand: context => OnOpenInKustoExplorerDesktop(resourceBuilder, context),
+            commandOptions: options);
+
+        resourceBuilder.WithCommand(
+            name: "open-kusto-explorer-web",
+            displayName: "Open in Kusto Explorer (Web)",
+            executeCommand: context => OnOpenInKustoExplorerWeb(resourceBuilder, context),
             commandOptions: options);
 
         static ResourceCommandState UpdateState(UpdateCommandStateContext context)
@@ -330,7 +338,7 @@ public static class AzureKustoBuilderExtensions
             return context.ResourceSnapshot.HealthStatus is HealthStatus.Healthy ? ResourceCommandState.Enabled : ResourceCommandState.Disabled;
         }
 
-        static async Task<ExecuteCommandResult> OnOpenInKustoExplorer(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
+        static async Task<ExecuteCommandResult> OnOpenInKustoExplorerDesktop(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
         {
             var connectionString = await resourceBuilder
                 .Resource
@@ -341,6 +349,21 @@ public static class AzureKustoBuilderExtensions
 
             var launcher = new KustoClientToolLauncher();
             var result = launcher.TryLaunchKustoExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
+
+            return result ? CommandResults.Success() : CommandResults.Failure();
+        }
+
+        static async Task<ExecuteCommandResult> OnOpenInKustoExplorerWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
+        {
+            var connectionString = await resourceBuilder
+                .Resource
+                .ConnectionStringExpression
+                .GetValueAsync(context.CancellationToken)
+                .ConfigureAwait(false) ??
+                throw new DistributedApplicationException($"Connection string for Kusto resource '{resourceBuilder.Resource.Name}' is not set.");
+
+            var launcher = new KustoClientToolLauncher();
+            var result = launcher.TryLaunchKustoWebExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
 
             return result ? CommandResults.Success() : CommandResults.Failure();
         }
