@@ -7,6 +7,7 @@ public enum ConnectionType
 {
     None,
     Frontend,
-    Otlp,
+    OtlpGrpc,
+    OtlpHttp,
     Mcp
 }

@@ -7,6 +7,7 @@ using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Http;
+using Aspire.Dashboard.Startup;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;
@@ -358,6 +359,62 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Configuration_BrowserAndOtlpGrpcAndMcpEndpointSame_Https_EndPointPortsAssigned()
+    {
+        // Arrange
+        DashboardWebApplication? app = null;
+        try
+        {
+            await ServerRetryHelper.BindPortWithRetry(async port =>
+            {
+                app = IntegrationTestHelpers.CreateDashboardWebApplication(testOutputHelper,
+                    additionalConfiguration: initialData =>
+                    {
+                        initialData[DashboardConfigNames.DashboardFrontendUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpGrpcUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardOtlpHttpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                        initialData[DashboardConfigNames.DashboardMcpUrlName.ConfigKey] = $"https://127.0.0.1:{port}";
+                    });
+
+                // Act
+                await app.StartAsync().DefaultTimeout();
+            }, NullLogger.Instance);
+
+            // Assert
+            Assert.NotNull(app);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+
+            // Check browser access
+            using var httpClient = new HttpClient(new HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (message, cert, chain, errors) =>
+                {
+                    return true;
+                }
+            })
+            {
+                BaseAddress = new Uri($"https://{app.FrontendSingleEndPointAccessor().EndPoint}")
+            };
+            var request = new HttpRequestMessage(HttpMethod.Get, "/");
+            var response = await httpClient.SendAsync(request).DefaultTimeout();
+            response.EnsureSuccessStatusCode();
+
+            // Check OTLP service
+            using var channel = IntegrationTestHelpers.CreateGrpcChannel($"https://{app.FrontendSingleEndPointAccessor().EndPoint}", testOutputHelper);
+            var client = new LogsService.LogsServiceClient(channel);
+            var serviceResponse = await client.ExportAsync(new ExportLogsServiceRequest()).ResponseAsync.DefaultTimeout();
+            Assert.Equal(0, serviceResponse.PartialSuccess.RejectedLogRecords);
+        }
+        finally
+        {
+            if (app is not null)
+            {
+                await app.DisposeAsync().DefaultTimeout();
+            }
+        }
+    }
+
+    [Fact]
     public async Task Configuration_BrowserAndOtlpGrpcEndpointSame_NoHttps_Error()
     {
         // Arrange
@@ -432,7 +489,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
             // Assert
             Assert.NotNull(app);
-            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceGrpcEndPointAccessor().EndPoint.Port);
+            Assert.Equal(app.FrontendSingleEndPointAccessor().EndPoint.Port, app.OtlpServiceHttpEndPointAccessor().EndPoint.Port);
 
             // Check browser access
             using var httpClient = new HttpClient()
@@ -453,7 +510,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
             var response = ExportLogsServiceResponse.Parser.ParseFrom(await responseMessage.Content.ReadAsByteArrayAsync().DefaultTimeout());
 
             Assert.Equal(OtlpHttpEndpointsBuilder.ProtobufContentType, responseMessage.Content.Headers.GetValues("content-type").Single());
-            Assert.False(responseMessage.Headers.Contains("content-security-policy"));
+            Assert.True(responseMessage.Headers.Contains("content-security-policy"));
             Assert.Equal(0, response.PartialSuccess.RejectedLogRecords);
         }
         finally
@@ -601,7 +658,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         await app.StartAsync().DefaultTimeout();
 
         // Assert
-        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
             {
@@ -686,7 +743,7 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
 
         // Assert
         Assert.NotNull(testSink);
-        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName).ToList();
+        var l = testSink.Writes.Where(w => w.LoggerName == typeof(DashboardWebApplication).FullName && w.LogLevel >= LogLevel.Information).ToList();
         Assert.Collection(l,
             w =>
             {
@@ -889,14 +946,14 @@ public class StartupTests(ITestOutputHelper testOutputHelper)
         Assert.Equal(!(value ?? false), aiContextProvider.Enabled);
     }
 
-    private static void AssertIPv4OrIPv6Endpoint(Func<EndpointInfo> endPointAccessor)
+    private static void AssertIPv4OrIPv6Endpoint(Func<ResolvedEndpointInfo> endPointAccessor)
     {
         // Check that the address is IPv4 or IPv6 any.
         var ipEndPoint = endPointAccessor().EndPoint;
         Assert.True(ipEndPoint.Address.Equals(IPAddress.Any) || ipEndPoint.Address.Equals(IPAddress.IPv6Any), "Endpoint address should be IPv4 or IPv6.");
     }
 
-    private static void AssertDynamicIPEndpoint(Func<EndpointInfo> endPointAccessor)
+    private static void AssertDynamicIPEndpoint(Func<ResolvedEndpointInfo> endPointAccessor)
     {
         // Check that the specified dynamic port of 0 is overridden with the actual port number.
         var ipEndPoint = endPointAccessor().EndPoint;
