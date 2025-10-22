@@ -65,6 +65,10 @@ internal sealed class PublishModeProvisioningContextProvider(
             await RetrieveAzureProvisioningOptions(cancellationToken).ConfigureAwait(false);
             _logger.LogDebug("Azure provisioning options have been handled successfully.");
         }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");

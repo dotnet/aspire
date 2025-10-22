@@ -298,7 +298,7 @@ internal abstract class PublishCommandBase : BaseCommand
     /// <returns>The converted text if markdown is enabled, otherwise the original text.</returns>
     private static string ConvertTextWithMarkdownFlag(string text, PublishingActivityData activityData)
     {
-        return activityData.EnableMarkdown ? MarkdownToSpectreConverter.ConvertToSpectre(text) : text;
+        return activityData.EnableMarkdown ? MarkdownToSpectreConverter.ConvertToSpectre(text) : text.EscapeMarkup();
     }
 
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)

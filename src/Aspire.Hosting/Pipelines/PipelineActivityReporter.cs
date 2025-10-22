@@ -182,7 +182,7 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
                 StepId = step.Id,
                 LogLevel = logLevel.ToString(),
                 Timestamp = DateTimeOffset.UtcNow,
-                EnableMarkdown =enableMarkdown
+                EnableMarkdown = enableMarkdown
             }
         };
 
