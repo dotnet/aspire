@@ -4,7 +4,7 @@
 namespace Aspire.Hosting.Utils;
 
 /// <summary>
-/// Provides helper methods for working with endpoint hosts.
+/// Provides helper methods for validating localhost addresses.
 /// </summary>
 public static class EndpointHostHelpers
 {
