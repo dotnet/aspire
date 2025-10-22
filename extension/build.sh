@@ -50,4 +50,4 @@ echo "Building Aspire CLI..."
 dotnet build ../src/Aspire.Cli/Aspire.Cli.csproj
 
 echo ""
-echo "Restore completed successfully!"
+echo "Build completed successfully!"

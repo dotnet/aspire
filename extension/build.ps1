@@ -66,4 +66,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host ""
-Write-Host "Restore completed successfully!"
+Write-Host "Build completed successfully!"
