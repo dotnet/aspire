@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;
@@ -454,7 +455,12 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     private ValueTask<GridItemsProviderResult<ResourceGridViewModel>> GetData(GridItemsProviderRequest<ResourceGridViewModel> request)
     {
         // Get filtered and ordered resources.
-        var filteredResources = GetFilteredResources()
+        var filteredResourcesList = GetFilteredResources().ToList();
+        
+        // Group parameters under a synthetic "Parameters" parent resource
+        var resourcesWithParametersGrouped = GroupParametersUnderParent(filteredResourcesList);
+        
+        var filteredResources = resourcesWithParametersGrouped
             .Select(r => new ResourceGridViewModel { Resource = r })
             .AsQueryable();
         filteredResources = request.ApplySorting(filteredResources);
@@ -476,6 +482,92 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
         _totalItemsFooter.UpdateDisplayedCount(query.Count);
 
         return ValueTask.FromResult(GridItemsProviderResult.From(query, orderedResources.Count));
+    }
+
+    private const string ParametersGroupName = "Parameters";
+
+    private List<ResourceViewModel> GroupParametersUnderParent(List<ResourceViewModel> resources)
+    {
+        var parameters = resources.Where(r => StringComparers.ResourceType.Equals(r.ResourceType, KnownResourceTypes.Parameter)).ToList();
+        
+        if (parameters.Count == 0)
+        {
+            return resources;
+        }
+
+        // Create synthetic "Parameters" parent resource
+        var parametersParent = new ResourceViewModel
+        {
+            Name = ParametersGroupName,
+            ResourceType = "ParameterGroup",
+            DisplayName = ParametersGroupName,
+            Uid = ParametersGroupName,
+            State = null,
+            StateStyle = null,
+            CreationTimeStamp = null,
+            StartTimeStamp = null,
+            StopTimeStamp = null,
+            Environment = ImmutableArray<EnvironmentVariableViewModel>.Empty,
+            Urls = ImmutableArray<UrlViewModel>.Empty,
+            Volumes = ImmutableArray<VolumeViewModel>.Empty,
+            Relationships = ImmutableArray<RelationshipViewModel>.Empty,
+            Properties = System.Collections.Immutable.ImmutableDictionary<string, ResourcePropertyViewModel>.Empty,
+            Commands = ImmutableArray<CommandViewModel>.Empty,
+            HealthReports = ImmutableArray<HealthReportViewModel>.Empty
+        };
+
+        // Set synthetic parent to be collapsed by default
+        if (!_collapsedResourceNames.Contains(ParametersGroupName))
+        {
+            _collapsedResourceNames.Add(ParametersGroupName);
+        }
+
+        // Create new list with parameters having the parent set
+        var result = new List<ResourceViewModel> { parametersParent };
+        
+        foreach (var resource in resources)
+        {
+            if (StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Parameter))
+            {
+                // Update parameter to have Parameters as parent
+                var parentProperty = new ResourcePropertyViewModel(
+                    KnownProperties.Resource.ParentName,
+                    Google.Protobuf.WellKnownTypes.Value.ForString(ParametersGroupName),
+                    isValueSensitive: false,
+                    knownProperty: null,
+                    priority: 0);
+                    
+                var updatedProperties = resource.Properties.SetItem(KnownProperties.Resource.ParentName, parentProperty);
+                
+                var updatedParameter = new ResourceViewModel
+                {
+                    Name = resource.Name,
+                    ResourceType = resource.ResourceType,
+                    DisplayName = resource.DisplayName,
+                    Uid = resource.Uid,
+                    State = resource.State,
+                    StateStyle = resource.StateStyle,
+                    CreationTimeStamp = resource.CreationTimeStamp,
+                    StartTimeStamp = resource.StartTimeStamp,
+                    StopTimeStamp = resource.StopTimeStamp,
+                    Environment = resource.Environment,
+                    Urls = resource.Urls,
+                    Volumes = resource.Volumes,
+                    Relationships = resource.Relationships,
+                    Properties = updatedProperties,
+                    Commands = resource.Commands,
+                    HealthReports = resource.HealthReports
+                };
+                
+                result.Add(updatedParameter);
+            }
+            else
+            {
+                result.Add(resource);
+            }
+        }
+
+        return result;
     }
 
     private void UpdateMenuButtons()
