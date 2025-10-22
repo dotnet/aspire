@@ -17,4 +17,5 @@ internal static class KnownFeatures
     public static string StagingChannelEnabled => "stagingChannelEnabled";
     public static string DefaultWatchEnabled => "defaultWatchEnabled";
     public static string ShowAllTemplates => "showAllTemplates";
+    public static string DotNetSdkInstallationEnabled => "dotnetSdkInstallationEnabled";
 }

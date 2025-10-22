@@ -16,7 +16,8 @@ public enum CertificateTrustScope
     /// </summary>
     Append,
     /// <summary>
-    /// Replace the default set of trusted CAs for a resource with the specified certificate authorities.
+    /// Replace the default set of trusted CAs for a resource with the specified certificate authorities. This mode
+    /// indicates that only the provided custom certificate authorities should be considered trusted by the resource.
     /// </summary>
     Override,
     /// <summary>
@@ -27,7 +28,8 @@ public enum CertificateTrustScope
     /// </summary>
     System,
     /// <summary>
-    /// Disable all custom certificate authority configuration for a resource.
+    /// Disable all custom certificate authority configuration for a resource. This indicates that the resource
+    /// should use its default certificate authority trust behavior without modification.
     /// </summary>
     None,
 }

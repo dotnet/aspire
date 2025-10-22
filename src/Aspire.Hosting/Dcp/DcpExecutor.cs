@@ -1117,7 +1117,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         CancellationToken cancellationToken)
     {
         var executablesList = executables.ToList();
-        
+
         async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
         {
             var resourceLogger = _loggerService.GetLogger(resource);
@@ -1187,7 +1187,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var tasks = new List<Task>();
         var groups = executablesList.GroupBy(e => e.ModelResource).ToList();
-        
+
         foreach (var group in groups)
         {
             var groupList = group.ToList();
@@ -1270,8 +1270,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env.AddRange(certificateEnv);
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
         }
         else
         {
@@ -1537,8 +1545,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env = (spec.Env ?? []).Concat(certificateEnv).ToList();
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
             spec.CreateFiles.AddRange(certificateFiles);
         }
         else
@@ -1719,8 +1735,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return targetHost switch
         {
             null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
-            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
-            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using .localhost subdomain
+            var s when EndpointHostHelpers.IsLocalhostOrLocalhostTld(s) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using localhost or .localhost subdomain
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
@@ -2064,7 +2079,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
         var scope = CertificateTrustScope.Append;
@@ -2100,6 +2115,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ExecutableCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,
@@ -2194,7 +2210,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
         var scope = CertificateTrustScope.Append;
@@ -2231,6 +2247,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ContainerCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,

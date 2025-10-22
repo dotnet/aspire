@@ -22,4 +22,9 @@ public interface IDeveloperCertificateService
     /// for accessing host services such as "host.docker.internal" and "host.containers.internal".
     /// </summary>
     bool SupportsContainerTrust { get; }
+
+    /// <summary>
+    /// Indicates whether the default behavior is to attempt to trust the developer certificate(s) at runtime.
+    /// </summary>
+    bool TrustCertificate { get; }
 }

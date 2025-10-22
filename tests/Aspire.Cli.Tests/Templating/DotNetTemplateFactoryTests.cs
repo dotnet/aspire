@@ -376,7 +376,7 @@ public class DotNetTemplateFactoryTests
         var workingDirectory = new DirectoryInfo("/tmp");
         var hivesDirectory = new DirectoryInfo("/tmp/hives");
         var cacheDirectory = new DirectoryInfo("/tmp/cache");
-        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        var executionContext = new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
 
         return new DotNetTemplateFactory(
             interactionService,
