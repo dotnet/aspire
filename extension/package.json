@@ -28,7 +28,8 @@
     "onDebugInitialConfigurations:aspire",
     "onDebugDynamicConfigurations:aspire",
     "workspaceContains:**/*.csproj",
-    "onView:workbench.view.debug"
+    "onView:workbench.view.debug",
+    "workspaceContains:**/apphost.cs"
   ],
   "main": "./dist/extension.js",
   "l10n": "./l10n",

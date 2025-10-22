@@ -64,8 +64,11 @@
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
+      <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
-      <source xml:lang="en">Do you want to set the default apphost for this workspace?</source>
+      <source xml:lang="en">Do you want to set {0} as the default apphost for this workspace?</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
       <source xml:lang="en">Don&apos;t show again</source>
