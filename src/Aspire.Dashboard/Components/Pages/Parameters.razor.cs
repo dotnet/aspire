@@ -64,7 +64,7 @@ public partial class Parameters : ComponentBase, IComponentWithTelemetry, IAsync
     [Inject]
     public required ComponentTelemetryContextProvider TelemetryContextProvider { get; init; }
     [Inject]
-    public required ILogger<Resources> Logger { get; init; }
+    public required ILogger<Parameters> Logger { get; init; }
     [Inject]
     public required IStringLocalizer<Dashboard.Resources.AIAssistant> AIAssistantLoc { get; init; }
     [Inject]
@@ -576,7 +576,7 @@ public partial class Parameters : ComponentBase, IComponentWithTelemetry, IAsync
             }
 
             // Navigate to remove ?resource=xxx in the URL.
-            NavigationManager.NavigateTo(DashboardUrls.ResourcesUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
+            NavigationManager.NavigateTo(DashboardUrls.ParametersUrl(), new NavigationOptions { ReplaceHistoryEntry = true });
         }
 
         UpdateTelemetryProperties();
@@ -943,7 +943,7 @@ public partial class Parameters : ComponentBase, IComponentWithTelemetry, IAsync
     }
 
     // IComponentWithTelemetry impl
-    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Resources);
+    public ComponentTelemetryContext TelemetryContext { get; } = new(ComponentType.Page, TelemetryComponentIds.Parameters);
 
     public void UpdateTelemetryProperties()
     {

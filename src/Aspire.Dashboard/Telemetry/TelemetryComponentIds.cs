@@ -7,6 +7,7 @@ public static class TelemetryComponentIds
 {
     // Pages
     public const string Resources = nameof(Resources);
+    public const string Parameters = nameof(Parameters);
     public const string Login = nameof(Login);
     public const string Traces = nameof(Traces);
     public const string StructuredLogs = nameof(StructuredLogs);
