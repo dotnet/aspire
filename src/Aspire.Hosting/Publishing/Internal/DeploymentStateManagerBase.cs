@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
@@ -24,9 +23,9 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// <summary>
     /// Holds section metadata including version information.
     /// </summary>
-    private sealed class SectionMetadata
+    private sealed class SectionMetadata(long version)
     {
-        public long Version { get; set; }
+        public long Version { get; } = version;
     }
 
     /// <summary>
@@ -43,7 +42,8 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     protected readonly ILogger<T> logger = logger;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private readonly SemaphoreSlim _saveLock = new(1, 1);
-    private readonly ConcurrentDictionary<string, SectionMetadata> _sections = new();
+    private readonly object _sectionsLock = new();
+    private readonly Dictionary<string, SectionMetadata> _sections = new();
     private JsonObject? _state;
     private bool _isStateLoaded;
 
@@ -202,7 +202,15 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
 
     private SectionMetadata GetSectionMetadata(string sectionName)
     {
-        return _sections.GetOrAdd(sectionName, _ => new SectionMetadata());
+        lock (_sectionsLock)
+        {
+            if (!_sections.TryGetValue(sectionName, out var metadata))
+            {
+                metadata = new SectionMetadata(0);
+                _sections[sectionName] = metadata;
+            }
+            return metadata;
+        }
     }
 
     /// <inheritdoc/>
@@ -229,33 +237,23 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
             throw new InvalidOperationException("State has not been loaded.");
         }
 
-        // Atomically check version and update using AddOrUpdate (compare-exchange pattern)
-        var versionMismatch = false;
-        _sections.AddOrUpdate(
-            section.SectionName,
-            // Add case: create new metadata with incremented version
-            _ => new SectionMetadata { Version = section.Version + 1 },
-            // Update case: check version and increment if matching
-            (_, existing) =>
-            {
-                if (existing.Version != section.Version)
-                {
-                    versionMismatch = true;
-                }
-                else
-                {
-                    existing.Version = section.Version + 1;
-                }
-                return existing;
-            });
-
-        if (versionMismatch)
+        // Atomically check version and update using lock + Dictionary
+        lock (_sectionsLock)
         {
-            throw new InvalidOperationException(
-                $"Concurrency conflict detected in section '{section.SectionName}'. " +
-                $"Expected version {section.Version}, but current version differs. " +
-                $"This typically indicates the section was modified after it was acquired. " +
-                $"Ensure the section is saved before being modified by another operation.");
+            if (_sections.TryGetValue(section.SectionName, out var metadata))
+            {
+                if (metadata.Version != section.Version)
+                {
+                    throw new InvalidOperationException(
+                        $"Concurrency conflict detected in section '{section.SectionName}'. " +
+                        $"Expected version {section.Version}, but current version is {metadata.Version}. " +
+                        $"This typically indicates the section was modified after it was acquired. " +
+                        $"Ensure the section is saved before being modified by another operation.");
+                }
+            }
+
+            // Create new metadata with incremented version
+            _sections[section.SectionName] = new SectionMetadata(section.Version + 1);
         }
 
         // Increment the section's version to allow multiple saves with the same instance
