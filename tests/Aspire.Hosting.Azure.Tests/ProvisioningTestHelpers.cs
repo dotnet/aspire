@@ -602,7 +602,7 @@ internal sealed class TestUserSecretsManager : IDeploymentStateManager
         var sectionData = _state.TryGetPropertyValue(sectionName, out var node) && node is JsonObject obj
             ? obj
             : new JsonObject();
-        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0, null));
+        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
     }
 
     public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)

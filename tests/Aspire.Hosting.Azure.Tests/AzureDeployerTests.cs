@@ -905,7 +905,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         public string? StateFilePath => null;
 
         public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
-            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0, null));
+            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
 
         public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

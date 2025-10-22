@@ -199,11 +199,11 @@ public class ProvisioningServicesTests
         var manager = ProvisioningTestHelpers.CreateUserSecretsManager();
 
         // Act
-        using var azureSection = await manager.AcquireSectionAsync("Azure");
+        var azureSection = await manager.AcquireSectionAsync("Azure");
         azureSection.Data["SubscriptionId"] = "test-id";
         await manager.SaveSectionAsync(azureSection);
 
-        using var loadedSection = await manager.AcquireSectionAsync("Azure");
+        var loadedSection = await manager.AcquireSectionAsync("Azure");
 
         // Assert
         Assert.NotNull(loadedSection);
