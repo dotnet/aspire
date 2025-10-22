@@ -22,6 +22,15 @@ namespace Aspire.Hosting.Publishing.Internal;
 public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploymentStateManager where T : class
 {
     /// <summary>
+    /// Holds section metadata including lock and version information.
+    /// </summary>
+    private sealed class SectionMetadata
+    {
+        public SemaphoreSlim Lock { get; } = new(1, 1);
+        public long Version { get; set; }
+    }
+
+    /// <summary>
     /// JSON serializer options used for writing deployment state files.
     /// </summary>
     protected static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
@@ -35,8 +44,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     protected readonly ILogger<T> logger = logger;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
     private readonly SemaphoreSlim _saveLock = new(1, 1);
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _sectionLocks = new();
-    private readonly ConcurrentDictionary<string, long> _sectionVersions = new();
+    private readonly ConcurrentDictionary<string, SectionMetadata> _sections = new();
     private JsonObject? _state;
     private bool _isStateLoaded;
 
@@ -193,9 +201,9 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         }
     }
 
-    private SemaphoreSlim GetSectionLock(string sectionName)
+    private SectionMetadata GetSectionMetadata(string sectionName)
     {
-        return _sectionLocks.GetOrAdd(sectionName, _ => new SemaphoreSlim(1, 1));
+        return _sections.GetOrAdd(sectionName, _ => new SectionMetadata());
     }
 
     /// <inheritdoc/>
@@ -203,21 +211,20 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     {
         await LoadStateAsync(cancellationToken).ConfigureAwait(false);
 
-        var sectionLock = GetSectionLock(sectionName);
-        await sectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var metadata = GetSectionMetadata(sectionName);
+        await metadata.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
-            var version = _sectionVersions.GetOrAdd(sectionName, 0);
             var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
                 ? obj
                 : null;
 
-            return new DeploymentStateSection(sectionName, sectionData, version, () => sectionLock.Release());
+            return new DeploymentStateSection(sectionName, sectionData, metadata.Version, () => metadata.Lock.Release());
         }
         catch
         {
-            sectionLock.Release();
+            metadata.Lock.Release();
             throw;
         }
     }
@@ -232,12 +239,12 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
             throw new InvalidOperationException("State has not been loaded.");
         }
 
-        var currentVersion = _sectionVersions.GetOrAdd(section.SectionName, 0);
-        if (currentVersion != section.Version)
+        var metadata = GetSectionMetadata(section.SectionName);
+        if (metadata.Version != section.Version)
         {
             throw new InvalidOperationException(
                 $"Concurrency conflict detected in section '{section.SectionName}'. " +
-                $"Expected version {section.Version}, but current version is {currentVersion}. " +
+                $"Expected version {section.Version}, but current version is {metadata.Version}. " +
                 $"This typically indicates the section was modified after it was acquired. " +
                 $"Ensure the section is saved before disposing or being modified by another operation.");
         }
@@ -246,7 +253,14 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         try
         {
             _state[section.SectionName] = section.Data;
-            _sectionVersions[section.SectionName] = section.Version + 1;
+            _sections.AddOrUpdate(
+                section.SectionName,
+                _ => new SectionMetadata { Version = section.Version + 1 },
+                (_, existing) =>
+                {
+                    existing.Version = section.Version + 1;
+                    return existing;
+                });
             await SaveStateToStorageAsync(_state, cancellationToken).ConfigureAwait(false);
         }
         finally
