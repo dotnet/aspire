@@ -70,6 +70,18 @@ internal abstract class PublishCommandBase : BaseCommand
         };
         Options.Add(outputPath);
 
+        var logLevel = new Option<string?>("--log-level")
+        {
+            Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical)"
+        };
+        Options.Add(logLevel);
+
+        var environment = new Option<string?>("--environment", "-e")
+        {
+            Description = "The environment to use for the operation. The default is 'Production'."
+        };
+        Options.Add(environment);
+
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
         TreatUnmatchedTokensAsErrors = false;
@@ -135,6 +147,18 @@ internal abstract class PublishCommandBase : BaseCommand
             if (waitForDebugger)
             {
                 env[KnownConfigNames.WaitForDebugger] = "true";
+            }
+
+            var logLevel = parseResult.GetValue<string?>("--log-level");
+            if (!string.IsNullOrEmpty(logLevel))
+            {
+                env["Publishing:LogLevel"] = logLevel;
+            }
+
+            var environment = parseResult.GetValue<string?>("--environment");
+            if (!string.IsNullOrEmpty(environment))
+            {
+                env["ASPNETCORE_ENVIRONMENT"] = environment;
             }
 
             if (isSingleFileAppHost)

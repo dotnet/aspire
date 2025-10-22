@@ -9,6 +9,7 @@ using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -254,6 +255,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                                 PipelineContext = context,
                                 ReportingStep = publishingStep
                             };
+
+                            PipelineLoggerProvider.CurrentLogger = stepContext.Logger;
+
                             await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
                         }
                         catch (Exception ex)
@@ -261,6 +265,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             // Report the failure to the activity reporter before disposing
                             await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
                             throw;
+                        }
+                        finally
+                        {
+                            PipelineLoggerProvider.CurrentLogger = NullLogger.Instance;
                         }
                     }
 
