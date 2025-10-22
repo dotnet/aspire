@@ -329,15 +329,13 @@ public static class ResourceExtensions
     /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
-    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default,
-        NetworkIdentifier? networkContext = null)
+        CancellationToken cancellationToken = default)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
@@ -351,6 +349,8 @@ public static class ResourceExtensions
             {
                 await callback.Callback(context).ConfigureAwait(false);
             }
+
+            var networkContext = resource.IsContainer() ? KnownNetworkIdentifiers.DefaultAspireContainerNetwork : KnownNetworkIdentifiers.LocalhostNetwork;
 
             foreach (var (key, expr) in config)
             {
