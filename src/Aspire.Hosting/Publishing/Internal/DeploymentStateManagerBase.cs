@@ -249,18 +249,21 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
                 $"Ensure the section is saved before disposing or being modified by another operation.");
         }
 
+        // Update version outside of the save lock using thread-safe AddOrUpdate
+        _sections.AddOrUpdate(
+            section.SectionName,
+            _ => new SectionMetadata { Version = section.Version + 1 },
+            (_, existing) =>
+            {
+                existing.Version = section.Version + 1;
+                return existing;
+            });
+
+        // Serialize state modification and file write to prevent concurrent enumeration
         await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             _state[section.SectionName] = section.Data;
-            _sections.AddOrUpdate(
-                section.SectionName,
-                _ => new SectionMetadata { Version = section.Version + 1 },
-                (_, existing) =>
-                {
-                    existing.Version = section.Version + 1;
-                    return existing;
-                });
             await SaveStateToStorageAsync(_state, cancellationToken).ConfigureAwait(false);
         }
         finally
