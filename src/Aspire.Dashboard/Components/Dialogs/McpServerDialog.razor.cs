@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Aspire.Dashboard.Configuration;
@@ -35,15 +36,35 @@ public partial class McpServerDialog
     private string? _mcpServerInstallButtonJson;
     private string? _mcpServerConfigFileJson;
     private string? _mcpUrl;
+    private bool _isHttps;
+    private McpToolView _activeView;
+    private List<McpConfigPropertyViewModel> _mcpConfigProperties = [];
 
     protected override void OnInitialized()
     {
         _markdownProcessor = new MarkdownProcessor(ControlsStringsLoc, MarkdownHelpers.SafeUrlSchemes, []);
-        _mcpUrl = DashboardOptions.Value.Mcp.PublicUrl ?? DashboardOptions.Value.Mcp.EndpointUrl;
+        if ((DashboardOptions.Value.Mcp.PublicUrl ?? DashboardOptions.Value.Mcp.EndpointUrl) is { Length: > 0 } mcpUrl)
+        {
+            var uri = new Uri(baseUri: new Uri(mcpUrl), relativeUri: "/mcp");
+
+            _mcpUrl = uri.ToString();
+            _isHttps = uri.Scheme == "https";
+        }
 
         if (McpEnabled)
         {
             (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetMcpServerInstallButtonJson();
+            _mcpConfigProperties =
+            [
+                new McpConfigPropertyViewModel { Name = "name", Value = "aspire-dashboard" },
+                new McpConfigPropertyViewModel { Name = "type", Value = "http" },
+                new McpConfigPropertyViewModel { Name = "url", Value = _mcpUrl }
+            ];
+
+            if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
+            {
+                _mcpConfigProperties.Add(new McpConfigPropertyViewModel { Name = $"{McpApiKeyAuthenticationHandler.ApiKeyHeaderName} (header)", Value = DashboardOptions.Value.Mcp.PrimaryApiKey! });
+            }
         }
         else
         {
@@ -57,6 +78,8 @@ public partial class McpServerDialog
 
     private (string InstallButtonJson, string ConfigFileJson) GetMcpServerInstallButtonJson()
     {
+        Debug.Assert(_mcpUrl != null);
+
         Dictionary<string, string>? headers = null;
 
         if (DashboardOptions.Value.Mcp.AuthMode == McpAuthMode.ApiKey)
@@ -67,7 +90,6 @@ public partial class McpServerDialog
             };
         }
 
-        var url = new Uri(baseUri: new Uri(_mcpUrl!), relativeUri: "/mcp").ToString();
         var name = "aspire-dashboard";
 
         var installButtonJson = JsonSerializer.Serialize(
@@ -75,7 +97,7 @@ public partial class McpServerDialog
             {
                 Name = name,
                 Type = "http",
-                Url = url,
+                Url = _mcpUrl,
                 Headers = headers
             },
             McpInstallButtonModelContext.Default.McpInstallButtonServerModel);
@@ -88,7 +110,7 @@ public partial class McpServerDialog
                     [name] = new()
                     {
                         Type = "http",
-                        Url = url,
+                        Url = _mcpUrl,
                         Headers = headers
                     }
                 }
@@ -98,10 +120,32 @@ public partial class McpServerDialog
         return (installButtonJson, configFileJson);
     }
 
+    private Task OnTabChangeAsync(FluentTab newTab)
+    {
+        var id = newTab.Id?.Substring("tab-".Length);
+
+        if (id is null
+            || !Enum.TryParse(typeof(McpToolView), id, out var o)
+            || o is not McpToolView viewKind)
+        {
+            return Task.CompletedTask;
+        }
+
+        _activeView = viewKind;
+        return Task.CompletedTask;
+    }
+
     private string GetJsonConfigurationMarkdown() =>
         $"""
         ```json
         {_mcpServerConfigFileJson}
         ```
         """;
+
+    public enum McpToolView
+    {
+        VisualStudio,
+        VSCode,
+        Other
+    }
 }
