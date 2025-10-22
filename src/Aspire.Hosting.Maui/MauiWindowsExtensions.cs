@@ -69,8 +69,17 @@ public static class MauiWindowsExtensions
         var workingDirectory = Path.GetDirectoryName(projectPath)
             ?? throw new InvalidOperationException($"Unable to determine directory from project path: {projectPath}");
 
-        // Check if the project has the Windows TFM
-        var hasWindowsTfm = HasWindowsTargetFramework(projectPath);
+        // Check if the project has the Windows TFM and get the actual TFM value
+        var windowsTfm = GetWindowsTargetFramework(projectPath);
+
+        // If we can't detect the TFM, fail the resource immediately
+        if (string.IsNullOrEmpty(windowsTfm))
+        {
+            throw new DistributedApplicationException(
+                $"Unable to detect Windows target framework in project '{projectPath}'. " +
+                "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Windows target framework (e.g., net10.0-windows10.0.19041.0) " +
+                "or remove the WithWindowsDevice() call from your AppHost.");
+        }
 
         // Create the Windows resource with dotnet run command
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
@@ -78,16 +87,14 @@ public static class MauiWindowsExtensions
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
             .WithOtlpExporter()
-            .WithArgs("run", "-f", "net10.0-windows10.0.19041.0")
             .WithIconName("Desktop")
-            .WithExplicitStart();
+            .WithExplicitStart()
+            .WithArgs("run", "-f", windowsTfm);
 
-        // Check if Windows platform is supported on the current host or if the TFM is missing
-        if (!OperatingSystem.IsWindows() || !hasWindowsTfm)
+        // Check if Windows platform is supported on the current host
+        if (!OperatingSystem.IsWindows())
         {
-            var reason = !OperatingSystem.IsWindows() 
-                ? "Windows platform not available on this host" 
-                : "Windows target framework (net10.0-windows) not found in project file";
+            var reason = "Windows platform not available on this host";
 
             // Mark as unsupported
             resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(reason), ResourceAnnotationMutationBehavior.Append);
@@ -100,14 +107,15 @@ public static class MauiWindowsExtensions
     }
 
     /// <summary>
-    /// Checks if the project file contains a Windows target framework.
+    /// Gets the Windows target framework from the project file.
     /// </summary>
-    private static bool HasWindowsTargetFramework(string projectPath)
+    /// <returns>The Windows TFM if found, otherwise null.</returns>
+    private static string? GetWindowsTargetFramework(string projectPath)
     {
         try
         {
             var projectDoc = XDocument.Load(projectPath);
-            
+
             // Check all TargetFrameworks and TargetFramework elements (including conditional ones)
             var allTargetFrameworkElements = projectDoc.Descendants()
                 .Where(e => e.Name.LocalName == "TargetFrameworks" || e.Name.LocalName == "TargetFramework");
@@ -120,20 +128,22 @@ public static class MauiWindowsExtensions
                     continue;
                 }
 
-                // Check if any TFM in the value contains "-windows"
-                if (value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .Any(tfm => tfm.Contains("-windows", StringComparison.OrdinalIgnoreCase)))
+                // Check if any TFM in the value contains "-windows" and return the first one
+                var windowsTfm = value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .FirstOrDefault(tfm => tfm.Contains("-windows", StringComparison.OrdinalIgnoreCase));
+
+                if (windowsTfm != null)
                 {
-                    return true;
+                    return windowsTfm;
                 }
             }
 
-            return false;
+            return null;
         }
         catch
         {
-            // If we can't read the project file, assume TFM is present to avoid false positives
-            return true;
+            // If we can't read the project file, return null to indicate unknown
+            return null;
         }
     }
 

@@ -10,84 +10,213 @@ public class MauiWindowsExtensionsTests
     [Fact]
     public void AddWindowsDevice_CreatesResource()
     {
-        // Arrange
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var maui = appBuilder.AddMauiProject("mauiapp", "TestProject.csproj");
+        // Arrange - Create a temporary project file with Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
 
-        // Act
-        var windows = maui.AddWindowsDevice();
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
 
-        // Assert
-        Assert.NotNull(windows);
-        Assert.Equal("mauiapp-windows", windows.Resource.Name);
-        Assert.Contains(windows.Resource, maui.Resource.WindowsDevices);
+            // Act
+            var windows = maui.AddWindowsDevice();
+
+            // Assert
+            Assert.NotNull(windows);
+            Assert.Equal("mauiapp-windows", windows.Resource.Name);
+            Assert.Contains(windows.Resource, maui.Resource.WindowsDevices);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
     }
 
     [Fact]
     public void AddWindowsDevice_WithCustomName_UsesProvidedName()
     {
-        // Arrange
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var maui = appBuilder.AddMauiProject("mauiapp", "TestProject.csproj");
+        // Arrange - Create a temporary project file with Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
 
-        // Act
-        var windows = maui.AddWindowsDevice("custom-windows");
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
 
-        // Assert
-        Assert.Equal("custom-windows", windows.Resource.Name);
+            // Act
+            var windows = maui.AddWindowsDevice("custom-windows");
+
+            // Assert
+            Assert.Equal("custom-windows", windows.Resource.Name);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
     }
 
     [Fact]
     public void AddWindowsDevice_DuplicateName_ThrowsException()
     {
-        // Arrange
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var maui = appBuilder.AddMauiProject("mauiapp", "TestProject.csproj");
-        maui.AddWindowsDevice("device1");
+        // Arrange - Create a temporary project file with Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
 
-        // Act & Assert
-        var exception = Assert.Throws<DistributedApplicationException>(() => maui.AddWindowsDevice("device1"));
-        Assert.Contains("already exists", exception.Message);
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+            maui.AddWindowsDevice("device1");
+
+            // Act & Assert
+            var exception = Assert.Throws<DistributedApplicationException>(() => maui.AddWindowsDevice("device1"));
+            Assert.Contains("already exists", exception.Message);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
     }
 
     [Fact]
     public void AddWindowsDevice_MultipleDevices_AllCreated()
     {
-        // Arrange
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var maui = appBuilder.AddMauiProject("mauiapp", "TestProject.csproj");
+        // Arrange - Create a temporary project file with Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
 
-        // Act
-        var windows1 = maui.AddWindowsDevice("device1");
-        var windows2 = maui.AddWindowsDevice("device2");
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
 
-        // Assert
-        Assert.Equal(2, maui.Resource.WindowsDevices.Count);
-        Assert.Contains(windows1.Resource, maui.Resource.WindowsDevices);
-        Assert.Contains(windows2.Resource, maui.Resource.WindowsDevices);
+            // Act
+            var windows1 = maui.AddWindowsDevice("device1");
+            var windows2 = maui.AddWindowsDevice("device2");
+
+            // Assert
+            Assert.Equal(2, maui.Resource.WindowsDevices.Count);
+            Assert.Contains(windows1.Resource, maui.Resource.WindowsDevices);
+            Assert.Contains(windows2.Resource, maui.Resource.WindowsDevices);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
     }
 
     [Fact]
     public void AddWindowsDevice_HasCorrectConfiguration()
     {
-        // Arrange
-        var appBuilder = DistributedApplication.CreateBuilder();
-        var maui = appBuilder.AddMauiProject("mauiapp", "TestProject.csproj");
+        // Arrange - Create a temporary project file with Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-windows10.0.19041.0</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
 
-        // Act
-        var windows = maui.AddWindowsDevice();
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
 
-        // Assert
-        var resource = windows.Resource;
-        Assert.Equal("dotnet", resource.Command);
-        
-        // Check for explicit start annotation
-        var hasExplicitStart = resource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _);
-        Assert.True(hasExplicitStart);
+            // Act
+            var windows = maui.AddWindowsDevice();
+
+            // Assert
+            var resource = windows.Resource;
+            Assert.Equal("dotnet", resource.Command);
+            
+            // Check for explicit start annotation
+            var hasExplicitStart = resource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _);
+            Assert.True(hasExplicitStart);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
     }
 
     [Fact]
-    public async Task HasWindowsTargetFramework_WithWindowsTfm_ReturnsTrue()
+    public void AddWindowsDevice_WithoutWindowsTfm_ThrowsException()
+    {
+        // Arrange - Create a temporary project file without Windows TFM
+        var projectContent = """
+            <Project Sdk="Microsoft.NET.Sdk">
+                <PropertyGroup>
+                    <TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+                </PropertyGroup>
+            </Project>
+            """;
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+
+            // Act & Assert
+            var exception = Assert.Throws<DistributedApplicationException>(() => maui.AddWindowsDevice());
+            Assert.Contains("Unable to detect Windows target framework", exception.Message);
+            Assert.Contains(tempFile, exception.Message);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    private static string CreateTempProjectFile(string content)
+    {
+        var tempFile = Path.GetTempFileName();
+        var tempProjectFile = Path.ChangeExtension(tempFile, ".csproj");
+        if (File.Exists(tempFile))
+        {
+            File.Delete(tempFile);
+        }
+        File.WriteAllText(tempProjectFile, content);
+        return tempProjectFile;
+    }
+
+    private static void CleanupTempFile(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
+    [Fact]
+    public async Task GetWindowsTargetFramework_WithWindowsTfm_ReturnsCorrectTfm()
     {
         // Arrange
         var projectContent = """
@@ -97,25 +226,24 @@ public class MauiWindowsExtensionsTests
                 </PropertyGroup>
             </Project>
             """;
-        var tempFile = Path.GetTempFileName();
-        File.WriteAllText(tempFile, projectContent);
+        var tempFile = CreateTempProjectFile(projectContent);
 
         try
         {
             // Act
-            var hasWindowsTfm = InvokeHasWindowsTargetFramework(tempFile);
+            var tfm = InvokeGetWindowsTargetFramework(tempFile);
 
             // Assert
-            Assert.True(hasWindowsTfm);
+            Assert.Equal("net10.0-windows10.0.19041.0", tfm);
         }
         finally
         {
-            File.Delete(tempFile);
+            CleanupTempFile(tempFile);
         }
     }
 
     [Fact]
-    public async Task HasWindowsTargetFramework_WithConditionalWindowsTfm_ReturnsTrue()
+    public async Task GetWindowsTargetFramework_WithConditionalWindowsTfm_ReturnsCorrectTfm()
     {
         // Arrange
         var projectContent = """
@@ -126,25 +254,24 @@ public class MauiWindowsExtensionsTests
                 </PropertyGroup>
             </Project>
             """;
-        var tempFile = Path.GetTempFileName();
-        File.WriteAllText(tempFile, projectContent);
+        var tempFile = CreateTempProjectFile(projectContent);
 
         try
         {
             // Act
-            var hasWindowsTfm = InvokeHasWindowsTargetFramework(tempFile);
+            var tfm = InvokeGetWindowsTargetFramework(tempFile);
 
             // Assert
-            Assert.True(hasWindowsTfm);
+            Assert.Equal("net10.0-windows10.0.19041.0", tfm);
         }
         finally
         {
-            File.Delete(tempFile);
+            CleanupTempFile(tempFile);
         }
     }
 
     [Fact]
-    public async Task HasWindowsTargetFramework_WithoutWindowsTfm_ReturnsFalse()
+    public async Task GetWindowsTargetFramework_WithoutWindowsTfm_ReturnsNull()
     {
         // Arrange
         var projectContent = """
@@ -154,25 +281,24 @@ public class MauiWindowsExtensionsTests
                 </PropertyGroup>
             </Project>
             """;
-        var tempFile = Path.GetTempFileName();
-        File.WriteAllText(tempFile, projectContent);
+        var tempFile = CreateTempProjectFile(projectContent);
 
         try
         {
             // Act
-            var hasWindowsTfm = InvokeHasWindowsTargetFramework(tempFile);
+            var tfm = InvokeGetWindowsTargetFramework(tempFile);
 
             // Assert
-            Assert.False(hasWindowsTfm);
+            Assert.Null(tfm);
         }
         finally
         {
-            File.Delete(tempFile);
+            CleanupTempFile(tempFile);
         }
     }
 
     [Fact]
-    public async Task HasWindowsTargetFramework_WithSingleWindowsTfm_ReturnsTrue()
+    public async Task GetWindowsTargetFramework_WithSingleWindowsTfm_ReturnsCorrectTfm()
     {
         // Arrange
         var projectContent = """
@@ -182,43 +308,42 @@ public class MauiWindowsExtensionsTests
                 </PropertyGroup>
             </Project>
             """;
-        var tempFile = Path.GetTempFileName();
-        File.WriteAllText(tempFile, projectContent);
+        var tempFile = CreateTempProjectFile(projectContent);
 
         try
         {
             // Act
-            var hasWindowsTfm = InvokeHasWindowsTargetFramework(tempFile);
+            var tfm = InvokeGetWindowsTargetFramework(tempFile);
 
             // Assert
-            Assert.True(hasWindowsTfm);
+            Assert.Equal("net10.0-windows10.0.19041.0", tfm);
         }
         finally
         {
-            File.Delete(tempFile);
+            CleanupTempFile(tempFile);
         }
     }
 
     [Fact]
-    public async Task HasWindowsTargetFramework_InvalidFile_ReturnsTrue()
+    public async Task GetWindowsTargetFramework_InvalidFile_ReturnsNull()
     {
         // Arrange
         var nonExistentFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".csproj");
 
         // Act
-        var hasWindowsTfm = InvokeHasWindowsTargetFramework(nonExistentFile);
+        var tfm = InvokeGetWindowsTargetFramework(nonExistentFile);
 
-        // Assert - defaults to true to avoid false positives
-        Assert.True(hasWindowsTfm);
+        // Assert - returns null when file can't be read
+        Assert.Null(tfm);
     }
 
-    private static bool InvokeHasWindowsTargetFramework(string projectPath)
+    private static string? InvokeGetWindowsTargetFramework(string projectPath)
     {
         // Use reflection to invoke the private method
         var method = typeof(MauiWindowsExtensions).GetMethod(
-            "HasWindowsTargetFramework",
+            "GetWindowsTargetFramework",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
-        return (bool)method!.Invoke(null, [projectPath])!;
+        return (string?)method!.Invoke(null, [projectPath]);
     }
 }
