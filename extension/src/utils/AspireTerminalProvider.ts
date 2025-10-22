@@ -95,7 +95,11 @@ export class AspireTerminalProvider implements vscode.Disposable {
         return aspireTerminal;
     }
 
-    createEnvironment(debugSessionId?: string, noDebug?: boolean): any {
+    createEnvironment(debugSessionId?: string, noDebug?: boolean, noExtensionVariables?: boolean): any {
+        if (noExtensionVariables) {
+            return process.env;
+        }
+
         const env: any = {
             ...process.env,
 

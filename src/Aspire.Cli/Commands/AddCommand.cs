@@ -84,7 +84,7 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
             {
@@ -256,7 +256,7 @@ internal sealed class AddCommand : BaseCommand
         // Remove 'Aspire.Hosting' segment from anywhere in the package name
         var packageId = packageWithChannel.Package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
-        
+
         return (friendlyName, packageWithChannel.Package, packageWithChannel.Channel);
     }
 }

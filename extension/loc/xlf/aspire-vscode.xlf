@@ -70,6 +70,18 @@
     <trans-unit id="aspire-vscode.strings.disconnectingFromSession">
       <source xml:lang="en">Disconnecting from Aspire debug session... Child processes will be stopped.</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSelectDefaultApphost">
+      <source xml:lang="en">Do you want to select the default apphost for this workspace?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.doYouWantToSetDefaultApphost">
+      <source xml:lang="en">Do you want to set {0} as the default apphost for this workspace?</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.dontShowAgainLabel">
+      <source xml:lang="en">Don&apos;t show again</source>
+    </trans-unit>
+    <trans-unit id="configuration.aspire.enableSettingsFileCreationPromptOnStartup">
+      <source xml:lang="en">Enable apphost discovery on extension activation and prompt to setup .aspire/settings.json.appHostPath if it does not exist in the workspace.</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.processExceptionOccurred">
       <source xml:lang="en">Encountered an exception ({0}) while running the following command: {1}.</source>
     </trans-unit>
@@ -129,6 +141,9 @@
     </trans-unit>
     <trans-unit id="command.new">
       <source xml:lang="en">New Aspire project</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.noLabel">
+      <source xml:lang="en">No</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.no">
       <source xml:lang="en">No</source>
@@ -190,6 +205,9 @@
     <trans-unit id="aspire-vscode.strings.runProject">
       <source xml:lang="en">Run {0}</source>
     </trans-unit>
+    <trans-unit id="aspire-vscode.strings.selectDefaultLaunchApphost">
+      <source xml:lang="en">Select the default apphost to launch when starting an Aspire debug session</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.incompatibleAppHostError">
       <source xml:lang="en">The apphost is not compatible. Consider upgrading the apphost or Aspire CLI.</source>
     </trans-unit>
@@ -201,6 +219,9 @@
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.watchProject">
       <source xml:lang="en">Watch {0} ({1})</source>
+    </trans-unit>
+    <trans-unit id="aspire-vscode.strings.yesLabel">
+      <source xml:lang="en">Yes</source>
     </trans-unit>
     <trans-unit id="aspire-vscode.strings.yes">
       <source xml:lang="en">Yes</source>

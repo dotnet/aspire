@@ -101,7 +101,7 @@ internal sealed class UpdateCommand : BaseCommand
         try
         {
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var projectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
             if (projectFile is null)
             {
                 return ExitCodeConstants.FailedToFindProject;

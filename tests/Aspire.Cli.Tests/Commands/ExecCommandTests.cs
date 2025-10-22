@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.CommandLine;
+using Aspire.Cli.Projects;
 using Aspire.Cli.Resources;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -166,12 +167,12 @@ public class ExecCommandTests
 
     private sealed class NoProjectFileProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("No project file found.");
         }
@@ -184,38 +185,30 @@ public class ExecCommandTests
 
     private sealed class MultipleProjectFilesProjectLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
-            return Task.FromResult(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
 
         public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
         {
-            return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo>
-            {
-                new FileInfo(Path.Combine(searchDirectory, "AppHost1.csproj")),
-                new FileInfo(Path.Combine(searchDirectory, "AppHost2.csproj"))
-            });
+            throw new Aspire.Cli.Projects.ProjectLocatorException("Multiple project files found.");
         }
     }
 
     private sealed class ProjectFileDoesNotExistLocator : Aspire.Cli.Projects.IProjectLocator
     {
-        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+        public Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
 
-        public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+        public Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
         {
             throw new Aspire.Cli.Projects.ProjectLocatorException("Project file does not exist.");
         }
