@@ -1320,26 +1320,6 @@ public class DistributedApplicationPipelineTests
 
             logger.LogInformation("Test log message from pipeline step");
             return Task.CompletedTask;
-            executedSteps.Add("step1");
-            await Task.CompletedTask;
-        });
-
-        pipeline.AddStep("step2", async (context) =>
-        {
-            executedSteps.Add("step2");
-            await Task.CompletedTask;
-        }, dependsOn: "step1");
-
-        pipeline.AddStep("step3", async (context) =>
-        {
-            executedSteps.Add("step3");
-            await Task.CompletedTask;
-        }, dependsOn: "step2");
-
-        pipeline.AddStep("step4", async (context) =>
-        {
-            executedSteps.Add("step4");
-            await Task.CompletedTask;
         });
 
         var context = CreateDeployingContext(builder.Build());

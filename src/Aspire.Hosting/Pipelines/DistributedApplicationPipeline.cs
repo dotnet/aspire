@@ -121,20 +121,18 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         await ExecuteStepsAsTaskDag(stepsToExecute, stepsByName, context).ConfigureAwait(false);
     }
 
-    private static (List<PipelineStep> StepsToExecute, Dictionary<string, PipelineStep> FilteredStepsByName) FilterStepsForExecution(
+    private static (List<PipelineStep> StepsToExecute, Dictionary<string, PipelineStep> StepsByName) FilterStepsForExecution(
         List<PipelineStep> allSteps,
         PipelineContext context)
     {
         var publishingOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<Publishing.PublishingOptions>>();
         var stepName = publishingOptions?.Value.Step;
+        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
         if (string.IsNullOrWhiteSpace(stepName))
         {
-            var filteredStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
-            return (allSteps, filteredStepsByName);
+            return (allSteps, allStepsByName);
         }
-
-        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
         if (!allStepsByName.TryGetValue(stepName, out var targetStep))
         {
