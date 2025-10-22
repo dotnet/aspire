@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Maui;
 using Aspire.Hosting.Utils;
 
@@ -70,10 +72,57 @@ public static class MauiWindowsExtensions
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
         builder.Resource.WindowsDevices.Add(windowsResource);
 
-        return builder.ApplicationBuilder.AddResource(windowsResource)
+        var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
             .WithOtlpExporter()
             .WithArgs("run", "-f", "net10.0-windows10.0.19041.0")
             .WithIconName("Desktop")
             .WithExplicitStart();
+
+        // Check if Windows platform is supported on the current host
+        if (!OperatingSystem.IsWindows())
+        {
+            // Prevent lifecycle commands (Start/Stop/Restart) on unsupported platform
+            resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(), ResourceAnnotationMutationBehavior.Append);
+
+            // Add an event subscriber to set the "Unsupported" state after orchestrator initialization
+            builder.ApplicationBuilder.Services.TryAddEventingSubscriber<UnsupportedPlatformEventSubscriber>();
+        }
+
+        return resourceBuilder;
+    }
+
+    /// <summary>
+    /// Annotation to mark a resource as running on an unsupported platform.
+    /// This prevents lifecycle commands and sets the state to "Unsupported".
+    /// </summary>
+    private sealed class UnsupportedPlatformAnnotation : IResourceAnnotation
+    {
+    }
+
+    /// <summary>
+    /// Event subscriber that sets the "Unsupported" state for resources marked with UnsupportedPlatformAnnotation.
+    /// </summary>
+    private sealed class UnsupportedPlatformEventSubscriber(ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
+    {
+        public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
+        {
+            eventing.Subscribe<AfterResourcesCreatedEvent>(async (@event, ct) =>
+            {
+                // Find all resources with the UnsupportedPlatformAnnotation
+                foreach (var resource in @event.Model.Resources.OfType<MauiWindowsPlatformResource>())
+                {
+                    if (resource.TryGetAnnotationsOfType<UnsupportedPlatformAnnotation>(out _))
+                    {
+                        // Set the state to "Unsupported" with a warning style
+                        await notificationService.PublishUpdateAsync(resource, s => s with
+                        {
+                            State = new ResourceStateSnapshot("Unsupported", "warning")
+                        }).ConfigureAwait(false);
+                    }
+                }
+            });
+
+            return Task.CompletedTask;
+        }
     }
 }

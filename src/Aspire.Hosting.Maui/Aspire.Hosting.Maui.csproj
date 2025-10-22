@@ -13,10 +13,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Aspire.Hosting.Maui.Tests" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <Compile Include="$(SharedDir)PathNormalizer.cs" Link="Utils\PathNormalizer.cs" />
-    <Compile Include="$(SharedDir)StringComparers.cs" Link="Utils\StringComparers.cs" />
+    <Compile Include="..\Shared\PathNormalizer.cs" Link="Shared\PathNormalizer.cs" />
+    <Compile Include="..\Shared\StringComparers.cs" Link="Shared\StringComparers.cs" />
   </ItemGroup>
   
   <ItemGroup>
