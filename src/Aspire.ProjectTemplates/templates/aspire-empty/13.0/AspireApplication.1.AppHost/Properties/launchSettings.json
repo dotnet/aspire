@@ -7,7 +7,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       //#if (LocalhostTld)
-      "applicationUrl": "https://aspire_apphost1.dev.localhost:17000;http://aspire_apphost1.dev.localhost:15000",
+      "applicationUrl": "https://aspireapplication__1_apphost.dev.localhost:17000;http://aspireapplication__1_apphost.dev.localhost:15000",
       //#else
       "applicationUrl": "https://localhost:17000;http://localhost:15000",
       //#endif
@@ -24,7 +24,7 @@
       "dotnetRunMessages": true,
       "launchBrowser": true,
       //#if (LocalhostTld)
-      "applicationUrl": "http://aspire_apphost1.dev.localhost:15000",
+      "applicationUrl": "http://aspireapplication__1_apphost.dev.localhost:15000",
       //#else
       "applicationUrl": "http://localhost:15000",
       //#endif
