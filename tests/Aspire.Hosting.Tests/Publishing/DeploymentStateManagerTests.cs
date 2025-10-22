@@ -126,6 +126,36 @@ public class DeploymentStateManagerTests
     }
 
     [Fact]
+    public async Task ConcurrentSaves_ToDifferentSections_AreSerializedToStorage()
+    {
+        var sharedSha = Guid.NewGuid().ToString("N");
+        var stateManager = CreateFileDeploymentStateManager(sharedSha);
+        var tasks = new List<Task>();
+
+        // Concurrently save to different sections
+        for (int i = 0; i < 10; i++)
+        {
+            int sectionIndex = i;
+            tasks.Add(Task.Run(async () =>
+            {
+                using var section = await stateManager.AcquireSectionAsync($"Section{sectionIndex}");
+                section.Data[$"key{sectionIndex}"] = $"value{sectionIndex}";
+                await stateManager.SaveSectionAsync(section);
+            }));
+        }
+
+        await Task.WhenAll(tasks);
+
+        // Verify all sections were saved correctly by loading with a new state manager
+        var verifyManager = CreateFileDeploymentStateManager(sharedSha);
+        for (int i = 0; i < 10; i++)
+        {
+            using var section = await verifyManager.AcquireSectionAsync($"Section{i}");
+            Assert.Equal($"value{i}", section.Data[$"key{i}"]?.GetValue<string>());
+        }
+    }
+
+    [Fact]
     public async Task AcquireSectionAsync_UsesExclusiveLock_OnFirstLoad()
     {
         var stateManager = CreateFileDeploymentStateManager();

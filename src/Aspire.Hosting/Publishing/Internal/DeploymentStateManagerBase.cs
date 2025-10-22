@@ -34,6 +34,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// </summary>
     protected readonly ILogger<T> logger = logger;
     private readonly SemaphoreSlim _loadLock = new(1, 1);
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _sectionLocks = new();
     private readonly ConcurrentDictionary<string, long> _sectionVersions = new();
     private JsonObject? _state;
@@ -181,7 +182,15 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
     /// <inheritdoc/>
     public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
     {
-        await SaveStateToStorageAsync(state, cancellationToken).ConfigureAwait(false);
+        await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await SaveStateToStorageAsync(state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
     }
 
     private SemaphoreSlim GetSectionLock(string sectionName)
@@ -233,9 +242,16 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
                 $"Ensure the section is saved before disposing or being modified by another operation.");
         }
 
-        _state[section.SectionName] = section.Data;
-        _sectionVersions[section.SectionName] = section.Version + 1;
-
-        await SaveStateToStorageAsync(_state, cancellationToken).ConfigureAwait(false);
+        await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            _state[section.SectionName] = section.Data;
+            _sectionVersions[section.SectionName] = section.Version + 1;
+            await SaveStateToStorageAsync(_state, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
     }
 }
