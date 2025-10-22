@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable AZPROVISION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
@@ -367,7 +368,7 @@ public static class AzureKustoBuilderExtensions
             var launcher = new KustoClientToolLauncher();
             var result = launcher.TryLaunchKustoExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
 
-            return result ? CommandResults.Success() : CommandResults.Failure();
+            return result ? CommandResults.Success() : CommandResults.Failure("Failed to launch Kusto Explorer");
         }
 
         static async Task<ExecuteCommandResult> OnOpenInKustoExplorerWeb(IResourceBuilder<AzureKustoClusterResource> resourceBuilder, ExecuteCommandContext context)
@@ -382,7 +383,28 @@ public static class AzureKustoBuilderExtensions
             var launcher = new KustoClientToolLauncher();
             var result = launcher.TryLaunchKustoWebExplorer(title: "", resourceBuilder.Resource.Name, connectionString, requestText: "");
 
-            return result ? CommandResults.Success() : CommandResults.Failure();
+            if (!result)
+            {
+                // If the launcher fails (which may mean we're in a remote session or can't detect a browser),
+                // show a notification with a clickable link to the Kusto Web Explorer
+                var interactionService = context.ServiceProvider.GetRequiredService<IInteractionService>();
+                if (interactionService.IsAvailable)
+                {
+                    _ = await interactionService.PromptMessageBoxAsync(
+                        title: "Kusto Web Explorer",
+                        message: $"Could not automatically open Kusto Web Explorer for resource '{resourceBuilder.Resource.Name}'. Click {connectionString} to manually open the Web Explorer.",
+                        new MessageBoxInteractionOptions
+                        {
+                            Intent = MessageIntent.Information,
+                            EnableMessageMarkdown = true,
+                            PrimaryButtonText = "Dismiss",
+                            ShowSecondaryButton = false,
+                        },
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+            }
+
+            return CommandResults.Success();
         }
     }
 }
