@@ -7,9 +7,12 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// A logger provider that forwards logging calls to a logger stored in AsyncLocal context.
-/// This enables pipeline steps to log through a contextual logger that can be set per execution.
+/// Provides loggers that forward calls to a contextual logger associated with the current pipeline step.
 /// </summary>
+/// <remarks>
+/// This logger provider uses AsyncLocal storage to maintain the current logger context across async operations.
+/// This enables pipeline steps to log through a contextual logger that can be set per execution.
+/// </remarks>
 internal sealed class PipelineLoggerProvider : ILoggerProvider
 {
     private static readonly AsyncLocal<StepLoggerHolder?> s_currentLogger = new();
@@ -55,6 +58,10 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
     /// <summary>
     /// A logger implementation that forwards all calls to the current contextual logger.
     /// </summary>
+    /// <remarks>
+    /// This logger acts as a proxy and dynamically resolves the current logger on each operation,
+    /// allowing the target logger to change between calls.
+    /// </remarks>
     private sealed class PipelineLogger(Func<ILogger> currentLoggerAccessor) : ILogger
     {
         /// <inheritdoc/>
