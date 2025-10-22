@@ -1,11 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Maui;
+using Aspire.Hosting.Maui.Annotations;
+using Aspire.Hosting.Maui.Lifecycle;
+using Aspire.Hosting.Maui.Utilities;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting;
@@ -70,7 +71,7 @@ public static class MauiWindowsExtensions
             ?? throw new InvalidOperationException($"Unable to determine directory from project path: {projectPath}");
 
         // Check if the project has the Windows TFM and get the actual TFM value
-        var windowsTfm = GetWindowsTargetFramework(projectPath);
+        var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
 
         // If we can't detect the TFM, fail the resource immediately
         if (string.IsNullOrEmpty(windowsTfm))
@@ -104,82 +105,5 @@ public static class MauiWindowsExtensions
         }
 
         return resourceBuilder;
-    }
-
-    /// <summary>
-    /// Gets the Windows target framework from the project file.
-    /// </summary>
-    /// <returns>The Windows TFM if found, otherwise null.</returns>
-    private static string? GetWindowsTargetFramework(string projectPath)
-    {
-        try
-        {
-            var projectDoc = XDocument.Load(projectPath);
-
-            // Check all TargetFrameworks and TargetFramework elements (including conditional ones)
-            var allTargetFrameworkElements = projectDoc.Descendants()
-                .Where(e => e.Name.LocalName == "TargetFrameworks" || e.Name.LocalName == "TargetFramework");
-
-            foreach (var element in allTargetFrameworkElements)
-            {
-                var value = element.Value;
-                if (string.IsNullOrWhiteSpace(value))
-                {
-                    continue;
-                }
-
-                // Check if any TFM in the value contains "-windows" and return the first one
-                var windowsTfm = value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .FirstOrDefault(tfm => tfm.Contains("-windows", StringComparison.OrdinalIgnoreCase));
-
-                if (windowsTfm != null)
-                {
-                    return windowsTfm;
-                }
-            }
-
-            return null;
-        }
-        catch
-        {
-            // If we can't read the project file, return null to indicate unknown
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Annotation to mark a resource as running on an unsupported platform.
-    /// This prevents lifecycle commands and sets the state to "Unsupported".
-    /// </summary>
-    private sealed class UnsupportedPlatformAnnotation(string reason) : IResourceAnnotation
-    {
-        public string Reason { get; } = reason;
-    }
-
-    /// <summary>
-    /// Event subscriber that sets the "Unsupported" state for resources marked with UnsupportedPlatformAnnotation.
-    /// </summary>
-    private sealed class UnsupportedPlatformEventSubscriber(ResourceNotificationService notificationService) : IDistributedApplicationEventingSubscriber
-    {
-        public Task SubscribeAsync(IDistributedApplicationEventing eventing, DistributedApplicationExecutionContext executionContext, CancellationToken cancellationToken)
-        {
-            eventing.Subscribe<AfterResourcesCreatedEvent>(async (@event, ct) =>
-            {
-                // Find all resources with the UnsupportedPlatformAnnotation
-                foreach (var resource in @event.Model.Resources.OfType<MauiWindowsPlatformResource>())
-                {
-                    if (resource.TryGetLastAnnotation<UnsupportedPlatformAnnotation>(out var annotation))
-                    {
-                        // Set the state to "Unsupported" with a warning style and the reason
-                        await notificationService.PublishUpdateAsync(resource, s => s with
-                        {
-                            State = new ResourceStateSnapshot($"Unsupported: {annotation.Reason}", "warning")
-                        }).ConfigureAwait(false);
-                    }
-                }
-            });
-
-            return Task.CompletedTask;
-        }
     }
 }

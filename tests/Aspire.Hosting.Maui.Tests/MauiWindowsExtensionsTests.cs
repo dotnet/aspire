@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Maui.Utilities;
 
 namespace Aspire.Hosting.Tests;
 
@@ -231,7 +232,7 @@ public class MauiWindowsExtensionsTests
         try
         {
             // Act
-            var tfm = InvokeGetWindowsTargetFramework(tempFile);
+            var tfm = ProjectFileReader.GetPlatformTargetFramework(tempFile, "windows");
 
             // Assert
             Assert.Equal("net10.0-windows10.0.19041.0", tfm);
@@ -259,7 +260,7 @@ public class MauiWindowsExtensionsTests
         try
         {
             // Act
-            var tfm = InvokeGetWindowsTargetFramework(tempFile);
+            var tfm = ProjectFileReader.GetPlatformTargetFramework(tempFile, "windows");
 
             // Assert
             Assert.Equal("net10.0-windows10.0.19041.0", tfm);
@@ -286,7 +287,7 @@ public class MauiWindowsExtensionsTests
         try
         {
             // Act
-            var tfm = InvokeGetWindowsTargetFramework(tempFile);
+            var tfm = ProjectFileReader.GetPlatformTargetFramework(tempFile, "windows");
 
             // Assert
             Assert.Null(tfm);
@@ -313,7 +314,7 @@ public class MauiWindowsExtensionsTests
         try
         {
             // Act
-            var tfm = InvokeGetWindowsTargetFramework(tempFile);
+            var tfm = ProjectFileReader.GetPlatformTargetFramework(tempFile, "windows");
 
             // Assert
             Assert.Equal("net10.0-windows10.0.19041.0", tfm);
@@ -331,19 +332,9 @@ public class MauiWindowsExtensionsTests
         var nonExistentFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".csproj");
 
         // Act
-        var tfm = InvokeGetWindowsTargetFramework(nonExistentFile);
+        var tfm = ProjectFileReader.GetPlatformTargetFramework(nonExistentFile, "windows");
 
         // Assert - returns null when file can't be read
         Assert.Null(tfm);
-    }
-
-    private static string? InvokeGetWindowsTargetFramework(string projectPath)
-    {
-        // Use reflection to invoke the private method
-        var method = typeof(MauiWindowsExtensions).GetMethod(
-            "GetWindowsTargetFramework",
-            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-
-        return (string?)method!.Invoke(null, [projectPath]);
     }
 }
