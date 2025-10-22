@@ -32,6 +32,12 @@ public interface IDistributedApplicationPipeline
     void AddStep(PipelineStep step);
 
     /// <summary>
+    /// Registers a callback to be executed during the second pass of pipeline setup.
+    /// </summary>
+    /// <param name="callback">The callback function to execute during the second pass.</param>
+    void AddSecondPassCallback(Func<PipelinePassContext, Task> callback);
+
+    /// <summary>
     /// Executes all steps in the pipeline in dependency order.
     /// </summary>
     /// <param name="context">The pipeline context for the execution.</param>
