@@ -31,7 +31,11 @@ public sealed class DeploymentStateSection(string sectionName, JsonObject? data,
     public JsonObject Data { get; } = data ?? [];
 
     /// <summary>
-    /// Gets the current version of this section.
+    /// Gets or sets the current version of this section.
     /// </summary>
-    public long Version { get; } = version;
+    /// <remarks>
+    /// This version is automatically incremented by <see cref="IDeploymentStateManager.SaveSectionAsync"/> 
+    /// after a successful save, allowing multiple saves of the same section instance.
+    /// </remarks>
+    public long Version { get; set; } = version;
 }

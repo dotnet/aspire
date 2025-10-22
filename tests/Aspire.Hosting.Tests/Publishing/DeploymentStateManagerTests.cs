@@ -55,9 +55,10 @@ public class DeploymentStateManagerTests
         var section1 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section1.Data["key1"] = "value1";
+            var oldVersion = section1.Version; // Capture version before save
             await stateManager.SaveSectionAsync(section1);
-            // Create a copy of the section to simulate an old version
-            oldSection = new DeploymentStateSection(section1.SectionName, section1.Data, section1.Version);
+            // Create a copy of the section with the old version to simulate a stale section
+            oldSection = new DeploymentStateSection(section1.SectionName, section1.Data, oldVersion);
         }
 
         // Acquire and save the section again, incrementing version
@@ -72,7 +73,6 @@ public class DeploymentStateManagerTests
             async () => await stateManager.SaveSectionAsync(oldSection));
 
         Assert.Contains("Concurrency conflict detected in section 'Parameters'", exception.Message);
-        Assert.Contains("Expected version 0", exception.Message);
     }
 
     [Fact]
@@ -98,7 +98,6 @@ public class DeploymentStateManagerTests
         Assert.Equal("value1", parametersCheck.Data["param1"]?.GetValue<string>());
         Assert.Equal("azure-value1", azureCheck.Data["resource1"]?.GetValue<string>());
     }
-
     [Fact]
     public async Task ConcurrentSaves_ToDifferentSections_AreSerializedToStorage()
     {

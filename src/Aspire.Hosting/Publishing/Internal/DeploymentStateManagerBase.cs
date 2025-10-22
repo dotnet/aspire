@@ -22,11 +22,10 @@ namespace Aspire.Hosting.Publishing.Internal;
 public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploymentStateManager where T : class
 {
     /// <summary>
-    /// Holds section metadata including lock and version information.
+    /// Holds section metadata including version information.
     /// </summary>
     private sealed class SectionMetadata
     {
-        public SemaphoreSlim Lock { get; } = new(1, 1);
         public long Version { get; set; }
     }
 
@@ -258,6 +257,9 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
                 $"This typically indicates the section was modified after it was acquired. " +
                 $"Ensure the section is saved before being modified by another operation.");
         }
+
+        // Increment the section's version to allow multiple saves with the same instance
+        section.Version++;
 
         // Serialize state modification and file write to prevent concurrent enumeration
         await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
