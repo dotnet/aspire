@@ -204,9 +204,6 @@ public class InitCommandTests(ITestOutputHelper outputHelper)
         
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
-            // Enable single-file AppHost feature
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-            
             // Set up prompter to track if prompts are called
             options.NewCommandPrompterFactory = (sp) =>
             {
