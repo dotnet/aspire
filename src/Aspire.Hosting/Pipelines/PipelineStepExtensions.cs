@@ -81,4 +81,40 @@ public static class PipelineStepExtensions
 
         return builder.WithAnnotation(new PipelineStepAnnotation(factory));
     }
+
+    /// <summary>
+    /// Registers a callback to be executed during the second pass of pipeline setup,
+    /// allowing modification of step dependencies and relationships.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback function to execute during the second pass.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<T> WithPipelinePassCallback<T>(
+        this IResourceBuilder<T> builder,
+        Func<PipelinePassContext, Task> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new PipelinePassAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Registers a callback to be executed during the second pass of pipeline setup,
+    /// allowing modification of step dependencies and relationships.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback function to execute during the second pass.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<T> WithPipelinePassCallback<T>(
+        this IResourceBuilder<T> builder,
+        Action<PipelinePassContext> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new PipelinePassAnnotation(callback));
+    }
 }
