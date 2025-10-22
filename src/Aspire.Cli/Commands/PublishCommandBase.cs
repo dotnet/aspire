@@ -50,7 +50,6 @@ internal abstract class PublishCommandBase : BaseCommand
         ArgumentNullException.ThrowIfNull(sdkInstaller);
         ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
-        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _projectLocator = projectLocator;
@@ -58,7 +57,6 @@ internal abstract class PublishCommandBase : BaseCommand
         _sdkInstaller = sdkInstaller;
         _hostEnvironment = hostEnvironment;
         _features = features;
-        _hostEnvironment = hostEnvironment;
 
         var projectOption = new Option<FileInfo?>("--project")
         {
