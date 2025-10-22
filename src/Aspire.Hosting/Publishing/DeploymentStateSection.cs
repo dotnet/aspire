@@ -17,8 +17,6 @@ namespace Aspire.Hosting.Publishing;
 /// <param name="disposeAction">Optional action to execute when the section is disposed.</param>
 public sealed class DeploymentStateSection(string sectionName, JsonObject? data, long version, Action? disposeAction = null) : IDisposable
 {
-    private readonly SemaphoreSlim _dataLock = new(1, 1);
-
     /// <summary>
     /// Gets the name of the state section.
     /// </summary>
@@ -27,6 +25,10 @@ public sealed class DeploymentStateSection(string sectionName, JsonObject? data,
     /// <summary>
     /// Gets the data stored in this section.
     /// </summary>
+    /// <remarks>
+    /// The <see cref="JsonObject"/> returned by this property is NOT thread-safe.
+    /// Users should implement their own synchronization if concurrent access is required.
+    /// </remarks>
     public JsonObject Data { get; } = data ?? [];
 
     /// <summary>
@@ -35,93 +37,10 @@ public sealed class DeploymentStateSection(string sectionName, JsonObject? data,
     public long Version { get; } = version;
 
     /// <summary>
-    /// Executes an action with thread-safe access to the state data.
-    /// </summary>
-    /// <param name="action">The action to execute with the state data.</param>
-    public void WithStateData(Action<JsonObject> action)
-    {
-        ArgumentNullException.ThrowIfNull(action);
-
-        _dataLock.Wait();
-        try
-        {
-            action(Data);
-        }
-        finally
-        {
-            _dataLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Executes an action with thread-safe access to the state data and returns a result.
-    /// </summary>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    /// <param name="func">The function to execute with the state data.</param>
-    /// <returns>The result of the function.</returns>
-    public T WithStateData<T>(Func<JsonObject, T> func)
-    {
-        ArgumentNullException.ThrowIfNull(func);
-
-        _dataLock.Wait();
-        try
-        {
-            return func(Data);
-        }
-        finally
-        {
-            _dataLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Executes an async action with thread-safe access to the state data.
-    /// </summary>
-    /// <param name="action">The async action to execute with the state data.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    public async Task WithStateDataAsync(Func<JsonObject, Task> action, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(action);
-
-        await _dataLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            await action(Data).ConfigureAwait(false);
-        }
-        finally
-        {
-            _dataLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Executes an async action with thread-safe access to the state data and returns a result.
-    /// </summary>
-    /// <typeparam name="T">The type of the result.</typeparam>
-    /// <param name="func">The async function to execute with the state data.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The result of the function.</returns>
-    public async Task<T> WithStateDataAsync<T>(Func<JsonObject, Task<T>> func, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(func);
-
-        await _dataLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            return await func(Data).ConfigureAwait(false);
-        }
-        finally
-        {
-            _dataLock.Release();
-        }
-    }
-
-    /// <summary>
     /// Releases the section lock held by this instance.
     /// </summary>
     public void Dispose()
     {
         disposeAction?.Invoke();
-        _dataLock.Dispose();
     }
 }
