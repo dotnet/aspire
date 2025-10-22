@@ -24,8 +24,10 @@ internal sealed class AddCommand : BaseCommand
     private readonly IAddCommandPrompter _prompter;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IFeatures _features;
 
-    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+    public AddCommand(IDotNetCliRunner runner, IPackagingService packagingService, IInteractionService interactionService, IProjectLocator projectLocator, IAddCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("add", AddCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -35,6 +37,8 @@ internal sealed class AddCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(prompter);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
         _packagingService = packagingService;
@@ -42,6 +46,8 @@ internal sealed class AddCommand : BaseCommand
         _prompter = prompter;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
+        _features = features;
 
         var integrationArgument = new Argument<string>("integration");
         integrationArgument.Description = AddCommandStrings.IntegrationArgumentDescription;
@@ -64,7 +70,7 @@ internal sealed class AddCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -78,7 +84,7 @@ internal sealed class AddCommand : BaseCommand
             var integrationName = parseResult.GetValue<string>("integration");
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostProjectFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostProjectFile is null)
             {
@@ -250,7 +256,7 @@ internal sealed class AddCommand : BaseCommand
         // Remove 'Aspire.Hosting' segment from anywhere in the package name
         var packageId = packageWithChannel.Package.Id.Replace("Aspire.Hosting.", "", StringComparison.OrdinalIgnoreCase);
         var friendlyName = packageId.Replace('.', '-').ToLowerInvariant();
-        
+
         return (friendlyName, packageWithChannel.Package, packageWithChannel.Channel);
     }
 }

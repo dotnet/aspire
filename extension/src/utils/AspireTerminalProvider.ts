@@ -5,6 +5,10 @@ import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 
+export const enum AnsiColors {
+    Green = '\x1b[32m'
+}
+
 export interface AspireTerminal {
     terminal: vscode.Terminal;
     dispose: () => void;
@@ -91,7 +95,11 @@ export class AspireTerminalProvider implements vscode.Disposable {
         return aspireTerminal;
     }
 
-    createEnvironment(debugSessionId?: string, noDebug?: boolean): any {
+    createEnvironment(debugSessionId?: string, noDebug?: boolean, noExtensionVariables?: boolean): any {
+        if (noExtensionVariables) {
+            return process.env;
+        }
+
         const env: any = {
             ...process.env,
 

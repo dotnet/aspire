@@ -16,7 +16,7 @@ public class SpectreConsoleLoggerProviderTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var console = AnsiConsole.Create(new AnsiConsoleSettings
         {
             Ansi = AnsiSupport.No,
@@ -49,7 +49,7 @@ public class SpectreConsoleLoggerProviderTests
     {
         // Arrange
         var services = new ServiceCollection();
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         var console = AnsiConsole.Create(new AnsiConsoleSettings
         {
             Ansi = AnsiSupport.No,
@@ -93,7 +93,7 @@ public class SpectreConsoleLoggerProviderTests
         });
         
         var services = new ServiceCollection();
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         
         services.AddSingleton<IAnsiConsole>(console);
         services.AddSingleton(executionContext);
@@ -136,7 +136,7 @@ public class SpectreConsoleLoggerProviderTests
         });
         
         var services = new ServiceCollection();
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         
         services.AddSingleton<IAnsiConsole>(console);
         services.AddSingleton(executionContext);
@@ -176,7 +176,7 @@ public class SpectreConsoleLoggerProviderTests
         });
         
         var services = new ServiceCollection();
-        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."));
+        var executionContext = new CliExecutionContext(new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo("."), new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
         
         services.AddSingleton<IAnsiConsole>(console);
         services.AddSingleton(executionContext);

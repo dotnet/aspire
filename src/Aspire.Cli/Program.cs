@@ -170,12 +170,20 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
+    private static DirectoryInfo GetSdksDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var sdksPath = Path.Combine(homeDirectory, "sdks");
+        return new DirectoryInfo(sdksPath);
+    }
+
     private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+        var sdksDirectory = GetSdksDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
     }
 
     private static DirectoryInfo GetCacheDirectory()
