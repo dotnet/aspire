@@ -25,6 +25,8 @@ internal class ExecCommand : BaseCommand
     private readonly IAnsiConsole _ansiConsole;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
+    private readonly IFeatures _features;
 
     public ExecCommand(
         IDotNetCliRunner runner,
@@ -36,7 +38,7 @@ internal class ExecCommand : BaseCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext)
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("exec", ExecCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
@@ -46,6 +48,8 @@ internal class ExecCommand : BaseCommand
         ArgumentNullException.ThrowIfNull(ansiConsole);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -53,6 +57,8 @@ internal class ExecCommand : BaseCommand
         _ansiConsole = ansiConsole;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
+        _features = features;
 
         var projectOption = new Option<FileInfo?>("--project");
         projectOption.Description = ExecCommandStrings.ProjectArgumentDescription;
@@ -81,7 +87,7 @@ internal class ExecCommand : BaseCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
