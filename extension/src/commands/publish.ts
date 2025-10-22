@@ -6,5 +6,5 @@ export async function publishCommand(terminalProvider: AspireTerminalProvider) {
         return;
     }
 
-    terminalProvider.sendToAspireTerminal("aspire publish");
+    terminalProvider.sendToAspireTerminal(`${terminalProvider.getAspireCliExecutablePath()} publish`);
 }

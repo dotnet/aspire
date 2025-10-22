@@ -182,6 +182,12 @@
           "default": true,
           "description": "%configuration.aspire.enableSettingsFileCreationPromptOnStartup%",
           "scope": "window"
+        },
+        "aspire.aspireCliExecutablePath": {
+          "type": "string",
+          "default": "",
+          "description": "%configuration.aspire.aspireCliExecutablePath%",
+          "scope": "machine-overridable"
         }
       }
     }

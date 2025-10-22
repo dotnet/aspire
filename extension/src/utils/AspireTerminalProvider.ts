@@ -164,4 +164,15 @@ export class AspireTerminalProvider implements vscode.Disposable {
             terminal.dispose();
         }
     }
+
+    getAspireCliExecutablePath(): string {
+        const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
+        if (aspireCliPath && aspireCliPath.trim().length > 0) {
+            extensionLogOutputChannel.info(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
+            return `'${aspireCliPath}'`;
+        }
+
+        extensionLogOutputChannel.info('No user-configured Aspire CLI path found');
+        return "'aspire'";
+    }
 }
