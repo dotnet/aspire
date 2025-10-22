@@ -1312,14 +1312,14 @@ public class DistributedApplicationPipelineTests
         var pipeline = new DistributedApplicationPipeline();
         var loggedMessages = new List<string>();
 
-        pipeline.AddStep("logging-step", async (context) =>
+        pipeline.AddStep("logging-step", (context) =>
         {
             // Get a logger from DI which should be the PipelineLogger
             var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
             var logger = loggerFactory.CreateLogger("TestCategory");
 
             logger.LogInformation("Test log message from pipeline step");
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         });
 
         var context = CreateDeployingContext(builder.Build());
@@ -1383,7 +1383,7 @@ public class DistributedApplicationPipelineTests
             await Task.CompletedTask;
         });
 
-        pipeline.AddStep("step2", async (context) =>
+        pipeline.AddStep("step2", (context) =>
         {
             var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
             step2Logger = loggerFactory.CreateLogger("Step2Category");
@@ -1392,7 +1392,7 @@ public class DistributedApplicationPipelineTests
             Assert.Same(context.Logger, PipelineLoggerProvider.CurrentLogger);
 
             step2Logger.LogInformation("Message from step 2");
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         });
 
         var context = CreateDeployingContext(builder.Build());
@@ -1489,7 +1489,6 @@ public class DistributedApplicationPipelineTests
             var logger = loggerFactory.CreateLogger("FailingCategory");
 
             logger.LogInformation("About to fail");
-            await Task.CompletedTask;
 
             throw new InvalidOperationException("Test failure");
         });
@@ -1550,16 +1549,19 @@ public class DistributedApplicationPipelineTests
         for (var i = 1; i <= 3; i++)
         {
             var stepNumber = i; // Capture for closure
-            pipeline.AddStep($"step{stepNumber}", async (context) =>
+            pipeline.AddStep($"step{stepNumber}", (context) =>
             {
                 // Capture the current logger for this step
-                capturedLoggers.Add(PipelineLoggerProvider.CurrentLogger);
+                lock (capturedLoggers)
+                {
+                    capturedLoggers.Add(PipelineLoggerProvider.CurrentLogger);
+                }
 
                 var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
                 var logger = loggerFactory.CreateLogger($"Step{stepNumber}");
 
                 logger.LogInformation("Executing step {stepNumber}", stepNumber);
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             });
         }
 
@@ -1686,12 +1688,12 @@ public class DistributedApplicationPipelineTests
 
         // Verify that only the expected log levels are present
         Assert.Equal(expectedFilteredLevels.Length, logActivities.Count);
-        
+
         // Verify each expected log level appears exactly once
         foreach (var expectedLevel in expectedFilteredLevels)
         {
-            Assert.Contains(logActivities, activity => 
-                activity.Data.LogLevel == expectedLevel && 
+            Assert.Contains(logActivities, activity =>
+                activity.Data.LogLevel == expectedLevel &&
                 activity.Data.StatusText == $"{expectedLevel} message");
         }
     }
