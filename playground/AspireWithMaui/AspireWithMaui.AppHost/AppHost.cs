@@ -6,5 +6,4 @@ builder.AddDevTunnel("devtunnel-public")
     .WithAnonymousAccess() // All ports on this tunnel default to allowing anonymous access
     .WithReference(weatherApi.GetEndpoint("https"));
 
-builder.AddMauiProject("mauiapp", @"../AspireWithMaui.AspireWithMaui/AspireWithMaui.AspireWithMaui.csproj");
 builder.Build().Run();
