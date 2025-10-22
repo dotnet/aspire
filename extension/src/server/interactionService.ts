@@ -132,12 +132,13 @@ export class InteractionService implements IInteractionService {
         const yes = yesLabel;
         const no = noLabel;
 
-        const result = await vscode.window.showInformationMessage(
-            formatText(promptText),
-            { modal: true },
-            yes,
-            no
-        );
+        const choices = [yes, no];
+
+        const result = await vscode.window.showQuickPick(choices, {
+            placeHolder: formatText(promptText),
+            canPickMany: false,
+            ignoreFocusOut: true
+        });
 
         if (result === yes) {
             return true;
