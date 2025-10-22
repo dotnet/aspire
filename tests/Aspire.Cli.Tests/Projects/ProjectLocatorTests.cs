@@ -725,7 +725,6 @@ builder.Build().Run();");
         return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
     }
 
-
     [Fact]
     public async Task UseOrFindAppHostProjectFileAcceptsDirectoryPathWithSingleProject()
     {
