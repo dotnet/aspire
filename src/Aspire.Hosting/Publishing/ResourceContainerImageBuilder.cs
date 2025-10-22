@@ -310,11 +310,11 @@ internal sealed class ResourceContainerImageBuilder(
             Arguments = arguments,
             OnOutputData = output =>
             {
-                logger.LogInformation("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
+                logger.LogDebug("dotnet publish {ProjectPath} (stdout): {Output}", projectMetadata.ProjectPath, output);
             },
             OnErrorData = error =>
             {
-                logger.LogError("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
+                logger.LogDebug("dotnet publish {ProjectPath} (stderr): {Error}", projectMetadata.ProjectPath, error);
             }
         };
 
