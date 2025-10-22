@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="RabbitMQ.Client" VersionOverride="7.1.2" />
+    <PackageReference Include="RabbitMQ.Client" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
