@@ -107,7 +107,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <summary>
     /// Gets the host for this endpoint.
     /// </summary>
-    public string Host => AllocatedEndpoint.Address ?? "localhost";
+    public string Host => AllocatedEndpoint.Address ?? KnownHostNames.Localhost;
 
     /// <summary>
     /// Gets the scheme for this endpoint.
@@ -184,7 +184,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
         endpoint.References.Add(this);
-        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.Localhost;
+        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
     }
 
     /// <summary>
@@ -206,7 +206,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 
         Resource = owner;
         EndpointName = endpointName;
-        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.Localhost;
+        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
     }
 }
 

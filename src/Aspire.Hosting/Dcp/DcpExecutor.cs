@@ -46,9 +46,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     // The base name for persistent container (Docker, Pdman etc) networks
     internal const string DefaultAspirePersistentNetworkName = "aspire-persistent-network";
 
-    // The host name for the container tunnel proxy providing host network connectivity to containers.
-    internal const string DefaultContainerTunnelProxyHostName = "host.aspire.internal";
-
     // Disposal of the DcpExecutor means shutting down watches and log streams,
     // and asking DCP to start the shutdown process. If we cannot complete these tasks within 10 seconds,
     // it probably means DCP crashed and there is no point trying further.
@@ -136,7 +133,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         WatchResourceRetryPipeline = DcpPipelineBuilder.BuildWatchResourcePipeline(logger);
     }
 
-    private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ?? DefaultContainerTunnelProxyHostName;
+    private string ContainerHostName => _configuration["AppHost:ContainerHostname"] ?? KnownHostNames.DefaultContainerTunnelHostName;
 
     public async Task RunApplicationAsync(CancellationToken cancellationToken = default)
     {
@@ -873,7 +870,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     (int)svc.AllocatedPort!,
                     bindingMode,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
-                    KnownNetworkIdentifiers.Localhost);
+                    KnownNetworkIdentifiers.LocalhostNetwork);
             }
 
             // If there are any additional services that are not directly produced by this resource,
@@ -981,9 +978,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 var port = _options.Value.RandomizePorts && endpoint.IsProxied ? null : endpoint.Port;
                 svc.Spec.Port = port;
                 svc.Spec.Protocol = PortProtocol.FromProtocolType(endpoint.Protocol);
-                if (string.Equals("localhost", endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(KnownHostNames.Localhost, endpoint.TargetHost, StringComparison.OrdinalIgnoreCase))
                 {
-                    svc.Spec.Address = "localhost";
+                    svc.Spec.Address = KnownHostNames.Localhost;
                 }
                 else
                 {
@@ -1856,16 +1853,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     {
         return targetHost switch
         {
-            null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
-            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
-            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using .localhost subdomain
+            null or "" => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Default is localhost
+            var s when string.Equals(s, KnownHostNames.Localhost, StringComparison.OrdinalIgnoreCase) => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Explicitly set to localhost
+            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => (KnownHostNames.Localhost, EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using .localhost subdomain
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
-                var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
-                var ip when IPAddress.IPv6Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addresses)
+                var ip when IPAddress.Any.Equals(ip) => (KnownHostNames.Localhost, EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
+                var ip when IPAddress.IPv6Any.Equals(ip) => (KnownHostNames.Localhost, EndpointBindingMode.IPv6AnyAddresses), // :: (IPv6 all addresses)
                 _ => (s, EndpointBindingMode.SingleAddress), // Any other IP address is returned as-is as that will be the only address the service is bound to
             },
-            _ => ("localhost", EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
+            _ => (KnownHostNames.Localhost, EndpointBindingMode.DualStackAnyAddresses), // Any other target host is treated as binding to all IPv4 AND IPv6 addresses
         };
     }
 
@@ -2529,7 +2526,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     break;
             }
 
-            if (sp.EndpointAnnotation.TargetHost != "localhost")
+            if (sp.EndpointAnnotation.TargetHost != KnownHostNames.Localhost)
             {
                 portSpec.HostIP = sp.EndpointAnnotation.TargetHost;
             }

@@ -268,6 +268,7 @@ public static class ResourceExtensions
     /// </param>
     /// <param name="logger">The logger used for logging information or errors during the argument processing.</param>
     /// <param name="cancellationToken">A token for cancelling the operation, if needed.</param>
+    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public static async ValueTask ProcessArgumentValuesAsync(
         this IResource resource,
@@ -275,7 +276,8 @@ public static class ResourceExtensions
         // (unprocessed, processed, exception, isSensitive)
         Action<object?, string?, Exception?, bool> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        NetworkIdentifier? networkContext = null)
     {
         if (resource.TryGetAnnotationsOfType<CommandLineArgsCallbackAnnotation>(out var callbacks))
         {
@@ -298,8 +300,8 @@ public static class ResourceExtensions
                     var resolvedValue = (executionContext.Operation, a) switch
                     {
                         (_, string s) => new(s, false),
-                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key: null, provider, logger, cancellationToken, networkContext).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key: null, provider, logger, cancellationToken, networkContext).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
                         (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
@@ -327,13 +329,15 @@ public static class ResourceExtensions
     /// <param name="processValue">An action delegate invoked for each environment variable, providing the key, the unprocessed value, the processed value (if available), and any exception encountered during processing.</param>
     /// <param name="logger">The logger used to log any information or errors during the environment variables processing.</param>
     /// <param name="cancellationToken">A cancellation token to observe during the asynchronous operation.</param>
+    /// <param name="networkContext">An optional network identifier providing context for resolving network-related values.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask ProcessEnvironmentVariableValuesAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         Action<string, object?, string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        NetworkIdentifier? networkContext = null)
     {
         if (resource.TryGetEnvironmentVariables(out var callbacks))
         {
@@ -355,8 +359,8 @@ public static class ResourceExtensions
                     var resolvedValue = (executionContext.Operation, expr) switch
                     {
                         (_, string s) => new(s, false),
-                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, cancellationToken).ConfigureAwait(false),
-                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, cancellationToken).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IValueProvider provider) => await GetValue(key, provider, logger, cancellationToken, networkContext).ConfigureAwait(false),
+                        (DistributedApplicationOperation.Run, IResourceBuilder<IResource> rb) when rb.Resource is IValueProvider provider => await GetValue(key, provider, logger, cancellationToken, networkContext).ConfigureAwait(false),
                         (DistributedApplicationOperation.Publish, IManifestExpressionProvider provider) => new(provider.ValueExpression, false),
                         (DistributedApplicationOperation.Publish, IResourceBuilder<IResource> rb) when rb.Resource is IManifestExpressionProvider provider => new(provider.ValueExpression, false),
                         (_, { } o) => new(o.ToString(), false),
@@ -387,7 +391,8 @@ public static class ResourceExtensions
         this IResource resource,
         Action<string?, Exception?> processValue,
         ILogger logger,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        NetworkIdentifier? context = null)
     {
         // Apply optional extra arguments to the container run command.
         if (resource.TryGetAnnotationsOfType<ContainerRuntimeArgsCallbackAnnotation>(out var runArgsCallback))
@@ -408,7 +413,7 @@ public static class ResourceExtensions
                     var value = arg switch
                     {
                         string s => s,
-                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, cancellationToken).ConfigureAwait(false))?.Value,
+                        IValueProvider valueProvider => (await GetValue(key: null, valueProvider, logger, cancellationToken, context).ConfigureAwait(false))?.Value,
                         { } obj => obj.ToString(),
                         null => null
                     };
@@ -426,10 +431,9 @@ public static class ResourceExtensions
         }
     }
 
-    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken)
+    private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken, NetworkIdentifier? context)
     {
-        // CONSIDER: we might need to pass context here in the future...
-        var task = ExpressionResolver.ResolveAsync(valueProvider, null, cancellationToken);
+        var task = ExpressionResolver.ResolveAsync(valueProvider, context, cancellationToken);
 
         if (!task.IsCompleted)
         {

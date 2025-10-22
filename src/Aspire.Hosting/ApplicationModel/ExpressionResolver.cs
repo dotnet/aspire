@@ -9,7 +9,7 @@ namespace Aspire.Hosting.ApplicationModel;
 internal class ExpressionResolver(CancellationToken cancellationToken)
 {
 
-    async Task<string?> ResolveInContainerContextAsync(EndpointReference endpointReference, EndpointProperty property)
+    async Task<string?> ResolveInContainerContextAsync(EndpointReference endpointReference, EndpointProperty property, NetworkIdentifier? context)
     {
         // We need to use the root resource, e.g. AzureStorageResource instead of AzureBlobResource
         // Otherwise, we get the wrong values for IsContainer and Name
@@ -25,12 +25,12 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
 
             (EndpointProperty.Url, _) => string.Format(CultureInfo.InvariantCulture, "{0}://{1}:{2}",
                                             endpointReference.Scheme,
-                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
-                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
+                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Host, context).ConfigureAwait(false),
+                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Port, context).ConfigureAwait(false)),
             (EndpointProperty.HostAndPort, _) => string.Format(CultureInfo.InvariantCulture, "{0}:{1}",
-                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Host).ConfigureAwait(false),
-                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Port).ConfigureAwait(false)),
-            _ => await endpointReference.Property(property).GetValueAsync(cancellationToken).ConfigureAwait(false)
+                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Host, context).ConfigureAwait(false),
+                                            await ResolveInContainerContextAsync(endpointReference, EndpointProperty.Port, context).ConfigureAwait(false)),
+            _ => await endpointReference.Property(property).GetValueAsync(context, cancellationToken).ConfigureAwait(false)
         };
     }
 
@@ -110,8 +110,8 @@ internal class ExpressionResolver(CancellationToken cancellationToken)
             ConnectionStringReference cs => await ResolveConnectionStringReferenceAsync(cs, context).ConfigureAwait(false),
             IResourceWithConnectionString cs and not ConnectionStringParameterResource => await ResolveInternalAsync(cs.ConnectionStringExpression, context).ConfigureAwait(false),
             ReferenceExpression ex => await EvalExpressionAsync(ex, context).ConfigureAwait(false),
-            EndpointReference er when context == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(er, EndpointProperty.Url).ConfigureAwait(false), false),
-            EndpointReferenceExpression ep when context == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(ep.Endpoint, ep.Property).ConfigureAwait(false), false),
+            EndpointReference er when context == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(er, EndpointProperty.Url, context).ConfigureAwait(false), false),
+            EndpointReferenceExpression ep when context == KnownNetworkIdentifiers.DefaultAspireContainerNetwork => new ResolvedValue(await ResolveInContainerContextAsync(ep.Endpoint, ep.Property, context).ConfigureAwait(false), false),
             IValueProvider vp => await EvalValueProvider(vp, context).ConfigureAwait(false),
             _ => throw new NotImplementedException()
         };

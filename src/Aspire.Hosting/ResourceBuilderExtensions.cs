@@ -769,7 +769,7 @@ public static class ResourceBuilderExtensions
             targetPort: targetPort,
             isExternal: isExternal,
             isProxied: isProxied,
-            networkID: KnownNetworkIdentifiers.Localhost);
+            networkID: KnownNetworkIdentifiers.LocalhostNetwork);
 
         if (builder.Resource.Annotations.OfType<EndpointAnnotation>().Any(sb => string.Equals(sb.Name, annotation.Name, StringComparisons.EndpointAnnotationName)))
         {
@@ -781,7 +781,7 @@ public static class ResourceBuilderExtensions
         {
             annotation.TargetPortEnvironmentVariable = env;
 
-            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation, KnownNetworkIdentifiers.Localhost);
+            var endpointReference = new EndpointReference(resourceWithEndpoints, annotation, KnownNetworkIdentifiers.LocalhostNetwork);
 
             builder.WithAnnotation(new EnvironmentCallbackAnnotation(context =>
             {

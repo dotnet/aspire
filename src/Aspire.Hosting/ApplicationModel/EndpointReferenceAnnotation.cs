@@ -12,5 +12,5 @@ internal sealed class EndpointReferenceAnnotation(IResourceWithEndpoints resourc
     public bool UseAllEndpoints { get; set; }
     public HashSet<string> EndpointNames { get; } = new(StringComparers.EndpointAnnotationName);
 
-    public NetworkIdentifier ContextNetworkID { get; set; } = KnownNetworkIdentifiers.Localhost;
+    public NetworkIdentifier ContextNetworkID { get; set; } = KnownNetworkIdentifiers.LocalhostNetwork;
 }

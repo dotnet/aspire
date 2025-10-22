@@ -65,7 +65,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _targetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
-        _networkID = networkID ?? KnownNetworkIdentifiers.Localhost;
+        _networkID = networkID ?? KnownNetworkIdentifiers.LocalhostNetwork;
         AllAllocatedEndpoints.Add(new NetworkEndpointSnapshot(AllocatedEndpointSnapshot, _networkID));
     }
 

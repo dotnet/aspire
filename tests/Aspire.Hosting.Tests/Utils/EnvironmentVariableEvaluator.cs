@@ -8,9 +8,11 @@ namespace Aspire.Hosting.Tests.Utils;
 
 public static class EnvironmentVariableEvaluator
 {
-    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(IResource resource,
+    public static async ValueTask<Dictionary<string, string>> GetEnvironmentVariablesAsync(
+        IResource resource,
         DistributedApplicationOperation applicationOperation = DistributedApplicationOperation.Run,
-        IServiceProvider? serviceProvider = null, string? containerHostName = null)
+        IServiceProvider? serviceProvider = null,
+        NetworkIdentifier? networkContext = null)
     {
         var executionContext = new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(applicationOperation)
         {
@@ -32,7 +34,9 @@ public static class EnvironmentVariableEvaluator
                     environmentVariables[key] = s;
                 }
             },
-            NullLogger.Instance);
+            NullLogger.Instance,
+            CancellationToken.None,
+            networkContext);
 
         return environmentVariables;
     }
