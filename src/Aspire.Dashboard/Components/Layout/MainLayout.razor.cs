@@ -209,14 +209,11 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
         {
             Title = "Aspire MCP server",
             DismissTitle = DialogsLoc[nameof(Resources.Dialogs.DialogCloseButtonText)],
-            PrimaryAction = "Close",
-            PrimaryActionEnabled = true,
+            PrimaryAction = null,
             SecondaryAction = null,
             TrapFocus = true,
             Modal = true,
-            Alignment = HorizontalAlignment.Center,
             Width = "700px",
-            Height = "auto",
             Id = McpDialogId,
             OnDialogClosing = EventCallback.Factory.Create<DialogInstance>(this, HandleDialogClose)
         };
@@ -233,6 +230,7 @@ public partial class MainLayout : IGlobalKeydownListener, IAsyncDisposable
 
         _openPageDialog = await DialogService.ShowDialogAsync<McpServerDialog>(parameters).ConfigureAwait(true);
     }
+
     private async Task LaunchHelpAsync()
     {
         DialogParameters parameters = new()

@@ -13,11 +13,12 @@
     @if (McpEnabled)
     {
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi vitae condimentum nulla, nec viverra purus. Morbi cursus egestas leo, eget lacinia quam hendrerit non.
+            Aspire MCP connects AI assistants to Aspire app data. AI can use Aspire MCP to get information about app resources, health checks, commands, console logs and real-time telemetry.
+            For more information, see <a href="" target="_blank">Use Aspire MCP with AI</a>.
         </p>
         <h5>Add to VS Code</h5>
         <p>
-            <a href="@($"vscode:mcp/install?{Uri.EscapeDataString(_mcpServerJson)}")">
+            <a href="@($"vscode:mcp/install?{Uri.EscapeDataString(_mcpServerInstallButtonJson)}")">
                 <svg xmlns="http://www.w3.org/2000/svg" width="225" height="20" role="img" aria-label="VS Code: Install Aspire MCP Server">
                     <title>VS Code: Install Aspire MCP Server</title>
                     <g shape-rendering="crispEdges"><rect width="74" height="20" fill="#555" /><rect x="74" width="151" height="20" fill="#0098ff" /></g>
@@ -28,9 +29,8 @@
                 https://img.shields.io/badge/VS_Code-Install_Aspire_MCP_Server-0098FF?style=flat-square&logo=modelcontextprotocol&logoColor=white
             *@
             </a>
-        </p>
-        <p>
-            <a href="@($"vscode-insiders:mcp/install?{Uri.EscapeDataString(_mcpServerJson)}")">
+            &nbsp;&nbsp;
+            <a href="@($"vscode-insiders:mcp/install?{Uri.EscapeDataString(_mcpServerInstallButtonJson)}")">
                 <svg xmlns="http://www.w3.org/2000/svg" width="273" height="20" role="img" aria-label="VS Code Insiders: Install Aspire MCP Server">
                     <title>VS Code Insiders: Install Aspire MCP Server</title>
                     <g shape-rendering="crispEdges"><rect width="122" height="20" fill="#555" /><rect x="122" width="151" height="20" fill="#65bba5" /></g>
@@ -42,16 +42,26 @@
             *@
             </a>
         </p>
+        <p>
+            <div class="block-warning">
+                <div class="block-warning-icon">
+                    <FluentIcon Value="new Icons.Filled.Size16.Warning()" Color="Color.Warning" />
+                </div>
+
+                <div class="block-warning-message">
+                    <span class="title">VS Code limitation</span>
+                    As of October 2025, VS Code does not support using Aspire MCP over HTTPS.
+                    <br />
+                    <br />
+                    To use VS Code with Aspire MCP, configure the MCP endpoint to use HTTP instead of HTTPS—for example, by launching the app host with the <code>http</code> profile.
+                    <a href="">More information</a>
+                </div>
+            </div>
+        </p>
         <h5>MCP JSON</h5>
         <p>
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi vitae condimentum nulla, nec viverra purus. Morbi cursus egestas leo, eget lacinia quam hendrerit non.
+            Add Aspire MCP to your AI tools by including the following JSON in your AI client's <code>mcp.json</code> file.
         </p>
         <MarkdownRenderer Markdown="@GetJsonConfigurationMarkdown()" MarkdownProcessor="@_markdownProcessor" />
-    }
-    else
-    {
-        <p>
-            MCP isn't configured.
-        </p>
     }
 </div>

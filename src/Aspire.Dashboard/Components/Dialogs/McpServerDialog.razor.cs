@@ -32,7 +32,8 @@ public partial class McpServerDialog
     public required IOptions<DashboardOptions> DashboardOptions { get; init; }
 
     private MarkdownProcessor _markdownProcessor = default!;
-    private string? _mcpServerJson;
+    private string? _mcpServerInstallButtonJson;
+    private string? _mcpServerConfigFileJson;
     private string? _mcpUrl;
 
     protected override void OnInitialized()
@@ -42,7 +43,7 @@ public partial class McpServerDialog
 
         if (McpEnabled)
         {
-            _mcpServerJson = GetMcpServerJson();
+            (_mcpServerInstallButtonJson, _mcpServerConfigFileJson) = GetMcpServerInstallButtonJson();
         }
         else
         {
@@ -50,11 +51,11 @@ public partial class McpServerDialog
         }
     }
 
-    [MemberNotNullWhen(true, nameof(_mcpServerJson))]
+    [MemberNotNullWhen(true, nameof(_mcpServerInstallButtonJson))]
     [MemberNotNullWhen(true, nameof(_mcpUrl))]
     private bool McpEnabled => !DashboardOptions.Value.Mcp.Disabled.GetValueOrDefault() && !string.IsNullOrEmpty(_mcpUrl);
 
-    private string GetMcpServerJson()
+    private (string InstallButtonJson, string ConfigFileJson) GetMcpServerInstallButtonJson()
     {
         Dictionary<string, string>? headers = null;
 
@@ -67,22 +68,40 @@ public partial class McpServerDialog
         }
 
         var url = new Uri(baseUri: new Uri(_mcpUrl!), relativeUri: "/mcp").ToString();
+        var name = "aspire-dashboard";
 
-        return JsonSerializer.Serialize(
-            new McpServerModel
+        var installButtonJson = JsonSerializer.Serialize(
+            new McpInstallButtonServerModel
             {
-                Name = "aspire-dashboard",
+                Name = name,
                 Type = "http",
                 Url = url,
                 Headers = headers
             },
-            McpServerModelContext.Default.McpServerModel);
+            McpInstallButtonModelContext.Default.McpInstallButtonServerModel);
+
+        var configFileJson = JsonSerializer.Serialize(
+            new McpJsonFileServerModel
+            {
+                Servers = new()
+                {
+                    [name] = new()
+                    {
+                        Type = "http",
+                        Url = url,
+                        Headers = headers
+                    }
+                }
+            },
+            McpConfigFileModelContext.Default.McpJsonFileServerModel);
+
+        return (installButtonJson, configFileJson);
     }
 
     private string GetJsonConfigurationMarkdown() =>
         $"""
         ```json
-        {_mcpServerJson}
+        {_mcpServerConfigFileJson}
         ```
         """;
 }
