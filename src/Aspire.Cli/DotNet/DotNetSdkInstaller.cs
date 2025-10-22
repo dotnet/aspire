@@ -162,18 +162,20 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         // Make the script executable on Unix-like systems
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            var chmodProcess = new Process
+            // Set execute permission on Unix systems
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                StartInfo = new ProcessStartInfo
+                try
                 {
-                    FileName = "chmod",
-                    Arguments = $"+x {scriptPath}",
-                    UseShellExecute = false,
-                    CreateNoWindow = true
+                    var mode = File.GetUnixFileMode(scriptPath);
+                    mode |= UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                    File.SetUnixFileMode(scriptPath, mode);
                 }
-            };
-            chmodProcess.Start();
-            await chmodProcess.WaitForExitAsync(cancellationToken);
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to set executable permission on {ScriptPath}", scriptPath);
+                }
+            }
         }
 
         // Run the install script
