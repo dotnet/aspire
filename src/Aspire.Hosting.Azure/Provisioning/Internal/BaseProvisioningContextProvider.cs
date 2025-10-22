@@ -101,7 +101,7 @@ internal abstract partial class BaseProvisioningContextProvider(
         }
 
         // Acquire Azure state section for reading/writing configuration
-        using var azureStateSection = await deploymentStateManager.AcquireSectionAsync("Azure", cancellationToken).ConfigureAwait(false);
+        var azureStateSection = await deploymentStateManager.AcquireSectionAsync("Azure", cancellationToken).ConfigureAwait(false);
 
         string resourceGroupName;
         bool createIfAbsent;

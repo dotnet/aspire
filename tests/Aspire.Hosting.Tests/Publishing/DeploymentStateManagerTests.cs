@@ -19,7 +19,7 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        using var section = await stateManager.AcquireSectionAsync("Parameters");
+        var section = await stateManager.AcquireSectionAsync("Parameters");
 
         Assert.NotNull(section);
         Assert.Equal("Parameters", section.SectionName);
@@ -33,13 +33,13 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        using (var section1 = await stateManager.AcquireSectionAsync("Parameters"))
+        var section1 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section1.Data["key1"] = "value1";
             await stateManager.SaveSectionAsync(section1);
         }
 
-        using var section2 = await stateManager.AcquireSectionAsync("Parameters");
+        var section2 = await stateManager.AcquireSectionAsync("Parameters");
 
         Assert.Equal(1, section2.Version);
         Assert.Equal("value1", section2.Data["key1"]?.GetValue<string>());
@@ -52,16 +52,16 @@ public class DeploymentStateManagerTests
 
         // Acquire and save first section
         DeploymentStateSection oldSection;
-        using (var section1 = await stateManager.AcquireSectionAsync("Parameters"))
+        var section1 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section1.Data["key1"] = "value1";
             await stateManager.SaveSectionAsync(section1);
-            // Create a copy of the section before disposing
-            oldSection = new DeploymentStateSection(section1.SectionName, section1.Data, section1.Version, () => { });
+            // Create a copy of the section to simulate an old version
+            oldSection = new DeploymentStateSection(section1.SectionName, section1.Data, section1.Version);
         }
 
         // Acquire and save the section again, incrementing version
-        using (var section2 = await stateManager.AcquireSectionAsync("Parameters"))
+        var section2 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section2.Data["key2"] = "value2";
             await stateManager.SaveSectionAsync(section2);
@@ -80,8 +80,8 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        using (var parametersSection = await stateManager.AcquireSectionAsync("Parameters"))
-        using (var azureSection = await stateManager.AcquireSectionAsync("Azure"))
+        var parametersSection = await stateManager.AcquireSectionAsync("Parameters");
+        var azureSection = await stateManager.AcquireSectionAsync("Azure");
         {
             parametersSection.Data["param1"] = "value1";
             azureSection.Data["resource1"] = "azure-value1";
@@ -90,8 +90,8 @@ public class DeploymentStateManagerTests
             await stateManager.SaveSectionAsync(azureSection);
         }
 
-        using var parametersCheck = await stateManager.AcquireSectionAsync("Parameters");
-        using var azureCheck = await stateManager.AcquireSectionAsync("Azure");
+        var parametersCheck = await stateManager.AcquireSectionAsync("Parameters");
+        var azureCheck = await stateManager.AcquireSectionAsync("Azure");
 
         Assert.Equal(1, parametersCheck.Version);
         Assert.Equal(1, azureCheck.Version);
@@ -99,31 +99,6 @@ public class DeploymentStateManagerTests
         Assert.Equal("azure-value1", azureCheck.Data["resource1"]?.GetValue<string>());
     }
 
-    [Fact]
-    public async Task ConcurrentAccess_ToSameSection_IsSerializedByLock()
-    {
-        var stateManager = CreateFileDeploymentStateManager();
-        var counter = 0;
-        var tasks = new List<Task>();
-
-        for (int i = 0; i < 10; i++)
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                using var section = await stateManager.AcquireSectionAsync("Parameters");
-                var currentValue = counter;
-                await Task.Delay(10);
-                counter = currentValue + 1;
-                section.Data["counter"] = counter;
-                await stateManager.SaveSectionAsync(section);
-            }));
-        }
-
-        await Task.WhenAll(tasks);
-
-        using var finalSection = await stateManager.AcquireSectionAsync("Parameters");
-        Assert.Equal(10, finalSection.Version);
-    }
 
     [Fact]
     public async Task ConcurrentSaves_ToDifferentSections_AreSerializedToStorage()
@@ -138,7 +113,7 @@ public class DeploymentStateManagerTests
             int sectionIndex = i;
             tasks.Add(Task.Run(async () =>
             {
-                using var section = await stateManager.AcquireSectionAsync($"Section{sectionIndex}");
+                var section = await stateManager.AcquireSectionAsync($"Section{sectionIndex}");
                 section.Data[$"key{sectionIndex}"] = $"value{sectionIndex}";
                 await stateManager.SaveSectionAsync(section);
             }));
@@ -150,7 +125,7 @@ public class DeploymentStateManagerTests
         var verifyManager = CreateFileDeploymentStateManager(sharedSha);
         for (int i = 0; i < 10; i++)
         {
-            using var section = await verifyManager.AcquireSectionAsync($"Section{i}");
+            var section = await verifyManager.AcquireSectionAsync($"Section{i}");
             Assert.Equal($"value{i}", section.Data[$"key{i}"]?.GetValue<string>());
         }
     }
@@ -160,14 +135,14 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        using (var section1 = await stateManager.AcquireSectionAsync("Parameters"))
+        var section1 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section1.Data["key1"] = "value1";
             await stateManager.SaveSectionAsync(section1);
         }
 
-        using var section2 = await stateManager.AcquireSectionAsync("Parameters");
-        using var section3 = await stateManager.AcquireSectionAsync("Azure");
+        var section2 = await stateManager.AcquireSectionAsync("Parameters");
+        var section3 = await stateManager.AcquireSectionAsync("Azure");
 
         Assert.NotNull(section2.Data);
         Assert.Equal("value1", section2.Data["key1"]?.GetValue<string>());
@@ -181,14 +156,14 @@ public class DeploymentStateManagerTests
         var sharedSha = Guid.NewGuid().ToString("N");
         var stateManager = CreateFileDeploymentStateManager(sharedSha);
 
-        using (var section1 = await stateManager.AcquireSectionAsync("Parameters"))
+        var section1 = await stateManager.AcquireSectionAsync("Parameters");
         {
             section1.Data["key1"] = "value1";
             await stateManager.SaveSectionAsync(section1);
         }
 
         var stateManager2 = CreateFileDeploymentStateManager(sharedSha);
-        using (var section2 = await stateManager2.AcquireSectionAsync("Parameters"))
+        var section2 = await stateManager2.AcquireSectionAsync("Parameters");
         {
             // Data persists across manager instances
             Assert.Equal("value1", section2.Data["key1"]?.GetValue<string>());
@@ -201,7 +176,7 @@ public class DeploymentStateManagerTests
         }
 
         var stateManager3 = CreateFileDeploymentStateManager(sharedSha);
-        using var section3 = await stateManager3.AcquireSectionAsync("Parameters");
+        var section3 = await stateManager3.AcquireSectionAsync("Parameters");
 
         // Data from both sessions is present
         Assert.Equal("value1", section3.Data["key1"]?.GetValue<string>());
@@ -216,11 +191,9 @@ public class DeploymentStateManagerTests
     {
         var stateManager = CreateFileDeploymentStateManager();
 
-        var section1 = await stateManager.AcquireSectionAsync("Parameters");
-        section1.Dispose();
+        _ = await stateManager.AcquireSectionAsync("Parameters");
 
         var section2 = await stateManager.AcquireSectionAsync("Parameters");
-        section2.Dispose();
 
         Assert.NotNull(section2);
     }
@@ -238,7 +211,7 @@ public class DeploymentStateManagerTests
 
         await stateManager.SaveStateAsync(state);
 
-        using var parametersSection = await stateManager.AcquireSectionAsync("Parameters");
+        var parametersSection = await stateManager.AcquireSectionAsync("Parameters");
 
         Assert.Equal(0, parametersSection.Version);
     }

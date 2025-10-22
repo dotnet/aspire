@@ -18,7 +18,7 @@ public interface IDeploymentStateManager
 
     /// <summary>
     /// Acquires a specific section of the deployment state with version tracking for concurrency control.
-    /// The returned StateSection should be disposed after use to release the section lock.
+    /// The returned section is an immutable snapshot of the data at the time of acquisition.
     /// </summary>
     /// <param name="sectionName">The name of the section to acquire (e.g., "Parameters", "Azure").</param>
     /// <param name="cancellationToken">The cancellation token.</param>
@@ -27,7 +27,7 @@ public interface IDeploymentStateManager
 
     /// <summary>
     /// Saves a section of deployment state with optimistic concurrency control.
-    /// The section must be saved before it is disposed or modified by another operation.
+    /// The section must have a matching version number or a concurrency exception will be thrown.
     /// </summary>
     /// <param name="section">The section to save, including version information.</param>
     /// <param name="cancellationToken">The cancellation token.</param>

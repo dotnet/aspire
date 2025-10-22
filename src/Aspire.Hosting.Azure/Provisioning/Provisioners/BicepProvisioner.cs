@@ -224,7 +224,7 @@ internal sealed class BicepProvisioner(
 
         // Acquire resource-specific state section for thread-safe deployment state management
         var sectionName = $"Azure:Deployments:{resource.Name}";
-        using var stateSection = await deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
+        var stateSection = await deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
 
         // Update deployment state for this specific resource
         stateSection.Data.Clear();

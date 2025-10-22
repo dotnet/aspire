@@ -243,7 +243,6 @@ public sealed class ParameterProcessor(
             }
         }
 
-        using (parametersStateSection)
         {
             var stateModified = false;
 
@@ -380,7 +379,7 @@ public sealed class ParameterProcessor(
     {
         try
         {
-            using var parametersSection = await deploymentStateManager.AcquireSectionAsync("Parameters", cancellationToken).ConfigureAwait(false);
+            var parametersSection = await deploymentStateManager.AcquireSectionAsync("Parameters", cancellationToken).ConfigureAwait(false);
 
             foreach (var parameter in parameters)
             {

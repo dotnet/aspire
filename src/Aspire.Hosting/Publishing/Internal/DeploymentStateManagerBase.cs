@@ -212,21 +212,12 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         await LoadStateAsync(cancellationToken).ConfigureAwait(false);
 
         var metadata = GetSectionMetadata(sectionName);
-        await metadata.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-        try
-        {
-            var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
-                ? obj.DeepClone().AsObject()
-                : null;
+        var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
+            ? obj.DeepClone().AsObject()
+            : null;
 
-            return new DeploymentStateSection(sectionName, sectionData, metadata.Version, () => metadata.Lock.Release());
-        }
-        catch
-        {
-            metadata.Lock.Release();
-            throw;
-        }
+        return new DeploymentStateSection(sectionName, sectionData, metadata.Version);
     }
 
     /// <inheritdoc/>
@@ -239,25 +230,34 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
             throw new InvalidOperationException("State has not been loaded.");
         }
 
-        var metadata = GetSectionMetadata(section.SectionName);
-        if (metadata.Version != section.Version)
+        // Atomically check version and update using AddOrUpdate (compare-exchange pattern)
+        var versionMismatch = false;
+        _sections.AddOrUpdate(
+            section.SectionName,
+            // Add case: create new metadata with incremented version
+            _ => new SectionMetadata { Version = section.Version + 1 },
+            // Update case: check version and increment if matching
+            (_, existing) =>
+            {
+                if (existing.Version != section.Version)
+                {
+                    versionMismatch = true;
+                }
+                else
+                {
+                    existing.Version = section.Version + 1;
+                }
+                return existing;
+            });
+
+        if (versionMismatch)
         {
             throw new InvalidOperationException(
                 $"Concurrency conflict detected in section '{section.SectionName}'. " +
-                $"Expected version {section.Version}, but current version is {metadata.Version}. " +
+                $"Expected version {section.Version}, but current version differs. " +
                 $"This typically indicates the section was modified after it was acquired. " +
-                $"Ensure the section is saved before disposing or being modified by another operation.");
+                $"Ensure the section is saved before being modified by another operation.");
         }
-
-        // Update version outside of the save lock using thread-safe AddOrUpdate
-        _sections.AddOrUpdate(
-            section.SectionName,
-            _ => new SectionMetadata { Version = section.Version + 1 },
-            (_, existing) =>
-            {
-                existing.Version = section.Version + 1;
-                return existing;
-            });
 
         // Serialize state modification and file write to prevent concurrent enumeration
         await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);

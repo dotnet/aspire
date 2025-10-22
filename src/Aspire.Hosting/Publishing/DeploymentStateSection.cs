@@ -14,8 +14,7 @@ namespace Aspire.Hosting.Publishing;
 /// <param name="sectionName">The name of the section.</param>
 /// <param name="data">The JSON data for this section.</param>
 /// <param name="version">The current version of this section.</param>
-/// <param name="disposeAction">Optional action to execute when the section is disposed.</param>
-public sealed class DeploymentStateSection(string sectionName, JsonObject? data, long version, Action? disposeAction = null) : IDisposable
+public sealed class DeploymentStateSection(string sectionName, JsonObject? data, long version)
 {
     /// <summary>
     /// Gets the name of the state section.
@@ -35,12 +34,4 @@ public sealed class DeploymentStateSection(string sectionName, JsonObject? data,
     /// Gets the current version of this section.
     /// </summary>
     public long Version { get; } = version;
-
-    /// <summary>
-    /// Releases the section lock held by this instance.
-    /// </summary>
-    public void Dispose()
-    {
-        disposeAction?.Invoke();
-    }
 }
