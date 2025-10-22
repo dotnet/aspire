@@ -50,7 +50,7 @@ public static class DistributedApplicationPipelineExtensions
                     }
                 }
             }
-        }, dependsOn: WellKnownPipelineSteps.DeployCompute);
+        }, dependsOn: WellKnownPipelineTags.DeployCompute);
 
         return pipeline;
     }

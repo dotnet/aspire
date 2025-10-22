@@ -6,10 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Defines well-known pipeline step names used in the deployment process.
+/// Defines well-known pipeline tags used in the deployment process.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public static class WellKnownPipelineSteps
+public static class WellKnownPipelineTags
 {
     /// <summary>
     /// The step that provisions infrastructure resources.

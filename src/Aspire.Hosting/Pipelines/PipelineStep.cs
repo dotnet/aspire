@@ -24,6 +24,11 @@ public class PipelineStep
     public required Func<PipelineStepContext, Task> Action { get; init; }
 
     /// <summary>
+    /// Gets or initializes the tags associated with this step.
+    /// </summary>
+    public List<string> Tags { get; init; } = [];
+
+    /// <summary>
     /// Gets or initializes the list of step names that this step depends on.
     /// </summary>
     public List<string> DependsOnSteps { get; init; } = [];
