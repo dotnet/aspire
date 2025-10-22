@@ -20,6 +20,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     private bool _portSetToNull;
     private int? _targetPort;
     private bool _targetPortSetToNull;
+    private readonly NetworkIdentifier _networkID;
 
     /// <summary>
     /// Initializes a new instance of <see cref="EndpointAnnotation"/>.
@@ -43,7 +44,7 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         int? targetPort = null,
         bool? isExternal = null,
         bool isProxied = true,
-        string networkID = KnownNetworkIdentifiers.Localhost
+        NetworkIdentifier? networkID = null
     )
     {
         // If the URI scheme is null, we'll adopt either udp:// or tcp:// based on the
@@ -64,7 +65,8 @@ public sealed class EndpointAnnotation : IResourceAnnotation
         _targetPort = targetPort;
         IsExternal = isExternal ?? false;
         IsProxied = isProxied;
-        AllAllocatedEndpoints.Add(new NetworkEndpointSnapshot(AllocatedEndpointSnapshot, networkID));
+        _networkID = networkID ?? KnownNetworkIdentifiers.Localhost;
+        AllAllocatedEndpoints.Add(new NetworkEndpointSnapshot(AllocatedEndpointSnapshot, _networkID));
     }
 
     /// <summary>
@@ -156,6 +158,11 @@ public sealed class EndpointAnnotation : IResourceAnnotation
     internal string? TargetPortEnvironmentVariable { get; set; }
 
     /// <summary>
+    /// Gets the ID of the network that is the "default" network for the Endpoint (the one the Endpoint is associated with and can be reached without routing or network address translation).
+    /// </summary>
+    public NetworkIdentifier DefaultNetworkID => _networkID;
+
+    /// <summary>
     /// Gets or sets the default <see cref="AllocatedEndpoint"/> for this Endpoint.
     /// </summary>
     public AllocatedEndpoint? AllocatedEndpoint
@@ -205,4 +212,4 @@ public sealed class EndpointAnnotation : IResourceAnnotation
 /// </summary>
 /// <param name="Snapshot">AllocatedEndpoint snapshot</param>
 /// <param name="NetworkID">The ID of the network that is associated with the AllocatedEndpoint snapshot.</param>
-public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Snapshot, string NetworkID);
+public record class NetworkEndpointSnapshot(ValueSnapshot<AllocatedEndpoint> Snapshot, NetworkIdentifier NetworkID);

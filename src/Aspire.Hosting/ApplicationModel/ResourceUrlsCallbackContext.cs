@@ -24,12 +24,13 @@ public class ResourceUrlsCallbackContext(DistributedApplicationExecutionContext 
     /// Gets an endpoint reference from <see cref="Resource"/> for the specified endpoint name.<br/>
     /// If <see cref="Resource"/> does not implement <see cref="IResourceWithEndpoints"/> then returns <c>null</c>.
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="name">The name of the endpoint.</param>
+    /// <param name="contextNetworkID">The identifier of the network that serves as the context for the endpoint reference.</param>
     /// <returns></returns>
-    public EndpointReference? GetEndpoint(string name) =>
+    public EndpointReference? GetEndpoint(string name, NetworkIdentifier? contextNetworkID = null) =>
         Resource switch
         {
-            IResourceWithEndpoints resourceWithEndpoints => resourceWithEndpoints.GetEndpoint(name),
+            IResourceWithEndpoints resourceWithEndpoints => resourceWithEndpoints.GetEndpoint(name, contextNetworkID),
             _ => null
         };
 

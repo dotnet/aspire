@@ -67,8 +67,8 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
     /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
     /// </summary>
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
-    /// <returns></returns>
-    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
+    /// <param name="context">An optional <see cref="NetworkIdentifier"/> context for resolving the value.</param>
+    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken, NetworkIdentifier? context)
     {
         // NOTE: any logical changes to this method should also be made to ExpressionResolver.EvalExpressionAsync
         if (Format.Length == 0)
@@ -79,7 +79,15 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         var args = new object?[ValueProviders.Count];
         for (var i = 0; i < ValueProviders.Count; i++)
         {
-            args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+            var vp = ValueProviders[i];
+            if (vp is INetworkAwareValueProvider navp)
+            {
+                args[i] = await navp.GetValueAsync(context, cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                args[i] = await ValueProviders[i].GetValueAsync(cancellationToken).ConfigureAwait(false);
+            }
 
             // Apply string format if needed
             var stringFormat = _stringFormats[i];
@@ -90,6 +98,15 @@ public class ReferenceExpression : IManifestExpressionProvider, IValueProvider, 
         }
 
         return string.Format(CultureInfo.InvariantCulture, Format, args);
+    }
+
+    /// <summary>
+    /// Gets the value of the expression. The final string value after evaluating the format string and its parameters.
+    /// </summary>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
+    {
+        return this.GetValueAsync(cancellationToken, null);
     }
 
     internal static ReferenceExpression Create(string format, IValueProvider[] valueProviders, string[] manifestExpressions, string?[] stringFormats)

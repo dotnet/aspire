@@ -428,7 +428,8 @@ public static class ResourceExtensions
 
     private static async Task<ResolvedValue?> GetValue(string? key, IValueProvider valueProvider, ILogger logger, CancellationToken cancellationToken)
     {
-        var task = ExpressionResolver.ResolveAsync(valueProvider, cancellationToken);
+        // CONSIDER: we might need to pass context here in the future...
+        var task = ExpressionResolver.ResolveAsync(valueProvider, null, cancellationToken);
 
         if (!task.IsCompleted)
         {
@@ -502,7 +503,7 @@ public static class ResourceExtensions
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context context for the endpoint references.</param>
     /// <returns>An enumeration of <see cref="EndpointReference"/> based on the <see cref="EndpointAnnotation"/> annotations from the resources' <see cref="IResource.Annotations"/> collection.</returns>
-    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
+    public static IEnumerable<EndpointReference> GetEndpoints(this IResourceWithEndpoints resource, NetworkIdentifier? contextNetworkID = null)
     {
         if (TryGetAnnotationsOfType<EndpointAnnotation>(resource, out var endpoints))
         {
@@ -517,11 +518,24 @@ public static class ResourceExtensions
     /// </summary>
     /// <param name="resource">The <see cref="IResourceWithEndpoints"/> which contains <see cref="EndpointAnnotation"/> annotations.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
-    /// <returns>An <see cref="EndpointReference"/> object representing the endpoint reference
-    /// for the specified endpoint.</returns>
-    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName)
+    /// <param name="contextNetworkID">The network ID of the network that provides the context for the returned <see cref="EndpointReference"/></param>
+    /// <returns>An <see cref="EndpointReference"/>object providing resolvable reference for the specified endpoint.</returns>
+    public static EndpointReference GetEndpoint(this IResourceWithEndpoints resource, string endpointName, NetworkIdentifier? contextNetworkID = null)
     {
-        return new EndpointReference(resource, endpointName);
+    
+        var endpoint = resource.TryGetEndpoints(out var endpoints) ?
+            endpoints.FirstOrDefault(e => StringComparers.EndpointAnnotationName.Equals(e.Name, endpointName)) :
+            null;
+        if (endpoint is null)
+        {
+            // See EndpointReference constructor remarks for explanation about localhost as default network ID.
+            return new EndpointReference(resource, endpointName, contextNetworkID);
+        }
+        else
+        {
+            return new EndpointReference(resource, endpoint, endpoint.DefaultNetworkID);
+        }
+
     }
 
     /// <summary>

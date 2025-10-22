@@ -866,7 +866,6 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 }
 
                 var (targetHost, bindingMode) = NormalizeTargetHost(sp.EndpointAnnotation.TargetHost);
-                var networkID = appResource.DcpResource is Executable ? KnownNetworkIdentifiers.Localhost : KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
 
                 sp.EndpointAnnotation.AllocatedEndpoint = new AllocatedEndpoint(
                     sp.EndpointAnnotation,
@@ -874,7 +873,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     (int)svc.AllocatedPort!,
                     bindingMode,
                     targetPortExpression: $$$"""{{- portForServing "{{{svc.Metadata.Name}}}" -}}""",
-                    networkID);
+                    KnownNetworkIdentifiers.Localhost);
             }
 
             // If there are any additional services that are not directly produced by this resource,
@@ -931,7 +930,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         var containerResources = _model.Resources.Where(mr => mr.IsContainer());
         if (!containerResources.Any()) { return; }
 
-        var network = ContainerNetwork.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        var network = ContainerNetwork.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
         if (containerResources.Any(cr => cr.GetContainerLifetimeType() == ContainerLifetime.Persistent))
         {
             // If we have any persistent container resources
@@ -1020,8 +1019,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         // Eventually we might want to support multiple container networks, including user-defined ones,
         // but for now we just have one container network per application, and so we need only one tunnel proxy.
-        ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
-        tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork;
+        ContainerNetworkTunnelProxy tunnelProxy = ContainerNetworkTunnelProxy.Create(KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value);
+        tunnelProxy.Spec.ContainerNetworkName = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value;
         tunnelProxy.Spec.Aliases = [ContainerHostName];
         tunnelProxy.Spec.Tunnels = [];
         var tunnelAppResource = new AppResource(tunnelProxy);
@@ -1547,7 +1546,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 new ContainerNetworkConnection
                 {
-                    Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork,
+                    Name = KnownNetworkIdentifiers.DefaultAspireContainerNetwork.Value,
                     Aliases = new List<string> { container.Name },
                 }
             };

@@ -15,7 +15,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     // A reference to the endpoint annotation if it exists.
     private EndpointAnnotation? _endpointAnnotation;
     private bool? _isAllocated;
-    private readonly string _contextNetworkID;
+    private readonly NetworkIdentifier _contextNetworkID;
 
     /// <summary>
     /// Gets the endpoint annotation associated with the endpoint reference.
@@ -63,7 +63,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// The reference will be resolved in the context of this network, which may be different
     /// from the network associated with the default network of the referenced Endpoint.
     /// </summary>
-    public string ContextNetworkID => _contextNetworkID;
+    public NetworkIdentifier ContextNetworkID => _contextNetworkID;
 
     /// <summary>
     /// Gets the specified property expression of the endpoint. Defaults to the URL if no property is specified.
@@ -169,7 +169,13 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="owner">The resource with endpoints that owns the referenced endpoint.</param>
     /// <param name="endpoint">The endpoint annotation.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
-    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
+    /// <remarks>
+    /// Most Aspire resources are accesed in the context of the "localhost" network (host proceses calling other host proceses,
+    /// or host processes calling container via mapped ports). This is why EndpointReference assumes this
+    /// context unless specified otherwise. However, for container-to-container, or container-to-host communication,
+    /// you must specify a container network context for the EndpointReference to be resolved correctly.
+    /// </remarks>
+    public EndpointReference(IResourceWithEndpoints owner, EndpointAnnotation endpoint, NetworkIdentifier? contextNetworkID = null)
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -178,7 +184,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
         EndpointName = endpoint.Name;
         _endpointAnnotation = endpoint;
         endpoint.References.Add(this);
-        _contextNetworkID = contextNetworkID;
+        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.Localhost;
     }
 
     /// <summary>
@@ -187,14 +193,20 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
     /// <param name="owner">The resource with endpoints that owns the referenced endpoint.</param>
     /// <param name="endpointName">The name of the endpoint.</param>
     /// <param name="contextNetworkID">The ID of the network that serves as the context for the EndpointReference.</param>
-    public EndpointReference(IResourceWithEndpoints owner, string endpointName, string contextNetworkID = KnownNetworkIdentifiers.Localhost)
+    /// <remarks>
+    /// Most Aspire resources are accesed in the context of the "localhost" network (host proceses calling other host proceses,
+    /// or host processes calling container via mapped ports). This is why EndpointReference assumes this
+    /// context unless specified otherwise. However, for container-to-container, or container-to-host communication,
+    /// you must specify a container network context for the EndpointReference to be resolved correctly.
+    /// </remarks>
+    public EndpointReference(IResourceWithEndpoints owner, string endpointName, NetworkIdentifier? contextNetworkID = null)
     {
         ArgumentNullException.ThrowIfNull(owner);
         ArgumentNullException.ThrowIfNull(endpointName);
 
         Resource = owner;
         EndpointName = endpointName;
-        _contextNetworkID = contextNetworkID;
+        _contextNetworkID = contextNetworkID ?? KnownNetworkIdentifiers.Localhost;
     }
 }
 
@@ -203,7 +215,7 @@ public sealed class EndpointReference : IManifestExpressionProvider, IValueProvi
 /// </summary>
 /// <param name="endpointReference">The endpoint reference.</param>
 /// <param name="property">The property of the endpoint.</param>
-public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences
+public class EndpointReferenceExpression(EndpointReference endpointReference, EndpointProperty property) : IManifestExpressionProvider, IValueProvider, IValueWithReferences, INetworkAwareValueProvider
 {
     /// <summary>
     /// Gets the <see cref="EndpointReference"/>.
@@ -227,21 +239,34 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
     /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
     /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
-    public async ValueTask<string?> GetValueAsync(CancellationToken cancellationToken)
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        return GetValueAsync(null, cancellationToken);
+    }
+
+    /// <summary>
+    /// Gets the value of the property of the endpoint.
+    /// </summary>
+    /// <param name="context">The optional <see cref="NetworkIdentifier"/> context to use when resolving the endpoint property.</param>
+    /// <param name="cancellationToken">A <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="string"/> containing the selected <see cref="EndpointProperty"/> value.</returns>
+    /// <exception cref="InvalidOperationException">Throws when the selected <see cref="EndpointProperty"/> enumeration is not known.</exception>
+    public async ValueTask<string?> GetValueAsync(NetworkIdentifier? context = null, CancellationToken cancellationToken = default)
     {
         return Property switch
         {
             EndpointProperty.Scheme => new(Endpoint.Scheme),
-            EndpointProperty.IPV4Host => new("127.0.0.1"),
             EndpointProperty.TargetPort when Endpoint.TargetPort is int port => new(port.ToString(CultureInfo.InvariantCulture)),
             _ => await ResolveValueWithAllocatedAddress().ConfigureAwait(false)
         };
 
         async ValueTask<string?> ResolveValueWithAllocatedAddress()
         {
+            var effectiveContext = context ?? Endpoint.ContextNetworkID;
+
             // We are going to take the first snapshot that matches the context network ID. In general there might be multiple endpoints for a single service,
             // and in future we might need some sort of polic to choose between them, but for now we just take the first one.
-            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == Endpoint.ContextNetworkID).FirstOrDefault();
+            var nes = Endpoint.EndpointAnnotation.AllAllocatedEndpoints.Where(nes => nes.NetworkID == effectiveContext).FirstOrDefault();
             if (nes is null)
             {
                 return null;
@@ -253,6 +278,7 @@ public class EndpointReferenceExpression(EndpointReference endpointReference, En
             {
                 EndpointProperty.Url => new(allocatedEndpoint.UriString),
                 EndpointProperty.Host => new(allocatedEndpoint.Address),
+                EndpointProperty.IPV4Host => new(allocatedEndpoint.Address),
                 EndpointProperty.Port => new(allocatedEndpoint.Port.ToString(CultureInfo.InvariantCulture)),
                 EndpointProperty.TargetPort => new(ComputeTargetPort(allocatedEndpoint)),
                 EndpointProperty.HostAndPort => new($"{allocatedEndpoint.Address}:{allocatedEndpoint.Port.ToString(CultureInfo.InvariantCulture)}"),
