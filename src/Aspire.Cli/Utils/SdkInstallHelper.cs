@@ -83,7 +83,7 @@ internal static class SdkInstallHelper
                     {
                         await interactionService.ShowStatusAsync(
                             string.Format(CultureInfo.InvariantCulture,
-                                "Downloading and installing .NET SDK {0}...",
+                                "Downloading and installing .NET SDK {0}... This may take a few minutes.",
                                 minimumRequiredVersion),
                             async () =>
                             {
