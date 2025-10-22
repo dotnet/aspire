@@ -1045,14 +1045,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 {
                     exeSpec.Spec.ExecutionType = ExecutionType.Process;
 
-                    if (_configuration.GetBool("DOTNET_WATCH") is not true)
+                    // `dotnet watch` does not work with file-based apps yet, so we have to use `dotnet run` in that case
+                    if (_configuration.GetBool("DOTNET_WATCH") is not true || projectMetadata.IsFileBasedApp)
                     {
                         projectArgs.AddRange([
                             "run",
-                            "--no-build",
-                            "--project",
+                            projectMetadata.IsFileBasedApp ? "--file" : "--project",
                             projectMetadata.ProjectPath,
                         ]);
+                        if (projectMetadata.SuppressBuild)
+                        {
+                            projectArgs.Add("--no-build");
+                        }
                     }
                     else
                     {
@@ -1067,7 +1071,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
                     if (!string.IsNullOrEmpty(_distributedApplicationOptions.Configuration))
                     {
-                        projectArgs.AddRange(new[] { "-c", _distributedApplicationOptions.Configuration });
+                        projectArgs.AddRange(new[] { "--configuration", _distributedApplicationOptions.Configuration });
                     }
 
                     // We pretty much always want to suppress the normal launch profile handling
@@ -1113,7 +1117,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         CancellationToken cancellationToken)
     {
         var executablesList = executables.ToList();
-        
+
         async Task CreateResourceExecutablesAsyncCore(IResource resource, IEnumerable<AppResource> executables, CancellationToken cancellationToken)
         {
             var resourceLogger = _loggerService.GetLogger(resource);
@@ -1183,7 +1187,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var tasks = new List<Task>();
         var groups = executablesList.GroupBy(e => e.ModelResource).ToList();
-        
+
         foreach (var group in groups)
         {
             var groupList = group.ToList();
@@ -1266,8 +1270,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var applyCustomCertificateConfig) = await BuildExecutableCertificateAuthorityTrustAsync(er.ModelResource, spec.Args ?? [], spec.Env, cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env.AddRange(certificateEnv);
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
         }
         else
         {
@@ -1533,8 +1545,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         (var certificateArgs, var certificateEnv, var certificateFiles, var applyCustomCertificateConfig) = await BuildContainerCertificateAuthorityTrustAsync(modelContainerResource, spec.Args ?? [], spec.Env ?? [], cancellationToken).ConfigureAwait(false);
         if (applyCustomCertificateConfig)
         {
-            spec.Args = (spec.Args ?? []).Concat(certificateArgs).ToList();
-            spec.Env = (spec.Env ?? []).Concat(certificateEnv).ToList();
+            if (certificateArgs.Count > 0)
+            {
+                spec.Args ??= [];
+                spec.Args.AddRange(certificateArgs);
+            }
+            if (certificateEnv.Count > 0)
+            {
+                spec.Env ??= [];
+                spec.Env.AddRange(certificateEnv);
+            }
             spec.CreateFiles.AddRange(certificateFiles);
         }
         else
@@ -1715,8 +1735,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         return targetHost switch
         {
             null or "" => ("localhost", EndpointBindingMode.SingleAddress), // Default is localhost
-            var s when string.Equals(s, "localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost
-            var s when s.Length > 10 && s.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using .localhost subdomain
+            var s when EndpointHostHelpers.IsLocalhostOrLocalhostTld(s) => ("localhost", EndpointBindingMode.SingleAddress), // Explicitly set to localhost when using localhost or .localhost subdomain
             var s when IPAddress.TryParse(s, out var ipAddress) => ipAddress switch // The host is an IP address
             {
                 var ip when IPAddress.Any.Equals(ip) => ("localhost", EndpointBindingMode.IPv4AnyAddresses), // 0.0.0.0 (IPv4 all addresses)
@@ -2060,10 +2079,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, bool)> BuildExecutableCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
-        var scope = CustomCertificateAuthoritiesScope.Append;
+        var scope = CertificateTrustScope.Append;
         if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
@@ -2073,6 +2092,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2085,6 +2115,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ExecutableCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,
@@ -2154,6 +2185,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             Directory.CreateDirectory(Path.Join(_locations.DcpSessionDir, modelResource.Name));
             File.WriteAllText(caBundlePath, caBundleBuilder.ToString());
         }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
+        }
 
         return (arguments, envVars, true);
     }
@@ -2169,10 +2210,10 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
     private async Task<(List<string>, List<EnvVar>, List<ContainerCreateFileSystem>, bool)> BuildContainerCertificateAuthorityTrustAsync(IResource modelResource, List<string> resourceArguments, List<EnvVar> resourceEnvironment, CancellationToken cancellationToken)
     {
         // Apply the default dev cert trust behavior from options
-        bool trustDevCert = _distributedApplicationOptions.TrustDeveloperCertificate;
+        bool trustDevCert = _developerCertificateService.TrustCertificate;
 
         var certificates = new X509Certificate2Collection();
-        var scope = CustomCertificateAuthoritiesScope.Append;
+        var scope = CertificateTrustScope.Append;
         if (modelResource.TryGetLastAnnotation<CertificateAuthorityCollectionAnnotation>(out var caAnnotation))
         {
             foreach (var certCollection in caAnnotation.CertificateAuthorityCollections)
@@ -2182,6 +2223,18 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             trustDevCert = caAnnotation.TrustDeveloperCertificates.GetValueOrDefault(trustDevCert);
             scope = caAnnotation.Scope.GetValueOrDefault(scope);
+        }
+
+        if (scope == CertificateTrustScope.None)
+        {
+            // Resource has disabled custom certificate authorities
+            return (new List<string>(), new List<EnvVar>(), new List<ContainerCreateFileSystem>(), false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            // Read the system root certificates and add them to the collection
+            certificates.AddRootCertificates();
         }
 
         if (trustDevCert)
@@ -2194,15 +2247,17 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
         var context = new ContainerCertificateTrustCallbackAnnotationContext
         {
+            ExecutionContext = _executionContext,
             Resource = modelResource,
             Scope = scope,
             Certificates = certificates,
             CancellationToken = cancellationToken
         };
-        if (scope == CustomCertificateAuthoritiesScope.Override)
+
+        if (scope != CertificateTrustScope.Append)
         {
-            // Override default OpenSSL certificate bundle path resolution
-            // SSL_CERT_FILE is always added to the defaults when the scope is Override
+            // When Override or System scope is set (not Append), override the default OpenSSL certificate bundle path
+            // resolution by setting the SSL_CERT_FILE environment variable.
             // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
             context.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
         }
@@ -2262,7 +2317,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             }
 
             var caDirEnvValue = caFilesPath;
-            if (scope == CustomCertificateAuthoritiesScope.Append)
+            if (scope == CertificateTrustScope.Append)
             {
                 foreach (var defaultCaDir in context.DefaultContainerCertificatesDirectoryPaths)
                 {
@@ -2321,9 +2376,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 ],
             });
 
-            if (scope == CustomCertificateAuthoritiesScope.Override)
+            if (scope != CertificateTrustScope.Append)
             {
-                // If overriding the system CA bundle, then we want to copy our bundle to the well-known locations
+                // If overriding the default resource CA bundle, then we want to copy our bundle to the well-known locations
                 // used by common Linux distributions to make it easier to ensure applications pick it up.
                 foreach (var bundlePath in context.DefaultContainerCertificateAuthorityBundlePaths)
                 {
@@ -2340,6 +2395,16 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                     });
                 }
             }
+        }
+        else
+        {
+            _logger.LogInformation("No custom certificate authorities to configure for '{ResourceName}'. Default certificate authority trust behavior will be used.", modelResource.Name);
+            return (new List<string>(), new List<EnvVar>(), createFiles, false);
+        }
+
+        if (scope == CertificateTrustScope.System)
+        {
+            _logger.LogInformation("Configuring default certificate authority trust for '{ResourceName}' to include the default system root certificate authorities.", modelResource.Name);
         }
 
         return (arguments, envVars, createFiles, true);

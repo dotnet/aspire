@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using System.Security.Cryptography.X509Certificates;
@@ -13,7 +14,7 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
     private readonly Lazy<ImmutableList<X509Certificate2>> _certificates;
     private readonly Lazy<bool> _supportsContainerTrust;
 
-    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger)
+    public DeveloperCertificateService(ILogger<DeveloperCertificateService> logger, IConfiguration configuration, DistributedApplicationOptions options)
     {
         _certificates = new Lazy<ImmutableList<X509Certificate2>>(() =>
         {
@@ -56,9 +57,19 @@ internal class DeveloperCertificateService : IDeveloperCertificateService
             logger.LogDebug("Container trust for developer certificates is {Status}.", containerTrustAvailable ? "available" : "not available");
             return containerTrustAvailable;
         });
+
+        // Environment variable config > DistributedApplicationOptions > default true
+        TrustCertificate = configuration.GetBool(KnownConfigNames.TrustDeveloperCertificate) ??
+            options.TrustDeveloperCertificate ??
+            true;
     }
 
+    /// <inheritdoc />
     public ImmutableList<X509Certificate2> Certificates => _certificates.Value;
 
+    /// <inheritdoc />
     public bool SupportsContainerTrust => _supportsContainerTrust.Value;
+
+    /// <inheritdoc />
+    public bool TrustCertificate { get; }
 }

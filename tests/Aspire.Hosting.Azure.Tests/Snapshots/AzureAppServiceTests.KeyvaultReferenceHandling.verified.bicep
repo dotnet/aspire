@@ -1,4 +1,4 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param env_outputs_azure_container_registry_endpoint string
@@ -10,6 +10,8 @@ param env_outputs_azure_container_registry_managed_identity_id string
 param env_outputs_azure_container_registry_managed_identity_client_id string
 
 param api_containerimage string
+
+param api_containerport string
 
 param mydb_kv_outputs_name string
 
@@ -52,6 +54,7 @@ resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
     authType: 'UserAssigned'
     image: api_containerimage
     isMain: true
+    targetPort: api_containerport
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
@@ -69,6 +72,10 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       acrUseManagedIdentityCreds: true
       acrUserManagedIdentityID: env_outputs_azure_container_registry_managed_identity_client_id
       appSettings: [
+        {
+          name: 'WEBSITES_PORT'
+          value: api_containerport
+        }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
           value: 'true'

@@ -108,7 +108,7 @@ public class DcpExecutorTests
     }
 
     [Theory]
-    [InlineData(ExecutionType.IDE, false, new string[] { }, new string[] { "--test1", "--test2" })]
+    [InlineData(ExecutionType.IDE, false, null, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.IDE, true, new string[] { "--withargs-test" }, new string[] { "--withargs-test" })]
     [InlineData(ExecutionType.Process, false, new string[] { "--test1", "--test2" }, new string[] { "--test1", "--test2" })]
     [InlineData(ExecutionType.Process, true, new string[] { "--", "--test1", "--test2", "--withargs-test" }, new string[] { "--", "--test1", "--test2", "--withargs-test" })]
@@ -2015,6 +2015,8 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
+        var options = new DistributedApplicationOptions();
+
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
             NullLogger<DistributedApplication>.Instance,
@@ -2023,7 +2025,7 @@ public class DcpExecutorTests
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
-            new DistributedApplicationOptions(),
+            options,
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
@@ -2034,7 +2036,7 @@ public class DcpExecutorTests
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance));
+            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance, configuration, options));
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);

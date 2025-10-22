@@ -23,14 +23,19 @@ public sealed class ExecutableCertificateTrustCallbackAnnotation(Func<Executable
 public sealed class ExecutableCertificateTrustCallbackAnnotationContext
 {
     /// <summary>
+    /// Gets the <see cref="DistributedApplicationExecutionContext"/> for this session.
+    /// </summary>
+    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
+
+    /// <summary>
     /// Gets the resource to which the annotation is applied.
     /// </summary>
     public required IResource Resource { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="CustomCertificateAuthoritiesScope"/> of trust for the resource.
+    /// Gets the <see cref="CertificateTrustScope"/> of trust for the resource.
     /// </summary>
-    public required CustomCertificateAuthoritiesScope Scope { get; init; }
+    public required CertificateTrustScope Scope { get; init; }
 
     /// <summary>
     /// Gets the <see cref="X509Certificate2Collection"/> of certificates for this resource.

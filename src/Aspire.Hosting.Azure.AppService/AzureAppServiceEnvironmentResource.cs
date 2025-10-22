@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Azure.Provisioning;
 using Azure.Provisioning.AppService;
+using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
 
 namespace Aspire.Hosting.Azure;
@@ -30,6 +32,11 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal BicepOutputReference WebsiteContributorManagedIdentityPrincipalId => new("AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID", this);
 
     /// <summary>
+    /// Gets the suffix added to each web app created in this App Service Environment.
+    /// </summary>
+    private BicepOutputReference WebSiteSuffix => new("webSiteSuffix", this);
+
+    /// <summary>
     /// Gets or sets a value indicating whether the Aspire dashboard should be included in the container app environment.
     /// Default is true.
     /// </summary>
@@ -45,6 +52,9 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// </summary>
     public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
 
+    internal static BicepValue<string> GetWebSiteSuffixBicep() =>
+        BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
+
     ReferenceExpression IAzureContainerRegistry.ManagedIdentityId => 
         ReferenceExpression.Create($"{ContainerRegistryManagedIdentityId}");
 
@@ -53,6 +63,12 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 
     ReferenceExpression IContainerRegistry.Endpoint => 
         ReferenceExpression.Create($"{ContainerRegistryUrl}");
+
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}-{WebSiteSuffix}.azurewebsites.net");
+    }
 
     /// <inheritdoc/>
     public override ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra)

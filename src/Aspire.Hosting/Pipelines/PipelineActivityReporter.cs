@@ -156,6 +156,38 @@ internal sealed class PipelineActivityReporter : IPipelineActivityReporter, IAsy
         await ActivityItemUpdated.Writer.WriteAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
+    internal void Log(ReportingStep step, LogLevel logLevel, string message)
+    {
+        if (!_steps.TryGetValue(step.Id, out var parentStep))
+        {
+            return;
+        }
+
+        lock (parentStep)
+        {
+            if (parentStep.CompletionState != CompletionState.InProgress)
+            {
+                return;
+            }
+        }
+
+        var state = new PublishingActivity
+        {
+            Type = PublishingActivityTypes.Log,
+            Data = new PublishingActivityData
+            {
+                Id = Guid.NewGuid().ToString(),
+                StatusText = message,
+                CompletionState = ToBackchannelCompletionState(CompletionState.Completed),
+                StepId = step.Id,
+                LogLevel = logLevel.ToString(),
+                Timestamp = DateTimeOffset.UtcNow
+            }
+        };
+
+        ActivityItemUpdated.Writer.TryWrite(state);
+    }
+
     public async Task CompleteTaskAsync(ReportingTask task, CompletionState completionState, string? completionMessage, CancellationToken cancellationToken)
     {
         if (!_steps.TryGetValue(task.StepId, out var parentStep))

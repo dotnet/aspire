@@ -88,7 +88,7 @@
   <Target Name="_CheckMaxFileSize">
     <PropertyGroup>
       <_MaxFileSizeMB Condition="'$(CliRuntime)' == 'win-x86'">75</_MaxFileSizeMB>
-      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">20</_MaxFileSizeMB>
+      <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and $([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
       <_MaxFileSizeMB Condition="'$(_MaxFileSizeMB)' == '' and !$([System.OperatingSystem]::IsWindows())">25</_MaxFileSizeMB>
 
       <!-- pwsh on windows. Use Ceiling to match `du -m` behavior -->

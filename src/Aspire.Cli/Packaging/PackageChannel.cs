@@ -8,13 +8,14 @@ using NuGetPackage = Aspire.Shared.NuGetPackageCli;
 
 namespace Aspire.Cli.Packaging;
 
-internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
+internal class PackageChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null)
 {
     public string Name { get; } = name;
     public PackageChannelQuality Quality { get; } = quality;
     public PackageMapping[]? Mappings { get; } = mappings;
     public PackageChannelType Type { get; } = mappings is null ? PackageChannelType.Implicit : PackageChannelType.Explicit;
     public bool ConfigureGlobalPackagesFolder { get; } = configureGlobalPackagesFolder;
+    public string? CliDownloadBaseUrl { get; } = cliDownloadBaseUrl;
     
     public string SourceDetails { get; } = ComputeSourceDetails(mappings);
     
@@ -174,9 +175,9 @@ internal class PackageChannel(string name, PackageChannelQuality quality, Packag
         return filteredPackages;
     }
 
-    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false)
+    public static PackageChannel CreateExplicitChannel(string name, PackageChannelQuality quality, PackageMapping[]? mappings, INuGetPackageCache nuGetPackageCache, bool configureGlobalPackagesFolder = false, string? cliDownloadBaseUrl = null)
     {
-        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder);
+        return new PackageChannel(name, quality, mappings, nuGetPackageCache, configureGlobalPackagesFolder, cliDownloadBaseUrl);
     }
 
     public static PackageChannel CreateImplicitChannel(INuGetPackageCache nuGetPackageCache)

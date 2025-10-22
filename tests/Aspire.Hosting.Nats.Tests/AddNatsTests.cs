@@ -195,7 +195,7 @@ public class AddNatsTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+              "connectionString": "nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -232,7 +232,7 @@ public class AddNatsTests
         var expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://{user.value}:{pass.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+              "connectionString": "nats://{user-uri-encoded.value}:{pass-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -260,7 +260,7 @@ public class AddNatsTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://{user.value}:{nats2-password.value}@{nats2.bindings.tcp.host}:{nats2.bindings.tcp.port}",
+              "connectionString": "nats://{user-uri-encoded.value}:{nats2-password-uri-encoded.value}@{nats2.bindings.tcp.host}:{nats2.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",
@@ -287,7 +287,7 @@ public class AddNatsTests
         expectedManifest = $$"""
             {
               "type": "container.v0",
-              "connectionString": "nats://nats:{pass.value}@{nats3.bindings.tcp.host}:{nats3.bindings.tcp.port}",
+              "connectionString": "nats://nats:{pass-uri-encoded.value}@{nats3.bindings.tcp.host}:{nats3.bindings.tcp.port}",
               "image": "{{NatsContainerImageTags.Registry}}/{{NatsContainerImageTags.Image}}:{{NatsContainerImageTags.Tag}}",
               "args": [
                 "--user",

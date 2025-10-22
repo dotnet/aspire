@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp</PackageTags>
+    <PackageTags>$(ComponentDatabasePackageTags) rabbitmq amqp messaging eventing</PackageTags>
     <Description>A RabbitMQ client that integrates with Aspire, including health checks, logging, and telemetry.</Description>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
   </PropertyGroup>

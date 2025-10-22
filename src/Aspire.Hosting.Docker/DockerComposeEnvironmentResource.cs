@@ -60,6 +60,20 @@ public class DockerComposeEnvironmentResource : Resource, IComputeEnvironmentRes
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
     }
 
+    /// <summary>
+    /// Computes the host URL <see cref="ReferenceExpression"/> for the given <see cref="EndpointReference"/>.
+    /// </summary>
+    /// <param name="endpointReference">The endpoint reference to compute the host address for.</param>
+    /// <returns>A <see cref="ReferenceExpression"/> representing the host address.</returns>
+    ReferenceExpression IComputeEnvironmentResource.GetHostAddressExpression(EndpointReference endpointReference)
+    {
+        var resource = endpointReference.Resource;
+
+        // In Docker Compose, services can communicate using their service names
+        // Docker Compose automatically creates a network where services can reach each other by service name
+        return ReferenceExpression.Create($"{resource.Name.ToLowerInvariant()}");
+    }
+
     private Task PublishAsync(PublishingContext context)
     {
         var imageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();

@@ -834,6 +834,57 @@ public class PublishingActivityReporterTests
     }
 
     [Fact]
+    public async Task Log_LogsMessageAndEmitsActivity()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+        var logMessage = "Downloading dependencies...";
+        var logLevel = LogLevel.Information;
+
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        var stepInternal = Assert.IsType<ReportingStep>(step);
+
+        // Clear step creation activity
+        reporter.ActivityItemUpdated.Reader.TryRead(out _);
+
+        // Act
+        step.Log(logLevel, logMessage);
+
+        // Assert
+        // Verify activity was emitted
+        var activityReader = reporter.ActivityItemUpdated.Reader;
+        Assert.True(activityReader.TryRead(out var activity));
+        Assert.Equal(PublishingActivityTypes.Log, activity.Type);
+        Assert.Equal(logMessage, activity.Data.StatusText);
+        Assert.Equal(stepInternal.Id, activity.Data.StepId);
+        Assert.Equal(logLevel.ToString(), activity.Data.LogLevel);
+        Assert.NotNull(activity.Data.Timestamp);
+        Assert.True(activity.Data.IsComplete);
+        Assert.False(activity.Data.IsError);
+        Assert.False(activity.Data.IsWarning);
+    }
+
+    [Fact]
+    public async Task Log_DoesNothingWhenStepIsComplete()
+    {
+        // Arrange
+        var reporter = CreatePublishingReporter();
+
+        // Create and complete step
+        var step = await reporter.CreateStepAsync("Test Step", CancellationToken.None);
+        await step.CompleteAsync("Completed", CompletionState.Completed, CancellationToken.None);
+
+        // Clear activities
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out _)) { }
+
+        // Act - Step is completed, so logging should be a no-op
+        step.Log(LogLevel.Information, "Test log");
+
+        // Assert - No new activity should be emitted
+        Assert.False(reporter.ActivityItemUpdated.Reader.TryRead(out _));
+    }
+
+    [Fact]
     public async Task CompleteTaskAsync_WithMarkdownCompletionMessage_PreservesMarkdown()
     {
         // Arrange

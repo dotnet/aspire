@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
-    <PackageTags>$(ComponentAzurePackageTags) eventhubs amqp</PackageTags>
+    <PackageTags>$(ComponentAzurePackageTags) eventhubs amqp messaging eventing cloud</PackageTags>
     <Description>A client for Azure Event Hubs that integrates with Aspire, including logging and telemetry.</Description>
     <PackageIconFullPath>$(SharedDir)AzureEventHubs_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
