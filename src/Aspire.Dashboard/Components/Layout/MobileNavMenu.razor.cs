@@ -46,13 +46,6 @@ public partial class MobileNavMenu : ComponentBase
             );
 
             yield return new MobileNavMenuEntry(
-                Loc[nameof(Resources.Layout.NavMenuParametersTab)],
-                () => NavigateToAsync(DashboardUrls.ParametersUrl()),
-                DesktopNavMenu.ParametersIcon(),
-                LinkMatchRegex: GetNonIndexPageRegex(DashboardUrls.ParametersUrl())
-            );
-
-            yield return new MobileNavMenuEntry(
                 Loc[nameof(Resources.Layout.NavMenuConsoleLogsTab)],
                 () => NavigateToAsync(DashboardUrls.ConsoleLogsUrl()),
                 DesktopNavMenu.ConsoleLogsIcon(),

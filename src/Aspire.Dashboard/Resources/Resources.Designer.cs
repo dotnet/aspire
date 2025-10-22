@@ -617,5 +617,14 @@ namespace Aspire.Dashboard.Resources {
                 return ResourceManager.GetString("ParametersPageTitle", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Parameters.
+        /// </summary>
+        public static string ResourcesParametersTab {
+            get {
+                return ResourceManager.GetString("ResourcesParametersTab", resourceCulture);
+            }
+        }
     }
 }

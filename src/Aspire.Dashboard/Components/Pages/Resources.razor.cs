@@ -137,12 +137,29 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
 
     private bool Filter(ResourceViewModel resource)
     {
+        var isParameter = StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Parameter);
+        
+        // Parameters tab shows only parameters, Table/Graph tabs show everything except parameters
+        if (PageViewModel.SelectedViewKind == ResourceViewKind.Parameters)
+        {
+            if (!isParameter)
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (isParameter)
+            {
+                return false;
+            }
+        }
+
         return IsKeyValueTrue(resource.ResourceType, PageViewModel.ResourceTypesToVisibility)
                && IsKeyValueTrue(resource.State ?? string.Empty, PageViewModel.ResourceStatesToVisibility)
                && IsKeyValueTrue(resource.HealthStatus?.Humanize() ?? string.Empty, PageViewModel.ResourceHealthStatusesToVisibility)
                && (_filter.Length == 0 || resource.MatchesFilter(_filter))
-               && !resource.IsResourceHidden(_showHiddenResources)
-               && !StringComparers.ResourceType.Equals(resource.ResourceType, KnownResourceTypes.Parameter);
+               && !resource.IsResourceHidden(_showHiddenResources);
 
         static bool IsKeyValueTrue(string key, IDictionary<string, bool> dictionary) => dictionary.TryGetValue(key, out var value) && value;
     }
@@ -877,7 +894,8 @@ public partial class Resources : ComponentBase, IComponentWithTelemetry, IAsyncD
     public enum ResourceViewKind
     {
         Table,
-        Graph
+        Graph,
+        Parameters
     }
 
     public Task UpdateViewModelFromQueryAsync(ResourcesViewModel viewModel)

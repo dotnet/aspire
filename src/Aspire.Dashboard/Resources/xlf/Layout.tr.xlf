@@ -67,11 +67,6 @@
         <target state="translated">Ölçümler</target>
         <note />
       </trans-unit>
-      <trans-unit id="NavMenuParametersTab">
-        <source>Parameters</source>
-        <target state="new">Parameters</target>
-        <note />
-      </trans-unit>
       <trans-unit id="NavMenuResourcesTab">
         <source>Resources</source>
         <target state="translated">Kaynaklar</target>

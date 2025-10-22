@@ -316,4 +316,7 @@
   <data name="ParametersHeader" xml:space="preserve">
     <value>Parameters</value>
   </data>
+  <data name="ResourcesParametersTab" xml:space="preserve">
+    <value>Parameters</value>
+  </data>
 </root>

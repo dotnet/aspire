@@ -15,10 +15,6 @@ public partial class DesktopNavMenu : ComponentBase, IDisposable
         active ? new Icons.Filled.Size24.AppFolder()
                   : new Icons.Regular.Size24.AppFolder();
 
-    internal static Icon ParametersIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.Key()
-                  : new Icons.Regular.Size24.Key();
-
     internal static Icon ConsoleLogsIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.SlideText()
                   : new Icons.Regular.Size24.SlideText();

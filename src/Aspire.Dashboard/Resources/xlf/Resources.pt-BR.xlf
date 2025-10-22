@@ -237,6 +237,11 @@
         <target state="translated">Sem filtros</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourcesParametersTab">
+        <source>Parameters</source>
+        <target state="new">Parameters</target>
+        <note />
+      </trans-unit>
       <trans-unit id="ResourcesResourceStatesHeader">
         <source>State</source>
         <target state="translated">Estado</target>

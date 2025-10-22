@@ -115,9 +115,14 @@
                                                Label="@ControlsStringsLoc[nameof(ControlsStrings.ChartContainerGraphTab)]"
                                                Icon="@(new Icons.Regular.Size24.ShareAndroid())">
                                     </FluentTab>
+                                    <FluentTab LabelClass="tab-label"
+                                               Id="@($"tab-{ResourceViewKind.Parameters}")"
+                                               Label="@Loc[nameof(Dashboard.Resources.Resources.ResourcesParametersTab)]"
+                                               Icon="@(new Icons.Regular.Size24.Key())">
+                                    </FluentTab>
                                 </FluentTabs>
                             }
-                            <div class="resources-grid-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table)">
+                            <div class="resources-grid-container" hidden="@(PageViewModel.SelectedViewKind != ResourceViewKind.Table && PageViewModel.SelectedViewKind != ResourceViewKind.Parameters)">
                                 <GridColumnManager @ref="_manager" Columns="@_gridColumns">
                                     <FluentDataGrid @ref="_dataGrid"
                                                     ColumnResizeLabels="@_resizeLabels"
