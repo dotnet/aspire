@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Maui.Utilities;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Tests;
 
@@ -168,7 +170,7 @@ public class MauiWindowsExtensionsTests
     }
 
     [Fact]
-    public void AddWindowsDevice_WithoutWindowsTfm_ThrowsException()
+    public async Task AddWindowsDevice_WithoutWindowsTfm_ThrowsOnBeforeStartEvent()
     {
         // Arrange - Create a temporary project file without Windows TFM
         var projectContent = """
@@ -185,8 +187,23 @@ public class MauiWindowsExtensionsTests
             var appBuilder = DistributedApplication.CreateBuilder();
             var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
 
-            // Act & Assert
-            var exception = Assert.Throws<DistributedApplicationException>(() => maui.AddWindowsDevice());
+            // Act - Adding the device should succeed (validation deferred to start)
+            var windows = maui.AddWindowsDevice();
+            
+            // Assert - Resource is created
+            Assert.NotNull(windows);
+            Assert.Equal("mauiapp-windows", windows.Resource.Name);
+            
+            // Build the app to get access to eventing
+            await using var app = appBuilder.Build();
+            
+            // Trigger the BeforeResourceStartedEvent which should throw
+            var exception = await Assert.ThrowsAsync<DistributedApplicationException>(async () =>
+            {
+                await app.Services.GetRequiredService<IDistributedApplicationEventing>()
+                    .PublishAsync(new BeforeResourceStartedEvent(windows.Resource, app.Services), CancellationToken.None);
+            });
+            
             Assert.Contains("Unable to detect Windows target framework", exception.Message);
             Assert.Contains(tempFile, exception.Message);
         }

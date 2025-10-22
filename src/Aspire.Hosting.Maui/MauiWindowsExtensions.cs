@@ -70,27 +70,40 @@ public static class MauiWindowsExtensions
         var workingDirectory = Path.GetDirectoryName(projectPath)
             ?? throw new InvalidOperationException($"Unable to determine directory from project path: {projectPath}");
 
-        // Check if the project has the Windows TFM and get the actual TFM value
-        var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
-
-        // If we can't detect the TFM, fail the resource immediately
-        if (string.IsNullOrEmpty(windowsTfm))
-        {
-            throw new DistributedApplicationException(
-                $"Unable to detect Windows target framework in project '{projectPath}'. " +
-                "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Windows target framework (e.g., net10.0-windows10.0.19041.0) " +
-                "or remove the AddWindowsDevice() call from your AppHost.");
-        }
-
-        // Create the Windows resource with dotnet run command
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
         builder.Resource.WindowsDevices.Add(windowsResource);
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
             .WithOtlpExporter()
             .WithIconName("Desktop")
-            .WithExplicitStart()
-            .WithArgs("run", "-f", windowsTfm);
+            .WithExplicitStart();
+
+        // Validate the Windows TFM when the resource is about to start
+        resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
+        {
+            // Check if the project has the Windows TFM and get the actual TFM value
+            var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
+
+            // If we can't detect the TFM, fail the resource start
+            if (string.IsNullOrEmpty(windowsTfm))
+            {
+                throw new DistributedApplicationException(
+                    $"Unable to detect Windows target framework in project '{projectPath}'. " +
+                    "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Windows target framework (e.g., net10.0-windows10.0.19041.0) " +
+                    "or remove the AddWindowsDevice() call from your AppHost.");
+            }
+
+            // Set the command line arguments with the detected TFM
+            resource.Annotations.Add(new CommandLineArgsCallbackAnnotation(args =>
+            {
+                args.Args.Add("run");
+                args.Args.Add("-f");
+                args.Args.Add(windowsTfm);
+                return Task.CompletedTask;
+            }));
+
+            return Task.CompletedTask;
+        });
 
         // Check if Windows platform is supported on the current host
         if (!OperatingSystem.IsWindows())
