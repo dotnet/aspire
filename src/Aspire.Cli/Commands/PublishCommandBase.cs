@@ -149,17 +149,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-            var logLevel = parseResult.GetValue<string?>("--log-level");
-            if (!string.IsNullOrEmpty(logLevel))
-            {
-                env["Publishing:LogLevel"] = logLevel;
-            }
 
-            var environment = parseResult.GetValue<string?>("--environment");
-            if (!string.IsNullOrEmpty(environment))
-            {
-                env["ASPNETCORE_ENVIRONMENT"] = environment;
-            }
 
             if (isSingleFileAppHost)
             {
