@@ -33,7 +33,7 @@ public static class EndpointHostHelpers
     }
 
     /// <summary>
-    /// Determines whether the specified host is a localhost address.
+    /// Determines whether the specified host is "localhost" or uses the ".localhost" top-level domain.
     /// </summary>
     /// <param name="host">The host to check.</param>
     /// <returns>
