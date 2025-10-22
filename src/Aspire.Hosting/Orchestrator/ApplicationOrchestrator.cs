@@ -11,6 +11,7 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
+using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.Orchestrator;
 
@@ -250,7 +251,7 @@ internal sealed class ApplicationOrchestrator
                     };
 
                     // If the additional URL is a *.localhost address we want to highlight that URL in the dashboard
-                    if (additionalUrl?.Endpoint?.EndpointAnnotation.TargetHost.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase) == true)
+                    if (additionalUrl is not null && EndpointHostHelpers.IsLocalhostTld(additionalUrl.Endpoint?.EndpointAnnotation.TargetHost))
                     {
                         additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
                         url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
