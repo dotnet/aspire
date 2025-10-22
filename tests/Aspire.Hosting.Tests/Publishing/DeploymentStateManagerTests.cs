@@ -99,7 +99,6 @@ public class DeploymentStateManagerTests
         Assert.Equal("azure-value1", azureCheck.Data["resource1"]?.GetValue<string>());
     }
 
-
     [Fact]
     public async Task ConcurrentSaves_ToDifferentSections_AreSerializedToStorage()
     {
