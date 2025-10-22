@@ -559,6 +559,9 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Always set MSBUILDTERMINALLOGGER=false for all dotnet command executions to ensure consistent terminal logger behavior
         startInfo.EnvironmentVariables[KnownConfigNames.MsBuildTerminalLogger] = "false";
 
+        // Suppress the .NET welcome message that appears on first run
+        startInfo.EnvironmentVariables["DOTNET_NOLOGO"] = "1";
+
         // Configure DOTNET_ROOT to point to the private SDK installation if it exists
         ConfigurePrivateSdkEnvironment(startInfo);
 
