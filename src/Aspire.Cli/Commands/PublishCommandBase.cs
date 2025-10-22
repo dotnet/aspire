@@ -290,6 +290,17 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
+    /// <summary>
+    /// Conditionally converts markdown to Spectre markup based on the EnableMarkdown flag in the activity data.
+    /// </summary>
+    /// <param name="text">The text to convert.</param>
+    /// <param name="activityData">The publishing activity data containing the EnableMarkdown flag.</param>
+    /// <returns>The converted text if markdown is enabled, otherwise the original text.</returns>
+    private static string ConvertTextWithMarkdownFlag(string text, PublishingActivityData activityData)
+    {
+        return activityData.EnableMarkdown ? MarkdownToSpectreConverter.ConvertToSpectre(text) : text;
+    }
+
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
@@ -309,7 +320,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
@@ -318,7 +329,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
@@ -331,7 +342,7 @@ internal abstract class PublishCommandBase : BaseCommand
             {
                 // Log activity - display the log message
                 var logLevel = activity.Data.LogLevel ?? "Information";
-                var message = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                 var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTimeOffset.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
                 
                 // Use 3-letter prefixes for log levels
@@ -364,17 +375,17 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        var completionMessage = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.CompletionMessage);
+                        var completionMessage = ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data);
                         InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", escapeMarkup: false);
                     }
                 }
                 else
                 {
-                    var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
                 }
             }
@@ -386,7 +397,7 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            var statusText = MarkdownToSpectreConverter.ConvertToSpectre(publishingActivity.Data.StatusText);
+            var statusText = ConvertTextWithMarkdownFlag(publishingActivity.Data.StatusText, publishingActivity.Data);
             InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
 
             // Send visual bell notification when operation is complete
@@ -419,7 +430,7 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     if (!steps.TryGetValue(activity.Data.Id, out var stepInfo))
                     {
-                        var title = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                        var title = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         stepInfo = new StepInfo
                         {
                             Id = activity.Data.Id,
@@ -436,7 +447,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
-                        stepInfo.CompletionText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                        stepInfo.CompletionText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         stepInfo.EndTime = DateTime.UtcNow;
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
@@ -465,7 +476,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     if (stepId != null && steps.TryGetValue(stepId, out var stepInfo))
                     {
                         var logLevel = activity.Data.LogLevel ?? "Information";
-                        var message = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                        var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         
                         // Add 3-letter prefix to message for consistency
                         var logPrefix = logLevel.ToUpperInvariant() switch
@@ -520,7 +531,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
                     if (!tasks.TryGetValue(activity.Data.Id, out var task))
                     {
-                        var statusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                        var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         task = new TaskInfo
                         {
                             Id = activity.Data.Id,
@@ -533,13 +544,13 @@ internal abstract class PublishCommandBase : BaseCommand
                         logger.Progress(stepInfo.Id, statusText);
                     }
 
-                    task.StatusText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+                    task.StatusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     task.CompletionState = activity.Data.CompletionState;
 
                     if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         task.CompletionMessage = !string.IsNullOrEmpty(activity.Data.CompletionMessage)
-                            ? MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.CompletionMessage)
+                            ? ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data)
                             : null;
 
                         var duration = DateTime.UtcNow - task.StartTime;
@@ -629,12 +640,12 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
-    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
+    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText, PublishingActivityData activityData)
     {
         if (inputCount > 1)
         {
             // Multi-input: just show the label with markdown conversion
-            var labelText = MarkdownToSpectreConverter.ConvertToSpectre($"{input.Label}: ");
+            var labelText = ConvertTextWithMarkdownFlag($"{input.Label}: ", activityData);
             return labelText;
         }
 
@@ -645,12 +656,12 @@ internal abstract class PublishCommandBase : BaseCommand
         // If StatusText equals Label (case-insensitive), show only the label once
         if (header.Equals(label, StringComparison.OrdinalIgnoreCase))
         {
-            return $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(label)}[/]";
+            return $"[bold]{ConvertTextWithMarkdownFlag(label, activityData)}[/]";
         }
 
         // Show StatusText as header (converted from markdown), then Label on new line
-        var convertedHeader = MarkdownToSpectreConverter.ConvertToSpectre(header);
-        var convertedLabel = MarkdownToSpectreConverter.ConvertToSpectre(label);
+        var convertedHeader = ConvertTextWithMarkdownFlag(header, activityData);
+        var convertedLabel = ConvertTextWithMarkdownFlag(label, activityData);
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
@@ -675,7 +686,7 @@ internal abstract class PublishCommandBase : BaseCommand
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
         if (!hasValidationErrors && inputs.Count > 1)
         {
-            var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+            var headerText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
         }
 
@@ -692,7 +703,7 @@ internal abstract class PublishCommandBase : BaseCommand
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
                 // Build the prompt text based on number of inputs
-                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
+                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText, activity.Data);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }

@@ -1354,6 +1354,7 @@ public class DistributedApplicationPipelineTests
         Assert.Equal("Test log message from pipeline step", logActivity.Data.StatusText);
         Assert.Equal("Information", logActivity.Data.LogLevel);
         Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.False(logActivity.Data.EnableMarkdown);
     }
 
     [Fact]

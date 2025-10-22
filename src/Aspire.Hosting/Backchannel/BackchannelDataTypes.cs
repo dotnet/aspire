@@ -135,6 +135,11 @@ internal sealed class PublishingActivityData
     /// Gets the timestamp for log activities, if available.
     /// </summary>
     public DateTimeOffset? Timestamp { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether markdown formatting is enabled for the publishing activity.
+    /// </summary>
+    public bool EnableMarkdown { get; init; } = true;
 }
 
 /// <summary>

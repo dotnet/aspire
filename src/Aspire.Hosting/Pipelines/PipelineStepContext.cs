@@ -88,6 +88,6 @@ internal sealed class StepLogger(IReportingStep step) : ILogger
             message = $"{message} {exception}";
         }
 
-        _step.Log(logLevel, message);
+        _step.Log(logLevel, message, enableMarkdown: false);
     }
 }
