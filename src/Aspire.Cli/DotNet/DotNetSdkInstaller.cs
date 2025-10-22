@@ -36,6 +36,24 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                           bool.TryParse(alwaysInstallSdk, out var alwaysInstall) && 
                           alwaysInstall;
         
+        // First check if we already have the SDK installed in our private runtimes directory
+        // If we do, we know it's the correct version (no need to run dotnet --list-sdks)
+        if (!forceInstall)
+        {
+            var runtimesDirectory = GetRuntimesDirectory();
+            var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", minimumVersion);
+            var dotnetExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
+                ? Path.Combine(sdkInstallPath, "dotnet.exe")
+                : Path.Combine(sdkInstallPath, "dotnet");
+
+            if (File.Exists(dotnetExecutable))
+            {
+                // SDK is already installed in our private directory, return success immediately
+                logger.LogDebug("Found private SDK installation at {Path}", sdkInstallPath);
+                return (true, minimumVersion, minimumVersion, false);
+            }
+        }
+        
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
