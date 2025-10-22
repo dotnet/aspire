@@ -9,6 +9,30 @@ namespace Aspire.Hosting.Utils;
 public static class EndpointHostHelpers
 {
     /// <summary>
+    /// Determines whether the specified host is "localhost".
+    /// </summary>
+    /// <param name="host">The host to check.</param>
+    /// <returns>
+    /// <c>true</c> if the host is "localhost" (case-insensitive); otherwise, <c>false</c>.
+    /// </returns>
+    public static bool IsLocalhost(string? host)
+    {
+        return host is not null && string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Determines whether the specified host ends with ".localhost".
+    /// </summary>
+    /// <param name="host">The host to check.</param>
+    /// <returns>
+    /// <c>true</c> if the host ends with ".localhost" (case-insensitive); otherwise, <c>false</c>.
+    /// </returns>
+    public static bool IsLocalhostTld(string? host)
+    {
+        return host is not null && host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Determines whether the specified host is a localhost address.
     /// </summary>
     /// <param name="host">The host to check.</param>
@@ -16,10 +40,8 @@ public static class EndpointHostHelpers
     /// <c>true</c> if the host is "localhost" (case-insensitive) or ends with ".localhost" (case-insensitive);
     /// otherwise, <c>false</c>.
     /// </returns>
-    public static bool IsLocalhostAddress(string? host)
+    public static bool IsLocalhostOrLocalhostTld(string? host)
     {
-        return host is not null &&
-               (string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase));
+        return IsLocalhost(host) || IsLocalhostTld(host);
     }
 }

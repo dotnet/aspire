@@ -467,7 +467,7 @@ public static partial class DevTunnelsResourceBuilderExtensions
             .SingleOrDefault(a => StringComparers.EndpointAnnotationName.Equals(a.Name, targetEndpoint.EndpointName)) is { } targetEndpointAnnotation)
         {
             // The target endpoint already exists so let's ensure it's target is localhost
-            if (!EndpointHostHelpers.IsLocalhostAddress(targetEndpointAnnotation.TargetHost))
+            if (!EndpointHostHelpers.IsLocalhostOrLocalhostTld(targetEndpointAnnotation.TargetHost))
             {
                 // Target endpoint is not localhost so can't be tunneled
                 throw new ArgumentException($"Cannot tunnel endpoint '{targetEndpointAnnotation.Name}' with host '{targetEndpointAnnotation.TargetHost}' on resource '{targetResource.Name}' because it is not a localhost endpoint.", nameof(targetEndpoint));
