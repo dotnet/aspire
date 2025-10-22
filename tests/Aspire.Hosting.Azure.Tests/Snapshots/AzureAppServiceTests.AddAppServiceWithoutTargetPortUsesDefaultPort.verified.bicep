@@ -9,19 +9,7 @@ param env_outputs_azure_container_registry_managed_identity_id string
 
 param env_outputs_azure_container_registry_managed_identity_client_id string
 
-param api_containerimage string
-
-param api_containerport string
-
-param mydb_kv_outputs_name string
-
-param kvName string
-
-param sharedRg string
-
-param api_identity_outputs_id string
-
-param api_identity_outputs_clientid string
+param project1_containerimage string
 
 param env_outputs_azure_app_service_dashboard_uri string
 
@@ -29,43 +17,23 @@ param env_outputs_azure_website_contributor_managed_identity_id string
 
 param env_outputs_azure_website_contributor_managed_identity_principal_id string
 
-resource mydb_kv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
-  name: mydb_kv_outputs_name
-}
-
-resource mydb_kv_connectionstrings__mydb 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
-  name: 'connectionstrings--mydb'
-  parent: mydb_kv
-}
-
-resource existingKv 'Microsoft.KeyVault/vaults@2024-11-01' existing = {
-  name: kvName
-  scope: resourceGroup(sharedRg)
-}
-
-resource existingKv_secret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' existing = {
-  name: 'secret'
-  parent: existingKv
-}
-
 resource mainContainer 'Microsoft.Web/sites/sitecontainers@2024-11-01' = {
   name: 'main'
   properties: {
     authType: 'UserAssigned'
-    image: api_containerimage
+    image: project1_containerimage
     isMain: true
-    targetPort: api_containerport
+    targetPort: '8000'
     userManagedIdentityClientId: env_outputs_azure_container_registry_managed_identity_client_id
   }
   parent: webapp
 }
 
 resource webapp 'Microsoft.Web/sites@2024-11-01' = {
-  name: take('${toLower('api')}-${uniqueString(resourceGroup().id)}', 60)
+  name: take('${toLower('project1')}-${uniqueString(resourceGroup().id)}', 60)
   location: location
   properties: {
     serverFarmId: env_outputs_planid
-    keyVaultReferenceIdentity: api_identity_outputs_id
     siteConfig: {
       numberOfWorkers: 30
       linuxFxVersion: 'SITECONTAINERS'
@@ -74,7 +42,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
       appSettings: [
         {
           name: 'WEBSITES_PORT'
-          value: api_containerport
+          value: '8000'
         }
         {
           name: 'OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES'
@@ -89,20 +57,12 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
           value: 'in_memory'
         }
         {
-          name: 'ConnectionStrings__mydb'
-          value: '@Microsoft.KeyVault(SecretUri=${mydb_kv_connectionstrings__mydb.properties.secretUri})'
+          name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
+          value: 'true'
         }
         {
-          name: 'SECRET_VALUE'
-          value: '@Microsoft.KeyVault(SecretUri=${existingKv_secret.properties.secretUri})'
-        }
-        {
-          name: 'AZURE_CLIENT_ID'
-          value: api_identity_outputs_clientid
-        }
-        {
-          name: 'AZURE_TOKEN_CREDENTIALS'
-          value: 'ManagedIdentityCredential'
+          name: 'HTTP_PORTS'
+          value: '8000'
         }
         {
           name: 'ASPIRE_ENVIRONMENT_NAME'
@@ -110,7 +70,7 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
         }
         {
           name: 'OTEL_SERVICE_NAME'
-          value: 'api'
+          value: 'project1'
         }
         {
           name: 'OTEL_EXPORTER_OTLP_PROTOCOL'
@@ -139,12 +99,11 @@ resource webapp 'Microsoft.Web/sites@2024-11-01' = {
     type: 'UserAssigned'
     userAssignedIdentities: {
       '${env_outputs_azure_container_registry_managed_identity_id}': { }
-      '${api_identity_outputs_id}': { }
     }
   }
 }
 
-resource api_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource project1_ra 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(webapp.id, env_outputs_azure_website_contributor_managed_identity_id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'de139f84-1756-47ae-9be6-808fbbe84772'))
   properties: {
     principalId: env_outputs_azure_website_contributor_managed_identity_principal_id

@@ -1,18 +1,12 @@
 ﻿{
   "type": "azure.bicep.v0",
-  "path": "api.module.bicep",
+  "path": "container1.module.bicep",
   "params": {
     "env_outputs_azure_container_registry_endpoint": "{env.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT}",
     "env_outputs_planid": "{env.outputs.planId}",
     "env_outputs_azure_container_registry_managed_identity_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID}",
     "env_outputs_azure_container_registry_managed_identity_client_id": "{env.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID}",
-    "api_containerimage": "{api.containerImage}",
-    "api_containerport": "{api.containerPort}",
-    "mydb_kv_outputs_name": "{mydb-kv.outputs.name}",
-    "kvName": "{kvName.value}",
-    "sharedRg": "{sharedRg.value}",
-    "api_identity_outputs_id": "{api-identity.outputs.id}",
-    "api_identity_outputs_clientid": "{api-identity.outputs.clientId}",
+    "container1_containerimage": "{container1.containerImage}",
     "env_outputs_azure_app_service_dashboard_uri": "{env.outputs.AZURE_APP_SERVICE_DASHBOARD_URI}",
     "env_outputs_azure_website_contributor_managed_identity_id": "{env.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID}",
     "env_outputs_azure_website_contributor_managed_identity_principal_id": "{env.outputs.AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID}"
