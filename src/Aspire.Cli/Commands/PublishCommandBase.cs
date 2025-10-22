@@ -29,6 +29,16 @@ internal abstract class PublishCommandBase : BaseCommand
     private readonly IFeatures _features;
     private readonly ICliHostEnvironment _hostEnvironment;
 
+    protected readonly Option<string?> _logLevelOption = new("--log-level")
+    {
+        Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
+    };
+
+    protected readonly Option<string?> _environmentOption = new("--environment", "-e")
+    {
+        Description = "The environment to use for the operation. The default is 'Production'."
+    };
+
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
 
@@ -70,17 +80,8 @@ internal abstract class PublishCommandBase : BaseCommand
         };
         Options.Add(outputPath);
 
-        var logLevel = new Option<string?>("--log-level")
-        {
-            Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
-        };
-        Options.Add(logLevel);
-
-        var environment = new Option<string?>("--environment", "-e")
-        {
-            Description = "The environment to use for the operation. The default is 'Production'."
-        };
-        Options.Add(environment);
+        Options.Add(_logLevelOption);
+        Options.Add(_environmentOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -360,9 +361,9 @@ internal abstract class PublishCommandBase : BaseCommand
                 // Make debug and trace logs more subtle
                 var formattedMessage = logLevel.ToUpperInvariant() switch
                 {
-                    "DEBUG" => $"[{timestamp}] [dim][[{logPrefix}]] {message}[/]",
-                    "TRACE" => $"[{timestamp}] [dim][[{logPrefix}]] {message}[/]",
-                    _ => $"[{timestamp}] [[{logPrefix}]] {message}"
+                    "DEBUG" => $"[[{timestamp}]] [dim][[{logPrefix}]] {message}[/]",
+                    "TRACE" => $"[[{timestamp}]] [dim][[{logPrefix}]] {message}[/]",
+                    _ => $"[[{timestamp}]] [[{logPrefix}]] {message}"
                 };
                 
                 InteractionService.DisplaySubtleMessage(formattedMessage, escapeMarkup: false);
