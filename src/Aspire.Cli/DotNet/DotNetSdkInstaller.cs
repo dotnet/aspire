@@ -13,7 +13,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext, ILogger<DotNetSdkInstaller> logger) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext, IDotNetCliRunner dotNetCliRunner, ILogger<DotNetSdkInstaller> logger) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -37,7 +37,8 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                           alwaysInstall;
         
         // First check if we already have the SDK installed in our private runtimes directory
-        // If we do, we know it's the correct version (no need to run dotnet --list-sdks)
+        // If we do, verify it's working properly by calling dotnet nuget config paths
+        // This is important on Windows where NuGet needs to create initial config on first use
         if (!forceInstall)
         {
             var runtimesDirectory = GetRuntimesDirectory();
@@ -48,9 +49,31 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             if (File.Exists(dotnetExecutable))
             {
-                // SDK is already installed in our private directory, return success immediately
-                logger.LogDebug("Found private SDK installation at {Path}", sdkInstallPath);
-                return (true, minimumVersion, minimumVersion, false);
+                logger.LogDebug("Found private SDK installation at {Path}, verifying it works", sdkInstallPath);
+                
+                try
+                {
+                    // Call GetNuGetConfigPathsAsync to ensure NuGet is properly initialized
+                    var options = new DotNetCliRunnerInvocationOptions();
+                    var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
+                        new DirectoryInfo(Environment.CurrentDirectory), 
+                        options, 
+                        cancellationToken);
+                    
+                    if (exitCode == 0)
+                    {
+                        logger.LogDebug("Private SDK installation verified successfully");
+                        return (true, minimumVersion, minimumVersion, false);
+                    }
+                    else
+                    {
+                        logger.LogDebug("Private SDK installation verification failed with exit code {ExitCode}", exitCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "Failed to verify private SDK installation");
+                }
             }
         }
         

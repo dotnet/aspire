@@ -5,6 +5,7 @@ using System.Globalization;
 using Aspire.Cli.Configuration;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Resources;
+using Aspire.Cli.Tests.TestServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -30,10 +31,15 @@ public class DotNetSdkInstallerTests
         return NullLogger<DotNetSdkInstaller>.Instance;
     }
 
+    private static IDotNetCliRunner CreateTestDotNetCliRunner()
+    {
+        return new TestDotNetCliRunner();
+    }
+
     [Fact]
     public async Task CheckAsync_WhenDotNetIsAvailable_ReturnsTrue()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // This test assumes the test environment has .NET SDK installed
         var (success, _, _, _) = await installer.CheckAsync();
@@ -47,7 +53,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // This test assumes the test environment has .NET SDK installed with a version >= 8.0.0
         var (success, _, _, _) = await installer.CheckAsync();
@@ -61,7 +67,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride(DotNetSdkInstaller.MinimumSdkVersion);
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Use the actual minimum version constant and check the behavior
         // Since this test environment has 8.0.117, it should return false for 9.0.302
@@ -78,7 +84,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("99.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Use an unreasonably high version that should not exist
         var (success, _, _, _) = await installer.CheckAsync();
@@ -92,7 +98,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Use an invalid version string
         var (success, _, _, _) = await installer.CheckAsync();
@@ -106,7 +112,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Get the runtimes directory path
         var runtimesDirectory = context.RuntimesDirectory.FullName;
@@ -154,7 +160,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, false);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Use an invalid version string
         var (success, _, _, _) = await installer.CheckAsync();
@@ -168,7 +174,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // This test verifies that the architecture-specific command is used
         // Since the implementation adds --arch flag, it should still work correctly
@@ -182,7 +188,7 @@ public class DotNetSdkInstallerTests
     public async Task CheckAsync_UsesOverrideMinimumSdkVersion_WhenConfigured()
     {
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // The installer should use the override version instead of the constant
         var (success, _, _, _) = await installer.CheckAsync();
@@ -194,7 +200,7 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_UsesDefaultMinimumSdkVersion_WhenNotConfigured()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Call the parameterless method that should use the default constant
         var (success, _, _, _) = await installer.CheckAsync();
@@ -210,7 +216,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Call the parameterless method that should use the elevated constant when flag is enabled
         var (success, _, _, _) = await installer.CheckAsync();
@@ -226,7 +232,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
             .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Call the parameterless method that should use the elevated constant when flag is enabled
         var (success, _, _, _) = await installer.CheckAsync();
@@ -242,7 +248,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
             .SetFeature(KnownFeatures.DefaultWatchEnabled, false);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Call the parameterless method that should use the baseline constant when flag is disabled
         var (success, _, _, _) = await installer.CheckAsync();
@@ -258,7 +264,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, false);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // Call the parameterless method that should use the baseline constant when flag is disabled
         var (success, _, _, _) = await installer.CheckAsync();
@@ -274,7 +280,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true)
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         // The installer should use the override version instead of the elevated constant
         var (success, _, _, _) = await installer.CheckAsync();
@@ -288,7 +294,7 @@ public class DotNetSdkInstallerTests
     {
         var features = new TestFeatures();
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -301,7 +307,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -314,7 +320,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.DefaultWatchEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -328,7 +334,7 @@ public class DotNetSdkInstallerTests
             .SetFeature(KnownFeatures.DefaultWatchEnabled, true)
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -341,7 +347,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
         var configuration = CreateConfigurationWithOverride("7.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
