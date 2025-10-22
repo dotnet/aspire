@@ -36,44 +36,19 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
                           bool.TryParse(alwaysInstallSdk, out var alwaysInstall) && 
                           alwaysInstall;
         
-        // First check if we already have the SDK installed in our private runtimes directory
-        // If we do, verify it's working properly by calling dotnet nuget config paths
-        // This is important on Windows where NuGet needs to create initial config on first use
+        // First check if we already have the SDK installed in our private sdks directory
         if (!forceInstall)
         {
-            var runtimesDirectory = GetRuntimesDirectory();
-            var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", minimumVersion);
+            var sdksDirectory = GetSdksDirectory();
+            var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", minimumVersion);
             var dotnetExecutable = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) 
                 ? Path.Combine(sdkInstallPath, "dotnet.exe")
                 : Path.Combine(sdkInstallPath, "dotnet");
 
             if (File.Exists(dotnetExecutable))
             {
-                logger.LogDebug("Found private SDK installation at {Path}, verifying it works", sdkInstallPath);
-                
-                try
-                {
-                    // Call GetNuGetConfigPathsAsync to ensure NuGet is properly initialized
-                    var options = new DotNetCliRunnerInvocationOptions();
-                    var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
-                        new DirectoryInfo(Environment.CurrentDirectory), 
-                        options, 
-                        cancellationToken);
-                    
-                    if (exitCode == 0)
-                    {
-                        logger.LogDebug("Private SDK installation verified successfully");
-                        return (true, minimumVersion, minimumVersion, false);
-                    }
-                    else
-                    {
-                        logger.LogDebug("Private SDK installation verification failed with exit code {ExitCode}", exitCode);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogDebug(ex, "Failed to verify private SDK installation");
-                }
+                logger.LogDebug("Found private SDK installation at {Path}", sdkInstallPath);
+                return (true, minimumVersion, minimumVersion, false);
             }
         }
         
@@ -159,8 +134,8 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public async Task InstallAsync(CancellationToken cancellationToken = default)
     {
         var sdkVersion = GetEffectiveMinimumSdkVersion();
-        var runtimesDirectory = GetRuntimesDirectory();
-        var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
+        var sdksDirectory = GetSdksDirectory();
+        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
 
         // Check if SDK is already installed in the private location
         if (Directory.Exists(sdkInstallPath))
@@ -169,14 +144,14 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             return;
         }
 
-        // Create the runtimes directory if it doesn't exist
-        Directory.CreateDirectory(runtimesDirectory);
+        // Create the sdks directory if it doesn't exist
+        Directory.CreateDirectory(sdksDirectory);
 
         // Determine which install script to use based on the platform
         var (scriptUrl, scriptFileName, scriptRunner) = GetInstallScriptInfo();
 
         // Download the install script
-        var scriptPath = Path.Combine(runtimesDirectory, scriptFileName);
+        var scriptPath = Path.Combine(sdksDirectory, scriptFileName);
         using (var httpClient = new HttpClient())
         {
             httpClient.Timeout = TimeSpan.FromMinutes(5);
@@ -271,6 +246,31 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
         {
             // Ignore cleanup errors
         }
+        
+        // After installation, call dotnet nuget config paths to initialize NuGet
+        // This is important on Windows where NuGet needs to create initial config on first use
+        logger.LogDebug("Initializing NuGet configuration for private SDK installation");
+        try
+        {
+            var options = new DotNetCliRunnerInvocationOptions();
+            var (exitCode, _) = await dotNetCliRunner.GetNuGetConfigPathsAsync(
+                new DirectoryInfo(Environment.CurrentDirectory), 
+                options, 
+                cancellationToken);
+            
+            if (exitCode == 0)
+            {
+                logger.LogDebug("NuGet configuration initialized successfully");
+            }
+            else
+            {
+                logger.LogDebug("NuGet configuration initialization returned exit code {ExitCode}", exitCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Failed to initialize NuGet configuration, continuing anyway");
+        }
     }
 
     /// <summary>
@@ -290,12 +290,12 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     }
 
     /// <summary>
-    /// Gets the directory where .NET runtimes are stored.
+    /// Gets the directory where .NET SDKs are stored.
     /// </summary>
-    /// <returns>The full path to the runtimes directory.</returns>
-    private string GetRuntimesDirectory()
+    /// <returns>The full path to the sdks directory.</returns>
+    private string GetSdksDirectory()
     {
-        return executionContext.RuntimesDirectory.FullName;
+        return executionContext.SdksDirectory.FullName;
     }
 
     /// <summary>

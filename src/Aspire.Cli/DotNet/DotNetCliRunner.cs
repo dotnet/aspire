@@ -1202,8 +1202,8 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
         // Get the effective minimum SDK version to determine which private SDK to use
         var sdkInstaller = serviceProvider.GetRequiredService<IDotNetSdkInstaller>();
         var sdkVersion = sdkInstaller.GetEffectiveMinimumSdkVersion();
-        var runtimesDirectory = executionContext.RuntimesDirectory.FullName;
-        var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
+        var sdksDirectory = executionContext.SdksDirectory.FullName;
+        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
         var dotnetExecutablePath = Path.Combine(
             sdkInstallPath,
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dotnet.exe" : "dotnet"

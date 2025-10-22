@@ -78,11 +78,11 @@ internal sealed class CacheCommand : BaseCommand
                     }
                 }
 
-                // Also clear the runtimes directory
-                var runtimesDirectory = ExecutionContext.RuntimesDirectory;
-                if (runtimesDirectory.Exists)
+                // Also clear the sdks directory
+                var sdksDirectory = ExecutionContext.SdksDirectory;
+                if (sdksDirectory.Exists)
                 {
-                    foreach (var file in runtimesDirectory.GetFiles("*", SearchOption.AllDirectories))
+                    foreach (var file in sdksDirectory.GetFiles("*", SearchOption.AllDirectories))
                     {
                         try
                         {
@@ -96,7 +96,7 @@ internal sealed class CacheCommand : BaseCommand
                     }
 
                     // Delete subdirectories
-                    foreach (var directory in runtimesDirectory.GetDirectories())
+                    foreach (var directory in sdksDirectory.GetDirectories())
                     {
                         try
                         {

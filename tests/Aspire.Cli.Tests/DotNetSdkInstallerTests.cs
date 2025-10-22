@@ -21,9 +21,9 @@ public class DotNetSdkInstallerTests
         var workingDirectory = new DirectoryInfo(tempPath);
         var hivesDirectory = new DirectoryInfo(Path.Combine(tempPath, "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(tempPath, "cache"));
-        var runtimesDirectory = new DirectoryInfo(Path.Combine(tempPath, "runtimes"));
+        var sdksDirectory = new DirectoryInfo(Path.Combine(tempPath, "sdks"));
         
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, runtimesDirectory, debugMode: false);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode: false);
     }
 
     private static ILogger<DotNetSdkInstaller> CreateTestLogger()
@@ -107,17 +107,17 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public async Task InstallAsync_CreatesRuntimesDirectory()
+    public async Task InstallAsync_CreatesSdksDirectory()
     {
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var context = CreateTestExecutionContext();
         var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
 
-        // Get the runtimes directory path
-        var runtimesDirectory = context.RuntimesDirectory.FullName;
+        // Get the sdks directory path
+        var sdksDirectory = context.SdksDirectory.FullName;
         var sdkVersion = installer.GetEffectiveMinimumSdkVersion();
-        var sdkInstallPath = Path.Combine(runtimesDirectory, "dotnet", sdkVersion);
+        var sdkInstallPath = Path.Combine(sdksDirectory, "dotnet", sdkVersion);
 
         // Clean up if it exists from a previous test
         if (Directory.Exists(sdkInstallPath))
@@ -140,18 +140,18 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void GetRuntimesDirectory_ReturnsValidPath()
+    public void GetSdksDirectory_ReturnsValidPath()
     {
         var context = CreateTestExecutionContext();
         
-        // Verify the runtimes directory from the execution context
-        var runtimesDirectory = context.RuntimesDirectory.FullName;
+        // Verify the sdks directory from the execution context
+        var sdksDirectory = context.SdksDirectory.FullName;
         
         // Verify the path contains the expected components
-        Assert.Contains("runtimes", runtimesDirectory);
+        Assert.Contains("sdks", sdksDirectory);
         
         // Verify it's a valid path format
-        Assert.False(string.IsNullOrWhiteSpace(runtimesDirectory));
+        Assert.False(string.IsNullOrWhiteSpace(sdksDirectory));
     }
 
     [Fact]
