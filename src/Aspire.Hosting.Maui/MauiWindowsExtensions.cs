@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Xml.Linq;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Lifecycle;
@@ -65,8 +66,11 @@ public static class MauiWindowsExtensions
                 Path.Combine(builder.ApplicationBuilder.AppHostDirectory, projectPath));
         }
 
-        var workingDirectory = Path.GetDirectoryName(projectPath) 
+        var workingDirectory = Path.GetDirectoryName(projectPath)
             ?? throw new InvalidOperationException($"Unable to determine directory from project path: {projectPath}");
+
+        // Check if the project has the Windows TFM
+        var hasWindowsTfm = HasWindowsTargetFramework(projectPath);
 
         // Create the Windows resource with dotnet run command
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
@@ -78,11 +82,15 @@ public static class MauiWindowsExtensions
             .WithIconName("Desktop")
             .WithExplicitStart();
 
-        // Check if Windows platform is supported on the current host
-        if (!OperatingSystem.IsWindows())
+        // Check if Windows platform is supported on the current host or if the TFM is missing
+        if (!OperatingSystem.IsWindows() || !hasWindowsTfm)
         {
-            // Prevent lifecycle commands (Start/Stop/Restart) on unsupported platform
-            resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(), ResourceAnnotationMutationBehavior.Append);
+            var reason = !OperatingSystem.IsWindows() 
+                ? "Windows platform not available on this host" 
+                : "Windows target framework (net10.0-windows) not found in project file";
+
+            // Mark as unsupported
+            resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(reason), ResourceAnnotationMutationBehavior.Append);
 
             // Add an event subscriber to set the "Unsupported" state after orchestrator initialization
             builder.ApplicationBuilder.Services.TryAddEventingSubscriber<UnsupportedPlatformEventSubscriber>();
@@ -92,11 +100,50 @@ public static class MauiWindowsExtensions
     }
 
     /// <summary>
+    /// Checks if the project file contains a Windows target framework.
+    /// </summary>
+    private static bool HasWindowsTargetFramework(string projectPath)
+    {
+        try
+        {
+            var projectDoc = XDocument.Load(projectPath);
+            
+            // Check all TargetFrameworks and TargetFramework elements (including conditional ones)
+            var allTargetFrameworkElements = projectDoc.Descendants()
+                .Where(e => e.Name.LocalName == "TargetFrameworks" || e.Name.LocalName == "TargetFramework");
+
+            foreach (var element in allTargetFrameworkElements)
+            {
+                var value = element.Value;
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                // Check if any TFM in the value contains "-windows"
+                if (value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Any(tfm => tfm.Contains("-windows", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        catch
+        {
+            // If we can't read the project file, assume TFM is present to avoid false positives
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Annotation to mark a resource as running on an unsupported platform.
     /// This prevents lifecycle commands and sets the state to "Unsupported".
     /// </summary>
-    private sealed class UnsupportedPlatformAnnotation : IResourceAnnotation
+    private sealed class UnsupportedPlatformAnnotation(string reason) : IResourceAnnotation
     {
+        public string Reason { get; } = reason;
     }
 
     /// <summary>
@@ -111,12 +158,12 @@ public static class MauiWindowsExtensions
                 // Find all resources with the UnsupportedPlatformAnnotation
                 foreach (var resource in @event.Model.Resources.OfType<MauiWindowsPlatformResource>())
                 {
-                    if (resource.TryGetAnnotationsOfType<UnsupportedPlatformAnnotation>(out _))
+                    if (resource.TryGetLastAnnotation<UnsupportedPlatformAnnotation>(out var annotation))
                     {
-                        // Set the state to "Unsupported" with a warning style
+                        // Set the state to "Unsupported" with a warning style and the reason
                         await notificationService.PublishUpdateAsync(resource, s => s with
                         {
-                            State = new ResourceStateSnapshot("Unsupported", "warning")
+                            State = new ResourceStateSnapshot($"Unsupported: {annotation.Reason}", "warning")
                         }).ConfigureAwait(false);
                     }
                 }
