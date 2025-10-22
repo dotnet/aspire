@@ -54,7 +54,16 @@ export class AspireTerminalProvider implements vscode.Disposable {
         this._dcpServerConnectionInfo = value;
     }
 
-    sendToAspireTerminal(command: string, showTerminal: boolean = true) {
+    sendAspireCommandToAspireTerminal(subcommand: string, showTerminal: boolean = true) {
+        let command = `${this.getAspireCliExecutablePath()} ${subcommand}`;
+        if (this.isCliDebugLoggingEnabled()) {
+            command += ' --debug';
+        }
+
+        if (process.env.ASPIRE_CLI_STOP_ON_ENTRY === 'true') {
+            command += ' --cli-wait-for-debugger';
+        }
+
         const aspireTerminal = this.getAspireTerminal();
         extensionLogOutputChannel.info(`Sending command to Aspire terminal: ${command}`);
         aspireTerminal.terminal.sendText(command);
@@ -174,5 +183,9 @@ export class AspireTerminalProvider implements vscode.Disposable {
 
         extensionLogOutputChannel.info('No user-configured Aspire CLI path found');
         return "'aspire'";
+    }
+
+    isCliDebugLoggingEnabled(): boolean {
+        return vscode.workspace.getConfiguration('aspire').get<boolean>('enableAspireCliDebugLogging', false);
     }
 }

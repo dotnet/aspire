@@ -6,5 +6,5 @@ export async function deployCommand(terminalProvider: AspireTerminalProvider) {
         return;
     }
 
-    terminalProvider.sendToAspireTerminal(`${terminalProvider.getAspireCliExecutablePath()} deploy`);
+    terminalProvider.sendAspireCommandToAspireTerminal('deploy');
 }

@@ -1,5 +1,5 @@
 import { AspireTerminalProvider } from "../utils/AspireTerminalProvider";
 
 export async function initCommand(terminalProvider: AspireTerminalProvider) {
-    terminalProvider.sendToAspireTerminal(`${terminalProvider.getAspireCliExecutablePath()} init`);
+    terminalProvider.sendAspireCommandToAspireTerminal('init');
 };

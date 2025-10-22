@@ -188,6 +188,12 @@
           "default": "",
           "description": "%configuration.aspire.aspireCliExecutablePath%",
           "scope": "machine-overridable"
+        },
+        "aspire.enableAspireCliDebugLogging": {
+          "type": "boolean",
+          "default": false,
+          "description": "%configuration.aspire.enableAspireCliDebugLogging%",
+          "scope": "window"
         }
       }
     }
