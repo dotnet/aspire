@@ -9,6 +9,7 @@ import { applyTextStyle, formatText } from '../utils/strings';
 import { extensionLogOutputChannel } from '../utils/logging';
 import { AspireExtendedDebugConfiguration, EnvVar } from '../dcp/types';
 import { AspireDebugSession } from '../debugger/AspireDebugSession';
+import { AnsiColors } from '../utils/AspireTerminalProvider';
 
 export interface IInteractionService {
     showStatus: (statusText: string | null) => void;
@@ -248,10 +249,10 @@ export class InteractionService implements IInteractionService {
     async displayDashboardUrls(dashboardUrls: DashboardUrls) {
         extensionLogOutputChannel.info(`Displaying dashboard URLs: ${JSON.stringify(dashboardUrls)}`);
 
-        this.writeDebugSessionMessage(dashboard + ': ' + dashboardUrls.BaseUrlWithLoginToken, true, '\x1b[32m');
+        this.writeDebugSessionMessage(dashboard + ': ' + dashboardUrls.BaseUrlWithLoginToken, true, AnsiColors.Green);
 
         if (dashboardUrls.CodespacesUrlWithLoginToken) {
-            this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, '\x1b[32m');
+            this.writeDebugSessionMessage(codespaces + ': ' + dashboardUrls.CodespacesUrlWithLoginToken, true, AnsiColors.Green);
         }
 
         const actions: vscode.MessageItem[] = [
