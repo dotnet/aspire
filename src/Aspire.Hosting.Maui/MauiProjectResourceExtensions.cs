@@ -7,20 +7,45 @@ using Aspire.Hosting.Maui;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Extension methods to add .NET MAUI projects to an Aspire application.
+/// Provides extension methods for adding .NET MAUI projects to the application model.
 /// </summary>
 public static class MauiProjectExtensions
 {
     /// <summary>
-    /// Adds a MAUI project (logical grouping) to the application model. Individual platform resources
-    /// must be enabled with platform specific methods on the returned builder.
+    /// Adds a .NET MAUI project to the application model. This resource can be used to create platform-specific resources.
     /// </summary>
-    /// <param name="builder">The distributed application builder.</param>
-    /// <param name="name">Logical name for the MAUI project.</param>
-    /// <param name="projectPath">Relative path to the .csproj file.</param>
+    /// <param name="builder">The builder for the distributed application.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="projectPath">The path to the .NET MAUI project file (.csproj). This can be a relative or absolute path.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<MauiProjectResource> AddMauiProject(this IDistributedApplicationBuilder builder,
-        [ResourceName] string name, string projectPath)
+    /// <remarks>
+    /// This method creates a parent MAUI project resource that serves as a container for platform-specific
+    /// resources such as Windows, Android, iOS, and macOS. The actual platform instances are added using
+    /// extension methods like <c>AddWindowsDevice</c>.
+    /// <para>
+    /// The MAUI project is not built immediately when the AppHost starts. Instead, builds are deferred
+    /// until a platform-specific resource is started, allowing faster AppHost startup and enabling
+    /// incremental builds during development.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add a MAUI project with Windows support:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// var weatherApi = builder.AddProject&lt;Projects.WeatherApi&gt;("api");
+    /// 
+    /// var maui = builder.AddMauiProject("mauiapp", "../MyMauiApp/MyMauiApp.csproj");
+    /// var windowsDevice = maui.AddWindowsDevice()
+    ///     .WithReference(weatherApi);
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<MauiProjectResource> AddMauiProject(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string projectPath)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -28,11 +53,8 @@ public static class MauiProjectExtensions
 
         // Create the MAUI project resource and configuration
         // Do not register the logical grouping resource with AddResource so it stays invisible in the dashboard
+        // Only MAUI project targets added through their extension methods will show up
         var resource = new MauiProjectResource(name, projectPath);
-
-        // Create the resource builder without adding to the model
-        var resourceBuilder = builder.CreateResourceBuilder(resource);
-
-        return resourceBuilder;
+        return builder.CreateResourceBuilder(resource);
     }
 }
