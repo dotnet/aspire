@@ -50,6 +50,46 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public void PipelineStep_CanHaveTags()
+    {
+        // Test that PipelineStep has Tags property
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = (ctx) => Task.CompletedTask,
+            Tags = ["tag1", "tag2"]
+        };
+
+        Assert.Equal("test-step", step.Name);
+        Assert.Equal(2, step.Tags.Count);
+        Assert.Contains("tag1", step.Tags);
+        Assert.Contains("tag2", step.Tags);
+    }
+
+    [Fact]
+    public void PipelineStep_TagsDefaultToEmpty()
+    {
+        // Test that PipelineStep Tags property defaults to empty list
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = (ctx) => Task.CompletedTask
+        };
+
+        Assert.NotNull(step.Tags);
+        Assert.Empty(step.Tags);
+    }
+
+    [Fact]
+    public void WellKnownPipelineTags_HasExpectedValues()
+    {
+        // Test that WellKnownPipelineTags has the expected constant values
+        Assert.Equal("provision-infra", WellKnownPipelineTags.ProvisionInfrastructure);
+        Assert.Equal("build-compute", WellKnownPipelineTags.BuildCompute);
+        Assert.Equal("deploy-compute", WellKnownPipelineTags.DeployCompute);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithMultipleIndependentSteps_ExecutesAllSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
