@@ -371,8 +371,8 @@ public class DotNetSdkInstallerTests
     {
         // Test the logic we added for allowing .NET 10 prereleases
         var installedVersion = SemVersion.Parse("10.0.100-preview.1.25463.5", SemVersionStyles.Strict);
-        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100";
+        var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
@@ -387,8 +387,8 @@ public class DotNetSdkInstallerTests
     {
         // Test with a more recent .NET 10 prerelease
         var installedVersion = SemVersion.Parse("10.1.0-preview.2.25999.99", SemVersionStyles.Strict);
-        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100";
+        var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
@@ -403,8 +403,8 @@ public class DotNetSdkInstallerTests
     {
         // Test that .NET 9 is still rejected for single file apphost requirements
         var installedVersion = SemVersion.Parse("9.0.999", SemVersionStyles.Strict);
-        var requiredVersion = SemVersion.Parse("10.0.100", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100";
+        var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
+        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement", 
