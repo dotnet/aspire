@@ -79,7 +79,7 @@ public static class MauiWindowsExtensions
             throw new DistributedApplicationException(
                 $"Unable to detect Windows target framework in project '{projectPath}'. " +
                 "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Windows target framework (e.g., net10.0-windows10.0.19041.0) " +
-                "or remove the WithWindowsDevice() call from your AppHost.");
+                "or remove the AddWindowsDevice() call from your AppHost.");
         }
 
         // Create the Windows resource with dotnet run command
