@@ -4,7 +4,7 @@
 using Aspire.Dashboard.Authentication.Connection;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-namespace Aspire.Dashboard.Startup;
+namespace Aspire.Dashboard.Configuration;
 
 public record EndpointInfo(string Name, BindingAddress Address, HttpProtocols? HttpProtocols, bool RequireCertificate, ConnectionType ConnectionType)
 {

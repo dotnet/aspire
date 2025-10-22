@@ -3,7 +3,7 @@
 
 using System.Security.Claims;
 using System.Text.Encodings.Web;
-using Aspire.Dashboard.Startup;
+using Aspire.Dashboard.Configuration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 

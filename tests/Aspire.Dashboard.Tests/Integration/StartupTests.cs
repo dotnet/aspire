@@ -7,7 +7,6 @@ using System.Text.Json.Nodes;
 using Aspire.Dashboard.Configuration;
 using Aspire.Dashboard.Model.Assistant;
 using Aspire.Dashboard.Otlp.Http;
-using Aspire.Dashboard.Startup;
 using Aspire.Dashboard.Telemetry;
 using Aspire.Hosting;
 using Aspire.Tests.Shared.Telemetry;

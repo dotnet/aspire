@@ -232,7 +232,7 @@ internal sealed class ResourceMcpTools
 
         if (resource == null)
         {
-            throw new McpException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
         }
 
         // Only include commands that can be executed (Enabled).
@@ -247,30 +247,30 @@ internal sealed class ResourceMcpTools
 
         if (resource == null)
         {
-            throw new McpException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"Resource '{resourceName}' not found.", McpErrorCode.InvalidParams);
         }
 
         var command = resource.Commands.FirstOrDefault(c => string.Equals(c.Name, commandName, StringComparison.Ordinal));
 
         if (command is null)
         {
-            throw new McpException($"Command '{commandName}' not found for resource '{resourceName}'.", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"Command '{commandName}' not found for resource '{resourceName}'.", McpErrorCode.InvalidParams);
         }
 
         // Block execution when command isn't available.
         if (command.State == Model.CommandViewModelState.Hidden)
         {
-            throw new McpException($"Command '{commandName}' is not available for resource '{resourceName}'.", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"Command '{commandName}' is not available for resource '{resourceName}'.", McpErrorCode.InvalidParams);
         }
 
         if (command.State == Model.CommandViewModelState.Disabled)
         {
             if (command.Name == "resource-restart" && resource.Commands.Any(c => c.Name == "resource-start" && c.State == CommandViewModelState.Enabled))
             {
-                throw new McpException($"Resource '{resourceName}' is stopped. Use the 'resource-start' command instead of 'resource-restart'.", McpErrorCode.InvalidParams);
+                throw new McpProtocolException($"Resource '{resourceName}' is stopped. Use the 'resource-start' command instead of 'resource-restart'.", McpErrorCode.InvalidParams);
             }
 
-            throw new McpException($"Command '{commandName}' is currently disabled for resource '{resourceName}'.", McpErrorCode.InvalidParams);
+            throw new McpProtocolException($"Command '{commandName}' is currently disabled for resource '{resourceName}'.", McpErrorCode.InvalidParams);
         }
 
         try
@@ -282,20 +282,20 @@ internal sealed class ResourceMcpTools
                 case Model.ResourceCommandResponseKind.Succeeded:
                     return;
                 case Model.ResourceCommandResponseKind.Cancelled:
-                    throw new McpException($"Command '{commandName}' was cancelled.", McpErrorCode.InternalError);
+                    throw new McpProtocolException($"Command '{commandName}' was cancelled.", McpErrorCode.InternalError);
                 case Model.ResourceCommandResponseKind.Failed:
                 default:
                     var message = response.ErrorMessage is { Length: > 0 } ? response.ErrorMessage : "Unknown error. See logs for details.";
-                    throw new McpException($"Command '{commandName}' failed for resource '{resourceName}': {message}", McpErrorCode.InternalError);
+                    throw new McpProtocolException($"Command '{commandName}' failed for resource '{resourceName}': {message}", McpErrorCode.InternalError);
             }
         }
-        catch (McpException)
+        catch (McpProtocolException)
         {
             throw;
         }
         catch (Exception ex)
         {
-            throw new McpException($"Error executing command '{commandName}' for resource '{resourceName}': {ex.Message}", McpErrorCode.InternalError);
+            throw new McpProtocolException($"Error executing command '{commandName}' for resource '{resourceName}': {ex.Message}", McpErrorCode.InternalError);
         }
     }
 

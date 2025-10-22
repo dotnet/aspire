@@ -4,7 +4,7 @@
 using System.Globalization;
 using System.Net;
 
-namespace Aspire.Dashboard.Startup;
+namespace Aspire.Dashboard.Configuration;
 
 /// <summary>
 /// This endpoint info represents a resolved endpoint with its binding address, actual IP endpoint, and whether it uses HTTPS.
