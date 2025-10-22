@@ -1,4 +1,4 @@
-﻿var builder = DistributedApplication.CreateBuilder(args);
+var builder = DistributedApplication.CreateBuilder(args);
 
 var weatherApi = builder.AddProject<Projects.AspireJavaScript_MinimalApi>("weatherapi")
     .WithExternalHttpEndpoints();
@@ -25,10 +25,10 @@ builder.AddNpmApp("vue", "../AspireJavaScript.Vue")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
-builder.AddNpmApp("reactvite", "../AspireJavaScript.Vite")
+builder.AddViteApp("reactvite", "../AspireJavaScript.Vite")
+    .WithNpmPackageManager()
     .WithReference(weatherApi)
     .WithEnvironment("BROWSER", "none")
-    .WithHttpEndpoint(env: "VITE_PORT")
     .WithExternalHttpEndpoints()
     .PublishAsDockerFile();
 
