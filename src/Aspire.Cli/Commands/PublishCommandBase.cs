@@ -72,7 +72,7 @@ internal abstract class PublishCommandBase : BaseCommand
 
         var logLevel = new Option<string?>("--log-level")
         {
-            Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical)"
+            Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
         };
         Options.Add(logLevel);
 
