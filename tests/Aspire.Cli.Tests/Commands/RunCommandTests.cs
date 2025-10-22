@@ -1155,6 +1155,114 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             return Task.FromResult<IReadOnlyList<FileInfo>>(new List<FileInfo> { new("/tmp/apphost.cs") });
         }
     }
+
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsTrue_SetsIsWatchModeOption()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var optionsCaptured = false;
+        var capturedIsWatchMode = false;
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, capturedOptions) =>
+            {
+                optionsCaptured = true;
+                capturedIsWatchMode = capturedOptions.IsWatchMode;
+            },
+            0
+        );
+
+        await runner.RunAsync(
+            projectFile: projectFile,
+            watch: true,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.True(optionsCaptured, "Options should have been passed to ExecuteAsync");
+        Assert.True(capturedIsWatchMode, "IsWatchMode should be true when watch is enabled");
+    }
+
+    [Fact]
+    public async Task DotNetCliRunner_RunAsync_WhenWatchIsFalse_DoesNotSetIsWatchModeOption()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var projectFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "AppHost.csproj"));
+        await File.WriteAllTextAsync(projectFile.FullName, "<Project></Project>");
+
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
+
+        var options = new DotNetCliRunnerInvocationOptions();
+
+        var executionContext = new CliExecutionContext(
+            workingDirectory: workspace.WorkspaceRoot,
+            hivesDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("hives"),
+            cacheDirectory: workspace.WorkspaceRoot.CreateSubdirectory(".aspire").CreateSubdirectory("cache")
+        );
+
+        var optionsCaptured = false;
+        var capturedIsWatchMode = false;
+
+        var runner = new AssertingDotNetCliRunner(
+            logger,
+            provider,
+            new AspireCliTelemetry(),
+            provider.GetRequiredService<IConfiguration>(),
+            provider.GetRequiredService<IFeatures>(),
+            provider.GetRequiredService<IInteractionService>(),
+            executionContext,
+            new NullDiskCache(),
+            (args, env, workingDirectory, projectFile, backchannelCompletionSource, capturedOptions) =>
+            {
+                optionsCaptured = true;
+                capturedIsWatchMode = capturedOptions.IsWatchMode;
+            },
+            0
+        );
+
+        await runner.RunAsync(
+            projectFile: projectFile,
+            watch: false,
+            noBuild: false,
+            args: [],
+            env: new Dictionary<string, string>(),
+            null,
+            options,
+            CancellationToken.None
+        );
+
+        Assert.True(optionsCaptured, "Options should have been passed to ExecuteAsync");
+        Assert.False(capturedIsWatchMode, "IsWatchMode should be false when watch is disabled");
+    }
 }
 
 internal sealed class AssertingDotNetCliRunner(
