@@ -149,8 +149,6 @@ internal abstract class PublishCommandBase : BaseCommand
                 env[KnownConfigNames.WaitForDebugger] = "true";
             }
 
-
-
             if (isSingleFileAppHost)
             {
                 // TODO: Add logic to read SDK version from *.cs file.
