@@ -1223,8 +1223,7 @@ internal class DotNetCliRunner(ILogger<DotNetCliRunner> logger, IServiceProvider
             
             // Prepend the private SDK path to PATH so the dotnet executable from the private installation is found first
             var currentPath = startInfo.EnvironmentVariables["PATH"] ?? Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            var pathSeparator = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? ";" : ":";
-            startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{pathSeparator}{currentPath}";
+            startInfo.EnvironmentVariables["PATH"] = $"{sdkInstallPath}{Path.PathSeparator}{currentPath}";
             
             logger.LogDebug("Using private SDK installation at {SdkPath}", sdkInstallPath);
         }
