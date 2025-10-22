@@ -90,6 +90,46 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WithPipelineStepsWithTags_StepsHaveTags()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var executedSteps = new List<string>();
+        var capturedStep = (PipelineStep?)null;
+        
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineStepFactory((factoryContext) =>
+            {
+                var step = new PipelineStep
+                {
+                    Name = "tagged-step",
+                    Action = async (ctx) =>
+                    {
+                        lock (executedSteps) { executedSteps.Add("tagged-step"); }
+                        await Task.CompletedTask;
+                    },
+                    Tags = [WellKnownPipelineTags.ProvisionInfrastructure, "custom-tag"]
+                };
+                capturedStep = step;
+                return step;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        
+        // Act
+        await pipeline.ExecuteAsync(context);
+
+        // Assert
+        Assert.Contains("tagged-step", executedSteps);
+        Assert.NotNull(capturedStep);
+        Assert.Equal(2, capturedStep.Tags.Count);
+        Assert.Contains(WellKnownPipelineTags.ProvisionInfrastructure, capturedStep.Tags);
+        Assert.Contains("custom-tag", capturedStep.Tags);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WithMultipleIndependentSteps_ExecutesAllSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
