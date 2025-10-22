@@ -54,11 +54,12 @@ internal class IntegrationModel
         };
 
         // List all types implementing IResource
-        var types = assembly.GetTypeDefinitions()
+        var resourceTypes = assembly.GetTypeDefinitions()
             .Where(t => !t.IsAbstract && t.IsPublic && knownTypes.IResourceType.IsAssignableFrom(t))
             .ToList();
 
-        // Open generic resource builder methods
+        // Open generic resource builder methods, e.g.,
+        // WithVolume<T>(this IResourceBuilder<T> builder, ...)
         var resourceBuilderMethods = GetExtensionMethods(assembly, knownTypes, knownTypes.IResourceBuilderType)
             .Where(m => m.IsGenericMethodDefinition)
             .ToArray();
@@ -68,16 +69,8 @@ internal class IntegrationModel
         // We will remove the methods that are constrained to a specific resource type from the shared extension methods.
         var sharedExtensionMethods = resourceBuilderMethods.ToHashSet();
 
-        foreach (var r in types)
-        {
-            var resourceModel = new ResourceModel
-            {
-                ResourceType = r
-            };
-
-            integration.Resources.Add(r, resourceModel);
-        }
-
+        // List all extension methods for IDistributedApplicationBuilder
+        // e.g., AddRedis(this IDistributedApplicationBuilder builder, ...)
         var dabMethods = GetExtensionMethods(assembly, knownTypes, knownTypes.IDistributedApplicationBuilderType)
             .Where(m => !m.ReturnType.ContainsGenericParameters)
             .ToArray();
@@ -88,6 +81,18 @@ internal class IntegrationModel
 
         integration.DiscoverModelClasses(integration.IDistributedApplicationBuilderExtensionMethods, integration.ModelTypes);
         integration.DiscoverModelClasses(integration.SharedExtensionMethods, integration.ModelTypes);
+
+        foreach (var r in resourceTypes)
+        {
+            var resourceModel = new ResourceModel
+            {
+                ResourceType = r
+            };
+
+            integration.Resources.Add(r, resourceModel);
+
+            integration.DiscoverResourceSpecificExtensionMethods(resourceModel);
+        }
 
         return integration;
     }
@@ -101,6 +106,9 @@ internal class IntegrationModel
     {
         var obsoleteAttributeType = wellKnownTypes.GetKnownType<ObsoleteAttribute>();
         var extensionAttributeType = wellKnownTypes.GetKnownType<ExtensionAttribute>();
+        var polyglotAttributeType = assembly.AssemblyLoaderContext.GetType("Aspire.Hosting.Polyglot.PolyglotIgnoreAttribute");
+
+        ArgumentNullException.ThrowIfNull(polyglotAttributeType, "Could not find Aspire.Hosting.Polyglot.PolyglotIgnoreAttribute type.");
 
         var isGenericTypeDefinition = extendedType.IsGenericType && extendedType.IsTypeDefinition;
         var query = from type in assembly.GetTypeDefinitions()
@@ -109,6 +117,8 @@ internal class IntegrationModel
                     where method.IsStatic && method.IsPublic
                     where HasAttribute(method, extensionAttributeType)
                     where !HasAttribute(method, obsoleteAttributeType)
+                    where !HasAttribute(method, polyglotAttributeType)
+                    where method.Parameters.Count >= 1
                     // where !HasFuncParameters(method) // We can't handle generate Func<,> parameters for now
                     where isGenericTypeDefinition
                         ? method.Parameters[0].ParameterType.IsGenericType && method.Parameters[0].ParameterType.GenericTypeDefinition == extendedType
@@ -183,5 +193,83 @@ internal class IntegrationModel
 
             return isCandidate;
         }
+    }
+
+    public void DiscoverResourceSpecificExtensionMethods(ResourceModel resourceModel)
+    {
+        // Add all concrete resource builder methods from this integration.
+
+        // Look into all shared extensions from other integrations
+
+        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
+        // the same builder type, not on a base builder (ResourceBuilder).
+
+        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
+        // Methods constrained to an interface: e.g., IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, ...) where T : IResourceWithEndpoints
+
+        var allTypeForThisResource = new HashSet<RoType>();
+        var allInterfacesForThisResource = new HashSet<RoType>();
+
+        void PopulateInterfaces(RoType t)
+        {
+            foreach (var i in t.Interfaces)
+            {
+                allInterfacesForThisResource.Add(i);
+            }
+        }
+
+        // Inherited types
+        var parentType = resourceModel.ResourceType;
+
+        while (parentType != null)
+        {
+            PopulateInterfaces(parentType);
+            allTypeForThisResource.Add(parentType);
+            parentType = parentType.BaseType;
+        }
+
+        var loader = resourceModel.ResourceType.DeclaringAssembly.AssemblyLoaderContext;
+
+        foreach (var type in allTypeForThisResource)
+        {
+            var targetType = WellKnownTypes.IResourceBuilderType.MakeGenericType(type);
+            var methods = GetExtensionMethods(WellKnownTypes, targetType).ToArray();
+            resourceModel.IResourceTypeBuilderExtensionsMethods.AddRange(methods);
+        }
+
+        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
+        // the same builder type, not on a base builder (ResourceBuilder).
+        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
+
+        var openGenericMethods = new List<RoMethod>();
+
+        foreach (var m in SharedExtensionMethods)
+        {
+            var genArgs = m.GetGenericArguments();
+            var genArg = genArgs[0];
+
+            if (genArgs.Count > 1)
+            {
+                // TODO: Not supported:
+                // public static IResourceBuilder<T> WithEnvironment<T, TValue>(this IResourceBuilder<T> builder, string name, TValue value)
+                continue;
+            }
+
+            if (genArg.GetGenericParameterConstraints().All(x => allInterfacesForThisResource.Contains(x) || allTypeForThisResource.Contains(x)))
+            {
+                openGenericMethods.Add(m.MakeGenericMethod(resourceModel.ResourceType));
+            }
+        }
+
+        // For debugging
+        // Console.WriteLine($"Found {openGenericMethods.Length} open generic methods for {ResourceType.Name} in {integrationModel.AssemblyName}.");
+        // foreach (var m in openGenericMethods)
+        // {
+        //     Console.WriteLine($"  {m.Name}");
+        // }
+
+        resourceModel.IResourceTypeBuilderExtensionsMethods.AddRange(openGenericMethods);
+
+        DiscoverModelClasses(resourceModel.IResourceTypeBuilderExtensionsMethods, ModelTypes);
     }
 }

@@ -3,7 +3,7 @@
 
 namespace Aspire.Cli.Rosetta.Models.Types;
 
-internal abstract class RoType
+internal abstract class RoType : IEquatable<RoType>
 {
     protected RoType(RoAssembly assembly)
     {
@@ -192,6 +192,45 @@ internal abstract class RoType
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Determines equality based on the fully qualified type name.
+    /// </summary>
+    public bool Equals(RoType? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        if (other is null)
+        {
+            return false;
+        }
+
+        // Equality is defined by identical full type name.
+        return string.Equals(FullName, other.FullName, StringComparison.Ordinal);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return Equals(obj as RoType);
+    }
+
+    public override int GetHashCode()
+    {
+        return StringComparer.Ordinal.GetHashCode(FullName);
+    }
+
+    public static bool operator ==(RoType? left, RoType? right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(RoType? left, RoType? right)
+    {
+        return !Equals(left, right);
     }
 
     public override string ToString()

@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Polyglot;
 
 namespace Aspire.Hosting;
 
@@ -88,6 +89,7 @@ public static class DistributedApplicationBuilderExtensions
     /// This method is similar to <see cref="CreateResourceBuilder{T}(IDistributedApplicationBuilder, string)"/> but returns <c>false</c> instead of throwing an exception
     /// when the resource is not found or is not of the correct type.
     /// </remarks>
+    [PolyglotIgnore(Reason = "Return type not yet supported for builders", Languages = PolyglotLanguages.All)]
     public static bool TryCreateResourceBuilder<T>(this IDistributedApplicationBuilder builder, string name, [NotNullWhen(true)] out IResourceBuilder<T>? resourceBuilder) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));

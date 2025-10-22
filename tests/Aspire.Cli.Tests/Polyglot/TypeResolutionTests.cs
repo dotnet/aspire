@@ -2,7 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Rosetta;
+using Aspire.Cli.Rosetta.Models;
 using Aspire.Cli.Rosetta.Models.Types;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Cli.Tests.Polyglot;
 
@@ -306,37 +308,6 @@ public class TypeResolutionTests
     }
 
     [Fact]
-    public void ShouldFilterIResourceBuilderExtensionMethods()
-    {
-        using var loader = CreateAssemblyLoaderContext(out var testAssembly);
-
-        var exentionAttributeType = loader.GetType(typeof(System.Runtime.CompilerServices.ExtensionAttribute).FullName!);
-        Assert.NotNull(exentionAttributeType);
-
-        var iResourceBuilderType = testAssembly.GetType(typeof(IResourceBuilder<>).FullName!);
-        Assert.NotNull(iResourceBuilderType);
-
-        var isGenericTypeDefinition = iResourceBuilderType.IsGenericType && iResourceBuilderType.IsTypeDefinition;
-
-        var staticMethods = from type in testAssembly.GetTypeDefinitions()
-                            from method in type.Methods
-                            where method.IsStatic && method.IsPublic
-                            select method;
-
-        var extensionMethods = from method in staticMethods
-                               where method.GetCustomAttributes().Any(attr => attr.AttributeType == exentionAttributeType)
-                               select method;
-
-        var query = (from method in extensionMethods
-                    where isGenericTypeDefinition
-                        ? method.Parameters[0].ParameterType.IsGenericType && method.Parameters[0].ParameterType.GenericTypeDefinition == iResourceBuilderType
-                        : method.Parameters[0].ParameterType == iResourceBuilderType
-                    select method).ToArray();
-
-        Assert.Single(query);
-    }
-
-    [Fact]
     public void IsByRefIsSet()
     {
         using var loader = CreateAssemblyLoaderContext(out var testAssembly);
@@ -460,13 +431,33 @@ public class TypeResolutionTests
     }
 
     [Fact]
+    public void ExntensionMethodsShouldBeDiscovered()
+    {
+        using var loader = CreateAssemblyLoaderContext(out var testAssembly);
+
+        _ = loader.LoadAssembly(typeof(string).Assembly.Location) ?? throw new InvalidOperationException("System.Private.CoreLib.dll assembly not found.");
+        _ = loader.LoadAssembly(typeof(Uri).Assembly.Location) ?? throw new InvalidOperationException("System.Runtime.dll assembly not found.");
+
+        var wellKnownTypes = new WellKnownTypes(loader);
+
+        var integrationModel = IntegrationModel.Create(wellKnownTypes, testAssembly);
+
+        Assert.DoesNotContain(integrationModel.SharedExtensionMethods, x => x.Name == nameof(ContainerResourceBuilderExtensions.Ignored));
+        Assert.Contains(integrationModel.SharedExtensionMethods, x => x.Name == nameof(ContainerResourceBuilderExtensions.WithVolume));
+        Assert.Contains(integrationModel.SharedExtensionMethods, x => x.Name == nameof(ContainerResourceBuilderExtensions.WithSomethingSpecial));
+
+        Assert.DoesNotContain(integrationModel.SharedExtensionMethods, x => x.Name == nameof(ContainerResourceBuilderExtensions.AddSomeResource));
+        Assert.Contains(integrationModel.IDistributedApplicationBuilderExtensionMethods, x => x.Name == nameof(ContainerResourceBuilderExtensions.AddSomeResource));
+    }
+
+    [Fact]
     public void AssignabilityReflectsInheritanceAndInterfaces()
     {
         using var loader = CreateAssemblyLoaderContext(out var testAssembly);
 
         var containerResourceType = testAssembly.GetType(typeof(ContainerResource).FullName!);
-        var resourceType = testAssembly.GetType(typeof(Resource).FullName!);
-        var resourceInterfaceType = testAssembly.GetType(typeof(IResource).FullName!);
+        var resourceType = loader.GetType(typeof(Resource).FullName!);
+        var resourceInterfaceType = loader.GetType(typeof(IResource).FullName!);
 
         Assert.NotNull(containerResourceType);
         Assert.NotNull(resourceType);

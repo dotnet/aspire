@@ -237,16 +237,11 @@ internal sealed class PackagesJson
             }
 
             var mscorlibPath = Path.Combine(dependencyContext.ArtifactsPath, "System.Private.CoreLib.dll");
-            var mscorlib = assemblyLoaderContext.LoadAssembly(mscorlibPath) ?? throw new InvalidOperationException("System.Private.CoreLib.dll assembly not found.");
+            _ = assemblyLoaderContext.LoadAssembly(mscorlibPath) ?? throw new InvalidOperationException("System.Private.CoreLib.dll assembly not found.");
 
             var systemRuntimePath = Path.Combine(dependencyContext.ArtifactsPath, "System.Runtime.dll");
-            var systemRuntime = assemblyLoaderContext.LoadAssembly(systemRuntimePath) ?? throw new InvalidOperationException("System.Runtime.dll assembly not found.");
-
-            var wellKnownAssemblies = assemblies
-                .Concat([aspireHosting, systemRuntime, mscorlib])
-                .Where(a => a is not null)!
-                .Distinct();
-
+            _ = assemblyLoaderContext.LoadAssembly(systemRuntimePath) ?? throw new InvalidOperationException("System.Runtime.dll assembly not found.");
+            
             var wellKnownTypes = new WellKnownTypes(assemblyLoaderContext);
 
             foreach (var assembly in assemblies)

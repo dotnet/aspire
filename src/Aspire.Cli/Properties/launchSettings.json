@@ -2,9 +2,9 @@
   "profiles": {
     "polyglot-typescript": {
       "commandName": "Project",
-      "commandLineArgs": "polyglot new -o c:\\temp\\r310",
+      "commandLineArgs": "polyglot add Ollama -o C:\\temp\\polyglot\\ts\\src\\apphost",
       "dotnetRunMessages": true
-    },   
+    },
     "dev-waitfor-explicit": {
       "commandName": "Project",
       "commandLineArgs": "dev ../../../../../playground/waitfor/WaitForSandbox.AppHost/WaitForSandbox.AppHost.csproj",
@@ -37,9 +37,9 @@
     },
     "deploy-azure": {
       "commandName": "Project",
-      "dotnetRunMessages": true,
       "commandLineArgs": "deploy",
-      "workingDirectory": "../../playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost"
+      "workingDirectory": "../../playground/AzureStorageEndToEnd/AzureStorageEndToEnd.AppHost",
+      "dotnetRunMessages": true
     },
     "run-testapphost": {
       "commandName": "Project",

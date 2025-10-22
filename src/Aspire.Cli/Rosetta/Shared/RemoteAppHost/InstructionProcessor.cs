@@ -37,12 +37,8 @@ public class InstructionProcessor
         var options = new DistributedApplicationOptions
         {
             Args = instruction.Args ?? [],
+            ProjectDirectory = instruction.ProjectDirectory
         };
-                
-        // TODO: pass the app path from the client
-        // Hack to work around the fact that the ProjectDirectory is internally set
-        // to the assembly location. This is a workaround until we expose the API
-        typeof(DistributedApplicationOptions).GetProperty("ProjectDirectory", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.SetValue(options, instruction.ProjectDirectory);
 
         // Create the distributed application builder
         var builder = DistributedApplication.CreateBuilder(options);

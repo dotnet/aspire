@@ -24,7 +24,8 @@ internal sealed class ProjectModel
     const string ProjectDllName = "GenericAppHost.dll";
     const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     const string TargetFramework = "net9.0";
-    public const string AspireHostVersion = "9.5.0";
+    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? "9.5.0";
+    public static string? LocalPakcagePath = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_SOURCE");
     public const string BuildFolder = "build";
     const string AssemblyName = "GenericAppHost";
     private readonly string _projectModelPath;
@@ -103,12 +104,16 @@ internal sealed class ProjectModel
         var appSettingsJsonPath = Path.Combine(_projectModelPath, "appsettings.json");
         File.WriteAllText(appSettingsJsonPath, appSettingsJson);
 
+        var localPackageSource = LocalPakcagePath is not null ? $"""
+                    <add key="local" value="{LocalPakcagePath.Replace("\\", "/")}" />
+                """ : string.Empty;
+
         // Add NuGet.config to the project model path
-        var nugetConfig = """
+        var nugetConfig = $$"""
             <?xml version="1.0" encoding="utf-8"?>
             <configuration>
                 <packageSources>
-                    <clear />
+                    <clear />{{localPackageSource}}
                     <add key="dotnet9" value="https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet9/nuget/v3/index.json" />
                     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
                 </packageSources>
