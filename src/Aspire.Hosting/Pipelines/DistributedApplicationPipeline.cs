@@ -116,13 +116,14 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var (annotationSteps, stepToResourceMap) = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
         var allSteps = _steps.Concat(annotationSteps).ToList();
 
+        // Execute second-pass callbacks even if there are no steps
+        // This allows callbacks to run validation or other logic
+        await ExecuteSecondPassCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
+
         if (allSteps.Count == 0)
         {
             return;
         }
-
-        // Execute second-pass callbacks to allow modification of dependencies
-        await ExecuteSecondPassCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
 
         ValidateSteps(allSteps);
 

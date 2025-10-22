@@ -1699,6 +1699,412 @@ public class DistributedApplicationPipelineTests
         }
     }
 
+    [Fact]
+    public async Task PipelineStep_WithTags_StoresTagsCorrectly()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["tag1", "tag2"]
+        };
+
+        Assert.Equal(2, step.Tags.Count);
+        Assert.Contains("tag1", step.Tags);
+        Assert.Contains("tag2", step.Tags);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithSecondPassCallback_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var callbackExecuted = false;
+        var capturedSteps = new List<PipelineStep>();
+
+        pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
+        pipeline.AddStep("step2", async (context) => await Task.CompletedTask);
+
+        pipeline.AddSecondPassCallback((passContext) =>
+        {
+            callbackExecuted = true;
+            capturedSteps.AddRange(passContext.Steps);
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+        Assert.Equal(2, capturedSteps.Count);
+        Assert.Contains(capturedSteps, s => s.Name == "step1");
+        Assert.Contains(capturedSteps, s => s.Name == "step2");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SecondPassCallback_CanModifyDependencies()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionOrder = new List<string>();
+
+        pipeline.AddStep("step1", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("step1"); }
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step2", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("step2"); }
+            await Task.CompletedTask;
+        });
+
+        // Add a callback that makes step2 depend on step1
+        pipeline.AddSecondPassCallback((passContext) =>
+        {
+            var step1 = passContext.Steps.First(s => s.Name == "step1");
+            var step2 = passContext.Steps.First(s => s.Name == "step2");
+            step2.DependsOn(step1);
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(["step1", "step2"], executionOrder);
+    }
+
+    [Fact]
+    public async Task PipelinePassContext_FindStepsByTag_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var foundSteps = new List<PipelineStep>();
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step1",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["test-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step2",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["test-tag", "another-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step3",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["different-tag"]
+        });
+
+        pipeline.AddSecondPassCallback((passContext) =>
+        {
+            foundSteps.AddRange(passContext.FindStepsByTag("test-tag"));
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(2, foundSteps.Count);
+        Assert.Contains(foundSteps, s => s.Name == "step1");
+        Assert.Contains(foundSteps, s => s.Name == "step2");
+        Assert.DoesNotContain(foundSteps, s => s.Name == "step3");
+    }
+
+    [Fact]
+    public async Task PipelinePassContext_FindStepsByResource_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var foundSteps = new List<PipelineStep>();
+        IResource? targetResource = null;
+
+        var resource1 = builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "resource1-step1",
+                    Action = async (ctx) => await Task.CompletedTask
+                },
+                new PipelineStep
+                {
+                    Name = "resource1-step2",
+                    Action = async (ctx) => await Task.CompletedTask
+                }
+            ]);
+
+        var resource2 = builder.AddResource(new CustomResource("resource2"))
+            .WithPipelineStepFactory((factoryContext) =>
+            {
+                targetResource = factoryContext.Resource;
+                return new PipelineStep
+                {
+                    Name = "resource2-step1",
+                    Action = async (ctx) => await Task.CompletedTask
+                };
+            })
+            .WithPipelinePassCallback((passContext) =>
+            {
+                foundSteps.AddRange(passContext.FindStepsByResource(passContext.Resource!));
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Single(foundSteps);
+        Assert.Contains(foundSteps, s => s.Name == "resource2-step1");
+    }
+
+    [Fact]
+    public async Task PipelinePassContext_FindStepsByTagAndResource_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var foundSteps = new List<PipelineStep>();
+
+        var resource1 = builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "resource1-step1",
+                    Action = async (ctx) => await Task.CompletedTask,
+                    Tags = ["build"]
+                },
+                new PipelineStep
+                {
+                    Name = "resource1-step2",
+                    Action = async (ctx) => await Task.CompletedTask,
+                    Tags = ["deploy"]
+                }
+            ])
+            .WithPipelinePassCallback((passContext) =>
+            {
+                foundSteps.AddRange(passContext.FindStepsByTagAndResource("build", passContext.Resource!));
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Single(foundSteps);
+        Assert.Contains(foundSteps, s => s.Name == "resource1-step1");
+    }
+
+    [Fact]
+    public async Task WithPipelinePassCallback_AsyncOverload_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var callbackExecuted = false;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelinePassCallback(async (passContext) =>
+            {
+                await Task.CompletedTask;
+                callbackExecuted = true;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+    }
+
+    [Fact]
+    public async Task WithPipelinePassCallback_SyncOverload_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var callbackExecuted = false;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelinePassCallback((passContext) =>
+            {
+                callbackExecuted = true;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+    }
+
+    [Fact]
+    public async Task SecondPassCallback_ReceivesCorrectResource()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        IResource? capturedResource = null;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelinePassCallback((passContext) =>
+            {
+                capturedResource = passContext.Resource;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.NotNull(capturedResource);
+        Assert.Equal("test-resource", capturedResource.Name);
+    }
+
+    [Fact]
+    public async Task SecondPassCallback_ExecutesAfterStepCollection()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var allStepsAvailable = false;
+
+        builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
+            {
+                Name = "resource1-step",
+                Action = async (ctx) => await Task.CompletedTask
+            });
+
+        builder.AddResource(new CustomResource("resource2"))
+            .WithPipelinePassCallback((passContext) =>
+            {
+                // Check if steps from other resources are available
+                allStepsAvailable = passContext.Steps.Any(s => s.Name == "resource1-step");
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        pipeline.AddStep("direct-step", async (context) => await Task.CompletedTask);
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(allStepsAvailable, "Second pass should have access to all collected steps");
+    }
+
+    [Fact]
+    public async Task WellKnownPipelineTags_ConstantsAccessible()
+    {
+        // Verify the new WellKnownPipelineTags class has the expected constants
+        Assert.Equal("provision-infra", WellKnownPipelineTags.ProvisionInfrastructure);
+        Assert.Equal("build-compute", WellKnownPipelineTags.BuildCompute);
+        Assert.Equal("deploy-compute", WellKnownPipelineTags.DeployCompute);
+
+        // Verify backward compatibility with WellKnownPipelineSteps
+#pragma warning disable CS0618 // Type or member is obsolete
+        Assert.Equal(WellKnownPipelineTags.ProvisionInfrastructure, WellKnownPipelineSteps.ProvisionInfrastructure);
+        Assert.Equal(WellKnownPipelineTags.BuildCompute, WellKnownPipelineSteps.BuildCompute);
+        Assert.Equal(WellKnownPipelineTags.DeployCompute, WellKnownPipelineSteps.DeployCompute);
+#pragma warning restore CS0618 // Type or member is obsolete
+    }
+
+    [Fact]
+    public async Task SecondPassCallback_CanCreateComplexDependencyRelationships()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionOrder = new List<string>();
+
+        // Create steps with tags
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("provision1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision2",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("provision2"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "build1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("build1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "deploy1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("deploy1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.DeployCompute]
+        });
+
+        // Use second pass to make all build steps depend on all provision steps
+        // and all deploy steps depend on all build steps
+        pipeline.AddSecondPassCallback((passContext) =>
+        {
+            var provisionSteps = passContext.FindStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = passContext.FindStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = passContext.FindStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
+
+            foreach (var buildStep in buildSteps)
+            {
+                foreach (var provisionStep in provisionSteps)
+                {
+                    buildStep.DependsOn(provisionStep);
+                }
+            }
+
+            foreach (var deployStep in deploySteps)
+            {
+                foreach (var buildStep in buildSteps)
+                {
+                    deployStep.DependsOn(buildStep);
+                }
+            }
+
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // Verify order: all provisions before builds, all builds before deploys
+        var provision1Index = executionOrder.IndexOf("provision1");
+        var provision2Index = executionOrder.IndexOf("provision2");
+        var build1Index = executionOrder.IndexOf("build1");
+        var deploy1Index = executionOrder.IndexOf("deploy1");
+
+        Assert.True(provision1Index < build1Index, "provision1 should execute before build1");
+        Assert.True(provision2Index < build1Index, "provision2 should execute before build1");
+        Assert.True(build1Index < deploy1Index, "build1 should execute before deploy1");
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }
