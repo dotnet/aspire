@@ -64,5 +64,7 @@
   "aspire-vscode.strings.processExceptionOccurred": "Encountered an exception ({0}) while running the following command: {1}.",
   "aspire-vscode.strings.failedToStartDebugSession": "Failed to start debug session.",
   "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}.",
-  "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file."
+  "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file.",
+  "aspire-vscode.strings.dashboard": "Dashboard",
+  "aspire-vscode.strings.codespaces": "Codespaces"
 }
