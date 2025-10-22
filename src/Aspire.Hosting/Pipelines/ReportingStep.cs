@@ -111,14 +111,15 @@ internal sealed class ReportingStep : IReportingStep
     /// </summary>
     /// <param name="logLevel">The log level for the message.</param>
     /// <param name="message">The message to log.</param>
-    public void Log(LogLevel logLevel, string message)
+    /// <param name="enableMarkdown">The enableMarkdown</param>
+    public void Log(LogLevel logLevel, string message, bool enableMarkdown = true)
     {
         if (Reporter is null)
         {
             return;
         }
 
-        Reporter.Log(this, logLevel, message);
+        Reporter.Log(this, logLevel, message, enableMarkdown);
     }
 
     /// <summary>

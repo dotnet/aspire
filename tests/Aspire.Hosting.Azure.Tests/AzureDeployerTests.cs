@@ -1244,7 +1244,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
             }
 
-            public void Log(LogLevel logLevel, string message)
+            public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
                 // For testing purposes, we just track that Log was called
                 _ = logLevel;

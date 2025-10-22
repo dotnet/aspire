@@ -55,6 +55,20 @@ internal sealed class PublishCommand : PublishCommandBase
 
         baseArgs.AddRange(["--output-path", targetPath]);
 
+        // Add --log-level and --envionment flags if specified
+        var logLevel = parseResult.GetValue(_logLevelOption);
+
+        if (!string.IsNullOrEmpty(logLevel))
+        {
+            baseArgs.AddRange(["--log-level", logLevel!]);
+        }
+
+        var environment = parseResult.GetValue(_environmentOption);
+        if (!string.IsNullOrEmpty(environment))
+        {
+            baseArgs.AddRange(["--environment", environment!]);
+        }
+
         baseArgs.AddRange(unmatchedTokens);
 
         return [.. baseArgs];

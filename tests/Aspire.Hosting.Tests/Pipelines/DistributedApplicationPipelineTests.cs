@@ -13,6 +13,7 @@ using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Tests.Pipelines;
@@ -1022,12 +1023,12 @@ public class DistributedApplicationPipelineTests
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        
+
         var interactionService = PublishingActivityReporterTests.CreateInteractionService();
         var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
-        
+
         builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
-        
+
         var pipeline = new DistributedApplicationPipeline();
         var exceptionMessage = "Test exception for reporting";
         pipeline.AddStep("failing-step", async (context) =>
@@ -1295,6 +1296,407 @@ public class DistributedApplicationPipelineTests
 
         Assert.Contains("async-step-1", executedSteps);
         Assert.Contains("async-step-2", executedSteps);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithPipelineLoggerProvider_LogsToStepLogger()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+        var loggedMessages = new List<string>();
+
+        pipeline.AddStep("logging-step", (context) =>
+        {
+            // Get a logger from DI which should be the PipelineLogger
+            var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("TestCategory");
+
+            logger.LogInformation("Test log message from pipeline step");
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        await pipeline.ExecuteAsync(context);
+
+        // Assert
+
+        // Collect all activities for easier assertion
+        var activities = new List<PublishingActivity>();
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
+        {
+            activities.Add(activity);
+        }
+
+        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
+        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
+
+        var stepActivity = Assert.Single(stepActivities);
+        Assert.Collection(stepActivity,
+            step =>
+            {
+                Assert.Equal("logging-step", step.Data.StatusText);
+                Assert.False(step.Data.IsComplete);
+            },
+            step =>
+            {
+                Assert.True(step.Data.IsComplete);
+            });
+        var logActivity = Assert.Single(logActivities);
+        Assert.Equal("Test log message from pipeline step", logActivity.Data.StatusText);
+        Assert.Equal("Information", logActivity.Data.LogLevel);
+        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.False(logActivity.Data.EnableMarkdown);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PipelineLoggerProvider_IsolatesLoggingBetweenSteps()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+        var step1Logger = (ILogger?)null;
+        var step2Logger = (ILogger?)null;
+
+        pipeline.AddStep("step1", async (context) =>
+        {
+            var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+            step1Logger = loggerFactory.CreateLogger("Step1Category");
+
+            // Verify this step has its own contextual logger
+            Assert.Same(context.Logger, PipelineLoggerProvider.CurrentLogger);
+
+            step1Logger.LogInformation("Message from step 1");
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step2", (context) =>
+        {
+            var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+            step2Logger = loggerFactory.CreateLogger("Step2Category");
+
+            // Verify this step has its own contextual logger (different from step1)
+            Assert.Same(context.Logger, PipelineLoggerProvider.CurrentLogger);
+
+            step2Logger.LogInformation("Message from step 2");
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        await pipeline.ExecuteAsync(context);
+
+        // Assert
+        Assert.NotNull(step1Logger);
+        Assert.NotNull(step2Logger);
+
+        // Collect all activities for easier assertion
+        var activities = new List<PublishingActivity>();
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
+        {
+            activities.Add(activity);
+        }
+
+        var stepOrder = new[] { "step1", "step2" };
+        var logOrder = new[] { "Message from step 1", "Message from step 2" };
+
+        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
+            .GroupBy(a => a.Data.Id)
+            .OrderBy(g => Array.IndexOf(stepOrder, g.First().Data.StatusText))
+            .ToList();
+        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log)
+            .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
+            .ToList();
+
+        Assert.Collection(stepActivities,
+            step1Activity =>
+            {
+                Assert.Collection(step1Activity,
+                    step =>
+                    {
+                        Assert.Equal("step1", step.Data.StatusText);
+                        Assert.False(step.Data.IsComplete);
+                    },
+                    step =>
+                    {
+                        Assert.True(step.Data.IsComplete);
+                    });
+            },
+            step2Activity =>
+            {
+                Assert.Collection(step2Activity,
+                    step =>
+                    {
+                        Assert.Equal("step2", step.Data.StatusText);
+                        Assert.False(step.Data.IsComplete);
+                    },
+                    step =>
+                    {
+                        Assert.True(step.Data.IsComplete);
+                    });
+            });
+
+        Assert.Collection(logActivities,
+            logActivity =>
+            {
+                Assert.Equal("Message from step 1", logActivity.Data.StatusText);
+                Assert.Equal("Information", logActivity.Data.LogLevel);
+                var step1ActivityGroup = stepActivities.First(g => g.First().Data.StatusText == "step1");
+                Assert.Equal(step1ActivityGroup.First().Data.Id, logActivity.Data.StepId);
+            },
+            logActivity =>
+            {
+                Assert.Equal("Message from step 2", logActivity.Data.StatusText);
+                Assert.Equal("Information", logActivity.Data.LogLevel);
+                var step2ActivityGroup = stepActivities.First(g => g.First().Data.StatusText == "step2");
+                Assert.Equal(step2ActivityGroup.First().Data.Id, logActivity.Data.StepId);
+            });
+
+        // After execution, current logger should be NullLogger
+        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenStepFails_PipelineLoggerIsCleanedUp()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("failing-step", async (context) =>
+        {
+            var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("FailingCategory");
+
+            logger.LogInformation("About to fail");
+
+            throw new InvalidOperationException("Test failure");
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Collect all activities for easier assertion
+        var activities = new List<PublishingActivity>();
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
+        {
+            activities.Add(activity);
+        }
+
+        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
+        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
+
+        Assert.Collection(stepActivities,
+            stepActivity =>
+            {
+                Assert.Collection(stepActivity,
+                    step =>
+                    {
+                        Assert.Equal("failing-step", step.Data.StatusText);
+                        Assert.False(step.Data.IsComplete);
+                    },
+                    step =>
+                    {
+                        Assert.True(step.Data.IsError);
+                    });
+            });
+
+        var logActivity = Assert.Single(logActivities);
+        Assert.Equal("About to fail", logActivity.Data.StatusText);
+        Assert.Equal("Information", logActivity.Data.LogLevel);
+        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+
+        // Verify logger is cleaned up even after failure
+        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_PipelineLoggerProvider_PreservesLoggerAfterStepCompletion()
+    {
+        // This test verifies that each step gets a clean logger context
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+        var capturedLoggers = new List<ILogger>();
+
+        for (var i = 1; i <= 3; i++)
+        {
+            var stepNumber = i; // Capture for closure
+            pipeline.AddStep($"step{stepNumber}", (context) =>
+            {
+                // Capture the current logger for this step
+                lock (capturedLoggers)
+                {
+                    capturedLoggers.Add(PipelineLoggerProvider.CurrentLogger);
+                }
+
+                var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+                var logger = loggerFactory.CreateLogger($"Step{stepNumber}");
+
+                logger.LogInformation("Executing step {stepNumber}", stepNumber);
+                return Task.CompletedTask;
+            });
+        }
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        await pipeline.ExecuteAsync(context);
+
+        // Assert
+        Assert.Equal(3, capturedLoggers.Count);
+
+        // Each step should have had a different logger context
+        // (We can't easily verify they're different instances since they're created per step,
+        // but we can verify none of them are NullLogger during execution)
+        foreach (var logger in capturedLoggers)
+        {
+            Assert.NotSame(NullLogger.Instance, logger);
+        }
+
+        // Collect all activities for easier assertion
+        var activities = new List<PublishingActivity>();
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
+        {
+            activities.Add(activity);
+        }
+
+        var stepOrder = new[] { "step1", "step2", "step3" };
+        var logOrder = new[] { "Executing step 1", "Executing step 2", "Executing step 3" };
+
+        var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
+            .GroupBy(a => a.Data.Id)
+            .OrderBy(g => Array.IndexOf(stepOrder, g.First().Data.StatusText))
+            .ToList();
+        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log)
+            .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
+            .ToList();
+
+        Assert.Equal(3, stepActivities.Count);
+        Assert.Collection(logActivities,
+            logActivity =>
+            {
+                Assert.Equal("Executing step 1", logActivity.Data.StatusText);
+                Assert.Equal("Information", logActivity.Data.LogLevel);
+            },
+            logActivity =>
+            {
+                Assert.Equal("Executing step 2", logActivity.Data.StatusText);
+                Assert.Equal("Information", logActivity.Data.LogLevel);
+            },
+            logActivity =>
+            {
+                Assert.Equal("Executing step 3", logActivity.Data.StatusText);
+                Assert.Equal("Information", logActivity.Data.LogLevel);
+            });
+
+        // Verify each log activity is associated with the correct step
+        foreach (var logActivity in logActivities)
+        {
+            Assert.Contains(stepActivities, stepGroup => stepGroup.First().Data.Id == logActivity.Data.StepId);
+        }
+
+        // After all steps complete, should be back to NullLogger
+        Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
+    }
+
+    [Theory]
+    [InlineData("Debug", new[] { "Debug", "Information", "Warning" }, new[] { "Debug", "Information", "Warning" })]
+    [InlineData("Information", new[] { "Debug", "Information", "Warning" }, new[] { "Information", "Warning" })]
+    [InlineData("Warning", new[] { "Debug", "Information", "Warning" }, new[] { "Warning" })]
+    [InlineData("Error", new[] { "Debug", "Information", "Warning" }, new string[0])]
+    public async Task ExecuteAsync_PipelineLoggerProvider_RespectsPublishingLogLevelConfiguration(
+        string configuredLogLevel,
+        string[] loggedLevels,
+        string[] expectedFilteredLevels)
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true, logLevel: configuredLogLevel);
+
+        var interactionService = PublishingActivityReporterTests.CreateInteractionService();
+        var reporter = new PipelineActivityReporter(interactionService, NullLogger<PipelineActivityReporter>.Instance);
+
+        builder.Services.AddSingleton<IPipelineActivityReporter>(reporter);
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep("logging-step", (context) =>
+        {
+            var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("TestCategory");
+
+            // Log messages at different levels
+            foreach (var level in loggedLevels)
+            {
+                switch (level)
+                {
+                    case "Debug":
+                        logger.LogDebug($"Debug message");
+                        break;
+                    case "Information":
+                        logger.LogInformation($"Information message");
+                        break;
+                    case "Warning":
+                        logger.LogWarning($"Warning message");
+                        break;
+                }
+            }
+
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Act
+        await pipeline.ExecuteAsync(context);
+
+        // Assert
+        var activities = new List<PublishingActivity>();
+        while (reporter.ActivityItemUpdated.Reader.TryRead(out var activity))
+        {
+            activities.Add(activity);
+        }
+
+        var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
+
+        // Verify that only the expected log levels are present
+        Assert.Equal(expectedFilteredLevels.Length, logActivities.Count);
+
+        // Verify each expected log level appears exactly once
+        foreach (var expectedLevel in expectedFilteredLevels)
+        {
+            Assert.Contains(logActivities, activity =>
+                activity.Data.LogLevel == expectedLevel &&
+                activity.Data.StatusText == $"{expectedLevel} message");
+        }
     }
 
     private sealed class CustomResource(string name) : Resource(name)
