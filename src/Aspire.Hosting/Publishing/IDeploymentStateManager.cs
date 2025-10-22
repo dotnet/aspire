@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json.Nodes;
 
 namespace Aspire.Hosting.Publishing;
 
@@ -18,12 +17,20 @@ public interface IDeploymentStateManager
     string? StateFilePath { get; }
 
     /// <summary>
-    /// Loads deployment state from the current application.
+    /// Acquires a specific section of the deployment state with version tracking for concurrency control.
+    /// The returned StateSection should be disposed after use to release the section lock.
     /// </summary>
-    Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default);
+    /// <param name="sectionName">The name of the section to acquire (e.g., "Parameters", "Azure").</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A StateSection containing the section data and version information.</returns>
+    Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Saves deployment state to the current application.
+    /// Saves a section of deployment state with optimistic concurrency control.
+    /// The section must be saved before it is disposed or modified by another operation.
     /// </summary>
-    Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default);
+    /// <param name="section">The section to save, including version information.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <exception cref="InvalidOperationException">Thrown when a version conflict is detected, indicating the section was modified after it was acquired.</exception>
+    Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default);
 }
