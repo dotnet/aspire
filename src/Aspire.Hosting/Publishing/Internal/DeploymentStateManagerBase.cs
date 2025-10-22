@@ -217,7 +217,7 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         try
         {
             var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
-                ? obj
+                ? obj.DeepClone().AsObject()
                 : null;
 
             return new DeploymentStateSection(sectionName, sectionData, metadata.Version, () => metadata.Lock.Release());
@@ -263,7 +263,8 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
         await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            _state[section.SectionName] = section.Data;
+            // Store a deep clone to ensure immutability
+            _state[section.SectionName] = section.Data.DeepClone().AsObject();
             await SaveStateToStorageAsync(_state, cancellationToken).ConfigureAwait(false);
         }
         finally
