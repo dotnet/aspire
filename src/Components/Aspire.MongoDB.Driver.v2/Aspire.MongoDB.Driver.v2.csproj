@@ -5,7 +5,7 @@
     <IsPackable>true</IsPackable>
     <PackageTags>$(ComponentDatabasePackageTags) MongoDB</PackageTags>
     <PackageIconFullPath>$(SharedDir)MongoDB_300px.png</PackageIconFullPath>
-    <Description>A generic MongoDB client (version 2+) that integrates with Aspire.</Description>
+    <Description>A generic MongoDB client (versions 2.x) that integrates with Aspire.</Description>
     <!-- MongoDB.Driver.Core.Extensions.DiagnosticSources and AspNetCore.HealthChecks.MongoDb packages are not signed -->
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <DefineConstants>$(DefineConstants);MONGODB_V2</DefineConstants>
