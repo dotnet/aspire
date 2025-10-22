@@ -71,5 +71,7 @@
   "aspire-vscode.strings.yesLabel": "Yes",
   "aspire-vscode.strings.noLabel": "No",
   "aspire-vscode.strings.invalidLaunchConfiguration": "Invalid launch configuration for {0}.",
-  "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file."
+  "aspire-vscode.strings.noAppHostInWorkspace": "No apphost found in the Aspire settings file.",
+  "aspire-vscode.strings.dashboard": "Dashboard",
+  "aspire-vscode.strings.codespaces": "Codespaces"
 }

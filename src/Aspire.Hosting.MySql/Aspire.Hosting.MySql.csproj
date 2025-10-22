@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
-    <PackageTags>aspire integration hosting MySQL</PackageTags>
+    <PackageTags>aspire integration hosting MySQL database data</PackageTags>
     <Description>MySQL support for .NET Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)MySQL_logo.png</PackageIconFullPath>
   </PropertyGroup>

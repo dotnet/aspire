@@ -5,6 +5,10 @@ import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
 
+export const enum AnsiColors {
+    Green = '\x1b[32m'
+}
+
 export interface AspireTerminal {
     terminal: vscode.Terminal;
     dispose: () => void;

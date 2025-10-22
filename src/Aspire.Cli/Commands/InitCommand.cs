@@ -30,6 +30,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ISolutionLocator _solutionLocator;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -55,7 +56,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext,
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -67,6 +68,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(solutionLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -76,6 +78,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _solutionLocator = solutionLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -94,7 +97,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }

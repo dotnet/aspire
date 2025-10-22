@@ -2,6 +2,8 @@
   "author": "Microsoft",
   "name": "Aspire Python 入门版应用",
   "description": "用于使用 Vite 和 React 结合 Python 后端 API 服务和 JavaScript 前端创建 Aspire 应用的项目模板。",
+  "symbols/UseRedisCache/displayName": "_Use Redis for caching (requires a supported container runtime)",
+  "symbols/UseRedisCache/description": "Configures whether to setup the application to use Redis for caching. Requires a supported container runtime to run locally, see https://aka.ms/dotnet/aspire/containers for more details.",
   "symbols/appHostHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的 HTTP 终结点。",
   "symbols/appHostOtlpHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的 OTLP HTTP 终结点。",
   "symbols/appHostResourceHttpPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的资源服务 HTTP 终结点。",

@@ -55,3 +55,5 @@ export const doYouWantToSetDefaultApphost = (appHost: string) => vscode.l10n.t('
 export const doYouWantToSelectDefaultApphost = vscode.l10n.t('Do you want to select the default apphost for this workspace?');
 export const selectDefaultLaunchApphost = vscode.l10n.t('Select the default apphost to launch when starting an Aspire debug session');
 export const noAppHostInWorkspace = vscode.l10n.t('No apphost found in the Aspire settings file.');
+export const dashboard = vscode.l10n.t('Dashboard');
+export const codespaces = vscode.l10n.t('Codespaces');

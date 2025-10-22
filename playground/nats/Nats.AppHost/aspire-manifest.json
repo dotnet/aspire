@@ -3,7 +3,7 @@
   "resources": {
     "nats": {
       "type": "container.v0",
-      "connectionString": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
+      "connectionString": "nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}",
       "image": "docker.io/library/nats:2.11",
       "args": [
         "--user",
@@ -35,7 +35,7 @@
         "NATS_PORT": "{nats.bindings.tcp.port}",
         "NATS_USERNAME": "nats",
         "NATS_PASSWORD": "{nats-password.value}",
-        "NATS_URI": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}"
+        "NATS_URI": "nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}"
       },
       "bindings": {
         "http": {
@@ -66,7 +66,7 @@
         "NATS_PORT": "{nats.bindings.tcp.port}",
         "NATS_USERNAME": "nats",
         "NATS_PASSWORD": "{nats-password.value}",
-        "NATS_URI": "nats://nats:{nats-password.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}"
+        "NATS_URI": "nats://nats:{nats-password-uri-encoded.value}@{nats.bindings.tcp.host}:{nats.bindings.tcp.port}"
       },
       "bindings": {
         "http": {
@@ -96,6 +96,11 @@
           }
         }
       }
+    },
+    "nats-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{nats-password.value}",
+      "filter": "uri"
     }
   }
 }

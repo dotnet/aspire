@@ -6,9 +6,14 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Aspire.Hosting.Tests.Utils;
 
-public sealed class TestDeveloperCertificateService(List<X509Certificate2> certificates, bool supportsContainerTrust) : IDeveloperCertificateService
+public sealed class TestDeveloperCertificateService(List<X509Certificate2> certificates, bool supportsContainerTrust, bool trustCertificate) : IDeveloperCertificateService
 {
+    /// <inheritdoc />
     public ImmutableList<X509Certificate2> Certificates { get; } = certificates.ToImmutableList();
 
+    /// <inheritdoc />
     public bool SupportsContainerTrust => supportsContainerTrust;
+
+    /// <inheritdoc />
+    public bool TrustCertificate => trustCertificate;
 }

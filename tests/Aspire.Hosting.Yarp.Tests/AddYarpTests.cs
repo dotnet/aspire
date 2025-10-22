@@ -32,7 +32,10 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Report that developer certificates won't support container scenarios
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), containerCertificateSupport));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            containerCertificateSupport,
+            trustCertificate: true));
 
         var yarp = builder.AddYarp("yarp");
 
@@ -76,7 +79,10 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -93,7 +99,10 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true));
 
         var yarp = builder.AddYarp("yarp").WithStaticFiles();
 
@@ -110,10 +119,13 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
 
         // Yarp requires an IDeveloperCertificateService in run mode when building it's environment variables.
         var testProvider = new TestServiceProvider();
-        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(new List<X509Certificate2>(), false));
+        testProvider.AddService<IDeveloperCertificateService>(new TestDeveloperCertificateService(
+            new List<X509Certificate2>(),
+            supportsContainerTrust: false,
+            trustCertificate: true));
 
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Run, testProvider);
@@ -128,7 +140,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var env = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(yarp.Resource, DistributedApplicationOperation.Publish, TestServiceProvider.Instance);
@@ -142,7 +154,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<ContainerFileSystemCallbackAnnotation>());
@@ -154,7 +166,7 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
@@ -167,21 +179,21 @@ public class AddYarpTests(ITestOutputHelper testOutputHelper)
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var tempDir = new TempDirectory();
-        
+
         var yarp = builder.AddYarp("yarp").WithStaticFiles(tempDir.Path);
 
         var annotation = Assert.Single(yarp.Resource.Annotations.OfType<DockerfileBuildAnnotation>());
         Assert.NotNull(annotation.DockerfileFactory);
-        
+
         var context = new DockerfileFactoryContext
         {
             Resource = yarp.Resource,
             Services = TestServiceProvider.Instance,
             CancellationToken = CancellationToken.None
         };
-        
+
         var dockerfile = await annotation.DockerfileFactory(context);
-        
+
         Assert.Contains("FROM", dockerfile);
         Assert.Contains("dotnet/nightly/yarp:2.3.0-preview.4", dockerfile);
         Assert.Contains("AS yarp", dockerfile);
