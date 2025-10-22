@@ -185,6 +185,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                 "Select projects to add to the AppHost:",
                 initContext.ExecutableProjects,
                 project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
+                defaultSelector: null,
                 cancellationToken);
 
             initContext.ExecutableProjectsToAddToAppHost = selectedProjects;
@@ -238,6 +239,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
                             "Select projects to add ServiceDefaults reference to:",
                             initContext.ExecutableProjectsToAddToAppHost,
                             project => Path.GetFileNameWithoutExtension(project.ProjectFile.Name),
+                            defaultSelector: null,
                             cancellationToken);
                         break;
                     case "none":

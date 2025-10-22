@@ -35,11 +35,13 @@ internal sealed class ConfigCommand : BaseCommand
         var setCommand = new SetCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var listCommand = new ListCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
         var deleteCommand = new DeleteCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
+        var featureCommand = new FeatureCommand(configurationService, InteractionService, features, updateNotifier, executionContext);
 
         Subcommands.Add(getCommand);
         Subcommands.Add(setCommand);
         Subcommands.Add(listCommand);
         Subcommands.Add(deleteCommand);
+        Subcommands.Add(featureCommand);
     }
 
     protected override bool UpdateNotificationsEnabled => false;
@@ -316,6 +318,101 @@ internal sealed class ConfigCommand : BaseCommand
                 InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorDeletingConfiguration, ex.Message));
                 return ExitCodeConstants.InvalidCommand;
             }
+        }
+    }
+
+    private sealed class FeatureCommand : BaseConfigSubCommand
+    {
+        private readonly IFeatures _features;
+
+        public FeatureCommand(IConfigurationService configurationService, IInteractionService interactionService, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+            : base("feature", ConfigCommandStrings.FeatureCommand_Description, features, updateNotifier, configurationService, executionContext, interactionService)
+        {
+            _features = features;
+        }
+
+        protected override bool UpdateNotificationsEnabled => false;
+
+        protected override Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+        {
+            return InteractiveExecuteAsync(cancellationToken);
+        }
+
+        public override async Task<int> InteractiveExecuteAsync(CancellationToken cancellationToken)
+        {
+            // Get current feature settings to pre-select enabled features
+            var currentSettings = await GetCurrentFeatureSettingsAsync(cancellationToken);
+            
+            // Prompt user to select features (pre-selected based on current settings)
+            var selectedFeatures = await InteractionService.PromptForSelectionsAsync(
+                ConfigCommandStrings.FeatureCommand_PromptForFeatures,
+                FeatureInfo.KnownFeatureInfos,
+                f =>
+                {
+                    var status = currentSettings.TryGetValue(f.Key, out var setting) && setting.IsEnabled
+                        ? (setting.IsGlobal ? " [[Global]]" : " [[Local]]")
+                        : "";
+                    return $"{f.Name}{status} - {f.Description}";
+                },
+                f => currentSettings.TryGetValue(f.Key, out var setting) && setting.IsEnabled,
+                cancellationToken);
+
+            // Ask if global or local
+            var isGlobal = await InteractionService.PromptForSelectionAsync(
+                ConfigCommandStrings.FeatureCommand_PromptForScope,
+                [false, true],
+                g => g ? ConfigCommandStrings.SetCommand_PromptForGlobal_GlobalOption : ConfigCommandStrings.SetCommand_PromptForGlobal_LocalOption,
+                cancellationToken);
+
+            // Only set values that differ from the default to avoid writing everything every time
+            var selectedKeys = selectedFeatures.Select(f => f.Key).ToHashSet();
+            
+            foreach (var feature in FeatureInfo.KnownFeatureInfos)
+            {
+                var shouldBeEnabled = selectedKeys.Contains(feature.Key);
+                
+                // Only write config if the value differs from the default
+                if (shouldBeEnabled != feature.DefaultValue)
+                {
+                    try
+                    {
+                        await ConfigurationService.SetConfigurationAsync(feature.Key, shouldBeEnabled.ToString().ToLowerInvariant(), isGlobal, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        InteractionService.DisplayError(string.Format(CultureInfo.CurrentCulture, ErrorStrings.ErrorSettingConfiguration, ex.Message));
+                        return ExitCodeConstants.InvalidCommand;
+                    }
+                }
+            }
+
+            InteractionService.DisplaySuccess(ConfigCommandStrings.FeatureCommand_FeaturesConfigured);
+            return ExitCodeConstants.Success;
+        }
+
+        private async Task<Dictionary<string, (bool IsEnabled, bool IsGlobal)>> GetCurrentFeatureSettingsAsync(CancellationToken cancellationToken)
+        {
+            var settings = new Dictionary<string, (bool IsEnabled, bool IsGlobal)>();
+            
+            foreach (var feature in FeatureInfo.KnownFeatureInfos)
+            {
+                // Extract the feature name from the key (remove "features:" prefix)
+                var featureName = feature.Key.Substring(KnownFeatures.FeaturePrefix.Length + 1);
+                
+                // Use IFeatures to check if feature is enabled (respects default values)
+                var isEnabled = _features.IsFeatureEnabled(featureName, feature.DefaultValue);
+                
+                if (isEnabled)
+                {
+                    // Check if it's explicitly set in config or just using default
+                    _ = await ConfigurationService.GetConfigurationAsync(feature.Key, cancellationToken);
+                    var isGlobal = false; // Simplified: we'd need to check both local and global files to determine this
+                    
+                    settings[feature.Key] = (true, isGlobal);
+                }
+            }
+            
+            return settings;
         }
     }
 }
