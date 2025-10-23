@@ -3,7 +3,6 @@
 
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -13,23 +12,19 @@ using Microsoft.Extensions.Options;
 namespace Aspire.Hosting.Publishing.Internal;
 
 /// <summary>
-/// File-based deployment state manager for publish scenarios.
+/// File-based deployment state manager for deployment scenarios.
 /// </summary>
 public sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,
     IHostEnvironment hostEnvironment,
-    IOptions<PublishingOptions> publishingOptions) : IDeploymentStateManager
+    IOptions<PublishingOptions> publishingOptions) : DeploymentStateManagerBase<FileDeploymentStateManager>(logger)
 {
-    private static readonly JsonSerializerOptions s_jsonSerializerOptions = new()
-    {
-        WriteIndented = true
-    };
+    /// <inheritdoc/>
+    public override string? StateFilePath => GetStatePath();
 
     /// <inheritdoc/>
-    public string? StateFilePath => GetDeploymentStatePath();
-
-    private string? GetDeploymentStatePath()
+    protected override string? GetStatePath()
     {
         // Use PathSha256 for deployment state to disambiguate projects with the same name in different locations
         var appHostSha = configuration["AppHost:PathSha256"];
@@ -50,29 +45,7 @@ public sealed class FileDeploymentStateManager(
     }
 
     /// <inheritdoc/>
-    public async Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
-    {
-        var jsonDocumentOptions = new JsonDocumentOptions
-        {
-            CommentHandling = JsonCommentHandling.Skip,
-            AllowTrailingCommas = true,
-        };
-
-        var deploymentStatePath = GetDeploymentStatePath();
-
-        if (deploymentStatePath is not null && File.Exists(deploymentStatePath))
-        {
-            logger.LogInformation("Loading deployment state from {Path}", deploymentStatePath);
-            return JsonNode.Parse(
-                await File.ReadAllTextAsync(deploymentStatePath, cancellationToken).ConfigureAwait(false),
-                documentOptions: jsonDocumentOptions)!.AsObject();
-        }
-
-        return [];
-    }
-
-    /// <inheritdoc/>
-    public async Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
+    protected override async Task SaveStateToStorageAsync(JsonObject state, CancellationToken cancellationToken)
     {
         try
         {
@@ -82,7 +55,7 @@ public sealed class FileDeploymentStateManager(
                 return;
             }
 
-            var deploymentStatePath = GetDeploymentStatePath();
+            var deploymentStatePath = GetStatePath();
             if (deploymentStatePath is null)
             {
                 logger.LogWarning("Cannot save deployment state: AppHostSha is not configured");
@@ -101,31 +74,7 @@ public sealed class FileDeploymentStateManager(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to save deployment state.");
+            throw;
         }
-    }
-
-    private static JsonObject FlattenJsonObject(JsonObject input)
-    {
-        var result = new JsonObject();
-
-        void Flatten(JsonObject obj, string prefix)
-        {
-            foreach (var kvp in obj)
-            {
-                var key = string.IsNullOrEmpty(prefix) ? kvp.Key : $"{prefix}:{kvp.Key}";
-
-                if (kvp.Value is JsonObject nestedObj)
-                {
-                    Flatten(nestedObj, key);
-                }
-                else
-                {
-                    result[key] = kvp.Value?.DeepClone();
-                }
-            }
-        }
-
-        Flatten(input, string.Empty);
-        return result;
     }
 }

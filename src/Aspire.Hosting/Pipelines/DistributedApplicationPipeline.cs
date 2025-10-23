@@ -127,10 +127,71 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         ValidateSteps(allSteps);
 
-        var stepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        var (stepsToExecute, stepsByName) = FilterStepsForExecution(allSteps, context);
 
         // Build dependency graph and execute with readiness-based scheduler
-        await ExecuteStepsAsTaskDag(allSteps, stepsByName, context).ConfigureAwait(false);
+        await ExecuteStepsAsTaskDag(stepsToExecute, stepsByName, context).ConfigureAwait(false);
+    }
+
+    private static (List<PipelineStep> StepsToExecute, Dictionary<string, PipelineStep> StepsByName) FilterStepsForExecution(
+        List<PipelineStep> allSteps,
+        PipelineContext context)
+    {
+        var publishingOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<Publishing.PublishingOptions>>();
+        var stepName = publishingOptions?.Value.Step;
+        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+
+        if (string.IsNullOrWhiteSpace(stepName))
+        {
+            return (allSteps, allStepsByName);
+        }
+
+        if (!allStepsByName.TryGetValue(stepName, out var targetStep))
+        {
+            var availableSteps = string.Join(", ", allSteps.Select(s => $"'{s.Name}'"));
+            throw new InvalidOperationException(
+                $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
+        }
+
+        var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
+        stepsToExecute.Add(targetStep);
+        var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        return (stepsToExecute, filteredStepsByName);
+    }
+
+    private static List<PipelineStep> ComputeTransitiveDependencies(
+        PipelineStep step,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<PipelineStep>();
+
+        void Visit(string stepName)
+        {
+            if (!visited.Add(stepName))
+            {
+                return;
+            }
+
+            if (!stepsByName.TryGetValue(stepName, out var currentStep))
+            {
+                return;
+            }
+
+            foreach (var dependency in currentStep.DependsOnSteps)
+            {
+                Visit(dependency);
+            }
+
+            result.Add(currentStep);
+        }
+
+        foreach (var dependency in step.DependsOnSteps)
+        {
+            Visit(dependency);
+        }
+
+        return result;
     }
 
     private static async Task<(List<PipelineStep> Steps, Dictionary<PipelineStep, IResource> StepToResourceMap)> CollectStepsFromAnnotationsAsync(PipelineContext context)
@@ -275,14 +336,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 {
                     try
                     {
-                        var depTasks = step.DependsOnSteps.Select(depName => stepCompletions[depName].Task);
+                        var depTasks = step.DependsOnSteps
+                            .Where(stepCompletions.ContainsKey)
+                            .Select(depName => stepCompletions[depName].Task);
                         await Task.WhenAll(depTasks).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
                         // Find all dependencies that failed
                         var failedDeps = step.DependsOnSteps
-                            .Where(depName => stepCompletions[depName].Task.IsFaulted)
+                            .Where(depName => stepCompletions.ContainsKey(depName) && stepCompletions[depName].Task.IsFaulted)
                             .ToList();
 
                         var message = failedDeps.Count > 0
@@ -443,8 +506,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             {
                 if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
                 {
-                    throw new InvalidOperationException(
-                        $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
+                    continue;
                 }
 
                 requiredByStepObj.DependsOnSteps.Add(step.Name);
@@ -460,7 +522,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // DFS to detect cycles
         void DetectCycles(string stepName, Stack<string> path)
         {
-            var state = visitStates[stepName];
+            if (!visitStates.TryGetValue(stepName, out var state))
+            {
+                return;
+            }
 
             if (state == VisitState.Visiting) // Currently visiting - cycle detected!
             {

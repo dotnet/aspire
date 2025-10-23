@@ -125,13 +125,6 @@ internal sealed class RunCommand : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
-            // Validate that single file AppHost feature is enabled if we detected a .cs file
-            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-            {
-                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
-                return ExitCodeConstants.FailedToFindProject;
-            }
-
             var env = new Dictionary<string, string>();
 
             var debug = parseResult.GetValue<bool>("--debug");

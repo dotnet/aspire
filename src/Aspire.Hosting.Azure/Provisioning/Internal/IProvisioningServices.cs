@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -57,7 +56,9 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A provisioning context.</returns>
+    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
