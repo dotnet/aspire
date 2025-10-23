@@ -183,7 +183,13 @@ public static class NodeAppHostingExtension
                                 .Run($"{resourceBuilder.Resource.Command} {string.Join(' ', packageManagerAnnotation.BuildCommandLineArgs)}");
                     }
                 });
-            });
+
+                // since Vite apps are typically served via a separate web server, we don't set an entrypoint
+                var dockerFileAnnotation = resource.Annotations.OfType<DockerfileBuildAnnotation>().LastOrDefault()
+                    ?? throw new InvalidOperationException("DockerfileBuildAnnotation should after calling PublishAsDockerFile.");
+                dockerFileAnnotation.HasEntrypoint = false;
+            })
+            .WithAnnotation(new StaticDockerFilesAnnotation() { SourcePath = "/app/dist" });
     }
 
     /// <summary>
