@@ -178,11 +178,11 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
                 Assert.Contains("api-build", mainBuildStep.DependsOnSteps);
 
-                var apiBuildstep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
+                var apiBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
                     .Where(s => s.Name == "api-build")
                     .Single();
 
-                Assert.Contains("default-image-tags", apiBuildstep.DependsOnSteps);
+                Assert.Contains("default-image-tags", apiBuildStep.DependsOnSteps);
 
                 configCalled = true;
             });

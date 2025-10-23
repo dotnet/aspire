@@ -13,23 +13,20 @@ var builder = DistributedApplication.CreateBuilder(args);
 var cache = builder.AddRedis("cache");
 
 #endif
-var apiService = builder.AddPythonScript("app", "./app", "app.py")
+var app = builder.AddUvicornApp("app", "./app", "app:app")
     .WithUvEnvironment()
-    .WithHttpEndpoint(env: "PORT")
     .WithExternalHttpEndpoints()
-    .WithHttpHealthCheck("/health")
 #if UseRedisCache
     .WithReference(cache)
     .WaitFor(cache)
 #endif
-    .PublishAsDockerFile(c =>
-    {
-        c.WithDockerfile(".");
-    });
+    .WithHttpHealthCheck("/health");
 
 builder.AddViteApp("frontend", "./frontend")
     .WithNpmPackageManager()
     .WithReference(apiService)
     .WaitFor(apiService);
+
+app.PublishWithContainerFiles(frontend, "./static");
 
 builder.Build().Run();

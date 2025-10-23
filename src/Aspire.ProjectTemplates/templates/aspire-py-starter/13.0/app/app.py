@@ -129,13 +129,3 @@ async def health_check():
 # Serve static files directly from root, if the "static" directory exists
 if os.path.exists("static"):
     app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True), name="static")
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    port = int(os.environ.get("PORT", 8111))
-    host = os.environ.get("HOST", "127.0.0.1")
-    reload = os.environ.get("DEBUG", "False").lower() == "true"
-
-    uvicorn.run("app:app", host=host, port=port, reload=reload, log_level="info")
