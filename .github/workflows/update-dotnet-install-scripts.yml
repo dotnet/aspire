@@ -3,7 +3,7 @@ name: Update dotnet-install Scripts
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1' # Weekly on Monday at 06:00 UTC
+    - cron: '0 6 * * *' # Daily at 06:00 UTC
 
 permissions:
   contents: write
