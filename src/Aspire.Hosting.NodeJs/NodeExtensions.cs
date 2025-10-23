@@ -99,8 +99,21 @@ public static class NodeAppHostingExtension
     /// <param name="workingDirectory">The working directory of the Vite app.</param>
     /// <param name="useHttps">When true use HTTPS for the endpoints, otherwise use HTTP.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    /// <remarks>This uses the specified package manager (default npm) method internally but sets defaults that would be expected to run a Vite app, such as the command to run the dev server and exposing the HTTP endpoints.</remarks>
-    public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? workingDirectory = null, bool useHttps = false)
+    /// <remarks>
+    ///
+    /// <example>
+    /// The following example creates a Vite app using npm as the package manager.
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddViteApp("frontend", "./frontend")
+    ///        .WithNpmPackageManager();
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string workingDirectory, bool useHttps = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -114,7 +127,7 @@ public static class NodeAppHostingExtension
             .WithIconName("CodeJsRectangle")
             .WithArgs(c =>
             {
-                if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation))
+                if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation))
                 {
                     foreach (var arg in packageManagerAnnotation.RunCommandLineArgs)
                     {
