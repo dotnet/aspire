@@ -216,9 +216,32 @@ internal sealed class RunModeProvisioningContextProvider(
                 inputs.Add(new InteractionInput
                 {
                     Name = ResourceGroupName,
-                    InputType = InputType.Text,
+                    InputType = InputType.Choice,
                     Label = AzureProvisioningStrings.ResourceGroupLabel,
-                    Value = GetDefaultResourceGroupName()
+                    Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
+                    Value = GetDefaultResourceGroupName(),
+                    AllowCustomChoice = true,
+                    Disabled = true,
+                    DynamicLoading = new InputLoadOptions
+                    {
+                        LoadCallback = async (context) =>
+                        {
+                            var subscriptionId = context.AllInputs[SubscriptionIdName].Value ?? string.Empty;
+
+                            var (resourceGroupOptions, fetchSucceeded) = await TryGetResourceGroupsAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+
+                            if (fetchSucceeded && resourceGroupOptions is not null)
+                            {
+                                context.Input.Options = resourceGroupOptions.Select(rg => KeyValuePair.Create(rg, rg)).ToList();
+                            }
+                            else
+                            {
+                                context.Input.Options = [];
+                            }
+                            context.Input.Disabled = false;
+                        },
+                        DependsOnInputs = [SubscriptionIdName]
+                    }
                 });
 
                 var result = await _interactionService.PromptInputsAsync(

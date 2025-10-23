@@ -268,5 +268,14 @@ namespace Aspire.Hosting.Azure.Resources {
                 return ResourceManager.GetString("ValidationTenantIdInvalid", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select or enter resource group.
+        /// </summary>
+        internal static string ResourceGroupPlaceholder {
+            get {
+                return ResourceManager.GetString("ResourceGroupPlaceholder", resourceCulture);
+            }
+        }
     }
 }

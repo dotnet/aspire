@@ -314,26 +314,33 @@ internal sealed class PublishModeProvisioningContextProvider(
     private async Task PromptForLocationAndResourceGroupAsync(CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;
-        var fetchSucceeded = false;
+        List<string>? resourceGroupOptions = null;
+        var locationFetchSucceeded = false;
+        var resourceGroupFetchSucceeded = false;
 
         var step = await activityReporter.CreateStepAsync(
-            "fetch-regions",
+            "fetch-regions-and-resource-groups",
             cancellationToken).ConfigureAwait(false);
 
         await using (step.ConfigureAwait(false))
         {
             try
             {
-                var task = await step.CreateTaskAsync("Fetching supported regions", cancellationToken).ConfigureAwait(false);
+                var task = await step.CreateTaskAsync("Fetching supported regions and resource groups", cancellationToken).ConfigureAwait(false);
 
                 await using (task.ConfigureAwait(false))
                 {
-                    (locationOptions, fetchSucceeded) = await TryGetLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
+                    (locationOptions, locationFetchSucceeded) = await TryGetLocationsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
+                    (resourceGroupOptions, resourceGroupFetchSucceeded) = await TryGetResourceGroupsAsync(_options.SubscriptionId!, cancellationToken).ConfigureAwait(false);
                 }
 
-                if (fetchSucceeded)
+                if (locationFetchSucceeded && resourceGroupFetchSucceeded)
                 {
-                    await step.SucceedAsync($"Found {locationOptions!.Count} available region(s)", cancellationToken).ConfigureAwait(false);
+                    await step.SucceedAsync($"Found {locationOptions!.Count} region(s) and {resourceGroupOptions!.Count} resource group(s)", cancellationToken).ConfigureAwait(false);
+                }
+                else if (locationFetchSucceeded)
+                {
+                    await step.SucceedAsync($"Found {locationOptions!.Count} region(s)", cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -342,32 +349,40 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to retrieve Azure region information.");
-                await step.FailAsync($"Failed to retrieve region information: {ex.Message}", cancellationToken).ConfigureAwait(false);
+                _logger.LogError(ex, "Failed to retrieve Azure region and resource group information.");
+                await step.FailAsync($"Failed to retrieve region and resource group information: {ex.Message}", cancellationToken).ConfigureAwait(false);
                 throw;
             }
         }
 
+        var inputs = new List<InteractionInput>
+        {
+            new InteractionInput
+            {
+                Name = LocationName,
+                InputType = InputType.Choice,
+                Label = AzureProvisioningStrings.LocationLabel,
+                Required = true,
+                Options = [..locationOptions]
+            },
+            new InteractionInput
+            {
+                Name = ResourceGroupName,
+                InputType = InputType.Choice,
+                Label = AzureProvisioningStrings.ResourceGroupLabel,
+                Placeholder = AzureProvisioningStrings.ResourceGroupPlaceholder,
+                Value = GetDefaultResourceGroupName(),
+                AllowCustomChoice = true,
+                Options = resourceGroupFetchSucceeded && resourceGroupOptions is not null
+                    ? resourceGroupOptions.Select(rg => KeyValuePair.Create(rg, rg)).ToList()
+                    : []
+            }
+        };
+
         var result = await _interactionService.PromptInputsAsync(
             AzureProvisioningStrings.LocationDialogTitle,
             AzureProvisioningStrings.LocationSelectionMessage,
-            [
-                new InteractionInput
-                    {
-                        Name = LocationName,
-                        InputType = InputType.Choice,
-                        Label = AzureProvisioningStrings.LocationLabel,
-                        Required = true,
-                        Options = [..locationOptions]
-                    },
-                    new InteractionInput
-                    {
-                        Name = ResourceGroupName,
-                        InputType = InputType.Text,
-                        Label = AzureProvisioningStrings.ResourceGroupLabel,
-                        Value = GetDefaultResourceGroupName()
-                    }
-            ],
+            inputs,
             new InputsDialogInteractionOptions
             {
                 EnableMessageMarkdown = false,

@@ -56,6 +56,11 @@ Aby dowiedzieć się więcej, zobacz [dokumentację aprowizacji platformy Azure]
         <target state="translated">Grupa zasobów</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="new">Select or enter resource group</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
         <target state="translated">Subskrypcja platformy Azure</target>

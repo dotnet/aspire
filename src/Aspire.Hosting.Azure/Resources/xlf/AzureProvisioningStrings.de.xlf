@@ -56,6 +56,11 @@ Weitere Informationen finden Sie in der [Azure-Bereitstellungsdokumentation](htt
         <target state="translated">Ressourcengruppe</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="new">Select or enter resource group</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
         <target state="translated">Azure-Abonnement</target>

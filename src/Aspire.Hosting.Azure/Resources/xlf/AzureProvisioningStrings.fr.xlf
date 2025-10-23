@@ -56,6 +56,11 @@ Pour en savoir plus, consultez la [documentation d’approvisionnement Azure](ht
         <target state="translated">Groupe de ressources</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="new">Select or enter resource group</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
         <target state="translated">Abonnement Azure</target>

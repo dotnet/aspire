@@ -248,6 +248,17 @@ internal sealed class TestArmClient : IArmClient
         };
         return Task.FromResult<IEnumerable<(string, string)>>(locations);
     }
+
+    public Task<IEnumerable<string>> GetAvailableResourceGroupsAsync(string subscriptionId, CancellationToken cancellationToken = default)
+    {
+        var resourceGroups = new List<string>
+        {
+            "rg-test-1",
+            "rg-test-2",
+            "rg-aspire-dev"
+        };
+        return Task.FromResult<IEnumerable<string>>(resourceGroups);
+    }
 }
 
 /// <summary>

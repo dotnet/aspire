@@ -56,6 +56,11 @@ Para saber mais, veja a [documentação de provisionamento do Azure](https://aka
         <target state="translated">Grupo de recursos</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="new">Select or enter resource group</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
         <target state="translated">Assinatura do Azure</target>

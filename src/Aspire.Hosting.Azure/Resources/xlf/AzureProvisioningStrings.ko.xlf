@@ -56,6 +56,11 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
         <target state="translated">리소스 그룹</target>
         <note />
       </trans-unit>
+      <trans-unit id="ResourceGroupPlaceholder">
+        <source>Select or enter resource group</source>
+        <target state="new">Select or enter resource group</target>
+        <note />
+      </trans-unit>
       <trans-unit id="SubscriptionDialogTitle">
         <source>Azure subscription</source>
         <target state="translated">Azure 구독</target>
