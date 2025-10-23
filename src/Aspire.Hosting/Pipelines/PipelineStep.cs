@@ -43,7 +43,6 @@ public class PipelineStep
     /// </summary>
     public List<string> Tags { get; init; } = [];
 
-
     /// <summary>
     /// Adds a dependency on another step.
     /// </summary>
