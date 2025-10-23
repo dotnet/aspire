@@ -40,7 +40,6 @@ To run and debug your Aspire application, add an entry to the workspace `launch.
 }
 ```
 
-
 ## Requirements
 
 ### Aspire CLI
