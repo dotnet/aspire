@@ -397,6 +397,7 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         infra.Add(webSite);
+        infra.Add(config);
         if (webSiteRa is not null)
         {
             infra.Add(webSiteRa);
