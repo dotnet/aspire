@@ -31,6 +31,8 @@ namespace Aspire.Hosting.Azure;
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzureEnvironmentResource : Resource
 {
+    private const string DefaultImageStepTag = "default-image-tags";
+
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
@@ -45,6 +47,8 @@ public sealed class AzureEnvironmentResource : Resource
     /// Gets or sets the Azure principal ID that will be used to deploy the resources.
     /// </summary>
     public ParameterResource PrincipalId { get; set; }
+
+    private readonly List<IResource> _computeResourcesToBuild = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
@@ -88,12 +92,20 @@ public sealed class AzureEnvironmentResource : Resource
             };
             provisionStep.DependsOn(createContextStep);
 
+            var addImageTagsStep = new PipelineStep
+            {
+                Name = DefaultImageStepTag,
+                Action = ctx => DefaultImageTags(ctx),
+                Tags = [DefaultImageStepTag],
+            };
+
             var buildStep = new PipelineStep
             {
                 Name = "build-container-images",
                 Action = ctx => BuildContainerImagesAsync(ctx),
                 Tags = [WellKnownPipelineTags.BuildCompute]
             };
+            buildStep.DependsOn(addImageTagsStep);
 
             var pushStep = new PipelineStep
             {
@@ -119,7 +131,38 @@ public sealed class AzureEnvironmentResource : Resource
             };
             printDashboardUrlStep.DependsOn(deployStep);
 
-            return [validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            return [validateStep, createContextStep, provisionStep, addImageTagsStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+        }));
+
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            var defaultImageTags = context.GetSteps(this, DefaultImageStepTag).Single();
+            var myBuildStep = context.GetSteps(this, WellKnownPipelineTags.BuildCompute).Single();
+
+            var computeResources = context.Model.GetComputeResources()
+                .Where(r => r.RequiresImageBuildAndPush())
+                .ToList();
+
+            foreach (var computeResource in computeResources)
+            {
+                var computeResourceBuildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute);
+                if (computeResourceBuildSteps.Any())
+                {
+                    // add the appropriate dependencies to the compute resource's build steps
+                    foreach (var computeBuildStep in computeResourceBuildSteps)
+                    {
+                        computeBuildStep.DependsOn(defaultImageTags);
+                        myBuildStep.DependsOn(computeBuildStep);
+                    }
+                }
+                else
+                {
+                    // No build step exists for this compute resource, so we add it to the main build step
+                    _computeResourcesToBuild.Add(computeResource);
+                }
+            }
+
+            return Task.CompletedTask;
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -127,6 +170,26 @@ public sealed class AzureEnvironmentResource : Resource
         Location = location;
         ResourceGroupName = resourceGroupName;
         PrincipalId = principalId;
+    }
+
+    private static Task DefaultImageTags(PipelineStepContext context)
+    {
+        var computeResources = context.Model.GetComputeResources()
+            .Where(r => r.RequiresImageBuildAndPush())
+            .ToList();
+
+        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        foreach (var resource in computeResources)
+        {
+            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+            {
+                continue;
+            }
+            resource.Annotations.Add(
+                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task PublishAsync(PublishingContext context)
@@ -243,32 +306,17 @@ public sealed class AzureEnvironmentResource : Resource
         await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
     }
 
-    private static async Task BuildContainerImagesAsync(PipelineStepContext context)
+    private async Task BuildContainerImagesAsync(PipelineStepContext context)
     {
-        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
-
-        var computeResources = context.Model.GetComputeResources()
-            .Where(r => r.RequiresImageBuildAndPush())
-            .ToList();
-
-        if (!computeResources.Any())
+        if (!_computeResourcesToBuild.Any())
         {
             return;
         }
 
-        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
-        foreach (var resource in computeResources)
-        {
-            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
-            {
-                continue;
-            }
-            resource.Annotations.Add(
-                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
-        }
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
         await containerImageBuilder.BuildImagesAsync(
-            computeResources,
+            _computeResourcesToBuild,
             new ContainerBuildOptions
             {
                 TargetPlatform = ContainerTargetPlatform.LinuxAmd64
