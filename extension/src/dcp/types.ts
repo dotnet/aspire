@@ -38,6 +38,16 @@ export function isPythonLaunchConfiguration(obj: any): obj is PythonLaunchConfig
     return obj && obj.type === 'python';
 }
 
+export interface NodeLaunchConfiguration extends ExecutableLaunchConfiguration {
+    type: "node";
+    command: string;
+    working_directory: string;
+}
+
+export function isNodeLaunchConfiguration(obj: any): obj is NodeLaunchConfiguration {
+    return obj && obj.type === 'node';
+}
+
 export interface EnvVar {
     name: string;
     value: string;
