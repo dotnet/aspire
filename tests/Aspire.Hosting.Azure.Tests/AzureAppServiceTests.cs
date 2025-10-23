@@ -647,7 +647,7 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    public async Task GetHostAddressExpression()
+    public void GetHostAddressExpression()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
@@ -738,6 +738,43 @@ public class AzureAppServiceTests
 
         var appInsightsParam = builder.AddParameter("appInsightsLocation", "westus");
         builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights(appInsightsParam);
+
+        // Add 2 projects with endpoints
+        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithExternalHttpEndpoints();
+
+        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
+            .WithExternalHttpEndpoints()
+            .WithReference(project1);
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+
+        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+
+        Assert.NotNull(resource);
+
+        var (manifest, bicep) = await GetManifestWithBicep(resource);
+
+        await Verify(manifest.ToString(), "json")
+                .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceCanReferenceExistingApplicationInsights()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var nameParameter = builder.AddParameter("appInsights", "existing-ai-name");
+        var resourceGroupParameter = builder.AddParameter("resourceGroup", "existing-rg");
+
+        builder.AddAzureApplicationInsights("existingAI")
+            .PublishAsExisting(nameParameter, resourceGroupParameter);
+
+        builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights();
 
         // Add 2 projects with endpoints
         var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
