@@ -3,11 +3,16 @@
 
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Utils;
 using Azure.Provisioning;
 using Azure.Provisioning.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -245,5 +250,83 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
     private sealed class ExternalResourceWithParameters(string name) : Resource(name), IResourceWithParameters
     {
         public IDictionary<string, object?> Parameters { get; } = new Dictionary<string, object?>();
+    }
+
+    [Fact]
+    public async Task AzureEnvironmentResource_CreatesSeparatePipelineStepsForEachBicepResource()
+    {
+        // Arrange - Create a test model manually
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var serviceProvider = services.BuildServiceProvider();
+        
+        // Create resources
+        var storage1 = new AzureBicepResource("storage1", templateString: "// mock template");
+        var storage2 = new AzureBicepResource("storage2", templateString: "// mock template");
+        var cosmos = new AzureBicepResource("cosmos", templateString: "// mock template");
+        
+        var resources = new List<IResource> { storage1, storage2, cosmos };
+        var model = new DistributedApplicationModel(resources);
+        
+        // Create an Azure environment resource to get its pipeline step annotation
+        var location = new ParameterResource("location", _ => "eastus");
+        var resourceGroupName = new ParameterResource("resourceGroupName", _ => "rg");
+        var principalId = new ParameterResource("principalId", _ => "principal");
+        
+        var azureEnvResource = new AzureEnvironmentResource("azure-env", location, resourceGroupName, principalId);
+        
+        // Get the PipelineStepAnnotation
+        var pipelineStepAnnotation = azureEnvResource.Annotations.OfType<PipelineStepAnnotation>().Single();
+        
+        // Create a fake pipeline context
+        var executionContext = new DistributedApplicationExecutionContext(DistributedApplicationOperation.Publish);
+        var pipelineContext = new PipelineContext(
+            model,
+            executionContext,
+            serviceProvider,
+            NullLogger.Instance,
+            CancellationToken.None,
+            outputPath: null);
+        
+        var factoryContext = new PipelineStepFactoryContext
+        {
+            PipelineContext = pipelineContext,
+            Resource = azureEnvResource
+        };
+        
+        // Act - Execute the factory to get the steps
+        var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
+        
+        // Assert
+        // Should have: validate, create-context, provision-storage1, provision-storage2, provision-cosmos, build, push, deploy, print-dashboard
+        var provisionSteps = steps.Where(s => s.Name.StartsWith("provision-")).ToList();
+        
+        Assert.Equal(3, provisionSteps.Count);
+        Assert.Contains(provisionSteps, s => s.Name == "provision-storage1");
+        Assert.Contains(provisionSteps, s => s.Name == "provision-storage2");
+        Assert.Contains(provisionSteps, s => s.Name == "provision-cosmos");
+        
+        // Verify all provision steps have the correct tag
+        foreach (var provisionStep in provisionSteps)
+        {
+            Assert.Contains(WellKnownPipelineTags.ProvisionInfrastructure, provisionStep.Tags);
+        }
+        
+        // Verify dependencies - all provision steps should depend on create-provisioning-context
+        var createContextStep = steps.Single(s => s.Name == "create-provisioning-context");
+        foreach (var provisionStep in provisionSteps)
+        {
+            Assert.Contains(createContextStep.Name, provisionStep.DependsOnSteps);
+        }
+        
+        // Verify that push and deploy steps depend on all provision steps
+        var pushStep = steps.Single(s => s.Name == "push-container-images");
+        var deployStep = steps.Single(s => s.Name == "deploy-compute-resources");
+        
+        foreach (var provisionStep in provisionSteps)
+        {
+            Assert.Contains(provisionStep.Name, pushStep.DependsOnSteps);
+            Assert.Contains(provisionStep.Name, deployStep.DependsOnSteps);
+        }
     }
 }

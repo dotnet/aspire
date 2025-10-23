@@ -80,13 +80,26 @@ public sealed class AzureEnvironmentResource : Resource
             };
             createContextStep.DependsOn(validateStep);
 
-            var provisionStep = new PipelineStep
+            // Get all AzureBicepResource instances from the model
+            var bicepResources = factoryContext.PipelineContext.Model.Resources
+                .OfType<AzureBicepResource>()
+                .Where(r => !r.IsExcludedFromPublish())
+                .ToList();
+
+            // Create a separate provision step for each AzureBicepResource
+            var provisionSteps = new List<PipelineStep>();
+            foreach (var bicepResource in bicepResources)
             {
-                Name = "provision-azure-bicep-resources",
-                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!),
-                Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
-            };
-            provisionStep.DependsOn(createContextStep);
+                var resourceName = bicepResource.Name;
+                var provisionStep = new PipelineStep
+                {
+                    Name = $"provision-{resourceName}",
+                    Action = ctx => ProvisionSingleAzureBicepResourceAsync(ctx, provisioningContext!, bicepResource),
+                    Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+                };
+                provisionStep.DependsOn(createContextStep);
+                provisionSteps.Add(provisionStep);
+            }
 
             var buildStep = new PipelineStep
             {
@@ -101,7 +114,10 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => PushContainerImagesAsync(ctx)
             };
             pushStep.DependsOn(buildStep);
-            pushStep.DependsOn(provisionStep);
+            foreach (var provisionStep in provisionSteps)
+            {
+                pushStep.DependsOn(provisionStep);
+            }
 
             var deployStep = new PipelineStep
             {
@@ -110,7 +126,10 @@ public sealed class AzureEnvironmentResource : Resource
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployStep.DependsOn(pushStep);
-            deployStep.DependsOn(provisionStep);
+            foreach (var provisionStep in provisionSteps)
+            {
+                deployStep.DependsOn(provisionStep);
+            }
 
             var printDashboardUrlStep = new PipelineStep
             {
@@ -119,7 +138,11 @@ public sealed class AzureEnvironmentResource : Resource
             };
             printDashboardUrlStep.DependsOn(deployStep);
 
-            return [validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            var allSteps = new List<PipelineStep> { validateStep, createContextStep };
+            allSteps.AddRange(provisionSteps);
+            allSteps.AddRange([buildStep, pushStep, deployStep, printDashboardUrlStep]);
+
+            return allSteps;
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -172,75 +195,66 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
+    private static async Task ProvisionSingleAzureBicepResourceAsync(PipelineStepContext context, ProvisioningContext provisioningContext, AzureBicepResource resource)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
 
-        var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
-            .Where(r => !r.IsExcludedFromPublish())
-            .Where(r => r.ProvisioningTaskCompletionSource == null ||
-                       !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
-            .ToList();
-
-        if (bicepResources.Count == 0)
+        // Check if resource is already provisioned
+        if (resource.ProvisioningTaskCompletionSource != null &&
+            resource.ProvisioningTaskCompletionSource.Task.IsCompleted)
         {
             return;
         }
 
-        var provisioningTasks = bicepResources.Select(async resource =>
+        var resourceTask = await context.ReportingStep
+            .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
+            .ConfigureAwait(false);
+
+        await using (resourceTask.ConfigureAwait(false))
         {
-            var resourceTask = await context.ReportingStep
-                .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
-                .ConfigureAwait(false);
-
-            await using (resourceTask.ConfigureAwait(false))
+            try
             {
-                try
-                {
-                    resource.ProvisioningTaskCompletionSource =
-                        new(TaskCreationOptions.RunContinuationsAsynchronously);
+                resource.ProvisioningTaskCompletionSource =
+                    new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                    if (await bicepProvisioner.ConfigureResourceAsync(
-                        configuration, resource, context.CancellationToken).ConfigureAwait(false))
-                    {
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Using existing deployment for **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await bicepProvisioner.GetOrCreateResourceAsync(
-                            resource, provisioningContext, context.CancellationToken)
-                            .ConfigureAwait(false);
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Successfully provisioned **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
+                if (await bicepProvisioner.ConfigureResourceAsync(
+                    configuration, resource, context.CancellationToken).ConfigureAwait(false))
                 {
-                    var errorMessage = ex switch
-                    {
-                        RequestFailedException requestEx =>
-                            $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                        _ => $"Deployment failed: {ex.Message}"
-                    };
-                    resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
                     await resourceTask.CompleteAsync(
-                        $"Failed to provision **{resource.Name}**: {errorMessage}",
-                        CompletionState.CompletedWithError,
+                        $"Using existing deployment for **{resource.Name}**",
+                        CompletionState.Completed,
                         context.CancellationToken).ConfigureAwait(false);
-                    throw;
+                }
+                else
+                {
+                    await bicepProvisioner.GetOrCreateResourceAsync(
+                        resource, provisioningContext, context.CancellationToken)
+                        .ConfigureAwait(false);
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    await resourceTask.CompleteAsync(
+                        $"Successfully provisioned **{resource.Name}**",
+                        CompletionState.Completed,
+                        context.CancellationToken).ConfigureAwait(false);
                 }
             }
-        });
-
-        await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
+            catch (Exception ex)
+            {
+                var errorMessage = ex switch
+                {
+                    RequestFailedException requestEx =>
+                        $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                    _ => $"Deployment failed: {ex.Message}"
+                };
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                await resourceTask.CompleteAsync(
+                    $"Failed to provision **{resource.Name}**: {errorMessage}",
+                    CompletionState.CompletedWithError,
+                    context.CancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
     }
 
     private static async Task BuildContainerImagesAsync(PipelineStepContext context)
