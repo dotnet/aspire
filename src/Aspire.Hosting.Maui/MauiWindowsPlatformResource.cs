@@ -10,19 +10,17 @@ namespace Aspire.Hosting.Maui;
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="parent">The parent MAUI project resource.</param>
-/// <param name="command">The dotnet command to execute.</param>
-/// <param name="workingDirectory">The working directory for execution.</param>
 /// <remarks>
 /// This resource represents a MAUI application running on the Windows platform.
 /// The actual build and deployment happens when the resource is started, allowing for
 /// incremental builds during development without blocking AppHost startup.
 /// <para>
-/// Use <see cref="MauiWindowsExtensions.AddWindowsDevice(IResourceBuilder{MauiProjectResource}, string?)"/>
+/// Use <see cref="MauiWindowsExtensions.AddWindowsDevice(IResourceBuilder{MauiProjectResource})"/>
 /// to add this resource to a MAUI project.
 /// </para>
 /// </remarks>
-public class MauiWindowsPlatformResource(string name, MauiProjectResource parent, string command, string workingDirectory)
-    : ExecutableResource(name, command, workingDirectory), IResourceWithParent<MauiProjectResource>
+public class MauiWindowsPlatformResource(string name, MauiProjectResource parent)
+    : ProjectResource(name), IResourceWithParent<MauiProjectResource>
 {
     /// <summary>
     /// Gets the parent MAUI project resource.

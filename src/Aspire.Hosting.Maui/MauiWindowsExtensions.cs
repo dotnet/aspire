@@ -110,18 +110,27 @@ public static class MauiWindowsExtensions
         // Check if the project has the Windows TFM and get the actual TFM value
         var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
 
-        var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
+        var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource);
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
+            .WithAnnotation(new MauiProjectMetadata(projectPath))
+            .WithAnnotation(new ExecutableAnnotation
+            {
+                Command = "dotnet",
+                WorkingDirectory = workingDirectory
+            })
+            .WithArgs(context =>
+            {
+                context.Args.Add("run");
+                if (!string.IsNullOrEmpty(windowsTfm))
+                {
+                    context.Args.Add("-f");
+                    context.Args.Add(windowsTfm);
+                }
+            })
             .WithOtlpExporter()
             .WithIconName("Desktop")
             .WithExplicitStart();
-
-        // Set the command line arguments with the detected TFM if available
-        if (!string.IsNullOrEmpty(windowsTfm))
-        {
-            resourceBuilder.WithArgs("run", "-f", windowsTfm);
-        }
 
         // Validate the Windows TFM when the resource is about to start
         resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
