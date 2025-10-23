@@ -1909,7 +1909,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_WithSecondPassCallback_ExecutesCallback()
+    public async Task ExecuteAsync_WithConfigurationCallback_ExecutesCallback()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
@@ -1920,10 +1920,10 @@ public class DistributedApplicationPipelineTests
         pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
         pipeline.AddStep("step2", async (context) => await Task.CompletedTask);
 
-        pipeline.AddSecondPassCallback((passContext) =>
+        pipeline.AddPipelineConfiguration((configContext) =>
         {
             callbackExecuted = true;
-            capturedSteps.AddRange(passContext.Steps);
+            capturedSteps.AddRange(configContext.Steps);
             return Task.CompletedTask;
         });
 
@@ -1937,7 +1937,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ExecuteAsync_SecondPassCallback_CanModifyDependencies()
+    public async Task ExecuteAsync_ConfigurationCallback_CanModifyDependencies()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
@@ -1956,10 +1956,10 @@ public class DistributedApplicationPipelineTests
             await Task.CompletedTask;
         });
 
-        pipeline.AddSecondPassCallback((passContext) =>
+        pipeline.AddPipelineConfiguration((configContext) =>
         {
-            var step1 = passContext.Steps.First(s => s.Name == "step1");
-            var step2 = passContext.Steps.First(s => s.Name == "step2");
+            var step1 = configContext.Steps.First(s => s.Name == "step1");
+            var step2 = configContext.Steps.First(s => s.Name == "step2");
             step2.DependsOn(step1);
             return Task.CompletedTask;
         });
@@ -1971,7 +1971,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelinePassContext_FindStepsByTag_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_FindStepsByTag_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
@@ -1999,9 +1999,9 @@ public class DistributedApplicationPipelineTests
             Tags = ["different-tag"]
         });
 
-        pipeline.AddSecondPassCallback((passContext) =>
+        pipeline.AddPipelineConfiguration((configContext) =>
         {
-            foundSteps.AddRange(passContext.FindStepsByTag("test-tag"));
+            foundSteps.AddRange(configContext.FindStepsByTag("test-tag"));
             return Task.CompletedTask;
         });
 
@@ -2015,7 +2015,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelinePassContext_FindStepsByResource_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_FindStepsByResource_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2047,9 +2047,13 @@ public class DistributedApplicationPipelineTests
                     Action = async (ctx) => await Task.CompletedTask
                 };
             })
-            .WithPipelinePassCallback((passContext) =>
+            .WithPipelineConfiguration((configContext) =>
             {
-                foundSteps.AddRange(passContext.FindStepsByResource(passContext.Resource!));
+                var resource2Instance = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "resource2");
+                if (resource2Instance != null)
+                {
+                    foundSteps.AddRange(configContext.FindStepsByResource(resource2Instance));
+                }
             });
 
         var pipeline = new DistributedApplicationPipeline();
@@ -2061,7 +2065,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelinePassContext_FindStepsByTagAndResource_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_FindStepsByTagAndResource_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2083,9 +2087,13 @@ public class DistributedApplicationPipelineTests
                     Tags = ["deploy"]
                 }
             ])
-            .WithPipelinePassCallback((passContext) =>
+            .WithPipelineConfiguration((configContext) =>
             {
-                foundSteps.AddRange(passContext.FindStepsByTagAndResource("build", passContext.Resource!));
+                var resource1Instance = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "resource1");
+                if (resource1Instance != null)
+                {
+                    foundSteps.AddRange(configContext.FindStepsByTagAndResource("build", resource1Instance));
+                }
             });
 
         var pipeline = new DistributedApplicationPipeline();
@@ -2097,14 +2105,14 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task WithPipelinePassCallback_AsyncOverload_ExecutesCallback()
+    public async Task WithPipelineConfiguration_AsyncOverload_ExecutesCallback()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var callbackExecuted = false;
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithPipelinePassCallback(async (passContext) =>
+            .WithPipelineConfiguration(async (configContext) =>
             {
                 await Task.CompletedTask;
                 callbackExecuted = true;
@@ -2118,14 +2126,14 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task WithPipelinePassCallback_SyncOverload_ExecutesCallback()
+    public async Task WithPipelineConfiguration_SyncOverload_ExecutesCallback()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         var callbackExecuted = false;
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithPipelinePassCallback((passContext) =>
+            .WithPipelineConfiguration((configContext) =>
             {
                 callbackExecuted = true;
             });
@@ -2138,16 +2146,16 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task SecondPassCallback_ReceivesCorrectResource()
+    public async Task ConfigurationCallback_CanAccessApplicationModel()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
         IResource? capturedResource = null;
 
         var resource = builder.AddResource(new CustomResource("test-resource"))
-            .WithPipelinePassCallback((passContext) =>
+            .WithPipelineConfiguration((configContext) =>
             {
-                capturedResource = passContext.Resource;
+                capturedResource = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "test-resource");
             });
 
         var pipeline = new DistributedApplicationPipeline();
@@ -2159,7 +2167,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task SecondPassCallback_ExecutesAfterStepCollection()
+    public async Task ConfigurationCallback_ExecutesAfterStepCollection()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2173,9 +2181,9 @@ public class DistributedApplicationPipelineTests
             });
 
         builder.AddResource(new CustomResource("resource2"))
-            .WithPipelinePassCallback((passContext) =>
+            .WithPipelineConfiguration((configContext) =>
             {
-                allStepsAvailable = passContext.Steps.Any(s => s.Name == "resource1-step");
+                allStepsAvailable = configContext.Steps.Any(s => s.Name == "resource1-step");
             });
 
         var pipeline = new DistributedApplicationPipeline();
@@ -2184,25 +2192,19 @@ public class DistributedApplicationPipelineTests
         var context = CreateDeployingContext(builder.Build());
         await pipeline.ExecuteAsync(context);
 
-        Assert.True(allStepsAvailable, "Second pass should have access to all collected steps");
+        Assert.True(allStepsAvailable, "Configuration phase should have access to all collected steps");
     }
 
     [Fact]
-    public async Task WellKnownPipelineTags_ConstantsAccessible()
+    public void WellKnownPipelineTags_ConstantsAccessible()
     {
         Assert.Equal("provision-infra", WellKnownPipelineTags.ProvisionInfrastructure);
         Assert.Equal("build-compute", WellKnownPipelineTags.BuildCompute);
         Assert.Equal("deploy-compute", WellKnownPipelineTags.DeployCompute);
-
-#pragma warning disable CS0618
-        Assert.Equal(WellKnownPipelineTags.ProvisionInfrastructure, WellKnownPipelineSteps.ProvisionInfrastructure);
-        Assert.Equal(WellKnownPipelineTags.BuildCompute, WellKnownPipelineSteps.BuildCompute);
-        Assert.Equal(WellKnownPipelineTags.DeployCompute, WellKnownPipelineSteps.DeployCompute);
-#pragma warning restore CS0618
     }
 
     [Fact]
-    public async Task SecondPassCallback_CanCreateComplexDependencyRelationships()
+    public async Task ConfigurationCallback_CanCreateComplexDependencyRelationships()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
@@ -2253,11 +2255,11 @@ public class DistributedApplicationPipelineTests
             Tags = [WellKnownPipelineTags.DeployCompute]
         });
 
-        pipeline.AddSecondPassCallback((passContext) =>
+        pipeline.AddPipelineConfiguration((configContext) =>
         {
-            var provisionSteps = passContext.FindStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
-            var buildSteps = passContext.FindStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
-            var deploySteps = passContext.FindStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
+            var provisionSteps = configContext.FindStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = configContext.FindStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = configContext.FindStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
 
             foreach (var buildStep in buildSteps)
             {

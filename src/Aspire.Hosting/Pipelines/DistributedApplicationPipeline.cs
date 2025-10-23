@@ -18,7 +18,7 @@ namespace Aspire.Hosting.Pipelines;
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
     private readonly List<PipelineStep> _steps = [];
-    private readonly List<Func<PipelinePassContext, Task>> _secondPassCallbacks = [];
+    private readonly List<Func<PipelineConfigurationContext, Task>> _configurationCallbacks = [];
 
     public bool HasSteps => _steps.Count > 0;
 
@@ -105,10 +105,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(step);
     }
 
-    public void AddSecondPassCallback(Func<PipelinePassContext, Task> callback)
+    public void AddPipelineConfiguration(Func<PipelineConfigurationContext, Task> callback)
     {
         ArgumentNullException.ThrowIfNull(callback);
-        _secondPassCallbacks.Add(callback);
+        _configurationCallbacks.Add(callback);
     }
 
     public async Task ExecuteAsync(PipelineContext context)
@@ -116,9 +116,9 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var (annotationSteps, stepToResourceMap) = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
         var allSteps = _steps.Concat(annotationSteps).ToList();
 
-        // Execute second-pass callbacks even if there are no steps
+        // Execute configuration callbacks even if there are no steps
         // This allows callbacks to run validation or other logic
-        await ExecuteSecondPassCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
+        await ExecuteConfigurationCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
 
         if (allSteps.Count == 0)
         {
@@ -224,43 +224,40 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         return (steps, stepToResourceMap);
     }
 
-    private async Task ExecuteSecondPassCallbacksAsync(
+    private async Task ExecuteConfigurationCallbacksAsync(
         PipelineContext pipelineContext,
         List<PipelineStep> allSteps,
         Dictionary<PipelineStep, IResource> stepToResourceMap)
     {
         // Collect callbacks from the pipeline itself
-        var callbacks = new List<(Func<PipelinePassContext, Task> Callback, IResource? Resource)>();
+        var callbacks = new List<Func<PipelineConfigurationContext, Task>>();
         
-        foreach (var callback in _secondPassCallbacks)
-        {
-            callbacks.Add((callback, null));
-        }
+        callbacks.AddRange(_configurationCallbacks);
 
         // Collect callbacks from resource annotations
         foreach (var resource in pipelineContext.Model.Resources)
         {
-            var annotations = resource.Annotations.OfType<PipelinePassAnnotation>();
+            var annotations = resource.Annotations.OfType<PipelineConfigurationAnnotation>();
             foreach (var annotation in annotations)
             {
-                callbacks.Add((annotation.Callback, resource));
+                callbacks.Add(annotation.Callback);
             }
         }
 
         // Execute all callbacks
         if (callbacks.Count > 0)
         {
-            var passContext = new PipelinePassContext
+            var configContext = new PipelineConfigurationContext
             {
                 Services = pipelineContext.Services,
                 Steps = allSteps.AsReadOnly(),
+                ApplicationModel = pipelineContext.Model,
                 StepToResourceMap = stepToResourceMap
             };
 
-            foreach (var (callback, resource) in callbacks)
+            foreach (var callback in callbacks)
             {
-                passContext.Resource = resource;
-                await callback(passContext).ConfigureAwait(false);
+                await callback(configContext).ConfigureAwait(false);
             }
         }
     }

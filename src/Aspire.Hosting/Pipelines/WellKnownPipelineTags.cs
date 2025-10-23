@@ -6,29 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Defines well-known pipeline step names used in the deployment process.
-/// </summary>
-[Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-[Obsolete("Use WellKnownPipelineTags instead.")]
-public static class WellKnownPipelineSteps
-{
-    /// <summary>
-    /// The step that provisions infrastructure resources.
-    /// </summary>
-    public const string ProvisionInfrastructure = "provision-infra";
-
-    /// <summary>
-    /// The step that builds compute resources.
-    /// </summary>
-    public const string BuildCompute = "build-compute";
-
-    /// <summary>
-    /// The step that deploys to compute infrastructure.
-    /// </summary>
-    public const string DeployCompute = "deploy-compute";
-}
-
-/// <summary>
 /// Defines well-known pipeline tags used to categorize pipeline steps.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
