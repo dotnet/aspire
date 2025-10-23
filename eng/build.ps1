@@ -44,6 +44,7 @@ function Get-Help() {
   Write-Host "Libraries settings:"
   Write-Host "  -testnobuild            Skip building tests when invoking -test."
   Write-Host "  -buildExtension         Build the VS Code extension."
+  Write-Host "  -restore-maui           Restore the MAUI workload after restore (only on Windows/macOS)."
   Write-Host ""
 
   Write-Host "Command-line arguments not listed above are passed through to MSBuild."
@@ -111,11 +112,11 @@ Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 $buildExitCode = $LASTEXITCODE
 
-# Install MAUI workload after restore if -restore was passed
+# Install MAUI workload after restore if -restore-maui was passed
 # Only on Windows and macOS (MAUI doesn't support Linux)
-$restoreRequested = ($PSBoundParameters.ContainsKey('restore') -or $arguments -like '*-restore*')
+$restoreMauiPassed = $properties -contains "-restore-maui"
 $isWindowsOrMac = ($IsWindows -or $IsMacOS -or (-not (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue)))
-if ($restoreRequested -and $buildExitCode -eq 0 -and $isWindowsOrMac) {
+if ($restoreMauiPassed -and $buildExitCode -eq 0 -and $isWindowsOrMac) {
   Write-Host ""
   Write-Host "Installing MAUI workload into local .dotnet..."
   

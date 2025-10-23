@@ -46,6 +46,7 @@ usage()
   echo "Libraries settings:"
   echo "  --testnobuild              Skip building tests when invoking -test."
   echo "  --build-extension          Build the VS Code extension."
+  echo "  --restore-maui             Restore the MAUI workload after restore (only on macOS)."
   echo ""
 
   echo "Command line arguments starting with '/p:' are passed through to MSBuild."
@@ -55,6 +56,7 @@ usage()
 
 arguments=''
 extraargs=''
+restore_maui=false
 
 # Check if an action is passed in
 declare -a actions=("b" "build" "r" "restore" "rebuild" "testnobuild" "sign" "publish" "clean" "t" "test" "build-extension")
@@ -142,6 +144,11 @@ while [[ $# > 0 ]]; do
       shift 1
       ;;
 
+     -restore-maui)
+      restore_maui=true
+      shift 1
+      ;;
+
      *)
       extraargs="$extraargs $1"
       shift 1
@@ -161,9 +168,9 @@ arguments="$arguments $extraargs"
 "$scriptroot/common/build.sh" $arguments
 buildExitCode=$?
 
-# Install MAUI workload after restore if --restore was passed
+# Install MAUI workload after restore if --restore-maui was passed
 # Only on macOS (MAUI doesn't support Linux, Windows uses .cmd)
-if [[ "$arguments" == *"-restore"* ]] && [ $buildExitCode -eq 0 ]; then
+if [ "$restore_maui" = true ] && [ $buildExitCode -eq 0 ]; then
   # Check if we're on macOS
   if [[ "$(uname -s)" == "Darwin" ]]; then
     echo ""

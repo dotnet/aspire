@@ -12,9 +12,9 @@ echo ""
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$script_dir/../.."
 
-# Run the main Aspire restore (which now includes MAUI workload installation)
-echo "Running main Aspire restore (includes MAUI workload installation)..."
-"$repo_root/restore.sh"
+# Run the main Aspire restore with MAUI workload installation
+echo "Running main Aspire restore with MAUI workload installation..."
+"$repo_root/restore.sh" --install-maui
 
 echo ""
 echo "============================================================"

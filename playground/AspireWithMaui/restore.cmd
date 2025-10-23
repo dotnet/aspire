@@ -7,9 +7,9 @@ ECHO Restoring AspireWithMaui Playground
 ECHO ============================================================
 ECHO.
 
-REM Run the main Aspire restore (which now includes MAUI workload installation)
-ECHO Running main Aspire restore (includes MAUI workload installation)...
-CALL "%~dp0..\..\restore.cmd"
+REM Run the main Aspire restore with MAUI workload installation
+ECHO Running main Aspire restore with MAUI workload installation...
+CALL "%~dp0..\..\restore.cmd" -installMaui
 IF ERRORLEVEL 1 (
     ECHO ERROR: Failed to restore Aspire. Please check the output above.
     EXIT /B 1
