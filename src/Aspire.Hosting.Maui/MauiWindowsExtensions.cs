@@ -20,15 +20,13 @@ public static class MauiWindowsExtensions
     /// Adds a Windows device resource to run the MAUI application on the Windows platform.
     /// </summary>
     /// <param name="builder">The MAUI project resource builder.</param>
-    /// <param name="name">The name of the Windows device resource. If not provided, defaults to "{projectName}-windows".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// This method creates a new Windows platform resource that will run the MAUI application
     /// targeting the Windows platform using <c>dotnet run</c>. The resource does not auto-start 
     /// and must be explicitly started from the dashboard by clicking the start button.
     /// <para>
-    /// Multiple Windows device resources can be added to the same MAUI project if needed, each with
-    /// a unique name.
+    /// The resource name will default to "{projectName}-windows".
     /// </para>
     /// </remarks>
     /// <example>
@@ -43,13 +41,47 @@ public static class MauiWindowsExtensions
     /// </code>
     /// </example>
     public static IResourceBuilder<MauiWindowsPlatformResource> AddWindowsDevice(
-        this IResourceBuilder<MauiProjectResource> builder,
-        [ResourceName] string? name = null)
+        this IResourceBuilder<MauiProjectResource> builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        // Use default name if not provided
-        name ??= $"{builder.Resource.Name}-windows";
+        var name = $"{builder.Resource.Name}-windows";
+        return builder.AddWindowsDevice(name);
+    }
+
+    /// <summary>
+    /// Adds a Windows device resource to run the MAUI application on the Windows platform with a specific name.
+    /// </summary>
+    /// <param name="builder">The MAUI project resource builder.</param>
+    /// <param name="name">The name of the Windows device resource.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
+    /// <remarks>
+    /// This method creates a new Windows platform resource that will run the MAUI application
+    /// targeting the Windows platform using <c>dotnet run</c>. The resource does not auto-start 
+    /// and must be explicitly started from the dashboard by clicking the start button.
+    /// <para>
+    /// Multiple Windows device resources can be added to the same MAUI project if needed, each with
+    /// a unique name.
+    /// </para>
+    /// </remarks>
+    /// <example>
+    /// Add multiple Windows devices to a MAUI project:
+    /// <code lang="csharp">
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// 
+    /// var maui = builder.AddMauiProject("mauiapp", "../MyMauiApp/MyMauiApp.csproj");
+    /// var windowsDevice1 = maui.AddWindowsDevice("windows-device-1");
+    /// var windowsDevice2 = maui.AddWindowsDevice("windows-device-2");
+    /// 
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<MauiWindowsPlatformResource> AddWindowsDevice(
+        this IResourceBuilder<MauiProjectResource> builder,
+        [ResourceName] string name)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
         // Check if a Windows device with this name already exists in the application model
         var existingWindowsDevice = builder.ApplicationBuilder.Resources
