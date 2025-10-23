@@ -25,42 +25,42 @@ public class PipelineConfigurationContext
     /// <summary>
     /// Gets the distributed application model containing all resources.
     /// </summary>
-    public required DistributedApplicationModel ApplicationModel { get; init; }
+    public required DistributedApplicationModel Model { get; init; }
 
     internal IReadOnlyDictionary<PipelineStep, IResource> StepToResourceMap { get; init; } = null!;
 
     /// <summary>
-    /// Finds all pipeline steps with the specified tag.
+    /// Gets all pipeline steps with the specified tag.
     /// </summary>
     /// <param name="tag">The tag to search for.</param>
     /// <returns>A collection of steps that have the specified tag.</returns>
-    public IEnumerable<PipelineStep> FindStepsByTag(string tag)
+    public IEnumerable<PipelineStep> GetSteps(string tag)
     {
         ArgumentNullException.ThrowIfNull(tag);
         return Steps.Where(s => s.Tags.Contains(tag));
     }
 
     /// <summary>
-    /// Finds all pipeline steps associated with the specified resource.
+    /// Gets all pipeline steps associated with the specified resource.
     /// </summary>
     /// <param name="resource">The resource to search for.</param>
     /// <returns>A collection of steps associated with the resource.</returns>
-    public IEnumerable<PipelineStep> FindStepsByResource(IResource resource)
+    public IEnumerable<PipelineStep> GetSteps(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
         return StepToResourceMap.Where(kvp => kvp.Value == resource).Select(kvp => kvp.Key);
     }
 
     /// <summary>
-    /// Finds all pipeline steps with the specified tag that are associated with the specified resource.
+    /// Gets all pipeline steps with the specified tag that are associated with the specified resource.
     /// </summary>
-    /// <param name="tag">The tag to search for.</param>
     /// <param name="resource">The resource to search for.</param>
+    /// <param name="tag">The tag to search for.</param>
     /// <returns>A collection of steps that have the specified tag and are associated with the resource.</returns>
-    public IEnumerable<PipelineStep> FindStepsByTagAndResource(string tag, IResource resource)
+    public IEnumerable<PipelineStep> GetSteps(IResource resource, string tag)
     {
-        ArgumentNullException.ThrowIfNull(tag);
         ArgumentNullException.ThrowIfNull(resource);
-        return FindStepsByResource(resource).Where(s => s.Tags.Contains(tag));
+        ArgumentNullException.ThrowIfNull(tag);
+        return GetSteps(resource).Where(s => s.Tags.Contains(tag));
     }
 }

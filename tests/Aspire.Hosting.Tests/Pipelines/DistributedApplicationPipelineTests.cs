@@ -1971,7 +1971,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelineConfigurationContext_FindStepsByTag_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_GetStepsByTag_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
@@ -2001,7 +2001,7 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            foundSteps.AddRange(configContext.FindStepsByTag("test-tag"));
+            foundSteps.AddRange(configContext.GetSteps("test-tag"));
             return Task.CompletedTask;
         });
 
@@ -2015,7 +2015,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelineConfigurationContext_FindStepsByResource_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_GetStepsByResource_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2049,10 +2049,10 @@ public class DistributedApplicationPipelineTests
             })
             .WithPipelineConfiguration((configContext) =>
             {
-                var resource2Instance = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "resource2");
+                var resource2Instance = configContext.Model.Resources.FirstOrDefault(r => r.Name == "resource2");
                 if (resource2Instance != null)
                 {
-                    foundSteps.AddRange(configContext.FindStepsByResource(resource2Instance));
+                    foundSteps.AddRange(configContext.GetSteps(resource2Instance));
                 }
             });
 
@@ -2065,7 +2065,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PipelineConfigurationContext_FindStepsByTagAndResource_ReturnsCorrectSteps()
+    public async Task PipelineConfigurationContext_GetStepsByResourceAndTag_ReturnsCorrectSteps()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2089,10 +2089,10 @@ public class DistributedApplicationPipelineTests
             ])
             .WithPipelineConfiguration((configContext) =>
             {
-                var resource1Instance = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "resource1");
+                var resource1Instance = configContext.Model.Resources.FirstOrDefault(r => r.Name == "resource1");
                 if (resource1Instance != null)
                 {
-                    foundSteps.AddRange(configContext.FindStepsByTagAndResource("build", resource1Instance));
+                    foundSteps.AddRange(configContext.GetSteps(resource1Instance, "build"));
                 }
             });
 
@@ -2146,7 +2146,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task ConfigurationCallback_CanAccessApplicationModel()
+    public async Task ConfigurationCallback_CanAccessModel()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
 
@@ -2155,7 +2155,7 @@ public class DistributedApplicationPipelineTests
         var resource = builder.AddResource(new CustomResource("test-resource"))
             .WithPipelineConfiguration((configContext) =>
             {
-                capturedResource = configContext.ApplicationModel.Resources.FirstOrDefault(r => r.Name == "test-resource");
+                capturedResource = configContext.Model.Resources.FirstOrDefault(r => r.Name == "test-resource");
             });
 
         var pipeline = new DistributedApplicationPipeline();
@@ -2257,9 +2257,9 @@ public class DistributedApplicationPipelineTests
 
         pipeline.AddPipelineConfiguration((configContext) =>
         {
-            var provisionSteps = configContext.FindStepsByTag(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
-            var buildSteps = configContext.FindStepsByTag(WellKnownPipelineTags.BuildCompute).ToList();
-            var deploySteps = configContext.FindStepsByTag(WellKnownPipelineTags.DeployCompute).ToList();
+            var provisionSteps = configContext.GetSteps(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = configContext.GetSteps(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = configContext.GetSteps(WellKnownPipelineTags.DeployCompute).ToList();
 
             foreach (var buildStep in buildSteps)
             {

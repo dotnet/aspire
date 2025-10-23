@@ -251,7 +251,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             {
                 Services = pipelineContext.Services,
                 Steps = allSteps.AsReadOnly(),
-                ApplicationModel = pipelineContext.Model,
+                Model = pipelineContext.Model,
                 StepToResourceMap = stepToResourceMap
             };
 
