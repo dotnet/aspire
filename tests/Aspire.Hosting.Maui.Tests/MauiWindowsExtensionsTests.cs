@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
+using Aspire.Hosting.Maui;
 using Aspire.Hosting.Maui.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,7 +35,14 @@ public class MauiWindowsExtensionsTests
             // Assert
             Assert.NotNull(windows);
             Assert.Equal("mauiapp-windows", windows.Resource.Name);
-            Assert.Contains(windows.Resource, maui.Resource.WindowsDevices);
+            Assert.Same(maui.Resource, windows.Resource.Parent);
+            
+            // Verify the resource is in the application model
+            var windowsDeviceInModel = appBuilder.Resources
+                .OfType<MauiWindowsPlatformResource>()
+                .FirstOrDefault(r => r.Name == "mauiapp-windows");
+            Assert.NotNull(windowsDeviceInModel);
+            Assert.Same(windows.Resource, windowsDeviceInModel);
         }
         finally
         {
@@ -124,9 +132,14 @@ public class MauiWindowsExtensionsTests
             var windows2 = maui.AddWindowsDevice("device2");
 
             // Assert
-            Assert.Equal(2, maui.Resource.WindowsDevices.Count);
-            Assert.Contains(windows1.Resource, maui.Resource.WindowsDevices);
-            Assert.Contains(windows2.Resource, maui.Resource.WindowsDevices);
+            var windowsDevices = appBuilder.Resources
+                .OfType<MauiWindowsPlatformResource>()
+                .Where(r => r.Parent == maui.Resource)
+                .ToList();
+            
+            Assert.Equal(2, windowsDevices.Count);
+            Assert.Contains(windows1.Resource, windowsDevices);
+            Assert.Contains(windows2.Resource, windowsDevices);
         }
         finally
         {
@@ -157,7 +170,16 @@ public class MauiWindowsExtensionsTests
 
             // Assert
             var resource = windows.Resource;
-            Assert.Equal("dotnet", resource.Command);
+            
+            // Check ExecutableAnnotation
+            var execAnnotation = resource.Annotations.OfType<ExecutableAnnotation>().FirstOrDefault();
+            Assert.NotNull(execAnnotation);
+            Assert.Equal("dotnet", execAnnotation.Command);
+            
+            // Check for MauiProjectMetadata annotation
+            var projectMetadata = resource.Annotations.OfType<IProjectMetadata>().FirstOrDefault();
+            Assert.NotNull(projectMetadata);
+            Assert.Equal(tempFile, projectMetadata.ProjectPath);
             
             // Check for explicit start annotation
             var hasExplicitStart = resource.TryGetAnnotationsOfType<ExplicitStartupAnnotation>(out _);

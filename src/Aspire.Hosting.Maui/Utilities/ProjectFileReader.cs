@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
 
@@ -11,6 +12,9 @@ namespace Aspire.Hosting.Maui.Utilities;
 /// </summary>
 internal static class ProjectFileReader
 {
+    // Cache results per project path to avoid repeated MSBuild invocations
+    private static readonly ConcurrentDictionary<string, Dictionary<string, string?>> s_projectCache = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Gets the target framework matching the specified platform from the project file.
     /// </summary>
@@ -20,8 +24,35 @@ internal static class ProjectFileReader
     /// <remarks>
     /// This method uses MSBuild to evaluate the project and retrieve TargetFramework and TargetFrameworks properties.
     /// It searches for a target framework containing the specified platform identifier (case-insensitive) and returns the first match.
+    /// Results are cached per project path to avoid repeated MSBuild evaluations.
     /// </remarks>
     public static string? GetPlatformTargetFramework(string projectPath, string platformIdentifier)
+    {
+        // Get or create cache entry for this project
+        var platformCache = s_projectCache.GetOrAdd(projectPath, _ => new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
+        
+        // Check cache first
+        lock (platformCache)
+        {
+            if (platformCache.TryGetValue(platformIdentifier, out var cachedTfm))
+            {
+                return cachedTfm;
+            }
+        }
+
+        // Not cached, evaluate the project
+        var tfm = EvaluateProjectForPlatform(projectPath, platformIdentifier);
+        
+        // Cache the result
+        lock (platformCache)
+        {
+            platformCache[platformIdentifier] = tfm;
+        }
+        
+        return tfm;
+    }
+
+    private static string? EvaluateProjectForPlatform(string projectPath, string platformIdentifier)
     {
         try
         {
