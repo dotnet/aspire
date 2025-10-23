@@ -905,10 +905,9 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         public string? StateFilePath => null;
 
-        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
-            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
 
-        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner

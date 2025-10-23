@@ -93,12 +93,7 @@ export async function checkForExistingAppHostPathInWorkspace(terminalProvider: A
     
     let proc: ChildProcessWithoutNullStreams;
     new Promise<AppHostProjectSearchResult>((resolve, reject) => {
-        const args = ['extension', 'get-apphosts'];
-        if (process.env.ASPIRE_CLI_STOP_ON_ENTRY === 'true') {
-            args.push('--cli-wait-for-debugger');
-        }
-        
-        proc = spawnCliProcess(terminalProvider, terminalProvider.getAspireCliExecutablePath(false), args, {
+        proc = spawnCliProcess(terminalProvider, 'aspire', ['extension', 'get-apphosts'], {
             errorCallback: error => {
                 extensionLogOutputChannel.error(`Error executing get-apphosts command: ${error}`);
                 reject();

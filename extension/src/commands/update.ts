@@ -6,5 +6,5 @@ export async function updateCommand(terminalProvider: AspireTerminalProvider) {
         return;
     }
 
-    terminalProvider.sendAspireCommandToAspireTerminal('update');
+    terminalProvider.sendToAspireTerminal('aspire update');
 }

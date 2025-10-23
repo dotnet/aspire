@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Resources;
@@ -788,12 +789,12 @@ public class ParameterProcessorTests
     {
         public string? StateFilePath => null;
 
-        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+            return Task.FromResult(new JsonObject());
         }
 
-        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

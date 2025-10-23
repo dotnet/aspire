@@ -6,5 +6,5 @@ export async function configCommand(terminalProvider: AspireTerminalProvider) {
         return;
     }
 
-    terminalProvider.sendAspireCommandToAspireTerminal('config');
+    terminalProvider.sendToAspireTerminal("aspire config");
 }

@@ -561,7 +561,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--deploy", "Publishing:Deploy" },
             { "--log-level", "Publishing:LogLevel" },
             { "--clear-cache", "Publishing:ClearCache" },
-            { "--step", "Publishing:Step" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },

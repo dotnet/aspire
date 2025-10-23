@@ -40,7 +40,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () => {
             await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
@@ -78,7 +78,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -117,7 +117,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -161,7 +161,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // This should fallback to scanning and find the real apphost project
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
@@ -185,7 +185,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var selectedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
 
@@ -220,7 +220,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
         var foundAppHost = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(appHostProject.FullName, foundAppHost?.FullName);
     }
@@ -236,7 +236,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>{
             await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
@@ -260,7 +260,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile: true);
 
@@ -280,7 +280,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
 
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true);
         Assert.Equal(projectFile.FullName, returnedProjectFile!.FullName);
@@ -313,7 +313,7 @@ public class ProjectLocatorTests(ITestOutputHelper outputHelper)
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
         var configurationService = new ConfigurationService(config, executionContext, globalSettingsFile);
 
-        var locator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var locator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         await locator.UseOrFindAppHostProjectFileAsync(null, createSettingsFile: true, CancellationToken.None);
 
@@ -605,7 +605,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
         {
@@ -722,7 +722,67 @@ builder.Build().Run();");
         var runner = new TestDotNetCliRunner();
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var features = new TestFeatures().SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
+    }
+
+    [Fact]
+    public async Task FindAppHostProjectFilesAsync_IgnoresSingleFileAppHostWhenFeatureDisabled()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a valid single-file apphost
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var logger = NullLogger<ProjectLocator>.Instance;
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Use TestFeatures() with default values (feature disabled)
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        var foundFiles = await projectLocator.FindAppHostProjectFilesAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
+
+        // Should find no files since the single-file apphost feature is disabled
+        Assert.Empty(foundFiles);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileAsync_RejectsExplicitSingleFileAppHostWhenFeatureDisabled()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a valid single-file apphost
+        var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var logger = NullLogger<ProjectLocator>.Instance;
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Use TestFeatures() with default values (feature disabled)
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
+
+        // Should throw when explicitly trying to use an apphost.cs file with feature disabled
+        await Assert.ThrowsAsync<ProjectLocatorException>(() =>
+            projectLocator.UseOrFindAppHostProjectFileAsync(appHostFile, createSettingsFile: true));
     }
 
     [Fact]
@@ -749,7 +809,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // Pass directory as FileInfo (this is how System.CommandLine would parse it)
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -771,7 +831,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // Pass directory as FileInfo
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -811,7 +871,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // Pass directory as FileInfo
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
@@ -844,13 +904,51 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var features = new TestFeatures().SetFeature(KnownFeatures.SingleFileAppHostEnabled, true);
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
 
         // Pass directory as FileInfo (this is how System.CommandLine would parse it)
         var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
         var returnedProjectFile = await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
 
         Assert.Equal(appHostFile.FullName, returnedProjectFile!.FullName);
+    }
+
+    [Fact]
+    public async Task UseOrFindAppHostProjectFileThrowsWhenDirectoryHasSingleFileAppHostButFeatureDisabled()
+    {
+        var logger = NullLogger<ProjectLocator>.Instance;
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+
+        // Create a subdirectory with a single-file apphost (no .csproj)
+        var projectDirectory = workspace.WorkspaceRoot.CreateSubdirectory("MyAppHost");
+        var appHostFile = new FileInfo(Path.Combine(projectDirectory.FullName, "apphost.cs"));
+        await File.WriteAllTextAsync(
+            appHostFile.FullName,
+            """
+            #:sdk Aspire.AppHost.Sdk
+            using Aspire.Hosting;
+            var builder = DistributedApplication.CreateBuilder(args);
+            builder.Build().Run();
+            """);
+
+        var runner = new TestDotNetCliRunner();
+        var interactionService = new TestConsoleInteractionService();
+        var configurationService = new TestConfigurationService();
+        var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
+        // Feature flag disabled
+        var features = new TestFeatures();
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), features);
+
+        // Pass directory as FileInfo
+        var directoryAsFileInfo = new FileInfo(projectDirectory.FullName);
+
+        var ex = await Assert.ThrowsAsync<ProjectLocatorException>(async () =>
+        {
+            await projectLocator.UseOrFindAppHostProjectFileAsync(directoryAsFileInfo, createSettingsFile: true);
+        });
+
+        Assert.Equal(ErrorStrings.ProjectFileDoesntExist, ex.Message);
     }
 
     [Fact]
@@ -878,7 +976,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         // Pass top directory as FileInfo - should find project in subdirectory
         var directoryAsFileInfo = new FileInfo(topDirectory.FullName);
@@ -920,7 +1018,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 
@@ -955,7 +1053,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 
@@ -994,7 +1092,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 
@@ -1012,7 +1110,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 
@@ -1061,7 +1159,7 @@ builder.Build().Run();");
         var interactionService = new TestConsoleInteractionService();
         var configurationService = new TestConfigurationService();
         var executionContext = CreateExecutionContext(workspace.WorkspaceRoot);
-        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry());
+        var projectLocator = new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, new AspireCliTelemetry(), new TestFeatures());
 
         var executableProjects = await projectLocator.FindExecutableProjectsAsync(workspace.WorkspaceRoot.FullName, CancellationToken.None);
 

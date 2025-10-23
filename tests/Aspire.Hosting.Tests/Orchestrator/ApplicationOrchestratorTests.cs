@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPUBLISHERS001
 
+using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
@@ -486,12 +487,12 @@ public class ApplicationOrchestratorTests
     {
         public string? StateFilePath => null;
 
-        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
+            return Task.FromResult(new JsonObject());
         }
 
-        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+        public Task SaveStateAsync(JsonObject state, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
         }

@@ -4,6 +4,7 @@
 #if UseRedisCache
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
 #endif
+#:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
 
@@ -28,7 +29,7 @@ var apiService = builder.AddPythonScript("app", "./app", "app.py")
     });
 
 builder.AddViteApp("frontend", "./frontend")
-    .WithNpmPackageManager()
+    .WithNpmPackageInstallation()
     .WithReference(apiService)
     .WaitFor(apiService);
 

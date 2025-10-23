@@ -127,6 +127,15 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
+            // Validate that single file AppHost feature is enabled if we detected a .cs file
+            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+            {
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
+                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
+                return ExitCodeConstants.FailedToFindProject;
+            }
+
             var env = new Dictionary<string, string>();
 
             // Set interactivity enabled based on host environment capabilities

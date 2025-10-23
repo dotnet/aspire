@@ -492,6 +492,24 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task RunCommand_WhenSingleFileAppHostAndFeatureDisabled_ReturnsNonZeroExitCode()
+    {
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = _ => new SingleFileAppHostProjectLocator();
+            // Feature is disabled by default in tests, so we don't need to explicitly disable it
+        });
+        var provider = services.BuildServiceProvider();
+
+        var command = provider.GetRequiredService<RootCommand>();
+        var result = command.Parse("run");
+
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+        Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
+    }
+
+    [Fact]
     public async Task RunCommand_WhenSingleFileAppHostAndDefaultWatchEnabled_DoesNotUseWatchMode()
     {
         var watchModeUsed = false;
@@ -537,7 +555,7 @@ public class RunCommandTests(ITestOutputHelper outputHelper)
             options.ProjectLocatorFactory = _ => new SingleFileAppHostProjectLocator();
             options.AppHostBackchannelFactory = backchannelFactory;
             options.DotNetCliRunnerFactory = runnerFactory;
-            options.EnabledFeatures = [KnownFeatures.DefaultWatchEnabled];
+            options.EnabledFeatures = [KnownFeatures.DefaultWatchEnabled, KnownFeatures.SingleFileAppHostEnabled];
         });
 
         var provider = services.BuildServiceProvider();

@@ -41,6 +41,7 @@ internal static class ProvisioningTestHelpers
         ITenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
+        JsonObject? userSecrets = null,
         DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
@@ -51,6 +52,7 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
+            userSecrets ?? [],
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
@@ -593,21 +595,18 @@ internal sealed class TestBicepCompiler : IBicepCompiler
 
 internal sealed class TestUserSecretsManager : IDeploymentStateManager
 {
-    private readonly JsonObject _state = [];
+    private JsonObject _userSecrets = [];
 
     public string? StateFilePath => null;
 
-    public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+    public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
     {
-        var sectionData = _state.TryGetPropertyValue(sectionName, out var node) && node is JsonObject obj
-            ? obj
-            : new JsonObject();
-        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
+        return Task.FromResult(_userSecrets);
     }
 
-    public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
+    public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
     {
-        _state[section.SectionName] = section.Data;
+        _userSecrets = userSecrets;
         return Task.CompletedTask;
     }
 }

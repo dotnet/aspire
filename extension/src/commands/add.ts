@@ -6,5 +6,5 @@ export async function addCommand(terminalProvider: AspireTerminalProvider) {
         return;
     }
 
-    terminalProvider.sendAspireCommandToAspireTerminal('add');
+    terminalProvider.sendToAspireTerminal("aspire add");
 }

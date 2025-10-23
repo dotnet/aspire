@@ -27,16 +27,12 @@
       }
     },
     "angular": {
-      "type": "container.v1",
-      "build": {
-        "context": "../AspireJavaScript.Angular",
-        "dockerfile": "../AspireJavaScript.Angular/Dockerfile"
-      },
+      "type": "dockerfile.v0",
+      "path": "../AspireJavaScript.Angular/Dockerfile",
+      "context": "../AspireJavaScript.Angular",
       "env": {
         "NODE_ENV": "development",
-        "WEATHERAPI_HTTP": "{weatherapi.bindings.http.url}",
         "services__weatherapi__http__0": "{weatherapi.bindings.http.url}",
-        "WEATHERAPI_HTTPS": "{weatherapi.bindings.https.url}",
         "services__weatherapi__https__0": "{weatherapi.bindings.https.url}",
         "PORT": "{angular.bindings.http.targetPort}"
       },
@@ -51,16 +47,12 @@
       }
     },
     "react": {
-      "type": "container.v1",
-      "build": {
-        "context": "../AspireJavaScript.React",
-        "dockerfile": "../AspireJavaScript.React/Dockerfile"
-      },
+      "type": "dockerfile.v0",
+      "path": "../AspireJavaScript.React/Dockerfile",
+      "context": "../AspireJavaScript.React",
       "env": {
         "NODE_ENV": "development",
-        "WEATHERAPI_HTTP": "{weatherapi.bindings.http.url}",
         "services__weatherapi__http__0": "{weatherapi.bindings.http.url}",
-        "WEATHERAPI_HTTPS": "{weatherapi.bindings.https.url}",
         "services__weatherapi__https__0": "{weatherapi.bindings.https.url}",
         "BROWSER": "none",
         "PORT": "{react.bindings.http.targetPort}"
@@ -76,16 +68,12 @@
       }
     },
     "vue": {
-      "type": "container.v1",
-      "build": {
-        "context": "../AspireJavaScript.Vue",
-        "dockerfile": "../AspireJavaScript.Vue/Dockerfile"
-      },
+      "type": "dockerfile.v0",
+      "path": "../AspireJavaScript.Vue/Dockerfile",
+      "context": "../AspireJavaScript.Vue",
       "env": {
         "NODE_ENV": "development",
-        "WEATHERAPI_HTTP": "{weatherapi.bindings.http.url}",
         "services__weatherapi__http__0": "{weatherapi.bindings.http.url}",
-        "WEATHERAPI_HTTPS": "{weatherapi.bindings.https.url}",
         "services__weatherapi__https__0": "{weatherapi.bindings.https.url}",
         "PORT": "{vue.bindings.http.targetPort}"
       },
@@ -95,31 +83,6 @@
           "protocol": "tcp",
           "transport": "http",
           "targetPort": 8002,
-          "external": true
-        }
-      }
-    },
-    "reactvite": {
-      "type": "container.v1",
-      "build": {
-        "context": "../AspireJavaScript.Vite",
-        "dockerfile": "reactvite.Dockerfile"
-      },
-      "env": {
-        "NODE_ENV": "development",
-        "PORT": "{reactvite.bindings.http.targetPort}",
-        "WEATHERAPI_HTTP": "{weatherapi.bindings.http.url}",
-        "services__weatherapi__http__0": "{weatherapi.bindings.http.url}",
-        "WEATHERAPI_HTTPS": "{weatherapi.bindings.https.url}",
-        "services__weatherapi__https__0": "{weatherapi.bindings.https.url}",
-        "BROWSER": "none"
-      },
-      "bindings": {
-        "http": {
-          "scheme": "http",
-          "protocol": "tcp",
-          "transport": "http",
-          "targetPort": 8003,
           "external": true
         }
       }

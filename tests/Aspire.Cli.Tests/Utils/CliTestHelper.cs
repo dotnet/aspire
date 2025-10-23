@@ -211,7 +211,8 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
+        var features = serviceProvider.GetRequiredService<IFeatures>();
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)

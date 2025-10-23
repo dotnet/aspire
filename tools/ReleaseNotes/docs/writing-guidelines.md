@@ -5,7 +5,7 @@
 Follow the established structure from `data/whats-new-*.md` files:
 
 1. **Frontmatter** (YAML header with title, description, ms.date)
-2. **Main Title** (`# What's new in Aspire {version}`)
+2. **Main Title** (`# What's new in .NET Aspire {version}`)
 3. **Introduction** with supported .NET versions and feedback links
 4. **Version Support Policy** information
 5. **Major Sections** with emoji headers (🖥️, ✨, 🔗, 🚀, etc.)
@@ -17,14 +17,14 @@ Follow the established structure from `data/whats-new-*.md` files:
 
 ```markdown
 ---
-title: What's new in Aspire {version}
-description: Learn what's new in Aspire {version}.
+title: What's new in .NET Aspire {version}
+description: Learn what's new in .NET Aspire {version}.
 ms.date: {date}
 ---
 
-# What's new in Aspire {version}
+# What's new in .NET Aspire {version}
 
-📢 Aspire {version} is the next [major|minor] version release...
+📢 .NET Aspire {version} is the next [major|minor] version release...
 
 ## 🖥️ App model enhancements
 ### ✨ Feature Name

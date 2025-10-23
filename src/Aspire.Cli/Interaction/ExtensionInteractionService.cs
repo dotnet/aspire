@@ -21,7 +21,6 @@ internal interface IExtensionInteractionService : IInteractionService
     void DisplayConsolePlainText(string message);
     Task StartDebugSessionAsync(string workingDirectory, string? projectFile, bool debug);
     void WriteDebugSessionMessage(string message, bool stdout, string? textStyle);
-    void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true);
 }
 
 internal class ExtensionInteractionService : IExtensionInteractionService
@@ -251,11 +250,6 @@ internal class ExtensionInteractionService : IExtensionInteractionService
     {
         var result = _extensionTaskChannel.Writer.TryWrite(() => Backchannel.DisplaySubtleMessageAsync(message.RemoveSpectreFormatting(), _cancellationToken));
         Debug.Assert(result);
-        _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
-    }
-
-    public void ConsoleDisplaySubtleMessage(string message, bool escapeMarkup = true)
-    {
         _consoleInteractionService.DisplaySubtleMessage(message, escapeMarkup);
     }
 

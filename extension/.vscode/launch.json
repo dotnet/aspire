@@ -16,21 +16,6 @@
 				"${workspaceFolder}/dist/**/*.js"
 			],
 			"preLaunchTask": "${defaultBuildTask}"
-		},
-		{
-			"name": "Run Extension (cli stop on entry)",
-			"type": "extensionHost",
-			"request": "launch",
-			"args": [
-				"--extensionDevelopmentPath=${workspaceFolder}"
-			],
-			"outFiles": [
-				"${workspaceFolder}/dist/**/*.js"
-			],
-			"preLaunchTask": "${defaultBuildTask}",
-			"env": {
-				"ASPIRE_CLI_STOP_ON_ENTRY": "true"
-			}
 		}
 	]
 }

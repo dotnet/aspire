@@ -30,14 +30,14 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("existing-flat-value", result["Azure:SubscriptionId"]!.ToString());
         Assert.Equal("microsoft.onmicrosoft.com", result["Azure:Tenant"]!.ToString());
         Assert.Equal("/subscriptions/123/deployments/MyStorage", result["Azure:Deployments:MyStorage:Id"]!.ToString());
         Assert.Equal("{ \"param\": \"value\" }", result["Azure:Deployments:MyStorage:Parameters"]!.ToString());
-
+        
         // Verify no nested structures remain
         Assert.False(result.ContainsKey("Azure"), "Should not have nested 'Azure' object");
     }
@@ -54,7 +54,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal(3, result.Count);
@@ -70,7 +70,7 @@ public class UserSecretsDeploymentStateManagerTests
         var userSecrets = new JsonObject();
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Empty(result);
@@ -95,7 +95,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Single(result);
@@ -120,7 +120,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("text", result["StringValue"]!.ToString());
@@ -143,17 +143,17 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("value1", result["SimpleArray:0"]!.ToString());
         Assert.Equal("value2", result["SimpleArray:1"]!.ToString());
         Assert.Equal("value3", result["SimpleArray:2"]!.ToString());
-
+        
         Assert.Equal("1", result["NumberArray:0"]!.ToString());
         Assert.Equal("2", result["NumberArray:1"]!.ToString());
         Assert.Equal("3", result["NumberArray:2"]!.ToString());
-
+        
         Assert.Equal("text", result["MixedArray:0"]!.ToString());
         Assert.Equal("42", result["MixedArray:1"]!.ToString());
         Assert.Equal("true", result["MixedArray:2"]!.ToString());
@@ -183,14 +183,14 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Equal("Item1", result["ObjectArray:0:Name"]!.ToString());
         Assert.Equal("Value1", result["ObjectArray:0:Value"]!.ToString());
         Assert.Equal("Item2", result["ObjectArray:1:Name"]!.ToString());
         Assert.Equal("Value2", result["ObjectArray:1:Value"]!.ToString());
-
+        
         Assert.Equal("1", result["NestedConfig:Items:0:Id"]!.ToString());
         Assert.Equal("true", result["NestedConfig:Items:0:Settings:Enabled"]!.ToString());
     }
@@ -206,7 +206,7 @@ public class UserSecretsDeploymentStateManagerTests
         };
 
         // Act
-        var result = DeploymentStateManagerBase<UserSecretsDeploymentStateManager>.FlattenJsonObject(userSecrets);
+        var result = UserSecretsDeploymentStateManager.FlattenJsonObject(userSecrets);
 
         // Assert
         Assert.Single(result);

@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning.Internal;
-using Aspire.Hosting.Publishing;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager.Resources.Models;
@@ -14,14 +13,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Provisioning;
 
-#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
 internal sealed class BicepProvisioner(
     ResourceNotificationService notificationService,
     ResourceLoggerService loggerService,
     IBicepCompiler bicepCompiler,
     ISecretClientProvider secretClientProvider,
-    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext executionContext) : IBicepProvisioner
 {
     /// <inheritdoc />
@@ -222,36 +218,41 @@ internal sealed class BicepProvisioner(
         // e.g. {  "sqlServerName": { "type": "String", "value": "<value>" }}
         var outputObj = outputs?.ToObjectFromJson<JsonObject>();
 
-        // Acquire resource-specific state section for thread-safe deployment state management
-        var sectionName = $"Azure:Deployments:{resource.Name}";
-        var stateSection = await deploymentStateManager.AcquireSectionAsync(sectionName, cancellationToken).ConfigureAwait(false);
-
-        // Update deployment state for this specific resource
-        stateSection.Data.Clear();
-
-        // Save the deployment id to the configuration
-        stateSection.Data["Id"] = deployment.Id.ToString();
-
-        // Stash all parameters as a single JSON string
-        stateSection.Data["Parameters"] = parameters.ToJsonString();
-
-        if (outputObj is not null)
+        // Populate values into deployment state with thread-safe synchronization
+        context.WithDeploymentState(deploymentState =>
         {
-            // Same for outputs
-            stateSection.Data["Outputs"] = outputObj.ToJsonString();
-        }
+            var az = deploymentState.Prop("Azure");
+            az["Tenant"] = context.Tenant.DefaultDomain;
 
-        // Write resource scope to config for consistent checksums
-        if (scope is not null)
-        {
-            stateSection.Data["Scope"] = scope.ToJsonString();
-        }
+            var resourceConfig = deploymentState
+                .Prop("Azure")
+                .Prop("Deployments")
+                .Prop(resource.Name);
 
-        // Save the checksum to the configuration
-        stateSection.Data["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+            // Clear the entire section
+            resourceConfig.AsObject().Clear();
 
-        // Save the section back to the deployment state manager
-        await deploymentStateManager.SaveSectionAsync(stateSection, cancellationToken).ConfigureAwait(false);
+            // Save the deployment id to the configuration
+            resourceConfig["Id"] = deployment.Id.ToString();
+
+            // Stash all parameters as a single JSON string
+            resourceConfig["Parameters"] = parameters.ToJsonString();
+
+            if (outputObj is not null)
+            {
+                // Same for outputs
+                resourceConfig["Outputs"] = outputObj.ToJsonString();
+            }
+
+            // Write resource scope to config for consistent checksums
+            if (scope is not null)
+            {
+                resourceConfig["Scope"] = scope.ToJsonString();
+            }
+
+            // Save the checksum to the configuration
+            resourceConfig["CheckSum"] = BicepUtilities.GetChecksum(resource, parameters, scope);
+        });
 
         if (outputObj is not null)
         {
