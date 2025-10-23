@@ -287,7 +287,7 @@ public class MauiWindowsExtensionsTests
     {
         if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
         {
-            throw new SkipException("This test requires Windows because MSBuild only evaluates the conditional Windows TFM on Windows platforms.");
+            Assert.Skip("This test requires Windows because MSBuild only evaluates the conditional Windows TFM on Windows platforms.");
         }
 
         // Arrange
