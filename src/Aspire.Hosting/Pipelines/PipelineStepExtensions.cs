@@ -81,4 +81,40 @@ public static class PipelineStepExtensions
 
         return builder.WithAnnotation(new PipelineStepAnnotation(factory));
     }
+
+    /// <summary>
+    /// Registers a callback to be executed during the pipeline configuration phase,
+    /// allowing modification of step dependencies and relationships.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<T> WithPipelineConfiguration<T>(
+        this IResourceBuilder<T> builder,
+        Func<PipelineConfigurationContext, Task> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new PipelineConfigurationAnnotation(callback));
+    }
+
+    /// <summary>
+    /// Registers a callback to be executed during the pipeline configuration phase,
+    /// allowing modification of step dependencies and relationships.
+    /// </summary>
+    /// <typeparam name="T">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
+    /// <returns>The resource builder for chaining.</returns>
+    public static IResourceBuilder<T> WithPipelineConfiguration<T>(
+        this IResourceBuilder<T> builder,
+        Action<PipelineConfigurationContext> callback) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new PipelineConfigurationAnnotation(callback));
+    }
 }
