@@ -2130,7 +2130,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
-                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
 
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), false);
@@ -2143,7 +2143,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
-                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
 
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), false);
@@ -2158,7 +2158,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
                 {
-                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied environment '{EnvironmentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+                    resourceLogger.LogWarning("Resource '{ExecutableName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
 
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
@@ -2279,7 +2279,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
-                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
 
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), createFiles, false);
@@ -2292,7 +2292,7 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 if (resourceArguments.Contains(arg, StringComparer.Ordinal))
                 {
-                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied argument '{ArgumentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, arg);
 
                     // The user explicitly set an arg required to configure certificates, so we won't do automatic certificate configuration
                     return (new List<string>(), new List<EnvVar>(), createFiles, false);
@@ -2305,9 +2305,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             // Build the required environment variables to configure the resource to trust the custom certificates
             foreach (var caFileEnv in context.CertificateBundleEnvironment)
             {
-                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.Ordinal)))
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caFileEnv, StringComparison.OrdinalIgnoreCase)))
                 {
-                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caFileEnv);
 
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
@@ -2333,9 +2333,9 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
 
             foreach (var caDirEnv in context.CertificatesDirectoryEnvironment)
             {
-                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.Ordinal)))
+                if (resourceEnvironment.Any(e => string.Equals(e.Name, caDirEnv, StringComparison.OrdinalIgnoreCase)))
                 {
-                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflict with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caDirEnv);
+                    resourceLogger.LogWarning("Resource '{ContainerName}' has manually applied environment '{EnvironmentName}' that conflicts with Aspire's automatic certificate authority trust configuration. Automatic certificate trust configuration will not be applied.", modelResource.Name, caDirEnv);
 
                     // If any of the certificate environment variables are already present in the existing env list, then we
                     // assume the user has already done custom certificate configuration and we won't do automatic
