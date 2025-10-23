@@ -100,7 +100,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 // Enable perSiteScaling or autoscale so each app service can scale independently
                 // Default is autoscale where Scaling is managed by platform based on HTTP traffic patterns
                 IsPerSiteScaling = !resource.EnableAutoScale,
-                IsElasticScaleEnabled = resource.EnableAutoScale
+                IsElasticScaleEnabled = resource.EnableAutoScale,
+                MaximumElasticWorkerCount = 20
             };
 
             infra.Add(plan);
