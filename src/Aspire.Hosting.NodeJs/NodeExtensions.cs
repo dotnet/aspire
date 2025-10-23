@@ -157,7 +157,13 @@ public static class NodeAppHostingExtension
         return resourceBuilder
             .PublishAsDockerFile(c =>
             {
-                c.WithDockerfileBuilder(workingDirectory, dockerfileContext =>
+                // Only generate a Dockerfile if one doesn't already exist in the app directory
+                if (File.Exists(Path.Combine(resource.WorkingDirectory, "Dockerfile")))
+                {
+                    return;
+                }
+
+                c.WithDockerfileBuilder(resource.WorkingDirectory, dockerfileContext =>
                 {
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
                         && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
