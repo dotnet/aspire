@@ -118,7 +118,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
             input =>
             {
                 Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal(InputType.Choice, input.InputType);
                 Assert.False(input.Required);
             });
 
