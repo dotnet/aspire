@@ -2429,7 +2429,6 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         var pipeline = new DistributedApplicationPipeline();
 
-        var statusTransitions = new Dictionary<string, List<PipelineStepStatus>>();
         var step1Started = new TaskCompletionSource<bool>();
         var step2CanStart = new TaskCompletionSource<bool>();
 
@@ -2527,6 +2526,82 @@ public class DistributedApplicationPipelineTests
 
         // The Status property should default to Pending
         Assert.Equal(PipelineStepStatus.Pending, step.Status);
+    }
+
+    [Fact]
+    public void PipelineStep_InvalidStateTransition_ReturnsFalse()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        // Transition to Running is valid from Pending
+        Assert.True(step.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.Equal(PipelineStepStatus.Running, step.Status);
+
+        // Transition to Succeeded from Running is valid
+        Assert.True(step.TryTransitionStatus(PipelineStepStatus.Succeeded));
+        Assert.Equal(PipelineStepStatus.Succeeded, step.Status);
+
+        // Transition from Succeeded to Running is invalid (terminal state)
+        Assert.False(step.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.Equal(PipelineStepStatus.Succeeded, step.Status); // Should remain Succeeded
+    }
+
+    [Fact]
+    public void PipelineStep_ValidStateTransitions_Succeed()
+    {
+        // Test Pending -> Running -> Failed
+        var step1 = new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        Assert.True(step1.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.True(step1.TryTransitionStatus(PipelineStepStatus.Failed));
+        Assert.Equal(PipelineStepStatus.Failed, step1.Status);
+
+        // Test Pending -> Running -> Canceled
+        var step2 = new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        Assert.True(step2.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.True(step2.TryTransitionStatus(PipelineStepStatus.Canceled));
+        Assert.Equal(PipelineStepStatus.Canceled, step2.Status);
+
+        // Test Pending -> Failed (dependency failure case)
+        var step3 = new PipelineStep
+        {
+            Name = "step3",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        Assert.True(step3.TryTransitionStatus(PipelineStepStatus.Failed));
+        Assert.Equal(PipelineStepStatus.Failed, step3.Status);
+    }
+
+    [Fact]
+    public void PipelineStep_SameStateTransition_Succeeds()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        // Transitioning to the same state should succeed
+        Assert.True(step.TryTransitionStatus(PipelineStepStatus.Pending));
+        Assert.Equal(PipelineStepStatus.Pending, step.Status);
+
+        step.TryTransitionStatus(PipelineStepStatus.Running);
+        Assert.True(step.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.Equal(PipelineStepStatus.Running, step.Status);
     }
 
     private sealed class CustomResource(string name) : Resource(name)

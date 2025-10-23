@@ -13,6 +13,9 @@ namespace Aspire.Hosting.Pipelines;
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public class PipelineStep
 {
+    private PipelineStepStatus _status = PipelineStepStatus.Pending;
+    private readonly object _statusLock = new object();
+
     /// <summary>
     /// Gets or initializes the unique name of the step.
     /// </summary>
@@ -34,14 +37,72 @@ public class PipelineStep
     public List<string> RequiredBySteps { get; init; } = [];
 
     /// <summary>
-    /// Gets or sets the execution status of the step.
+    /// Gets the current execution status of the step.
     /// </summary>
-    public PipelineStepStatus Status { get; set; } = PipelineStepStatus.Pending;
+    public PipelineStepStatus Status
+    {
+        get
+        {
+            lock (_statusLock)
+            {
+                return _status;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets or initializes the list of tags that categorize this step.
     /// </summary>
     public List<string> Tags { get; init; } = [];
+
+    /// <summary>
+    /// Transitions the step to a new status, validating that the transition is valid.
+    /// </summary>
+    /// <param name="newStatus">The new status to transition to.</param>
+    /// <returns>True if the transition was successful, false if the transition was invalid.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when an invalid state transition is attempted.</exception>
+    internal bool TryTransitionStatus(PipelineStepStatus newStatus)
+    {
+        lock (_statusLock)
+        {
+            // Validate the state transition
+            var isValid = IsValidTransition(_status, newStatus);
+            if (!isValid)
+            {
+                return false;
+            }
+
+            _status = newStatus;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Determines if a transition from one status to another is valid.
+    /// </summary>
+    private static bool IsValidTransition(PipelineStepStatus current, PipelineStepStatus next)
+    {
+        // Allow any transition if we're already in a terminal state and trying to stay there
+        if (current == next)
+        {
+            return true;
+        }
+
+        return (current, next) switch
+        {
+            // From Pending, can go to Running or Failed (if dependency fails)
+            (PipelineStepStatus.Pending, PipelineStepStatus.Running) => true,
+            (PipelineStepStatus.Pending, PipelineStepStatus.Failed) => true,
+
+            // From Running, can go to any terminal state
+            (PipelineStepStatus.Running, PipelineStepStatus.Succeeded) => true,
+            (PipelineStepStatus.Running, PipelineStepStatus.Failed) => true,
+            (PipelineStepStatus.Running, PipelineStepStatus.Canceled) => true,
+
+            // Terminal states (Succeeded, Failed, Canceled) cannot transition to other states
+            _ => false
+        };
+    }
 
     /// <summary>
     /// Adds a dependency on another step.
