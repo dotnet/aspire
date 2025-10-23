@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.Publishing;
@@ -15,7 +16,7 @@ public class PublishingTests
     [Fact]
     public void PublishCallsPublishingCallback()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
         var publishedCalled = false;
 
@@ -41,7 +42,7 @@ public class PublishingTests
     [Fact]
     public void PublishingOptionsDeployPropertyDefaultsToFalse()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         using var app = builder.Build();
 
         var publishingOptions = app.Services.GetRequiredService<IOptions<PublishingOptions>>();
@@ -51,7 +52,7 @@ public class PublishingTests
     [Fact]
     public void PublishingOptionsDeployPropertyCanBeSetToTrue()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default");
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
         builder.Configuration["Publishing:Deploy"] = "true";
         using var app = builder.Build();
 

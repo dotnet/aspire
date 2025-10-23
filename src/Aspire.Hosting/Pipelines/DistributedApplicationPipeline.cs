@@ -25,7 +25,13 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         // Initialize with a "deploy" step that has a no-op callback
         _steps.Add(new PipelineStep
         {
-            Name = "deploy",
+            Name = WellKnownPipelineSteps.Deploy,
+            Action = _ => Task.CompletedTask
+        });
+        // Add a default "Publish" meta-step that all publish steps should be required by
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.Publish,
             Action = _ => Task.CompletedTask
         });
     }
@@ -147,8 +153,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         List<PipelineStep> allSteps,
         PipelineContext context)
     {
-        var publishingOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<Publishing.PublishingOptions>>();
-        var stepName = publishingOptions?.Value.Step;
+        var pipelineOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<PipelineOptions>>();
+        var stepName = pipelineOptions?.Value.Step;
         var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
         if (string.IsNullOrWhiteSpace(stepName))

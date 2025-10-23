@@ -36,7 +36,7 @@ internal sealed class DockerComposePublishingContext(
         UnixFileMode.OtherRead | UnixFileMode.OtherWrite;
 
     public readonly IResourceContainerImageBuilder ImageBuilder = imageBuilder;
-    public readonly string OutputPath = outputPath;
+    public readonly string OutputPath = outputPath ?? throw new InvalidOperationException("OutputPath is required for Docker Compose publishing.");
 
     internal async Task WriteModelAsync(DistributedApplicationModel model, DockerComposeEnvironmentResource environment)
     {
@@ -92,13 +92,13 @@ internal sealed class DockerComposePublishingContext(
                 if (serviceResource.TargetResource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuildAnnotation) &&
                     dockerfileBuildAnnotation.DockerfileFactory is not null)
                 {
-                    var context = new DockerfileFactoryContext
+                    var dockerfileContext = new DockerfileFactoryContext
                     {
                         Services = executionContext.ServiceProvider,
                         Resource = serviceResource.TargetResource,
                         CancellationToken = cancellationToken
                     };
-                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(context).ConfigureAwait(false);
+                    var dockerfileContent = await dockerfileBuildAnnotation.DockerfileFactory(dockerfileContext).ConfigureAwait(false);
 
                     // Always write to the original DockerfilePath so code looking at that path still works
                     await File.WriteAllTextAsync(dockerfileBuildAnnotation.DockerfilePath, dockerfileContent, cancellationToken).ConfigureAwait(false);

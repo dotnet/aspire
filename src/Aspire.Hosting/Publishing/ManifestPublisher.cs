@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable CS0618 // Type or member is obsolete
+
 using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.Logging;
@@ -8,6 +10,7 @@ using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Publishing;
 
+[Obsolete("ManifestPublisher is obsolete. Use the publish-manifest pipeline step.")]
 internal class ManifestPublisher(ILogger<ManifestPublisher> logger,
                                IOptions<PublishingOptions> options,
                                DistributedApplicationExecutionContext executionContext) : IDistributedApplicationPublisher

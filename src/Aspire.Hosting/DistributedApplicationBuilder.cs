@@ -201,7 +201,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var assemblyMetadata = AppHostAssembly?.GetCustomAttributes<AssemblyMetadataAttribute>();
         var aspireDir = GetMetadataValue(assemblyMetadata, "AppHostProjectBaseIntermediateOutputPath");
 
-        ConfigurePublishingOptions(options);
+        ConfigurePipelineOptions(options);
         var isExecMode = ConfigureExecOptions(options);
 
         // Compute the dashboard application name - use DashboardApplicationName if set for file-based apps,
@@ -285,8 +285,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Core things
         _innerBuilder.Services.AddSingleton(sp => new DistributedApplicationModel(Resources));
+        _innerBuilder.Services.AddHostedService<PipelineExecutor>();
         _innerBuilder.Services.AddHostedService<DistributedApplicationLifecycle>();
-        _innerBuilder.Services.AddHostedService<DistributedApplicationRunner>();
         _innerBuilder.Services.AddHostedService<VersionCheckService>();
         _innerBuilder.Services.AddSingleton<IPackageFetcher, PackageFetcher>();
         _innerBuilder.Services.AddSingleton<IPackageVersionProvider, PackageVersionProvider>();
@@ -438,8 +438,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
 
         // Publishing support
         Eventing.Subscribe<BeforeStartEvent>(BuiltInDistributedApplicationEventSubscriptionHandlers.MutateHttp2TransportAsync);
-        this.AddPublisher<ManifestPublisher, PublishingOptions>("manifest");
-        this.AddPublisher<Publisher, PublishingOptions>("default");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, DockerContainerRuntime>("docker");
         _innerBuilder.Services.AddKeyedSingleton<IContainerRuntime, PodmanContainerRuntime>("podman");
         _innerBuilder.Services.AddSingleton<IResourceContainerImageBuilder, ResourceContainerImageBuilder>();
@@ -450,7 +448,7 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         // Configure pipeline logging options
         _innerBuilder.Services.Configure<PipelineLoggingOptions>(o =>
         {
-            o.MinimumLogLevel = _innerBuilder.Configuration["Publishing:LogLevel"]?.ToLowerInvariant() switch
+            o.MinimumLogLevel = _innerBuilder.Configuration["Pipeline:LogLevel"]?.ToLowerInvariant() switch
             {
                 "trace" => LogLevel.Trace,
                 "debug" => LogLevel.Debug,
@@ -555,24 +553,45 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         return configuration.GetBool(KnownConfigNames.DashboardUnsecuredAllowAnonymous, KnownConfigNames.Legacy.DashboardUnsecuredAllowAnonymous) ?? false;
     }
 
-    private void ConfigurePublishingOptions(DistributedApplicationOptions options)
+    private void ConfigurePipelineOptions(DistributedApplicationOptions options)
     {
         var switchMappings = new Dictionary<string, string>()
         {
             { "--operation", "AppHost:Operation" },
             { "--publisher", "Publishing:Publisher" },
-            { "--output-path", "Publishing:OutputPath" },
-            { "--deploy", "Publishing:Deploy" },
-            { "--log-level", "Publishing:LogLevel" },
-            { "--clear-cache", "Publishing:ClearCache" },
-            { "--step", "Publishing:Step" },
+            { "--output-path", "Pipeline:OutputPath" },
+            { "--log-level", "Pipeline:LogLevel" },
+            { "--clear-cache", "Pipeline:ClearCache" },
+            { "--step", "Pipeline:Step" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },
             { "--dcp-dashboard-path", "DcpPublisher:DashboardPath" }
         };
         _innerBuilder.Configuration.AddCommandLine(options.Args ?? [], switchMappings);
-        _innerBuilder.Services.Configure<PublishingOptions>(_innerBuilder.Configuration.GetSection(PublishingOptions.Publishing));
+
+        // Configure PipelineOptions from the Pipeline section
+        _innerBuilder.Services.Configure<PipelineOptions>(_innerBuilder.Configuration.GetSection("Pipeline"));
+
+        // Handle backward compatibility for --publisher manifest to support `azd` scenarios
+        var publisher = _innerBuilder.Configuration["Publishing:Publisher"];
+        if (string.Equals(publisher, "manifest", StringComparison.OrdinalIgnoreCase))
+        {
+            // Add the manifest publishing step to the pipeline
+            Pipeline.AddManifestPublishing();
+
+            // If no explicit --step was provided, set it to run only the manifest step
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["Pipeline:Step"]))
+            {
+                _innerBuilder.Configuration["Pipeline:Step"] = "publish-manifest";
+            }
+
+            // If no explicit operation was set, default to Publish mode
+            if (string.IsNullOrEmpty(_innerBuilder.Configuration["AppHost:Operation"]))
+            {
+                _innerBuilder.Configuration["AppHost:Operation"] = "Publish";
+            }
+        }
     }
 
     private bool ConfigureExecOptions(DistributedApplicationOptions options)

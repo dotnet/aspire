@@ -5,6 +5,7 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -77,10 +78,15 @@ public sealed class AzureEnvironmentResource : Resource
     /// <exception cref="ArgumentException">Thrown when the name is invalid.</exception>
     public AzureEnvironmentResource(string name, ParameterResource location, ParameterResource resourceGroupName, ParameterResource principalId) : base(name)
     {
-        Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
-
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
+            var publishStep = new PipelineStep
+            {
+                Name = $"publish-{Name}",
+                Action = ctx => PublishAsync(ctx)
+            };
+            publishStep.RequiredBy(WellKnownPipelineSteps.Publish);
+
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
@@ -212,15 +218,16 @@ public sealed class AzureEnvironmentResource : Resource
         return Task.CompletedTask;
     }
 
-    private Task PublishAsync(PublishingContext context)
+    private Task PublishAsync(PipelineStepContext context)
     {
         var azureProvisioningOptions = context.Services.GetRequiredService<IOptions<AzureProvisioningOptions>>();
+        var activityReporter = context.PipelineContext.Services.GetRequiredService<IPipelineActivityReporter>();
         var publishingContext = new AzurePublishingContext(
-            context.OutputPath,
+            context.OutputPath ?? throw new InvalidOperationException("OutputPath is required for Azure publishing."),
             azureProvisioningOptions.Value,
             context.Services,
             context.Logger,
-            context.ActivityReporter);
+            activityReporter);
 
         return publishingContext.WriteModelAsync(context.Model, this);
     }
