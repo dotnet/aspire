@@ -133,7 +133,7 @@ internal sealed class CliServiceCollectionTestOptions
     {
         var hivesDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "hives"));
         var cacheDirectory = new DirectoryInfo(Path.Combine(WorkingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory);
+        return new CliExecutionContext(WorkingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-sdks")));
     }
 
     public DirectoryInfo WorkingDirectory { get; set; }
@@ -211,8 +211,7 @@ internal sealed class CliServiceCollectionTestOptions
         var interactionService = serviceProvider.GetRequiredService<IInteractionService>();
         var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
         var telemetry = serviceProvider.GetRequiredService<AspireCliTelemetry>();
-        var features = serviceProvider.GetRequiredService<IFeatures>();
-        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry, features);
+        return new ProjectLocator(logger, runner, executionContext, interactionService, configurationService, telemetry);
     }
 
     public ISolutionLocator CreateDefaultSolutionLocatorFactory(IServiceProvider serviceProvider)

@@ -905,9 +905,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         public string? StateFilePath => null;
 
-        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
 
-        public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
@@ -1244,7 +1245,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
             }
 
-            public void Log(LogLevel logLevel, string message)
+            public void Log(LogLevel logLevel, string message, bool enableMarkdown)
             {
                 // For testing purposes, we just track that Log was called
                 _ = logLevel;

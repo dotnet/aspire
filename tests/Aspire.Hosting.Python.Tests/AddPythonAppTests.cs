@@ -1000,6 +1000,76 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    public async Task WithUvEnvironment_GeneratesDockerfileInPublishMode_WithoutUvLock()
+    {
+        using var sourceDir = new TempDirectory();
+        using var outputDir = new TempDirectory();
+        var projectDirectory = sourceDir.Path;
+
+        // Create a UV-based Python project with pyproject.toml but NO uv.lock
+        var pyprojectContent = """
+            [project]
+            name = "test-app"
+            version = "0.1.0"
+            requires-python = ">=3.12"
+            dependencies = []
+
+            [build-system]
+            requires = ["hatchling"]
+            build-backend = "hatchling.build"
+            """;
+
+        var scriptContent = """
+            print("Hello from UV project!")
+            """;
+
+        File.WriteAllText(Path.Combine(projectDirectory, "pyproject.toml"), pyprojectContent);
+        // Note: NO uv.lock file created
+        File.WriteAllText(Path.Combine(projectDirectory, "main.py"), scriptContent);
+
+        var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "manifest", outputPath: outputDir.Path);
+
+        // Add Python resources with different entrypoint types
+        builder.AddPythonScript("script-app", projectDirectory, "main.py")
+            .WithUvEnvironment();
+
+        builder.AddPythonModule("module-app", projectDirectory, "mymodule")
+            .WithUvEnvironment();
+
+        builder.AddPythonExecutable("executable-app", projectDirectory, "pytest")
+            .WithUvEnvironment();
+
+        var app = builder.Build();
+
+        app.Run();
+
+        // Verify that Dockerfiles were generated for each entrypoint type
+        var scriptDockerfilePath = Path.Combine(outputDir.Path, "script-app.Dockerfile");
+        Assert.True(File.Exists(scriptDockerfilePath), "Dockerfile should be generated for script entrypoint");
+
+        var moduleDockerfilePath = Path.Combine(outputDir.Path, "module-app.Dockerfile");
+        Assert.True(File.Exists(moduleDockerfilePath), "Dockerfile should be generated for module entrypoint");
+
+        var executableDockerfilePath = Path.Combine(outputDir.Path, "executable-app.Dockerfile");
+        Assert.True(File.Exists(executableDockerfilePath), "Dockerfile should be generated for executable entrypoint");
+
+        var scriptDockerfileContent = File.ReadAllText(scriptDockerfilePath);
+        var moduleDockerfileContent = File.ReadAllText(moduleDockerfilePath);
+        var executableDockerfileContent = File.ReadAllText(executableDockerfilePath);
+
+        // Verify the Dockerfiles don't use --locked flag
+        Assert.DoesNotContain("--locked", scriptDockerfileContent);
+        Assert.DoesNotContain("--locked", moduleDockerfileContent);
+        Assert.DoesNotContain("--locked", executableDockerfileContent);
+
+        await Verify(scriptDockerfileContent)
+            .AppendContentAsFile(moduleDockerfileContent)
+            .AppendContentAsFile(executableDockerfileContent);
+    }
+
+    [Fact]
     public async Task WithVSCodeDebugSupport_RemovesScriptArgumentForScriptEntrypoint()
     {
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);

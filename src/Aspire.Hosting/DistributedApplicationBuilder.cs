@@ -446,6 +446,25 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton(Pipeline);
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
+
+        // Read this once from configuration and use it to filter logs from the pipeline
+        LogLevel? minLevel = null;
+        _innerBuilder.Logging.AddFilter<PipelineLoggerProvider>((level) =>
+        {
+            minLevel ??= _innerBuilder.Configuration["Publishing:LogLevel"]?.ToLowerInvariant() switch
+            {
+                "trace" => LogLevel.Trace,
+                "debug" => LogLevel.Debug,
+                "info" or "information" => LogLevel.Information,
+                "warn" or "warning" => LogLevel.Warning,
+                "error" => LogLevel.Error,
+                "crit" or "critical" => LogLevel.Critical,
+                _ => LogLevel.Information
+            };
+
+            return level >= minLevel;
+        });
 
         // Register IDeploymentStateManager based on execution context
         if (ExecutionContext.IsPublishMode)
@@ -540,7 +559,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
             { "--publisher", "Publishing:Publisher" },
             { "--output-path", "Publishing:OutputPath" },
             { "--deploy", "Publishing:Deploy" },
+            { "--log-level", "Publishing:LogLevel" },
             { "--clear-cache", "Publishing:ClearCache" },
+            { "--step", "Publishing:Step" },
             { "--dcp-cli-path", "DcpPublisher:CliPath" },
             { "--dcp-container-runtime", "DcpPublisher:ContainerRuntime" },
             { "--dcp-dependency-check-timeout", "DcpPublisher:DependencyCheckTimeout" },

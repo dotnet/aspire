@@ -24,7 +24,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var settingsDirectory = workingDirectory.CreateSubdirectory(".aspire");
         var hivesDirectory = settingsDirectory.CreateSubdirectory("hives");
         var cacheDirectory = new DirectoryInfo(Path.Combine(workingDirectory.FullName, ".aspire", "cache"));
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory);
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, new DirectoryInfo(Path.Combine(Path.GetTempPath(), "aspire-test-runtimes")));
     }
 
     [Fact]
@@ -570,10 +570,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
 
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var interactionService = provider.GetRequiredService<IInteractionService>();
@@ -874,10 +871,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
 
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var interactionService = provider.GetRequiredService<IInteractionService>();
@@ -932,10 +926,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
 
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var interactionService = provider.GetRequiredService<IInteractionService>();
@@ -1043,10 +1034,7 @@ public class DotNetCliRunnerTests(ITestOutputHelper outputHelper)
         var appHostFile = new FileInfo(Path.Combine(workspace.WorkspaceRoot.FullName, "apphost.cs"));
         await File.WriteAllTextAsync(appHostFile.FullName, "// Single-file AppHost");
 
-        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
-        {
-            options.EnabledFeatures = [KnownFeatures.SingleFileAppHostEnabled];
-        });
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
         var provider = services.BuildServiceProvider();
         var logger = provider.GetRequiredService<ILogger<DotNetCliRunner>>();
         var interactionService = provider.GetRequiredService<IInteractionService>();

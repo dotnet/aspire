@@ -1,12 +1,13 @@
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Security.Cryptography;
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,7 @@ internal sealed class RunModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext) : BaseProvisioningContextProvider(
         interactionService,
         options,
@@ -32,6 +34,7 @@ internal sealed class RunModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateManager,
         distributedApplicationExecutionContext)
 {
     private readonly TaskCompletionSource _provisioningOptionsAvailable = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -87,13 +90,13 @@ internal sealed class RunModeProvisioningContextProvider(
         });
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         EnsureProvisioningOptions();
 
         await _provisioningOptionsAvailable.Task.ConfigureAwait(false);
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)

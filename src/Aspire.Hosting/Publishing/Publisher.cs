@@ -183,9 +183,33 @@ internal class Publisher(
             var deployingContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
                 Path.GetFullPath(options.Value.OutputPath) : null);
 
-            // Execute the pipeline - it will collect steps from PipelineStepAnnotation on resources
-            var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
-            await pipeline.ExecuteAsync(deployingContext).ConfigureAwait(false);
+            try
+            {
+                var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
+                await pipeline.ExecuteAsync(deployingContext).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                var errorStep = await progressReporter.CreateStepAsync(
+                    "pipeline-validation",
+                    cancellationToken).ConfigureAwait(false);
+
+                await using (errorStep.ConfigureAwait(false))
+                {
+                    var errorTask = await errorStep.CreateTaskAsync(
+                        "Validating pipeline configuration",
+                        cancellationToken)
+                        .ConfigureAwait(false);
+
+                    await errorTask.CompleteAsync(
+                        ex.Message,
+                        CompletionState.CompletedWithError,
+                        cancellationToken)
+                        .ConfigureAwait(false);
+                }
+
+                throw;
+            }
         }
         else
         {

@@ -35,7 +35,7 @@ internal sealed class NullPublishingStep : IReportingStep
         return Task.FromResult<IReportingTask>(new NullPublishingTask());
     }
 
-    public void Log(LogLevel logLevel, string message)
+    public void Log(LogLevel logLevel, string message, bool enableMarkdown)
     {
         // No-op for null implementation
     }

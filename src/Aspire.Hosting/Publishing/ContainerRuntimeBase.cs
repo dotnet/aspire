@@ -214,11 +214,11 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             Arguments = arguments,
             OnOutputData = output =>
             {
-                _logger.LogInformation("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
             },
             OnErrorData = error =>
             {
-                _logger.LogInformation("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true

@@ -7,6 +7,7 @@ using Aspire.Cli.Commands;
 using Aspire.Cli.DotNet;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Packaging;
+using Aspire.Cli.Resources;
 using Aspire.Cli.Templating;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
@@ -389,7 +390,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         Assert.Equal(ExitCodeConstants.FailedToCreateNewProject, exitCode);
-        Assert.Contains("No template versions were found", displayedErrorMessage);
+        Assert.Contains(TemplatingStrings.NoTemplateVersionsFound, displayedErrorMessage);
     }
 
     [Fact]
@@ -510,7 +511,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
     public async Task NewCommandPromptsForTemplateVersionBeforeTemplateOptions()
     {
         var operationOrder = new List<string>();
-        
+
         using var workspace = TemporaryWorkspace.Create(outputHelper);
         var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper, options =>
         {
@@ -555,7 +556,7 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
                 return runner;
             };
         });
-        
+
         var provider = services.BuildServiceProvider();
 
         var command = provider.GetRequiredService<NewCommand>();
@@ -563,17 +564,17 @@ public class NewCommandTests(ITestOutputHelper outputHelper)
 
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
         Assert.Equal(0, exitCode);
-        
+
         // Verify that template version was prompted before template options
         Assert.Contains("TemplateVersion", operationOrder);
-        
+
         // If template options were prompted, they should come after version selection
         var versionIndex = operationOrder.IndexOf("TemplateVersion");
         var optionIndex = operationOrder.IndexOf("TemplateOption");
-        
+
         if (optionIndex >= 0)
         {
-            Assert.True(versionIndex < optionIndex, 
+            Assert.True(versionIndex < optionIndex,
                 $"Template version should be prompted before template options. Order: {string.Join(", ", operationOrder)}");
         }
     }
@@ -648,7 +649,7 @@ internal sealed class OrderTrackingInteractionService(List<string> operationOrde
         }
 
         // Track template option prompts
-        if (promptText?.Contains("Redis") == true || 
+        if (promptText?.Contains("Redis") == true ||
             promptText?.Contains("test framework") == true ||
             promptText?.Contains("Create a test project") == true ||
             promptText?.Contains("xUnit") == true)

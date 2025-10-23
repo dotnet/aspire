@@ -114,6 +114,11 @@
     <Project Path="playground/AspireWithMaui/AspireWithMaui.ServiceDefaults/AspireWithMaui.ServiceDefaults.csproj" />
     <Project Path="playground/AspireWithMaui/AspireWithMaui.WeatherApi/AspireWithMaui.WeatherApi.csproj" />
   </Folder>
+  <Folder Name="/playground/AspireWithJavaScript/">
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/playground/AzureAIFoundryEndToEnd/">
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.AppHost/AzureAIFoundryEndToEnd.AppHost.csproj" />
     <Project Path="playground/AzureAIFoundryEndToEnd/AzureAIFoundryEndToEnd.WebStory/AzureAIFoundryEndToEnd.WebStory.csproj" />
@@ -184,8 +189,8 @@
     <Project Path="playground/deployers/Deployers.AppHost/Deployers.AppHost.csproj" />
   </Folder>
   <Folder Name="/playground/DevTunnels/">
-    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.ApiService/DevTunnels.ApiService.csproj" />
+    <Project Path="playground/DevTunnels/DevTunnels.AppHost/DevTunnels.AppHost.csproj" />
     <Project Path="playground/DevTunnels/DevTunnels.WebFrontEnd/DevTunnels.WebFrontEnd.csproj" />
   </Folder>
   <Folder Name="/playground/dockerfile/">
@@ -206,11 +211,6 @@
   </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
-  </Folder>
-  <Folder Name="/playground/javascript/">
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/kafka/">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />
@@ -242,8 +242,8 @@
   </Folder>
   <Folder Name="/playground/node/">
     <Project Path="playground/AspireWithNode/AspireWithNode.AppHost/AspireWithNode.AppHost.csproj" />
-    <Project Path="playground/AspireWithNode/AspireWithNode.ServiceDefaults/AspireWithNode.ServiceDefaults.csproj" />
     <Project Path="playground/AspireWithNode/AspireWithNode.AspNetCoreApi/AspireWithNode.AspNetCoreApi.csproj" />
+    <Project Path="playground/AspireWithNode/AspireWithNode.ServiceDefaults/AspireWithNode.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/OpenAIEndToEnd/">
     <Project Path="playground/OpenAIEndToEnd/OpenAIEndToEnd.AppHost/OpenAIEndToEnd.AppHost.csproj" />
