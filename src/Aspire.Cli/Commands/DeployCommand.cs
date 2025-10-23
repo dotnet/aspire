@@ -46,6 +46,15 @@ internal sealed class DeployCommand : PublishCommandBase
 
     protected override string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult)
     {
+        var step = parseResult.GetValue(_stepOption);
+        var tag = parseResult.GetValue(_tagOption);
+
+        // Validate that --step and --tag are mutually exclusive
+        if (!string.IsNullOrEmpty(step) && !string.IsNullOrEmpty(tag))
+        {
+            throw new InvalidOperationException("The --step and --tag options cannot be used together. Please specify only one.");
+        }
+
         var baseArgs = new List<string> { "--operation", "publish", "--publisher", "default" };
 
         if (fullyQualifiedOutputPath != null)
@@ -75,13 +84,11 @@ internal sealed class DeployCommand : PublishCommandBase
             baseArgs.AddRange(["--environment", environment!]);
         }
 
-        var step = parseResult.GetValue(_stepOption);
         if (step != null)
         {
             baseArgs.AddRange(["--step", step]);
         }
 
-        var tag = parseResult.GetValue(_tagOption);
         if (tag != null)
         {
             baseArgs.AddRange(["--tag", tag]);

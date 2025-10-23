@@ -2489,50 +2489,6 @@ public class DistributedApplicationPipelineTests
         Assert.DoesNotContain("provision-step", executedSteps);
     }
 
-    [Fact]
-    public async Task ExecuteAsync_WithStepAndTagBothSet_StepTakesPrecedence()
-    {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
-        builder.Services.Configure<PublishingOptions>(options =>
-        {
-            options.Step = "step1";
-            options.Tag = "test-tag";
-        });
-
-        var pipeline = new DistributedApplicationPipeline();
-
-        var executedSteps = new List<string>();
-        pipeline.AddStep(new PipelineStep
-        {
-            Name = "step1",
-            Action = async (context) =>
-            {
-                lock (executedSteps) { executedSteps.Add("step1"); }
-                await Task.CompletedTask;
-            },
-            Tags = ["other-tag"]
-        });
-
-        pipeline.AddStep(new PipelineStep
-        {
-            Name = "step2",
-            Action = async (context) =>
-            {
-                lock (executedSteps) { executedSteps.Add("step2"); }
-                await Task.CompletedTask;
-            },
-            Tags = ["test-tag"]
-        });
-
-        var context = CreateDeployingContext(builder.Build());
-        await pipeline.ExecuteAsync(context);
-
-        // Only step1 should execute because --step takes precedence over --tag
-        Assert.Single(executedSteps);
-        Assert.Contains("step1", executedSteps);
-        Assert.DoesNotContain("step2", executedSteps);
-    }
-
     private sealed class CustomResource(string name) : Resource(name)
     {
     }

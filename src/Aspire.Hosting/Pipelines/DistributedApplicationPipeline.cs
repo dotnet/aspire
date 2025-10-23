@@ -142,7 +142,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var tag = publishingOptions?.Value.Tag;
         var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
-        // If both step and tag are specified, step takes precedence
         if (!string.IsNullOrWhiteSpace(stepName))
         {
             if (!allStepsByName.TryGetValue(stepName, out var targetStep))

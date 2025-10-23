@@ -398,6 +398,24 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task DeployCommandRejectsStepAndTagTogether()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper);
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("deploy --step my-step --tag my-tag");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.NotEqual(0, exitCode); // Should fail validation
+    }
 }
 
 internal sealed class TestDeployCommandPrompter(IInteractionService interactionService) : PublishCommandPrompter(interactionService)
