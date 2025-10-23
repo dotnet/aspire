@@ -9,7 +9,7 @@ namespace Aspire.Hosting.NodeJs.Tests;
 public class ResourceCreationTests
 {
     [Fact]
-    public void DefaultViteAppUsesNode()
+    public void DefaultViteAppUsesNpm()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -23,7 +23,7 @@ public class ResourceCreationTests
 
         Assert.NotNull(resource);
 
-        Assert.Equal("node", resource.Command);
+        Assert.Equal("npm", resource.Command);
     }
 
     [Fact]
@@ -204,7 +204,9 @@ public class ResourceCreationTests
         }
 
         Assert.Collection(args,
+            arg => Assert.Equal("run", arg),
             arg => Assert.Equal("dev", arg),
+            arg => Assert.Equal("--", arg),
             arg => Assert.Equal("--port", arg),
             arg => Assert.IsType<EndpointReferenceExpression>(arg)
         );

@@ -155,6 +155,7 @@ public static class NodeAppHostingExtension
             : resourceBuilder.WithHttpEndpoint(env: "PORT");
 
         return resourceBuilder
+            .AddNpmPackageManagerAnnotation(useCI: false)
             .PublishAsDockerFile(c =>
             {
                 // Only generate a Dockerfile if one doesn't already exist in the app directory
@@ -194,13 +195,7 @@ public static class NodeAppHostingExtension
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NodeInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
     {
-        resource.WithCommand("npm");
-        resource.WithAnnotation(new JavaScriptPackageManagerAnnotation("npm")
-        {
-            InstallCommandLineArgs = [useCI ? "ci" : "install"],
-            RunCommandLineArgs = ["run"],
-            BuildCommandLineArgs = ["run", "build"]
-        });
+        AddNpmPackageManagerAnnotation(resource, useCI);
 
         // Only install packages during development, not in publish mode
         if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -221,6 +216,19 @@ public static class NodeAppHostingExtension
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
+
+        return resource;
+    }
+
+    private static IResourceBuilder<TResource> AddNpmPackageManagerAnnotation<TResource>(this IResourceBuilder<TResource> resource, bool useCI) where TResource : NodeAppResource
+    {
+        resource.WithCommand("npm");
+        resource.WithAnnotation(new JavaScriptPackageManagerAnnotation("npm")
+        {
+            InstallCommandLineArgs = [useCI ? "ci" : "install"],
+            RunCommandLineArgs = ["run"],
+            BuildCommandLineArgs = ["run", "build"]
+        });
 
         return resource;
     }
