@@ -183,7 +183,7 @@ public static class NodeAppHostingExtension
     /// Ensures the Node.js packages are installed before the application starts using npm as the package manager.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
-    /// <param name="useCI">When true use <code>npm ci</code> otherwise use <code>npm install</code> when installing packages.</param>
+    /// <param name="useCI">When true, use <code>npm ci</code>, otherwise use <code>npm install</code> when installing packages.</param>
     /// <param name="configureInstaller">Configure the npm installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NpmInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
