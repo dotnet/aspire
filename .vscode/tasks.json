@@ -16,7 +16,8 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"label": "npm: watch extension"
+			"label": "npm: watch extension",
+      "path": "extension",
 		},
 		{
 			"type": "npm",
@@ -28,7 +29,8 @@
 				"group": "watchers"
 			},
 			"group": "build",
-			"label": "npm: watch-tests extension"
+			"label": "npm: watch-tests extension",
+      "path": "extension",
 		},
 		{
 			"label": "tasks: watch-tests extension",
@@ -37,6 +39,7 @@
 				"npm: watch-tests"
 			],
 			"problemMatcher": [],
+      "path": "extension"
 		}
 	]
 }
