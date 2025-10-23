@@ -29,7 +29,6 @@ builder.AddViteApp("reactvite", "../AspireJavaScript.Vite")
     .WithNpmPackageManager()
     .WithReference(weatherApi)
     .WithEnvironment("BROWSER", "none")
-    .WithExternalHttpEndpoints()
-    .PublishAsDockerFile();
+    .WithExternalHttpEndpoints();
 
 builder.Build().Run();

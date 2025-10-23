@@ -17,8 +17,23 @@ public sealed class JavaScriptPackageManagerAnnotation(string packageManager) : 
     public string PackageManager { get; } = packageManager;
 
     /// <summary>
-    /// Gets the command line arguments for the JavaScript package manager.
+    /// Gets the command line arguments for the JavaScript package manager's install command.
     /// </summary>
-    public string[] CommandLineArgs { get; init; } = [];
+    public string[] InstallCommandLineArgs { get; init; } = [];
 
+    /// <summary>
+    /// Gets the command line arguments for the JavaScript package manager's run command.
+    /// </summary>
+    public string[] RunCommandLineArgs { get; init; } = [];
+
+    /// <summary>
+    /// Gets a string value that separates the package manager command line args from the tool's command line args.
+    /// By default, this is "--".
+    /// </summary>
+    public string? CommandSeparator { get; init; } = "--";
+
+    /// <summary>
+    /// Gets the command line arguments for the JavaScript package manager's command that produces assets for distribution.
+    /// </summary>
+    public string[] BuildCommandLineArgs { get; init; } = [];
 }

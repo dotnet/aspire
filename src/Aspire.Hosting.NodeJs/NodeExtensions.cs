@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.NodeJs;
 using Aspire.Hosting.Utils;
@@ -71,7 +73,7 @@ public static class NodeAppHostingExtension
                       .WithIconName("CodeJsRectangle");
     }
 
-    private static IResourceBuilder<NodeAppResource> WithNodeDefaults(this IResourceBuilder<NodeAppResource> builder) =>
+    private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : NodeAppResource =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithExecutableCertificateTrustCallback((ctx) =>
@@ -98,82 +100,88 @@ public static class NodeAppHostingExtension
     /// <param name="useHttps">When true use HTTPS for the endpoints, otherwise use HTTP.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>This uses the specified package manager (default npm) method internally but sets defaults that would be expected to run a Vite app, such as the command to run the dev server and exposing the HTTP endpoints.</remarks>
-    public static IResourceBuilder<NodeAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? workingDirectory = null, bool useHttps = false)
+    public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string? workingDirectory = null, bool useHttps = false)
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(workingDirectory);
 
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
-        var resource = new NodeAppResource(name, "node", workingDirectory);
+        var resource = new ViteAppResource(name, "node", workingDirectory);
 
         var resourceBuilder = builder.AddResource(resource)
             .WithNodeDefaults()
+            .WithIconName("CodeJsRectangle")
             .WithArgs(c =>
             {
                 if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation))
                 {
-                    foreach (var arg in packageManagerAnnotation.CommandLineArgs)
+                    foreach (var arg in packageManagerAnnotation.RunCommandLineArgs)
                     {
                         c.Args.Add(arg);
                     }
                 }
                 c.Args.Add("dev");
-            })
-            .WithIconName("CodeJsRectangle");
+
+                if (packageManagerAnnotation?.CommandSeparator is string separator)
+                {
+                    c.Args.Add(separator);
+                }
+
+                var targetEndpoint = resource.GetEndpoint("https");
+                if (!targetEndpoint.Exists)
+                {
+                    targetEndpoint = resource.GetEndpoint("http");
+                }
+
+                c.Args.Add("--port");
+                c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
+            });
 
         _ = useHttps
             ? resourceBuilder.WithHttpsEndpoint(env: "PORT")
             : resourceBuilder.WithHttpEndpoint(env: "PORT");
 
-        resourceBuilder.WithMappedEndpointPort();
-
-        return resourceBuilder;
-    }
-
-    /// <summary>
-    /// Maps the endpoint port for the <see cref="NodeAppResource"/> to the appropriate command line argument.
-    /// </summary>
-    /// <param name="builder">The Node.js app resource.</param>
-    /// <param name="endpointName">The name of the endpoint to map. If not specified, it will use the first HTTP or HTTPS endpoint found.</param>
-    /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithMappedEndpointPort<TResource>(this IResourceBuilder<TResource> builder, string? endpointName = null) where TResource : NodeAppResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        return builder.WithArgs(ctx =>
-        {
-            var resource = builder.Resource;
-
-            // monorepo tools will need `--`, as does npm
-            if (!resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation) || packageManagerAnnotation.PackageManager == "npm")
+        return resourceBuilder
+            .PublishAsDockerFile(c =>
             {
-                ctx.Args.Add("--");
-            }
+                c.WithDockerfileBuilder(workingDirectory, dockerfileContext =>
+                {
+                    if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
+                        && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
+                    {
+                        var dockerBuilder = dockerfileContext.Builder
+                            .From("node:22-slim")
+                            .WorkDir("/app")
+                            .Copy(".", ".");
 
-            // Find the target endpoint by name, or default to http/https if no name specified
-            var targetEndpoint = endpointName is not null
-                ? resource.GetEndpoint(endpointName)
-                : resource.GetEndpoints().FirstOrDefault(e => e.EndpointName == "https") ?? resource.GetEndpoint("http");
-
-            ctx.Args.Add("--port");
-            ctx.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
-        });
+                        if (packageManagerAnnotation.InstallCommandLineArgs is { Length: > 0 })
+                        {
+                            dockerBuilder
+                                .Run($"{resourceBuilder.Resource.Command} {string.Join(' ', packageManagerAnnotation.InstallCommandLineArgs)}");
+                        }
+                        dockerBuilder
+                                .Run($"{resourceBuilder.Resource.Command} {string.Join(' ', packageManagerAnnotation.BuildCommandLineArgs)}");
+                    }
+                });
+            });
     }
 
     /// <summary>
     /// Ensures the Node.js packages are installed before the application starts using npm as the package manager.
     /// </summary>
-    /// <param name="resource">The Node.js app resource.</param>
+    /// <param name="resource">The NodeAppResource.</param>
     /// <param name="useCI">When true use <code>npm ci</code> otherwise use <code>npm install</code> when installing packages.</param>
     /// <param name="configureInstaller">Configure the npm installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<NodeAppResource> WithNpmPackageManager(this IResourceBuilder<NodeAppResource> resource, bool useCI = false, Action<IResourceBuilder<NpmInstallerResource>>? configureInstaller = null)
+    public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NpmInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
     {
         resource.WithCommand("npm");
         resource.WithAnnotation(new JavaScriptPackageManagerAnnotation("npm")
         {
-            CommandLineArgs = ["run"]
+            InstallCommandLineArgs = [useCI ? "ci" : "install"],
+            RunCommandLineArgs = ["run"],
+            BuildCommandLineArgs = ["run", "build"]
         });
 
         // Only install packages during development, not in publish mode
