@@ -285,6 +285,11 @@ public class MauiWindowsExtensionsTests
     [Fact]
     public async Task GetWindowsTargetFramework_WithConditionalWindowsTfm_ReturnsCorrectTfm()
     {
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+        {
+            throw new SkipException("This test requires Windows because MSBuild only evaluates the conditional Windows TFM on Windows platforms.");
+        }
+
         // Arrange
         var projectContent = """
             <Project Sdk="Microsoft.NET.Sdk">
