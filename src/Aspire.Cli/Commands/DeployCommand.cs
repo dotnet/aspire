@@ -16,6 +16,7 @@ internal sealed class DeployCommand : PublishCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
     private readonly Option<string?> _stepOption;
+    private readonly Option<string?> _tagOption;
 
     public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
@@ -31,6 +32,12 @@ internal sealed class DeployCommand : PublishCommandBase
             Description = "Run a specific deployment step and its dependencies"
         };
         Options.Add(_stepOption);
+
+        _tagOption = new Option<string?>("--tag")
+        {
+            Description = "Run all deployment steps with the specified tag and their dependencies"
+        };
+        Options.Add(_tagOption);
     }
 
     protected override string OperationCompletedPrefix => DeployCommandStrings.OperationCompletedPrefix;
@@ -72,6 +79,12 @@ internal sealed class DeployCommand : PublishCommandBase
         if (step != null)
         {
             baseArgs.AddRange(["--step", step]);
+        }
+
+        var tag = parseResult.GetValue(_tagOption);
+        if (tag != null)
+        {
+            baseArgs.AddRange(["--tag", tag]);
         }
 
         baseArgs.AddRange(unmatchedTokens);

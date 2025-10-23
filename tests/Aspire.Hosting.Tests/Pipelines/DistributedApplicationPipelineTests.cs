@@ -2293,6 +2293,246 @@ public class DistributedApplicationPipelineTests
         Assert.True(foundErrorActivity, $"Expected to find a task activity with detailed error message about invalid step. Got: {errorMessage}");
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WithTagFilter_ExecutesOnlyStepsWithTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Tag = "test-tag";
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("step1"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["test-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("step2"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["test-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step3",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("step3"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["other-tag"]
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(2, executedSteps.Count);
+        Assert.Contains("step1", executedSteps);
+        Assert.Contains("step2", executedSteps);
+        Assert.DoesNotContain("step3", executedSteps);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithTagFilter_IncludesDependencies()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Tag = "deploy-tag";
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision-step",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("provision-step"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["provision-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "build-step",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("build-step"); }
+                await Task.CompletedTask;
+            },
+            DependsOnSteps = ["provision-step"],
+            Tags = ["build-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "deploy-step",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("deploy-step"); }
+                await Task.CompletedTask;
+            },
+            DependsOnSteps = ["build-step"],
+            Tags = ["deploy-tag"]
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // All steps should execute because deploy-step depends on build-step which depends on provision-step
+        Assert.Equal(3, executedSteps.Count);
+        Assert.Contains("provision-step", executedSteps);
+        Assert.Contains("build-step", executedSteps);
+        Assert.Contains("deploy-step", executedSteps);
+
+        // Verify execution order
+        var provisionIndex = executedSteps.IndexOf("provision-step");
+        var buildIndex = executedSteps.IndexOf("build-step");
+        var deployIndex = executedSteps.IndexOf("deploy-step");
+        Assert.True(provisionIndex < buildIndex, "provision-step should execute before build-step");
+        Assert.True(buildIndex < deployIndex, "build-step should execute before deploy-step");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithInvalidTag_ThrowsException()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Tag = "non-existent-tag";
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) => await Task.CompletedTask,
+            Tags = ["valid-tag"]
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+        Assert.Contains("No steps found with tag 'non-existent-tag'", exception.Message);
+        Assert.Contains("Available tags: 'valid-tag'", exception.Message);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithTagFilterAndMultipleStepsWithTag_ExecutesAllWithTag()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Tag = WellKnownPipelineTags.BuildCompute;
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "build-step1",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("build-step1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "build-step2",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("build-step2"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision-step",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("provision-step"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(2, executedSteps.Count);
+        Assert.Contains("build-step1", executedSteps);
+        Assert.Contains("build-step2", executedSteps);
+        Assert.DoesNotContain("provision-step", executedSteps);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithStepAndTagBothSet_StepTakesPrecedence()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Step = "step1";
+            options.Tag = "test-tag";
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executedSteps = new List<string>();
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("step1"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["other-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) =>
+            {
+                lock (executedSteps) { executedSteps.Add("step2"); }
+                await Task.CompletedTask;
+            },
+            Tags = ["test-tag"]
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // Only step1 should execute because --step takes precedence over --tag
+        Assert.Single(executedSteps);
+        Assert.Contains("step1", executedSteps);
+        Assert.DoesNotContain("step2", executedSteps);
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }

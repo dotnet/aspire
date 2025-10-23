@@ -335,6 +335,69 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public async Task DeployCommandIncludesTagFlagInArguments()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    // Simulate a successful build
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    // Simulate a successful app host information retrieval
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                    {
+                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                    },
+
+                    // Simulate apphost running and verify --tag flag is passed
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    {
+                        // Verify that --tag flag is included in the arguments
+                        Assert.Contains("--tag", args);
+                        Assert.Contains("provision-infra", args);
+
+                        var deployModeCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel
+                        {
+                            RequestStopAsyncCalled = deployModeCompleted
+                        };
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await deployModeCompleted.Task;
+                        return 0;
+                    }
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestDeployCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("deploy --tag provision-infra");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+    }
 }
 
 internal sealed class TestDeployCommandPrompter(IInteractionService interactionService) : PublishCommandPrompter(interactionService)

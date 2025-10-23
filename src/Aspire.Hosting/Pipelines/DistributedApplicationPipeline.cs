@@ -139,24 +139,56 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     {
         var publishingOptions = context.Services.GetService<Microsoft.Extensions.Options.IOptions<Publishing.PublishingOptions>>();
         var stepName = publishingOptions?.Value.Step;
+        var tag = publishingOptions?.Value.Tag;
         var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
 
-        if (string.IsNullOrWhiteSpace(stepName))
+        // If both step and tag are specified, step takes precedence
+        if (!string.IsNullOrWhiteSpace(stepName))
         {
-            return (allSteps, allStepsByName);
+            if (!allStepsByName.TryGetValue(stepName, out var targetStep))
+            {
+                var availableSteps = string.Join(", ", allSteps.Select(s => $"'{s.Name}'"));
+                throw new InvalidOperationException(
+                    $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
+            }
+
+            var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
+            stepsToExecute.Add(targetStep);
+            var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
+            return (stepsToExecute, filteredStepsByName);
         }
 
-        if (!allStepsByName.TryGetValue(stepName, out var targetStep))
+        if (!string.IsNullOrWhiteSpace(tag))
         {
-            var availableSteps = string.Join(", ", allSteps.Select(s => $"'{s.Name}'"));
-            throw new InvalidOperationException(
-                $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
+            var stepsWithTag = allSteps.Where(s => s.Tags.Contains(tag)).ToList();
+            if (stepsWithTag.Count == 0)
+            {
+                var availableTags = allSteps.SelectMany(s => s.Tags).Distinct().ToList();
+                var tagsMessage = availableTags.Count > 0
+                    ? $" Available tags: {string.Join(", ", availableTags.Select(t => $"'{t}'"))}"
+                    : " No tags found on any pipeline steps.";
+                throw new InvalidOperationException(
+                    $"No steps found with tag '{tag}'.{tagsMessage}");
+            }
+
+            // Compute transitive dependencies for all steps with the specified tag
+            var stepsToExecute = new HashSet<PipelineStep>();
+            foreach (var step in stepsWithTag)
+            {
+                var dependencies = ComputeTransitiveDependencies(step, allStepsByName);
+                foreach (var dep in dependencies)
+                {
+                    stepsToExecute.Add(dep);
+                }
+                stepsToExecute.Add(step);
+            }
+
+            var filteredSteps = stepsToExecute.ToList();
+            var filteredStepsByName = filteredSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+            return (filteredSteps, filteredStepsByName);
         }
 
-        var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-        stepsToExecute.Add(targetStep);
-        var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
-        return (stepsToExecute, filteredStepsByName);
+        return (allSteps, allStepsByName);
     }
 
     private static List<PipelineStep> ComputeTransitiveDependencies(

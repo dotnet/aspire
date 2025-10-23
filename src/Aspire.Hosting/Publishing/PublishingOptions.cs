@@ -44,4 +44,11 @@ public class PublishingOptions
     /// </summary>
     [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
     public string? Step { get; set; }
+
+    /// <summary>
+    /// Gets or sets a tag to filter which deployment steps to run.
+    /// When specified, only steps with this tag and their dependencies will be executed.
+    /// </summary>
+    [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public string? Tag { get; set; }
 }
