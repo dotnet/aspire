@@ -6,9 +6,9 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.NodeJs;
 
 /// <summary>
-/// A resource that represents an npm package installer.
+/// A resource that represents a package installer for a node app.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="workingDirectory">The working directory to use for the command.</param>
-public class NpmInstallerResource(string name, string workingDirectory)
-    : ExecutableResource(name, "npm", workingDirectory);
+public class NodeInstallerResource(string name, string workingDirectory)
+    : ExecutableResource(name, "node", workingDirectory);

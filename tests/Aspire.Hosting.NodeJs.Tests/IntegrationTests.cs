@@ -29,7 +29,7 @@ public class IntegrationTests
         Assert.Single(nodeResources);
 
         // Verify all installer resources are present as separate resources
-        var npmInstallers = appModel.Resources.OfType<NpmInstallerResource>().ToList();
+        var npmInstallers = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
         Assert.Single(npmInstallers);
 
@@ -51,7 +51,7 @@ public class IntegrationTests
             Assert.Single(waitAnnotations);
 
             var waitedResource = waitAnnotations.First().Resource;
-            Assert.True(waitedResource is NpmInstallerResource);
+            Assert.True(waitedResource is NodeInstallerResource);
         }
     }
 
@@ -66,7 +66,7 @@ public class IntegrationTests
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var installer = Assert.Single(appModel.Resources.OfType<NpmInstallerResource>());
+        var installer = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
 
         // Verify it's configured as an ExecutableResource
         Assert.IsAssignableFrom<ExecutableResource>(installer);

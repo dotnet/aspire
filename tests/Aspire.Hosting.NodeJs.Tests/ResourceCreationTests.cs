@@ -123,7 +123,7 @@ public class ResourceCreationTests
         Assert.Equal("npm", nodeResource.Command);
 
         // Verify the installer resource was created
-        var installerResource = Assert.Single(appModel.Resources.OfType<NpmInstallerResource>());
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
         Assert.Equal("test-app-npm-install", installerResource.Name);
         Assert.Equal("npm", installerResource.Command);
         var args = await installerResource.GetArgumentValuesAsync();
@@ -161,7 +161,7 @@ public class ResourceCreationTests
         Assert.Equal("npm", nodeResource.Command);
 
         // Verify the installer resource was created with CI enabled
-        var installerResource = Assert.Single(appModel.Resources.OfType<NpmInstallerResource>());
+        var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
         Assert.Equal("test-app-npm-install", installerResource.Name);
         Assert.Equal("npm", installerResource.Command);
         var args = await installerResource.GetArgumentValuesAsync();

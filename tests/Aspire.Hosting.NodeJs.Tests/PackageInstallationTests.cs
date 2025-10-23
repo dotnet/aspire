@@ -28,7 +28,7 @@ public class PackageInstallationTests
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var nodeResources = appModel.Resources.OfType<NodeAppResource>().ToList();
-        var installerResources = appModel.Resources.OfType<NpmInstallerResource>().ToList();
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
         Assert.Equal(2, nodeResources.Count);
         Assert.Equal(2, installerResources.Count);
@@ -66,7 +66,7 @@ public class PackageInstallationTests
         Assert.Equal("npm", nodeResource.Command);
 
         // Verify NO installer resource was created in publish mode
-        var installerResources = appModel.Resources.OfType<NpmInstallerResource>().ToList();
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
         Assert.Empty(installerResources);
 
         // Verify no wait annotations were added
@@ -94,7 +94,7 @@ public class PackageInstallationTests
         using var app = builder.Build();
 
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var installerResources = appModel.Resources.OfType<NpmInstallerResource>().ToList();
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
         Assert.Equal(2, installerResources.Count);
 

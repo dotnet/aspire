@@ -186,7 +186,7 @@ public static class NodeAppHostingExtension
     /// <param name="useCI">When true, use <code>npm ci</code>, otherwise use <code>npm install</code> when installing packages.</param>
     /// <param name="configureInstaller">Configure the npm installer resource.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NpmInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NodeInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
     {
         resource.WithCommand("npm");
         resource.WithAnnotation(new JavaScriptPackageManagerAnnotation("npm")
@@ -200,9 +200,10 @@ public static class NodeAppHostingExtension
         if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             var installerName = $"{resource.Resource.Name}-npm-install";
-            var installer = new NpmInstallerResource(installerName, resource.Resource.WorkingDirectory);
+            var installer = new NodeInstallerResource(installerName, resource.Resource.WorkingDirectory);
 
             var installerBuilder = resource.ApplicationBuilder.AddResource(installer)
+                .WithCommand("npm")
                 .WithArgs([useCI ? "ci" : "install"])
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
