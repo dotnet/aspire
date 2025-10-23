@@ -5,6 +5,7 @@
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests;
@@ -129,6 +130,75 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Wait for the run task to complete (or timeout)
         await runTask.WaitAsync(TimeSpan.FromSeconds(10));
+    }
+
+    /// <summary>
+    /// Verifies that deploying an application with resources that define their own build steps does not trigger default
+    /// image build and they have the correct pipeline configuration.
+    /// </summary>
+    [Fact]
+    public async Task DeployAsync_WithResourcesWithBuildSteps()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+
+        var configCalled = false;
+
+        // Add a compute resource with its own build step
+        builder.AddProject<Project>("api", launchProfileName: null)
+            .WithPipelineStepFactory(factoryContext =>
+            {
+                return
+                [
+                    new PipelineStep
+                    {
+                        Name = "api-build",
+                        Action = _ => Task.CompletedTask,
+                        Tags = [WellKnownPipelineTags.BuildCompute]
+                    }
+                ];
+            })
+            .WithPipelineConfiguration(configContext =>
+            {
+                var mainBuildStep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
+                    .Where(s => s.Name == "build-container-images")
+                    .Single();
+
+                Assert.Contains("api-build", mainBuildStep.DependsOnSteps);
+
+                var apiBuildstep = configContext.GetSteps(WellKnownPipelineTags.BuildCompute)
+                    .Where(s => s.Name == "api-build")
+                    .Single();
+
+                Assert.Contains("default-image-tags", apiBuildstep.DependsOnSteps);
+
+                configCalled = true;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        Assert.True(configCalled);
+
+        // Assert - Verify MockImageBuilder was NOT called because the project resource has its own build step
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.False(mockImageBuilder.BuildImagesCalled);
+        Assert.Empty(mockImageBuilder.BuildImageResources);
     }
 
     [Fact]
