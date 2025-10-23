@@ -170,7 +170,7 @@ public static class NodeAppHostingExtension
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
                         && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
                     {
-                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory);
+                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory) ?? "22";
                         var dockerBuilder = dockerfileContext.Builder
                             .From($"node:{nodeVersion}-slim")
                             .WorkDir("/app")
@@ -239,8 +239,8 @@ public static class NodeAppHostingExtension
     /// Detects the Node.js version to use for a project by checking common configuration files.
     /// </summary>
     /// <param name="workingDirectory">The working directory of the Node.js project.</param>
-    /// <returns>The detected Node.js major version number as a string, or "22" as the default if no version is detected.</returns>
-    private static string DetectNodeVersion(string workingDirectory)
+    /// <returns>The detected Node.js major version number as a string, or <c>null</c> if no version is detected.</returns>
+    private static string? DetectNodeVersion(string workingDirectory)
     {
         // Check .nvmrc file
         var nvmrcPath = Path.Combine(workingDirectory, ".nvmrc");
@@ -307,8 +307,8 @@ public static class NodeAppHostingExtension
             }
         }
 
-        // Default to version 22
-        return "22";
+        // Return null if no version is detected
+        return null;
     }
 
     /// <summary>
