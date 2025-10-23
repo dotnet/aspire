@@ -108,15 +108,21 @@ public sealed class AzureEnvironmentResource : Resource
                 Tags = [WellKnownPipelineTags.BuildCompute]
             };
 
-            var pushStep = new PipelineStep
+            // Create separate push steps for each compute resource that requires image build and push
+            var computeResources = factoryContext.PipelineContext.Model.GetComputeResources()
+                .Where(r => r.RequiresImageBuildAndPush())
+                .ToList();
+
+            var pushSteps = new List<PipelineStep>();
+            foreach (var computeResource in computeResources)
             {
-                Name = "push-container-images",
-                Action = ctx => PushContainerImagesAsync(ctx)
-            };
-            pushStep.DependsOn(buildStep);
-            foreach (var provisionStep in provisionSteps)
-            {
-                pushStep.DependsOn(provisionStep);
+                var pushStep = new PipelineStep
+                {
+                    Name = $"push-{computeResource.Name}",
+                    Action = ctx => PushSingleContainerImageAsync(ctx, computeResource)
+                };
+                pushStep.DependsOn(buildStep);
+                pushSteps.Add(pushStep);
             }
 
             var deployStep = new PipelineStep
@@ -125,7 +131,10 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!),
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
-            deployStep.DependsOn(pushStep);
+            foreach (var pushStep in pushSteps)
+            {
+                deployStep.DependsOn(pushStep);
+            }
             foreach (var provisionStep in provisionSteps)
             {
                 deployStep.DependsOn(provisionStep);
@@ -140,9 +149,40 @@ public sealed class AzureEnvironmentResource : Resource
 
             var allSteps = new List<PipelineStep> { validateStep, createContextStep };
             allSteps.AddRange(provisionSteps);
-            allSteps.AddRange([buildStep, pushStep, deployStep, printDashboardUrlStep]);
+            allSteps.Add(buildStep);
+            allSteps.AddRange(pushSteps);
+            allSteps.AddRange([deployStep, printDashboardUrlStep]);
 
             return allSteps;
+        }));
+
+        // Add pipeline configuration to wire up dependencies between push steps and container registry provision steps
+        Annotations.Add(new PipelineConfigurationAnnotation(configContext =>
+        {
+            // Find all push steps (those starting with "push-")
+            var pushSteps = configContext.Steps.Where(s => s.Name.StartsWith("push-")).ToList();
+
+            // For each push step, find the corresponding compute resource and its container registry
+            foreach (var pushStep in pushSteps)
+            {
+                // Extract compute resource name from step name (e.g., "push-myapp" -> "myapp")
+                var computeResourceName = pushStep.Name.Substring("push-".Length);
+                var computeResource = configContext.Model.Resources.FirstOrDefault(r => r.Name == computeResourceName);
+
+                if (computeResource != null &&
+                    TryGetContainerRegistry(computeResource, out var containerRegistry))
+                {
+                    // Find the provision step for this container registry
+                    var registryProvisionStep = configContext.Steps
+                        .FirstOrDefault(s => s.Name == $"provision-{containerRegistry.Name}");
+
+                    if (registryProvisionStep != null)
+                    {
+                        // Add dependency: push step depends on the container registry provision step
+                        pushStep.DependsOn(registryProvisionStep);
+                    }
+                }
+            }
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -290,40 +330,55 @@ public sealed class AzureEnvironmentResource : Resource
             context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task PushContainerImagesAsync(PipelineStepContext context)
+    private static async Task PushSingleContainerImageAsync(PipelineStepContext context, IResource computeResource)
     {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
 
-        var computeResources = context.Model.GetComputeResources()
-            .Where(r => r.RequiresImageBuildAndPush())
-            .ToList();
-
-        if (!computeResources.Any())
+        // Get the container registry for this compute resource
+        if (!TryGetContainerRegistry(computeResource, out var registry))
         {
             return;
         }
 
-        var resourcesByRegistry = new Dictionary<IContainerRegistry, List<IResource>>();
-        foreach (var computeResource in computeResources)
+        // Login to the registry
+        var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
+                         throw new InvalidOperationException("Failed to retrieve container registry information.");
+
+        var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
+        await using (loginTask.ConfigureAwait(false))
         {
-            if (TryGetContainerRegistry(computeResource, out var registry))
-            {
-                if (!resourcesByRegistry.TryGetValue(registry, out var resourceList))
-                {
-                    resourceList = [];
-                    resourcesByRegistry[registry] = resourceList;
-                }
-                resourceList.Add(computeResource);
-            }
+            await AuthenticateToAcrHelper(loginTask, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
         }
 
-        await LoginToAllRegistriesAsync(resourcesByRegistry.Keys, context, processRunner, configuration)
-            .ConfigureAwait(false);
+        // Push the image
+        if (!computeResource.TryGetContainerImageName(out var localImageName))
+        {
+            localImageName = computeResource.Name.ToLowerInvariant();
+        }
 
-        await PushImagesToAllRegistriesAsync(resourcesByRegistry, context, containerImageBuilder)
-            .ConfigureAwait(false);
+        IValueProvider cir = new ContainerImageReference(computeResource);
+        var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+
+        var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing **{computeResource.Name}** to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
+        await using (pushTask.ConfigureAwait(false))
+        {
+            try
+            {
+                if (targetTag == null)
+                {
+                    throw new InvalidOperationException($"Failed to get target tag for {computeResource.Name}");
+                }
+                await TagAndPushImage(localImageName, targetTag, context.CancellationToken, containerImageBuilder).ConfigureAwait(false);
+                await pushTask.CompleteAsync($"Successfully pushed **{computeResource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await pushTask.CompleteAsync($"Failed to push **{computeResource.Name}**: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
     }
 
     private static async Task DeployComputeResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
@@ -416,36 +471,6 @@ public sealed class AzureEnvironmentResource : Resource
         return false;
     }
 
-    private static async Task LoginToAllRegistriesAsync(IEnumerable<IContainerRegistry> registries, PipelineStepContext context, IProcessRunner processRunner, IConfiguration configuration)
-    {
-        var registryList = registries.ToList();
-        if (!registryList.Any())
-        {
-            return;
-        }
-
-        try
-        {
-            var loginTasks = registryList.Select(async registry =>
-            {
-                var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                                 throw new InvalidOperationException("Failed to retrieve container registry information.");
-
-                var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
-                await using (loginTask.ConfigureAwait(false))
-                {
-                    await AuthenticateToAcrHelper(loginTask, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
-                }
-            });
-
-            await Task.WhenAll(loginTasks).ConfigureAwait(false);
-        }
-        catch (Exception)
-        {
-            throw;
-        }
-    }
-
     private static async Task AuthenticateToAcrHelper(IReportingTask loginTask, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
     {
         var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
@@ -489,53 +514,6 @@ public sealed class AzureEnvironmentResource : Resource
     {
         // Fall back to known config names (primary and legacy)
         return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
-    }
-
-    private static async Task PushImagesToAllRegistriesAsync(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, PipelineStepContext context, IResourceContainerImageBuilder containerImageBuilder)
-    {
-        var allPushTasks = new List<Task>();
-
-        foreach (var (registry, resources) in resourcesByRegistry)
-        {
-            var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                             throw new InvalidOperationException("Failed to retrieve container registry information.");
-
-            var resourcePushTasks = resources
-                .Where(r => r.RequiresImageBuildAndPush())
-                .Select(async resource =>
-                {
-                    if (!resource.TryGetContainerImageName(out var localImageName))
-                    {
-                        localImageName = resource.Name.ToLowerInvariant();
-                    }
-
-                    IValueProvider cir = new ContainerImageReference(resource);
-                    var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-
-                    var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing **{resource.Name}** to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
-                    await using (pushTask.ConfigureAwait(false))
-                    {
-                        try
-                        {
-                            if (targetTag == null)
-                            {
-                                throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
-                            }
-                            await TagAndPushImage(localImageName, targetTag, context.CancellationToken, containerImageBuilder).ConfigureAwait(false);
-                            await pushTask.CompleteAsync($"Successfully pushed **{resource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            await pushTask.CompleteAsync($"Failed to push **{resource.Name}**: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                            throw;
-                        }
-                    }
-                });
-
-            allPushTasks.AddRange(resourcePushTasks);
-        }
-
-        await Task.WhenAll(allPushTasks).ConfigureAwait(false);
     }
 
     private static async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken, IResourceContainerImageBuilder containerImageBuilder)

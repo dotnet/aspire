@@ -298,7 +298,8 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
         var steps = (await pipelineStepAnnotation.CreateStepsAsync(factoryContext)).ToList();
         
         // Assert
-        // Should have: validate, create-context, provision-storage1, provision-storage2, provision-cosmos, build, push, deploy, print-dashboard
+        // Should have: validate, create-context, provision-storage1, provision-storage2, provision-cosmos, build, deploy, print-dashboard
+        // Note: No push steps since there are no compute resources in this test
         var provisionSteps = steps.Where(s => s.Name.StartsWith("provision-")).ToList();
         
         Assert.Equal(3, provisionSteps.Count);
@@ -319,13 +320,11 @@ public class AzureEnvironmentResourceTests(ITestOutputHelper output)
             Assert.Contains(createContextStep.Name, provisionStep.DependsOnSteps);
         }
         
-        // Verify that push and deploy steps depend on all provision steps
-        var pushStep = steps.Single(s => s.Name == "push-container-images");
+        // Verify that deploy step depends on all provision steps
         var deployStep = steps.Single(s => s.Name == "deploy-compute-resources");
         
         foreach (var provisionStep in provisionSteps)
         {
-            Assert.Contains(provisionStep.Name, pushStep.DependsOnSteps);
             Assert.Contains(provisionStep.Name, deployStep.DependsOnSteps);
         }
     }
