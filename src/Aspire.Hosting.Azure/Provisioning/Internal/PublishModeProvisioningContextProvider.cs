@@ -4,10 +4,10 @@
 #pragma warning disable ASPIREINTERACTION001
 #pragma warning disable ASPIREPUBLISHERS001
 
-using System.Text.Json.Nodes;
 using Aspire.Hosting.Azure.Resources;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -26,6 +26,7 @@ internal sealed class PublishModeProvisioningContextProvider(
     IArmClientProvider armClientProvider,
     IUserPrincipalProvider userPrincipalProvider,
     ITokenCredentialProvider tokenCredentialProvider,
+    IDeploymentStateManager deploymentStateManager,
     DistributedApplicationExecutionContext distributedApplicationExecutionContext,
     IPipelineActivityReporter activityReporter) : BaseProvisioningContextProvider(
         interactionService,
@@ -35,6 +36,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         armClientProvider,
         userPrincipalProvider,
         tokenCredentialProvider,
+        deploymentStateManager,
         distributedApplicationExecutionContext)
 {
     protected override string GetDefaultResourceGroupName()
@@ -58,7 +60,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         return $"{prefix}-{normalizedApplicationName}";
     }
 
-    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public override async Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -74,7 +76,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
         }
 
-        return await base.CreateProvisioningContextAsync(userSecrets, cancellationToken).ConfigureAwait(false);
+        return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task RetrieveAzureProvisioningOptions(CancellationToken cancellationToken = default)

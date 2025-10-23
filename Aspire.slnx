@@ -106,6 +106,11 @@
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/playground/AspireWithJavaScript/">
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
+    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/playground/AspireWithPython/">
     <Project Path="playground/AspireWithPython/AspireWithPython.AppHost/AspireWithPython.AppHost.csproj" />
     <Project Path="playground/AspireWithPython/AspireWithPython.ServiceDefaults/AspireWithPython.ServiceDefaults.csproj" />
@@ -202,11 +207,6 @@
   </Folder>
   <Folder Name="/playground/HealthChecks/">
     <Project Path="playground/HealthChecks/HealthChecksSandbox.AppHost/HealthChecksSandbox.AppHost.csproj" />
-  </Folder>
-  <Folder Name="/playground/javascript/">
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
-    <Project Path="playground/AspireWithJavaScript/AspireJavaScript.ServiceDefaults/AspireJavaScript.ServiceDefaults.csproj" />
   </Folder>
   <Folder Name="/playground/kafka/">
     <Project Path="playground/kafka/Consumer/Consumer.csproj" />

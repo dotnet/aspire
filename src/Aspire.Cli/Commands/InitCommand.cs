@@ -490,30 +490,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        ITemplate template;
-        
-        if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        // Use single-file AppHost template
+        var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+        if (singleFileTemplate is null)
         {
-            // Use single-file AppHost template if feature is enabled
-            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
-            if (singleFileTemplate is null)
-            {
-                InteractionService.DisplayError("Single-file AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = singleFileTemplate;
+            InteractionService.DisplayError("Single-file AppHost template not found.");
+            return ExitCodeConstants.FailedToCreateNewProject;
         }
-        else
-        {
-            // Use regular AppHost template if single-file feature is not enabled
-            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
-            if (appHostTemplate is null)
-            {
-                InteractionService.DisplayError("AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = appHostTemplate;
-        }
+        var template = singleFileTemplate;
 
         var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
         

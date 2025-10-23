@@ -76,7 +76,11 @@ public sealed class AzureEnvironmentResource : Resource
             var createContextStep = new PipelineStep
             {
                 Name = "create-provisioning-context",
-                Action = async ctx => provisioningContext = await CreateProvisioningContextAsync(ctx).ConfigureAwait(false)
+                Action = async ctx =>
+                {
+                    var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
+                    provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                }
             };
             createContextStep.DependsOn(validateStep);
 
@@ -229,33 +233,9 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task<ProvisioningContext> CreateProvisioningContextAsync(PipelineStepContext context)
-    {
-        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
-        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
-        var configuration = context.Services.GetRequiredService<IConfiguration>();
-
-        var userSecrets = await deploymentStateManager.LoadStateAsync(context.CancellationToken)
-            .ConfigureAwait(false);
-        var provisioningContext = await provisioningContextProvider
-            .CreateProvisioningContextAsync(userSecrets, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
-        if (!clearCache)
-        {
-            await deploymentStateManager.SaveStateAsync(
-                provisioningContext.DeploymentState,
-                context.CancellationToken).ConfigureAwait(false);
-        }
-
-        return provisioningContext;
-    }
-
     private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
 
         var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
@@ -322,14 +302,6 @@ public sealed class AzureEnvironmentResource : Resource
         });
 
         await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
-
-        var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
-        if (!clearCache)
-        {
-            await deploymentStateManager.SaveStateAsync(
-                provisioningContext.DeploymentState,
-                context.CancellationToken).ConfigureAwait(false);
-        }
     }
 
     private async Task BuildContainerImagesAsync(PipelineStepContext context)

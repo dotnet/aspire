@@ -4,7 +4,6 @@
 #if UseRedisCache
 #:package Aspire.Hosting.Redis@!!REPLACE_WITH_LATEST_VERSION!!
 #endif
-#:package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions@9.8.0
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
 
@@ -26,21 +25,7 @@ var app = builder.AddUvicornApp("app", "./app", "app:app")
 var frontend = builder.AddViteApp("frontend", "./frontend")
     .WithNpmPackageInstallation()
     .WithReference(app)
-    .WaitFor(app)
-    .PublishAsDockerFile(c =>
-    {
-#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        c.WithDockerfileBuilder("./frontend", async context =>
-        {
-            context.Builder.From("node:22-slim")
-                .Copy(".", "/app")
-                .WorkDir("/app")
-                .Run("npm install")
-                .Run("npm run build");
-        });
-#pragma warning restore ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    })
-    .WithAnnotation(new StaticDockerFilesAnnotation() { SourcePath = "/app/dist" });
+    .WaitFor(app);
 
 app.PublishWithStaticFiles(frontend, "./static");
 

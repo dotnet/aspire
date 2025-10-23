@@ -451,6 +451,10 @@ public static class PythonAppResourceBuilderExtensions
                         _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
                     };
 
+                    // Check if uv.lock exists in the working directory
+                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+                    var hasUvLock = File.Exists(uvLockPath);
+
                     var builderStage = context.Builder
                         .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
                         .EmptyLine()
@@ -459,20 +463,45 @@ public static class PythonAppResourceBuilderExtensions
                         .Env("UV_LINK_MODE", "copy")
                         .EmptyLine()
                         .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Install dependencies first for better layer caching")
-                        .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                        .RunWithMounts(
-                            "uv sync --locked --no-install-project --no-dev",
-                            "type=cache,target=/root/.cache/uv",
-                            "type=bind,source=uv.lock,target=uv.lock",
-                            "type=bind,source=pyproject.toml,target=pyproject.toml")
-                        .EmptyLine()
-                        .Comment("Copy the rest of the application source and install the project")
-                        .Copy(".", "/app")
-                        .RunWithMounts(
-                            "uv sync --locked --no-dev",
-                            "type=cache,target=/root/.cache/uv");
+                        .EmptyLine();
+
+                    if (hasUvLock)
+                    {
+                        // If uv.lock exists, use locked mode for reproducible builds
+                        builderStage
+                            .Comment("Install dependencies first for better layer caching")
+                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --locked --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv",
+                                "type=bind,source=uv.lock,target=uv.lock",
+                                "type=bind,source=pyproject.toml,target=pyproject.toml")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --locked --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
+                    else
+                    {
+                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+                        builderStage
+                            .Comment("Copy pyproject.toml to install dependencies")
+                            .Copy("pyproject.toml", "/app/")
+                            .EmptyLine()
+                            .Comment("Install dependencies and generate lock file")
+                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
 
                     var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
