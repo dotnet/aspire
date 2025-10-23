@@ -5,11 +5,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      //#if (LocalhostTld)
-      "applicationUrl": "http://aspire_starterapplication__1_web.dev.localhost:5000",
-      //#else
       "applicationUrl": "http://localhost:5000",
-      //#endif
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
@@ -19,11 +15,7 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      //#if (LocalhostTld)
-      "applicationUrl": "https://aspire_starterapplication__1_web.dev.localhost:7000;http://aspire_starterapplication__1_web.dev.localhost:5000",
-      //#else
       "applicationUrl": "https://localhost:7000;http://localhost:5000",
-      //#endif
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

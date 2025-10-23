@@ -6,6 +6,7 @@
 
 using System.Text.Json.Nodes;
 using Aspire.Dashboard.Model;
+using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Orchestrator;
@@ -15,6 +16,7 @@ using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Orchestrator;
 
@@ -446,7 +448,8 @@ public class ApplicationOrchestratorTests
         ResourceNotificationService notificationService,
         DcpExecutorEvents? dcpEvents = null,
         IDistributedApplicationEventing? applicationEventing = null,
-        ResourceLoggerService? resourceLoggerService = null)
+        ResourceLoggerService? resourceLoggerService = null,
+        DashboardOptions? dashboardOptions = null)
     {
         var serviceProvider = new ServiceCollection().BuildServiceProvider();
         resourceLoggerService ??= new ResourceLoggerService();
@@ -470,8 +473,9 @@ public class ApplicationOrchestratorTests
                 CreateInteractionService(),
                 NullLogger<ParameterProcessor>.Instance,
                 executionContext,
-                deploymentStateManager: new MockDeploymentStateManager())
-            );
+                deploymentStateManager: new MockDeploymentStateManager()),
+            Options.Create(dashboardOptions ?? new())
+        );
     }
 
     private static InteractionService CreateInteractionService(DistributedApplicationOptions? options = null)
