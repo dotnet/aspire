@@ -34,6 +34,11 @@ public class PipelineStep
     public List<string> RequiredBySteps { get; init; } = [];
 
     /// <summary>
+    /// Gets or sets the execution status of the step.
+    /// </summary>
+    public PipelineStepStatus Status { get; set; } = PipelineStepStatus.Pending;
+
+    /// <summary>
     /// Adds a dependency on another step.
     /// </summary>
     /// <param name="stepName">The name of the step to depend on.</param>

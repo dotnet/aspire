@@ -299,6 +299,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                         // Wrap the dependency failure with context about this step
                         var wrappedException = new InvalidOperationException(message, ex);
+                        step.Status = PipelineStepStatus.Failed;
                         stepTcs.TrySetException(wrappedException);
                         return;
                     }
@@ -306,6 +307,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 try
                 {
+                    step.Status = PipelineStepStatus.Running;
+
                     var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
                     var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
 
@@ -322,9 +325,17 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             PipelineLoggerProvider.CurrentLogger = stepContext.Logger;
 
                             await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+
+                            step.Status = PipelineStepStatus.Succeeded;
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            step.Status = PipelineStepStatus.Canceled;
+                            throw;
                         }
                         catch (Exception ex)
                         {
+                            step.Status = PipelineStepStatus.Failed;
                             // Report the failure to the activity reporter before disposing
                             await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
                             throw;
@@ -337,9 +348,17 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                     stepTcs.TrySetResult();
                 }
+                catch (OperationCanceledException)
+                {
+                    // Cancellation - mark as canceled and re-throw
+                    step.Status = PipelineStepStatus.Canceled;
+                    stepTcs.TrySetCanceled();
+                    throw;
+                }
                 catch (Exception ex)
                 {
                     // Execution failure - mark as failed, cancel all other work, and re-throw
+                    step.Status = PipelineStepStatus.Failed;
                     stepTcs.TrySetException(ex);
 
                     // Cancel all remaining work
@@ -515,6 +534,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         try
         {
             await step.Action(stepContext).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation exceptions without wrapping
+            throw;
         }
         catch (Exception ex)
         {

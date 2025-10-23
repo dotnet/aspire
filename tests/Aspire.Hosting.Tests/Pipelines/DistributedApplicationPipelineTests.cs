@@ -1893,6 +1893,242 @@ public class DistributedApplicationPipelineTests
         Assert.True(foundErrorActivity, $"Expected to find a task activity with detailed error message about invalid step. Got: {errorMessage}");
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WithSuccessfulStep_SetsStatusToSucceeded()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        pipeline.AddStep(step);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Initially, the step should be Pending
+        Assert.Equal(PipelineStepStatus.Pending, step.Status);
+
+        await pipeline.ExecuteAsync(context);
+
+        // After successful execution, the step should be Succeeded
+        Assert.Equal(PipelineStepStatus.Succeeded, step.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithFailingStep_SetsStatusToFailed()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step = new PipelineStep
+        {
+            Name = "failing-step",
+            Action = async (context) =>
+            {
+                await Task.CompletedTask;
+                throw new InvalidOperationException("Test failure");
+            }
+        };
+
+        pipeline.AddStep(step);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Initially, the step should be Pending
+        Assert.Equal(PipelineStepStatus.Pending, step.Status);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // After failure, the step should be Failed
+        Assert.Equal(PipelineStepStatus.Failed, step.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithCanceledStep_SetsStatusToCanceled()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var cts = new CancellationTokenSource();
+        var step = new PipelineStep
+        {
+            Name = "canceling-step",
+            Action = async (context) =>
+            {
+                cts.Cancel();
+                context.CancellationToken.ThrowIfCancellationRequested();
+                await Task.CompletedTask;
+            }
+        };
+
+        pipeline.AddStep(step);
+
+        var context = CreateDeployingContext(builder.Build());
+        context.CancellationToken = cts.Token;
+
+        // Initially, the step should be Pending
+        Assert.Equal(PipelineStepStatus.Pending, step.Status);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pipeline.ExecuteAsync(context));
+
+        // After cancellation, the step should be Canceled
+        Assert.Equal(PipelineStepStatus.Canceled, step.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithMultipleSteps_TracksStatusForEachStep()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step1 = new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        var step2 = new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        var step3 = new PipelineStep
+        {
+            Name = "step3",
+            Action = async (context) => await Task.CompletedTask
+        };
+        step3.DependsOn(step2);
+
+        pipeline.AddStep(step1);
+        pipeline.AddStep(step2);
+        pipeline.AddStep(step3);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Initially, all steps should be Pending
+        Assert.Equal(PipelineStepStatus.Pending, step1.Status);
+        Assert.Equal(PipelineStepStatus.Pending, step2.Status);
+        Assert.Equal(PipelineStepStatus.Pending, step3.Status);
+
+        await pipeline.ExecuteAsync(context);
+
+        // After execution, all steps should be Succeeded
+        Assert.Equal(PipelineStepStatus.Succeeded, step1.Status);
+        Assert.Equal(PipelineStepStatus.Succeeded, step2.Status);
+        Assert.Equal(PipelineStepStatus.Succeeded, step3.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithDependentSteps_StatusTransitionsCorrectly()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var statusTransitions = new Dictionary<string, List<PipelineStepStatus>>();
+        var step1Started = new TaskCompletionSource<bool>();
+        var step2CanStart = new TaskCompletionSource<bool>();
+
+        var step1 = new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) =>
+            {
+                step1Started.SetResult(true);
+                await step2CanStart.Task;
+            }
+        };
+
+        var step2 = new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) =>
+            {
+                await Task.CompletedTask;
+            }
+        };
+        step2.DependsOn(step1);
+
+        pipeline.AddStep(step1);
+        pipeline.AddStep(step2);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        // Start execution in the background
+        var executionTask = Task.Run(() => pipeline.ExecuteAsync(context));
+
+        // Wait for step1 to start
+        await step1Started.Task;
+
+        // At this point, step1 should be Running and step2 should still be Pending
+        Assert.Equal(PipelineStepStatus.Running, step1.Status);
+        Assert.Equal(PipelineStepStatus.Pending, step2.Status);
+
+        // Allow step1 to complete
+        step2CanStart.SetResult(true);
+
+        // Wait for execution to complete
+        await executionTask;
+
+        // Both steps should be Succeeded
+        Assert.Equal(PipelineStepStatus.Succeeded, step1.Status);
+        Assert.Equal(PipelineStepStatus.Succeeded, step2.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenDependencyFails_DependentStepRemainsInFailedState()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step1 = new PipelineStep
+        {
+            Name = "failing-step",
+            Action = async (context) =>
+            {
+                await Task.CompletedTask;
+                throw new InvalidOperationException("Step 1 failed");
+            }
+        };
+
+        var step2 = new PipelineStep
+        {
+            Name = "dependent-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+        step2.DependsOn(step1);
+
+        pipeline.AddStep(step1);
+        pipeline.AddStep(step2);
+
+        var context = CreateDeployingContext(builder.Build());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => pipeline.ExecuteAsync(context));
+
+        // Step1 should be Failed
+        Assert.Equal(PipelineStepStatus.Failed, step1.Status);
+
+        // Step2 should also be Failed because its dependency failed
+        Assert.Equal(PipelineStepStatus.Failed, step2.Status);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithStatusProperty_DefaultsToPending()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        // The Status property should default to Pending
+        Assert.Equal(PipelineStepStatus.Pending, step.Status);
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }
