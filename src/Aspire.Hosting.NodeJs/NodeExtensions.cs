@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Globalization;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.NodeJs;
 using Aspire.Hosting.Utils;
@@ -272,7 +273,8 @@ public static class NodeAppHostingExtension
         {
             try
             {
-                var packageJson = System.Text.Json.JsonDocument.Parse(File.ReadAllText(packageJsonPath));
+                using var stream = File.OpenRead(packageJsonPath);
+                using var packageJson = JsonDocument.Parse(stream);
                 if (packageJson.RootElement.TryGetProperty("engines", out var engines) &&
                     engines.TryGetProperty("node", out var nodeVersion))
                 {

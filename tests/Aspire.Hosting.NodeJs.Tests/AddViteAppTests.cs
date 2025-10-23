@@ -56,13 +56,10 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromPackageJson()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
-        try
-        {
-            // Create a package.json with engines.node specification
-            var packageJson = """
+        // Create a package.json with engines.node specification
+        var packageJson = """
             {
               "name": "test-vite",
               "engines": {
@@ -70,25 +67,23 @@ public class AddViteAppTests
               }
             }
             """;
-            File.WriteAllText(Path.Combine(tempDir, "package.json"), packageJson);
+        File.WriteAllText(Path.Combine(tempDir.Path, "package.json"), packageJson);
 
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
 
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
 
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
+        try
+        {
             // Should detect version 20 from package.json
             Assert.Contains("FROM node:20-slim", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
@@ -99,31 +94,26 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromNvmrc()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
+        // Create an .nvmrc file
+        File.WriteAllText(Path.Combine(tempDir.Path, ".nvmrc"), "18.20.0");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
+
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
         try
         {
-            // Create an .nvmrc file
-            File.WriteAllText(Path.Combine(tempDir, ".nvmrc"), "18.20.0");
-
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
-
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
-
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
             // Should detect version 18 from .nvmrc
             Assert.Contains("FROM node:18-slim", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
@@ -134,31 +124,26 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromNodeVersion()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
+        // Create a .node-version file
+        File.WriteAllText(Path.Combine(tempDir.Path, ".node-version"), "v21.5.0");
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
+
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
         try
         {
-            // Create a .node-version file
-            File.WriteAllText(Path.Combine(tempDir, ".node-version"), "v21.5.0");
-
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
-
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
-
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
             // Should detect version 21 from .node-version
             Assert.Contains("FROM node:21-slim", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
@@ -169,36 +154,31 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileWithNodeVersionFromToolVersions()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
-        try
-        {
-            // Create a .tool-versions file
-            var toolVersions = """
+        // Create a .tool-versions file
+        var toolVersions = """
             ruby 3.2.0
             nodejs 19.8.1
             python 3.11.0
             """;
-            File.WriteAllText(Path.Combine(tempDir, ".tool-versions"), toolVersions);
+        File.WriteAllText(Path.Combine(tempDir.Path, ".tool-versions"), toolVersions);
 
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
 
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
 
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
+        try
+        {
             // Should detect version 19 from .tool-versions
             Assert.Contains("FROM node:19-slim", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
@@ -209,29 +189,24 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDockerfileDefaultsTo22WhenNoVersionFound()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
+        // Don't create any version files - should default to 22
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
+
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
         try
         {
-            // Don't create any version files - should default to 22
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
-
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
-
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
             // Should default to version 22
             Assert.Contains("FROM node:22-slim", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
@@ -247,29 +222,24 @@ public class AddViteAppTests
     [InlineData("~19.5.0", "node:19-slim")]
     public async Task VerifyDockerfileHandlesVariousVersionFormats(string versionString, string expectedImage)
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), $"vite-test-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
+        using var tempDir = new TempDirectory();
 
+        File.WriteAllText(Path.Combine(tempDir.Path, ".nvmrc"), versionString);
+
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        var nodeApp = builder.AddViteApp("vite", tempDir.Path)
+            .WithNpmPackageManager();
+
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+
+        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, ".nvmrc"), versionString);
-
-            using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
-            var nodeApp = builder.AddViteApp("vite", tempDir)
-                .WithNpmPackageManager();
-
-            var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
-
-            var dockerfileContents = File.ReadAllText("vite.Dockerfile");
-            
             Assert.Contains($"FROM {expectedImage}", dockerfileContents);
         }
         finally
         {
-            if (Directory.Exists(tempDir))
-            {
-                Directory.Delete(tempDir, true);
-            }
             if (File.Exists("vite.Dockerfile"))
             {
                 File.Delete("vite.Dockerfile");
