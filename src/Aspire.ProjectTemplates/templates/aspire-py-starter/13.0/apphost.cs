@@ -22,10 +22,10 @@ var app = builder.AddUvicornApp("app", "./app", "app:app")
 #endif
     .WithHttpHealthCheck("/health");
 
-builder.AddViteApp("frontend", "./frontend")
+var frontend = builder.AddViteApp("frontend", "./frontend")
     .WithNpmPackageManager()
-    .WithReference(apiService)
-    .WaitFor(apiService);
+    .WithReference(app)
+    .WaitFor(app);
 
 app.PublishWithContainerFiles(frontend, "./static");
 

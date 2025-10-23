@@ -6,22 +6,23 @@
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
-using Aspire.Hosting.Utils;
-using Aspire.Hosting.Tests;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Azure.Provisioning.Internal;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
-using System.Text.Json.Nodes;
-using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Publishing;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
+using Aspire.Hosting.Tests;
+using Aspire.Hosting.Utils;
 using Aspire.TestUtilities;
-using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Pipelines;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -199,6 +200,56 @@ public class AzureDeployerTests(ITestOutputHelper output)
         Assert.False(mockImageBuilder.BuildImageCalled);
         Assert.False(mockImageBuilder.BuildImagesCalled);
         Assert.Empty(mockImageBuilder.BuildImageResources);
+    }
+
+    /// <summary>
+    /// Verifies that deploying an application with resources that are build-only containers only builds
+    /// the containers and does not attempt to push them.
+    /// </summary>
+    [Fact]
+    public async Task DeployAsync_WithBuildOnlyContainers()
+    {
+        // Arrange
+        var mockProcessRunner = new MockProcessRunner();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
+        {
+            ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
+            ["AZURE_CONTAINER_REGISTRY_ENDPOINT"] = new { type = "String", value = "testregistry.azurecr.io" },
+            ["AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/test-identity" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN"] = new { type = "String", value = "test.westus.azurecontainerapps.io" },
+            ["AZURE_CONTAINER_APPS_ENVIRONMENT_ID"] = new { type = "String", value = "/subscriptions/test/resourceGroups/test-rg/providers/Microsoft.App/managedEnvironments/testenv" }
+        });
+        ConfigureTestServices(builder, armClientProvider: armClientProvider);
+
+        var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
+
+        // Add a compute resource with its own build step
+        builder.AddExecutable("exe", "exe", ".")
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    var dockerBuilder = dockerfileContext.Builder
+                        .From("scratch");
+                });
+
+                var dockerFileAnnotation = c.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+                dockerFileAnnotation.HasEntrypoint = false;
+            });
+
+        using var app = builder.Build();
+        await app.StartAsync();
+        await app.WaitForShutdownAsync();
+
+        // Assert - Verify MockImageBuilder was only called to build an image and not push it
+        var mockImageBuilder = app.Services.GetRequiredService<IResourceContainerImageBuilder>() as MockImageBuilder;
+        Assert.NotNull(mockImageBuilder);
+        Assert.False(mockImageBuilder.BuildImageCalled);
+        Assert.True(mockImageBuilder.BuildImagesCalled);
+        var builtImage = Assert.Single(mockImageBuilder.BuildImageResources);
+        Assert.Equal("exe", builtImage.Name);
+        Assert.False(mockImageBuilder.PushImageCalled);
     }
 
     [Fact]

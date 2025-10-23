@@ -245,16 +245,17 @@ public static class PythonAppResourceBuilderExtensions
     /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
     /// <param name="name">The unique name of the Uvicorn application resource.</param>
     /// <param name="appDirectory">The directory containing the Python application files.</param>
-    /// <param name="moduleName"></param>
+    /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
+    /// For example, "main:app" means "main.py" file and variable named "app".</param>
     /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
     public static IResourceBuilder<PythonAppResource> AddUvicornApp(
-        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string moduleName)
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
     {
         var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
             .WithHttpEndpoint(env: "PORT")
             .WithArgs(c =>
             {
-                c.Args.Add(moduleName);
+                c.Args.Add(app);
 
                 c.Args.Add("--host");
                 var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
