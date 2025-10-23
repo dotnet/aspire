@@ -159,3 +159,35 @@ fi
 
 arguments="$arguments $extraargs"
 "$scriptroot/common/build.sh" $arguments
+buildExitCode=$?
+
+# Install MAUI workload after restore if --restore was passed
+# Only on macOS (MAUI doesn't support Linux, Windows uses .cmd)
+if [[ "$arguments" == *"-restore"* ]] && [ $buildExitCode -eq 0 ]; then
+  # Check if we're on macOS
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    echo ""
+    echo "Installing MAUI workload into local .dotnet..."
+    
+    repo_root="$(cd "$scriptroot/.." && pwd)"
+    dotnet_root="$repo_root/.dotnet"
+    dotnet_exe="$dotnet_root/dotnet"
+    
+    if [ -f "$dotnet_exe" ]; then
+      export DOTNET_ROOT="$dotnet_root"
+      export PATH="$dotnet_root:$PATH"
+      
+      if "$dotnet_exe" workload install maui; then
+        echo "MAUI workload installed successfully."
+      else
+        echo ""
+        echo "WARNING: Failed to install MAUI workload. You may need to run this command manually:"
+        echo "  $dotnet_exe workload install maui"
+        echo ""
+        echo "The MAUI playground may not work without the MAUI workload installed."
+      fi
+    fi
+  fi
+fi
+
+exit $buildExitCode
