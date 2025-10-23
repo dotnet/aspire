@@ -6,34 +6,24 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.NodeJs;
 
 /// <summary>
-/// Represents the annotation for the JavaScript package manager used in a resource.
+/// Represents the annotation for the JavaScript package manager's install command line arguments.
 /// </summary>
-/// <param name="packageManager">The name of the JavaScript package manager.</param>
-public sealed class JavaScriptPackageManagerAnnotation(string packageManager) : IResourceAnnotation
+/// <param name="command"></param>
+/// <param name="args">The command line arguments for the JavaScript package manager's install command.</param>
+public record JavaScriptInstallCommandAnnotation(string command, string[] args) : IResourceAnnotation
 {
-    /// <summary>
-    /// Gets the name of the JavaScript package manager.
-    /// </summary>
-    public string PackageManager { get; } = packageManager;
+}
 
-    /// <summary>
-    /// Gets the command line arguments for the JavaScript package manager's install command.
-    /// </summary>
-    public string[] InstallCommandLineArgs { get; init; } = [];
+/// <summary>
+/// Represents the annotation for the JavaScript package manager's run command line arguments.
+/// </summary>
+public record JavaScriptRunCommandAnnotation(string command, string[] args) : IResourceAnnotation
+{
+}
 
-    /// <summary>
-    /// Gets the command line arguments for the JavaScript package manager's run command.
-    /// </summary>
-    public string[] RunCommandLineArgs { get; init; } = [];
-
-    /// <summary>
-    /// Gets a string value that separates the package manager command line args from the tool's command line args.
-    /// By default, this is "--".
-    /// </summary>
-    public string? CommandSeparator { get; init; } = "--";
-
-    /// <summary>
-    /// Gets the command line arguments for the JavaScript package manager's command that produces assets for distribution.
-    /// </summary>
-    public string[] BuildCommandLineArgs { get; init; } = [];
+/// <summary>
+/// Represents the annotation for the JavaScript package manager's build command line arguments.
+/// </summary>
+public record JavaScriptBuildCommandAnnotation(string command, string[] args) : IResourceAnnotation
+{
 }

@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
+
 namespace Aspire.Hosting.NodeJs;
 
 /// <summary>
@@ -10,4 +12,4 @@ namespace Aspire.Hosting.NodeJs;
 /// <param name="command">The command to execute the Vite application, such as the script or entry point.</param>
 /// <param name="workingDirectory">The working directory from which the Vite application command is executed.</param>
 public class ViteAppResource(string name, string command, string workingDirectory)
-    : NodeAppResource(name, command, workingDirectory);
+    : ExecutableResource(name, command, workingDirectory);
