@@ -43,6 +43,12 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal bool EnableDashboard { get; set; } = true;
 
     /// <summary>
+    /// Enables or disables auto-scaling for the App Service Plan.
+    /// Default is true.
+    /// </summary>
+    internal bool EnableAutoScale { get; set; } = true;
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);

@@ -97,8 +97,10 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 },
                 Kind = "Linux",
                 IsReserved = true,
-                // Enable per-site scaling so each app service can scale independently
-                IsPerSiteScaling = true
+                // Enable perSiteScaling or autoscale so each app service can scale independently
+                // Default is autoscale where Scaling is managed by platform based on HTTP traffic patterns
+                IsPerSiteScaling = !resource.EnableAutoScale,
+                IsElasticScaleEnabled = resource.EnableAutoScale
             };
 
             infra.Add(plan);
@@ -168,6 +170,18 @@ public static partial class AzureAppServiceEnvironmentExtensions
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableDashboard = enable;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether auto-scaling should be enabled for the app services in Azure App Service environment.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="enable">Whether to enable auto-scaling. Default is true.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutoScale(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    {
+        builder.Resource.EnableAutoScale = enable;
         return builder;
     }
 }
