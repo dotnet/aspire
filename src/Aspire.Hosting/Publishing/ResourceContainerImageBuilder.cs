@@ -407,14 +407,7 @@ internal sealed class ResourceContainerImageBuilder(
                 }
                 catch (Exception ex)
                 {
-                    if (logger.IsEnabled(LogLevel.Debug))
-                    {
-                        logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                    }
-                    else
-                    {
-                        logger.LogError("Failed to build container image from Dockerfile: {Message}", ex.Message);
-                    }
+                    logger.LogError(ex, "Failed to build container image from Dockerfile.");
                     await publishingTask.FailAsync($"Building image for {resource.Name} failed", cancellationToken).ConfigureAwait(false);
                     throw;
                 }
@@ -437,14 +430,7 @@ internal sealed class ResourceContainerImageBuilder(
             }
             catch (Exception ex)
             {
-                if (logger.IsEnabled(LogLevel.Debug))
-                {
-                    logger.LogError(ex, "Failed to build container image from Dockerfile.");
-                }
-                else
-                {
-                    logger.LogError("Failed to build container image from Dockerfile: {Message}", ex.Message);
-                }
+                logger.LogError(ex, "Failed to build container image from Dockerfile.");
                 throw;
             }
         }

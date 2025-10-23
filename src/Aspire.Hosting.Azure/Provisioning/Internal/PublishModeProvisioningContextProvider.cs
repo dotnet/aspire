@@ -73,14 +73,7 @@ internal sealed class PublishModeProvisioningContextProvider(
         }
         catch (Exception ex)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
-            }
-            else
-            {
-                _logger.LogError("Failed to retrieve Azure provisioning options.");
-            }
+            _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
         }
 
         return await base.CreateProvisioningContextAsync(cancellationToken).ConfigureAwait(false);
@@ -151,14 +144,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogError(ex, "Failed to retrieve Azure tenant information.");
-                }
-                else
-                {
-                    _logger.LogError("Failed to retrieve Azure tenant information: {Message}", ex.Message);
-                }
+                _logger.LogError(ex, "Failed to retrieve Azure tenant information.");
                 await step.FailAsync($"Failed to retrieve tenant information: {ex.Message}", cancellationToken).ConfigureAwait(false);
                 throw;
             }
@@ -257,14 +243,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogError(ex, "Failed to retrieve Azure subscription information.");
-                }
-                else
-                {
-                    _logger.LogError("Failed to retrieve Azure subscription information: {Message}", ex.Message);
-                }
+                _logger.LogError(ex, "Failed to retrieve Azure subscription information.");
                 await step.FailAsync($"Failed to retrieve subscription information: {ex.Message}", cancellationToken).ConfigureAwait(false);
                 throw;
             }
@@ -363,14 +342,7 @@ internal sealed class PublishModeProvisioningContextProvider(
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogError(ex, "Failed to retrieve Azure region information.");
-                }
-                else
-                {
-                    _logger.LogError("Failed to retrieve Azure region information: {Message}", ex.Message);
-                }
+                _logger.LogError(ex, "Failed to retrieve Azure region information.");
                 await step.FailAsync($"Failed to retrieve region information: {ex.Message}", cancellationToken).ConfigureAwait(false);
                 throw;
             }

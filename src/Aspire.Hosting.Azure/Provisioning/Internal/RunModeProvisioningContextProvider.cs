@@ -84,14 +84,7 @@ internal sealed class RunModeProvisioningContextProvider(
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
-                }
-                else
-                {
-                    _logger.LogError("Failed to retrieve Azure provisioning options.");
-                }
+                _logger.LogError(ex, "Failed to retrieve Azure provisioning options.");
                 _provisioningOptionsAvailable.SetException(ex);
             }
         });

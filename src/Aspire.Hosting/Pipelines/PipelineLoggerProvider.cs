@@ -61,6 +61,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
     /// <remarks>
     /// This logger acts as a proxy and dynamically resolves the current logger on each operation,
     /// allowing the target logger to change between calls.
+    /// When logging exceptions, stack traces are only included when the log level is Debug or Trace.
     /// </remarks>
     private sealed class PipelineLogger(Func<ILogger> currentLoggerAccessor) : ILogger
     {
@@ -73,7 +74,20 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
             currentLoggerAccessor().IsEnabled(logLevel);
 
         /// <inheritdoc/>
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
-            currentLoggerAccessor().Log(logLevel, eventId, state, exception, formatter);
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            var logger = currentLoggerAccessor();
+            
+            // If there's an exception and the log level is not Debug or Trace, exclude the exception from the log
+            // to avoid cluttering production logs with stack traces
+            if (exception is not null && logLevel > LogLevel.Debug)
+            {
+                logger.Log(logLevel, eventId, state, null, formatter);
+            }
+            else
+            {
+                logger.Log(logLevel, eventId, state, exception, formatter);
+            }
+        }
     }
 }
