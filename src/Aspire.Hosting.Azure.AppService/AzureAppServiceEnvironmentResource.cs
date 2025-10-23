@@ -70,6 +70,18 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// </summary>
     public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
 
+    /// <summary>
+    /// Gets the Application Insights Instrumentation Key.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsInstrumentationKeyReference =>
+        new("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", this);
+
+    /// <summary>
+    /// Gets the Application Insights Connection String.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsConnectionStringReference =>
+        new("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", this);
+
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);
 

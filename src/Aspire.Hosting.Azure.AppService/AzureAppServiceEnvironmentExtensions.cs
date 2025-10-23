@@ -5,10 +5,13 @@ using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
 using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
+using Azure.Core;
 using Azure.Provisioning;
+using Azure.Provisioning.ApplicationInsights;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.ContainerRegistry;
 using Azure.Provisioning.Expressions;
+using Azure.Provisioning.OperationalInsights;
 using Azure.Provisioning.Roles;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -98,7 +101,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Kind = "Linux",
                 IsReserved = true,
                 // Enable per-site scaling so each app service can scale independently
-                IsPerSiteScaling = true
+                IsPerSiteScaling = false,
+                IsElasticScaleEnabled = true,
+                MaximumElasticWorkerCount = 10
             };
 
             infra.Add(plan);
@@ -147,6 +152,52 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 infra.Add(new ProvisioningOutput("AZURE_APP_SERVICE_DASHBOARD_URI", typeof(string))
                 {
                     Value = BicepFunction.Interpolate($"https://{AzureAppServiceEnvironmentUtility.GetDashboardHostName(prefix)}.azurewebsites.net")
+                });
+            }
+
+            if (resource.EnableApplicationInsights)
+            {
+                // Create Log Analytics workspace
+                var logAnalyticsWorkspace = new OperationalInsightsWorkspace(prefix + "_law")
+                {
+                    Sku = new OperationalInsightsWorkspaceSku()
+                    {
+                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                    }
+                };
+
+                infra.Add(logAnalyticsWorkspace);
+
+                // Create Application Insights resource linked to the Log Analytics workspace
+                var applicationInsights = new ApplicationInsightsComponent(prefix + "_ai")
+                {
+                    ApplicationType = ApplicationInsightsApplicationType.Web,
+                    Kind = "web",
+                    WorkspaceResourceId = logAnalyticsWorkspace.Id,
+                    IngestionMode = ComponentIngestionMode.LogAnalytics
+                };
+
+                if (resource.ApplicationInsightsLocation is not null)
+                {
+                    var applicationInsightsLocation = new AzureLocation(resource.ApplicationInsightsLocation);
+                    applicationInsights.Location = applicationInsightsLocation;
+                }
+                else if (resource.ApplicationInsightsLocationParameter is not null)
+                {
+                    var applicationInsightsLocationParameter = resource.ApplicationInsightsLocationParameter.AsProvisioningParameter(infra);
+                    applicationInsights.Location = applicationInsightsLocationParameter;
+                }
+
+                infra.Add(applicationInsights);
+
+                infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", typeof(string))
+                {
+                    Value = applicationInsights.InstrumentationKey
+                });
+
+                infra.Add(new ProvisioningOutput("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", typeof(string))
+                {
+                    Value = applicationInsights.ConnectionString
                 });
             }
         });

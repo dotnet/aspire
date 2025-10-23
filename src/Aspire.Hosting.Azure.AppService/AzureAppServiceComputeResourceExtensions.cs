@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.AppService;
 using Azure.Provisioning.AppService;
 
 namespace Aspire.Hosting;
@@ -46,4 +47,29 @@ public static class AzureAppServiceComputeResourceExtensions
 
         return builder.WithAnnotation(new AzureAppServiceWebsiteCustomizationAnnotation(configure));
     }
+
+    /// <summary>
+    /// Enables or disables Azure Application Insights for the specified compute resource published as an Azure App Service.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="builder">The compute resource to configure.</param>
+    /// <param name="enable">Whether to enable Application Insights Default is true.</param>
+    /// <returns></returns>
+    public static IResourceBuilder<T> WithAzureApplicationInsights<T>(this IResourceBuilder<T> builder, bool enable = true)
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        where T : IComputeResource
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        builder.ApplicationBuilder.AddAzureAppServiceInfrastructureCore();
+
+        return builder.WithAnnotation(new AzureAppServiceWebSiteAppInsightsAnnotation(enable));
+    }
+
 }
