@@ -245,7 +245,14 @@ internal sealed class AzureProvisioner(
             }
             catch (Exception ex)
             {
-                resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.AzureResource.Name);
+                if (resourceLogger.IsEnabled(LogLevel.Debug))
+                {
+                    resourceLogger.LogError(ex, "Error provisioning {ResourceName}.", resource.AzureResource.Name);
+                }
+                else
+                {
+                    resourceLogger.LogError("Error provisioning {ResourceName}: {Message}", resource.AzureResource.Name, ex.Message);
+                }
                 resource.AzureResource.ProvisioningTaskCompletionSource?.TrySetException(new InvalidOperationException($"Unable to resolve references from {resource.AzureResource.Name}"));
             }
         }

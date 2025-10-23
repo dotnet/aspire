@@ -239,7 +239,14 @@ public sealed class ParameterProcessor(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogWarning(ex, "Failed to load deployment state. Continuing without saved parameter values.");
+                }
+                else
+                {
+                    logger.LogWarning("Failed to load deployment state. Continuing without saved parameter values.");
+                }
             }
         }
 
@@ -369,7 +376,14 @@ public sealed class ParameterProcessor(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+                    if (logger.IsEnabled(LogLevel.Debug))
+                    {
+                        logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+                    }
+                    else
+                    {
+                        logger.LogWarning("Failed to save parameter values to deployment state.");
+                    }
                 }
             }
         }
@@ -398,7 +412,14 @@ public sealed class ParameterProcessor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogWarning(ex, "Failed to save parameter values to deployment state.");
+            }
+            else
+            {
+                logger.LogWarning("Failed to save parameter values to deployment state.");
+            }
         }
     }
 }

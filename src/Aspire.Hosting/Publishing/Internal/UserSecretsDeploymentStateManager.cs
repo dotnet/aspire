@@ -43,12 +43,26 @@ public sealed class UserSecretsDeploymentStateManager(ILogger<UserSecretsDeploym
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogError(ex, "Failed to provision Azure resources because user secrets file is not well-formed JSON.");
+            }
+            else
+            {
+                logger.LogError("Failed to provision Azure resources because user secrets file is not well-formed JSON: {Message}", ex.Message);
+            }
             throw;
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to save user secrets.");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogWarning(ex, "Failed to save user secrets.");
+            }
+            else
+            {
+                logger.LogWarning("Failed to save user secrets: {Message}", ex.Message);
+            }
             throw;
         }
     }

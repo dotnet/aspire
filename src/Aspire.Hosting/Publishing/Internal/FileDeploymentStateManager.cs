@@ -73,7 +73,14 @@ public sealed class FileDeploymentStateManager(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to save deployment state.");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogWarning(ex, "Failed to save deployment state.");
+            }
+            else
+            {
+                logger.LogWarning("Failed to save deployment state: {Message}", ex.Message);
+            }
             throw;
         }
     }
