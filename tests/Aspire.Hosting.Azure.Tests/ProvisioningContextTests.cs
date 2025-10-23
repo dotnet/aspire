@@ -26,7 +26,6 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.Name);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.DeploymentState);
     }
 
     [Fact]
@@ -146,185 +145,13 @@ public class ProvisioningContextTests
     {
         // Arrange
         var customPrincipal = new UserPrincipal(Guid.NewGuid(), "custom@example.com");
-        var customUserSecrets = new JsonObject { ["test"] = "value" };
 
         // Act
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
-            principal: customPrincipal,
-            userSecrets: customUserSecrets);
+            principal: customPrincipal);
 
         // Assert
         Assert.Equal("custom@example.com", context.Principal.Name);
-        Assert.Equal("value", context.DeploymentState["test"]?.ToString());
-    }
-
-    [Fact]
-    public async Task WithDeploymentState_ConcurrentAccess_IsThreadSafe()
-    {
-        // Arrange
-        var deploymentState = new JsonObject();
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(userSecrets: deploymentState);
-        const int threadCount = 10;
-        const int iterationsPerThread = 100;
-        var tasks = new Task[threadCount];
-
-        // Act - Multiple threads accessing the DeploymentState concurrently via WithDeploymentState
-        for (int i = 0; i < threadCount; i++)
-        {
-            int threadId = i;
-            tasks[i] = Task.Run(() =>
-            {
-                for (int j = 0; j < iterationsPerThread; j++)
-                {
-                    context.WithDeploymentState(state =>
-                    {
-                        // All threads try to get or create the same "Azure" property
-                        var azureNode = state.Prop("Azure");
-                        
-                        // Each thread creates a unique property
-                        var threadNode = azureNode.Prop($"Thread{threadId}");
-                        threadNode.AsObject()["Counter"] = j;
-                        
-                        // And a shared property under Azure
-                        var deploymentsNode = azureNode.Prop("Deployments");
-                        
-                        // Access a deeper nested property
-                        var resourceNode = deploymentsNode.Prop($"Resource{j % 5}");
-                        resourceNode.AsObject()["LastAccess"] = $"Thread{threadId}-{j}";
-                    });
-                }
-            });
-        }
-
-        // Assert - Should complete without exceptions
-        await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromSeconds(10));
-
-        // Verify the structure was created correctly
-        context.WithDeploymentState(state =>
-        {
-            Assert.NotNull(state["Azure"]);
-            var azureObj = state["Azure"]!.AsObject();
-            Assert.NotNull(azureObj["Deployments"]);
-            
-            // Check that all thread-specific nodes were created
-            for (int i = 0; i < threadCount; i++)
-            {
-                Assert.NotNull(azureObj[$"Thread{i}"]);
-            }
-        });
-    }
-
-    [Fact]
-    public void WithDeploymentState_Action_ExecutesSuccessfully()
-    {
-        // Arrange
-        var deploymentState = new JsonObject();
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(userSecrets: deploymentState);
-
-        // Act
-        var executed = false;
-        context.WithDeploymentState(state =>
-        {
-            state["TestKey"] = "TestValue";
-            executed = true;
-        });
-
-        // Assert
-        Assert.True(executed);
-        Assert.Equal("TestValue", deploymentState["TestKey"]!.GetValue<string>());
-    }
-
-    [Fact]
-    public void WithDeploymentState_Func_ReturnsValue()
-    {
-        // Arrange
-        var deploymentState = new JsonObject();
-        deploymentState["TestKey"] = "TestValue";
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(userSecrets: deploymentState);
-
-        // Act
-        var result = context.WithDeploymentState(state =>
-        {
-            return state["TestKey"]!.GetValue<string>();
-        });
-
-        // Assert
-        Assert.Equal("TestValue", result);
-    }
-
-    [Fact]
-    public async Task WithDeploymentState_ConcurrentReadsAndWrites_MaintainsConsistency()
-    {
-        // Arrange
-        var deploymentState = new JsonObject();
-        var context = ProvisioningTestHelpers.CreateTestProvisioningContext(userSecrets: deploymentState);
-        const int writerCount = 5;
-        const int readerCount = 5;
-        const int iterations = 100;
-
-        // Initialize counter
-        context.WithDeploymentState(state =>
-        {
-            state["Counter"] = 0;
-        });
-
-        var writerTasks = new Task[writerCount];
-        var readerTasks = new Task[readerCount];
-
-        // Act - Writers increment counter
-        for (int i = 0; i < writerCount; i++)
-        {
-            writerTasks[i] = Task.Run(() =>
-            {
-                for (int j = 0; j < iterations; j++)
-                {
-                    context.WithDeploymentState(state =>
-                    {
-                        var current = state["Counter"]!.GetValue<int>();
-                        state["Counter"] = current + 1;
-                    });
-                }
-            });
-        }
-
-        // Readers read counter
-        var readValues = new List<int>[readerCount];
-        for (int i = 0; i < readerCount; i++)
-        {
-            int readerIndex = i;
-            readValues[readerIndex] = new List<int>();
-            readerTasks[i] = Task.Run(() =>
-            {
-                for (int j = 0; j < iterations; j++)
-                {
-                    var value = context.WithDeploymentState(state =>
-                    {
-                        return state["Counter"]!.GetValue<int>();
-                    });
-                    readValues[readerIndex].Add(value);
-                    Thread.Sleep(1); // Small delay to allow interleaving
-                }
-            });
-        }
-
-        await Task.WhenAll(writerTasks.Concat(readerTasks)).WaitAsync(TimeSpan.FromSeconds(15));
-
-        // Assert - Final counter value should be exactly writerCount * iterations
-        var finalValue = context.WithDeploymentState(state =>
-        {
-            return state["Counter"]!.GetValue<int>();
-        });
-
-        Assert.Equal(writerCount * iterations, finalValue);
-
-        // All read values should be in valid range (0 to finalValue)
-        foreach (var readerValues in readValues)
-        {
-            Assert.All(readerValues, value =>
-            {
-                Assert.InRange(value, 0, finalValue);
-            });
-        }
     }
 }
 
@@ -366,19 +193,21 @@ public class ProvisioningServicesTests
     }
 
     [Fact]
-    public async Task TestUserSecretsManager_CanSaveAndLoad()
+    public async Task TestUserSecretsManager_CanSaveAndLoadSection()
     {
         // Arrange
         var manager = ProvisioningTestHelpers.CreateUserSecretsManager();
-        var secrets = new JsonObject { ["Azure"] = new JsonObject { ["SubscriptionId"] = "test-id" } };
 
         // Act
-        await manager.SaveStateAsync(secrets);
-        var loaded = await manager.LoadStateAsync();
+        var azureSection = await manager.AcquireSectionAsync("Azure");
+        azureSection.Data["SubscriptionId"] = "test-id";
+        await manager.SaveSectionAsync(azureSection);
+
+        var loadedSection = await manager.AcquireSectionAsync("Azure");
 
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("test-id", loaded["Azure"]?["SubscriptionId"]?.ToString());
+        Assert.NotNull(loadedSection);
+        Assert.Equal("test-id", loadedSection.Data["SubscriptionId"]?.ToString());
     }
 
     [Fact]
