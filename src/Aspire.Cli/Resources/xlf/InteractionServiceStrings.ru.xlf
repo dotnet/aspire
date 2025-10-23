@@ -67,6 +67,11 @@
         <target state="translated">Поиск хостов приложений...</target>
         <note />
       </trans-unit>
+      <trans-unit id="InteractiveInputNotSupported">
+        <source>Interactive input is not supported in this environment. Use the --non-interactive flag or ensure the CLI is running in an interactive terminal.</source>
+        <target state="translated">Интерактивный ввод не поддерживается в этой среде. Используйте флаг --non-interactive или убедитесь, что CLI запущен в интерактивном терминале.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="MoreInfoNewCliVersion">
         <source>[dim]For more information, see: [link]{0}[/][/]</source>
         <target state="translated">[dim]Дополнительные сведения: [link]{0}[/][/]</target>

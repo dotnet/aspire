@@ -466,6 +466,11 @@ public partial class AIFoundryModel
         public static readonly AIFoundryModel Gpt4oTranscribe = new() { Name = "gpt-4o-transcribe", Version = "2025-03-20", Format = "OpenAI" };
 
         /// <summary>
+        /// A cutting-edge speech-to-text solution that deliverables reliable and accurate transcripts; now equipped with diarization support aka identifying different speakers through the transcription.
+        /// </summary>
+        public static readonly AIFoundryModel Gpt4oTranscribeDiarize = new() { Name = "gpt-4o-transcribe-diarize", Version = "2025-10-15", Format = "OpenAI" };
+
+        /// <summary>
         /// gpt-5 is designed for logic-heavy and multi-step tasks.
         /// </summary>
         public static readonly AIFoundryModel Gpt5 = new() { Name = "gpt-5", Version = "2025-08-07", Format = "OpenAI" };

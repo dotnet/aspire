@@ -23,14 +23,19 @@ public sealed class ContainerCertificateTrustCallbackAnnotation(Func<ContainerCe
 public sealed class ContainerCertificateTrustCallbackAnnotationContext
 {
     /// <summary>
+    /// Gets the <see cref="DistributedApplicationExecutionContext"/> for this session.
+    /// </summary>
+    public required DistributedApplicationExecutionContext ExecutionContext { get; init; }
+
+    /// <summary>
     /// Gets the resource to which the annotation is applied.
     /// </summary>
     public required IResource Resource { get; init; }
 
     /// <summary>
-    /// Gets the <see cref="CustomCertificateAuthoritiesScope"/> of trust for the resource.
+    /// Gets the <see cref="CertificateTrustScope"/> of trust for the resource.
     /// </summary>
-    public required CustomCertificateAuthoritiesScope Scope { get; init; }
+    public required CertificateTrustScope Scope { get; init; }
 
     /// <summary>
     /// Gets the <see cref="X509Certificate2Collection"/> of certificates for this resource.
@@ -72,7 +77,7 @@ public sealed class ContainerCertificateTrustCallbackAnnotationContext
 
     /// <summary>
     /// List of default certificate bundle files in the container that will be replaced if the resource scope of trust is
-    /// set to <see cref="CustomCertificateAuthoritiesScope.Override"/>. Defaults to common Linux paths for CA certificates
+    /// set to <see cref="CertificateTrustScope.Override"/>. Defaults to common Linux paths for CA certificates
     /// to maximize compatibility, but can be overriden with specific paths for a given resource if needed.
     /// See: https://go.dev/src/crypto/x509/root_linux.go
     /// </summary>
@@ -94,7 +99,7 @@ public sealed class ContainerCertificateTrustCallbackAnnotationContext
 
     /// <summary>
     /// List of default certificate directories in a container that should be appended to the custom certificate directories in
-    /// <see cref="CustomCertificateAuthoritiesScope.Append"/> mode. Defaults to common Linux paths for CA certificates.
+    /// <see cref="CertificateTrustScope.Append"/> mode. Defaults to common Linux paths for CA certificates.
     /// See: https://go.dev/src/crypto/x509/root_linux.go
     /// </summary>
     public List<string> DefaultContainerCertificatesDirectoryPaths { get; } = new()

@@ -4,6 +4,7 @@
 using System.Globalization;
 using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Resources;
+using Microsoft.AspNetCore.InternalTesting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -76,7 +77,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
@@ -125,7 +126,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -180,7 +181,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use a short timeout to check that no notification is sent
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
@@ -235,7 +236,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);
@@ -285,7 +286,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         // Use ReadAsync with timeout to wait for the notification
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -310,7 +311,11 @@ public sealed class DcpHostNotificationTests
         timeProvider.Advance(TimeSpan.FromSeconds(5));
 
         // Assert - The notification should now be cancelled
-        await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, interaction.CancellationToken));
+        using (var testTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(interaction.CancellationToken, testTimeoutCts.Token))
+        {
+            await Assert.ThrowsAsync<TaskCanceledException>(() => Task.Delay(-1, linkedCts.Token));
+        }
     }
 
     [Fact]
@@ -349,7 +354,7 @@ public sealed class DcpHostNotificationTests
             timeProvider);
 
         // Act
-        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None);
+        await dcpHost.EnsureDcpContainerRuntimeAsync(CancellationToken.None).DefaultTimeout();
 
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         var interaction = await interactionService.Interactions.Reader.ReadAsync(cts.Token);

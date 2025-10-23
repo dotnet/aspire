@@ -39,29 +39,33 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             (template, parseResult, ct) => ApplyTemplateAsync(template, parseResult, PromptForExtraAspireStarterOptionsAsync, ct)
             );
 
+        // Single-file AppHost templates
         yield return new CallbackTemplate(
-            "aspire",
-            TemplatingStrings.AspireEmpty_Description,
+            "aspire-py-starter",
+            TemplatingStrings.AspirePyStarter_Description,
             projectName => $"./{projectName}",
             _ => { },
-            ApplyTemplateWithNoExtraArgsAsync
+            (template, parseResult, ct) => ApplySingleFileTemplate(template, parseResult, PromptForExtraAspirePythonStarterOptionsAsync, ct)
             );
 
-        // Single-file AppHost template (gated by feature flag). This template only exists in the pack
-        // and should be surfaced to the user when the single-file AppHost feature is enabled.
-        if (features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-        {
-            yield return new CallbackTemplate(
-                "aspire-apphost-singlefile",
-                TemplatingStrings.AspireAppHostSingleFile_Description,
-                projectName => $"./{projectName}",
-                _ => { },
-                ApplySingleFileTemplate
-                );
-        }
+        yield return new CallbackTemplate(
+            "aspire-apphost-singlefile",
+            TemplatingStrings.AspireAppHostSingleFile_Description,
+            projectName => $"./{projectName}",
+            _ => { },
+            ApplySingleFileTemplateWithNoExtraArgsAsync
+            );
 
         if (showAllTemplates)
         {
+            yield return new CallbackTemplate(
+                "aspire",
+                TemplatingStrings.AspireEmpty_Description,
+                projectName => $"./{projectName}",
+                _ => { },
+                ApplyTemplateWithNoExtraArgsAsync
+                );
+
             yield return new CallbackTemplate(
                 "aspire-apphost",
                 TemplatingStrings.AspireAppHost_Description,
@@ -134,6 +138,15 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
 
         await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
         await PromptForTestFrameworkOptionsAsync(result, extraArgs, cancellationToken);
+
+        return extraArgs.ToArray();
+    }
+
+    private async Task<string[]> PromptForExtraAspirePythonStarterOptionsAsync(ParseResult result, CancellationToken cancellationToken)
+    {
+        var extraArgs = new List<string>();
+
+        await PromptForRedisCacheOptionAsync(result, extraArgs, cancellationToken);
 
         return extraArgs.ToArray();
     }
@@ -245,7 +258,16 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
         return await ApplyTemplateAsync(template, parseResult, (_, _) => Task.FromResult(Array.Empty<string>()), cancellationToken);
     }
 
-    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    private Task<TemplateResult> ApplySingleFileTemplateWithNoExtraArgsAsync(CallbackTemplate template, ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        return ApplySingleFileTemplate(
+            template,
+            parseResult,
+            (_, _) => Task.FromResult(Array.Empty<string>()),
+            cancellationToken);
+    }
+
+    private async Task<TemplateResult> ApplySingleFileTemplate(CallbackTemplate template, ParseResult parseResult, Func<ParseResult, CancellationToken, Task<string[]>> extraArgsCallback, CancellationToken cancellationToken)
     {
         if (parseResult.CommandResult.Command is InitCommand)
         {
@@ -254,7 +276,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
                 executionContext.WorkingDirectory.Name,
                 executionContext.WorkingDirectory.FullName,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }
@@ -263,7 +285,7 @@ internal class DotNetTemplateFactory(IInteractionService interactionService, IDo
             return await ApplyTemplateAsync(
                 template,
                 parseResult,
-                (_, _) => Task.FromResult(Array.Empty<string>()),
+                extraArgsCallback,
                 cancellationToken
                 );
         }

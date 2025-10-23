@@ -26,7 +26,6 @@ public class ProvisioningContextTests
         Assert.NotNull(context.Tenant);
         Assert.NotNull(context.Location.Name);
         Assert.NotNull(context.Principal);
-        Assert.NotNull(context.DeploymentState);
     }
 
     [Fact]
@@ -146,16 +145,13 @@ public class ProvisioningContextTests
     {
         // Arrange
         var customPrincipal = new UserPrincipal(Guid.NewGuid(), "custom@example.com");
-        var customUserSecrets = new JsonObject { ["test"] = "value" };
 
         // Act
         var context = ProvisioningTestHelpers.CreateTestProvisioningContext(
-            principal: customPrincipal,
-            userSecrets: customUserSecrets);
+            principal: customPrincipal);
 
         // Assert
         Assert.Equal("custom@example.com", context.Principal.Name);
-        Assert.Equal("value", context.DeploymentState["test"]?.ToString());
     }
 }
 
@@ -197,19 +193,21 @@ public class ProvisioningServicesTests
     }
 
     [Fact]
-    public async Task TestUserSecretsManager_CanSaveAndLoad()
+    public async Task TestUserSecretsManager_CanSaveAndLoadSection()
     {
         // Arrange
         var manager = ProvisioningTestHelpers.CreateUserSecretsManager();
-        var secrets = new JsonObject { ["Azure"] = new JsonObject { ["SubscriptionId"] = "test-id" } };
 
         // Act
-        await manager.SaveStateAsync(secrets);
-        var loaded = await manager.LoadStateAsync();
+        var azureSection = await manager.AcquireSectionAsync("Azure");
+        azureSection.Data["SubscriptionId"] = "test-id";
+        await manager.SaveSectionAsync(azureSection);
+
+        var loadedSection = await manager.AcquireSectionAsync("Azure");
 
         // Assert
-        Assert.NotNull(loaded);
-        Assert.Equal("test-id", loaded["Azure"]?["SubscriptionId"]?.ToString());
+        Assert.NotNull(loadedSection);
+        Assert.Equal("test-id", loadedSection.Data["SubscriptionId"]?.ToString());
     }
 
     [Fact]

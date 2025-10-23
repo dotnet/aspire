@@ -27,6 +27,17 @@ internal abstract class PublishCommandBase : BaseCommand
     protected readonly IDotNetSdkInstaller _sdkInstaller;
 
     private readonly IFeatures _features;
+    private readonly ICliHostEnvironment _hostEnvironment;
+
+    protected readonly Option<string?> _logLevelOption = new("--log-level")
+    {
+        Description = "Set the minimum log level for pipeline logging (trace, debug, information, warning, error, critical). The default is 'information'."
+    };
+
+    protected readonly Option<string?> _environmentOption = new("--environment", "-e")
+    {
+        Description = "The environment to use for the operation. The default is 'Production'."
+    };
 
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
@@ -40,19 +51,21 @@ internal abstract class PublishCommandBase : BaseCommand
     private static bool IsCompletionStateWarning(string completionState) =>
         completionState == CompletionStates.CompletedWithWarning;
 
-    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
+    protected PublishCommandBase(string name, string description, IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base(name, description, features, updateNotifier, executionContext, interactionService)
     {
         ArgumentNullException.ThrowIfNull(runner);
         ArgumentNullException.ThrowIfNull(projectLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
         ArgumentNullException.ThrowIfNull(features);
 
         _runner = runner;
         _projectLocator = projectLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
 
         var projectOption = new Option<FileInfo?>("--project")
@@ -66,6 +79,9 @@ internal abstract class PublishCommandBase : BaseCommand
             Description = GetOutputPathDescription()
         };
         Options.Add(outputPath);
+
+        Options.Add(_logLevelOption);
+        Options.Add(_environmentOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -83,7 +99,7 @@ internal abstract class PublishCommandBase : BaseCommand
         StartTerminalProgressBar();
 
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             // Send terminal progress bar stop sequence
             StopTerminalProgressBar();
@@ -100,7 +116,7 @@ internal abstract class PublishCommandBase : BaseCommand
             using var activity = _telemetry.ActivitySource.StartActivity(this.Name);
 
             var passedAppHostProjectFile = parseResult.GetValue<FileInfo?>("--project");
-            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, cancellationToken);
+            var effectiveAppHostFile = await _projectLocator.UseOrFindAppHostProjectFileAsync(passedAppHostProjectFile, createSettingsFile: true, cancellationToken);
 
             if (effectiveAppHostFile is null)
             {
@@ -111,16 +127,13 @@ internal abstract class PublishCommandBase : BaseCommand
 
             var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
 
-            // Validate that single file AppHost feature is enabled if we detected a .cs file
-            if (isSingleFileAppHost && !_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
-            {
-                // Send terminal progress bar stop sequence
-                StopTerminalProgressBar();
-                InteractionService.DisplayError(ErrorStrings.SingleFileAppHostFeatureNotEnabled);
-                return ExitCodeConstants.FailedToFindProject;
-            }
-
             var env = new Dictionary<string, string>();
+
+            // Set interactivity enabled based on host environment capabilities
+            if (!_hostEnvironment.SupportsInteractiveInput)
+            {
+                env[KnownConfigNames.InteractivityEnabled] = "false";
+            }
 
             var waitForDebugger = parseResult.GetValue<bool?>("--wait-for-debugger") ?? false;
             if (waitForDebugger)
@@ -269,6 +282,17 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
+    /// <summary>
+    /// Conditionally converts markdown to Spectre markup based on the EnableMarkdown flag in the activity data.
+    /// </summary>
+    /// <param name="text">The text to convert.</param>
+    /// <param name="activityData">The publishing activity data containing the EnableMarkdown flag.</param>
+    /// <returns>The converted text if markdown is enabled, otherwise the original text.</returns>
+    private static string ConvertTextWithMarkdownFlag(string text, PublishingActivityData activityData)
+    {
+        return activityData.EnableMarkdown ? MarkdownToSpectreConverter.ConvertToSpectre(text) : text.EscapeMarkup();
+    }
+
     public async Task<bool> ProcessPublishingActivitiesDebugAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)
     {
         var stepCounter = 1;
@@ -288,7 +312,8 @@ internal abstract class PublishCommandBase : BaseCommand
                 if (!steps.TryGetValue(activity.Data.Id, out var stepStatus))
                 {
                     // New step - log it
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {stepCounter++}: {activity.Data.StatusText}");
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {stepCounter++}: {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
                 else if (IsCompletionStateComplete(activity.Data.CompletionState))
@@ -296,13 +321,43 @@ internal abstract class PublishCommandBase : BaseCommand
                     // Step completed - log completion
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Step {activity.Data.Id}: {status} - {activity.Data.StatusText}");
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Step {activity.Data.Id}: {status} - {statusText}", escapeMarkup: false);
                     steps[activity.Data.Id] = activity.Data.CompletionState;
                 }
             }
             else if (activity.Type == PublishingActivityTypes.Prompt)
             {
                 await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
+            }
+            else if (activity.Type == PublishingActivityTypes.Log)
+            {
+                // Log activity - display the log message
+                var logLevel = activity.Data.LogLevel ?? "Information";
+                var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                var timestamp = activity.Data.Timestamp?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? DateTimeOffset.UtcNow.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                
+                // Use 3-letter prefixes for log levels
+                var logPrefix = logLevel.ToUpperInvariant() switch
+                {
+                    "DEBUG" => "DBG",
+                    "TRACE" => "TRC",
+                    "INFORMATION" => "INF",
+                    "WARNING" => "WRN",
+                    "ERROR" => "ERR",
+                    "CRITICAL" => "CRT",
+                    _ => "INF"
+                };
+                
+                // Make debug and trace logs more subtle
+                var formattedMessage = logLevel.ToUpperInvariant() switch
+                {
+                    "DEBUG" => $"[[{timestamp}]] [dim][[{logPrefix}]] {message}[/]",
+                    "TRACE" => $"[[{timestamp}]] [dim][[{logPrefix}]] {message}[/]",
+                    _ => $"[[{timestamp}]] [[{logPrefix}]] {message}"
+                };
+                
+                InteractionService.DisplaySubtleMessage(formattedMessage, escapeMarkup: false);
             }
             else
             {
@@ -312,15 +367,18 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     var status = IsCompletionStateError(activity.Data.CompletionState) ? "FAILED" :
                         IsCompletionStateWarning(activity.Data.CompletionState) ? "WARNING" : "COMPLETED";
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {status} - {activity.Data.StatusText}");
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {status} - {statusText}", escapeMarkup: false);
                     if (!string.IsNullOrEmpty(activity.Data.CompletionMessage))
                     {
-                        InteractionService.DisplaySubtleMessage($"[DEBUG]   {activity.Data.CompletionMessage}");
+                        var completionMessage = ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data);
+                        InteractionService.DisplaySubtleMessage($"[[DEBUG]]   {completionMessage}", escapeMarkup: false);
                     }
                 }
                 else
                 {
-                    InteractionService.DisplaySubtleMessage($"[DEBUG] Task {activity.Data.Id} ({stepId}): {activity.Data.StatusText}");
+                    var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                    InteractionService.DisplaySubtleMessage($"[[DEBUG]] Task {activity.Data.Id} ({stepId}): {statusText}", escapeMarkup: false);
                 }
             }
         }
@@ -331,7 +389,8 @@ internal abstract class PublishCommandBase : BaseCommand
         if (publishingActivity is not null)
         {
             var status = hasErrors ? "FAILED" : hasWarnings ? "WARNING" : "COMPLETED";
-            InteractionService.DisplaySubtleMessage($"[DEBUG] {OperationCompletedPrefix}: {status} - {publishingActivity.Data.StatusText}");
+            var statusText = ConvertTextWithMarkdownFlag(publishingActivity.Data.StatusText, publishingActivity.Data);
+            InteractionService.DisplaySubtleMessage($"[[DEBUG]] {OperationCompletedPrefix}: {status} - {statusText}", escapeMarkup: false);
 
             // Send visual bell notification when operation is complete
             Console.Write("\a");
@@ -345,7 +404,7 @@ internal abstract class PublishCommandBase : BaseCommand
     {
         var stepCounter = 1;
         var steps = new Dictionary<string, StepInfo>();
-        var logger = new ConsoleActivityLogger();
+        var logger = new ConsoleActivityLogger(_hostEnvironment);
         logger.StartSpinner();
         PublishingActivity? publishingActivity = null;
 
@@ -363,10 +422,11 @@ internal abstract class PublishCommandBase : BaseCommand
                 {
                     if (!steps.TryGetValue(activity.Data.Id, out var stepInfo))
                     {
+                        var title = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         stepInfo = new StepInfo
                         {
                             Id = activity.Data.Id,
-                            Title = activity.Data.StatusText,
+                            Title = title,
                             Number = stepCounter++,
                             StartTime = DateTime.UtcNow,
                             CompletionState = activity.Data.CompletionState
@@ -379,7 +439,7 @@ internal abstract class PublishCommandBase : BaseCommand
                     else if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
                         stepInfo.CompletionState = activity.Data.CompletionState;
-                        stepInfo.CompletionText = activity.Data.StatusText;
+                        stepInfo.CompletionText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         stepInfo.EndTime = DateTime.UtcNow;
                         if (IsCompletionStateError(stepInfo.CompletionState))
                         {
@@ -401,6 +461,54 @@ internal abstract class PublishCommandBase : BaseCommand
                     await HandlePromptActivityAsync(activity, backchannel, cancellationToken);
                     logger.StartSpinner();
                 }
+                else if (activity.Type == PublishingActivityTypes.Log)
+                {
+                    // Log activity - display through logger based on log level
+                    var stepId = activity.Data.StepId;
+                    if (stepId != null && steps.TryGetValue(stepId, out var stepInfo))
+                    {
+                        var logLevel = activity.Data.LogLevel ?? "Information";
+                        var message = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
+                        
+                        // Add 3-letter prefix to message for consistency
+                        var logPrefix = logLevel.ToUpperInvariant() switch
+                        {
+                            "DEBUG" => "DBG",
+                            "TRACE" => "TRC", 
+                            "INFORMATION" => "INF",
+                            "WARNING" => "WRN",
+                            "ERROR" => "ERR",
+                            "CRITICAL" => "CRT",
+                            _ => "INF"
+                        };
+                        
+                        var prefixedMessage = $"[[{logPrefix}]] {message}";
+                        
+                        // Map log levels to appropriate console logger methods
+                        switch (logLevel.ToUpperInvariant())
+                        {
+                            case "ERROR":
+                            case "CRITICAL":
+                                logger.Failure(stepInfo.Id, prefixedMessage);
+                                break;
+                            case "WARNING":
+                            case "WARN":
+                                logger.Warning(stepInfo.Id, prefixedMessage);
+                                break;
+                            case "DEBUG":
+                            case "TRACE":
+                                // Use a more subtle approach for debug/trace - prefix with dim formatting
+                                var subtleMessage = $"[dim]{prefixedMessage}[/]";
+                                logger.Info(stepInfo.Id, subtleMessage);
+                                break;
+                            case "INFORMATION":
+                            case "INFO":
+                            default:
+                                logger.Info(stepInfo.Id, prefixedMessage);
+                                break;
+                        }
+                    }
+                }
                 else
                 {
                     var stepId = activity.Data.StepId;
@@ -415,30 +523,33 @@ internal abstract class PublishCommandBase : BaseCommand
 
                     if (!tasks.TryGetValue(activity.Data.Id, out var task))
                     {
+                        var statusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                         task = new TaskInfo
                         {
                             Id = activity.Data.Id,
-                            StatusText = activity.Data.StatusText,
+                            StatusText = statusText,
                             StartTime = DateTime.UtcNow,
                             CompletionState = activity.Data.CompletionState
                         };
 
                         tasks[activity.Data.Id] = task;
-                        logger.Progress(stepInfo.Id, activity.Data.StatusText);
+                        logger.Progress(stepInfo.Id, statusText);
                     }
 
-                    task.StatusText = activity.Data.StatusText;
+                    task.StatusText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
                     task.CompletionState = activity.Data.CompletionState;
 
                     if (IsCompletionStateComplete(activity.Data.CompletionState))
                     {
-                        task.CompletionMessage = activity.Data.CompletionMessage;
+                        task.CompletionMessage = !string.IsNullOrEmpty(activity.Data.CompletionMessage)
+                            ? ConvertTextWithMarkdownFlag(activity.Data.CompletionMessage, activity.Data)
+                            : null;
 
                         var duration = DateTime.UtcNow - task.StartTime;
                         var durationStr = $"({duration.TotalSeconds:F1}s)";
 
                         var message = !string.IsNullOrEmpty(task.CompletionMessage)
-                            ? $"{task.StatusText}: {task.CompletionMessage} {durationStr}"
+                            ? $"{task.CompletionMessage} {durationStr}"
                             : $"{task.StatusText} {durationStr}";
 
                         if (IsCompletionStateError(task.CompletionState))
@@ -521,12 +632,12 @@ internal abstract class PublishCommandBase : BaseCommand
         }
     }
 
-    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText)
+    private static string BuildPromptText(PublishingPromptInput input, int inputCount, string statusText, PublishingActivityData activityData)
     {
         if (inputCount > 1)
         {
             // Multi-input: just show the label with markdown conversion
-            var labelText = MarkdownToSpectreConverter.ConvertToSpectre($"{input.Label}: ");
+            var labelText = ConvertTextWithMarkdownFlag($"{input.Label}: ", activityData);
             return labelText;
         }
 
@@ -537,12 +648,12 @@ internal abstract class PublishCommandBase : BaseCommand
         // If StatusText equals Label (case-insensitive), show only the label once
         if (header.Equals(label, StringComparison.OrdinalIgnoreCase))
         {
-            return $"[bold]{MarkdownToSpectreConverter.ConvertToSpectre(label)}[/]";
+            return $"[bold]{ConvertTextWithMarkdownFlag(label, activityData)}[/]";
         }
 
         // Show StatusText as header (converted from markdown), then Label on new line
-        var convertedHeader = MarkdownToSpectreConverter.ConvertToSpectre(header);
-        var convertedLabel = MarkdownToSpectreConverter.ConvertToSpectre(label);
+        var convertedHeader = ConvertTextWithMarkdownFlag(header, activityData);
+        var convertedLabel = ConvertTextWithMarkdownFlag(label, activityData);
         return $"[bold]{convertedHeader}[/]\n{convertedLabel}: ";
     }
 
@@ -567,7 +678,7 @@ internal abstract class PublishCommandBase : BaseCommand
         // Don't display if there are validation errors. Validation errors means the header has already been displayed.
         if (!hasValidationErrors && inputs.Count > 1)
         {
-            var headerText = MarkdownToSpectreConverter.ConvertToSpectre(activity.Data.StatusText);
+            var headerText = ConvertTextWithMarkdownFlag(activity.Data.StatusText, activity.Data);
             AnsiConsole.MarkupLine($"[bold]{headerText}[/]");
         }
 
@@ -584,7 +695,7 @@ internal abstract class PublishCommandBase : BaseCommand
             if (!hasValidationErrors || input.ValidationErrors is { Count: > 0 })
             {
                 // Build the prompt text based on number of inputs
-                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText);
+                var promptText = BuildPromptText(input, inputs.Count, activity.Data.StatusText, activity.Data);
 
                 result = await HandleSingleInputAsync(input, promptText, cancellationToken);
             }
@@ -731,16 +842,26 @@ internal abstract class PublishCommandBase : BaseCommand
     /// <summary>
     /// Starts the terminal infinite progress bar.
     /// </summary>
-    private static void StartTerminalProgressBar()
+    private void StartTerminalProgressBar()
     {
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;3\u001b\\");
     }
 
     /// <summary>
     /// Stops the terminal progress bar.
     /// </summary>
-    private static void StopTerminalProgressBar()
+    private void StopTerminalProgressBar()
     {
+        // Skip terminal progress bar in non-interactive environments
+        if (!_hostEnvironment.SupportsInteractiveOutput)
+        {
+            return;
+        }
         Console.Write("\u001b]9;4;0\u001b\\");
     }
 }

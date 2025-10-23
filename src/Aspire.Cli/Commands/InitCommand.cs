@@ -30,6 +30,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     private readonly ISolutionLocator _solutionLocator;
     private readonly AspireCliTelemetry _telemetry;
     private readonly IDotNetSdkInstaller _sdkInstaller;
+    private readonly ICliHostEnvironment _hostEnvironment;
     private readonly IFeatures _features;
     private readonly ICliUpdateNotifier _updateNotifier;
     private readonly CliExecutionContext _executionContext;
@@ -55,7 +56,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         IDotNetSdkInstaller sdkInstaller,
         IFeatures features,
         ICliUpdateNotifier updateNotifier,
-        CliExecutionContext executionContext,
+        CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment,
         IInteractionService interactionService)
         : base("init", InitCommandStrings.Description, features, updateNotifier, executionContext, interactionService)
     {
@@ -67,6 +68,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         ArgumentNullException.ThrowIfNull(solutionLocator);
         ArgumentNullException.ThrowIfNull(telemetry);
         ArgumentNullException.ThrowIfNull(sdkInstaller);
+        ArgumentNullException.ThrowIfNull(hostEnvironment);
 
         _runner = runner;
         _certificateService = certificateService;
@@ -76,6 +78,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
         _solutionLocator = solutionLocator;
         _telemetry = telemetry;
         _sdkInstaller = sdkInstaller;
+        _hostEnvironment = hostEnvironment;
         _features = features;
         _updateNotifier = updateNotifier;
         _executionContext = executionContext;
@@ -94,7 +97,7 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
         // Check if the .NET SDK is available
-        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, cancellationToken))
+        if (!await SdkInstallHelper.EnsureSdkInstalledAsync(_sdkInstaller, InteractionService, _features, _hostEnvironment, cancellationToken))
         {
             return ExitCodeConstants.SdkNotInstalled;
         }
@@ -487,30 +490,14 @@ internal sealed class InitCommand : BaseCommand, IPackageMetaPrefetchingCommand
 
     private async Task<int> CreateEmptyAppHostAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
-        ITemplate template;
-        
-        if (_features.IsFeatureEnabled(KnownFeatures.SingleFileAppHostEnabled, false))
+        // Use single-file AppHost template
+        var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
+        if (singleFileTemplate is null)
         {
-            // Use single-file AppHost template if feature is enabled
-            var singleFileTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost-singlefile");
-            if (singleFileTemplate is null)
-            {
-                InteractionService.DisplayError("Single-file AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = singleFileTemplate;
+            InteractionService.DisplayError("Single-file AppHost template not found.");
+            return ExitCodeConstants.FailedToCreateNewProject;
         }
-        else
-        {
-            // Use regular AppHost template if single-file feature is not enabled
-            var appHostTemplate = _templateFactory.GetAllTemplates().FirstOrDefault(t => t.Name == "aspire-apphost");
-            if (appHostTemplate is null)
-            {
-                InteractionService.DisplayError("AppHost template not found.");
-                return ExitCodeConstants.FailedToCreateNewProject;
-            }
-            template = appHostTemplate;
-        }
+        var template = singleFileTemplate;
 
         var result = await template.ApplyTemplateAsync(parseResult, cancellationToken);
         

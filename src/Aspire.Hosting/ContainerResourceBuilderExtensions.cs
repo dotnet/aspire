@@ -461,7 +461,7 @@ public static class ContainerResourceBuilderExtensions
     /// <typeparam name="T">Type parameter specifying any type derived from <see cref="ContainerResource"/>/</typeparam>
     /// <param name="builder">The <see cref="IResourceBuilder{T}"/>.</param>
     /// <param name="contextPath">Path to be used as the context for the container image build.</param>
-    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="dockerfilePath">Path to the Dockerfile relative to the <paramref name="contextPath"/>. Defaults to "Dockerfile" if not specified.</param>
     /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
@@ -471,9 +471,9 @@ public static class ContainerResourceBuilderExtensions
     /// before using that image to start the container.
     /// </para>
     /// <para>
-    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
-    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
-    /// to the <paramref name="contextPath"/>.
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is a fully qualified path.
+    /// The <paramref name="dockerfilePath"/> is relative to the <paramref name="contextPath"/> unless it is a fully qualified path.
+    /// If the <paramref name="dockerfilePath"/> is not provided, it defaults to "Dockerfile" in the <paramref name="contextPath"/>.
     /// </para>
     /// <para>
     /// When generating the manifest for deployment tools, the <see cref="ContainerResourceBuilderExtensions.WithDockerfile{T}(IResourceBuilder{T}, string, string?, string?)"/>
@@ -551,7 +551,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", context => 
+    ///        .WithDockerfileFactory("path/to/context", context =>
     ///        {
     ///            return "FROM alpine:latest\nRUN echo 'Hello World'";
     ///        });
@@ -596,7 +596,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileFactory("path/to/context", async context => 
+    ///        .WithDockerfileFactory("path/to/context", async context =>
     ///        {
     ///            var template = await File.ReadAllTextAsync("template.dockerfile", context.CancellationToken);
     ///            return template.Replace("{{VERSION}}", "1.0");
@@ -647,14 +647,14 @@ public static class ContainerResourceBuilderExtensions
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
     /// <param name="name">The name of the resource.</param>
     /// <param name="contextPath">Path to be used as the context for the container image build.</param>
-    /// <param name="dockerfilePath">Override path for the Dockerfile if it is not in the <paramref name="contextPath"/>.</param>
+    /// <param name="dockerfilePath">Path to the Dockerfile relative to the <paramref name="contextPath"/>. Defaults to "Dockerfile" if not specified.</param>
     /// <param name="stage">The stage representing the image to be published in a multi-stage Dockerfile.</param>
     /// <returns>A <see cref="IResourceBuilder{ContainerResource}"/>.</returns>
     /// <remarks>
     /// <para>
-    /// Both the <paramref name="contextPath"/> and <paramref name="dockerfilePath"/> are relative to the AppHost directory unless
-    /// they are fully qualified. If the <paramref name="dockerfilePath"/> is not provided, the path is assumed to be Dockerfile relative
-    /// to the <paramref name="contextPath"/>.
+    /// The <paramref name="contextPath"/> is relative to the AppHost directory unless it is a fully qualified path.
+    /// The <paramref name="dockerfilePath"/> is relative to the <paramref name="contextPath"/> unless it is a fully qualified path.
+    /// If the <paramref name="dockerfilePath"/> is not provided, it defaults to "Dockerfile" in the <paramref name="contextPath"/>.
     /// </para>
     /// <para>
     /// When generating the manifest for deployment tools, the <see cref="AddDockerfile(IDistributedApplicationBuilder, string, string, string?, string?)"/>
@@ -762,7 +762,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("alpine:latest")
     ///         .WorkDir("/app")
@@ -809,7 +809,7 @@ public static class ContainerResourceBuilderExtensions
     /// <code language="csharp">
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
-    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context => 
+    /// builder.AddDockerfileBuilder("mycontainer", "path/to/context", context =>
     /// {
     ///     context.Builder.From("node:18")
     ///         .WorkDir("/app")
@@ -1001,8 +1001,9 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ContainerCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is invoked when a certificate needs to
-    /// configure itself for custom certificate trust.
+    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is
+    /// invoked when a container resource needs to configure itself for custom certificate trust. This is only supported in run mode;
+    /// certificate trust customization is not supported in publish or deploy.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -1244,7 +1245,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("alpine:latest")
     ///                .WorkDir("/app")
@@ -1349,7 +1350,7 @@ public static class ContainerResourceBuilderExtensions
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddContainer("mycontainer", "myimage")
-    ///        .WithDockerfileBuilder("path/to/context", context => 
+    ///        .WithDockerfileBuilder("path/to/context", context =>
     ///        {
     ///            context.Builder.From("node:18")
     ///                .WorkDir("/app")

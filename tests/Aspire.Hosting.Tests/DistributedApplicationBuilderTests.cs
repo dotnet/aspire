@@ -170,6 +170,76 @@ public class DistributedApplicationBuilderTests
         Assert.Equal("Multiple resources with the name 'Test'. Resource names are case-insensitive.", ex.Message);
     }
 
+    [Fact]
+    public void PathShaAndProjectNameShaBothAvailable()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder();
+
+        var pathSha = appBuilder.Configuration["AppHost:PathSha256"];
+        var projectNameSha = appBuilder.Configuration["AppHost:ProjectNameSha256"];
+        var legacySha = appBuilder.Configuration["AppHost:Sha256"];
+
+        // Verify all three SHA values are available
+        Assert.NotNull(pathSha);
+        Assert.NotNull(projectNameSha);
+        Assert.NotNull(legacySha);
+
+        // In run mode, legacy SHA should equal PathSha
+        Assert.False(appBuilder.ExecutionContext.IsPublishMode);
+        Assert.Equal(pathSha, legacySha);
+    }
+
+    [Fact]
+    public void PathShaDiffersForDifferentPaths()
+    {
+        var options1 = new DistributedApplicationOptions
+        {
+            ProjectDirectory = "/home/user/project1",
+            ProjectName = "TestApp",
+            Args = []
+        };
+
+        var options2 = new DistributedApplicationOptions
+        {
+            ProjectDirectory = "/home/user/project2",
+            ProjectName = "TestApp", // Same name, different path
+            Args = []
+        };
+
+        var builder1 = (DistributedApplicationBuilder)DistributedApplication.CreateBuilder(options1);
+        var builder2 = (DistributedApplicationBuilder)DistributedApplication.CreateBuilder(options2);
+
+        var pathSha1 = builder1.Configuration["AppHost:PathSha256"];
+        var pathSha2 = builder2.Configuration["AppHost:PathSha256"];
+        var projectNameSha1 = builder1.Configuration["AppHost:ProjectNameSha256"];
+        var projectNameSha2 = builder2.Configuration["AppHost:ProjectNameSha256"];
+
+        // PathSha should differ for different paths
+        Assert.NotEqual(pathSha1, pathSha2);
+
+        // ProjectNameSha should be the same for same project name
+        Assert.Equal(projectNameSha1, projectNameSha2);
+    }
+
+    [Fact]
+    public void LegacyShaUsesProjectNameShaInPublishMode()
+    {
+        var appBuilder = DistributedApplication.CreateBuilder(["--publisher", "manifest"]);
+
+        var pathSha = appBuilder.Configuration["AppHost:PathSha256"];
+        var projectNameSha = appBuilder.Configuration["AppHost:ProjectNameSha256"];
+        var legacySha = appBuilder.Configuration["AppHost:Sha256"];
+
+        // Verify all three SHA values are available
+        Assert.NotNull(pathSha);
+        Assert.NotNull(projectNameSha);
+        Assert.NotNull(legacySha);
+
+        // In publish mode, legacy SHA should equal ProjectNameSha
+        Assert.True(appBuilder.ExecutionContext.IsPublishMode);
+        Assert.Equal(projectNameSha, legacySha);
+    }
+
     private sealed class TestResource : IResource
     {
         public string Name => nameof(TestResource);

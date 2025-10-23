@@ -125,6 +125,21 @@ internal sealed class PublishingActivityData
     /// Gets the input information for prompt activities, if available.
     /// </summary>
     public IReadOnlyList<PublishingPromptInput>? Inputs { get; init; }
+
+    /// <summary>
+    /// Gets the log level for log activities, if available.
+    /// </summary>
+    public string? LogLevel { get; init; }
+
+    /// <summary>
+    /// Gets the timestamp for log activities, if available.
+    /// </summary>
+    public DateTimeOffset? Timestamp { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether markdown formatting is enabled for the publishing activity.
+    /// </summary>
+    public bool EnableMarkdown { get; init; } = true;
 }
 
 /// <summary>
@@ -192,6 +207,7 @@ internal static class PublishingActivityTypes
     public const string Task = "task";
     public const string PublishComplete = "publish-complete";
     public const string Prompt = "prompt";
+    public const string Log = "log";
 }
 
 /// <summary>

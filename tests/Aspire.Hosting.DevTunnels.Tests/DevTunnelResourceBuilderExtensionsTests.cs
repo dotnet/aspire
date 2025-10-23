@@ -27,11 +27,8 @@ public class DevTunnelResourceBuilderExtensionsTests
 
         var values = await consumer.Resource.GetEnvironmentVariableValuesAsync();
 
-        var expectedKey = $"services__target__https__0";
-        Assert.Contains(expectedKey, values.Keys);
-
-        var expectedValue = "https://test123.devtunnels.ms:443";
-        Assert.Equal(expectedValue, values[expectedKey]);
+        Assert.Equal("https://test123.devtunnels.ms:443", values["services__target__https__0"]);
+        Assert.Equal("https://test123.devtunnels.ms:443", values["TARGET_HTTPS"]);
     }
 
     [Fact]

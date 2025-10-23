@@ -41,7 +41,6 @@ internal static class ProvisioningTestHelpers
         ITenantResource? tenant = null,
         AzureLocation? location = null,
         UserPrincipal? principal = null,
-        JsonObject? userSecrets = null,
         DistributedApplicationExecutionContext? executionContext = null)
     {
         return new ProvisioningContext(
@@ -52,7 +51,6 @@ internal static class ProvisioningTestHelpers
             tenant ?? new TestTenantResource(),
             location ?? AzureLocation.WestUS2,
             principal ?? new UserPrincipal(Guid.NewGuid(), "test@example.com"),
-            userSecrets ?? [],
             executionContext ?? new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
     }
 
@@ -210,8 +208,29 @@ internal sealed class TestArmClient : IArmClient
         return Task.FromResult<(ISubscriptionResource, ITenantResource)>((subscription, tenant));
     }
 
+    public Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default)
+    {
+        var tenants = new List<ITenantResource>
+        {
+            new TestTenantResource()
+        };
+        return Task.FromResult<IEnumerable<ITenantResource>>(tenants);
+    }
+
     public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default)
     {
+        var subscriptions = new List<ISubscriptionResource>
+        {
+            new TestSubscriptionResource()
+        };
+        return Task.FromResult<IEnumerable<ISubscriptionResource>>(subscriptions);
+    }
+
+    public Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default)
+    {
+        // For testing, return the same subscription regardless of tenant filtering
+        _ = tenantId; // Suppress unused parameter warning
+        _ = cancellationToken; // Suppress unused parameter warning
         var subscriptions = new List<ISubscriptionResource>
         {
             new TestSubscriptionResource()
@@ -414,6 +433,7 @@ internal sealed class TestArmDeploymentCollection : IArmDeploymentCollection
 internal sealed class TestTenantResource : ITenantResource
 {
     public Guid? TenantId { get; } = Guid.Parse("87654321-4321-4321-4321-210987654321");
+    public string? DisplayName { get; } = "Test Tenant";
     public string? DefaultDomain { get; } = "testdomain.onmicrosoft.com";
 }
 
@@ -573,18 +593,21 @@ internal sealed class TestBicepCompiler : IBicepCompiler
 
 internal sealed class TestUserSecretsManager : IDeploymentStateManager
 {
-    private JsonObject _userSecrets = [];
+    private readonly JsonObject _state = [];
 
     public string? StateFilePath => null;
 
-    public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default)
+    public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult(_userSecrets);
+        var sectionData = _state.TryGetPropertyValue(sectionName, out var node) && node is JsonObject obj
+            ? obj
+            : new JsonObject();
+        return Task.FromResult(new DeploymentStateSection(sectionName, sectionData, 0));
     }
 
-    public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default)
+    public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default)
     {
-        _userSecrets = userSecrets;
+        _state[section.SectionName] = section.Data;
         return Task.CompletedTask;
     }
 }

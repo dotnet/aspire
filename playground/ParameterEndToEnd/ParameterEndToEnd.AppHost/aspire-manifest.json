@@ -94,7 +94,7 @@
         "DB_PORT": "{sql.bindings.tcp.port}",
         "DB_USERNAME": "sa",
         "DB_PASSWORD": "{sql-password.value}",
-        "DB_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={sql-password.value};databaseName=db;trustServerCertificate=true",
+        "DB_JDBCCONNECTIONSTRING": "jdbc:sqlserver://{sql.bindings.tcp.host}:{sql.bindings.tcp.port};user=sa;password={sql-password-uri-encoded.value};databaseName=db;trustServerCertificate=true",
         "DB_DATABASE": "db"
       },
       "bindings": {
@@ -129,6 +129,11 @@
           }
         }
       }
+    },
+    "sql-password-uri-encoded": {
+      "type": "annotated.string",
+      "value": "{sql-password.value}",
+      "filter": "uri"
     }
   }
 }

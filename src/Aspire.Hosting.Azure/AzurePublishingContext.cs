@@ -4,7 +4,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Publishing;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.Expressions;
 using Azure.Provisioning.Primitives;
@@ -27,11 +27,11 @@ public sealed class AzurePublishingContext(
     AzureProvisioningOptions provisioningOptions,
     IServiceProvider serviceProvider,
     ILogger logger,
-    IPublishingActivityReporter activityReporter)
+    IPipelineActivityReporter activityReporter)
 {
     private ILogger Logger => logger;
 
-    private IPublishingActivityReporter ActivityReporter => activityReporter;
+    private IPipelineActivityReporter ActivityReporter => activityReporter;
 
     private IServiceProvider ServiceProvider => serviceProvider;
 
@@ -118,7 +118,7 @@ public sealed class AzurePublishingContext(
         }
     }
 
-    private async Task WriteAzureArtifactsOutputAsync(IPublishingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
+    private async Task WriteAzureArtifactsOutputAsync(IReportingStep step, DistributedApplicationModel model, AzureEnvironmentResource environment, CancellationToken cancellationToken)
     {
         var outputDirectory = new DirectoryInfo(outputPath);
         if (!outputDirectory.Exists)

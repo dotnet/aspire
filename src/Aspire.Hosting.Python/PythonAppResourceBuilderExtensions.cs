@@ -3,9 +3,12 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-#pragma warning disable ASPIREEXTENSION001
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Python;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+#pragma warning disable ASPIREEXTENSION001
 
 namespace Aspire.Hosting;
 
@@ -281,20 +284,40 @@ public static class PythonAppResourceBuilderExtensions
         });
 
         // Configure required environment variables for custom certificate trust when running as an executable
-        resourceBuilder.WithExecutableCertificateTrustCallback(ctx =>
-        {
-            if (ctx.Scope == CustomCertificateAuthoritiesScope.Override)
+        // Python defaults to using System scope to allow combining custom CAs with system CAs as there's no clean
+        // way to simply append additional certificates to default Python trust stores such as certifi.
+        resourceBuilder
+            .WithCertificateTrustScope(CertificateTrustScope.System)
+            .WithExecutableCertificateTrustCallback(ctx =>
             {
-                // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
-            }
+                if (ctx.Scope == CertificateTrustScope.Append)
+                {
+                    var resourceLogger = ctx.ExecutionContext.ServiceProvider.GetRequiredService<ResourceLoggerService>();
+                    var logger = resourceLogger.GetLogger(ctx.Resource);
+                    logger.LogWarning("Certificate trust scope is set to 'Append', but Python resources do not support appending to the default certificate authorities; only OTLP certificate trust will be applied. Consider using 'System' or 'Override' certificate trust scopes instead.");
+                }
+                else
+                {
+                    // Override default certificates path for the requests module.
+                    // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
+                    ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
 
-            // Override default opentelemetry-python certificate bundle path
-            // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-            ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_TRACES_CERTIFICATE");
+                    // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
+                    // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
+                    ctx.CertificateBundleEnvironment.Add("CURL_CA_BUNDLE");
 
-            return Task.CompletedTask;
-        });
+                    // Override default certificates path for Python modules that honor OpenSSL style paths.
+                    // This has been tested with urllib, urllib3, httpx, and aiohttp.
+                    // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
+                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+                }
+
+                // Override default opentelemetry-python certificate bundle path
+                // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
+                ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_CERTIFICATE");
+
+                return Task.CompletedTask;
+            });
 
         // VS Code debug support - only applicable for Script and Module types
         if (entrypointType is EntrypointType.Script or EntrypointType.Module)
@@ -387,6 +410,10 @@ public static class PythonAppResourceBuilderExtensions
                         _ => throw new InvalidOperationException($"Unsupported entrypoint type: {entrypointType}")
                     };
 
+                    // Check if uv.lock exists in the working directory
+                    var uvLockPath = Path.Combine(resource.WorkingDirectory, "uv.lock");
+                    var hasUvLock = File.Exists(uvLockPath);
+
                     var builderStage = context.Builder
                         .From($"ghcr.io/astral-sh/uv:python{pythonVersion}-bookworm-slim", "builder")
                         .EmptyLine()
@@ -395,20 +422,45 @@ public static class PythonAppResourceBuilderExtensions
                         .Env("UV_LINK_MODE", "copy")
                         .EmptyLine()
                         .WorkDir("/app")
-                        .EmptyLine()
-                        .Comment("Install dependencies first for better layer caching")
-                        .Comment("Uses BuildKit cache mounts to speed up repeated builds")
-                        .RunWithMounts(
-                            "uv sync --locked --no-install-project --no-dev",
-                            "type=cache,target=/root/.cache/uv",
-                            "type=bind,source=uv.lock,target=uv.lock",
-                            "type=bind,source=pyproject.toml,target=pyproject.toml")
-                        .EmptyLine()
-                        .Comment("Copy the rest of the application source and install the project")
-                        .Copy(".", "/app")
-                        .RunWithMounts(
-                            "uv sync --locked --no-dev",
-                            "type=cache,target=/root/.cache/uv");
+                        .EmptyLine();
+
+                    if (hasUvLock)
+                    {
+                        // If uv.lock exists, use locked mode for reproducible builds
+                        builderStage
+                            .Comment("Install dependencies first for better layer caching")
+                            .Comment("Uses BuildKit cache mounts to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --locked --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv",
+                                "type=bind,source=uv.lock,target=uv.lock",
+                                "type=bind,source=pyproject.toml,target=pyproject.toml")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --locked --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
+                    else
+                    {
+                        // If uv.lock doesn't exist, copy pyproject.toml and generate lock file
+                        builderStage
+                            .Comment("Copy pyproject.toml to install dependencies")
+                            .Copy("pyproject.toml", "/app/")
+                            .EmptyLine()
+                            .Comment("Install dependencies and generate lock file")
+                            .Comment("Uses BuildKit cache mount to speed up repeated builds")
+                            .RunWithMounts(
+                                "uv sync --no-install-project --no-dev",
+                                "type=cache,target=/root/.cache/uv")
+                            .EmptyLine()
+                            .Comment("Copy the rest of the application source and install the project")
+                            .Copy(".", "/app")
+                            .RunWithMounts(
+                                "uv sync --no-dev",
+                                "type=cache,target=/root/.cache/uv");
+                    }
 
                     var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")

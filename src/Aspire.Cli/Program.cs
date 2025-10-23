@@ -54,6 +54,9 @@ public class Program
 
     private static async Task<IHost> BuildApplicationAsync(string[] args)
     {
+        // Check for --non-interactive flag early
+        var nonInteractive = args?.Any(a => a == "--non-interactive") ?? false;
+
         var settings = new HostApplicationBuilderSettings
         {
             Configuration = new ConfigurationManager()
@@ -109,6 +112,11 @@ public class Program
         // Shared services.
         builder.Services.AddSingleton(_ => BuildCliExecutionContext(debugMode));
         builder.Services.AddSingleton(BuildAnsiConsole);
+        builder.Services.AddSingleton<ICliHostEnvironment>(provider =>
+        {
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            return new CliHostEnvironment(configuration, nonInteractive);
+        });
         AddInteractionServices(builder);
         builder.Services.AddSingleton<IProjectLocator, ProjectLocator>();
         builder.Services.AddSingleton<ISolutionLocator, SolutionLocator>();
@@ -130,6 +138,7 @@ public class Program
         builder.Services.AddHostedService(sp => sp.GetRequiredService<NuGetPackagePrefetcher>());
         builder.Services.AddSingleton<ICliUpdateNotifier, CliUpdateNotifier>();
         builder.Services.AddSingleton<IPackagingService, PackagingService>();
+        builder.Services.AddSingleton<ICliDownloader, CliDownloader>();
         builder.Services.AddMemoryCache();
 
         // Template factories.
@@ -161,12 +170,20 @@ public class Program
         return new DirectoryInfo(hivesDirectory);
     }
 
+    private static DirectoryInfo GetSdksDirectory()
+    {
+        var homeDirectory = GetUsersAspirePath();
+        var sdksPath = Path.Combine(homeDirectory, "sdks");
+        return new DirectoryInfo(sdksPath);
+    }
+
     private static CliExecutionContext BuildCliExecutionContext(bool debugMode)
     {
         var workingDirectory = new DirectoryInfo(Environment.CurrentDirectory);
         var hivesDirectory = GetHivesDirectory();
         var cacheDirectory = GetCacheDirectory();
-        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, debugMode);
+        var sdksDirectory = GetSdksDirectory();
+        return new CliExecutionContext(workingDirectory, hivesDirectory, cacheDirectory, sdksDirectory, debugMode);
     }
 
     private static DirectoryInfo GetCacheDirectory()
@@ -262,16 +279,12 @@ public class Program
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 ansiConsole.Profile.Width = 256; // VS code terminal will handle wrapping so set a large width here.
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                var consoleInteractionService = new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
                 return new ExtensionInteractionService(consoleInteractionService,
                     provider.GetRequiredService<IExtensionBackchannel>(),
                     extensionPromptEnabled);
             });
-
-            // If the CLI is being launched from the aspire extension, we don't want to use the console logger that's used when including --debug.
-            // Instead, we will log to the extension backchannel.
-            builder.Logging.AddFilter("Aspire.Cli", LogLevel.Trace);
-            builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<ILoggerProvider, ExtensionLoggerProvider>());
         }
         else
         {
@@ -279,7 +292,8 @@ public class Program
             {
                 var ansiConsole = provider.GetRequiredService<IAnsiConsole>();
                 var executionContext = provider.GetRequiredService<CliExecutionContext>();
-                return new ConsoleInteractionService(ansiConsole, executionContext);
+                var hostEnvironment = provider.GetRequiredService<ICliHostEnvironment>();
+                return new ConsoleInteractionService(ansiConsole, executionContext, hostEnvironment);
             });
         }
     }

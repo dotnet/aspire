@@ -113,6 +113,11 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Value = plan.Id
             });
 
+            infra.Add(new ProvisioningOutput("webSiteSuffix", typeof(string))
+            {
+                Value = AzureAppServiceEnvironmentResource.GetWebSiteSuffixBicep()
+            });
+
             infra.Add(new ProvisioningOutput("AZURE_CONTAINER_REGISTRY_NAME", typeof(string))
             {
                 Value = containerRegistry.Name

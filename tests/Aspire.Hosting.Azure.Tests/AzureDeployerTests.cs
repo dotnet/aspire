@@ -9,6 +9,7 @@
 using Aspire.Hosting.Utils;
 using Aspire.Hosting.Tests;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Publishing.Internal;
 using Aspire.Hosting.Testing;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Aspire.TestUtilities;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -67,6 +69,22 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var runTask = Task.Run(app.Run);
 
         // Wait for the first interaction (subscription selection)
+        var tenantInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure tenant", tenantInteraction.Title);
+        Assert.False(tenantInteraction.Options!.EnableMessageMarkdown);
+
+        Assert.Collection(tenantInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Tenant ID", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.True(input.Required);
+            });
+
+        tenantInteraction.Inputs[0].Value = "87654321-4321-4321-4321-210987654321";
+        tenantInteraction.CompletionTcs.SetResult(InteractionResult.Ok(tenantInteraction.Inputs));
+
+        // Wait for the next interaction (subscription selection)
         var subscriptionInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure subscription", subscriptionInteraction.Title);
         Assert.False(subscriptionInteraction.Options!.EnableMessageMarkdown);
@@ -585,7 +603,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         // Assert that deploying steps executed
         Assert.Contains("deploy-compute", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("deploy-compute", "Deploying cache"), mockActivityReporter.CreatedTasks);
+        Assert.Contains(("deploy-compute", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
     }
 
     [Fact]
@@ -850,7 +868,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         IBicepProvisioner? bicepProvisioner = null,
         IArmClientProvider? armClientProvider = null,
         MockProcessRunner? processRunner = null,
-        IPublishingActivityReporter? activityReporter = null,
+        IPipelineActivityReporter? activityReporter = null,
         bool setDefaultProvisioningOptions = true)
     {
         var options = setDefaultProvisioningOptions ? ProvisioningTestHelpers.CreateOptions() : ProvisioningTestHelpers.CreateOptions(null, null, null);
@@ -887,9 +905,10 @@ public class AzureDeployerTests(ITestOutputHelper output)
     {
         public string? StateFilePath => null;
 
-        public Task<JsonObject> LoadStateAsync(CancellationToken cancellationToken = default) => Task.FromResult(new JsonObject());
+        public Task<DeploymentStateSection> AcquireSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+            => Task.FromResult(new DeploymentStateSection(sectionName, [], 0));
 
-        public Task SaveStateAsync(JsonObject userSecrets, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveSectionAsync(DeploymentStateSection section, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     private sealed class NoOpBicepProvisioner : IBicepProvisioner
@@ -950,13 +969,13 @@ public class AzureDeployerTests(ITestOutputHelper output)
         var internalTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("internal-api"));
         Assert.NotNull(internalTask.CompletionMessage);
         Assert.DoesNotContain("https://", internalTask.CompletionMessage);
-        Assert.Equal("Successfully deployed internal-api", internalTask.CompletionMessage);
+        Assert.Equal("Successfully deployed **internal-api**", internalTask.CompletionMessage);
 
         // Assert - Verify that container with no endpoints does NOT show URL in completion message
         var noEndpointTask = activityReporter.CompletedTasks.FirstOrDefault(t => t.TaskStatusText.Contains("worker"));
         Assert.NotNull(noEndpointTask.CompletionMessage);
         Assert.DoesNotContain("https://", noEndpointTask.CompletionMessage);
-        Assert.Equal("Successfully deployed worker", noEndpointTask.CompletionMessage);
+        Assert.Equal("Successfully deployed **worker**", noEndpointTask.CompletionMessage);
     }
 
     private sealed class Project : IProjectMetadata
@@ -1178,7 +1197,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
         builder.Services.AddSingleton<IResourceContainerImageBuilder, MockImageBuilder>();
     }
 
-    private sealed class TestPublishingActivityReporter : IPublishingActivityReporter
+    private sealed class TestPublishingActivityReporter : IPipelineActivityReporter
     {
         public bool CompletePublishCalled { get; private set; }
         public string? CompletionMessage { get; private set; }
@@ -1195,18 +1214,18 @@ public class AzureDeployerTests(ITestOutputHelper output)
             return Task.CompletedTask;
         }
 
-        public Task<IPublishingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
+        public Task<IReportingStep> CreateStepAsync(string title, CancellationToken cancellationToken = default)
         {
             CreatedSteps.Add(title);
-            return Task.FromResult<IPublishingStep>(new TestPublishingStep(this, title));
+            return Task.FromResult<IReportingStep>(new TestReportingStep(this, title));
         }
 
-        private sealed class TestPublishingStep : IPublishingStep
+        private sealed class TestReportingStep : IReportingStep
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _title;
 
-            public TestPublishingStep(TestPublishingActivityReporter reporter, string title)
+            public TestReportingStep(TestPublishingActivityReporter reporter, string title)
             {
                 _reporter = reporter;
                 _title = title;
@@ -1220,19 +1239,26 @@ public class AzureDeployerTests(ITestOutputHelper output)
                 return Task.CompletedTask;
             }
 
-            public Task<IPublishingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
+            public Task<IReportingTask> CreateTaskAsync(string statusText, CancellationToken cancellationToken = default)
             {
                 _reporter.CreatedTasks.Add((_title, statusText));
-                return Task.FromResult<IPublishingTask>(new TestPublishingTask(_reporter, statusText));
+                return Task.FromResult<IReportingTask>(new TestReportingTask(_reporter, statusText));
+            }
+
+            public void Log(LogLevel logLevel, string message, bool enableMarkdown)
+            {
+                // For testing purposes, we just track that Log was called
+                _ = logLevel;
+                _ = message;
             }
         }
 
-        private sealed class TestPublishingTask : IPublishingTask
+        private sealed class TestReportingTask : IReportingTask
         {
             private readonly TestPublishingActivityReporter _reporter;
             private readonly string _initialStatusText;
 
-            public TestPublishingTask(TestPublishingActivityReporter reporter, string initialStatusText)
+            public TestReportingTask(TestPublishingActivityReporter reporter, string initialStatusText)
             {
                 _reporter = reporter;
                 _initialStatusText = initialStatusText;

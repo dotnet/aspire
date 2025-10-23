@@ -16,15 +16,15 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Daily at 02:00 UTC
 
-  # Trigger on pull requests that modify infrastructure or workflow files
-  pull_request:
-    paths:
-      - '.github/actions/**'
-      - '.github/workflows/**'
-      - 'eng/**'
-      - '!eng/pipelines/**'
-      - '!eng/scripts/**'
-      - '!eng/*pack/**'
+  # TEMPORARILY DISABLED pull_request trigger due to #12143 (disk space issues): https://github.com/dotnet/aspire/issues/12143
+  # pull_request:
+  #   paths:
+  #     - '.github/actions/**'
+  #     - '.github/workflows/**'
+  #     - 'eng/**'
+  #     - '!eng/pipelines/**'
+  #     - '!eng/scripts/**'
+  #     - '!eng/*pack/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

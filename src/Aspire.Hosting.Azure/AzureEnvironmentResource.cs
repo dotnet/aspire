@@ -59,7 +59,7 @@ public sealed class AzureEnvironmentResource : Resource
     {
         Annotations.Add(new PublishingCallbackAnnotation(PublishAsync));
 
-        Annotations.Add(new PipelineStepAnnotation(() =>
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
             ProvisioningContext? provisioningContext = null;
 
@@ -72,7 +72,11 @@ public sealed class AzureEnvironmentResource : Resource
             var createContextStep = new PipelineStep
             {
                 Name = "create-provisioning-context",
-                Action = async ctx => provisioningContext = await CreateProvisioningContextAsync(ctx).ConfigureAwait(false)
+                Action = async ctx =>
+                {
+                    var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
+                    provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                }
             };
             createContextStep.DependsOn(validateStep);
 
@@ -135,7 +139,7 @@ public sealed class AzureEnvironmentResource : Resource
         return publishingContext.WriteModelAsync(context.Model, this);
     }
 
-    private static async Task ValidateAzureCliLoginAsync(DeployingContext context)
+    private static async Task ValidateAzureCliLoginAsync(PipelineStepContext context)
     {
         var tokenCredentialProvider = context.Services.GetRequiredService<ITokenCredentialProvider>();
 
@@ -144,59 +148,30 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var validationStep = await context.ActivityReporter
-            .CreateStepAsync("validate-auth", context.CancellationToken)
-            .ConfigureAwait(false);
-
-        await using (validationStep.ConfigureAwait(false))
+        try
         {
-            try
-            {
-                var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
-                await azureCliCredential.GetTokenAsync(tokenRequest, context.CancellationToken)
-                    .ConfigureAwait(false);
+            var tokenRequest = new TokenRequestContext(["https://management.azure.com/.default"]);
+            await azureCliCredential.GetTokenAsync(tokenRequest, context.CancellationToken)
+                .ConfigureAwait(false);
 
-                await validationStep.SucceedAsync(
-                    "Azure CLI authentication validated successfully",
-                    context.CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception)
-            {
-                await validationStep.FailAsync(
-                    "Azure CLI authentication failed. Please run 'az login' to authenticate before deploying.",
-                    cancellationToken: context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
-        }
-    }
-
-    private static async Task<ProvisioningContext> CreateProvisioningContextAsync(DeployingContext context)
-    {
-        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
-        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
-        var configuration = context.Services.GetRequiredService<IConfiguration>();
-
-        var userSecrets = await deploymentStateManager.LoadStateAsync(context.CancellationToken)
-            .ConfigureAwait(false);
-        var provisioningContext = await provisioningContextProvider
-            .CreateProvisioningContextAsync(userSecrets, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
-        if (!clearCache)
-        {
-            await deploymentStateManager.SaveStateAsync(
-                provisioningContext.DeploymentState,
+            await context.ReportingStep.CompleteAsync(
+                "Azure CLI authentication validated successfully",
+                CompletionState.Completed,
                 context.CancellationToken).ConfigureAwait(false);
         }
-
-        return provisioningContext;
+        catch (Exception)
+        {
+            await context.ReportingStep.CompleteAsync(
+                "Azure CLI authentication failed. Please run `az login` to authenticate before deploying. Learn more at [Azure CLI documentation](https://learn.microsoft.com/cli/azure/authenticate-azure-cli).",
+                CompletionState.CompletedWithError,
+                context.CancellationToken).ConfigureAwait(false);
+            throw;
+        }
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(DeployingContext context, ProvisioningContext provisioningContext)
+    private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-        var deploymentStateManager = context.Services.GetRequiredService<IDeploymentStateManager>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
 
         var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
@@ -210,76 +185,62 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var deployingStep = await context.ActivityReporter
-            .CreateStepAsync("deploy-resources", context.CancellationToken).ConfigureAwait(false);
-
-        await using (deployingStep.ConfigureAwait(false))
+        var provisioningTasks = bicepResources.Select(async resource =>
         {
-            var provisioningTasks = bicepResources.Select(async resource =>
+            var resourceTask = await context.ReportingStep
+                .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
+                .ConfigureAwait(false);
+
+            await using (resourceTask.ConfigureAwait(false))
             {
-                var resourceTask = await deployingStep
-                    .CreateTaskAsync($"Deploying {resource.Name}", context.CancellationToken)
-                    .ConfigureAwait(false);
-
-                await using (resourceTask.ConfigureAwait(false))
+                try
                 {
-                    try
-                    {
-                        resource.ProvisioningTaskCompletionSource =
-                            new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    resource.ProvisioningTaskCompletionSource =
+                        new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-                        if (await bicepProvisioner.ConfigureResourceAsync(
-                            configuration, resource, context.CancellationToken).ConfigureAwait(false))
-                        {
-                            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                            await resourceTask.CompleteAsync(
-                                $"Using existing deployment for {resource.Name}",
-                                CompletionState.Completed,
-                                context.CancellationToken).ConfigureAwait(false);
-                        }
-                        else
-                        {
-                            await bicepProvisioner.GetOrCreateResourceAsync(
-                                resource, provisioningContext, context.CancellationToken)
-                                .ConfigureAwait(false);
-                            resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                            await resourceTask.CompleteAsync(
-                                $"Successfully provisioned {resource.Name}",
-                                CompletionState.Completed,
-                                context.CancellationToken).ConfigureAwait(false);
-                        }
-                    }
-                    catch (Exception ex)
+                    if (await bicepProvisioner.ConfigureResourceAsync(
+                        configuration, resource, context.CancellationToken).ConfigureAwait(false))
                     {
-                        var errorMessage = ex switch
-                        {
-                            RequestFailedException requestEx =>
-                                $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                            _ => $"Deployment failed: {ex.Message}"
-                        };
+                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
                         await resourceTask.CompleteAsync(
-                            $"Failed to provision {resource.Name}: {errorMessage}",
-                            CompletionState.CompletedWithError,
+                            $"Using existing deployment for **{resource.Name}**",
+                            CompletionState.Completed,
                             context.CancellationToken).ConfigureAwait(false);
-                        resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-                        throw;
+                    }
+                    else
+                    {
+                        await bicepProvisioner.GetOrCreateResourceAsync(
+                            resource, provisioningContext, context.CancellationToken)
+                            .ConfigureAwait(false);
+                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                        await resourceTask.CompleteAsync(
+                            $"Successfully provisioned **{resource.Name}**",
+                            CompletionState.Completed,
+                            context.CancellationToken).ConfigureAwait(false);
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    var errorMessage = ex switch
+                    {
+                        RequestFailedException requestEx =>
+                            $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                        _ => $"Deployment failed: {ex.Message}"
+                    };
+                    resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                    await resourceTask.CompleteAsync(
+                        $"Failed to provision **{resource.Name}**: {errorMessage}",
+                        CompletionState.CompletedWithError,
+                        context.CancellationToken).ConfigureAwait(false);
+                    throw;
+                }
+            }
+        });
 
-            await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
-        }
-
-        var clearCache = configuration.GetValue<bool>("Publishing:ClearCache");
-        if (!clearCache)
-        {
-            await deploymentStateManager.SaveStateAsync(
-                provisioningContext.DeploymentState,
-                context.CancellationToken).ConfigureAwait(false);
-        }
+        await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
     }
 
-    private static async Task BuildContainerImagesAsync(DeployingContext context)
+    private static async Task BuildContainerImagesAsync(PipelineStepContext context)
     {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
@@ -312,7 +273,7 @@ public sealed class AzureEnvironmentResource : Resource
             context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task PushContainerImagesAsync(DeployingContext context)
+    private static async Task PushContainerImagesAsync(PipelineStepContext context)
     {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
         var processRunner = context.Services.GetRequiredService<IProcessRunner>();
@@ -348,7 +309,7 @@ public sealed class AzureEnvironmentResource : Resource
             .ConfigureAwait(false);
     }
 
-    private static async Task DeployComputeResourcesAsync(DeployingContext context, ProvisioningContext provisioningContext)
+    private static async Task DeployComputeResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var computeResources = context.Model.GetComputeResources().ToList();
@@ -358,78 +319,71 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var computeStep = await context.ActivityReporter
-            .CreateStepAsync("deploy-compute", context.CancellationToken)
-            .ConfigureAwait(false);
-
-        await using (computeStep.ConfigureAwait(false))
+        var deploymentTasks = computeResources.Select(async computeResource =>
         {
-            var deploymentTasks = computeResources.Select(async computeResource =>
+            var resourceTask = await context.ReportingStep
+                .CreateTaskAsync($"Deploying **{computeResource.Name}**", context.CancellationToken)
+                .ConfigureAwait(false);
+
+            await using (resourceTask.ConfigureAwait(false))
             {
-                var resourceTask = await computeStep
-                    .CreateTaskAsync($"Deploying {computeResource.Name}", context.CancellationToken)
-                    .ConfigureAwait(false);
-
-                await using (resourceTask.ConfigureAwait(false))
+                try
                 {
-                    try
+                    if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget)
                     {
-                        if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget)
+                        if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
                         {
-                            if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
+                            await bicepProvisioner.GetOrCreateResourceAsync(
+                                bicepResource, provisioningContext, context.CancellationToken)
+                                .ConfigureAwait(false);
+
+                            var completionMessage = $"Successfully deployed **{computeResource.Name}**";
+
+                            if (deploymentTarget.ComputeEnvironment is IAzureComputeEnvironmentResource azureComputeEnv)
                             {
-                                await bicepProvisioner.GetOrCreateResourceAsync(
-                                    bicepResource, provisioningContext, context.CancellationToken)
-                                    .ConfigureAwait(false);
-
-                                var completionMessage = $"Successfully deployed {computeResource.Name}";
-
-                                if (deploymentTarget.ComputeEnvironment is IAzureComputeEnvironmentResource azureComputeEnv)
-                                {
-                                    completionMessage += TryGetComputeResourceEndpoint(
-                                        computeResource, azureComputeEnv);
-                                }
-
-                                await resourceTask.CompleteAsync(
-                                    completionMessage,
-                                    CompletionState.Completed,
-                                    context.CancellationToken).ConfigureAwait(false);
+                                completionMessage += TryGetComputeResourceEndpoint(
+                                    computeResource, azureComputeEnv);
                             }
-                            else
-                            {
-                                await resourceTask.CompleteAsync(
-                                    $"Skipped {computeResource.Name} - no Bicep deployment target",
-                                    CompletionState.CompletedWithWarning,
-                                    context.CancellationToken).ConfigureAwait(false);
-                            }
+
+                            await resourceTask.CompleteAsync(
+                                completionMessage,
+                                CompletionState.Completed,
+                                context.CancellationToken).ConfigureAwait(false);
                         }
                         else
                         {
                             await resourceTask.CompleteAsync(
-                                $"Skipped {computeResource.Name} - no deployment target annotation",
-                                CompletionState.Completed,
+                                $"Skipped **{computeResource.Name}** - no Bicep deployment target",
+                                CompletionState.CompletedWithWarning,
                                 context.CancellationToken).ConfigureAwait(false);
                         }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        var errorMessage = ex switch
-                        {
-                            RequestFailedException requestEx =>
-                                $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                            _ => $"Deployment failed: {ex.Message}"
-                        };
                         await resourceTask.CompleteAsync(
-                            $"Failed to deploy {computeResource.Name}: {errorMessage}",
-                            CompletionState.CompletedWithError,
+                            $"Skipped **{computeResource.Name}** - no deployment target annotation",
+                            CompletionState.Completed,
                             context.CancellationToken).ConfigureAwait(false);
-                        throw;
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    var errorMessage = ex switch
+                    {
+                        RequestFailedException requestEx =>
+                            $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                        _ => $"Deployment failed: {ex.Message}"
+                    };
+                    await resourceTask.CompleteAsync(
+                        $"Failed to deploy {computeResource.Name}: {errorMessage}",
+                        CompletionState.CompletedWithError,
+                        context.CancellationToken).ConfigureAwait(false);
+                    throw;
+                }
+            }
+        });
 
-            await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
-        }
+        await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
     }
 
     private static bool TryGetContainerRegistry(IResource computeResource, [NotNullWhen(true)] out IContainerRegistry? containerRegistry)
@@ -445,7 +399,7 @@ public sealed class AzureEnvironmentResource : Resource
         return false;
     }
 
-    private static async Task LoginToAllRegistriesAsync(IEnumerable<IContainerRegistry> registries, DeployingContext context, IProcessRunner processRunner, IConfiguration configuration)
+    private static async Task LoginToAllRegistriesAsync(IEnumerable<IContainerRegistry> registries, PipelineStepContext context, IProcessRunner processRunner, IConfiguration configuration)
     {
         var registryList = registries.ToList();
         if (!registryList.Any())
@@ -453,34 +407,32 @@ public sealed class AzureEnvironmentResource : Resource
             return;
         }
 
-        var loginStep = await context.ActivityReporter.CreateStepAsync("auth-registries", context.CancellationToken).ConfigureAwait(false);
-        await using (loginStep.ConfigureAwait(false))
+        try
         {
-            try
+            var loginTasks = registryList.Select(async registry =>
             {
-                var loginTasks = registryList.Select(async registry =>
-                {
-                    var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                                     throw new InvalidOperationException("Failed to retrieve container registry information.");
-                    await AuthenticateToAcr(loginStep, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
-                });
+                var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
+                                 throw new InvalidOperationException("Failed to retrieve container registry information.");
 
-                await Task.WhenAll(loginTasks).ConfigureAwait(false);
-                await loginStep.CompleteAsync($"Successfully authenticated to {registryList.Count} container registries", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await loginStep.CompleteAsync($"Failed to authenticate to registries: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
+                var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
+                await using (loginTask.ConfigureAwait(false))
+                {
+                    await AuthenticateToAcrHelper(loginTask, registryName, context.CancellationToken, processRunner, configuration).ConfigureAwait(false);
+                }
+            });
+
+            await Task.WhenAll(loginTasks).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            throw;
         }
     }
 
-    private static async Task AuthenticateToAcr(IPublishingStep parentStep, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
+    private static async Task AuthenticateToAcrHelper(IReportingTask loginTask, string registryName, CancellationToken cancellationToken, IProcessRunner processRunner, IConfiguration configuration)
     {
-        var loginTask = await parentStep.CreateTaskAsync($"Logging in to {registryName}", cancellationToken).ConfigureAwait(false);
         var command = BicepCliCompiler.FindFullPathFromPath("az") ?? throw new InvalidOperationException("Failed to find 'az' command");
-        await using (loginTask.ConfigureAwait(false))
+        try
         {
             var loginSpec = new ProcessSpec(command)
             {
@@ -502,13 +454,17 @@ public sealed class AzureEnvironmentResource : Resource
 
                 if (result.ExitCode != 0)
                 {
-                    await loginTask.FailAsync($"Login to ACR {registryName} failed with exit code {result.ExitCode}", cancellationToken: cancellationToken).ConfigureAwait(false);
+                    await loginTask.FailAsync($"Login to ACR **{registryName}** failed with exit code {result.ExitCode}", cancellationToken: cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
-                    await loginTask.CompleteAsync($"Successfully logged in to {registryName}", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
+                    await loginTask.CompleteAsync($"Successfully logged in to **{registryName}**", CompletionState.Completed, cancellationToken).ConfigureAwait(false);
                 }
             }
+        }
+        catch (Exception)
+        {
+            throw;
         }
     }
 
@@ -518,65 +474,51 @@ public sealed class AzureEnvironmentResource : Resource
         return configuration["ASPIRE_CONTAINER_RUNTIME"] ?? configuration["DOTNET_ASPIRE_CONTAINER_RUNTIME"];
     }
 
-    private static async Task PushImagesToAllRegistriesAsync(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, DeployingContext context, IResourceContainerImageBuilder containerImageBuilder)
+    private static async Task PushImagesToAllRegistriesAsync(Dictionary<IContainerRegistry, List<IResource>> resourcesByRegistry, PipelineStepContext context, IResourceContainerImageBuilder containerImageBuilder)
     {
-        var totalImageCount = resourcesByRegistry.Values.SelectMany(resources => resources).Count();
-        var pushStep = await context.ActivityReporter.CreateStepAsync("push-images", context.CancellationToken).ConfigureAwait(false);
-        await using (pushStep.ConfigureAwait(false))
+        var allPushTasks = new List<Task>();
+
+        foreach (var (registry, resources) in resourcesByRegistry)
         {
-            try
-            {
-                var allPushTasks = new List<Task>();
+            var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
+                             throw new InvalidOperationException("Failed to retrieve container registry information.");
 
-                foreach (var (registry, resources) in resourcesByRegistry)
+            var resourcePushTasks = resources
+                .Where(r => r.RequiresImageBuildAndPush())
+                .Select(async resource =>
                 {
-                    var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false) ??
-                                     throw new InvalidOperationException("Failed to retrieve container registry information.");
+                    if (!resource.TryGetContainerImageName(out var localImageName))
+                    {
+                        localImageName = resource.Name.ToLowerInvariant();
+                    }
 
-                    var resourcePushTasks = resources
-                        .Where(r => r.RequiresImageBuildAndPush())
-                        .Select(async resource =>
+                    IValueProvider cir = new ContainerImageReference(resource);
+                    var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+
+                    var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing **{resource.Name}** to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
+                    await using (pushTask.ConfigureAwait(false))
+                    {
+                        try
                         {
-                            if (!resource.TryGetContainerImageName(out var localImageName))
+                            if (targetTag == null)
                             {
-                                localImageName = resource.Name.ToLowerInvariant();
+                                throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
                             }
+                            await TagAndPushImage(localImageName, targetTag, context.CancellationToken, containerImageBuilder).ConfigureAwait(false);
+                            await pushTask.CompleteAsync($"Successfully pushed **{resource.Name}** to `{targetTag}`", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            await pushTask.CompleteAsync($"Failed to push **{resource.Name}**: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
+                            throw;
+                        }
+                    }
+                });
 
-                            IValueProvider cir = new ContainerImageReference(resource);
-                            var targetTag = await cir.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-
-                            var pushTask = await pushStep.CreateTaskAsync($"Pushing {resource.Name} to {registryName}", context.CancellationToken).ConfigureAwait(false);
-                            await using (pushTask.ConfigureAwait(false))
-                            {
-                                try
-                                {
-                                    if (targetTag == null)
-                                    {
-                                        throw new InvalidOperationException($"Failed to get target tag for {resource.Name}");
-                                    }
-                                    await TagAndPushImage(localImageName, targetTag, context.CancellationToken, containerImageBuilder).ConfigureAwait(false);
-                                    await pushTask.CompleteAsync($"Successfully pushed {resource.Name} to {targetTag}", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-                                }
-                                catch (Exception ex)
-                                {
-                                    await pushTask.CompleteAsync($"Failed to push {resource.Name}: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                                    throw;
-                                }
-                            }
-                        });
-
-                    allPushTasks.AddRange(resourcePushTasks);
-                }
-
-                await Task.WhenAll(allPushTasks).ConfigureAwait(false);
-                await pushStep.CompleteAsync($"Successfully pushed {totalImageCount} images to container registries", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                await pushStep.CompleteAsync($"Failed to push images: {ex.Message}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
+            allPushTasks.AddRange(resourcePushTasks);
         }
+
+        await Task.WhenAll(allPushTasks).ConfigureAwait(false);
     }
 
     private static async Task TagAndPushImage(string localTag, string targetTag, CancellationToken cancellationToken, IResourceContainerImageBuilder containerImageBuilder)
@@ -598,7 +540,7 @@ public sealed class AzureEnvironmentResource : Resource
             if (computeResource.TryGetEndpoints(out var endpoints) && endpoints.Any(e => e.IsExternal))
             {
                 var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
-                return $" to {endpoint}";
+                return $" to [{endpoint}]({endpoint})";
             }
         }
 
@@ -693,22 +635,16 @@ public sealed class AzureEnvironmentResource : Resource
         return string.Empty;
     }
 
-    private static async Task PrintDashboardUrlAsync(DeployingContext context)
+    private static async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
         var dashboardUrl = TryGetDashboardUrl(context.Model);
 
         if (dashboardUrl != null)
         {
-            var urlStep = await context.ActivityReporter
-                .CreateStepAsync("Dashboard URL available", context.CancellationToken)
-                .ConfigureAwait(false);
-
-            await using (urlStep.ConfigureAwait(false))
-            {
-                await urlStep.SucceedAsync(
-                    $"Dashboard available at: {dashboardUrl}",
-                    context.CancellationToken).ConfigureAwait(false);
-            }
+            await context.ReportingStep.CompleteAsync(
+                $"Dashboard available at [dashboard URL]({dashboardUrl})",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
         }
     }
 

@@ -45,7 +45,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             arguments, 
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} tag for {{LocalImageName}} -> {{TargetImageName}} succeeded.",
-            $"{Name} tag failed with exit code {{ExitCode}}.",
+            $"{Name} tag failed with exit code {{0}}.",
             cancellationToken,
             localImageName, targetImageName).ConfigureAwait(false);
     }
@@ -58,7 +58,7 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             arguments, 
             $"{Name} push for {{ImageName}} failed with exit code {{ExitCode}}.",
             $"{Name} push for {{ImageName}} succeeded.",
-            $"{Name} push failed with exit code {{ExitCode}}.",
+            $"{Name} push failed with exit code {{0}}.",
             cancellationToken,
             imageName).ConfigureAwait(false);
     }
@@ -214,11 +214,11 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             Arguments = arguments,
             OnOutputData = output =>
             {
-                _logger.LogInformation("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
+                _logger.LogDebug("{RuntimeName} (stdout): {Output}", RuntimeExecutable, output);
             },
             OnErrorData = error =>
             {
-                _logger.LogInformation("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
+                _logger.LogDebug("{RuntimeName} (stderr): {Error}", RuntimeExecutable, error);
             },
             ThrowOnNonZeroReturnCode = false,
             InheritEnv = true

@@ -34,8 +34,8 @@ internal sealed class PublishCommand : PublishCommandBase
 {
     private readonly IPublishCommandPrompter _prompter;
 
-    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext)
-        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext)
+    public PublishCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, IPublishCommandPrompter prompter, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
+        : base("publish", PublishCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
     {
         ArgumentNullException.ThrowIfNull(prompter);
         _prompter = prompter;
@@ -54,6 +54,20 @@ internal sealed class PublishCommand : PublishCommandBase
             : Path.Combine(Environment.CurrentDirectory, "aspire-output");
 
         baseArgs.AddRange(["--output-path", targetPath]);
+
+        // Add --log-level and --envionment flags if specified
+        var logLevel = parseResult.GetValue(_logLevelOption);
+
+        if (!string.IsNullOrEmpty(logLevel))
+        {
+            baseArgs.AddRange(["--log-level", logLevel!]);
+        }
+
+        var environment = parseResult.GetValue(_environmentOption);
+        if (!string.IsNullOrEmpty(environment))
+        {
+            baseArgs.AddRange(["--environment", environment!]);
+        }
 
         baseArgs.AddRange(unmatchedTokens);
 

@@ -1,7 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using System.Text.Json.Nodes;
 using Azure;
 using Azure.Core;
 using Azure.ResourceManager;
@@ -57,7 +56,9 @@ internal interface IProvisioningContextProvider
     /// <summary>
     /// Creates a provisioning context for Azure resource operations.
     /// </summary>
-    Task<ProvisioningContext> CreateProvisioningContextAsync(JsonObject userSecrets, CancellationToken cancellationToken = default);
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A provisioning context.</returns>
+    Task<ProvisioningContext> CreateProvisioningContextAsync(CancellationToken cancellationToken = default);
 }
 
 /// <summary>
@@ -71,9 +72,19 @@ internal interface IArmClient
     Task<(ISubscriptionResource subscription, ITenantResource tenant)> GetSubscriptionAndTenantAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all tenants accessible to the current user.
+    /// </summary>
+    Task<IEnumerable<ITenantResource>> GetAvailableTenantsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all subscriptions accessible to the current user.
     /// </summary>
     Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all subscriptions accessible to the current user filtered by tenant ID.
+    /// </summary>
+    Task<IEnumerable<ISubscriptionResource>> GetAvailableSubscriptionsAsync(string? tenantId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all available locations for the specified subscription.
@@ -173,6 +184,11 @@ internal interface ITenantResource
     /// Gets the tenant ID.
     /// </summary>
     Guid? TenantId { get; }
+
+    /// <summary>
+    /// Gets the display name.
+    /// </summary>
+    string? DisplayName { get; }
 
     /// <summary>
     /// Gets the default domain.

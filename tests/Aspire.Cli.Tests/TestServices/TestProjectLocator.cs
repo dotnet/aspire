@@ -7,17 +7,17 @@ namespace Aspire.Cli.Tests.TestServices;
 
 internal sealed class TestProjectLocator : IProjectLocator
 {
-    public Func<FileInfo?, CancellationToken, Task<FileInfo?>>? UseOrFindAppHostProjectFileAsyncCallback { get; set; }
+    public Func<FileInfo?, bool, CancellationToken, Task<FileInfo?>>? UseOrFindAppHostProjectFileAsyncCallback { get; set; }
 
-    public Func<string, CancellationToken, Task<List<FileInfo>>>? FindAppHostProjectFilesAsyncCallback { get; set; }
+    public Func<FileInfo?, MultipleAppHostProjectsFoundBehavior, bool, CancellationToken, Task<AppHostProjectSearchResult>>? UseOrFindAppHostProjectFileWithBehaviorAsyncCallback { get; set; }
 
     public Func<string, CancellationToken, Task<IReadOnlyList<FileInfo>>>? FindExecutableProjectsAsyncCallback { get; set; }
 
-    public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, CancellationToken cancellationToken)
+    public async Task<FileInfo?> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, bool createSettingsFile, CancellationToken cancellationToken)
     {
         if (UseOrFindAppHostProjectFileAsyncCallback != null)
         {
-            return await UseOrFindAppHostProjectFileAsyncCallback(projectFile, cancellationToken);
+            return await UseOrFindAppHostProjectFileAsyncCallback(projectFile, createSettingsFile, cancellationToken);
         }
 
         // Fallback behavior if not overridden.
@@ -30,16 +30,21 @@ internal sealed class TestProjectLocator : IProjectLocator
         return new FileInfo(fakeProjectFilePath);
     }
 
-    public Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
+    public async Task<AppHostProjectSearchResult> UseOrFindAppHostProjectFileAsync(FileInfo? projectFile, MultipleAppHostProjectsFoundBehavior multipleAppHostProjectsFoundBehavior, bool createSettingsFile, CancellationToken cancellationToken = default)
     {
-        if (FindAppHostProjectFilesAsyncCallback != null)
+        if (UseOrFindAppHostProjectFileWithBehaviorAsyncCallback != null)
         {
-            return FindAppHostProjectFilesAsyncCallback(searchDirectory, cancellationToken);
+            return await UseOrFindAppHostProjectFileWithBehaviorAsyncCallback(projectFile, multipleAppHostProjectsFoundBehavior, createSettingsFile, cancellationToken);
         }
 
-        // Fallback behavior if not overridden.
-        var fakeProjectFilePath = Path.Combine(searchDirectory, "AppHost.csproj");
-        return Task.FromResult(new List<FileInfo> { new FileInfo(fakeProjectFilePath) });
+        // Fallback behavior
+        var appHostFile = await UseOrFindAppHostProjectFileAsync(projectFile, createSettingsFile, cancellationToken);
+        if (appHostFile is null)
+        {
+            return new AppHostProjectSearchResult(null, []);
+        }
+
+        return new AppHostProjectSearchResult(appHostFile, [appHostFile]);
     }
 
     public Task<IReadOnlyList<FileInfo>> FindExecutableProjectsAsync(string searchDirectory, CancellationToken cancellationToken)
