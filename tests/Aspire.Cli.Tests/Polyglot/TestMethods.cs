@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.Polyglot;
+
 namespace Aspire.Cli.Tests.Polyglot;
 
 public static class TestMethods
@@ -22,4 +24,8 @@ public static class TestMethods
 
     // Generic method
     public static T MethodF<T, U>(T a, U b) => a;
+
+    // Method with custom polyglot atrtibute
+    [PolyglotMethodName("CustomMethodG", PolyglotLanguages.TypeScript)]
+    public static void MethodG() { }
 }

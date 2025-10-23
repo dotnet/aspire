@@ -89,6 +89,23 @@ public class TypeResolutionTests
     }
 
     [Fact]
+    public void ReadMethodAttributes()
+    {
+        using var loader = CreateAssemblyLoaderContext(out var testAssembly);
+
+        var testMethodsType = testAssembly.GetType(typeof(TestMethods).FullName!);
+        Assert.NotNull(testMethodsType);
+
+        var methodG = testMethodsType.GetMethod(nameof(TestMethods.MethodG));
+        Assert.NotNull(methodG);
+
+        var attribute = methodG.GetCustomAttributes().FirstOrDefault(x => x.AttributeType.Name == "PolyglotMethodNameAttribute");
+        Assert.NotNull(attribute);
+
+        Assert.Equal(2, attribute.FixedArguments.Count);
+    }
+
+    [Fact]
     public void AssemblyLoaderContextResolvesTypeDefinitions()
     {
         using var loader = CreateAssemblyLoaderContext(out var testAssembly);
@@ -366,9 +383,8 @@ public class TypeResolutionTests
         var testAttribute = customAttributes.FirstOrDefault(attr => 
             attr.AttributeType.FullName == typeof(TestAttribute).FullName);
         Assert.NotNull(testAttribute);
-        //var argument = testAttribute.NamedArguments.Single();
-        //Assert.Equal("Name", argument.Key);
-        //Assert.Equal("class", argument.Value);
+        var argument = testAttribute.FixedArguments.Single();
+        Assert.Equal("class", argument);
 
         var method = type.GetMethod(nameof(ClassWithAttribute.MethodWithAttribute));
         Assert.NotNull(method);
@@ -379,9 +395,8 @@ public class TypeResolutionTests
         testAttribute = customAttributes.FirstOrDefault(attr =>
             attr.AttributeType.FullName == typeof(TestAttribute).FullName);
         Assert.NotNull(testAttribute);
-        //argument = testAttribute.NamedArguments.Single();
-        //Assert.Equal("Name", argument.Key);
-        //Assert.Equal("method", argument.Value);
+        argument = testAttribute.FixedArguments.Single();
+        Assert.Equal("method", argument);
 
         var parameter = method.Parameters[0];
         Assert.NotNull(parameter);
@@ -392,9 +407,8 @@ public class TypeResolutionTests
         testAttribute = customAttributes.FirstOrDefault(attr =>
             attr.AttributeType.FullName == typeof(TestAttribute).FullName);
         Assert.NotNull(testAttribute);
-        //argument = testAttribute.NamedArguments.Single();
-        //Assert.Equal("Name", argument.Key);
-        //Assert.Equal("parameter", argument.Value);
+        argument = testAttribute.FixedArguments.Single();
+        Assert.Equal("parameter", argument);
     }
 
     [Fact]

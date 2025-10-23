@@ -90,8 +90,6 @@ internal class IntegrationModel
             };
 
             integration.Resources.Add(r, resourceModel);
-
-            integration.DiscoverResourceSpecificExtensionMethods(resourceModel);
         }
 
         return integration;
@@ -193,83 +191,5 @@ internal class IntegrationModel
 
             return isCandidate;
         }
-    }
-
-    public void DiscoverResourceSpecificExtensionMethods(ResourceModel resourceModel)
-    {
-        // Add all concrete resource builder methods from this integration.
-
-        // Look into all shared extensions from other integrations
-
-        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
-        // the same builder type, not on a base builder (ResourceBuilder).
-
-        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
-        // Methods constrained to an interface: e.g., IResourceBuilder<T> WithHttpEndpoint<T>(this IResourceBuilder<T> builder, ...) where T : IResourceWithEndpoints
-
-        var allTypeForThisResource = new HashSet<RoType>();
-        var allInterfacesForThisResource = new HashSet<RoType>();
-
-        void PopulateInterfaces(RoType t)
-        {
-            foreach (var i in t.Interfaces)
-            {
-                allInterfacesForThisResource.Add(i);
-            }
-        }
-
-        // Inherited types
-        var parentType = resourceModel.ResourceType;
-
-        while (parentType != null)
-        {
-            PopulateInterfaces(parentType);
-            allTypeForThisResource.Add(parentType);
-            parentType = parentType.BaseType;
-        }
-
-        var loader = resourceModel.ResourceType.DeclaringAssembly.AssemblyLoaderContext;
-
-        foreach (var type in allTypeForThisResource)
-        {
-            var targetType = WellKnownTypes.IResourceBuilderType.MakeGenericType(type);
-            var methods = GetExtensionMethods(WellKnownTypes, targetType).ToArray();
-            resourceModel.IResourceTypeBuilderExtensionsMethods.AddRange(methods);
-        }
-
-        // Open generic methods need to be defined on the concrete builder type (RedisResourceBuilder) so they can return
-        // the same builder type, not on a base builder (ResourceBuilder).
-        // Methods constrained to the resource type: e.g., IResourceBuilder<T> WithVolume<T>(this IResourceBuilder<T> builder, ...) where T : ContainerResource
-
-        var openGenericMethods = new List<RoMethod>();
-
-        foreach (var m in SharedExtensionMethods)
-        {
-            var genArgs = m.GetGenericArguments();
-            var genArg = genArgs[0];
-
-            if (genArgs.Count > 1)
-            {
-                // TODO: Not supported:
-                // public static IResourceBuilder<T> WithEnvironment<T, TValue>(this IResourceBuilder<T> builder, string name, TValue value)
-                continue;
-            }
-
-            if (genArg.GetGenericParameterConstraints().All(x => allInterfacesForThisResource.Contains(x) || allTypeForThisResource.Contains(x)))
-            {
-                openGenericMethods.Add(m.MakeGenericMethod(resourceModel.ResourceType));
-            }
-        }
-
-        // For debugging
-        // Console.WriteLine($"Found {openGenericMethods.Length} open generic methods for {ResourceType.Name} in {integrationModel.AssemblyName}.");
-        // foreach (var m in openGenericMethods)
-        // {
-        //     Console.WriteLine($"  {m.Name}");
-        // }
-
-        resourceModel.IResourceTypeBuilderExtensionsMethods.AddRange(openGenericMethods);
-
-        DiscoverModelClasses(resourceModel.IResourceTypeBuilderExtensionsMethods, ModelTypes);
     }
 }

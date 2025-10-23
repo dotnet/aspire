@@ -360,11 +360,18 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
     {
         foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
         {
-            var index = 0;
+            var indexes = new Dictionary<string, int>();
             var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
 
             foreach (var overload in overloads)
             {
+                var methodNameAttribute = overload.GetCustomAttributes()
+                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                    ?? overload.Name;
+
                 // The return type is either `RedisResourceBuilder` for `IResourceBuilder<T>`
                 // or the actual return type of the extension method, e.g. EndpointReference
 
@@ -376,7 +383,17 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
 
                 var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? CamelCase(mapping.GeneratedName)
-                    : CamelCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
+                    : CamelCase(preferredMethodName);
+
+                if (indexes.TryGetValue(methodName, out var index))
+                {
+                    indexes[methodName] = index + 1;
+                    methodName = $"{methodName}{index.ToString(CultureInfo.InvariantCulture) + 1}";
+                }
+                else
+                {
+                    indexes[methodName] = 0;
+                }
 
                 var parameters = overload.Parameters.Skip(1); // Skip the first parameter (this)
 
@@ -542,8 +559,6 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
                     return result;
                   };
                 """);
-
-                index++;
             }
         }
     }

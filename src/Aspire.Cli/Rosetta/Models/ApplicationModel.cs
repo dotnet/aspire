@@ -26,6 +26,15 @@ internal class ApplicationModel : IDisposable
         var integrationModelsLookup = integrationModels.ToDictionary(x => x.AssemblyName);
         var resourceModels = integrationModels.SelectMany(x => x.Resources).ToDictionary(x => x.Key, x => x.Value);
 
+        // Discover extension methods for each resource model across all integrations. This needs to be done after all integrations are loaded.
+        foreach (var rm in resourceModels.Values)
+        {
+            foreach (var integrationModel in integrationModels)
+            {
+                rm.DiscoverOpenGenericExtensionMethods(integrationModel);
+            }
+        }
+
         // Discover all model types across all integrations
         var modelTypes = new HashSet<RoType>();
 

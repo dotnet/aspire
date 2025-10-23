@@ -1,0 +1,17 @@
+{
+  "solution": {
+    "path": "..\\..\\Aspire.slnx",
+    "projects": [
+      "src\\Aspire.Cli\\Aspire.Cli.csproj",
+      "src\\Aspire.Hosting.Analyzers\\Aspire.Hosting.Analyzers.csproj",
+      "src\\Aspire.Hosting.AppHost\\Aspire.Hosting.AppHost.csproj",
+      "src\\Aspire.Hosting.NodeJs\\Aspire.Hosting.NodeJs.csproj",
+      "src\\Aspire.Hosting.Python\\Aspire.Hosting.Python.csproj",
+      "src\\Aspire.Hosting.Testing\\Aspire.Hosting.Testing.csproj",
+      "src\\Aspire.Hosting\\Aspire.Hosting.csproj",
+      "tests\\Aspire.Cli.Tests\\Aspire.Cli.Tests.csproj",
+      "tests\\Aspire.Hosting.Tests\\Aspire.Hosting.Tests.csproj",
+      "tests\\Aspire.TestUtilities\\Aspire.TestUtilities.csproj"
+    ]
+  }
+}

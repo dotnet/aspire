@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Polyglot;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Configuration;
@@ -480,6 +481,7 @@ public static class ResourceBuilderExtensions
     /// <param name="optional"><see langword="true"/> to allow a missing connection string; <see langword="false"/> to throw an exception if the connection string is not found.</param>
     /// <exception cref="DistributedApplicationException">Throws an exception if the connection string resolves to null. It can be null if the resource has no connection string, and if the configuration has no connection string for the source resource.</exception>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithConnectionString> source, string? connectionName = null, bool optional = false)
         where TDestination : IResourceWithEnvironment
     {
@@ -556,6 +558,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithServiceDiscoveryReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source)
         where TDestination : IResourceWithEnvironment
     {
@@ -576,6 +579,7 @@ public static class ResourceBuilderExtensions
     /// <param name="source">The resource from which to extract service discovery information.</param>
     /// <param name="name">The name of the resource for the environment variable.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithNamedServiceDiscoveryReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<IResourceWithServiceDiscovery> source, string name)
         where TDestination : IResourceWithEnvironment
     {
@@ -596,6 +600,7 @@ public static class ResourceBuilderExtensions
     /// <param name="name">The name of the service.</param>
     /// <param name="uri">The uri of the service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithNamedUriReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, string name, Uri uri)
         where TDestination : IResourceWithEnvironment
     {
@@ -638,6 +643,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="externalService">The external service.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithExternalServiceReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, IResourceBuilder<ExternalServiceResource> externalService)
         where TDestination : IResourceWithEnvironment
     {
@@ -711,6 +717,7 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource where the service discovery information will be injected.</param>
     /// <param name="endpointReference">The endpoint from which to extract the url.</param>
     /// <returns>The <see cref="IResourceBuilder{T}"/>.</returns>
+    [PolyglotMethodName("WithEndpointReference")]
     public static IResourceBuilder<TDestination> WithReference<TDestination>(this IResourceBuilder<TDestination> builder, EndpointReference endpointReference)
         where TDestination : IResourceWithEnvironment
     {

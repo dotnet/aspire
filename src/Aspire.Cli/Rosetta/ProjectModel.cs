@@ -161,7 +161,7 @@ internal sealed class ProjectModel
         File.WriteAllText(launchSettingsJsonPath, launchSettingsJson);
 
         // language=xml
-        string template = $"""
+        var template = $"""
             <Project Sdk="Microsoft.NET.Sdk">
 
                 <Sdk Name="Aspire.AppHost.Sdk" Version="{AspireHostVersion}" />
@@ -171,6 +171,7 @@ internal sealed class ProjectModel
                     <TargetFramework>{TargetFramework}</TargetFramework>
                     <AssemblyName>{AssemblyName}</AssemblyName>
                     <OutDir>{BuildFolder}</OutDir>
+                    {(LocalPakcagePath is not null ? "<RestorePackagesPath>$(MSBuildThisFileDirectory)packages</RestorePackagesPath> <!-- SLOW - ONLY FOR LOCALLY BUILT PACKAGES -->" : "")}
                     <IsAspireHost>true</IsAspireHost>
                     <IsPublishable>true</IsPublishable>
                     <SelfContained>true</SelfContained>

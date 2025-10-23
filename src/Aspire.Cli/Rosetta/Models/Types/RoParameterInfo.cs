@@ -64,6 +64,7 @@ internal sealed class RoParameterInfo
     private List<RoCustomAttributeData> LoadCustomAttributes()
     {
         var list = new List<RoCustomAttributeData>();
+        var provider = new CustomAttributeTypeProvider(_reader);
 
         try
         {
@@ -101,12 +102,18 @@ internal sealed class RoParameterInfo
                             }
                     }
 
+                    var val = customAttribute.DecodeValue(provider);
+
+                    var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
+                    var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray(); //_reader.GetString(na.Name),
+
                     if (attributeType is not null)
                     {
                         list.Add(new RoCustomAttributeData
                         {
                             AttributeType = attributeType,
-                            NamedArguments = []
+                            FixedArguments = fixedArgs,
+                            NamedArguments = namedArgs
                         });
                     }
                 }

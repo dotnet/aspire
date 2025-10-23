@@ -136,12 +136,13 @@ internal class RoDefinitionMethod : RoMethod
     private List<RoCustomAttributeData> LoadCustomAttributes()
     {
         var list = new List<RoCustomAttributeData>();
+        var provider = new CustomAttributeTypeProvider(_reader);
 
-        foreach (var attrHandle in MethodDefinition.GetCustomAttributes())
+        foreach (var customAttributeHandle in MethodDefinition.GetCustomAttributes())
         {
             try
             {
-                var customAttribute = _reader.GetCustomAttribute(attrHandle);
+                var customAttribute = _reader.GetCustomAttribute(customAttributeHandle);
                 RoType? attributeType = null;
 
                 switch (customAttribute.Constructor.Kind)
@@ -171,12 +172,18 @@ internal class RoDefinitionMethod : RoMethod
                         }
                 }
 
+                var val = customAttribute.DecodeValue(provider);
+
+                var fixedArgs = val.FixedArguments.Select(a => a.Value).ToArray();
+                var namedArgs = val.NamedArguments.Select(na => new KeyValuePair<string, object>(na.Name!, na.Value!)).ToArray(); //_reader.GetString(na.Name),
+
                 if (attributeType is not null)
                 {
                     list.Add(new RoCustomAttributeData
                     {
                         AttributeType = attributeType,
-                        NamedArguments = []
+                        FixedArguments = fixedArgs,
+                        NamedArguments = namedArgs
                     });
                 }
             }

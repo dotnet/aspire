@@ -174,14 +174,27 @@ internal sealed class PolyglotCommand : BaseCommand
 
                 var packagesJson = PackagesJson.Open(output);
 
-                if (PackagesJson.GetPackageByShortName(packageName) is { } reference)
+                if (packageName.Contains('@'))
                 {
-                    (packageName, latestVersion) = reference;
+                    packageVersion = packageName.Split('@')[1];
+                    packageName = packageName.Split('@')[0];
+                }
+                else
+                {
+                    if (PackagesJson.GetPackageByShortName(packageName) is { } reference)
+                    {
+                        (packageName, latestVersion) = reference;
+                    }
                 }
 
                 packageVersion ??= latestVersion;
 
-                ArgumentException.ThrowIfNullOrEmpty(packageVersion);
+                if (string.IsNullOrEmpty(packageName) || string.IsNullOrEmpty(packageVersion))
+                {
+                    InteractionService.DisplayError($"Invalid package name or version");
+
+                    return ExitCodeConstants.InvalidCommand;
+                }
 
                 packagesJson.Import(packageName, packageVersion);
 

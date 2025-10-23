@@ -289,12 +289,30 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
 
         foreach (var mg in overloads.GroupBy(m => m.Name))
         {
-            var index = 0;
+            var indexes = new Dictionary<string, int>();
+
             foreach (var overload in mg.OrderBy(m => m.Parameters.Count))
             {
+                var methodNameAttribute = overload.GetCustomAttributes()
+                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                                    ?? overload.Name;
+
                 var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
-                    : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
+                    : ToSnakeCase(preferredMethodName);
+
+                if (indexes.TryGetValue(methodName, out var index))
+                {
+                    indexes[methodName] = index + 1;
+                    methodName = $"{methodName}{index.ToString(CultureInfo.InvariantCulture) + 1}";
+                }
+                else
+                {
+                    indexes[methodName] = 0;
+                }
 
                 var parameters = overload.Parameters.Skip(1);
 
@@ -333,8 +351,6 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
 
                         return result
                 """);
-
-                index++;
             }
         }
     }

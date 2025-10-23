@@ -25,6 +25,44 @@ public class PolyglotIgnoreAttribute() : Attribute
 }
 
 /// <summary>
+/// Specifies an alternative method name for a polyglot model in a given set of programming languages.
+/// </summary>
+/// <remarks>Apply this attribute to a method to indicate its corresponding name in other supported languages, as
+/// defined by the polyglot model. This is useful for tools or frameworks that generate or map code across multiple
+/// languages, ensuring consistent method naming conventions.</remarks>
+[AttributeUsage(AttributeTargets.Method)]
+public class PolyglotMethodNameAttribute : Attribute
+{
+    /// <summary>
+    /// Initializes a new instance of the PolyglotMethodNameAttribute class with the specified method name and optional
+    /// target languages.
+    /// </summary>
+    /// <param name="methodName">The name of the method as it should appear in the target language or languages. Cannot be null.</param>
+    public PolyglotMethodNameAttribute(string methodName)
+    {
+        MethodName = methodName;
+        Languages = PolyglotLanguages.All;
+    }
+
+    ///
+    public PolyglotMethodNameAttribute(string methodName, PolyglotLanguages languages)
+    {
+        MethodName = methodName;
+        Languages = languages;
+    }
+
+    /// <summary>
+    /// Gets the set of languages supported by the polyglot model.
+    /// </summary>
+    public PolyglotLanguages Languages { get; }
+
+    /// <summary>
+    /// Gets the method name for the target language.
+    /// </summary>
+    public string MethodName { get; }
+}
+
+/// <summary>
 /// Specifies the set of supported programming languages for polyglot operations.
 /// </summary>
 /// <remarks>This enumeration supports bitwise combination of its member values. Use the Flags attribute to

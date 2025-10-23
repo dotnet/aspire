@@ -2,7 +2,7 @@
   "profiles": {
     "polyglot-typescript": {
       "commandName": "Project",
-      "commandLineArgs": "polyglot add Ollama -o C:\\temp\\polyglot\\ts\\src\\apphost",
+      "commandLineArgs": "polyglot add \"Aspire.Hosting.Redis@13.0.0-dev\" -o C:\\temp\\polyglot\\ts\\src\\apphost",
       "dotnetRunMessages": true
     },
     "dev-waitfor-explicit": {

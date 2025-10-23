@@ -153,16 +153,18 @@ public class InstructionProcessor
                     }
                     catch (Exception ex)
                     {
-                        if (jsonElement.ValueKind == JsonValueKind.String &&
-                            _variables.TryGetValue(jsonElement.GetString()!, out var varValue) &&
-                            varValue != null &&
-                            methodParameters[i].ParameterType.IsAssignableFrom(varValue.GetType()))
+                        if (jsonElement.ValueKind == JsonValueKind.String
+                            && _variables.TryGetValue(jsonElement.GetString()!, out var varValue)
+                            && varValue != null
+                            )
                         {
+                            // Check the type compatibility. This may be an error if the wrong extension method was picked by the code generation.
+                            if (!methodParameters[i].ParameterType.IsAssignableFrom(varValue.GetType()))
+                            {
+                                throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{methodParameters[i].ParameterType}': {ex.Message}");
+                            }
+
                             arguments[i] = varValue;
-                        }
-                        else
-                        {
-                            throw new InvalidOperationException($"Failed to convert argument '{paramName}' to type '{methodParameters[i].ParameterType}': {ex.Message}");
                         }
                     }
                 }
