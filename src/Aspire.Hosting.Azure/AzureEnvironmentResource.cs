@@ -82,15 +82,17 @@ public sealed class AzureEnvironmentResource : Resource
 
             var provisionStep = new PipelineStep
             {
-                Name = WellKnownPipelineTags.ProvisionInfrastructure,
-                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!)
+                Name = "provision-azure-bicep-resources",
+                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!),
+                Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
             provisionStep.DependsOn(createContextStep);
 
             var buildStep = new PipelineStep
             {
-                Name = WellKnownPipelineTags.BuildCompute,
-                Action = ctx => BuildContainerImagesAsync(ctx)
+                Name = "build-container-images",
+                Action = ctx => BuildContainerImagesAsync(ctx),
+                Tags = [WellKnownPipelineTags.BuildCompute]
             };
 
             var pushStep = new PipelineStep
@@ -103,8 +105,9 @@ public sealed class AzureEnvironmentResource : Resource
 
             var deployStep = new PipelineStep
             {
-                Name = WellKnownPipelineTags.DeployCompute,
-                Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!)
+                Name = "deploy-compute-resources",
+                Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!),
+                Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployStep.DependsOn(pushStep);
             deployStep.DependsOn(provisionStep);
