@@ -577,7 +577,8 @@ public static class PythonAppResourceBuilderExtensions
                             TargetPlatform = ContainerTargetPlatform.LinuxAmd64
                         },
                         ctx.CancellationToken).ConfigureAwait(false);
-                }
+                },
+                Tags = [WellKnownPipelineTags.BuildCompute]
             };
 
             return buildStep;
