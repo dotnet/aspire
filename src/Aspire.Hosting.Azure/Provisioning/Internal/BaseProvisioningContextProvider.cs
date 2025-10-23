@@ -306,6 +306,39 @@ internal abstract partial class BaseProvisioningContextProvider(
         return (resourceGroupOptions, false);
     }
 
+    protected async Task<(List<(string Name, string Location)>? resourceGroupOptions, bool fetchSucceeded)> TryGetResourceGroupsWithLocationAsync(string subscriptionId, CancellationToken cancellationToken)
+    {
+        List<(string Name, string Location)>? resourceGroupOptions = null;
+
+        // SubscriptionId is always a GUID. Check if we have a valid GUID before trying to use it.
+        if (Guid.TryParse(subscriptionId, out _))
+        {
+            try
+            {
+                var credential = _tokenCredentialProvider.TokenCredential;
+                var armClient = _armClientProvider.GetArmClient(credential);
+                var availableResourceGroups = await armClient.GetAvailableResourceGroupsWithLocationAsync(subscriptionId, cancellationToken).ConfigureAwait(false);
+                var resourceGroupList = availableResourceGroups.ToList();
+
+                if (resourceGroupList.Count > 0)
+                {
+                    resourceGroupOptions = resourceGroupList;
+                    return (resourceGroupOptions, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enumerate available resource groups with locations.");
+            }
+        }
+        else
+        {
+            _logger.LogDebug("SubscriptionId '{SubscriptionId}' isn't a valid GUID. Skipping getting available resource groups from client.", subscriptionId);
+        }
+
+        return (resourceGroupOptions, false);
+    }
+
     protected async Task<(List<KeyValuePair<string, string>> locationOptions, bool fetchSucceeded)> TryGetLocationsAsync(string subscriptionId, CancellationToken cancellationToken)
     {
         List<KeyValuePair<string, string>>? locationOptions = null;

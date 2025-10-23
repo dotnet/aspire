@@ -95,6 +95,11 @@ internal interface IArmClient
     /// Gets all available resource groups for the specified subscription.
     /// </summary>
     Task<IEnumerable<string>> GetAvailableResourceGroupsAsync(string subscriptionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets detailed information about available resource groups including their locations.
+    /// </summary>
+    Task<IEnumerable<(string Name, string Location)>> GetAvailableResourceGroupsWithLocationAsync(string subscriptionId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>

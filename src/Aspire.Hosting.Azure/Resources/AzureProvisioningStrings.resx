@@ -192,4 +192,10 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
   <data name="ResourceGroupPlaceholder" xml:space="preserve">
     <value>Select or enter resource group</value>
   </data>
+  <data name="ResourceGroupDialogTitle" xml:space="preserve">
+    <value>Azure resource group</value>
+  </data>
+  <data name="ResourceGroupSelectionMessage" xml:space="preserve">
+    <value>Select your Azure resource group or enter a new name:</value>
+  </data>
 </root>
