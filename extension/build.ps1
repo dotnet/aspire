@@ -23,10 +23,13 @@ if (-not (Get-Command yarn -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# Check for VS Code
-if (-not (Get-Command code -ErrorAction SilentlyContinue)) {
-    Write-Error "Error: VS Code is not installed or 'code' command is not in PATH."
-    Write-Host "Please install VS Code and ensure it's added to your PATH."
+# Check for VS Code or VS Code Insiders
+$hasVSCode = Get-Command code -ErrorAction SilentlyContinue
+$hasVSCodeInsiders = Get-Command code-insiders -ErrorAction SilentlyContinue
+
+if (-not $hasVSCode -and -not $hasVSCodeInsiders) {
+    Write-Error "Error: VS Code or VS Code Insiders is not installed or not in PATH."
+    Write-Host "Please install VS Code or VS Code Insiders and ensure it's added to your PATH."
     exit 1
 }
 
