@@ -14,7 +14,7 @@ public class AddViteAppTests
 
         var workingDirectory = AppContext.BaseDirectory;
         var nodeApp = builder.AddViteApp("vite", "vite")
-            .WithNpm();
+            .WithNpm(install: true);
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
 

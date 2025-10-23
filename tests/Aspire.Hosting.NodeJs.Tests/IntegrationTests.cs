@@ -19,7 +19,7 @@ public class IntegrationTests
 
         // Add a vite app with the npm package manager
         builder.AddViteApp("vite-app", "./frontend")
-            .WithNpm(useCI: true);
+            .WithNpm(install: true, useCI: true);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
@@ -61,7 +61,7 @@ public class IntegrationTests
         var builder = DistributedApplication.CreateBuilder();
 
         builder.AddNpmApp("test-app", "./test")
-            .WithNpm(useCI: true);
+            .WithNpm(install: true, useCI: true);
 
         using var app = builder.Build();
         var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();

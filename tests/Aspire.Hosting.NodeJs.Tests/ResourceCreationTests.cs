@@ -112,7 +112,7 @@ public class ResourceCreationTests
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
         // Add package installation with default settings (should use npm install, not ci)
-        nodeApp.WithNpm(useCI: false);
+        nodeApp.WithNpm(install: true, useCI: false);
 
         using var app = builder.Build();
 
@@ -150,7 +150,7 @@ public class ResourceCreationTests
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
         // Add package installation with CI enabled
-        nodeApp.WithNpm(useCI: true);
+        nodeApp.WithNpm(install: true, useCI: true);
 
         using var app = builder.Build();
 
@@ -213,14 +213,14 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public void WithNpmAutoInstallFalseDoesNotCreateInstaller()
+    public void WithNpmInstallFalseDoesNotCreateInstaller()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
-        // Configure npm without auto-installing packages
-        nodeApp.WithNpm(autoInstall: false);
+        // Configure npm without installing packages
+        nodeApp.WithNpm(install: false);
 
         using var app = builder.Build();
 

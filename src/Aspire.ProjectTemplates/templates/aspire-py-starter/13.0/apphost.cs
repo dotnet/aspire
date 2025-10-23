@@ -28,7 +28,7 @@ var apiService = builder.AddPythonScript("app", "./app", "app.py")
     });
 
 builder.AddViteApp("frontend", "./frontend")
-    .WithNpm()
+    .WithNpm(install: true)
     .WithReference(apiService)
     .WaitFor(apiService);
 

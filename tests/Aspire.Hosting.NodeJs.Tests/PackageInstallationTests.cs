@@ -21,8 +21,8 @@ public class PackageInstallationTests
         var nodeApp2 = builder.AddNpmApp("test-app-ci", "./test-app-ci");
 
         // Test that both configurations can be set up without errors
-        nodeApp.WithNpm(useCI: false); // Uses npm install
-        nodeApp2.WithNpm(useCI: true);  // Uses npm ci
+        nodeApp.WithNpm(install: true, useCI: false); // Uses npm install
+        nodeApp2.WithNpm(install: true, useCI: true);  // Uses npm ci
 
         using var app = builder.Build();
 
@@ -55,7 +55,7 @@ public class PackageInstallationTests
         var builder = DistributedApplication.CreateBuilder(["Publishing:Publisher=manifest", "Publishing:OutputPath=./publish"]);
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        nodeApp.WithNpm(useCI: false);
+        nodeApp.WithNpm(install: true, useCI: false);
 
         using var app = builder.Build();
 
@@ -82,11 +82,11 @@ public class PackageInstallationTests
         var nodeAppWithArgs = builder.AddNpmApp("test-app-args", "./test-app-args");
 
         // Test npm install with additional args
-        nodeApp.WithNpm(useCI: false, configureInstaller: installerBuilder =>
+        nodeApp.WithNpm(install: true, useCI: false, configureInstaller: installerBuilder =>
         {
             installerBuilder.WithArgs("--legacy-peer-deps");
         });
-        nodeAppWithArgs.WithNpm(useCI: true, configureInstaller: installerBuilder =>
+        nodeAppWithArgs.WithNpm(install: true, useCI: true, configureInstaller: installerBuilder =>
         {
             installerBuilder.WithArgs("--verbose", "--no-optional");
         });
