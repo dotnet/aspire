@@ -106,7 +106,7 @@ public static class NodeAppHostingExtension
     /// var builder = DistributedApplication.CreateBuilder(args);
     ///
     /// builder.AddViteApp("frontend", "./frontend")
-    ///        .WithNpmPackageManager();
+    ///        .WithNpm();
     ///
     /// builder.Build().Run();
     /// </code>
@@ -187,18 +187,19 @@ public static class NodeAppHostingExtension
     }
 
     /// <summary>
-    /// Ensures the Node.js packages are installed before the application starts using npm as the package manager.
+    /// Configures the Node.js resource to use npm as the package manager and optionally installs packages before the application starts.
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
+    /// <param name="autoInstall">When true (default), automatically installs packages before the application starts. When false, only sets the package manager annotation without creating an installer resource.</param>
     /// <param name="useCI">When true, use <code>npm ci</code>, otherwise use <code>npm install</code> when installing packages.</param>
-    /// <param name="configureInstaller">Configure the npm installer resource.</param>
+    /// <param name="configureInstaller">Configure the npm installer resource. Only applicable when <paramref name="autoInstall"/> is true.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource, bool useCI = false, Action<IResourceBuilder<NodeInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool autoInstall = true, bool useCI = false, Action<IResourceBuilder<NodeInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
     {
         AddNpmPackageManagerAnnotation(resource, useCI);
 
-        // Only install packages during development, not in publish mode
-        if (!resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        // Only install packages if autoInstall is enabled and not in publish mode
+        if (autoInstall && !resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
         {
             var installerName = $"{resource.Resource.Name}-npm-install";
             var installer = new NodeInstallerResource(installerName, resource.Resource.WorkingDirectory);

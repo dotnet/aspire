@@ -9,11 +9,11 @@ namespace Aspire.Hosting.NodeJs.Tests;
 public class PackageInstallationTests
 {
     /// <summary>
-    /// This test validates that the WithNpmPackageManager method creates
+    /// This test validates that the WithNpm method creates
     /// installer resources with proper arguments and relationships.
     /// </summary>
     [Fact]
-    public async Task WithNpmPackageManager_CanBeConfiguredWithInstallAndCIOptions()
+    public async Task WithNpm_CanBeConfiguredWithInstallAndCIOptions()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -21,8 +21,8 @@ public class PackageInstallationTests
         var nodeApp2 = builder.AddNpmApp("test-app-ci", "./test-app-ci");
 
         // Test that both configurations can be set up without errors
-        nodeApp.WithNpmPackageManager(useCI: false); // Uses npm install
-        nodeApp2.WithNpmPackageManager(useCI: true);  // Uses npm ci
+        nodeApp.WithNpm(useCI: false); // Uses npm install
+        nodeApp2.WithNpm(useCI: true);  // Uses npm ci
 
         using var app = builder.Build();
 
@@ -50,12 +50,12 @@ public class PackageInstallationTests
     }
 
     [Fact]
-    public void WithNpmPackageManager_ExcludedFromPublishMode()
+    public void WithNpm_ExcludedFromPublishMode()
     {
         var builder = DistributedApplication.CreateBuilder(["Publishing:Publisher=manifest", "Publishing:OutputPath=./publish"]);
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        nodeApp.WithNpmPackageManager(useCI: false);
+        nodeApp.WithNpm(useCI: false);
 
         using var app = builder.Build();
 
@@ -74,7 +74,7 @@ public class PackageInstallationTests
     }
 
     [Fact]
-    public async Task WithNpmPackageManager_CanAcceptAdditionalArgs()
+    public async Task WithNpm_CanAcceptAdditionalArgs()
     {
         var builder = DistributedApplication.CreateBuilder();
 
@@ -82,11 +82,11 @@ public class PackageInstallationTests
         var nodeAppWithArgs = builder.AddNpmApp("test-app-args", "./test-app-args");
 
         // Test npm install with additional args
-        nodeApp.WithNpmPackageManager(useCI: false, configureInstaller: installerBuilder =>
+        nodeApp.WithNpm(useCI: false, configureInstaller: installerBuilder =>
         {
             installerBuilder.WithArgs("--legacy-peer-deps");
         });
-        nodeAppWithArgs.WithNpmPackageManager(useCI: true, configureInstaller: installerBuilder =>
+        nodeAppWithArgs.WithNpm(useCI: true, configureInstaller: installerBuilder =>
         {
             installerBuilder.WithArgs("--verbose", "--no-optional");
         });

@@ -105,14 +105,14 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public async Task WithNpmPackageManagerDefaultsToInstallCommand()
+    public async Task WithNpmDefaultsToInstallCommand()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
         // Add package installation with default settings (should use npm install, not ci)
-        nodeApp.WithNpmPackageManager(useCI: false);
+        nodeApp.WithNpm(useCI: false);
 
         using var app = builder.Build();
 
@@ -143,14 +143,14 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public async Task WithNpmPackageManagerCanUseCICommand()
+    public async Task WithNpmCanUseCICommand()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
         // Add package installation with CI enabled
-        nodeApp.WithNpmPackageManager(useCI: true);
+        nodeApp.WithNpm(useCI: true);
 
         using var app = builder.Build();
 
@@ -210,5 +210,39 @@ public class ResourceCreationTests
             arg => Assert.Equal("--port", arg),
             arg => Assert.IsType<EndpointReferenceExpression>(arg)
         );
+    }
+
+    [Fact]
+    public void WithNpmAutoInstallFalseDoesNotCreateInstaller()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
+
+        // Configure npm without auto-installing packages
+        nodeApp.WithNpm(autoInstall: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists with npm command
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+        Assert.Equal("npm", nodeResource.Command);
+
+        // Verify the package manager annotation is set
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation));
+        Assert.NotNull(packageManagerAnnotation);
+        Assert.Equal("npm", packageManagerAnnotation.PackageManager);
+
+        // Verify NO installer resource was created
+        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
+        Assert.Empty(installerResources);
+
+        // Verify no wait annotations were added
+        Assert.False(nodeResource.TryGetAnnotationsOfType<WaitAnnotation>(out _));
+
+        // Verify no package installer annotation was added
+        Assert.False(nodeResource.TryGetLastAnnotation<JavaScriptPackageInstallerAnnotation>(out _));
     }
 }
