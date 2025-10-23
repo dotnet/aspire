@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,6 +18,7 @@ namespace Aspire.Hosting.Pipelines;
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
     private readonly List<PipelineStep> _steps = [];
+    private readonly List<Func<PipelineConfigurationContext, Task>> _configurationCallbacks = [];
 
     public bool HasSteps => _steps.Count > 0;
 
@@ -103,10 +105,20 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(step);
     }
 
+    public void AddPipelineConfiguration(Func<PipelineConfigurationContext, Task> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        _configurationCallbacks.Add(callback);
+    }
+
     public async Task ExecuteAsync(PipelineContext context)
     {
-        var annotationSteps = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
+        var (annotationSteps, stepToResourceMap) = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
         var allSteps = _steps.Concat(annotationSteps).ToList();
+
+        // Execute configuration callbacks even if there are no steps
+        // This allows callbacks to run validation or other logic
+        await ExecuteConfigurationCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
 
         if (allSteps.Count == 0)
         {
@@ -182,9 +194,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         return result;
     }
 
-    private static async Task<List<PipelineStep>> CollectStepsFromAnnotationsAsync(PipelineContext context)
+    private static async Task<(List<PipelineStep> Steps, Dictionary<PipelineStep, IResource> StepToResourceMap)> CollectStepsFromAnnotationsAsync(PipelineContext context)
     {
         var steps = new List<PipelineStep>();
+        var stepToResourceMap = new Dictionary<PipelineStep, IResource>();
 
         foreach (var resource in context.Model.Resources)
         {
@@ -200,11 +213,53 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 };
 
                 var annotationSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
-                steps.AddRange(annotationSteps);
+                foreach (var step in annotationSteps)
+                {
+                    steps.Add(step);
+                    stepToResourceMap[step] = resource;
+                }
             }
         }
 
-        return steps;
+        return (steps, stepToResourceMap);
+    }
+
+    private async Task ExecuteConfigurationCallbacksAsync(
+        PipelineContext pipelineContext,
+        List<PipelineStep> allSteps,
+        Dictionary<PipelineStep, IResource> stepToResourceMap)
+    {
+        // Collect callbacks from the pipeline itself
+        var callbacks = new List<Func<PipelineConfigurationContext, Task>>();
+        
+        callbacks.AddRange(_configurationCallbacks);
+
+        // Collect callbacks from resource annotations
+        foreach (var resource in pipelineContext.Model.Resources)
+        {
+            var annotations = resource.Annotations.OfType<PipelineConfigurationAnnotation>();
+            foreach (var annotation in annotations)
+            {
+                callbacks.Add(annotation.Callback);
+            }
+        }
+
+        // Execute all callbacks
+        if (callbacks.Count > 0)
+        {
+            var configContext = new PipelineConfigurationContext
+            {
+                Services = pipelineContext.Services,
+                Steps = allSteps.AsReadOnly(),
+                Model = pipelineContext.Model,
+                StepToResourceMap = stepToResourceMap
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback(configContext).ConfigureAwait(false);
+            }
+        }
     }
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)
