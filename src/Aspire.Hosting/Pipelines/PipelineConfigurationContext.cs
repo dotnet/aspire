@@ -27,7 +27,7 @@ public class PipelineConfigurationContext
     /// </summary>
     public required DistributedApplicationModel Model { get; init; }
 
-    internal IReadOnlyDictionary<PipelineStep, IResource> StepToResourceMap { get; init; } = null!;
+    internal IReadOnlyDictionary<PipelineStep, IResource>? StepToResourceMap { get; init; }
 
     /// <summary>
     /// Gets all pipeline steps with the specified tag.
@@ -48,7 +48,7 @@ public class PipelineConfigurationContext
     public IEnumerable<PipelineStep> GetSteps(IResource resource)
     {
         ArgumentNullException.ThrowIfNull(resource);
-        return StepToResourceMap.Where(kvp => kvp.Value == resource).Select(kvp => kvp.Key);
+        return StepToResourceMap?.Where(kvp => kvp.Value == resource).Select(kvp => kvp.Key) ?? [];
     }
 
     /// <summary>
