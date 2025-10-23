@@ -16,6 +16,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class NodeAppHostingExtension
 {
+    private const string DefaultNodeVersion = "22";
+
     /// <summary>
     /// Adds a node application to the application model. Node should available on the PATH.
     /// </summary>
@@ -170,7 +172,7 @@ public static class NodeAppHostingExtension
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
                         && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
                     {
-                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory) ?? "22";
+                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory) ?? DefaultNodeVersion;
                         var dockerBuilder = dockerfileContext.Builder
                             .From($"node:{nodeVersion}-slim")
                             .WorkDir("/app")
