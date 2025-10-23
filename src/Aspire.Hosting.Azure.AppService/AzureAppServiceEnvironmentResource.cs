@@ -43,10 +43,10 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal bool EnableDashboard { get; set; } = true;
 
     /// <summary>
-    /// Enables or disables auto-scaling for the App Service Plan.
+    /// Enables or disables automatic scaling for the App Service Plan.
     /// Default is true.
     /// </summary>
-    internal bool EnableAutoScale { get; set; } = true;
+    internal bool EnableAutomaticScaling { get; set; } = true;
 
     /// <summary>
     /// Gets the name of the App Service Plan.

@@ -458,7 +458,7 @@ public class AzureAppServiceTests
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env").WithAutoScale(false);
+        builder.AddAzureAppServiceEnvironment("env").WithAutomaticScaling(false);
 
         using var app = builder.Build();
 

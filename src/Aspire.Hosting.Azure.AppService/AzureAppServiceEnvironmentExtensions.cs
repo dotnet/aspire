@@ -99,8 +99,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 IsReserved = true,
                 // Enable perSiteScaling or autoscale so each app service can scale independently
                 // Default is autoscale where Scaling is managed by platform based on HTTP traffic patterns
-                IsPerSiteScaling = !resource.EnableAutoScale,
-                IsElasticScaleEnabled = resource.EnableAutoScale,
+                IsPerSiteScaling = !resource.EnableAutomaticScaling,
+                IsElasticScaleEnabled = resource.EnableAutomaticScaling,
                 // Capping the autoscale limit to 10 as per best practices
                 MaximumElasticWorkerCount = 10
             };
@@ -181,9 +181,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
     /// <param name="enable">Whether to enable auto-scaling. Default is true.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
-    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutoScale(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
     {
-        builder.Resource.EnableAutoScale = enable;
+        builder.Resource.EnableAutomaticScaling = enable;
         return builder;
     }
 }
