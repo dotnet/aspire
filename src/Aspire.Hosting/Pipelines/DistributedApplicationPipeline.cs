@@ -156,6 +156,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
         stepsToExecute.Add(targetStep);
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
+
+        // Mark steps that were filtered out as Skipped
+        foreach (var step in allSteps)
+        {
+            if (!filteredStepsByName.ContainsKey(step.Name))
+            {
+                step.TryTransitionStatus(PipelineStepStatus.Skipped);
+            }
+        }
+
         return (stepsToExecute, filteredStepsByName);
     }
 

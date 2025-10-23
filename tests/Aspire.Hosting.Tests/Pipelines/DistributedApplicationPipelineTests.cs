@@ -2604,6 +2604,72 @@ public class DistributedApplicationPipelineTests
         Assert.Equal(PipelineStepStatus.Running, step.Status);
     }
 
+    [Fact]
+    public async Task ExecuteAsync_WithStepFilter_MarksFilteredStepsAsSkipped()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        builder.Services.Configure<PublishingOptions>(options =>
+        {
+            options.Step = "step2";
+        });
+
+        var pipeline = new DistributedApplicationPipeline();
+
+        var step1 = new PipelineStep
+        {
+            Name = "step1",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        var step2 = new PipelineStep
+        {
+            Name = "step2",
+            Action = async (context) => await Task.CompletedTask
+        };
+        step2.DependsOn(step1);
+
+        var step3 = new PipelineStep
+        {
+            Name = "step3",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        pipeline.AddStep(step1);
+        pipeline.AddStep(step2);
+        pipeline.AddStep(step3);
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // step1 should succeed (dependency of step2)
+        Assert.Equal(PipelineStepStatus.Succeeded, step1.Status);
+
+        // step2 should succeed (target step)
+        Assert.Equal(PipelineStepStatus.Succeeded, step2.Status);
+
+        // step3 should be skipped (not in execution path)
+        Assert.Equal(PipelineStepStatus.Skipped, step3.Status);
+    }
+
+    [Fact]
+    public void PipelineStep_SkippedTransition_IsValid()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (context) => await Task.CompletedTask
+        };
+
+        // Transition from Pending to Skipped should be valid
+        Assert.True(step.TryTransitionStatus(PipelineStepStatus.Skipped));
+        Assert.Equal(PipelineStepStatus.Skipped, step.Status);
+
+        // Terminal state - cannot transition from Skipped
+        Assert.False(step.TryTransitionStatus(PipelineStepStatus.Running));
+        Assert.Equal(PipelineStepStatus.Skipped, step.Status);
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }

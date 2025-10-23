@@ -90,16 +90,17 @@ public class PipelineStep
 
         return (current, next) switch
         {
-            // From Pending, can go to Running or Failed (if dependency fails)
+            // From Pending, can go to Running, Failed (if dependency fails), or Skipped (if filtered out)
             (PipelineStepStatus.Pending, PipelineStepStatus.Running) => true,
             (PipelineStepStatus.Pending, PipelineStepStatus.Failed) => true,
+            (PipelineStepStatus.Pending, PipelineStepStatus.Skipped) => true,
 
             // From Running, can go to any terminal state
             (PipelineStepStatus.Running, PipelineStepStatus.Succeeded) => true,
             (PipelineStepStatus.Running, PipelineStepStatus.Failed) => true,
             (PipelineStepStatus.Running, PipelineStepStatus.Canceled) => true,
 
-            // Terminal states (Succeeded, Failed, Canceled) cannot transition to other states
+            // Terminal states (Succeeded, Failed, Canceled, Skipped) cannot transition to other states
             _ => false
         };
     }

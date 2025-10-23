@@ -34,5 +34,10 @@ public enum PipelineStepStatus
     /// <summary>
     /// The step was canceled before completion.
     /// </summary>
-    Canceled
+    Canceled,
+
+    /// <summary>
+    /// The step was skipped and not executed.
+    /// </summary>
+    Skipped
 }
