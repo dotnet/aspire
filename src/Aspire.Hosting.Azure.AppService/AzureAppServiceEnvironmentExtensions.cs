@@ -101,7 +101,8 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 // Default is autoscale where Scaling is managed by platform based on HTTP traffic patterns
                 IsPerSiteScaling = !resource.EnableAutoScale,
                 IsElasticScaleEnabled = resource.EnableAutoScale,
-                MaximumElasticWorkerCount = 20
+                // Capping the autoscale limit to 10 as per best practices
+                MaximumElasticWorkerCount = 10
             };
 
             infra.Add(plan);

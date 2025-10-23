@@ -263,9 +263,6 @@ internal sealed class AzureAppServiceWebsiteContext(
                 // We want the web apps to scale normally as defined for the app service plan
                 // so setting the maximum number of workers to the maximum allowed for Premium V2 SKU.
                 NumberOfWorkers = 30,
-                // Capping the autoscale limit to 10 as per best practices
-                FunctionAppScaleLimit = 10,
-                IsAlwaysOn = true,
                 AppSettings = []
             },
             Identity = new ManagedServiceIdentity()
@@ -273,12 +270,6 @@ internal sealed class AzureAppServiceWebsiteContext(
                 ManagedServiceIdentityType = ManagedServiceIdentityType.UserAssigned,
                 UserAssignedIdentities = []
             },
-        };
-
-        var config = new WebSiteConfig("webappConfig")
-        {
-            Parent = webSite,
-            ElasticWebAppScaleLimit = 10
         };
 
         // Defining the main container for the app service
@@ -397,7 +388,6 @@ internal sealed class AzureAppServiceWebsiteContext(
         }
 
         infra.Add(webSite);
-        infra.Add(config);
         if (webSiteRa is not null)
         {
             infra.Add(webSiteRa);
