@@ -446,13 +446,11 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<PipelineActivityReporter>();
         _innerBuilder.Services.AddSingleton<IPipelineActivityReporter, PipelineActivityReporter>(sp => sp.GetRequiredService<PipelineActivityReporter>());
         _innerBuilder.Services.AddSingleton(Pipeline);
-        _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
 
-        // Read this once from configuration and use it to filter logs from the pipeline
-        LogLevel? minLevel = null;
-        _innerBuilder.Logging.AddFilter<PipelineLoggerProvider>((level) =>
+        // Configure pipeline logging options
+        _innerBuilder.Services.Configure<PipelineLoggingOptions>(o =>
         {
-            minLevel ??= _innerBuilder.Configuration["Publishing:LogLevel"]?.ToLowerInvariant() switch
+            o.MinimumLogLevel = _innerBuilder.Configuration["Publishing:LogLevel"]?.ToLowerInvariant() switch
             {
                 "trace" => LogLevel.Trace,
                 "debug" => LogLevel.Debug,
@@ -462,8 +460,14 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                 "crit" or "critical" => LogLevel.Critical,
                 _ => LogLevel.Information
             };
+        });
 
-            return level >= minLevel;
+        _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
+
+        // Configure logging filter using the PipelineLoggingOptions
+        _innerBuilder.Services.AddOptions<LoggerFilterOptions>().Configure<PipelineLoggingOptions>((filterLoggingOptions, pipelineLoggingOptions) =>
+        {
+            filterLoggingOptions.AddFilter<PipelineLoggerProvider>((level) => level >= pipelineLoggingOptions.MinimumLogLevel);
         });
 
         // Register IDeploymentStateManager based on execution context

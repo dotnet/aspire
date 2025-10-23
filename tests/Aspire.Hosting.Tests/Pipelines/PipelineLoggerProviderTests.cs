@@ -8,11 +8,17 @@ using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Pipelines;
 
 public class PipelineLoggerProviderTests
 {
+    private static PipelineLoggerProvider CreateProvider(LogLevel minimumLogLevel = LogLevel.Information)
+    {
+        var options = Options.Create(new PipelineLoggingOptions { MinimumLogLevel = minimumLogLevel });
+        return new PipelineLoggerProvider(options);
+    }
     [Fact]
     public void CurrentLogger_WhenNotSet_ReturnsNullLogger()
     {
@@ -72,7 +78,7 @@ public class PipelineLoggerProviderTests
     public void CreateLogger_ReturnsValidLogger()
     {
         // Arrange
-        var provider = new PipelineLoggerProvider();
+        var provider = CreateProvider();
 
         // Act
         var logger = provider.CreateLogger("TestCategory");
@@ -87,7 +93,7 @@ public class PipelineLoggerProviderTests
         // Arrange
         var fakeLogger1 = new FakeLogger();
         var fakeLogger2 = new FakeLogger();
-        var provider = new PipelineLoggerProvider();
+        var provider = CreateProvider();
 
         // Act
         var task1 = Task.Run(async () =>
