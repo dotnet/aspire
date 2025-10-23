@@ -51,8 +51,13 @@ public static class MauiWindowsExtensions
         // Use default name if not provided
         name ??= $"{builder.Resource.Name}-windows";
 
-        // Check if a Windows device with this name already exists
-        if (builder.Resource.WindowsDevices.Any(d => string.Equals(d.Name, name, StringComparisons.ResourceName)))
+        // Check if a Windows device with this name already exists in the application model
+        var existingWindowsDevice = builder.ApplicationBuilder.Resources
+            .OfType<MauiWindowsPlatformResource>()
+            .FirstOrDefault(r => r.Parent == builder.Resource && 
+                                 string.Equals(r.Name, name, StringComparisons.ResourceName));
+
+        if (existingWindowsDevice is not null)
         {
             throw new DistributedApplicationException(
                 $"Windows device with name '{name}' already exists on MAUI project '{builder.Resource.Name}'. " +
@@ -74,7 +79,6 @@ public static class MauiWindowsExtensions
         var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
 
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource, "dotnet", workingDirectory);
-        builder.Resource.WindowsDevices.Add(windowsResource);
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
             .WithOtlpExporter()

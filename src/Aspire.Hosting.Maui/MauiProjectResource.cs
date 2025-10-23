@@ -24,9 +24,4 @@ public class MauiProjectResource(string name, string projectPath) : Resource(nam
     /// Gets the path to the .NET MAUI project file.
     /// </summary>
     public string ProjectPath { get; } = projectPath ?? throw new ArgumentNullException(nameof(projectPath));
-
-    /// <summary>
-    /// Gets the collection of Windows platform resources associated with this MAUI project.
-    /// </summary>
-    internal List<MauiWindowsPlatformResource> WindowsDevices { get; } = [];
 }
