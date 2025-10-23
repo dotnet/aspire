@@ -100,7 +100,6 @@ public static class NodeAppHostingExtension
     /// <param name="useHttps">When true use HTTPS for the endpoints, otherwise use HTTP.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
-    ///
     /// <example>
     /// The following example creates a Vite app using npm as the package manager.
     /// <code lang="csharp">
