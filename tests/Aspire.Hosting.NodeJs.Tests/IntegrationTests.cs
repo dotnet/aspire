@@ -17,7 +17,7 @@ public class IntegrationTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        // Add a vite apps with the npm package manager
+        // Add a vite app with the npm package manager
         builder.AddViteApp("vite-app", "./frontend")
             .WithNpmPackageManager(useCI: true);
 
