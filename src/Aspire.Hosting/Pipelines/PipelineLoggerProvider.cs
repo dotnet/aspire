@@ -80,7 +80,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
             
             // If there's an exception and the log level is not Debug or Trace, exclude the exception from the log
             // to avoid cluttering production logs with stack traces
-            if (exception is not null && logLevel > LogLevel.Debug)
+            if (exception is not null && logLevel >= LogLevel.Debug)
             {
                 logger.Log(logLevel, eventId, state, null, formatter);
             }
