@@ -83,38 +83,38 @@ public static class PipelineStepExtensions
     }
 
     /// <summary>
-    /// Registers a callback to be executed during the second pass of pipeline setup,
+    /// Registers a callback to be executed during the pipeline configuration phase,
     /// allowing modification of step dependencies and relationships.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback function to execute during the second pass.</param>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelinePassCallback<T>(
+    public static IResourceBuilder<T> WithPipelineConfiguration<T>(
         this IResourceBuilder<T> builder,
-        Func<PipelinePassContext, Task> callback) where T : IResource
+        Func<PipelineConfigurationContext, Task> callback) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new PipelinePassAnnotation(callback));
+        return builder.WithAnnotation(new PipelineConfigurationAnnotation(callback));
     }
 
     /// <summary>
-    /// Registers a callback to be executed during the second pass of pipeline setup,
+    /// Registers a callback to be executed during the pipeline configuration phase,
     /// allowing modification of step dependencies and relationships.
     /// </summary>
     /// <typeparam name="T">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback function to execute during the second pass.</param>
+    /// <param name="callback">The callback function to execute during the configuration phase.</param>
     /// <returns>The resource builder for chaining.</returns>
-    public static IResourceBuilder<T> WithPipelinePassCallback<T>(
+    public static IResourceBuilder<T> WithPipelineConfiguration<T>(
         this IResourceBuilder<T> builder,
-        Action<PipelinePassContext> callback) where T : IResource
+        Action<PipelineConfigurationContext> callback) where T : IResource
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new PipelinePassAnnotation(callback));
+        return builder.WithAnnotation(new PipelineConfigurationAnnotation(callback));
     }
 }

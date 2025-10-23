@@ -5,7 +5,6 @@
 #pragma warning disable ASPIREAZURE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREINTERACTION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-#pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
@@ -79,14 +78,14 @@ public sealed class AzureEnvironmentResource : Resource
 
             var provisionStep = new PipelineStep
             {
-                Name = WellKnownPipelineSteps.ProvisionInfrastructure,
+                Name = WellKnownPipelineTags.ProvisionInfrastructure,
                 Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!)
             };
             provisionStep.DependsOn(createContextStep);
 
             var buildStep = new PipelineStep
             {
-                Name = WellKnownPipelineSteps.BuildCompute,
+                Name = WellKnownPipelineTags.BuildCompute,
                 Action = ctx => BuildContainerImagesAsync(ctx)
             };
 
@@ -100,7 +99,7 @@ public sealed class AzureEnvironmentResource : Resource
 
             var deployStep = new PipelineStep
             {
-                Name = WellKnownPipelineSteps.DeployCompute,
+                Name = WellKnownPipelineTags.DeployCompute,
                 Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!)
             };
             deployStep.DependsOn(pushStep);

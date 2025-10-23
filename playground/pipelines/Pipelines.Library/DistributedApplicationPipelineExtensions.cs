@@ -2,7 +2,6 @@
 #pragma warning disable ASPIRECOMPUTE001
 #pragma warning disable ASPIREAZURE001
 #pragma warning disable ASPIREPIPELINES001
-#pragma warning disable CS0618 // Type or member is obsolete
 
 using System.Diagnostics;
 using System.IO.Compression;
@@ -51,7 +50,7 @@ public static class DistributedApplicationPipelineExtensions
                     }
                 }
             }
-        }, dependsOn: WellKnownPipelineSteps.DeployCompute);
+        }, dependsOn: WellKnownPipelineTags.DeployCompute);
 
         return pipeline;
     }

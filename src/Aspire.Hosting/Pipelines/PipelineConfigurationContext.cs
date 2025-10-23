@@ -7,10 +7,10 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Pipelines;
 
 /// <summary>
-/// Provides contextual information for pipeline second-pass callbacks.
+/// Provides contextual information for pipeline configuration callbacks.
 /// </summary>
 [Experimental("ASPIREPIPELINES001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-public class PipelinePassContext
+public class PipelineConfigurationContext
 {
     /// <summary>
     /// Gets the service provider for dependency resolution.
@@ -23,9 +23,9 @@ public class PipelinePassContext
     public required IReadOnlyList<PipelineStep> Steps { get; init; }
 
     /// <summary>
-    /// Gets the resource that registered this pass callback, if any.
+    /// Gets the distributed application model containing all resources.
     /// </summary>
-    public IResource? Resource { get; internal set; }
+    public required DistributedApplicationModel ApplicationModel { get; init; }
 
     internal IReadOnlyDictionary<PipelineStep, IResource> StepToResourceMap { get; init; } = null!;
 
