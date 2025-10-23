@@ -303,7 +303,7 @@ public class ProvisioningContextProviderTests
             {
                 Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
                 Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal(InputType.Choice, input.InputType);
                 Assert.False(input.Required);
             });
 
@@ -456,7 +456,7 @@ public class ProvisioningContextProviderTests
             {
                 Assert.Equal(BaseProvisioningContextProvider.ResourceGroupName, input.Name);
                 Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
+                Assert.Equal(InputType.Choice, input.InputType);
                 Assert.False(input.Required);
             });
 
@@ -523,5 +523,27 @@ public class ProvisioningContextProviderTests
         Assert.NotNull(context.Location.DisplayName);
         Assert.NotNull(context.Principal);
         Assert.Equal("westus2", context.Location.Name);
+    }
+
+    [Fact]
+    public async Task GetAvailableResourceGroupsAsync_ReturnsResourceGroups()
+    {
+        // Arrange
+        var armClientProvider = ProvisioningTestHelpers.CreateArmClientProvider();
+        var tokenCredentialProvider = ProvisioningTestHelpers.CreateTokenCredentialProvider();
+        var credential = tokenCredentialProvider.TokenCredential;
+        var armClient = armClientProvider.GetArmClient(credential);
+        var subscriptionId = "12345678-1234-1234-1234-123456789012";
+
+        // Act
+        var resourceGroups = await armClient.GetAvailableResourceGroupsAsync(subscriptionId, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(resourceGroups);
+        var resourceGroupList = resourceGroups.ToList();
+        Assert.NotEmpty(resourceGroupList);
+        Assert.Contains("rg-test-1", resourceGroupList);
+        Assert.Contains("rg-test-2", resourceGroupList);
+        Assert.Contains("rg-aspire-dev", resourceGroupList);
     }
 }
