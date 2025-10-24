@@ -13,10 +13,6 @@ namespace Aspire.Hosting.Tests.Pipelines;
 
 public class PipelineLoggerProviderTests
 {
-    private static PipelineLoggerProvider CreateProvider()
-    {
-        return new PipelineLoggerProvider();
-    }
     [Fact]
     public void CurrentLogger_WhenNotSet_ReturnsNullLogger()
     {
@@ -76,7 +72,7 @@ public class PipelineLoggerProviderTests
     public void CreateLogger_ReturnsValidLogger()
     {
         // Arrange
-        var provider = CreateProvider();
+        var provider = new PipelineLoggerProvider();
 
         // Act
         var logger = provider.CreateLogger("TestCategory");
@@ -91,7 +87,7 @@ public class PipelineLoggerProviderTests
         // Arrange
         var fakeLogger1 = new FakeLogger();
         var fakeLogger2 = new FakeLogger();
-        var provider = CreateProvider();
+        var provider = new PipelineLoggerProvider();
 
         // Act
         var task1 = Task.Run(async () =>
