@@ -507,7 +507,7 @@ public static class PythonAppResourceBuilderExtensions
                     var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
                         .EmptyLine()
-                        .AddStaticFiles(context.Resource, "/app")
+                        .AddContainerFiles(context.Resource, "/app")
                         .Comment("------------------------------")
                         .Comment("🚀 Runtime stage")
                         .Comment("------------------------------")
@@ -589,7 +589,7 @@ public static class PythonAppResourceBuilderExtensions
             Tags = [WellKnownPipelineTags.BuildCompute]
         };
 
-    private static DockerfileStage AddStaticFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
     {
         if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
         {
