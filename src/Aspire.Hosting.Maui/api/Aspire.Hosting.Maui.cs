@@ -8,6 +8,13 @@
 //------------------------------------------------------------------------------
 namespace Aspire.Hosting
 {
+    public static partial class MauiMacCatalystExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<Maui.MauiMacCatalystPlatformResource> AddMacCatalystDevice(this ApplicationModel.IResourceBuilder<Maui.MauiProjectResource> builder, string name) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<Maui.MauiMacCatalystPlatformResource> AddMacCatalystDevice(this ApplicationModel.IResourceBuilder<Maui.MauiProjectResource> builder) { throw null; }
+    }
+
     public static partial class MauiProjectExtensions
     {
         public static ApplicationModel.IResourceBuilder<Maui.MauiProjectResource> AddMauiProject(this IDistributedApplicationBuilder builder, string name, string projectPath) { throw null; }
@@ -23,6 +30,13 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Maui
 {
+    public partial class MauiMacCatalystPlatformResource : ApplicationModel.ProjectResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    {
+        public MauiMacCatalystPlatformResource(string name, MauiProjectResource parent) : base(default!) { }
+
+        public MauiProjectResource Parent { get { throw null; } }
+    }
+
     public partial class MauiProjectResource : ApplicationModel.Resource
     {
         public MauiProjectResource(string name, string projectPath) : base(default!) { }
