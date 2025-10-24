@@ -104,7 +104,7 @@ public static class NodeAppHostingExtension
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the Vite app.</param>
     /// <param name="workingDirectory">The working directory of the Vite app.</param>
-    /// <param name="scriptName">The name of the script that runs the Vite app.</param>
+    /// <param name="scriptName">The name of the script that runs the Vite app. Defaults to "dev".</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <example>
