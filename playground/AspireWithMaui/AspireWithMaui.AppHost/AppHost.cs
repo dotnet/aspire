@@ -7,4 +7,7 @@ var mauiapp = builder.AddMauiProject("mauiapp", @"../AspireWithMaui.MauiClient/A
 mauiapp.AddWindowsDevice()
     .WithReference(weatherApi);
 
+mauiapp.AddMacCatalystDevice()
+    .WithReference(weatherApi);
+
 builder.Build().Run();
