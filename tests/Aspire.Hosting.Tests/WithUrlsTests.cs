@@ -248,6 +248,7 @@ public class WithUrlsTests
 
         var tcs = new TaskCompletionSource();
         var projectB = builder.AddProject<ProjectB>("projectb")
+            .WithEndpoint(scheme: "tcp")
             .OnBeforeResourceStarted((_, _, _) =>
             {
                 tcs.SetResult();
@@ -259,9 +260,13 @@ public class WithUrlsTests
         await tcs.Task.DefaultTimeout();
 
         var urls = projectB.Resource.Annotations.OfType<ResourceUrlAnnotation>();
+        Assert.Equal(3, urls.Count());
         Assert.Single(urls, u => u.Url.StartsWith("http://localhost") && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.DetailsOnly);
         Assert.Single(urls, u => u.Url.StartsWith($"http://{projectB.Resource.Name.ToLowerInvariant()}{expectedHostSuffix}") && u.Url.EndsWith("/sub-path")
                                  && u.Endpoint?.EndpointName == "http" && u.DisplayLocation == UrlDisplayLocation.SummaryAndDetails);
+
+        Assert.Single(urls, u => u.Url.StartsWith("tcp://localhost") && u.Endpoint?.EndpointName == "tcp");
+        Assert.DoesNotContain(urls, u => u.Url.Contains(expectedHostSuffix) && u.Endpoint?.EndpointName == "tcp");
 
         await app.StopAsync();
     }

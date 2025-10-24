@@ -268,9 +268,10 @@ internal sealed class ApplicationOrchestrator
                         additionalUrl.DisplayLocation = UrlDisplayLocation.SummaryAndDetails;
                         url.DisplayLocation = UrlDisplayLocation.DetailsOnly;
                     }
-                    else if (additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
+                    else if ((string.Equals(endpoint.UriScheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(endpoint.UriScheme, "https", StringComparison.OrdinalIgnoreCase))
+                             && additionalUrl is null && EndpointHostHelpers.IsDevLocalhostTld(_dashboardUri))
                     {
-                        // If the endpoint target host has not already resulted in an additional URL and the dashboard URL is using a *.dev.localhost address,
+                        // For HTTP endpoints, if the endpoint target host has not already resulted in an additional URL and the dashboard URL is using a *.dev.localhost address,
                         // we want to assign a *.dev.localhost address to every HTTP resource endpoint based on the dashboard URL.
                         // This allows users to access their services from the dashboard using a consistent pattern.
                         var subdomainSuffix = _dashboardUri.Host[.._dashboardUri.Host.IndexOf(".dev.localhost", StringComparison.OrdinalIgnoreCase)];
