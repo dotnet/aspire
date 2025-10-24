@@ -91,14 +91,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
             
             // If there's an exception and we should not include exception details, exclude the exception from the log
             // to avoid cluttering production logs with stack traces
-            if (exception is not null && !options.IncludeExceptionDetails)
-            {
-                logger.Log(logLevel, eventId, state, null, formatter);
-            }
-            else
-            {
-                logger.Log(logLevel, eventId, state, exception, formatter);
-            }
+            logger.Log(logLevel, eventId, state, options.IncludeExceptionDetails ? exception : null, formatter);
         }
     }
 }
