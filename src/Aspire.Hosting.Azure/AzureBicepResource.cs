@@ -42,13 +42,16 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         // Add pipeline step annotation to provision this bicep resource
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
+            // Initialize the provisioning task completion source during step creation
+            ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            
             var provisionStep = new PipelineStep
             {
                 Name = $"provision-{name}",
                 Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false)
             };
             provisionStep.RequiredBy(WellKnownPipelineSteps.ProvisionInfrastructure);
-            provisionStep.DependsOn("create-provisioning-context");
+            provisionStep.DependsOn(AzureEnvironmentResource.CreateProvisioningContextStepName);
 
             return provisionStep;
         }));
@@ -282,9 +285,6 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         {
             try
             {
-                resource.ProvisioningTaskCompletionSource =
-                    new(TaskCreationOptions.RunContinuationsAsynchronously);
-
                 if (await bicepProvisioner.ConfigureResourceAsync(
                     configuration, resource, context.CancellationToken).ConfigureAwait(false))
                 {

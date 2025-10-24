@@ -34,6 +34,11 @@ public sealed class AzureEnvironmentResource : Resource
     private const string DefaultImageStepTag = "default-image-tags";
 
     /// <summary>
+    /// The name of the step that creates the provisioning context.
+    /// </summary>
+    internal const string CreateProvisioningContextStepName = "create-provisioning-context";
+
+    /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
     public ParameterResource Location { get; set; }
@@ -78,7 +83,7 @@ public sealed class AzureEnvironmentResource : Resource
 
             var createContextStep = new PipelineStep
             {
-                Name = "create-provisioning-context",
+                Name = CreateProvisioningContextStepName,
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
