@@ -349,15 +349,18 @@ internal sealed class ApplicationOrchestrator
                 var primaryUri = new Uri(primaryUrl.Url);
                 var primaryPath = primaryUri.AbsolutePath;
 
-                foreach (var url in urls)
+                if (primaryPath != "/")
                 {
-                    if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url))
+                    foreach (var url in urls)
                     {
-                        var uriBuilder = new UriBuilder(url.Url)
+                        if (url.Endpoint?.EndpointAnnotation == primaryLaunchProfileEndpoint && !string.Equals(url.Url, primaryUrl.Url, StringComparisons.Url))
                         {
-                            Path = primaryPath
-                        };
-                        url.Url = uriBuilder.Uri.ToString();
+                            var uriBuilder = new UriBuilder(url.Url)
+                            {
+                                Path = primaryPath
+                            };
+                            url.Url = uriBuilder.Uri.ToString();
+                        }
                     }
                 }
             }
