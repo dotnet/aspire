@@ -257,7 +257,7 @@ public static class NodeAppHostingExtension
             var versionString = File.ReadAllText(nvmrcPath).Trim();
             if (TryParseNodeVersion(versionString, out var version))
             {
-                logger.LogInformation("Detected Node.js version {Version} from .nvmrc file", version);
+                logger.LogDebug("Detected Node.js version {Version} from .nvmrc file", version);
                 return version;
             }
         }
@@ -269,7 +269,7 @@ public static class NodeAppHostingExtension
             var versionString = File.ReadAllText(nodeVersionPath).Trim();
             if (TryParseNodeVersion(versionString, out var version))
             {
-                logger.LogInformation("Detected Node.js version {Version} from .node-version file", version);
+                logger.LogDebug("Detected Node.js version {Version} from .node-version file", version);
                 return version;
             }
         }
@@ -288,7 +288,7 @@ public static class NodeAppHostingExtension
                     var versionString = nodeVersion.GetString();
                     if (!string.IsNullOrWhiteSpace(versionString) && TryParseNodeVersion(versionString, out var version))
                     {
-                        logger.LogInformation("Detected Node.js version {Version} from package.json engines.node field", version);
+                        logger.LogDebug("Detected Node.js version {Version} from package.json engines.node field", version);
                         return version;
                     }
                 }
@@ -313,7 +313,7 @@ public static class NodeAppHostingExtension
                     var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length > 1 && TryParseNodeVersion(parts[1], out var version))
                     {
-                        logger.LogInformation("Detected Node.js version {Version} from .tool-versions file", version);
+                        logger.LogDebug("Detected Node.js version {Version} from .tool-versions file", version);
                         return version;
                     }
                 }
@@ -321,7 +321,7 @@ public static class NodeAppHostingExtension
         }
 
         // Return null if no version is detected
-        logger.LogInformation("No Node.js version detected, using default version {DefaultVersion}", DefaultNodeVersion);
+        logger.LogDebug("No Node.js version detected, using default version {DefaultVersion}", DefaultNodeVersion);
         return null;
     }
 
