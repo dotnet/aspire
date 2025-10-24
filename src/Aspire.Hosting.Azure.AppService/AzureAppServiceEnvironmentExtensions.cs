@@ -157,9 +157,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 ApplicationInsightsComponent? applicationInsights = null;
 
-                if (resource.ApplicationInsightsResource is not null && resource.ApplicationInsightsResource is AzureProvisioningResource appInsights)
+                if (resource.ApplicationInsightsResource is not null)
                 {
-                    applicationInsights = (ApplicationInsightsComponent)appInsights.AddAsExistingResource(infra);
+                    applicationInsights = (ApplicationInsightsComponent)resource.ApplicationInsightsResource.AddAsExistingResource(infra);
                 }
                 else
                 {
