@@ -156,6 +156,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
         stepsToExecute.Add(targetStep);
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
+
+        // Mark steps that were filtered out as Skipped
+        foreach (var step in allSteps)
+        {
+            if (!filteredStepsByName.ContainsKey(step.Name))
+            {
+                step.TryTransitionStatus(PipelineStepStatus.Skipped);
+            }
+        }
+
         return (stepsToExecute, filteredStepsByName);
     }
 
@@ -354,6 +364,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                         // Wrap the dependency failure with context about this step
                         var wrappedException = new InvalidOperationException(message, ex);
+                        step.TryTransitionStatus(PipelineStepStatus.Failed);
                         stepTcs.TrySetException(wrappedException);
                         return;
                     }
@@ -361,6 +372,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
                 try
                 {
+                    step.TryTransitionStatus(PipelineStepStatus.Running);
+
                     var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
                     var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
 
@@ -377,9 +390,17 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                             PipelineLoggerProvider.CurrentLogger = stepContext.Logger;
 
                             await ExecuteStepAsync(step, stepContext).ConfigureAwait(false);
+
+                            step.TryTransitionStatus(PipelineStepStatus.Succeeded);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            step.TryTransitionStatus(PipelineStepStatus.Canceled);
+                            throw;
                         }
                         catch (Exception ex)
                         {
+                            step.TryTransitionStatus(PipelineStepStatus.Failed);
                             // Report the failure to the activity reporter before disposing
                             await publishingStep.FailAsync(ex.Message, CancellationToken.None).ConfigureAwait(false);
                             throw;
@@ -394,7 +415,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 }
                 catch (Exception ex)
                 {
-                    // Execution failure - mark as failed, cancel all other work, and re-throw
+                    // Execution failure - set exception and cancel all other work
                     stepTcs.TrySetException(ex);
 
                     // Cancel all remaining work
@@ -570,6 +591,11 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         try
         {
             await step.Action(stepContext).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // Re-throw cancellation exceptions without wrapping
+            throw;
         }
         catch (Exception ex)
         {
