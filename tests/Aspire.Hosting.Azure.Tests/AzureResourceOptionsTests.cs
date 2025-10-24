@@ -46,7 +46,6 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
             await Verify(sbBicep, extension: "bicep")
                 .AppendContentAsFile(sqlBicep, "bicep");
 
-
             await app.StopAsync();
         }
 

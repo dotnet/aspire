@@ -73,8 +73,6 @@ public static class ManifestPublishingExtensions
                 logger.LogInformation("Published manifest to: {ManifestPath}", fullyQualifiedPath);
             }
         };
-
-        step.RequiredBy(WellKnownPipelineSteps.Publish);
         pipeline.AddStep(step);
 
         return pipeline;
