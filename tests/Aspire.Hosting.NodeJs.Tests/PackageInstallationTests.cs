@@ -1,7 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -282,4 +284,82 @@ public class PackageInstallationTests
         Assert.Equal("pnpm", buildAnnotation.Command);
         Assert.Equal(["build", "--watch"], buildAnnotation.Args);
     }
+
+    [Fact]
+    public void WithNpmInstallWithYarnNoInstall()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: true)
+            .WithYarn(install: false);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // the installer resource should NOT be created
+        Assert.Empty(appModel.Resources.OfType<NodeInstallerResource>());
+    }
+
+    [Fact]
+    public void WithNpmNoInstallWithYarnInstall()
+    {
+        var builder = DistributedApplication.CreateBuilder();
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: false)
+            .WithYarn(install: true);
+
+        using var app = builder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // the installer resource should be created
+        Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+    }
+
+    [Fact]
+    public async Task WithNpmInstallWithYarnInstall()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Run);
+
+        builder.AddViteApp("test-app", "./test-app")
+            .WithNpm(install: true)
+            .WithYarn(install: true);
+
+        using var app = builder.Build();
+        await ExecuteBeforeStartHooksAsync(app, CancellationToken.None);
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        // Verify the NodeApp resource exists
+        var nodeResource = Assert.Single(appModel.Resources.OfType<NodeAppResource>());
+
+        // Verify the install command annotation is correct - it should still be there
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var buildAnnotation));
+        Assert.Equal("yarn", buildAnnotation.Command);
+
+        // a single installer resource should be created
+        var installer = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
+        Assert.Equal("yarn", installer.Command);
+    }
+
+    [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ExecuteBeforeStartHooksAsync")]
+    private static extern Task ExecuteBeforeStartHooksAsync(DistributedApplication app, CancellationToken cancellationToken);
+
 }
