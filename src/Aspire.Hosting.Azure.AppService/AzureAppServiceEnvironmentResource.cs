@@ -44,9 +44,8 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
 
     /// <summary>
     /// Enables or disables automatic scaling for the App Service Plan.
-    /// Default is true.
     /// </summary>
-    internal bool EnableAutomaticScaling { get; set; } = true;
+    internal bool EnableAutomaticScaling { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

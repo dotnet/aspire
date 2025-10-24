@@ -166,7 +166,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <summary>
     /// Configures whether the Aspire dashboard should be included in the Azure App Service environment.
     /// </summary>
-    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="builder">The App Service Environment resource builder to configure.</param>
     /// <param name="enable">Whether to include the Aspire dashboard. Default is true.</param>
     /// <returns><see cref="IResourceBuilder{T}"/></returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithDashboard(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
@@ -178,9 +178,9 @@ public static partial class AzureAppServiceEnvironmentExtensions
     /// <summary>
     /// Configures whether automatic scaling should be enabled for the app services in Azure App Service environment.
     /// </summary>
-    /// <param name="builder">The AzureAppServiceEnvironmentResource to configure.</param>
+    /// <param name="builder">The App Service Environment resource builder to configure.</param>
     /// <param name="enable">Whether to enable automatic scaling. Default is true.</param>
-    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <returns>The updated App Service Environment resource builder.</returns>
     public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAutomaticScaling(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, bool enable = true)
     {
         builder.Resource.EnableAutomaticScaling = enable;

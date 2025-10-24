@@ -454,11 +454,11 @@ public class AzureAppServiceTests
     }
 
     [Fact]
-    public async Task AddAppServiceToEnvironmentWithoutAutoScale()
+    public async Task AddAppServiceToEnvironmentWithAutomaticScaling()
     {
         var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
 
-        builder.AddAzureAppServiceEnvironment("env").WithAutomaticScaling(false);
+        builder.AddAzureAppServiceEnvironment("env").WithAutomaticScaling();
 
         using var app = builder.Build();
 
