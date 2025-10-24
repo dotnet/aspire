@@ -8,7 +8,9 @@ using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.NodeJs;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting;
 
@@ -173,7 +175,9 @@ public static class NodeAppHostingExtension
                     if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
                         && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
                     {
-                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory) ?? DefaultNodeVersion;
+                        var loggerFactory = dockerfileContext.Services.GetService<ILoggerFactory>();
+                        var logger = loggerFactory?.CreateLogger("Aspire.Hosting.NodeJs");
+                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory, logger) ?? DefaultNodeVersion;
                         var dockerBuilder = dockerfileContext.Builder
                             .From($"node:{nodeVersion}-slim")
                             .WorkDir("/app")
@@ -242,8 +246,9 @@ public static class NodeAppHostingExtension
     /// Detects the Node.js version to use for a project by checking common configuration files.
     /// </summary>
     /// <param name="workingDirectory">The working directory of the Node.js project.</param>
+    /// <param name="logger">The logger for diagnostic messages (optional).</param>
     /// <returns>The detected Node.js major version number as a string, or <c>null</c> if no version is detected.</returns>
-    private static string? DetectNodeVersion(string workingDirectory)
+    private static string? DetectNodeVersion(string workingDirectory, ILogger? logger)
     {
         // Check .nvmrc file
         var nvmrcPath = Path.Combine(workingDirectory, ".nvmrc");
@@ -252,6 +257,7 @@ public static class NodeAppHostingExtension
             var versionString = File.ReadAllText(nvmrcPath).Trim();
             if (TryParseNodeVersion(versionString, out var version))
             {
+                logger?.LogInformation("Detected Node.js version {Version} from .nvmrc file", version);
                 return version;
             }
         }
@@ -263,6 +269,7 @@ public static class NodeAppHostingExtension
             var versionString = File.ReadAllText(nodeVersionPath).Trim();
             if (TryParseNodeVersion(versionString, out var version))
             {
+                logger?.LogInformation("Detected Node.js version {Version} from .node-version file", version);
                 return version;
             }
         }
@@ -281,6 +288,7 @@ public static class NodeAppHostingExtension
                     var versionString = nodeVersion.GetString();
                     if (!string.IsNullOrWhiteSpace(versionString) && TryParseNodeVersion(versionString, out var version))
                     {
+                        logger?.LogInformation("Detected Node.js version {Version} from package.json engines.node field", version);
                         return version;
                     }
                 }
@@ -305,6 +313,7 @@ public static class NodeAppHostingExtension
                     var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length > 1 && TryParseNodeVersion(parts[1], out var version))
                     {
+                        logger?.LogInformation("Detected Node.js version {Version} from .tool-versions file", version);
                         return version;
                     }
                 }
@@ -312,6 +321,7 @@ public static class NodeAppHostingExtension
         }
 
         // Return null if no version is detected
+        logger?.LogInformation("No Node.js version detected, using default version {DefaultVersion}", DefaultNodeVersion);
         return null;
     }
 
