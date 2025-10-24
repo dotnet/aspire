@@ -110,7 +110,7 @@ internal sealed class DockerContainerRuntime : ContainerRuntimeBase<DockerContai
                 }
             }
 
-            Logger.LogInformation("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
+            Logger.LogDebug("Running Docker CLI with arguments: {ArgumentList}", spec.Arguments);
             var (pendingProcessResult, processDisposable) = ProcessUtil.Run(spec);
 
             await using (processDisposable)

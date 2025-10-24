@@ -47,6 +47,25 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// </summary>
     internal bool EnableAutomaticScaling { get; set; }
 
+    /// Gets or sets a value indicating whether Application Insights telemetry should be enabled in the app service environment.
+    /// </summary>
+    internal bool EnableApplicationInsights { get; set; }
+
+    /// <summary>
+    /// Gets the location for the Application Insights resource. If <c>null</c>, the resource group location is used.
+    /// </summary>
+    internal string? ApplicationInsightsLocation { get; set; }
+
+    /// <summary>
+    /// Parameter resource for the Application Insights location.
+    /// </summary>
+    internal ParameterResource? ApplicationInsightsLocationParameter { get; set; }
+
+    /// <summary>
+    /// Application Insights resource.
+    /// </summary>
+    internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
+
     /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
@@ -56,6 +75,18 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// Gets the URI of the App Service Environment dashboard.
     /// </summary>
     public BicepOutputReference DashboardUriReference => new("AZURE_APP_SERVICE_DASHBOARD_URI", this);
+
+    /// <summary>
+    /// Gets the Application Insights Instrumentation Key.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsInstrumentationKeyReference =>
+        new("AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY", this);
+
+    /// <summary>
+    /// Gets the Application Insights Connection String.
+    /// </summary>
+    public BicepOutputReference AzureAppInsightsConnectionStringReference =>
+        new("AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING", this);
 
     internal static BicepValue<string> GetWebSiteSuffixBicep() =>
         BicepFunction.GetUniqueString(BicepFunction.GetResourceGroup().Id);

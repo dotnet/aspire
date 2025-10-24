@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Text;
+using Aspire.Hosting.ApplicationModel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -17,6 +18,17 @@ namespace Aspire.Hosting.Pipelines;
 internal sealed class DistributedApplicationPipeline : IDistributedApplicationPipeline
 {
     private readonly List<PipelineStep> _steps = [];
+    private readonly List<Func<PipelineConfigurationContext, Task>> _configurationCallbacks = [];
+
+    public DistributedApplicationPipeline()
+    {
+        // Initialize with a "deploy" step that has a no-op callback
+        _steps.Add(new PipelineStep
+        {
+            Name = "deploy",
+            Action = _ => Task.CompletedTask
+        });
+    }
 
     public bool HasSteps => _steps.Count > 0;
 
@@ -103,10 +115,20 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         _steps.Add(step);
     }
 
+    public void AddPipelineConfiguration(Func<PipelineConfigurationContext, Task> callback)
+    {
+        ArgumentNullException.ThrowIfNull(callback);
+        _configurationCallbacks.Add(callback);
+    }
+
     public async Task ExecuteAsync(PipelineContext context)
     {
-        var annotationSteps = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
+        var (annotationSteps, stepToResourceMap) = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
         var allSteps = _steps.Concat(annotationSteps).ToList();
+
+        // Execute configuration callbacks even if there are no steps
+        // This allows callbacks to run validation or other logic
+        await ExecuteConfigurationCallbacksAsync(context, allSteps, stepToResourceMap).ConfigureAwait(false);
 
         if (allSteps.Count == 0)
         {
@@ -142,7 +164,67 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-        stepsToExecute.Add(targetStep);
+
+        // Also include all steps that are transitively required by the target step
+        var requiredBySteps = ComputeTransitiveRequiredBy(targetStep, allStepsByName);
+        foreach (var step in requiredBySteps)
+        {
+            if (!stepsToExecute.Contains(step))
+            {
+                stepsToExecute.Add(step);
+            }
+
+            // For each step that's required by the target step, also include its dependencies
+            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
+            foreach (var dependency in stepDependencies)
+            {
+                if (!stepsToExecute.Contains(dependency))
+                {
+                    stepsToExecute.Add(dependency);
+                }
+            }
+        }
+
+        // Add the target step if not already present
+        if (!stepsToExecute.Contains(targetStep))
+        {
+            stepsToExecute.Add(targetStep);
+        }
+
+        // Additional pass: Include steps required by ANY executing step
+        // This ensures that if any step in our execution plan is required by other steps,
+        // those other steps are also included
+        // This handles the case for secondary
+        // marker steps like ProvisionInfrastructure
+        var additionalRequiredBySteps = new List<PipelineStep>();
+        foreach (var executingStep in stepsToExecute.ToList())
+        {
+            var stepRequiredBySteps = ComputeTransitiveRequiredBy(executingStep, allStepsByName);
+            foreach (var requiredByStep in stepRequiredBySteps)
+            {
+                if (!stepsToExecute.Contains(requiredByStep))
+                {
+                    additionalRequiredBySteps.Add(requiredByStep);
+                }
+            }
+        }
+
+        // Add the additional required-by steps and their dependencies
+        foreach (var step in additionalRequiredBySteps)
+        {
+            stepsToExecute.Add(step);
+
+            // Include dependencies of the required-by steps
+            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
+            foreach (var dependency in stepDependencies)
+            {
+                if (!stepsToExecute.Contains(dependency))
+                {
+                    stepsToExecute.Add(dependency);
+                }
+            }
+        }
+
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
     }
@@ -182,9 +264,54 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         return result;
     }
 
-    private static async Task<List<PipelineStep>> CollectStepsFromAnnotationsAsync(PipelineContext context)
+    private static List<PipelineStep> ComputeTransitiveRequiredBy(
+        PipelineStep step,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<PipelineStep>();
+
+        void Visit(string stepName)
+        {
+            if (!visited.Add(stepName))
+            {
+                return;
+            }
+
+            if (!stepsByName.TryGetValue(stepName, out var currentStep))
+            {
+                return;
+            }
+
+            // First, find all steps that are required by the current step
+            // If currentStep is in another step's RequiredBySteps list, visit that step
+            foreach (var potentialStep in stepsByName.Values)
+            {
+                if (potentialStep.RequiredBySteps.Contains(currentStep.Name))
+                {
+                    Visit(potentialStep.Name);
+                }
+            }
+
+            result.Add(currentStep);
+        }
+
+        // Find all steps that are required by the target step
+        foreach (var potentialStep in stepsByName.Values)
+        {
+            if (potentialStep.RequiredBySteps.Contains(step.Name))
+            {
+                Visit(potentialStep.Name);
+            }
+        }
+
+        return result;
+    }
+
+    private static async Task<(List<PipelineStep> Steps, Dictionary<PipelineStep, IResource> StepToResourceMap)> CollectStepsFromAnnotationsAsync(PipelineContext context)
     {
         var steps = new List<PipelineStep>();
+        var stepToResourceMap = new Dictionary<PipelineStep, IResource>();
 
         foreach (var resource in context.Model.Resources)
         {
@@ -200,11 +327,53 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 };
 
                 var annotationSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
-                steps.AddRange(annotationSteps);
+                foreach (var step in annotationSteps)
+                {
+                    steps.Add(step);
+                    stepToResourceMap[step] = resource;
+                }
             }
         }
 
-        return steps;
+        return (steps, stepToResourceMap);
+    }
+
+    private async Task ExecuteConfigurationCallbacksAsync(
+        PipelineContext pipelineContext,
+        List<PipelineStep> allSteps,
+        Dictionary<PipelineStep, IResource> stepToResourceMap)
+    {
+        // Collect callbacks from the pipeline itself
+        var callbacks = new List<Func<PipelineConfigurationContext, Task>>();
+
+        callbacks.AddRange(_configurationCallbacks);
+
+        // Collect callbacks from resource annotations
+        foreach (var resource in pipelineContext.Model.Resources)
+        {
+            var annotations = resource.Annotations.OfType<PipelineConfigurationAnnotation>();
+            foreach (var annotation in annotations)
+            {
+                callbacks.Add(annotation.Callback);
+            }
+        }
+
+        // Execute all callbacks
+        if (callbacks.Count > 0)
+        {
+            var configContext = new PipelineConfigurationContext
+            {
+                Services = pipelineContext.Services,
+                Steps = allSteps.AsReadOnly(),
+                Model = pipelineContext.Model,
+                StepToResourceMap = stepToResourceMap
+            };
+
+            foreach (var callback in callbacks)
+            {
+                await callback(configContext).ConfigureAwait(false);
+            }
+        }
     }
 
     private static void ValidateSteps(IEnumerable<PipelineStep> steps)

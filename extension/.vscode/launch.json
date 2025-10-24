@@ -1,7 +1,4 @@
-// A launch configuration that compiles the extension and then opens it inside a new window
-// Use IntelliSense to learn about possible attributes.
-// Hover to view descriptions of existing attributes.
-// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+// Aspire VS Code extension launch configurations
 {
 	"version": "0.2.0",
 	"configurations": [
@@ -15,7 +12,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "npm: watch extension"
 		},
 		{
 			"name": "Run Extension (cli stop on entry)",
@@ -27,7 +24,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}",
+			"preLaunchTask": "npm: watch extension",
 			"env": {
 				"ASPIRE_CLI_STOP_ON_ENTRY": "true"
 			}

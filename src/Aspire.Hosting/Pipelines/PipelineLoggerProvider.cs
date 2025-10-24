@@ -61,6 +61,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
     /// <remarks>
     /// This logger acts as a proxy and dynamically resolves the current logger on each operation,
     /// allowing the target logger to change between calls.
+    /// When logging exceptions, stack traces are only included when the configured minimum log level is Debug or Trace.
     /// </remarks>
     private sealed class PipelineLogger(Func<ILogger> currentLoggerAccessor) : ILogger
     {

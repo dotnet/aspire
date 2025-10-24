@@ -83,27 +83,27 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="TenantDialogTitle">
         <source>Azure tenant</source>
-        <target state="new">Azure tenant</target>
+        <target state="translated">Клиент Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantLabel">
         <source>Tenant ID</source>
-        <target state="new">Tenant ID</target>
+        <target state="translated">ИД клиента</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantManualEntryMessage">
         <source>Enter your Azure tenant ID:</source>
-        <target state="new">Enter your Azure tenant ID:</target>
+        <target state="translated">Введите свой ИД клиента Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantPlaceholder">
         <source>Select tenant ID</source>
-        <target state="new">Select tenant ID</target>
+        <target state="translated">Выберите ИД клиента</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
-        <target state="new">Select your Azure tenant:</target>
+        <target state="translated">Выберите клиент Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
@@ -118,7 +118,7 @@ To learn more, see the [Azure provisioning docs](https://aka.ms/dotnet/aspire/az
       </trans-unit>
       <trans-unit id="ValidationTenantIdInvalid">
         <source>Tenant ID must be a valid GUID.</source>
-        <target state="new">Tenant ID must be a valid GUID.</target>
+        <target state="translated">ИД клиента должен быть допустимым GUID.</target>
         <note />
       </trans-unit>
     </body>

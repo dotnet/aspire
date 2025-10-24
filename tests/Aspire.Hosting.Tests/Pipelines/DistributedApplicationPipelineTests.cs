@@ -656,7 +656,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PublishAsync_Deploy_WithNoResourcesAndNoPipelineSteps_ReturnsError()
+    public async Task PublishAsync_Deploy_WithNoResourcesAndNoPipelineSteps_Succeeds()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -672,22 +672,22 @@ public class DistributedApplicationPipelineTests
         // Act
         await publisher.PublishAsync(app.Services.GetRequiredService<DistributedApplicationModel>(), CancellationToken.None);
 
-        // Assert
+        // Assert - Since the "deploy" step is now always present, this should succeed
         var activityReader = reporter.ActivityItemUpdated.Reader;
-        var foundErrorActivity = false;
+        var foundSuccessActivity = false;
 
         while (activityReader.TryRead(out var activity))
         {
             if (activity.Type == PublishingActivityTypes.Task &&
-                activity.Data.IsError &&
-                activity.Data.CompletionMessage == "No deployment steps found in the application pipeline.")
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage == "Found deployment steps in the application pipeline.")
             {
-                foundErrorActivity = true;
+                foundSuccessActivity = true;
                 break;
             }
         }
 
-        Assert.True(foundErrorActivity, "Expected to find a task activity with error about no deployment steps found");
+        Assert.True(foundSuccessActivity, "Expected to find a task activity indicating deployment steps were found");
     }
 
     [Fact]
@@ -1339,8 +1339,12 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        var stepActivity = Assert.Single(stepActivities);
-        Assert.Collection(stepActivity,
+        Assert.Equal(2, stepActivities.Count); // Updated to account for "deploy" step
+        
+        // Find the logging-step activity
+        var loggingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "logging-step"));
+        Assert.NotNull(loggingStepActivity);
+        Assert.Collection(loggingStepActivity,
             step =>
             {
                 Assert.Equal("logging-step", step.Data.StatusText);
@@ -1353,7 +1357,7 @@ public class DistributedApplicationPipelineTests
         var logActivity = Assert.Single(logActivities);
         Assert.Equal("Test log message from pipeline step", logActivity.Data.StatusText);
         Assert.Equal("Information", logActivity.Data.LogLevel);
-        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.Equal(loggingStepActivity.First().Data.Id, logActivity.Data.StepId);
         Assert.False(logActivity.Data.EnableMarkdown);
     }
 
@@ -1412,7 +1416,7 @@ public class DistributedApplicationPipelineTests
             activities.Add(activity);
         }
 
-        var stepOrder = new[] { "step1", "step2" };
+        var stepOrder = new[] { "deploy", "step1", "step2" }; // Added "deploy" step
         var logOrder = new[] { "Message from step 1", "Message from step 2" };
 
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
@@ -1424,6 +1428,19 @@ public class DistributedApplicationPipelineTests
             .ToList();
 
         Assert.Collection(stepActivities,
+            deployActivity =>
+            {
+                Assert.Collection(deployActivity,
+                    step =>
+                    {
+                        Assert.Equal("deploy", step.Data.StatusText);
+                        Assert.False(step.Data.IsComplete);
+                    },
+                    step =>
+                    {
+                        Assert.True(step.Data.IsComplete);
+                    });
+            },
             step1Activity =>
             {
                 Assert.Collection(step1Activity,
@@ -1509,25 +1526,26 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        Assert.Collection(stepActivities,
-            stepActivity =>
+        Assert.Equal(2, stepActivities.Count); // Updated to account for "deploy" step
+        
+        // Find the failing-step activity
+        var failingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "failing-step"));
+        Assert.NotNull(failingStepActivity);
+        Assert.Collection(failingStepActivity,
+            step =>
             {
-                Assert.Collection(stepActivity,
-                    step =>
-                    {
-                        Assert.Equal("failing-step", step.Data.StatusText);
-                        Assert.False(step.Data.IsComplete);
-                    },
-                    step =>
-                    {
-                        Assert.True(step.Data.IsError);
-                    });
+                Assert.Equal("failing-step", step.Data.StatusText);
+                Assert.False(step.Data.IsComplete);
+            },
+            step =>
+            {
+                Assert.True(step.Data.IsError);
             });
 
         var logActivity = Assert.Single(logActivities);
         Assert.Equal("About to fail", logActivity.Data.StatusText);
         Assert.Equal("Information", logActivity.Data.LogLevel);
-        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.Equal(failingStepActivity.First().Data.Id, logActivity.Data.StepId);
 
         // Verify logger is cleaned up even after failure
         Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
@@ -1589,7 +1607,7 @@ public class DistributedApplicationPipelineTests
             activities.Add(activity);
         }
 
-        var stepOrder = new[] { "step1", "step2", "step3" };
+        var stepOrder = new[] { "deploy", "step1", "step2", "step3" }; // Added "deploy" step
         var logOrder = new[] { "Executing step 1", "Executing step 2", "Executing step 3" };
 
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
@@ -1600,7 +1618,7 @@ public class DistributedApplicationPipelineTests
             .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
             .ToList();
 
-        Assert.Equal(3, stepActivities.Count);
+        Assert.Equal(4, stepActivities.Count); // Updated to account for "deploy" step
         Assert.Collection(logActivities,
             logActivity =>
             {
@@ -1697,6 +1715,407 @@ public class DistributedApplicationPipelineTests
                 activity.Data.LogLevel == expectedLevel &&
                 activity.Data.StatusText == $"{expectedLevel} message");
         }
+    }
+
+    [Fact]
+    public async Task PipelineStep_WithTags_StoresTagsCorrectly()
+    {
+        var step = new PipelineStep
+        {
+            Name = "test-step",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["tag1", "tag2"]
+        };
+
+        Assert.Equal(2, step.Tags.Count);
+        Assert.Contains("tag1", step.Tags);
+        Assert.Contains("tag2", step.Tags);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WithConfigurationCallback_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var callbackExecuted = false;
+        var capturedSteps = new List<PipelineStep>();
+
+        pipeline.AddStep("step1", async (context) => await Task.CompletedTask);
+        pipeline.AddStep("step2", async (context) => await Task.CompletedTask);
+
+        pipeline.AddPipelineConfiguration((configContext) =>
+        {
+            callbackExecuted = true;
+            capturedSteps.AddRange(configContext.Steps);
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+        Assert.Equal(3, capturedSteps.Count); // Updated to account for "deploy" step
+        Assert.Contains(capturedSteps, s => s.Name == "deploy");
+        Assert.Contains(capturedSteps, s => s.Name == "step1");
+        Assert.Contains(capturedSteps, s => s.Name == "step2");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_ConfigurationCallback_CanModifyDependencies()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionOrder = new List<string>();
+
+        pipeline.AddStep("step1", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("step1"); }
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddStep("step2", async (context) =>
+        {
+            lock (executionOrder) { executionOrder.Add("step2"); }
+            await Task.CompletedTask;
+        });
+
+        pipeline.AddPipelineConfiguration((configContext) =>
+        {
+            var step1 = configContext.Steps.First(s => s.Name == "step1");
+            var step2 = configContext.Steps.First(s => s.Name == "step2");
+            step2.DependsOn(step1);
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(["step1", "step2"], executionOrder);
+    }
+
+    [Fact]
+    public async Task PipelineConfigurationContext_GetStepsByTag_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var foundSteps = new List<PipelineStep>();
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step1",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["test-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step2",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["test-tag", "another-tag"]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "step3",
+            Action = async (ctx) => await Task.CompletedTask,
+            Tags = ["different-tag"]
+        });
+
+        pipeline.AddPipelineConfiguration((configContext) =>
+        {
+            foundSteps.AddRange(configContext.GetSteps("test-tag"));
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Equal(2, foundSteps.Count);
+        Assert.Contains(foundSteps, s => s.Name == "step1");
+        Assert.Contains(foundSteps, s => s.Name == "step2");
+        Assert.DoesNotContain(foundSteps, s => s.Name == "step3");
+    }
+
+    [Fact]
+    public async Task PipelineConfigurationContext_GetStepsByResource_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var foundSteps = new List<PipelineStep>();
+        IResource? targetResource = null;
+
+        var resource1 = builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "resource1-step1",
+                    Action = async (ctx) => await Task.CompletedTask
+                },
+                new PipelineStep
+                {
+                    Name = "resource1-step2",
+                    Action = async (ctx) => await Task.CompletedTask
+                }
+            ]);
+
+        var resource2 = builder.AddResource(new CustomResource("resource2"))
+            .WithPipelineStepFactory((factoryContext) =>
+            {
+                targetResource = factoryContext.Resource;
+                return new PipelineStep
+                {
+                    Name = "resource2-step1",
+                    Action = async (ctx) => await Task.CompletedTask
+                };
+            })
+            .WithPipelineConfiguration((configContext) =>
+            {
+                var resource2Instance = configContext.Model.Resources.FirstOrDefault(r => r.Name == "resource2");
+                if (resource2Instance != null)
+                {
+                    foundSteps.AddRange(configContext.GetSteps(resource2Instance));
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Single(foundSteps);
+        Assert.Contains(foundSteps, s => s.Name == "resource2-step1");
+    }
+
+    [Fact]
+    public async Task PipelineConfigurationContext_GetStepsByResourceAndTag_ReturnsCorrectSteps()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var foundSteps = new List<PipelineStep>();
+
+        var resource1 = builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) =>
+            [
+                new PipelineStep
+                {
+                    Name = "resource1-step1",
+                    Action = async (ctx) => await Task.CompletedTask,
+                    Tags = ["build"]
+                },
+                new PipelineStep
+                {
+                    Name = "resource1-step2",
+                    Action = async (ctx) => await Task.CompletedTask,
+                    Tags = ["deploy"]
+                }
+            ])
+            .WithPipelineConfiguration((configContext) =>
+            {
+                var resource1Instance = configContext.Model.Resources.FirstOrDefault(r => r.Name == "resource1");
+                if (resource1Instance != null)
+                {
+                    foundSteps.AddRange(configContext.GetSteps(resource1Instance, "build"));
+                }
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.Single(foundSteps);
+        Assert.Contains(foundSteps, s => s.Name == "resource1-step1");
+    }
+
+    [Fact]
+    public async Task WithPipelineConfiguration_AsyncOverload_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var callbackExecuted = false;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineConfiguration(async (configContext) =>
+            {
+                await Task.CompletedTask;
+                callbackExecuted = true;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+    }
+
+    [Fact]
+    public async Task WithPipelineConfiguration_SyncOverload_ExecutesCallback()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var callbackExecuted = false;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineConfiguration((configContext) =>
+            {
+                callbackExecuted = true;
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(callbackExecuted);
+    }
+
+    [Fact]
+    public async Task ConfigurationCallback_CanAccessModel()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        IResource? capturedResource = null;
+
+        var resource = builder.AddResource(new CustomResource("test-resource"))
+            .WithPipelineConfiguration((configContext) =>
+            {
+                capturedResource = configContext.Model.Resources.FirstOrDefault(r => r.Name == "test-resource");
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.NotNull(capturedResource);
+        Assert.Equal("test-resource", capturedResource.Name);
+    }
+
+    [Fact]
+    public async Task ConfigurationCallback_ExecutesAfterStepCollection()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+
+        var allStepsAvailable = false;
+
+        builder.AddResource(new CustomResource("resource1"))
+            .WithPipelineStepFactory((factoryContext) => new PipelineStep
+            {
+                Name = "resource1-step",
+                Action = async (ctx) => await Task.CompletedTask
+            });
+
+        builder.AddResource(new CustomResource("resource2"))
+            .WithPipelineConfiguration((configContext) =>
+            {
+                allStepsAvailable = configContext.Steps.Any(s => s.Name == "resource1-step");
+            });
+
+        var pipeline = new DistributedApplicationPipeline();
+        pipeline.AddStep("direct-step", async (context) => await Task.CompletedTask);
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        Assert.True(allStepsAvailable, "Configuration phase should have access to all collected steps");
+    }
+
+    [Fact]
+    public void WellKnownPipelineTags_ConstantsAccessible()
+    {
+        Assert.Equal("provision-infra", WellKnownPipelineTags.ProvisionInfrastructure);
+        Assert.Equal("build-compute", WellKnownPipelineTags.BuildCompute);
+        Assert.Equal("deploy-compute", WellKnownPipelineTags.DeployCompute);
+    }
+
+    [Fact]
+    public async Task ConfigurationCallback_CanCreateComplexDependencyRelationships()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        var pipeline = new DistributedApplicationPipeline();
+
+        var executionOrder = new List<string>();
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("provision1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "provision2",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("provision2"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "build1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("build1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        });
+
+        pipeline.AddStep(new PipelineStep
+        {
+            Name = "deploy1",
+            Action = async (ctx) =>
+            {
+                lock (executionOrder) { executionOrder.Add("deploy1"); }
+                await Task.CompletedTask;
+            },
+            Tags = [WellKnownPipelineTags.DeployCompute]
+        });
+
+        pipeline.AddPipelineConfiguration((configContext) =>
+        {
+            var provisionSteps = configContext.GetSteps(WellKnownPipelineTags.ProvisionInfrastructure).ToList();
+            var buildSteps = configContext.GetSteps(WellKnownPipelineTags.BuildCompute).ToList();
+            var deploySteps = configContext.GetSteps(WellKnownPipelineTags.DeployCompute).ToList();
+
+            foreach (var buildStep in buildSteps)
+            {
+                foreach (var provisionStep in provisionSteps)
+                {
+                    buildStep.DependsOn(provisionStep);
+                }
+            }
+
+            foreach (var deployStep in deploySteps)
+            {
+                foreach (var buildStep in buildSteps)
+                {
+                    deployStep.DependsOn(buildStep);
+                }
+            }
+
+            return Task.CompletedTask;
+        });
+
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        var provision1Index = executionOrder.IndexOf("provision1");
+        var provision2Index = executionOrder.IndexOf("provision2");
+        var build1Index = executionOrder.IndexOf("build1");
+        var deploy1Index = executionOrder.IndexOf("deploy1");
+
+        Assert.True(provision1Index < build1Index, "provision1 should execute before build1");
+        Assert.True(provision2Index < build1Index, "provision2 should execute before build1");
+        Assert.True(build1Index < deploy1Index, "build1 should execute before deploy1");
     }
 
     [Fact]
@@ -1891,6 +2310,71 @@ public class DistributedApplicationPipelineTests
         }
 
         Assert.True(foundErrorActivity, $"Expected to find a task activity with detailed error message about invalid step. Got: {errorMessage}");
+    }
+
+    [Fact]
+    public async Task FilterStepsForExecution_WithRequiredBy_IncludesTransitiveDependencies()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        
+        var executedSteps = new List<string>();
+        var lockObject = new object();
+        var pipeline = new DistributedApplicationPipeline();
+
+        // The pipeline initializes with a "deploy" step by default, but we need to track when it executes
+        // So we need to add our own deploy step that tracks execution
+        // First, let's remove the default deploy step by not adding it, and add our own
+        
+        // Create steps: provision-resource1 and provision-resource2 are required by provision-infra
+        // When we execute "my-deploy-step", we should get: provision-resource1, provision-resource2, provision-infra, and my-deploy-step
+        pipeline.AddStep("provision-resource1", (context) =>
+        {
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-resource1");
+            }
+            return Task.CompletedTask;
+        }, requiredBy: "provision-infra");
+
+        pipeline.AddStep("provision-resource2", (context) =>
+        {
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-resource2");
+            }
+            return Task.CompletedTask;
+        }, requiredBy: "provision-infra");
+
+        pipeline.AddStep("provision-infra", (context) =>
+        {
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-infra");
+            }
+            return Task.CompletedTask;
+        }, requiredBy: "my-deploy-step");
+
+        pipeline.AddStep("my-deploy-step", (context) =>
+        {
+            lock (lockObject)
+            {
+                executedSteps.Add("my-deploy-step");
+            }
+            return Task.CompletedTask;
+        });
+
+        // Act - execute with --step my-deploy-step filter
+        builder.Services.Configure<PublishingOptions>(options => options.Step = "my-deploy-step");
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // Assert - all steps should have been executed
+        Assert.Contains("provision-resource1", executedSteps);
+        Assert.Contains("provision-resource2", executedSteps);
+        Assert.Contains("provision-infra", executedSteps);
+        Assert.Contains("my-deploy-step", executedSteps);
+        Assert.Equal(4, executedSteps.Count);
     }
 
     private sealed class CustomResource(string name) : Resource(name)

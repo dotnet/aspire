@@ -393,6 +393,11 @@ internal sealed class AzureAppServiceWebsiteContext(
             infra.Add(webSiteRa);
         }
 
+        if (environmentContext.Environment.EnableApplicationInsights)
+        {
+            EnableApplicationInsightsForWebSite(webSite);
+        }
+
         // Allow users to customize the web app here
         if (resource.TryGetAnnotationsOfType<AzureAppServiceWebsiteCustomizationAnnotation>(out var customizeWebSiteAnnotations))
         {
@@ -459,6 +464,31 @@ internal sealed class AzureAppServiceWebsiteContext(
             PrincipalId = contributorPrincipalId,
             RoleDefinitionId = websiteRaId,
         };
+    }
+
+    private void EnableApplicationInsightsForWebSite(WebSite webSite)
+    {
+        var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
+        var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
+
+        // Website configuration for Application Insights
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPINSIGHTS_INSTRUMENTATIONKEY",
+            Value = appInsightsInstrumentationKey
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            Value = appInsightsConnectionString
+        });
+
+        webSite.SiteConfig.AppSettings.Add(new AppServiceNameValuePair
+        {
+            Name = "ApplicationInsightsAgent_EXTENSION_VERSION",
+            Value = "~3"
+        });
     }
 
     enum SecretType
