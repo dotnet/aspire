@@ -237,7 +237,7 @@ public static class PythonAppResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.    
+    /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.
     /// </summary>
     /// <remarks>This method configures the application to use Uvicorn as the server and exposes an HTTP
     /// endpoint. When publishing, it sets the entry point to use the Uvicorn executable with appropriate arguments for
