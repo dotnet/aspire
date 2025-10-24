@@ -213,6 +213,7 @@ export class InteractionService implements IInteractionService {
 
         extensionLogOutputChannel.info(`Displaying message: ${emoji} ${message}`);
         vscode.window.showInformationMessage(formatText(message));
+        this.clearProgressNotification();
     }
 
     // There is no need for a different success message handler, as a general informative message ~= success
@@ -225,6 +226,7 @@ export class InteractionService implements IInteractionService {
 
         extensionLogOutputChannel.info(`Displaying success message: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
+        this.clearProgressNotification();
     }
 
     displaySubtleMessage(message: string) {
@@ -240,6 +242,7 @@ export class InteractionService implements IInteractionService {
     displayPlainText(message: string) {
         extensionLogOutputChannel.info(`Displaying plain text: ${message}`);
         vscode.window.showInformationMessage(formatText(message));
+        this.clearProgressNotification();
     }
 
     // No direct equivalent in VS Code, so don't display anything visually, just log to output channel.
