@@ -216,28 +216,19 @@ public class AzureBicepResourceTests
     }
 
     [Fact]
-    public void BicepResourceHasPipelineStepAnnotation()
+    public async Task BicepResourceHasPipelineStepAnnotationWithCorrectConfiguration()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create();
-
-        // Act
         var bicepResource = builder.AddBicepTemplateString("myresource", "content");
 
-        // Assert
+        // Act - Get the annotation
         var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().FirstOrDefault();
+        
+        // Assert - Annotation exists
         Assert.NotNull(annotation);
-    }
-
-    [Fact]
-    public async Task BicepResourcePipelineStepHasCorrectName()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
-
-        // Act
-        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().First();
+        
+        // Act - Create the step from the annotation
         var factoryContext = new Aspire.Hosting.Pipelines.PipelineStepFactoryContext
         {
             PipelineContext = null!, // Not needed for this test
@@ -246,28 +237,13 @@ public class AzureBicepResourceTests
         var steps = await annotation.CreateStepsAsync(factoryContext);
         var step = steps.First();
 
-        // Assert
+        // Assert - Step has correct name
         Assert.Equal("provision-myresource", step.Name);
-    }
-
-    [Fact]
-    public async Task BicepResourcePipelineStepRequiredByProvisionInfrastructure()
-    {
-        // Arrange
-        using var builder = TestDistributedApplicationBuilder.Create();
-        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
-
-        // Act
-        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().First();
-        var factoryContext = new Aspire.Hosting.Pipelines.PipelineStepFactoryContext
-        {
-            PipelineContext = null!, // Not needed for this test
-            Resource = bicepResource.Resource
-        };
-        var steps = await annotation.CreateStepsAsync(factoryContext);
-        var step = steps.First();
-
-        // Assert
+        
+        // Assert - Step is required by ProvisionInfrastructure
         Assert.Contains(AzureEnvironmentResource.ProvisionInfrastructureStepName, step.RequiredBySteps);
+        
+        // Assert - Step depends on CreateProvisioningContext
+        Assert.Contains(AzureEnvironmentResource.CreateProvisioningContextStepName, step.DependsOnSteps);
     }
 }
