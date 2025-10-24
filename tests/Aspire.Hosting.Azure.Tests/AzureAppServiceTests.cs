@@ -674,28 +674,18 @@ public class AzureAppServiceTests
 
         builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights("westus");
 
-        // Add 2 projects with endpoints
-        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
-            .WithExternalHttpEndpoints();
-
-        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
-            .WithExternalHttpEndpoints()
-            .WithReference(project1);
-
         using var app = builder.Build();
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        var resource = target?.DeploymentTarget as AzureProvisioningResource;
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
 
-        Assert.NotNull(resource);
-
-        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
-                .AppendContentAsFile(bicep, "bicep");
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -705,30 +695,18 @@ public class AzureAppServiceTests
 
         builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights();
 
-        // Add 2 projects with endpoints
-        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
-            .WithExternalHttpEndpoints();
-
-        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
-            .WithExternalHttpEndpoints()
-            .WithReference(project1);
-
         using var app = builder.Build();
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
         var model = app.Services.GetRequiredService<DistributedApplicationModel>();
 
-        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
 
-        var resource = target?.DeploymentTarget as AzureProvisioningResource;
-
-        Assert.NotNull(resource);
-
-        var (manifest, bicep) = await GetManifestWithBicep(resource);
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
 
         await Verify(manifest.ToString(), "json")
-                .AppendContentAsFile(bicep, "bicep");
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     [Fact]
@@ -739,19 +717,61 @@ public class AzureAppServiceTests
         var appInsightsParam = builder.AddParameter("appInsightsLocation", "westus");
         builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights(appInsightsParam);
 
-        // Add 2 projects with endpoints
-        var project1 = builder.AddProject<Project>("project1", launchProfileName: null)
-            .WithExternalHttpEndpoints();
+        using var app = builder.Build();
 
-        var project2 = builder.AddProject<Project>("project2", launchProfileName: null)
-            .WithExternalHttpEndpoints()
-            .WithReference(project1);
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceWithExistingApplicationInsights()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        var appInsights = builder.AddAzureApplicationInsights("existingAppInsights");
+        builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights(appInsights);
 
         using var app = builder.Build();
 
         await ExecuteBeforeStartHooksAsync(app, default);
 
-        project2.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var environment = Assert.Single(model.Resources.OfType<AzureAppServiceEnvironmentResource>());
+
+        var (manifest, bicep) = await GetManifestWithBicep(environment);
+
+        await Verify(manifest.ToString(), "json")
+              .AppendContentAsFile(bicep, "bicep");
+    }
+
+    [Fact]
+    public async Task AddAppServiceProjectWithApplicationInsightsSetsAppSettings()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureAppServiceEnvironment("env").WithAzureApplicationInsights();
+
+        // Add project with endpoints but no target port specified
+        var project = builder.AddProject<Project>("project1", launchProfileName: null)
+            .WithHttpEndpoint()
+            .WithExternalHttpEndpoints();
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        project.Resource.TryGetLastAnnotation<DeploymentTargetAnnotation>(out var target);
 
         var resource = target?.DeploymentTarget as AzureProvisioningResource;
 
@@ -759,8 +779,9 @@ public class AzureAppServiceTests
 
         var (manifest, bicep) = await GetManifestWithBicep(resource);
 
+        // For project resources without explicit target port, should use container port reference
         await Verify(manifest.ToString(), "json")
-                .AppendContentAsFile(bicep, "bicep");
+              .AppendContentAsFile(bicep, "bicep");
     }
 
     private static Task<(JsonNode ManifestNode, string BicepText)> GetManifestWithBicep(IResource resource) =>

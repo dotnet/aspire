@@ -1,11 +1,11 @@
-@description('The location for the resource(s) to be deployed.')
+﻿@description('The location for the resource(s) to be deployed.')
 param location string = resourceGroup().location
 
 param userPrincipalId string = ''
 
 param tags object = { }
 
-param appInsightsLocation string
+param existingappinsights_outputs_name string
 
 resource env_mi 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' = {
   name: take('env_mi-${uniqueString(resourceGroup().id)}', 128)
@@ -126,25 +126,8 @@ resource dashboard 'Microsoft.Web/sites@2024-11-01' = {
   kind: 'app,linux,aspiredashboard'
 }
 
-resource env_law 'Microsoft.OperationalInsights/workspaces@2025-02-01' = {
-  name: take('envlaw-${uniqueString(resourceGroup().id)}', 63)
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-}
-
-resource env_ai 'Microsoft.Insights/components@2020-02-02' = {
-  name: take('env_ai-${uniqueString(resourceGroup().id)}', 260)
-  kind: 'web'
-  location: appInsightsLocation
-  properties: {
-    Application_Type: 'web'
-    IngestionMode: 'LogAnalytics'
-    WorkspaceResourceId: env_law.id
-  }
+resource existingAppInsights 'Microsoft.Insights/components@2020-02-02' existing = {
+  name: existingappinsights_outputs_name
 }
 
 output name string = env_asplan.name
@@ -167,6 +150,6 @@ output AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID string = env_cont
 
 output AZURE_APP_SERVICE_DASHBOARD_URI string = 'https://${take('${toLower('env')}-${toLower('aspiredashboard')}-${uniqueString(resourceGroup().id)}', 60)}.azurewebsites.net'
 
-output AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY string = env_ai.properties.InstrumentationKey
+output AZURE_APPLICATION_INSIGHTS_INSTRUMENTATIONKEY string = existingAppInsights.properties.InstrumentationKey
 
-output AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING string = env_ai.properties.ConnectionString
+output AZURE_APPLICATION_INSIGHTS_CONNECTION_STRING string = existingAppInsights.properties.ConnectionString
