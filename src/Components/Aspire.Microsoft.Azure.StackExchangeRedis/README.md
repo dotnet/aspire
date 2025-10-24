@@ -16,7 +16,7 @@ At runtime the client integration will use Azure AD authentication when a creden
 
 ### Install the package
 
-Install the .NET Aspire Azure StackExchange.Redis library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure StackExchange.Redis library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Azure.StackExchangeRedis

@@ -1,12 +1,12 @@
 # Aspire.Hosting.Oracle library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure an Oracle database resource.
+Provides extension methods and resource definitions for an Aspire AppHost to configure an Oracle database resource.
 
 ## Getting started
 
 ### Install the package
 
-In your AppHost project, install the .NET Aspire PostgreSQL Oracle library with [NuGet](https://www.nuget.org):
+In your AppHost project, install the Aspire PostgreSQL Oracle library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Oracle

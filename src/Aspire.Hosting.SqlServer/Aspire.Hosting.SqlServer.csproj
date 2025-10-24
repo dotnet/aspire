@@ -5,7 +5,7 @@
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting sqlserver sql database data</PackageTags>
-    <Description>Microsoft SQL Server support for .NET Aspire.</Description>
+    <Description>Microsoft SQL Server support for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)SQL_256x.png</PackageIconFullPath>
   </PropertyGroup>
 
