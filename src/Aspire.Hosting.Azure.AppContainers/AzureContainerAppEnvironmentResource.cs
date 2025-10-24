@@ -183,6 +183,8 @@ public class AzureContainerAppEnvironmentResource :
                 {
                     deployStep.DependsOn(provisionStep);
                 }
+                // Make this deploy step required by the deploy-compute-marker in AzureEnvironmentResource
+                deployStep.RequiredBy("deploy-compute-marker");
                 steps.Add(deployStep);
             }
 
