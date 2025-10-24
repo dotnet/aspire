@@ -220,11 +220,20 @@ public abstract class DeploymentStateManagerBase<T>(ILogger<T> logger) : IDeploy
 
         var metadata = GetSectionMetadata(sectionName);
 
-        var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
-            ? obj.DeepClone().AsObject()
-            : null;
+        // Protect access to _state with _saveLock to prevent concurrent modification during enumeration
+        await _saveLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var sectionData = _state?.TryGetPropertyValue(sectionName, out var sectionNode) == true && sectionNode is JsonObject obj
+                ? obj.DeepClone().AsObject()
+                : null;
 
-        return new DeploymentStateSection(sectionName, sectionData, metadata.Version);
+            return new DeploymentStateSection(sectionName, sectionData, metadata.Version);
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
     }
 
     /// <inheritdoc/>
