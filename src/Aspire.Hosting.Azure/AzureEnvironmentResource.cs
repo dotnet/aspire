@@ -155,9 +155,9 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => PrintDashboardUrlAsync(ctx)
             };
             printDashboardUrlStep.DependsOn(deployStep);
-            printDashboardUrlStep.RequiredBy("deploy");
+            printDashboardUrlStep.RequiredBy(WellKnownPipelineSteps.Deploy);
 
-            return [validateStep, createContextStep, provisionStep, addImageTagsStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            return [publishStep, validateStep, createContextStep, provisionStep, addImageTagsStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
         }));
 
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
