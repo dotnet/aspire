@@ -601,18 +601,16 @@ public static class PythonAppResourceBuilderExtensions
                     throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
                 }
 
-                // get the source path
-                if (!containerFileDestination.Source.TryGetLastAnnotation<ContainerFilesSourceAnnotation>(out var containerFilesSource))
-                {
-                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a ContainerFilesSourceAnnotation.");
-                }
-
                 var destinationPath = containerFileDestination.DestinationPath;
                 if (!destinationPath.StartsWith('/'))
                 {
                     destinationPath = $"{rootDestinationPath}/{destinationPath}";
                 }
-                stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+
+                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                {
+                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+                }
             }
 
             stage.EmptyLine();

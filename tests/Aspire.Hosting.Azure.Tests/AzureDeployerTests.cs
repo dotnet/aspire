@@ -224,7 +224,7 @@ public class AzureDeployerTests(ITestOutputHelper output)
 
         var containerAppEnv = builder.AddAzureContainerAppEnvironment("env");
 
-        // Add a compute resource with its own build step
+        // Add a build-only container resource
         builder.AddExecutable("exe", "exe", ".")
             .PublishAsDockerFile(c =>
             {

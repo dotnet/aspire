@@ -185,9 +185,14 @@ public static class NodeAppHostingExtension
                 });
 
                 // since Vite apps are typically served via a separate web server, we don't have an entrypoint
-                var dockerFileAnnotation = resource.Annotations.OfType<DockerfileBuildAnnotation>().LastOrDefault()
-                    ?? throw new InvalidOperationException("DockerfileBuildAnnotation should exist after calling PublishAsDockerFile.");
-                dockerFileAnnotation.HasEntrypoint = false;
+                if (resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerFileAnnotation))
+                {
+                    dockerFileAnnotation.HasEntrypoint = false;
+                }
+                else
+                {
+                    throw new InvalidOperationException("DockerfileBuildAnnotation should exist after calling PublishAsDockerFile.");
+                }
             })
             .WithAnnotation(new ContainerFilesSourceAnnotation() { SourcePath = "/app/dist" });
     }
