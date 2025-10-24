@@ -697,8 +697,8 @@ public class AzureDeployerTests
                    cmd.Arguments == "acr login --name testregistry");
 
         // Assert that deploying steps executed
-        Assert.Contains("deploy-compute", mockActivityReporter.CreatedSteps);
-        Assert.Contains(("deploy-compute", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
+        Assert.Contains("deploy-compute-resources", mockActivityReporter.CreatedSteps);
+        Assert.Contains(("deploy-compute-resources", "Deploying **cache**"), mockActivityReporter.CreatedTasks);
     }
 
     [Fact]
@@ -1024,7 +1024,7 @@ public class AzureDeployerTests
     {
         // Arrange
         var activityReporter = new TestPublishingActivityReporter();
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, step: WellKnownPipelineSteps.Deploy);
         var armClientProvider = new TestArmClientProvider(new Dictionary<string, object>
         {
             ["AZURE_CONTAINER_REGISTRY_NAME"] = new { type = "String", value = "testregistry" },
@@ -1101,9 +1101,9 @@ public class AzureDeployerTests
         var appHostSha = "testsha1first";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1190,10 +1190,9 @@ public class AzureDeployerTests
         var appHostSha = "testsha3clear";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
-            $"Publishing:ClearCache=true",
+            $"AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:ClearCache=true",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner());
@@ -1223,9 +1222,9 @@ public class AzureDeployerTests
         var appHostSha = "testsha4stage";
 
         using var builder = TestDistributedApplicationBuilder.Create(
-            $"Publishing:Publisher=default",
-            $"Publishing:OutputPath=./",
-            $"Publishing:Deploy=true",
+            "AppHost:Operation=publish",
+            $"Pipeline:OutputPath=./",
+            $"Pipeline:Step=deploy",
             $"AppHostSha={appHostSha}");
 
         ConfigureTestServicesWithFileDeploymentStateManager(builder, bicepProvisioner: new NoOpBicepProvisioner(), environmentName: "Staging");
