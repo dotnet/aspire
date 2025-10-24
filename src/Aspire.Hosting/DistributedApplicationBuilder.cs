@@ -465,9 +465,9 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<ILoggerProvider, PipelineLoggerProvider>();
 
         // Configure logging filter using the PipelineLoggingOptions
-        _innerBuilder.Services.AddOptions<LoggerFilterOptions>().Configure<PipelineLoggingOptions>((filterLoggingOptions, pipelineLoggingOptions) =>
+        _innerBuilder.Services.AddOptions<LoggerFilterOptions>().Configure<IOptions<PipelineLoggingOptions>>((filterLoggingOptions, pipelineLoggingOptions) =>
         {
-            filterLoggingOptions.AddFilter<PipelineLoggerProvider>((level) => level >= pipelineLoggingOptions.MinimumLogLevel);
+            filterLoggingOptions.AddFilter<PipelineLoggerProvider>((level) => level >= pipelineLoggingOptions.Value.MinimumLogLevel);
         });
 
         // Register IDeploymentStateManager based on execution context
