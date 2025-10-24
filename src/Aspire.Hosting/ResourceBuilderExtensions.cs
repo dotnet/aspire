@@ -1286,6 +1286,11 @@ public static class ResourceBuilderExtensions
         ArgumentNullException.ThrowIfNull(source);
         ArgumentException.ThrowIfNullOrEmpty(destinationPath);
 
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
         return builder.WithAnnotation(new ContainerFilesDestinationAnnotation()
         {
             Source = source.Resource,
