@@ -117,11 +117,6 @@ public sealed class AzureEnvironmentResource : Resource
             return [validateStep, createContextStep, provisionStep, deployComputeMarkerStep, printDashboardUrlStep];
         }));
 
-        Annotations.Add(new PipelineConfigurationAnnotation(context =>
-        {
-            return Task.CompletedTask;
-        }));
-
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
 
         Location = location;

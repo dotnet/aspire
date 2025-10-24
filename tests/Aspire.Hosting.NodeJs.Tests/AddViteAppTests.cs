@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -10,19 +11,23 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDefaultDockerfile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
-        var workingDirectory = AppContext.BaseDirectory;
+        // Create vite directory to ensure manifest generates correct relative build context path
+        var viteDir = Path.Combine(builder.AppHostDirectory, "vite");
+        Directory.CreateDirectory(viteDir);
+
         var nodeApp = builder.AddViteApp("vite", "vite")
             .WithNpmPackageManager();
 
-        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, builder.AppHostDirectory);
 
         var expectedManifest = $$"""
             {
               "type": "container.v1",
               "build": {
-                "context": "../../../../../tests/Aspire.Hosting.Tests/vite",
+                "context": "vite",
                 "dockerfile": "vite.Dockerfile"
               },
               "env": {
@@ -41,7 +46,8 @@ public class AddViteAppTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        var dockerfilePath = Path.Combine(builder.AppHostDirectory, "vite.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $$"""
             FROM node:22-slim
             WORKDIR /app
@@ -51,5 +57,11 @@ public class AddViteAppTests
 
             """.Replace("\r\n", "\n");
         Assert.Equal(expectedDockerfile, dockerfileContents);
+
+        var dockerBuildAnnotation = nodeApp.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+        Assert.False(dockerBuildAnnotation.HasEntrypoint);
+
+        var containerFilesSource = nodeApp.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>().Single();
+        Assert.Equal("/app/dist", containerFilesSource.SourcePath);
     }
 }
