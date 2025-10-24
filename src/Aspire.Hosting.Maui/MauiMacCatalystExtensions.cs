@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Maui;
-using Aspire.Hosting.Maui.Annotations;
-using Aspire.Hosting.Maui.Lifecycle;
-using Aspire.Hosting.Maui.Utilities;
 
 namespace Aspire.Hosting;
 
@@ -98,9 +94,6 @@ public static class MauiMacCatalystExtensions
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);
 
-        // Get the Mac Catalyst TFM from the project file
-        var macCatalystTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "maccatalyst");
-
         var macCatalystResource = new MauiMacCatalystPlatformResource(name, builder.Resource);
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(macCatalystResource)
@@ -109,48 +102,18 @@ public static class MauiMacCatalystExtensions
             {
                 Command = "dotnet",
                 WorkingDirectory = workingDirectory
-            })
-            .WithArgs(context =>
-            {
-                context.Args.Add("run");
-                if (!string.IsNullOrEmpty(macCatalystTfm))
-                {
-                    context.Args.Add("-f");
-                    context.Args.Add(macCatalystTfm);
-                }
-                // Add the -W flag to run in windowed mode (required for Mac Catalyst)
-                context.Args.Add("-p:OpenArguments=-W");
-            })
-            .WithOtlpExporter()
-            .WithIconName("Desktop")
-            .WithExplicitStart();
+            });
 
-        // Validate the Mac Catalyst TFM when the resource is about to start
-        resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
-        {
-            // If we couldn't detect the TFM earlier, fail the resource start
-            if (string.IsNullOrEmpty(macCatalystTfm))
-            {
-                throw new DistributedApplicationException(
-                    $"Unable to detect Mac Catalyst target framework in project '{projectPath}'. " +
-                    "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Mac Catalyst target framework (e.g., net10.0-maccatalyst) " +
-                    "or remove the AddMacCatalystDevice() call from your AppHost.");
-            }
-
-            return Task.CompletedTask;
-        });
-
-        // Check if macOS platform is supported on the current host
-        if (!OperatingSystem.IsMacOS())
-        {
-            var reason = "macOS platform not available on this host";
-
-            // Mark as unsupported
-            resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(reason), ResourceAnnotationMutationBehavior.Append);
-
-            // Add an event subscriber to set the "Unsupported" state after orchestrator initialization
-            builder.ApplicationBuilder.Services.TryAddEventingSubscriber<UnsupportedPlatformEventSubscriber>();
-        }
+        // Configure the platform resource with common settings
+        MauiPlatformHelper.ConfigurePlatformResource(
+            resourceBuilder,
+            projectPath,
+            "maccatalyst",
+            "Mac Catalyst",
+            "net10.0-maccatalyst",
+            OperatingSystem.IsMacOS,
+            "Desktop",
+            "-p:OpenArguments=-W");
 
         return resourceBuilder;
     }

@@ -55,26 +55,31 @@ internal static class MauiPlatformHelper
         string tfmExample,
         Func<bool> isSupported,
         string iconName = "Desktop",
-        params string[] additionalArgs) where T : ExecutableResource
+        params string[] additionalArgs) where T : ProjectResource
     {
-        resourceBuilder
-            .WithOtlpExporter()
-            .WithIconName(iconName)
-            .WithExplicitStart();
-
         // Check if the project has the platform TFM and get the actual TFM value
         var platformTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, platformName);
 
         // Set the command line arguments with the detected TFM if available
-        if (!string.IsNullOrEmpty(platformTfm))
+        resourceBuilder.WithArgs(context =>
         {
-            var args = new List<string> { "run", "-f", platformTfm };
-            if (additionalArgs.Length > 0)
+            context.Args.Add("run");
+            if (!string.IsNullOrEmpty(platformTfm))
             {
-                args.AddRange(additionalArgs);
+                context.Args.Add("-f");
+                context.Args.Add(platformTfm);
             }
-            resourceBuilder.WithArgs([.. args]);
-        }
+            // Add any additional platform-specific arguments
+            foreach (var arg in additionalArgs)
+            {
+                context.Args.Add(arg);
+            }
+        });
+
+        resourceBuilder
+            .WithOtlpExporter()
+            .WithIconName(iconName)
+            .WithExplicitStart();
 
         // Validate the platform TFM when the resource is about to start
         resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>

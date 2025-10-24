@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Lifecycle;
 using Aspire.Hosting.Maui;
-using Aspire.Hosting.Maui.Annotations;
-using Aspire.Hosting.Maui.Lifecycle;
-using Aspire.Hosting.Maui.Utilities;
 
 namespace Aspire.Hosting;
 
@@ -98,9 +94,6 @@ public static class MauiWindowsExtensions
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);
 
-        // Get the Windows TFM from the project file
-        var windowsTfm = ProjectFileReader.GetPlatformTargetFramework(projectPath, "windows");
-
         var windowsResource = new MauiWindowsPlatformResource(name, builder.Resource);
 
         var resourceBuilder = builder.ApplicationBuilder.AddResource(windowsResource)
@@ -109,46 +102,17 @@ public static class MauiWindowsExtensions
             {
                 Command = "dotnet",
                 WorkingDirectory = workingDirectory
-            })
-            .WithArgs(context =>
-            {
-                context.Args.Add("run");
-                if (!string.IsNullOrEmpty(windowsTfm))
-                {
-                    context.Args.Add("-f");
-                    context.Args.Add(windowsTfm);
-                }
-            })
-            .WithOtlpExporter()
-            .WithIconName("Desktop")
-            .WithExplicitStart();
+            });
 
-        // Validate the Windows TFM when the resource is about to start
-        resourceBuilder.OnBeforeResourceStarted((resource, eventing, ct) =>
-        {
-            // If we couldn't detect the TFM earlier, fail the resource start
-            if (string.IsNullOrEmpty(windowsTfm))
-            {
-                throw new DistributedApplicationException(
-                    $"Unable to detect Windows target framework in project '{projectPath}'. " +
-                    "Ensure the project file contains a TargetFramework or TargetFrameworks element with a Windows target framework (e.g., net10.0-windows10.0.19041.0) " +
-                    "or remove the AddWindowsDevice() call from your AppHost.");
-            }
-
-            return Task.CompletedTask;
-        });
-
-        // Check if Windows platform is supported on the current host
-        if (!OperatingSystem.IsWindows())
-        {
-            var reason = "Windows platform not available on this host";
-
-            // Mark as unsupported
-            resourceBuilder.WithAnnotation(new UnsupportedPlatformAnnotation(reason), ResourceAnnotationMutationBehavior.Append);
-
-            // Add an event subscriber to set the "Unsupported" state after orchestrator initialization
-            builder.ApplicationBuilder.Services.TryAddEventingSubscriber<UnsupportedPlatformEventSubscriber>();
-        }
+        // Configure the platform resource with common settings
+        MauiPlatformHelper.ConfigurePlatformResource(
+            resourceBuilder,
+            projectPath,
+            "windows",
+            "Windows",
+            "net10.0-windows10.0.19041.0",
+            OperatingSystem.IsWindows,
+            "Desktop");
 
         return resourceBuilder;
     }

@@ -239,7 +239,7 @@ public class MauiMacCatalystExtensionsTests
                     .PublishAsync(new BeforeResourceStartedEvent(macCatalyst.Resource, app.Services), CancellationToken.None);
             });
             
-            Assert.Contains("Unable to detect macOS Catalyst target framework", exception.Message);
+            Assert.Contains("Unable to detect Mac Catalyst target framework", exception.Message);
             Assert.Contains(tempFile, exception.Message);
         }
         finally
