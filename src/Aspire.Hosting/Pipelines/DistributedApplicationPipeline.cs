@@ -20,6 +20,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     private readonly List<PipelineStep> _steps = [];
     private readonly List<Func<PipelineConfigurationContext, Task>> _configurationCallbacks = [];
 
+    public DistributedApplicationPipeline()
+    {
+        // Initialize with a "deploy" step that has a no-op callback
+        _steps.Add(new PipelineStep
+        {
+            Name = "deploy",
+            Action = _ => Task.CompletedTask
+        });
+    }
+
     public bool HasSteps => _steps.Count > 0;
 
     public void AddStep(string name,

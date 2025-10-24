@@ -87,7 +87,7 @@ public sealed class AzureEnvironmentResource : Resource
             var provisionStep = new PipelineStep
             {
                 Name = "provision-azure-bicep-resources",
-                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!),
+                Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
             provisionStep.DependsOn(createContextStep);
@@ -233,77 +233,6 @@ public sealed class AzureEnvironmentResource : Resource
                 context.CancellationToken).ConfigureAwait(false);
             throw;
         }
-    }
-
-    private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
-    {
-        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-        var configuration = context.Services.GetRequiredService<IConfiguration>();
-
-        var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
-            .Where(r => !r.IsExcludedFromPublish())
-            .Where(r => r.ProvisioningTaskCompletionSource == null ||
-                       !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
-            .ToList();
-
-        if (bicepResources.Count == 0)
-        {
-            return;
-        }
-
-        var provisioningTasks = bicepResources.Select(async resource =>
-        {
-            var resourceTask = await context.ReportingStep
-                .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
-                .ConfigureAwait(false);
-
-            await using (resourceTask.ConfigureAwait(false))
-            {
-                try
-                {
-                    resource.ProvisioningTaskCompletionSource =
-                        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                    if (await bicepProvisioner.ConfigureResourceAsync(
-                        configuration, resource, context.CancellationToken).ConfigureAwait(false))
-                    {
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Using existing deployment for **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await bicepProvisioner.GetOrCreateResourceAsync(
-                            resource, provisioningContext, context.CancellationToken)
-                            .ConfigureAwait(false);
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Successfully provisioned **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var errorMessage = ex switch
-                    {
-                        RequestFailedException requestEx =>
-                            $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                        _ => $"Deployment failed: {ex.Message}"
-                    };
-                    resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-                    await resourceTask.CompleteAsync(
-                        $"Failed to provision **{resource.Name}**: {errorMessage}",
-                        CompletionState.CompletedWithError,
-                        context.CancellationToken).ConfigureAwait(false);
-                    throw;
-                }
-            }
-        });
-
-        await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
     }
 
     private async Task BuildContainerImagesAsync(PipelineStepContext context)

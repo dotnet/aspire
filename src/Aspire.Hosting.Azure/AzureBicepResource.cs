@@ -1,12 +1,21 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.Provisioning;
+using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Azure.Utils;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
+using Azure;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure;
 
@@ -29,6 +38,19 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         TemplateResourceName = templateResourceName;
 
         Annotations.Add(new ManifestPublishingCallbackAnnotation(WriteToManifest));
+
+        // Add pipeline step annotation to provision this bicep resource
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
+        {
+            var provisionStep = new PipelineStep
+            {
+                Name = $"provision-{name}",
+                Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false)
+            };
+            provisionStep.RequiredBy(WellKnownPipelineTags.ProvisionInfrastructure);
+
+            return provisionStep;
+        }));
     }
 
     internal string? TemplateFile { get; }
@@ -217,6 +239,170 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
             context.Writer.WriteString("resourceGroup", resourceGroup);
             context.Writer.WriteEndObject();
         }
+    }
+
+    /// <summary>
+    /// Provisions this Azure Bicep resource using the bicep provisioner.
+    /// </summary>
+    /// <param name="context">The pipeline step context.</param>
+    /// <param name="resource">The Azure Bicep resource to provision.</param>
+    private static async Task ProvisionAzureBicepResourceAsync(PipelineStepContext context, AzureBicepResource resource)
+    {
+        // Skip if the resource is excluded from publish
+        if (resource.IsExcludedFromPublish())
+        {
+            return;
+        }
+
+        // Skip if already provisioned
+        if (resource.ProvisioningTaskCompletionSource != null &&
+            resource.ProvisioningTaskCompletionSource.Task.IsCompleted)
+        {
+            return;
+        }
+
+        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
+        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
+        
+        var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(context.CancellationToken).ConfigureAwait(false);
+
+        var resourceTask = await context.ReportingStep
+            .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
+            .ConfigureAwait(false);
+
+        await using (resourceTask.ConfigureAwait(false))
+        {
+            try
+            {
+                resource.ProvisioningTaskCompletionSource =
+                    new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                if (await bicepProvisioner.ConfigureResourceAsync(
+                    configuration, resource, context.CancellationToken).ConfigureAwait(false))
+                {
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    await resourceTask.CompleteAsync(
+                        $"Using existing deployment for **{resource.Name}**",
+                        CompletionState.Completed,
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    await bicepProvisioner.GetOrCreateResourceAsync(
+                        resource, provisioningContext, context.CancellationToken)
+                        .ConfigureAwait(false);
+                    resource.ProvisioningTaskCompletionSource?.TrySetResult();
+                    await resourceTask.CompleteAsync(
+                        $"Successfully provisioned **{resource.Name}**",
+                        CompletionState.Completed,
+                        context.CancellationToken).ConfigureAwait(false);
+                }
+            }
+            catch (Exception ex)
+            {
+                var errorMessage = ex switch
+                {
+                    RequestFailedException requestEx =>
+                        $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
+                    _ => $"Deployment failed: {ex.Message}"
+                };
+                resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
+                await resourceTask.CompleteAsync(
+                    $"Failed to provision **{resource.Name}**: {errorMessage}",
+                    CompletionState.CompletedWithError,
+                    context.CancellationToken).ConfigureAwait(false);
+                throw;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Extracts detailed error information from Azure RequestFailedException responses.
+    /// Parses the following JSON error structures:
+    /// 1. Standard Azure error format: { "error": { "code": "...", "message": "...", "details": [...] } }
+    /// 2. Deployment-specific error format: { "properties": { "error": { "code": "...", "message": "..." } } }
+    /// 3. Nested error details with recursive parsing for deeply nested error hierarchies
+    /// </summary>
+    /// <param name="requestEx">The Azure RequestFailedException containing the error response</param>
+    /// <returns>The most specific error message found, or the original exception message if parsing fails</returns>
+    private static string ExtractDetailedErrorMessage(RequestFailedException requestEx)
+    {
+        try
+        {
+            var response = requestEx.GetRawResponse();
+            if (response?.Content is not null)
+            {
+                var responseContent = response.Content.ToString();
+                if (!string.IsNullOrEmpty(responseContent))
+                {
+                    if (JsonNode.Parse(responseContent) is JsonObject responseObj)
+                    {
+                        if (responseObj["error"] is JsonObject errorObj)
+                        {
+                            var code = errorObj["code"]?.ToString();
+                            var message = errorObj["message"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message))
+                            {
+                                if (errorObj["details"] is JsonArray detailsArray && detailsArray.Count > 0)
+                                {
+                                    var deepestErrorMessage = ExtractDeepestErrorMessage(detailsArray);
+                                    if (!string.IsNullOrEmpty(deepestErrorMessage))
+                                    {
+                                        return deepestErrorMessage;
+                                    }
+                                }
+
+                                return $"{code}: {message}";
+                            }
+                        }
+
+                        if (responseObj["properties"]?["error"] is JsonObject deploymentErrorObj)
+                        {
+                            var code = deploymentErrorObj["code"]?.ToString();
+                            var message = deploymentErrorObj["message"]?.ToString();
+
+                            if (!string.IsNullOrEmpty(code) && !string.IsNullOrEmpty(message))
+                            {
+                                return $"{code}: {message}";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (JsonException) { }
+
+        return requestEx.Message;
+    }
+
+    private static string ExtractDeepestErrorMessage(JsonArray detailsArray)
+    {
+        foreach (var detail in detailsArray)
+        {
+            if (detail is JsonObject detailObj)
+            {
+                var detailCode = detailObj["code"]?.ToString();
+                var detailMessage = detailObj["message"]?.ToString();
+
+                if (detailObj["details"] is JsonArray nestedDetailsArray && nestedDetailsArray.Count > 0)
+                {
+                    var deeperMessage = ExtractDeepestErrorMessage(nestedDetailsArray);
+                    if (!string.IsNullOrEmpty(deeperMessage))
+                    {
+                        return deeperMessage;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(detailCode) && !string.IsNullOrEmpty(detailMessage))
+                {
+                    return $"{detailCode}: {detailMessage}";
+                }
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
