@@ -73,6 +73,11 @@ internal sealed class DeployCommand : PublishCommandBase
         {
             baseArgs.AddRange(["--step", step]);
         }
+        else
+        {
+            // Default to the "deploy" step
+            baseArgs.AddRange(["--step", "deploy"]);
+        }
 
         baseArgs.AddRange(unmatchedTokens);
 
