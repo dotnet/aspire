@@ -6,7 +6,7 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting;
 
 /// <summary>
-/// Represents a resource that containers associated container files.
+/// Represents a resource that contains files that can be copied to other resources.
 /// </summary>
 /// <remarks>
 /// Resources that implement this interface produce container images that include files
