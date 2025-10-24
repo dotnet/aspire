@@ -13,7 +13,7 @@ public class AddViteAppTests
         using var tempDir = new TempDirectory();
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
-        // Create a vite directory in the builder's AppHostDirectory
+        // Create vite directory to ensure manifest generates correct relative build context path
         var viteDir = Path.Combine(builder.AppHostDirectory, "vite");
         Directory.CreateDirectory(viteDir);
 
