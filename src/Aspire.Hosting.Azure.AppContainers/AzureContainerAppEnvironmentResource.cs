@@ -49,9 +49,23 @@ public class AzureContainerAppEnvironmentResource :
             {
                 Name = $"default-image-tags-{name}",
                 Action = ctx => DefaultImageTags(ctx),
-                Tags = [$"default-image-tags-{name}"]
+                Tags = ["default-image-tags"]
             };
             steps.Add(addImageTagsStep);
+
+            // Add registry login step (once per environment, not per push)
+            var registryLoginStep = new PipelineStep
+            {
+                Name = $"login-registry-{name}",
+                Action = async ctx =>
+                {
+                    var processRunner = ctx.Services.GetRequiredService<IProcessRunner>();
+                    var configuration = ctx.Services.GetRequiredService<IConfiguration>();
+                    await AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, ctx, processRunner, configuration).ConfigureAwait(false);
+                },
+                Tags = ["login-registry"]
+            };
+            steps.Add(registryLoginStep);
 
             // For each compute resource, expand its build steps or create a default one
             foreach (var computeResource in computeResources)
@@ -94,7 +108,7 @@ public class AzureContainerAppEnvironmentResource :
                                 },
                                 ctx.CancellationToken).ConfigureAwait(false);
                         },
-                        Tags = [WellKnownPipelineTags.BuildCompute, $"build-{name}"]
+                        Tags = [WellKnownPipelineTags.BuildCompute, "build"]
                     };
                     buildStep.DependsOn(addImageTagsStep);
                     steps.Add(buildStep);
@@ -107,16 +121,11 @@ public class AzureContainerAppEnvironmentResource :
                     Action = async ctx =>
                     {
                         var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                        var processRunner = ctx.Services.GetRequiredService<IProcessRunner>();
-                        var configuration = ctx.Services.GetRequiredService<IConfiguration>();
-
-                        // Login to registry (use this environment as the registry)
-                        await AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, ctx, processRunner, configuration).ConfigureAwait(false);
                         
-                        // Push this specific resource
+                        // Push this specific resource (login happens once in the registryLoginStep)
                         await AzureEnvironmentResourceHelpers.PushImagesToRegistryAsync(this, [computeResource], ctx, containerImageBuilder).ConfigureAwait(false);
                     },
-                    Tags = [$"push-{name}"]
+                    Tags = ["push"]
                 };
                 // Push depends on all build steps for this resource
                 var resourceBuildSteps = steps.Where(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute) && 
@@ -125,6 +134,8 @@ public class AzureContainerAppEnvironmentResource :
                 {
                     pushStep.DependsOn(buildStep);
                 }
+                // Push also depends on registry login
+                pushStep.DependsOn(registryLoginStep);
                 steps.Add(pushStep);
 
                 // For deploy, get the deployment target and expand its provision steps
@@ -162,7 +173,7 @@ public class AzureContainerAppEnvironmentResource :
                         var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
                         await DeployComputeResourceAsync(ctx, computeResource, provisioningContext).ConfigureAwait(false);
                     },
-                    Tags = [WellKnownPipelineTags.DeployCompute, $"deploy-{name}"]
+                    Tags = [WellKnownPipelineTags.DeployCompute, "deploy"]
                 };
                 deployStep.DependsOn(pushStep);
                 // Also depend on any provision steps we added for this resource's deployment target
@@ -182,13 +193,23 @@ public class AzureContainerAppEnvironmentResource :
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
             // Make all push steps for this environment depend on the registry being provisioned
-            var pushSteps = context.GetSteps($"push-{name}");
+            var pushSteps = context.GetSteps("push");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
             foreach (var pushStep in pushSteps)
             {
                 foreach (var provisionStep in provisionSteps)
                 {
                     pushStep.DependsOn(provisionStep);
+                }
+            }
+
+            // Make registry login depend on the registry being provisioned
+            var loginSteps = context.GetSteps("login-registry");
+            foreach (var loginStep in loginSteps)
+            {
+                foreach (var provisionStep in provisionSteps)
+                {
+                    loginStep.DependsOn(provisionStep);
                 }
             }
 
