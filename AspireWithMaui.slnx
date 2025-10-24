@@ -107,6 +107,13 @@
     <File Path="playground/README.md" />
     <Project Path="playground/Playground.ServiceDefaults/Playground.ServiceDefaults.csproj" />
   </Folder>
+  <Folder Name="/playground/AspireWithMaui/">
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.AppHost/AspireWithMaui.AppHost.csproj" />
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiClient/AspireWithMaui.MauiClient.csproj" />
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.MauiServiceDefaults/AspireWithMaui.MauiServiceDefaults.csproj" />
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.ServiceDefaults/AspireWithMaui.ServiceDefaults.csproj" />
+    <Project Path="playground/AspireWithMaui/AspireWithMaui.WeatherApi/AspireWithMaui.WeatherApi.csproj" />
+  </Folder>
   <Folder Name="/playground/AspireWithJavaScript/">
     <Project Path="playground/AspireWithJavaScript/AspireJavaScript.AppHost/AspireJavaScript.AppHost.csproj" />
     <Project Path="playground/AspireWithJavaScript/AspireJavaScript.MinimalApi/AspireJavaScript.MinimalApi.csproj" />
