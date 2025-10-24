@@ -75,7 +75,7 @@ partial class Resource
             {
                 displayProperties.IconVariant = MapIconVariant(urlSnapshot.DisplayProperties.IconVariant);
             }
-            
+
             url.DisplayProperties = displayProperties;
             resource.Urls.Add(url);
         }

@@ -34,6 +34,6 @@ public partial class UrlsColumnDisplay
 
     [Inject]
     public required IJSRuntime JSRuntime { get; init; }
-    
+
     private bool _popoverVisible;
 }

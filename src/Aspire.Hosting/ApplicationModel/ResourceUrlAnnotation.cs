@@ -39,12 +39,12 @@ public sealed class ResourceUrlAnnotation : IResourceAnnotation
     /// <summary>
     /// The name of the icon to display with this URL.
     /// </summary>
-    public string IconName { get; set; } = string.Empty;
-    
+    public string? IconName { get; set; }
+
     /// <summary>
     /// The variant of the icon to display with this URL.
     /// </summary>
-    public IconVariant IconVariant { get; set; } = IconVariant.Regular;
+    public IconVariant? IconVariant { get; set; }
 
     internal bool IsInternal => DisplayLocation == UrlDisplayLocation.DetailsOnly;
 
