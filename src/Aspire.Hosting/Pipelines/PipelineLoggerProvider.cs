@@ -3,7 +3,6 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -17,16 +16,6 @@ namespace Aspire.Hosting.Pipelines;
 internal sealed class PipelineLoggerProvider : ILoggerProvider
 {
     private static readonly AsyncLocal<StepLoggerHolder?> s_currentLogger = new();
-    private readonly PipelineLoggingOptions _options;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PipelineLoggerProvider"/> class.
-    /// </summary>
-    /// <param name="options">The pipeline logging options.</param>
-    public PipelineLoggerProvider(IOptions<PipelineLoggingOptions> options)
-    {
-        _options = options.Value;
-    }
 
     /// <summary>
     /// Gets or sets the current logger for the executing pipeline step.
@@ -50,7 +39,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
 
     /// <inheritdoc/>
     public ILogger CreateLogger(string categoryName) =>
-        new PipelineLogger(() => CurrentLogger, _options);
+        new PipelineLogger(() => CurrentLogger);
 
     /// <inheritdoc/>
     public void Dispose()
@@ -74,7 +63,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
     /// allowing the target logger to change between calls.
     /// When logging exceptions, stack traces are only included when the configured minimum log level is Debug or Trace.
     /// </remarks>
-    private sealed class PipelineLogger(Func<ILogger> currentLoggerAccessor, PipelineLoggingOptions options) : ILogger
+    private sealed class PipelineLogger(Func<ILogger> currentLoggerAccessor) : ILogger
     {
         /// <inheritdoc/>
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull =>
@@ -85,13 +74,7 @@ internal sealed class PipelineLoggerProvider : ILoggerProvider
             currentLoggerAccessor().IsEnabled(logLevel);
 
         /// <inheritdoc/>
-        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
-        {
-            var logger = currentLoggerAccessor();
-            
-            // If there's an exception and we should not include exception details, exclude the exception from the log
-            // to avoid cluttering production logs with stack traces
-            logger.Log(logLevel, eventId, state, options.IncludeExceptionDetails ? exception : null, formatter);
-        }
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) =>
+            currentLoggerAccessor().Log(logLevel, eventId, state, exception, formatter);
     }
 }
