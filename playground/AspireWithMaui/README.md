@@ -67,6 +67,11 @@ After running the restore script with `-restore-maui`, you can build and run the
 The playground demonstrates Aspire's ability to manage MAUI apps on multiple platforms:
 - **Windows**: Configures the MAUI app with `.AddWindowsDevice()`
 - **Mac Catalyst**: Configures the MAUI app with `.AddMacCatalystDevice()`
+- **Android Device**: Configures the MAUI app with `.AddAndroidDevice()` to run on physical Android devices
+- **Android Emulator**: Configures the MAUI app with `.AddAndroidEmulator()` to run on Android emulators
+  - Use `.AddAndroidEmulator()` to target the default/running emulator
+  - Use `.AddAndroidEmulator(emulatorId: "Pixel_5_API_33")` to target a specific emulator
+  - Get emulator names from `adb devices` command
 - Automatically detects platform-specific target frameworks from the project file
 - Shows "Unsupported" state in dashboard when running on incompatible host OS
 - Sets up dev tunnels for MAUI app communication with backend services
@@ -77,9 +82,35 @@ The MAUI client uses OpenTelemetry to send traces and metrics to the Aspire dash
 ### Service Discovery
 The MAUI app discovers and connects to backend services (WeatherApi) using Aspire's service discovery.
 
+### Environment Variables
+
+All MAUI platform resources support environment variables using the standard `.WithEnvironment()` method:
+
+```csharp
+// For Windows and Mac Catalyst, environment variables are passed directly:
+mauiapp.AddWindowsDevice()
+    .WithEnvironment("DEBUG_MODE", "true")
+    .WithEnvironment("API_TIMEOUT", "30");
+
+// For Android, environment variables are passed via an intermediate MSBuild targets file, but the syntax to pass them is identical:
+mauiapp.AddAndroidEmulator("debug-emulator")
+    .WithEnvironment("DEBUG_MODE", "true")
+    .WithEnvironment("API_TIMEOUT", "30")
+    .WithEnvironment("LOG_LEVEL", "Debug");
+```
+
+#### Platform-Specific Implementation
+
+- **Windows & Mac Catalyst**: Environment variables are passed directly through the process environment when launching via `dotnet run`.
+- **Android**: Due to Android platform limitations, environment variables are written to a temporary MSBuild targets file that gets imported during the build. This happens automatically - no additional configuration required.
+- **iOS**: (Coming soon) Will use a similar approach to Android with MSBuild targets file.
+
+Environment variables are available in your MAUI app code regardless of platform through standard .NET environment APIs (`Environment.GetEnvironmentVariable()`).
+
 ### Future Platform Support
-The architecture is designed to support additional platforms (Android, iOS) through:
-- `.AddAndroidDevice()`, `.AddIosDevice()` extension methods (coming in future updates)
+The architecture is designed to support additional platforms:
+- Android support: `.AddAndroidDevice()` for physical devices, `.AddAndroidEmulator()` for emulators (implemented)
+- iOS support: `.AddIosDevice()` extension method (coming in future updates)
 - Parallel extension patterns for each platform
 
 ## Troubleshooting
@@ -99,7 +130,12 @@ If you encounter build errors:
 ### Platform-Specific Issues
 - **Windows**: Requires Windows 10 build 19041 or higher for WinUI support. Mac Catalyst devices will show as "Unsupported" when running on Windows.
 - **Mac Catalyst**: Requires macOS to run. Windows devices will show as "Unsupported" when running on macOS.
-- **Android**: Not yet implemented in this playground (coming soon)
+- **Android Device**: Requires a physical Android device connected via USB/WiFi debugging. Ensure the device is visible via `adb devices`. Works on Windows, macOS, and Linux.
+- **Android Emulator**: Requires an Android emulator running and visible via `adb devices`. To target a specific emulator:
+  1. List available emulators: `adb devices` (shows emulator IDs like "emulator-5554")
+  2. Or list AVDs: `emulator -list-avds` (shows AVD names like "Pixel_5_API_33")
+  3. Use either ID format in code: `.AddAndroidEmulator(emulatorId: "Pixel_5_API_33")` or `.AddAndroidEmulator(emulatorId: "emulator-5554")`
+  4. Works on Windows, macOS, and Linux.
 - **iOS**: Not yet implemented in this playground (coming soon)
 
 ## Current Status
@@ -107,6 +143,8 @@ If you encounter build errors:
 ✅ **Implemented:**
 - Windows platform support via `AddWindowsDevice()`
 - Mac Catalyst platform support via `AddMacCatalystDevice()`
+- Android device support via `AddAndroidDevice()`
+- Android emulator support via `AddAndroidEmulator()`
 - Automatic platform-specific TFM detection from project file
 - Platform validation with "Unsupported" state for incompatible hosts
 - Dev tunnel configuration for MAUI-to-backend communication
@@ -114,7 +152,6 @@ If you encounter build errors:
 - OpenTelemetry integration
 
 🚧 **Coming Soon:**
-- Android platform support via `AddAndroidDevice()`
 - iOS platform support via `AddIosDevice()`
 - Multi-platform simultaneous debugging
 
