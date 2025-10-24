@@ -468,19 +468,6 @@ internal sealed class AzureAppServiceWebsiteContext(
 
     private void EnableApplicationInsightsForWebSite(WebSite webSite)
     {
-        bool appInsightsEnabled = true;
-
-        if (resource.TryGetLastAnnotation<AzureAppServiceWebSiteAppInsightsAnnotation>(out var appInsightsAnnotation))
-        {
-            appInsightsEnabled = appInsightsAnnotation.Enabled;
-        }
-
-        // If app insights has been disabled via annotation to the ProjectResource, skip adding app insights settings
-        if (!appInsightsEnabled)
-        {
-            return;
-        }
-
         var appInsightsInstrumentationKey = environmentContext.Environment.AzureAppInsightsInstrumentationKeyReference.AsProvisioningParameter(Infra);
         var appInsightsConnectionString = environmentContext.Environment.AzureAppInsightsConnectionStringReference.AsProvisioningParameter(Infra);
 
