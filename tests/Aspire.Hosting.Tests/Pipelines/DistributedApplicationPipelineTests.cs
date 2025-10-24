@@ -656,7 +656,7 @@ public class DistributedApplicationPipelineTests
     }
 
     [Fact]
-    public async Task PublishAsync_Deploy_WithNoResourcesAndNoPipelineSteps_ReturnsError()
+    public async Task PublishAsync_Deploy_WithNoResourcesAndNoPipelineSteps_Succeeds()
     {
         // Arrange
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
@@ -672,22 +672,22 @@ public class DistributedApplicationPipelineTests
         // Act
         await publisher.PublishAsync(app.Services.GetRequiredService<DistributedApplicationModel>(), CancellationToken.None);
 
-        // Assert
+        // Assert - Since the "deploy" step is now always present, this should succeed
         var activityReader = reporter.ActivityItemUpdated.Reader;
-        var foundErrorActivity = false;
+        var foundSuccessActivity = false;
 
         while (activityReader.TryRead(out var activity))
         {
             if (activity.Type == PublishingActivityTypes.Task &&
-                activity.Data.IsError &&
-                activity.Data.CompletionMessage == "No deployment steps found in the application pipeline.")
+                !activity.Data.IsError &&
+                activity.Data.CompletionMessage == "Found deployment steps in the application pipeline.")
             {
-                foundErrorActivity = true;
+                foundSuccessActivity = true;
                 break;
             }
         }
 
-        Assert.True(foundErrorActivity, "Expected to find a task activity with error about no deployment steps found");
+        Assert.True(foundSuccessActivity, "Expected to find a task activity indicating deployment steps were found");
     }
 
     [Fact]
@@ -1339,8 +1339,12 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        var stepActivity = Assert.Single(stepActivities);
-        Assert.Collection(stepActivity,
+        Assert.Equal(2, stepActivities.Count); // Updated to account for "deploy" step
+        
+        // Find the logging-step activity
+        var loggingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "logging-step"));
+        Assert.NotNull(loggingStepActivity);
+        Assert.Collection(loggingStepActivity,
             step =>
             {
                 Assert.Equal("logging-step", step.Data.StatusText);
@@ -1353,7 +1357,7 @@ public class DistributedApplicationPipelineTests
         var logActivity = Assert.Single(logActivities);
         Assert.Equal("Test log message from pipeline step", logActivity.Data.StatusText);
         Assert.Equal("Information", logActivity.Data.LogLevel);
-        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.Equal(loggingStepActivity.First().Data.Id, logActivity.Data.StepId);
         Assert.False(logActivity.Data.EnableMarkdown);
     }
 
@@ -1412,7 +1416,7 @@ public class DistributedApplicationPipelineTests
             activities.Add(activity);
         }
 
-        var stepOrder = new[] { "step1", "step2" };
+        var stepOrder = new[] { "deploy", "step1", "step2" }; // Added "deploy" step
         var logOrder = new[] { "Message from step 1", "Message from step 2" };
 
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
@@ -1424,6 +1428,19 @@ public class DistributedApplicationPipelineTests
             .ToList();
 
         Assert.Collection(stepActivities,
+            deployActivity =>
+            {
+                Assert.Collection(deployActivity,
+                    step =>
+                    {
+                        Assert.Equal("deploy", step.Data.StatusText);
+                        Assert.False(step.Data.IsComplete);
+                    },
+                    step =>
+                    {
+                        Assert.True(step.Data.IsComplete);
+                    });
+            },
             step1Activity =>
             {
                 Assert.Collection(step1Activity,
@@ -1509,25 +1526,26 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        Assert.Collection(stepActivities,
-            stepActivity =>
+        Assert.Equal(2, stepActivities.Count); // Updated to account for "deploy" step
+        
+        // Find the failing-step activity
+        var failingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "failing-step"));
+        Assert.NotNull(failingStepActivity);
+        Assert.Collection(failingStepActivity,
+            step =>
             {
-                Assert.Collection(stepActivity,
-                    step =>
-                    {
-                        Assert.Equal("failing-step", step.Data.StatusText);
-                        Assert.False(step.Data.IsComplete);
-                    },
-                    step =>
-                    {
-                        Assert.True(step.Data.IsError);
-                    });
+                Assert.Equal("failing-step", step.Data.StatusText);
+                Assert.False(step.Data.IsComplete);
+            },
+            step =>
+            {
+                Assert.True(step.Data.IsError);
             });
 
         var logActivity = Assert.Single(logActivities);
         Assert.Equal("About to fail", logActivity.Data.StatusText);
         Assert.Equal("Information", logActivity.Data.LogLevel);
-        Assert.Equal(stepActivities[0].First().Data.Id, logActivity.Data.StepId);
+        Assert.Equal(failingStepActivity.First().Data.Id, logActivity.Data.StepId);
 
         // Verify logger is cleaned up even after failure
         Assert.Same(NullLogger.Instance, PipelineLoggerProvider.CurrentLogger);
@@ -1589,7 +1607,7 @@ public class DistributedApplicationPipelineTests
             activities.Add(activity);
         }
 
-        var stepOrder = new[] { "step1", "step2", "step3" };
+        var stepOrder = new[] { "deploy", "step1", "step2", "step3" }; // Added "deploy" step
         var logOrder = new[] { "Executing step 1", "Executing step 2", "Executing step 3" };
 
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
@@ -1600,7 +1618,7 @@ public class DistributedApplicationPipelineTests
             .OrderBy(a => Array.IndexOf(logOrder, a.Data.StatusText))
             .ToList();
 
-        Assert.Equal(3, stepActivities.Count);
+        Assert.Equal(4, stepActivities.Count); // Updated to account for "deploy" step
         Assert.Collection(logActivities,
             logActivity =>
             {
@@ -1737,7 +1755,8 @@ public class DistributedApplicationPipelineTests
         await pipeline.ExecuteAsync(context);
 
         Assert.True(callbackExecuted);
-        Assert.Equal(2, capturedSteps.Count);
+        Assert.Equal(3, capturedSteps.Count); // Updated to account for "deploy" step
+        Assert.Contains(capturedSteps, s => s.Name == "deploy");
         Assert.Contains(capturedSteps, s => s.Name == "step1");
         Assert.Contains(capturedSteps, s => s.Name == "step2");
     }
