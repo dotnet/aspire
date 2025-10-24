@@ -3,10 +3,15 @@
 
 #pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
+using System.Globalization;
+using System.Text.Json;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.NodeJs;
 using Aspire.Hosting.Utils;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting;
 
@@ -15,6 +20,8 @@ namespace Aspire.Hosting;
 /// </summary>
 public static class NodeAppHostingExtension
 {
+    private const string DefaultNodeVersion = "22";
+
     /// <summary>
     /// Adds a node application to the application model. Node should available on the PATH.
     /// </summary>
@@ -159,8 +166,10 @@ public static class NodeAppHostingExtension
                 {
                     if (c.Resource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildCommand))
                     {
+                        var logger = dockerfileContext.Services.GetService<ILogger<ViteAppResource>>() ?? NullLogger<ViteAppResource>.Instance;
+                        var nodeVersion = DetectNodeVersion(resource.WorkingDirectory, logger) ?? DefaultNodeVersion;
                         var dockerBuilder = dockerfileContext.Builder
-                            .From("node:22-slim")
+                            .From($"node:{nodeVersion}-slim")
                             .WorkDir("/app")
                             .Copy(".", ".");
 
@@ -328,5 +337,126 @@ public static class NodeAppHostingExtension
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
+    }
+
+    /// <summary>
+    /// Detects the Node.js version to use for a project by checking common configuration files.
+    /// </summary>
+    /// <param name="workingDirectory">The working directory of the Node.js project.</param>
+    /// <param name="logger">The logger for diagnostic messages.</param>
+    /// <returns>The detected Node.js major version number as a string, or <c>null</c> if no version is detected.</returns>
+    private static string? DetectNodeVersion(string workingDirectory, ILogger logger)
+    {
+        // Check .nvmrc file
+        var nvmrcPath = Path.Combine(workingDirectory, ".nvmrc");
+        if (File.Exists(nvmrcPath))
+        {
+            var versionString = File.ReadAllText(nvmrcPath).Trim();
+            if (TryParseNodeVersion(versionString, out var version))
+            {
+                logger.LogDebug("Detected Node.js version {Version} from .nvmrc file", version);
+                return version;
+            }
+        }
+
+        // Check .node-version file
+        var nodeVersionPath = Path.Combine(workingDirectory, ".node-version");
+        if (File.Exists(nodeVersionPath))
+        {
+            var versionString = File.ReadAllText(nodeVersionPath).Trim();
+            if (TryParseNodeVersion(versionString, out var version))
+            {
+                logger.LogDebug("Detected Node.js version {Version} from .node-version file", version);
+                return version;
+            }
+        }
+
+        // Check package.json for engines.node
+        var packageJsonPath = Path.Combine(workingDirectory, "package.json");
+        if (File.Exists(packageJsonPath))
+        {
+            try
+            {
+                using var stream = File.OpenRead(packageJsonPath);
+                using var packageJson = JsonDocument.Parse(stream);
+                if (packageJson.RootElement.TryGetProperty("engines", out var engines) &&
+                    engines.TryGetProperty("node", out var nodeVersion))
+                {
+                    var versionString = nodeVersion.GetString();
+                    if (!string.IsNullOrWhiteSpace(versionString) && TryParseNodeVersion(versionString, out var version))
+                    {
+                        logger.LogDebug("Detected Node.js version {Version} from package.json engines.node field", version);
+                        return version;
+                    }
+                }
+            }
+            catch
+            {
+                // If package.json parsing fails, continue to default
+            }
+        }
+
+        // Check .tool-versions file (asdf)
+        var toolVersionsPath = Path.Combine(workingDirectory, ".tool-versions");
+        if (File.Exists(toolVersionsPath))
+        {
+            var lines = File.ReadAllLines(toolVersionsPath);
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) || 
+                    trimmedLine.StartsWith("node ", StringComparison.Ordinal))
+                {
+                    var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length > 1 && TryParseNodeVersion(parts[1], out var version))
+                    {
+                        logger.LogDebug("Detected Node.js version {Version} from .tool-versions file", version);
+                        return version;
+                    }
+                }
+            }
+        }
+
+        // Return null if no version is detected
+        logger.LogDebug("No Node.js version detected, using default version {DefaultVersion}", DefaultNodeVersion);
+        return null;
+    }
+
+    /// <summary>
+    /// Attempts to parse a Node.js version string and extract the major version number.
+    /// </summary>
+    /// <param name="versionString">The version string to parse (e.g., "22", "v22.1.0", ">=20.12", "^18.0.0").</param>
+    /// <param name="majorVersion">The extracted major version number as a string.</param>
+    /// <returns>True if the version was successfully parsed, false otherwise.</returns>
+    private static bool TryParseNodeVersion(string versionString, out string majorVersion)
+    {
+        majorVersion = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(versionString))
+        {
+            return false;
+        }
+
+        // Remove common prefixes and operators (handle multi-character operators first)
+        var cleaned = versionString.Trim();
+        string[] operators = [">=", "<=", "==", ">", "<", "=", "~", "^", "v", "V"];
+        foreach (var op in operators)
+        {
+            if (cleaned.StartsWith(op, StringComparison.Ordinal))
+            {
+                cleaned = cleaned.Substring(op.Length).TrimStart();
+                break;
+            }
+        }
+        var cleanedVersion = cleaned.Split('.', '-', ' ')[0]; // Take only the major version part
+
+        // Try to parse as integer
+        if (int.TryParse(cleanedVersion, NumberStyles.None, CultureInfo.InvariantCulture, out var majorVersionNumber) && majorVersionNumber > 0)
+        {
+            majorVersion = majorVersionNumber.ToString(CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        return false;
     }
 }
