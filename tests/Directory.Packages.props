@@ -1,7 +1,7 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove(Directory.Packages.props, $(MSBuildThisFileDirectory)..))" />
   <PropertyGroup>
-    <TestcontainersPackageVersion>4.7.0</TestcontainersPackageVersion>
+    <TestcontainersPackageVersion>4.8.1</TestcontainersPackageVersion>
   </PropertyGroup>
   <ItemGroup>
     <!-- unit test dependencies -->
@@ -10,7 +10,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
     <PackageVersion Include="Microsoft.DotNet.RemoteExecutor" Version="$(MicrosoftDotNetRemoteExecutorVersion)" />
     <PackageVersion Include="Microsoft.DotNet.XUnitV3Extensions" Version="$(MicrosoftDotNetXUnitV3ExtensionsVersion)" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.52.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.55.0" />
     <PackageVersion Include="Testcontainers.Kafka" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MongoDb" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.MsSql" Version="$(TestcontainersPackageVersion)" />
@@ -22,7 +22,7 @@
     <PackageVersion Include="Testcontainers.Milvus" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers.Oracle" Version="$(TestcontainersPackageVersion)" />
     <PackageVersion Include="Testcontainers" Version="$(TestcontainersPackageVersion)" />
-    <PackageVersion Include="Verify.XunitV3" Version="30.18.0" />
+    <PackageVersion Include="Verify.XunitV3" Version="31.0.4" />
     <PackageVersion Include="xunit.v3.extensibility.core" Version="$(XunitV3Version)" />
     <PackageVersion Include="xunit.v3.assert" Version="$(XunitV3Version)" />
   </ItemGroup>
