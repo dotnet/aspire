@@ -98,11 +98,21 @@ partial class Resource
                 };
             }
 
+            static FluentUIIconVariant MapIconVariant(IconVariant iconVariant)
+            {
+                return iconVariant switch
+                {
+                    IconVariant.Regular => FluentUIIconVariant.Regular,
+                    IconVariant.Filled => FluentUIIconVariant.Filled,
+                    _ => throw new InvalidOperationException("Unknown icon variant: " + iconVariant),
+                };
+            }
+
             // Filter out bad urls
             return (from u in Urls
                     let parsedUri = Uri.TryCreate(u.FullUrl, UriKind.Absolute, out var uri) ? uri : null
                     where parsedUri != null
-                    select new UrlViewModel(u.EndpointName, parsedUri, u.IsInternal, u.IsInactive, new UrlDisplayPropertiesViewModel(TranslateKnownUrlName(u), u.DisplayProperties.SortOrder)))
+                    select new UrlViewModel(u.EndpointName, parsedUri, u.IsInternal, u.IsInactive, new UrlDisplayPropertiesViewModel(TranslateKnownUrlName(u), u.DisplayProperties.SortOrder, u.DisplayProperties.IconName, MapIconVariant(u.DisplayProperties.IconVariant))))
                 .ToImmutableArray();
         }
 

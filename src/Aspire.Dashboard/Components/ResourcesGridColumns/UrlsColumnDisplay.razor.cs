@@ -5,6 +5,7 @@ using Aspire.Dashboard.Model;
 using Aspire.Dashboard.Resources;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 
 namespace Aspire.Dashboard.Components;
 
@@ -25,5 +26,14 @@ public partial class UrlsColumnDisplay
     [Inject]
     public required IStringLocalizer<Columns> Loc { get; init; }
 
+    [Inject]
+    public required IconResolver IconResolver { get; init; }
+
+    [Inject]
+    public required NavigationManager NavigationManager { get; init; }
+
+    [Inject]
+    public required IJSRuntime JSRuntime { get; init; }
+    
     private bool _popoverVisible;
 }

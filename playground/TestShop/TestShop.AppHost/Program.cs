@@ -8,7 +8,12 @@ var catalogDb = builder.AddPostgres("postgres")
                        .WithDataVolume()
                        .WithPgAdmin(resource =>
                        {
-                           resource.WithUrlForEndpoint("http", u => u.DisplayText = "PG Admin");
+                           resource.WithUrlForEndpoint("http", u =>
+                           {
+                               u.DisplayText = "PG Admin";
+                               u.IconName = "DatabaseStack";
+                               u.IconVariant = IconVariant.Filled;
+                           });
                        })
                        .AddDatabase("catalogdb");
 

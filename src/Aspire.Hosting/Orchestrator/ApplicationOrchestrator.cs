@@ -147,7 +147,7 @@ internal sealed class ApplicationOrchestrator
                 // Endpoint URLs are inactive (hidden in the dashboard) when published here. It is assumed they will get activated later when the endpoint is considered active
                 // by whatever allocated the endpoint in the first place, e.g. for resources controlled by DCP, when DCP detects the endpoint is listening.
                 IsInactive = url.Endpoint is not null,
-                DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0)
+                DisplayProperties = new(url.DisplayText ?? "", url.DisplayOrder ?? 0, url.IconName, url.IconVariant)
             });
         }
         return urls;

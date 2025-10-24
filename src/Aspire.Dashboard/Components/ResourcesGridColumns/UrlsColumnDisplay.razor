@@ -45,7 +45,7 @@ else if (DisplayedUrls.Count > 1)
                             {
                                 var d = (DisplayedUrl)item.Data!;
                                 <div class="url-link">
-                                    @WriteUrl(d)
+                                    @WriteUrl(d, displayLabel: true)
                                 </div>
                             }
                         </div>
@@ -62,10 +62,18 @@ else if (DisplayedUrls.Count > 1)
 }
 
 @code {
-    RenderFragment WriteUrl(DisplayedUrl displayedUrl)
+    RenderFragment WriteUrl(DisplayedUrl displayedUrl, bool displayLabel = false)
     {
         if (displayedUrl.Url != null)
         {
+            if (string.IsNullOrWhiteSpace(displayedUrl.IconName) == false && IconResolver.ResolveIconName(displayedUrl.IconName, IconSize.Size16, iconVariant: displayedUrl.IconVariant) is { } icon)
+            {
+                return @<FluentButton Appearance="Appearance.Lightweight" Title="@displayedUrl.Text" StopPropagation="true" OnClick="@(() => JSRuntime.InvokeAsync<object>("open", displayedUrl.Url, "_blank"))" >
+                            <FluentIcon Value="@icon" Width="16px" Title="@displayedUrl.Text" />
+                        </FluentButton>;
+            }
+            //<a href="@displayedUrl.Url" target="_blank" @onclick:stopPropagation="true">
+
             return @<a href="@displayedUrl.Url" target="_blank" @onclick:stopPropagation="true">@displayedUrl.Text</a>;
         }
         else
