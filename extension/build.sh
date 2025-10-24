@@ -22,10 +22,10 @@ if ! command -v yarn &> /dev/null; then
     exit 1
 fi
 
-# Check for VS Code
-if ! command -v code &> /dev/null; then
-    echo "Error: VS Code is not installed or 'code' command is not in PATH."
-    echo "Please install VS Code and ensure it's added to your PATH."
+# Check for VS Code or VS Code Insiders
+if ! command -v code &> /dev/null && ! command -v code-insiders &> /dev/null; then
+    echo "Error: VS Code or VS Code Insiders is not installed or not in PATH."
+    echo "Please install VS Code or VS Code Insiders and ensure it's added to your PATH."
     exit 1
 fi
 
