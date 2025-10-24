@@ -85,13 +85,13 @@ public class ResourceCreationTests
     }
 
     [Fact]
-    public async Task WithNpmDefaultsToInstallCommand()
+    public void WithNpmDefaultsToInstallCommand()
     {
         var builder = DistributedApplication.CreateBuilder();
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
 
-        // Add package installation with default settings (should use npm install, not ci)
+        // Add package installation with default settings (should use npm install)
         nodeApp.WithNpm(install: true);
 
         using var app = builder.Build();
@@ -104,11 +104,12 @@ public class ResourceCreationTests
 
         // Verify the installer resource was created
         var installerResource = Assert.Single(appModel.Resources.OfType<NodeInstallerResource>());
-        Assert.Equal("test-app-npm-install", installerResource.Name);
-        Assert.Equal("npm", installerResource.Command);
-        var args = await installerResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("install", args[0]);
+        Assert.Equal("test-app-installer", installerResource.Name);
+
+        // Verify the install command annotation
+        Assert.True(nodeResource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installAnnotation));
+        Assert.Equal("npm", installAnnotation.Command);
+        Assert.Equal(["install"], installAnnotation.Args);
 
         // Verify the parent-child relationship
         Assert.True(installerResource.TryGetAnnotationsOfType<ResourceRelationshipAnnotation>(out var relationships));
