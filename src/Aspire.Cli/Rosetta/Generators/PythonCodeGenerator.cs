@@ -335,7 +335,7 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
                         {{TripleQuotes}}
 
                         result = ResourceBuilder(self.builder, self.cs_type)
-                        write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
+                        # write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
                         invoke = make_instruction("INVOKE",
                             source = self._name, 
                             target = result._name, 
@@ -360,8 +360,8 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
         var builderMethods = model.IDistributedApplicationBuilderExtensionMethods;
         foreach (var methodGroups in builderMethods.GroupBy(m => m.Name))
         {
-            var index = 0;
             var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
+            var indexes = new Dictionary<string, int>();
 
             foreach (var overload in overloads)
             {
@@ -379,9 +379,26 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
                     pyReturnTypeName = returnType.Name + "Builder";
                 }
 
+                var methodNameAttribute = overload.GetCustomAttributes()
+                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                                    ?? overload.Name;
+
                 var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
-                    : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
+                    : ToSnakeCase(preferredMethodName);
+
+                if (indexes.TryGetValue(methodName, out var index))
+                {
+                    indexes[methodName] = index + 1;
+                    methodName = $"{methodName}{index.ToString(CultureInfo.InvariantCulture) + 1}";
+                }
+                else
+                {
+                    indexes[methodName] = 0;
+                }
 
                 var parameters = overload.Parameters.Skip(1);
 
@@ -404,7 +421,7 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
                         {{TripleQuotes}}
 
                         result = {{pyReturnTypeName}}(self)
-                        write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
+                        # write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
 
                         invoke = make_instruction("INVOKE",
                             source = self._name, 
@@ -506,7 +523,7 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
     {
         foreach (var methodGroups in extensionMethods.GroupBy(m => m.Name))
         {
-            var index = 0;
+            var indexes = new Dictionary<string, int>();
             var overloads = methodGroups.OrderBy(m => m.Parameters.Count).ToArray();
 
             foreach (var overload in overloads)
@@ -520,9 +537,26 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
                     pyReturnTypeName = returnType.Name + "Builder";
                 }
 
+                var methodNameAttribute = overload.GetCustomAttributes()
+                    .FirstOrDefault(attr => attr.AttributeType.FullName == "Aspire.Hosting.Polyglot.PolyglotMethodNameAttribute");
+
+                var preferredMethodName = methodNameAttribute?.NamedArguments.FirstOrDefault(na => na.Key == "MethodName").Value?.ToString()
+                                    ?? methodNameAttribute?.FixedArguments.ElementAtOrDefault(0)?.ToString()
+                                    ?? overload.Name;
+
                 var methodName = _appModel.TryGetMapping(overload.Name, overload.Parameters.Skip(1).Select(p => p.ParameterType).ToArray(), out var mapping)
                     ? ToSnakeCase(mapping.GeneratedName)
-                    : ToSnakeCase(overload.Name) + (index > 0 ? index.ToString(CultureInfo.InvariantCulture) : string.Empty);
+                    : ToSnakeCase(preferredMethodName);
+
+                if (indexes.TryGetValue(methodName, out var index))
+                {
+                    indexes[methodName] = index + 1;
+                    methodName = $"{methodName}{index.ToString(CultureInfo.InvariantCulture) + 1}";
+                }
+                else
+                {
+                    indexes[methodName] = 0;
+                }
 
                 var parameters = overload.Parameters.Skip(1);
                 // Push optional and nullable parameters to the end of the list
@@ -545,7 +579,7 @@ internal sealed class PythonCodeGenerator(ApplicationModel appModel) : ICodeGene
                         {{TripleQuotes}}
 
                         result = {{pyReturnTypeName}}(self.builder)
-                        write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
+                        # write_line(f'{result._name} = {self._name}.{{overload.Name}}({{csParameterList}});')
 
                         invoke = make_instruction("INVOKE",
                             source = self._name, 

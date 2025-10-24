@@ -24,7 +24,7 @@ internal sealed class ProjectModel
     const string ProjectDllName = "GenericAppHost.dll";
     const string LaunchSettingsJsonFileName = "./Properties/launchSettings.json";
     const string TargetFramework = "net9.0";
-    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? "9.5.0";
+    public static string AspireHostVersion = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_VERSION") ?? "13.0.0-dev";
     public static string? LocalPakcagePath = Environment.GetEnvironmentVariable("ASPIRE_POLYGLOT_PACKAGE_SOURCE");
     public const string BuildFolder = "build";
     const string AssemblyName = "GenericAppHost";
@@ -171,7 +171,6 @@ internal sealed class ProjectModel
                     <TargetFramework>{TargetFramework}</TargetFramework>
                     <AssemblyName>{AssemblyName}</AssemblyName>
                     <OutDir>{BuildFolder}</OutDir>
-                    {(LocalPakcagePath is not null ? "<RestorePackagesPath>$(MSBuildThisFileDirectory)packages</RestorePackagesPath> <!-- SLOW - ONLY FOR LOCALLY BUILT PACKAGES -->" : "")}
                     <IsAspireHost>true</IsAspireHost>
                     <IsPublishable>true</IsPublishable>
                     <SelfContained>true</SelfContained>

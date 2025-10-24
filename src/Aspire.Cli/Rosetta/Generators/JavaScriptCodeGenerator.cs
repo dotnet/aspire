@@ -61,10 +61,10 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
           source += code + '\n';
         }
 
-        async function sendInstruction(instruction: AnyInstruction) {
+        function sendInstruction(instruction: AnyInstruction) {
           instructions.push(instruction);
 
-          const result = await client.executeInstruction(instruction);
+          // const result = client.executeInstruction(instruction);
           // console.log(`   ${instruction.name} result:`, JSON.stringify(result, null, 2));
         }
 
@@ -136,34 +136,8 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
           return `[${values}]`;
         }
 
-        export async function createBuilder(args: string[] = []): Promise<DistributedApplicationBuilder> {
+        export function createBuilder(args: string[] = []): DistributedApplicationBuilder {
             const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
-
-            // Start the rosetta remote host process
-
-            console.log(`🚀 Starting generic app host...`);
-
-            const rosettaProcess: ChildProcess = spawn('aspire', ['polyglot', 'serve', '-o', process.cwd()], {
-              stdio: 'inherit',
-              shell: false,
-              env: { ...process.env, 'REMOTE_APP_HOST_PIPE_NAME': pipeName, 'REMOTE_APP_HOST_PID': process.pid.toString() }
-            });
-
-            // Give the process more time to start up and establish the named pipe
-            console.log('🔌 Connecting...');
-
-            while (true) {
-              try {
-                await client.connect();
-                await client.ping();
-                console.log('✅ Connected successfully!');
-
-                break
-              } catch (error) {
-                // Failed to connect, wait an try again
-                await new Promise(resolve => setTimeout(resolve, 1000));
-              }
-            }   
 
             const createBuilderInstruction: CreateBuilderInstruction = {
               name: 'CREATE_BUILDER',
@@ -172,7 +146,7 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
               args: args
             };
 
-            await sendInstruction(createBuilderInstruction);
+            sendInstruction(createBuilderInstruction);
 
             return distributedApplicationBuilder;
         } 
@@ -181,6 +155,33 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
           constructor(private builderName: string) {
           }
           async run() {
+
+        // Start the rosetta remote host process
+        
+            console.log(`🚀 Starting generic app host...`);
+        
+            const rosettaProcess: ChildProcess = spawn('aspire', ['polyglot', 'serve', '-o', process.cwd()], {
+              stdio: 'inherit',
+              shell: false,
+              env: { ...process.env, 'REMOTE_APP_HOST_PIPE_NAME': pipeName, 'REMOTE_APP_HOST_PID': process.pid.toString() }
+            });
+        
+            // Give the process more time to start up and establish the named pipe
+            console.log('🔌 Connecting...');
+        
+            while (true) {
+              try {
+                await client.connect();
+                await client.ping();
+                console.log('✅ Connected successfully!');
+        
+                break
+              } catch (error) {
+                // Failed to connect, wait an try again
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+
             writeLine(`${this.builderName}.Build().Run();`);
             writeLine('}');
             writeLine('catch (Exception ex)');
@@ -194,14 +195,19 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
                     builderName: this.builderName
                 };
   
-            await sendInstruction(runBuilderInstruction);
+            sendInstruction(runBuilderInstruction);
   
             // console.log(source);
             // console.log("//--INSTRUCTIONS--//");
             // console.log("/*");
             // console.log(JSON.stringify(instructions, null, 2));
             // console.log("*/");
-  
+
+            for (const instr of instructions) {
+              // console.log(`Sending instruction: ${instr.name}`);
+              await client.executeInstruction(instr);
+            }
+
             console.log("Application is running. Press Ctrl+C to stop...");
   
             process.on("SIGINT", () => {
@@ -541,11 +547,11 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
 
                 // Method body
                 writer.WriteLine($$"""
-                  async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
+                  {{methodName}}({{parameterList}}) : {{jsReturnTypeName}} {{{optionalArgsInitSnippet}}
                     emitLinePragma();
                     var result = new {{jsReturnTypeName}}({{ctorArgs}});
                     writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                    await sendInstruction({ 
+                    sendInstruction({ 
                         name: 'INVOKE', 
                         source: this[_name], 
                         target: result[_name], 
@@ -782,7 +788,11 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
         var content = """
             import { createBuilder } from "./.modules/distributed-application.js";
 
-            const builder = await createBuilder();
+            const builder = createBuilder();
+
+            // Add your resources here
+            // builder.addYourResourcesHere();
+
             await builder.build().run();
             """;
 
