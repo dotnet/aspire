@@ -50,15 +50,17 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// <summary>
     /// Gets the location for the Application Insights resource. If <c>null</c>, the resource group location is used.
     /// </summary>
-    /// <remarks>
-    /// This property is mutually exclusive with <see cref="ApplicationInsightsLocationParameter"/>.
-    /// </remarks>
-    public string? ApplicationInsightsLocation { get; internal set; }
+    internal string? ApplicationInsightsLocation { get; set; }
 
     /// <summary>
     /// Parameter resource for the Application Insights location.
     /// </summary>
-    public ParameterResource? ApplicationInsightsLocationParameter { get; internal set; }
+    internal ParameterResource? ApplicationInsightsLocationParameter { get; set; }
+
+    /// <summary>
+    /// Application Insights resource.
+    /// </summary>
+    internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
     /// <summary>
     /// Gets the name of the App Service Plan.

@@ -3,7 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
-using Aspire.Hosting.Azure.ApplicationInsights;
 using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
 using Azure.Core;
@@ -158,9 +157,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
             {
                 ApplicationInsightsComponent? applicationInsights = null;
 
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-                if (resource.TryGetLastAnnotation<AzureApplicationInsightsReferenceAnnotation>(out var applicationInsightsReferenceAnnotation) && applicationInsightsReferenceAnnotation.ApplicationInsights is AzureProvisioningResource appInsights)
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                if (resource.ApplicationInsightsResource is not null && resource.ApplicationInsightsResource is AzureProvisioningResource appInsights)
                 {
                     applicationInsights = (ApplicationInsightsComponent)appInsights.AddAsExistingResource(infra);
                 }
@@ -271,12 +268,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.Resource.EnableApplicationInsights = true;
-
-        // Add a AzureApplicationInsightsReferenceAnnotation to indicate that the resource is using a specific workspace
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-        builder.WithAnnotation(new AzureApplicationInsightsReferenceAnnotation(applicationInsightsBuilder.Resource));
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-
+        builder.Resource.ApplicationInsightsResource = applicationInsightsBuilder.Resource;
         return builder;
     }
 }
