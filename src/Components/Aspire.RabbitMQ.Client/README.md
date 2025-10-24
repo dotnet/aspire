@@ -10,7 +10,7 @@ Registers an [IConnection](https://rabbitmq.github.io/rabbitmq-dotnet-client/api
 
 ### Install the package
 
-Install the .NET Aspire RabbitMQ library with [NuGet](https://www.nuget.org):
+Install the Aspire RabbitMQ library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.RabbitMQ.Client
@@ -37,7 +37,7 @@ public ProductsController(IConnection connection)
 
 ## Configuration
 
-The .NET Aspire RabbitMQ component provides multiple options to configure the connection based on the requirements and conventions of your project.
+The Aspire RabbitMQ component provides multiple options to configure the connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://www.rabbitmq.com/uri-spec.html)
 
 ### Use configuration providers
 
-The .NET Aspire RabbitMQ component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `RabbitMQClientSettings` from configuration by using the `Aspire:RabbitMQ:Client` key. Example `appsettings.json` that configures some of the options:
+The Aspire RabbitMQ component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `RabbitMQClientSettings` from configuration by using the `Aspire:RabbitMQ:Client` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

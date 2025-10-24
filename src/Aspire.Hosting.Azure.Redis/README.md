@@ -1,6 +1,6 @@
 # Aspire.Hosting.Azure.Redis library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Azure Cache for Redis.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Azure Cache for Redis.
 
 ## Getting started
 
@@ -18,7 +18,7 @@ dotnet add package Aspire.Hosting.Azure.Redis
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
