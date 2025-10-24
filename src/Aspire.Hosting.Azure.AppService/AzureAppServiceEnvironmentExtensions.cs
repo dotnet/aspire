@@ -262,4 +262,23 @@ public static partial class AzureAppServiceEnvironmentExtensions
         builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
         return builder;
     }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource builder to configure.</param>
+    /// <param name="applicationInsightsBuilder">The Application Insights resource builder.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<AzureApplicationInsightsResource> applicationInsightsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Resource.EnableApplicationInsights = true;
+
+        // Add a AzureApplicationInsightsReferenceAnnotation to indicate that the resource is using a specific workspace
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.WithAnnotation(new AzureApplicationInsightsReferenceAnnotation(applicationInsightsBuilder.Resource));
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+        return builder;
+    }
 }
