@@ -270,12 +270,12 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         
         // Find the AzureEnvironmentResource from the application model
         var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment?.ProvisioningContext == null)
+        if (azureEnvironment == null)
         {
-            throw new InvalidOperationException("AzureEnvironmentResource with a valid ProvisioningContext must be present in the application model.");
+            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
         }
         
-        var provisioningContext = azureEnvironment.ProvisioningContext;
+        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
 
         var resourceTask = await context.ReportingStep
             .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)

@@ -54,9 +54,10 @@ public sealed class AzureEnvironmentResource : Resource
     public ParameterResource PrincipalId { get; set; }
 
     /// <summary>
-    /// Gets the provisioning context for Azure resource operations.
+    /// Gets the task completion source for the provisioning context.
+    /// Consumers should await ProvisioningContextTask.Task to get the provisioning context.
     /// </summary>
-    internal ProvisioningContext? ProvisioningContext { get; private set; }
+    internal TaskCompletionSource<ProvisioningContext> ProvisioningContextTask { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     private readonly List<IResource> _computeResourcesToBuild = [];
 
@@ -87,7 +88,8 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
-                    ProvisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    ProvisioningContextTask.TrySetResult(provisioningContext);
                 }
             };
             createContextStep.DependsOn(validateStep);
@@ -126,7 +128,11 @@ public sealed class AzureEnvironmentResource : Resource
             var deployStep = new PipelineStep
             {
                 Name = "deploy-compute-resources",
-                Action = ctx => DeployComputeResourcesAsync(ctx, ProvisioningContext!),
+                Action = async ctx =>
+                {
+                    var provisioningContext = await ProvisioningContextTask.Task.ConfigureAwait(false);
+                    await DeployComputeResourcesAsync(ctx, provisioningContext).ConfigureAwait(false);
+                },
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployStep.DependsOn(pushStep);
