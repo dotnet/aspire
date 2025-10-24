@@ -1271,6 +1271,34 @@ public static class ResourceBuilderExtensions
     }
 
     /// <summary>
+    /// Configures the resource to copy container files from the specified source resource during publishing.
+    /// </summary>
+    /// <typeparam name="T">The type of resource being built. Must implement <see cref="IResource"/>.</typeparam>
+    /// <param name="builder">The resource builder to which container files will be copied to.</param>
+    /// <param name="source">The resource which contains the container files to be copied.</param>
+    /// <param name="destinationPath">The destination path within the resource's container where the files will be copied.</param>
+    public static IResourceBuilder<T> PublishWithContainerFiles<T>(
+         this IResourceBuilder<T> builder,
+         IResourceBuilder<IResourceWithContainerFiles> source,
+         string destinationPath) where T : IResource
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentException.ThrowIfNullOrEmpty(destinationPath);
+
+        if (!builder.ApplicationBuilder.ExecutionContext.IsPublishMode)
+        {
+            return builder;
+        }
+
+        return builder.WithAnnotation(new ContainerFilesDestinationAnnotation()
+        {
+            Source = source.Resource,
+            DestinationPath = destinationPath
+        });
+    }
+
+    /// <summary>
     /// Excludes a resource from being published to the manifest.
     /// </summary>
     /// <typeparam name="T">The resource type.</typeparam>

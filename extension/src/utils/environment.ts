@@ -9,3 +9,7 @@ export function mergeEnvs(base: NodeJS.ProcessEnv, envVars?: EnvVar[]): Record<s
     }
     return merged;
 }
+
+export const enum EnvironmentVariables {
+    ASPIRE_CLI_STOP_ON_ENTRY = "ASPIRE_CLI_STOP_ON_ENTRY"
+}

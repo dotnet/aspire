@@ -69,7 +69,7 @@ public sealed class FileDeploymentStateManager(
                 flattenedSecrets.ToJsonString(s_jsonSerializerOptions),
                 cancellationToken).ConfigureAwait(false);
 
-            logger.LogInformation("Deployment state saved to {Path}", deploymentStatePath);
+            logger.LogDebug("Deployment state saved to {Path}", deploymentStatePath);
         }
         catch (Exception ex)
         {

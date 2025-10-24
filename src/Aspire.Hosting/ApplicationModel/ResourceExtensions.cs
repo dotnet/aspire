@@ -602,6 +602,19 @@ public static class ResourceExtensions
     }
 
     /// <summary>
+    /// Determines whether the specified resource requires image building.
+    /// </summary>
+    /// <remarks>
+    /// Resources require an image build if they provide their own Dockerfile or are a project.
+    /// </remarks>
+    /// <param name="resource">The resource to evaluate for image build requirements.</param>
+    /// <returns>True if the resource requires image building; otherwise, false.</returns>
+    public static bool RequiresImageBuild(this IResource resource)
+    {
+        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+    }
+
+    /// <summary>
     /// Determines whether the specified resource requires image building and pushing.
     /// </summary>
     /// <remarks>
@@ -612,7 +625,13 @@ public static class ResourceExtensions
     /// <returns>True if the resource requires image building and pushing; otherwise, false.</returns>
     public static bool RequiresImageBuildAndPush(this IResource resource)
     {
-        return resource is ProjectResource || resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out _);
+        return resource.RequiresImageBuild() && !resource.IsBuildOnlyContainer();
+    }
+
+    internal static bool IsBuildOnlyContainer(this IResource resource)
+    {
+        return resource.TryGetLastAnnotation<DockerfileBuildAnnotation>(out var dockerfileBuild) &&
+            !dockerfileBuild.HasEntrypoint;
     }
 
     /// <summary>

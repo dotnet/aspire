@@ -31,6 +31,18 @@ namespace Aspire.Hosting.Azure;
 [Experimental("ASPIREAZURE001", UrlFormat = "https://aka.ms/dotnet/aspire/diagnostics#{0}")]
 public sealed class AzureEnvironmentResource : Resource
 {
+    private const string DefaultImageStepTag = "default-image-tags";
+
+    /// <summary>
+    /// The name of the step that creates the provisioning context.
+    /// </summary>
+    internal const string CreateProvisioningContextStepName = "create-provisioning-context";
+
+    /// <summary>
+    /// The name of the step that provisions Azure infrastructure resources.
+    /// </summary>
+    internal const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
+
     /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
@@ -47,6 +59,14 @@ public sealed class AzureEnvironmentResource : Resource
     public ParameterResource PrincipalId { get; set; }
 
     /// <summary>
+    /// Gets the task completion source for the provisioning context.
+    /// Consumers should await ProvisioningContextTask.Task to get the provisioning context.
+    /// </summary>
+    internal TaskCompletionSource<ProvisioningContext> ProvisioningContextTask { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private readonly List<IResource> _computeResourcesToBuild = [];
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="AzureEnvironmentResource"/> class.
     /// </summary>
     /// <param name="name">The name of the Azure environment resource.</param>
@@ -61,8 +81,6 @@ public sealed class AzureEnvironmentResource : Resource
 
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            ProvisioningContext? provisioningContext = null;
-
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
@@ -71,22 +89,30 @@ public sealed class AzureEnvironmentResource : Resource
 
             var createContextStep = new PipelineStep
             {
-                Name = "create-provisioning-context",
+                Name = CreateProvisioningContextStepName,
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
-                    provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    ProvisioningContextTask.TrySetResult(provisioningContext);
                 }
             };
             createContextStep.DependsOn(validateStep);
 
             var provisionStep = new PipelineStep
             {
-                Name = "provision-azure-bicep-resources",
-                Action = ctx => ProvisionAzureBicepResourcesAsync(ctx, provisioningContext!),
+                Name = ProvisionInfrastructureStepName,
+                Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
             provisionStep.DependsOn(createContextStep);
+
+            var addImageTagsStep = new PipelineStep
+            {
+                Name = DefaultImageStepTag,
+                Action = ctx => DefaultImageTags(ctx),
+                Tags = [DefaultImageStepTag],
+            };
 
             var buildStep = new PipelineStep
             {
@@ -94,6 +120,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => BuildContainerImagesAsync(ctx),
                 Tags = [WellKnownPipelineTags.BuildCompute]
             };
+            buildStep.DependsOn(addImageTagsStep);
 
             var pushStep = new PipelineStep
             {
@@ -106,7 +133,11 @@ public sealed class AzureEnvironmentResource : Resource
             var deployStep = new PipelineStep
             {
                 Name = "deploy-compute-resources",
-                Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!),
+                Action = async ctx =>
+                {
+                    var provisioningContext = await ProvisioningContextTask.Task.ConfigureAwait(false);
+                    await DeployComputeResourcesAsync(ctx, provisioningContext).ConfigureAwait(false);
+                },
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployStep.DependsOn(pushStep);
@@ -118,8 +149,40 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => PrintDashboardUrlAsync(ctx)
             };
             printDashboardUrlStep.DependsOn(deployStep);
+            printDashboardUrlStep.RequiredBy("deploy");
 
-            return [validateStep, createContextStep, provisionStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+            return [validateStep, createContextStep, provisionStep, addImageTagsStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
+        }));
+
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            var defaultImageTags = context.GetSteps(this, DefaultImageStepTag).Single();
+            var myBuildStep = context.GetSteps(this, WellKnownPipelineTags.BuildCompute).Single();
+
+            var computeResources = context.Model.Resources
+                .Where(r => r.RequiresImageBuild())
+                .ToList();
+
+            foreach (var computeResource in computeResources)
+            {
+                var computeResourceBuildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute);
+                if (computeResourceBuildSteps.Any())
+                {
+                    // add the appropriate dependencies to the compute resource's build steps
+                    foreach (var computeBuildStep in computeResourceBuildSteps)
+                    {
+                        computeBuildStep.DependsOn(defaultImageTags);
+                        myBuildStep.DependsOn(computeBuildStep);
+                    }
+                }
+                else
+                {
+                    // No build step exists for this compute resource, so we add it to the main build step
+                    _computeResourcesToBuild.Add(computeResource);
+                }
+            }
+
+            return Task.CompletedTask;
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -127,6 +190,26 @@ public sealed class AzureEnvironmentResource : Resource
         Location = location;
         ResourceGroupName = resourceGroupName;
         PrincipalId = principalId;
+    }
+
+    private static Task DefaultImageTags(PipelineStepContext context)
+    {
+        var computeResources = context.Model.Resources
+            .Where(r => r.RequiresImageBuild())
+            .ToList();
+
+        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        foreach (var resource in computeResources)
+        {
+            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
+            {
+                continue;
+            }
+            resource.Annotations.Add(
+                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
+        }
+
+        return Task.CompletedTask;
     }
 
     private Task PublishAsync(PublishingContext context)
@@ -172,103 +255,17 @@ public sealed class AzureEnvironmentResource : Resource
         }
     }
 
-    private static async Task ProvisionAzureBicepResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
+    private async Task BuildContainerImagesAsync(PipelineStepContext context)
     {
-        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-        var configuration = context.Services.GetRequiredService<IConfiguration>();
-
-        var bicepResources = context.Model.Resources.OfType<AzureBicepResource>()
-            .Where(r => !r.IsExcludedFromPublish())
-            .Where(r => r.ProvisioningTaskCompletionSource == null ||
-                       !r.ProvisioningTaskCompletionSource.Task.IsCompleted)
-            .ToList();
-
-        if (bicepResources.Count == 0)
+        if (!_computeResourcesToBuild.Any())
         {
             return;
         }
 
-        var provisioningTasks = bicepResources.Select(async resource =>
-        {
-            var resourceTask = await context.ReportingStep
-                .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
-                .ConfigureAwait(false);
-
-            await using (resourceTask.ConfigureAwait(false))
-            {
-                try
-                {
-                    resource.ProvisioningTaskCompletionSource =
-                        new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-                    if (await bicepProvisioner.ConfigureResourceAsync(
-                        configuration, resource, context.CancellationToken).ConfigureAwait(false))
-                    {
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Using existing deployment for **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await bicepProvisioner.GetOrCreateResourceAsync(
-                            resource, provisioningContext, context.CancellationToken)
-                            .ConfigureAwait(false);
-                        resource.ProvisioningTaskCompletionSource?.TrySetResult();
-                        await resourceTask.CompleteAsync(
-                            $"Successfully provisioned **{resource.Name}**",
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var errorMessage = ex switch
-                    {
-                        RequestFailedException requestEx =>
-                            $"Deployment failed: {ExtractDetailedErrorMessage(requestEx)}",
-                        _ => $"Deployment failed: {ex.Message}"
-                    };
-                    resource.ProvisioningTaskCompletionSource?.TrySetException(ex);
-                    await resourceTask.CompleteAsync(
-                        $"Failed to provision **{resource.Name}**: {errorMessage}",
-                        CompletionState.CompletedWithError,
-                        context.CancellationToken).ConfigureAwait(false);
-                    throw;
-                }
-            }
-        });
-
-        await Task.WhenAll(provisioningTasks).ConfigureAwait(false);
-    }
-
-    private static async Task BuildContainerImagesAsync(PipelineStepContext context)
-    {
         var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
 
-        var computeResources = context.Model.GetComputeResources()
-            .Where(r => r.RequiresImageBuildAndPush())
-            .ToList();
-
-        if (!computeResources.Any())
-        {
-            return;
-        }
-
-        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
-        foreach (var resource in computeResources)
-        {
-            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
-            {
-                continue;
-            }
-            resource.Annotations.Add(
-                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
-        }
-
         await containerImageBuilder.BuildImagesAsync(
-            computeResources,
+            _computeResourcesToBuild,
             new ContainerBuildOptions
             {
                 TargetPlatform = ContainerTargetPlatform.LinuxAmd64

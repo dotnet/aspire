@@ -28,7 +28,9 @@
     <ProjectToBuild Include="$(RepoRoot)eng\dcppack\**\*.csproj" />
     <ProjectToBuild Include="$(RepoRoot)eng\dashboardpack\**\*.csproj" />
 
-    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" />
+    <!-- Exclude only the MAUI client project as it requires the .NET MAUI workload.
+         Other projects in the AspireWithMaui playground can still be built. -->
+    <ProjectToBuild Include="$(RepoRoot)playground\**\*.csproj" Exclude="$(RepoRoot)playground\AspireWithMaui\AspireWithMaui.MauiClient\*.csproj" />
   </ItemGroup>
 
   <!-- `$(SkipTestProjects)` allows skipping test projects from being

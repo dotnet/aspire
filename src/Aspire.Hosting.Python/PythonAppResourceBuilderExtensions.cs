@@ -4,6 +4,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.ApplicationModel.Docker;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -231,6 +234,45 @@ public static class PythonAppResourceBuilderExtensions
         ArgumentException.ThrowIfNullOrEmpty(scriptPath);
         return AddPythonAppCore(builder, name, appDirectory, EntrypointType.Script, scriptPath, virtualEnvironmentPath)
             .WithArgs(scriptArgs);
+    }
+
+    /// <summary>
+    /// Adds a Uvicorn-based Python application to the distributed application builder with HTTP endpoint configuration.
+    /// </summary>
+    /// <remarks>This method configures the application to use Uvicorn as the server and exposes an HTTP
+    /// endpoint. When publishing, it sets the entry point to use the Uvicorn executable with appropriate arguments for
+    /// host and port.</remarks>
+    /// <param name="builder">The distributed application builder to which the Uvicorn application resource will be added.</param>
+    /// <param name="name">The unique name of the Uvicorn application resource.</param>
+    /// <param name="appDirectory">The directory containing the Python application files.</param>
+    /// <param name="app">The ASGI app import path which informs Uvicorn which module and variable to load as your web application.
+    /// For example, "main:app" means "main.py" file and variable named "app".</param>
+    /// <returns>A resource builder for further configuration of the Uvicorn Python application resource.</returns>
+    public static IResourceBuilder<PythonAppResource> AddUvicornApp(
+        this IDistributedApplicationBuilder builder, [ResourceName] string name, string appDirectory, string app)
+    {
+        var resourceBuilder = builder.AddPythonExecutable(name, appDirectory, "uvicorn")
+            .WithHttpEndpoint(env: "PORT")
+            .WithArgs(c =>
+            {
+                c.Args.Add(app);
+
+                c.Args.Add("--host");
+                var endpoint = ((IResourceWithEndpoints)c.Resource).GetEndpoint("http");
+                if (builder.ExecutionContext.IsPublishMode)
+                {
+                    c.Args.Add("0.0.0.0");
+                }
+                else
+                {
+                    c.Args.Add(endpoint.EndpointAnnotation.TargetHost);
+                }
+
+                c.Args.Add("--port");
+                c.Args.Add(endpoint.Property(EndpointProperty.TargetPort));
+            });
+
+        return resourceBuilder;
     }
 
     private static IResourceBuilder<PythonAppResource> AddPythonAppCore(
@@ -465,6 +507,7 @@ public static class PythonAppResourceBuilderExtensions
                     var runtimeBuilder = context.Builder
                         .From($"python:{pythonVersion}-slim-bookworm", "app")
                         .EmptyLine()
+                        .AddContainerFiles(context.Resource, "/app")
                         .Comment("------------------------------")
                         .Comment("🚀 Runtime stage")
                         .Comment("------------------------------")
@@ -504,7 +547,75 @@ public static class PythonAppResourceBuilderExtensions
                 });
         });
 
+        resourceBuilder.WithPipelineStepFactory(factoryContext =>
+        {
+            List<PipelineStep> steps = [];
+            var buildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
+            steps.Add(buildStep);
+
+            // ensure any static file references' images are built first
+            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            {
+                foreach (var containerFile in containerFilesAnnotations)
+                {
+                    var source = containerFile.Source;
+                    var staticFileBuildStep = CreateBuildImageBuildStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
+                    buildStep.DependsOn(staticFileBuildStep);
+                    steps.Add(staticFileBuildStep);
+                }
+            }
+
+            return steps;
+        });
+
         return resourceBuilder;
+    }
+
+    private static PipelineStep CreateBuildImageBuildStep(string stepName, IResource resource) =>
+        new()
+        {
+            Name = stepName,
+            Action = async ctx =>
+            {
+                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                await containerImageBuilder.BuildImageAsync(
+                    resource,
+                    new ContainerBuildOptions
+                    {
+                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    },
+                    ctx.CancellationToken).ConfigureAwait(false);
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        };
+
+    private static DockerfileStage AddContainerFiles(this DockerfileStage stage, IResource resource, string rootDestinationPath)
+    {
+        if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesDestinationAnnotations))
+        {
+            foreach (var containerFileDestination in containerFilesDestinationAnnotations)
+            {
+                // get image name
+                if (!containerFileDestination.Source.TryGetContainerImageName(out var imageName))
+                {
+                    throw new InvalidOperationException("Cannot add container files: Source resource does not have a container image name.");
+                }
+
+                var destinationPath = containerFileDestination.DestinationPath;
+                if (!destinationPath.StartsWith('/'))
+                {
+                    destinationPath = $"{rootDestinationPath}/{destinationPath}";
+                }
+
+                foreach (var containerFilesSource in containerFileDestination.Source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+                {
+                    stage.CopyFrom(imageName, containerFilesSource.SourcePath, destinationPath);
+                }
+            }
+
+            stage.EmptyLine();
+        }
+        return stage;
     }
 
     private static void ThrowIfNullOrContainsIsNullOrEmpty(string[] scriptArgs)

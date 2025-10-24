@@ -54,4 +54,12 @@ public class DockerfileBuildAnnotation(string contextPath, string dockerfilePath
     /// When set, this will be used as the container image tag instead of the value from ContainerImageAnnotation.
     /// </summary>
     public string? ImageTag { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether an entry point is defined in the Dockerfile.
+    /// </summary>
+    /// <remarks>
+    /// Container images without an entry point are not considered compute resources.
+    /// </remarks>
+    public bool HasEntrypoint { get; set; } = true;
 }

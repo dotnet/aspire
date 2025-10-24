@@ -4,6 +4,7 @@ import { extensionLogOutputChannel } from './logging';
 import { RpcServerConnectionInfo } from '../server/AspireRpcServer';
 import { DcpServerConnectionInfo } from '../dcp/types';
 import { getRunSessionInfo, getSupportedCapabilities } from '../capabilities';
+import { EnvironmentVariables } from './environment';
 
 export const enum AnsiColors {
     Green = '\x1b[32m'
@@ -60,7 +61,7 @@ export class AspireTerminalProvider implements vscode.Disposable {
             command += ' --debug';
         }
 
-        if (process.env.ASPIRE_CLI_STOP_ON_ENTRY === 'true') {
+        if (process.env[EnvironmentVariables.ASPIRE_CLI_STOP_ON_ENTRY] === 'true') {
             command += ' --cli-wait-for-debugger';
         }
 
@@ -178,12 +179,12 @@ export class AspireTerminalProvider implements vscode.Disposable {
     getAspireCliExecutablePath(surroundWithQuotes: boolean = true): string {
         const aspireCliPath = vscode.workspace.getConfiguration('aspire').get<string>('aspireCliExecutablePath', '');
         if (aspireCliPath && aspireCliPath.trim().length > 0) {
-            extensionLogOutputChannel.info(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
+            extensionLogOutputChannel.debug(`Using user-configured Aspire CLI path: ${aspireCliPath}`);
             const path = shellEscapeSingleQuotes(aspireCliPath.trim());
             return surroundWithQuotes ? `'${path}'` : path;
         }
 
-        extensionLogOutputChannel.info('No user-configured Aspire CLI path found');
+        extensionLogOutputChannel.debug('No user-configured Aspire CLI path found');
         return "aspire";
 
         function shellEscapeSingleQuotes(str: string): string {
