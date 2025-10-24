@@ -7,7 +7,7 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire hosting orchestration</PackageTags>
-    <Description>Core abstractions for the .NET Aspire application model.</Description>
+    <Description>Core abstractions for the Aspire application model.</Description>
   </PropertyGroup>
 
   <ItemGroup>
