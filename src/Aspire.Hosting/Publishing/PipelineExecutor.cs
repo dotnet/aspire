@@ -206,10 +206,13 @@ internal sealed class PipelineExecutor(
             }
         }
 
-        // Initialize parameters as a pre-requisite for pipeline execution
-        var parameterProcessor = serviceProvider.GetRequiredService<ParameterProcessor>();
-        await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
-
+        // Initialize parameters as a pre-requisite for pipeline execution.
+        // We skip this step during publish mode for back-compat
+        if (options.Value.Step != WellKnownPipelineSteps.Publish)
+        {
+            var parameterProcessor = serviceProvider.GetRequiredService<ParameterProcessor>();
+            await parameterProcessor.InitializeParametersAsync(model, waitForResolution: true, cancellationToken).ConfigureAwait(false);
+        }
         var pipelineContext = new PipelineContext(model, executionContext, serviceProvider, logger, cancellationToken, options.Value.OutputPath is not null ?
             Path.GetFullPath(options.Value.OutputPath) : null);
 
