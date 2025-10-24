@@ -39,6 +39,11 @@ public sealed class AzureEnvironmentResource : Resource
     internal const string CreateProvisioningContextStepName = "create-provisioning-context";
 
     /// <summary>
+    /// The name of the step that provisions Azure infrastructure resources.
+    /// </summary>
+    internal const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
+
+    /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
     public ParameterResource Location { get; set; }
@@ -96,7 +101,7 @@ public sealed class AzureEnvironmentResource : Resource
 
             var provisionStep = new PipelineStep
             {
-                Name = WellKnownPipelineSteps.ProvisionInfrastructure,
+                Name = ProvisionInfrastructureStepName,
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };

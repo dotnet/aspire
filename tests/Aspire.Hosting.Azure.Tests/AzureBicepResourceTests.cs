@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREAZURE001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -267,6 +268,6 @@ public class AzureBicepResourceTests
         var step = steps.First();
 
         // Assert
-        Assert.Contains(Aspire.Hosting.Pipelines.WellKnownPipelineSteps.ProvisionInfrastructure, step.RequiredBySteps);
+        Assert.Contains(AzureEnvironmentResource.ProvisionInfrastructureStepName, step.RequiredBySteps);
     }
 }

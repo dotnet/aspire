@@ -2319,6 +2319,7 @@ public class DistributedApplicationPipelineTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
         
         var executedSteps = new List<string>();
+        var lockObject = new object();
         var pipeline = new DistributedApplicationPipeline();
 
         // The pipeline initializes with a "deploy" step by default, but we need to track when it executes
@@ -2327,28 +2328,40 @@ public class DistributedApplicationPipelineTests
         
         // Create steps: provision-resource1 and provision-resource2 are required by provision-infra
         // When we execute "my-deploy-step", we should get: provision-resource1, provision-resource2, provision-infra, and my-deploy-step
-        pipeline.AddStep("provision-resource1", async (context) =>
+        pipeline.AddStep("provision-resource1", (context) =>
         {
-            executedSteps.Add("provision-resource1");
-            await Task.CompletedTask;
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-resource1");
+            }
+            return Task.CompletedTask;
         }, requiredBy: "provision-infra");
 
-        pipeline.AddStep("provision-resource2", async (context) =>
+        pipeline.AddStep("provision-resource2", (context) =>
         {
-            executedSteps.Add("provision-resource2");
-            await Task.CompletedTask;
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-resource2");
+            }
+            return Task.CompletedTask;
         }, requiredBy: "provision-infra");
 
-        pipeline.AddStep("provision-infra", async (context) =>
+        pipeline.AddStep("provision-infra", (context) =>
         {
-            executedSteps.Add("provision-infra");
-            await Task.CompletedTask;
+            lock (lockObject)
+            {
+                executedSteps.Add("provision-infra");
+            }
+            return Task.CompletedTask;
         }, requiredBy: "my-deploy-step");
 
-        pipeline.AddStep("my-deploy-step", async (context) =>
+        pipeline.AddStep("my-deploy-step", (context) =>
         {
-            executedSteps.Add("my-deploy-step");
-            await Task.CompletedTask;
+            lock (lockObject)
+            {
+                executedSteps.Add("my-deploy-step");
+            }
+            return Task.CompletedTask;
         });
 
         // Act - execute with --step my-deploy-step filter
