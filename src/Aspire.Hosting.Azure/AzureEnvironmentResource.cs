@@ -36,6 +36,12 @@ public sealed class AzureEnvironmentResource : Resource
     internal const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
 
     /// <summary>
+    /// The name of the marker step for deploying compute resources.
+    /// Individual compute environment resources make their deploy steps required by this marker.
+    /// </summary>
+    internal const string DeployComputeMarkerStepName = "deploy-compute-marker";
+
+    /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
     public ParameterResource Location { get; set; }
@@ -100,21 +106,14 @@ public sealed class AzureEnvironmentResource : Resource
             // Marker step for deploy compute - individual deploy steps from compute environments will be required by this
             var deployComputeMarkerStep = new PipelineStep
             {
-                Name = "deploy-compute-marker",
+                Name = DeployComputeMarkerStepName,
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployComputeMarkerStep.DependsOn(provisionStep);
+            deployComputeMarkerStep.RequiredBy("deploy");
 
-            var printDashboardUrlStep = new PipelineStep
-            {
-                Name = "print-dashboard-url",
-                Action = ctx => PrintDashboardUrlAsync(ctx)
-            };
-            printDashboardUrlStep.DependsOn(deployComputeMarkerStep);
-            printDashboardUrlStep.RequiredBy("deploy");
-
-            return [validateStep, createContextStep, provisionStep, deployComputeMarkerStep, printDashboardUrlStep];
+            return [validateStep, createContextStep, provisionStep, deployComputeMarkerStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);
@@ -165,43 +164,5 @@ public sealed class AzureEnvironmentResource : Resource
                 context.CancellationToken).ConfigureAwait(false);
             throw;
         }
-    }
-
-    private static async Task PrintDashboardUrlAsync(PipelineStepContext context)
-    {
-        var dashboardUrl = TryGetDashboardUrl(context.Model);
-
-        if (dashboardUrl != null)
-        {
-            await context.ReportingStep.CompleteAsync(
-                $"Dashboard available at [dashboard URL]({dashboardUrl})",
-                CompletionState.Completed,
-                context.CancellationToken).ConfigureAwait(false);
-        }
-    }
-
-    private static string? TryGetDashboardUrl(DistributedApplicationModel model)
-    {
-        foreach (var resource in model.Resources)
-        {
-            if (resource is IAzureComputeEnvironmentResource &&
-                resource is AzureBicepResource environmentBicepResource)
-            {
-                // If the resource is a compute environment, we can use its properties
-                // to construct the dashboard URL.
-                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
-                {
-                    return $"https://aspire-dashboard.ext.{domainValue}";
-                }
-                // If the resource is a compute environment (app service), we can use its properties
-                // to get the dashboard URL.
-                if (environmentBicepResource.Outputs.TryGetValue($"AZURE_APP_SERVICE_DASHBOARD_URI", out var dashboardUri))
-                {
-                    return (string?)dashboardUri;
-                }
-            }
-        }
-
-        return null;
     }
 }

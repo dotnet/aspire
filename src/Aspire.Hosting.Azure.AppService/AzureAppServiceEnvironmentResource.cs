@@ -187,9 +187,24 @@ public class AzureAppServiceEnvironmentResource :
                     deployStep.DependsOn(provisionStep);
                 }
                 // Make this deploy step required by the deploy-compute-marker in AzureEnvironmentResource
-                deployStep.RequiredBy("deploy-compute-marker");
+                deployStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
                 steps.Add(deployStep);
             }
+
+            // Add print-dashboard-url step that depends on all deploy steps
+            var printDashboardUrlStep = new PipelineStep
+            {
+                Name = $"print-dashboard-url-{name}",
+                Action = ctx => PrintDashboardUrlAsync(ctx),
+            };
+            // Make it depend on all deploy steps for this environment
+            var deploySteps = steps.Where(s => s.Tags.Contains("deploy")).ToList();
+            foreach (var deployStep in deploySteps)
+            {
+                printDashboardUrlStep.DependsOn(deployStep);
+            }
+            printDashboardUrlStep.RequiredBy("deploy");
+            steps.Add(printDashboardUrlStep);
 
             return steps;
         }));
@@ -314,6 +329,18 @@ public class AzureAppServiceEnvironmentResource :
         }
 
         return string.Empty;
+    }
+
+    private async Task PrintDashboardUrlAsync(PipelineStepContext context)
+    {
+        // Use the DashboardUriReference BicepOutputReference
+        if (DashboardUriReference.Value is { } dashboardUri)
+        {
+            await context.ReportingStep.CompleteAsync(
+                $"Dashboard available at [dashboard URL]({dashboardUri})",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     // We don't want these to be public if we end up with an app service

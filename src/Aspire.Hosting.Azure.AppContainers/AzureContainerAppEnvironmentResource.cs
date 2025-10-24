@@ -184,9 +184,24 @@ public class AzureContainerAppEnvironmentResource :
                     deployStep.DependsOn(provisionStep);
                 }
                 // Make this deploy step required by the deploy-compute-marker in AzureEnvironmentResource
-                deployStep.RequiredBy("deploy-compute-marker");
+                deployStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
                 steps.Add(deployStep);
             }
+
+            // Add print-dashboard-url step that depends on all deploy steps
+            var printDashboardUrlStep = new PipelineStep
+            {
+                Name = $"print-dashboard-url-{name}",
+                Action = ctx => PrintDashboardUrlAsync(ctx),
+            };
+            // Make it depend on all deploy steps for this environment
+            var deploySteps = steps.Where(s => s.Tags.Contains("deploy")).ToList();
+            foreach (var deployStep in deploySteps)
+            {
+                printDashboardUrlStep.DependsOn(deployStep);
+            }
+            printDashboardUrlStep.RequiredBy("deploy");
+            steps.Add(printDashboardUrlStep);
 
             return steps;
         }));
@@ -311,6 +326,19 @@ public class AzureContainerAppEnvironmentResource :
         }
 
         return string.Empty;
+    }
+
+    private async Task PrintDashboardUrlAsync(PipelineStepContext context)
+    {
+        // Use the ContainerAppDomain BicepOutputReference
+        if (ContainerAppDomain.Value is { } domainValue)
+        {
+            var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
+            await context.ReportingStep.CompleteAsync(
+                $"Dashboard available at [dashboard URL]({dashboardUrl})",
+                CompletionState.Completed,
+                context.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     internal bool UseAzdNamingConvention { get; set; }
