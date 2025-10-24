@@ -17,12 +17,12 @@ public class PackageInstallationTests
     {
         var builder = DistributedApplication.CreateBuilder();
 
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        var nodeApp2 = builder.AddNpmApp("test-app-ci", "./test-app-ci");
+        var nodeApp = builder.AddNpmApp("nodeApp", "./test-app");
+        var nodeApp2 = builder.AddNpmApp("nodeApp2", "./test-app-ci");
 
         // Test that both configurations can be set up without errors
-        nodeApp.WithNpm(install: true, useCI: false); // Uses npm install
-        nodeApp2.WithNpm(install: true, useCI: true);  // Uses npm ci
+        nodeApp.WithNpm(install: true); // Uses npm install
+        nodeApp2.WithNpm(install: false);
 
         using var app = builder.Build();
 
@@ -31,22 +31,17 @@ public class PackageInstallationTests
         var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
 
         Assert.Equal(2, nodeResources.Count);
-        Assert.Equal(2, installerResources.Count);
+        Assert.Single(installerResources);
         Assert.All(nodeResources, resource => Assert.Equal("npm", resource.Command));
 
-        // Verify install vs ci commands
-        var installResource = installerResources.Single(r => r.Name == "test-app-npm-install");
-        var ciResource = installerResources.Single(r => r.Name == "test-app-ci-npm-install");
-
-        Assert.Equal("npm", installResource.Command);
-        var args = await installResource.GetArgumentValuesAsync();
+        var nodeAppInstallResource = installerResources.Single(r => r.Name == "nodeApp-npm-install");
+        Assert.Equal("npm", nodeAppInstallResource.Command);
+        var args = await nodeAppInstallResource.GetArgumentValuesAsync();
         Assert.Single(args);
         Assert.Equal("install", args[0]);
 
-        Assert.Equal("npm", ciResource.Command);
-        args = await ciResource.GetArgumentValuesAsync();
-        Assert.Single(args);
-        Assert.Equal("ci", args[0]);
+        var nodeApp2InstallResource = installerResources.SingleOrDefault(r => r.Name == "nodeApp2-npm-install");
+        Assert.Null(nodeApp2InstallResource);
     }
 
     [Fact]
@@ -55,7 +50,7 @@ public class PackageInstallationTests
         var builder = DistributedApplication.CreateBuilder(["Publishing:Publisher=manifest", "Publishing:OutputPath=./publish"]);
 
         var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        nodeApp.WithNpm(install: true, useCI: false);
+        nodeApp.WithNpm(install: true);
 
         using var app = builder.Build();
 
@@ -71,51 +66,5 @@ public class PackageInstallationTests
 
         // Verify no wait annotations were added
         Assert.False(nodeResource.TryGetAnnotationsOfType<WaitAnnotation>(out _));
-    }
-
-    [Fact]
-    public async Task WithNpm_CanAcceptAdditionalArgs()
-    {
-        var builder = DistributedApplication.CreateBuilder();
-
-        var nodeApp = builder.AddNpmApp("test-app", "./test-app");
-        var nodeAppWithArgs = builder.AddNpmApp("test-app-args", "./test-app-args");
-
-        // Test npm install with additional args
-        nodeApp.WithNpm(install: true, useCI: false, configureInstaller: installerBuilder =>
-        {
-            installerBuilder.WithArgs("--legacy-peer-deps");
-        });
-        nodeAppWithArgs.WithNpm(install: true, useCI: true, configureInstaller: installerBuilder =>
-        {
-            installerBuilder.WithArgs("--verbose", "--no-optional");
-        });
-
-        using var app = builder.Build();
-
-        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
-        var installerResources = appModel.Resources.OfType<NodeInstallerResource>().ToList();
-
-        Assert.Equal(2, installerResources.Count);
-
-        var installResource = installerResources.Single(r => r.Name == "test-app-npm-install");
-        var ciResource = installerResources.Single(r => r.Name == "test-app-args-npm-install");
-
-        // Verify install command with additional args
-        var installArgs = await installResource.GetArgumentValuesAsync();
-        Assert.Collection(
-            installArgs,
-            arg => Assert.Equal("install", arg),
-            arg => Assert.Equal("--legacy-peer-deps", arg)
-        );
-
-        // Verify ci command with additional args
-        var ciArgs = await ciResource.GetArgumentValuesAsync();
-        Assert.Collection(
-            ciArgs,
-            arg => Assert.Equal("ci", arg),
-            arg => Assert.Equal("--verbose", arg),
-            arg => Assert.Equal("--no-optional", arg)
-        );
     }
 }

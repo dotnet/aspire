@@ -73,7 +73,7 @@ public static class NodeAppHostingExtension
                       .WithIconName("CodeJsRectangle");
     }
 
-    private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : NodeAppResource =>
+    private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : ExecutableResource =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
             .WithExecutableCertificateTrustCallback((ctx) =>
@@ -97,7 +97,7 @@ public static class NodeAppHostingExtension
     /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/> to add the resource to.</param>
     /// <param name="name">The name of the Vite app.</param>
     /// <param name="workingDirectory">The working directory of the Vite app.</param>
-    /// <param name="useHttps">When true use HTTPS for the endpoints, otherwise use HTTP.</param>
+    /// <param name="scriptName">The name of the script that runs the Vite app.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
     /// <remarks>
     /// <example>
@@ -112,7 +112,7 @@ public static class NodeAppHostingExtension
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string workingDirectory, bool useHttps = false)
+    public static IResourceBuilder<ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, [ResourceName] string name, string workingDirectory, string scriptName = "dev")
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -121,24 +121,20 @@ public static class NodeAppHostingExtension
         workingDirectory = PathNormalizer.NormalizePathForCurrentPlatform(Path.Combine(builder.AppHostDirectory, workingDirectory));
         var resource = new ViteAppResource(name, "node", workingDirectory);
 
-        var resourceBuilder = builder.AddResource(resource)
+        return builder.AddResource(resource)
             .WithNodeDefaults()
             .WithIconName("CodeJsRectangle")
             .WithArgs(c =>
             {
-                if (resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation))
+                if (resource.TryGetLastAnnotation<JavaScriptRunCommandAnnotation>(out var packageManagerAnnotation))
                 {
-                    foreach (var arg in packageManagerAnnotation.RunCommandLineArgs)
+                    foreach (var arg in packageManagerAnnotation.Args)
                     {
                         c.Args.Add(arg);
                     }
                 }
-                c.Args.Add("dev");
-
-                if (packageManagerAnnotation?.CommandSeparator is string separator)
-                {
-                    c.Args.Add(separator);
-                }
+                c.Args.Add(scriptName);
+                c.Args.Add("--");
 
                 var targetEndpoint = resource.GetEndpoint("https");
                 if (!targetEndpoint.Exists)
@@ -148,14 +144,9 @@ public static class NodeAppHostingExtension
 
                 c.Args.Add("--port");
                 c.Args.Add(targetEndpoint.Property(EndpointProperty.TargetPort));
-            });
-
-        _ = useHttps
-            ? resourceBuilder.WithHttpsEndpoint(env: "PORT")
-            : resourceBuilder.WithHttpEndpoint(env: "PORT");
-
-        return resourceBuilder
-            .AddNpmPackageManagerAnnotation(useCI: false)
+            })
+            .WithHttpEndpoint(env: "PORT")
+            .UseNpmPackageManager()
             .PublishAsDockerFile(c =>
             {
                 // Only generate a Dockerfile if one doesn't already exist in the app directory
@@ -166,21 +157,19 @@ public static class NodeAppHostingExtension
 
                 c.WithDockerfileBuilder(resource.WorkingDirectory, dockerfileContext =>
                 {
-                    if (c.Resource.TryGetLastAnnotation<JavaScriptPackageManagerAnnotation>(out var packageManagerAnnotation)
-                        && packageManagerAnnotation.BuildCommandLineArgs is { Length: > 0 })
+                    if (c.Resource.TryGetLastAnnotation<JavaScriptBuildCommandAnnotation>(out var buildCommand))
                     {
                         var dockerBuilder = dockerfileContext.Builder
                             .From("node:22-slim")
                             .WorkDir("/app")
                             .Copy(".", ".");
 
-                        if (packageManagerAnnotation.InstallCommandLineArgs is { Length: > 0 })
+                        if (c.Resource.TryGetLastAnnotation<JavaScriptInstallCommandAnnotation>(out var installCommand))
                         {
-                            dockerBuilder
-                                .Run($"{resourceBuilder.Resource.Command} {string.Join(' ', packageManagerAnnotation.InstallCommandLineArgs)}");
+                            dockerBuilder.Run($"{installCommand.Command} {string.Join(' ', installCommand.Args)}");
                         }
-                        dockerBuilder
-                                .Run($"{resourceBuilder.Resource.Command} {string.Join(' ', packageManagerAnnotation.BuildCommandLineArgs)}");
+
+                        dockerBuilder.Run($"{buildCommand.Command} {string.Join(' ', buildCommand.Args)}");
                     }
                 });
             });
@@ -191,12 +180,10 @@ public static class NodeAppHostingExtension
     /// </summary>
     /// <param name="resource">The NodeAppResource.</param>
     /// <param name="install">When true, automatically installs packages before the application starts. When false (default), only sets the package manager annotation without creating an installer resource.</param>
-    /// <param name="useCI">When true, use <code>npm ci</code>, otherwise use <code>npm install</code> when installing packages.</param>
-    /// <param name="configureInstaller">Configure the npm installer resource. Only applicable when <paramref name="install"/> is true.</param>
     /// <returns>A reference to the <see cref="IResourceBuilder{T}"/>.</returns>
-    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = false, bool useCI = false, Action<IResourceBuilder<NodeInstallerResource>>? configureInstaller = null) where TResource : NodeAppResource
+    public static IResourceBuilder<TResource> WithNpm<TResource>(this IResourceBuilder<TResource> resource, bool install = false) where TResource : NodeAppResource
     {
-        AddNpmPackageManagerAnnotation(resource, useCI);
+        UseNpmPackageManager(resource);
 
         // Only install packages if install is enabled and not in publish mode
         if (install && !resource.ApplicationBuilder.ExecutionContext.IsPublishMode)
@@ -206,14 +193,12 @@ public static class NodeAppHostingExtension
 
             var installerBuilder = resource.ApplicationBuilder.AddResource(installer)
                 .WithCommand("npm")
-                .WithArgs([useCI ? "ci" : "install"])
+                .WithArgs(["install"])
                 .WithParentRelationship(resource.Resource)
                 .ExcludeFromManifest();
 
             // Make the parent resource wait for the installer to complete
             resource.WaitForCompletion(installerBuilder);
-
-            configureInstaller?.Invoke(installerBuilder);
 
             resource.WithAnnotation(new JavaScriptPackageInstallerAnnotation(installer));
         }
@@ -221,15 +206,12 @@ public static class NodeAppHostingExtension
         return resource;
     }
 
-    private static IResourceBuilder<TResource> AddNpmPackageManagerAnnotation<TResource>(this IResourceBuilder<TResource> resource, bool useCI) where TResource : NodeAppResource
+    private static IResourceBuilder<TResource> UseNpmPackageManager<TResource>(this IResourceBuilder<TResource> resource) where TResource : ExecutableResource
     {
         resource.WithCommand("npm");
-        resource.WithAnnotation(new JavaScriptPackageManagerAnnotation("npm")
-        {
-            InstallCommandLineArgs = [useCI ? "ci" : "install"],
-            RunCommandLineArgs = ["run"],
-            BuildCommandLineArgs = ["run", "build"]
-        });
+        resource.WithAnnotation(new JavaScriptInstallCommandAnnotation("npm", ["install"]));
+        resource.WithAnnotation(new JavaScriptRunCommandAnnotation(["run"]));
+        resource.WithAnnotation(new JavaScriptBuildCommandAnnotation("npm", ["run", "build"]));
 
         return resource;
     }
