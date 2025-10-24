@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREACADOMAINS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 #pragma warning disable ASPIREAZURE002 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREDOCKERFILEBUILDER001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -1952,6 +1953,44 @@ public class AzureContainerAppsTests
 
         await Verify(containerBicep, "bicep")
               .AppendContentAsFile(projectBicep, "bicep");
+    }
+
+    [Fact]
+    public async Task BuildOnlyContainerResource_DoesNotGetDeployed()
+    {
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish);
+
+        builder.AddAzureContainerAppEnvironment("env");
+
+        // Add a normal container resource
+        builder.AddContainer("api", "myimage");
+
+        // Add a build-only container resource
+        builder.AddExecutable("build-only", "exe", ".")
+            .PublishAsDockerFile(c =>
+            {
+                c.WithDockerfileBuilder(".", dockerfileContext =>
+                {
+                    var dockerBuilder = dockerfileContext.Builder
+                        .From("scratch");
+                });
+
+                var dockerFileAnnotation = c.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+                dockerFileAnnotation.HasEntrypoint = false;
+            });
+
+        using var app = builder.Build();
+
+        await ExecuteBeforeStartHooksAsync(app, default);
+
+        var model = app.Services.GetRequiredService<DistributedApplicationModel>();
+
+        var container = model.Resources.Single(r => r.Name == "api");
+        var containerProvisioningResource = container.GetDeploymentTargetAnnotation()?.DeploymentTarget as AzureProvisioningResource;
+        Assert.NotNull(containerProvisioningResource);
+
+        var buildOnly = model.Resources.Single(r => r.Name == "build-only");
+        Assert.Null(buildOnly.GetDeploymentTargetAnnotation());
     }
 
     [Fact]

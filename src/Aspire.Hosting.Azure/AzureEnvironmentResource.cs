@@ -159,8 +159,8 @@ public sealed class AzureEnvironmentResource : Resource
             var defaultImageTags = context.GetSteps(this, DefaultImageStepTag).Single();
             var myBuildStep = context.GetSteps(this, WellKnownPipelineTags.BuildCompute).Single();
 
-            var computeResources = context.Model.GetComputeResources()
-                .Where(r => r.RequiresImageBuildAndPush())
+            var computeResources = context.Model.Resources
+                .Where(r => r.RequiresImageBuild())
                 .ToList();
 
             foreach (var computeResource in computeResources)
@@ -194,8 +194,8 @@ public sealed class AzureEnvironmentResource : Resource
 
     private static Task DefaultImageTags(PipelineStepContext context)
     {
-        var computeResources = context.Model.GetComputeResources()
-            .Where(r => r.RequiresImageBuildAndPush())
+        var computeResources = context.Model.Resources
+            .Where(r => r.RequiresImageBuild())
             .ToList();
 
         var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";

@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 
 namespace Aspire.Hosting.NodeJs.Tests;
@@ -51,5 +52,11 @@ public class AddViteAppTests
 
             """.Replace("\r\n", "\n");
         Assert.Equal(expectedDockerfile, dockerfileContents);
+
+        var dockerBuildAnnotation = nodeApp.Resource.Annotations.OfType<DockerfileBuildAnnotation>().Single();
+        Assert.False(dockerBuildAnnotation.HasEntrypoint);
+
+        var containerFilesSource = nodeApp.Resource.Annotations.OfType<ContainerFilesSourceAnnotation>().Single();
+        Assert.Equal("/app/dist", containerFilesSource.SourcePath);
     }
 }
