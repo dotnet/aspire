@@ -120,31 +120,4 @@ internal static class AzureEnvironmentResourceHelpers
         await containerImageBuilder.TagImageAsync(localTag, targetTag, cancellationToken).ConfigureAwait(false);
         await containerImageBuilder.PushImageAsync(targetTag, cancellationToken).ConfigureAwait(false);
     }
-
-    public static string TryGetComputeResourceEndpoint(IResource computeResource, IAzureComputeEnvironmentResource azureComputeEnv)
-    {
-        // Only produce endpoints for resources that have external endpoints
-        if (!computeResource.TryGetEndpoints(out var endpoints) || !endpoints.Any(e => e.IsExternal))
-        {
-            return string.Empty;
-        }
-
-        // For Azure Container Apps, use the ContainerAppDomain
-        if (azureComputeEnv is AzureProvisioningResource provisioningResource &&
-            provisioningResource.Outputs.TryGetValue("AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN", out var domainValue))
-        {
-            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
-            return $" to [{endpoint}]({endpoint})";
-        }
-
-        // For Azure App Service, construct the URL using the WebSiteSuffix
-        if (azureComputeEnv is AzureProvisioningResource appServiceResource &&
-            appServiceResource.Outputs.TryGetValue("webSiteSuffix", out var suffixValue))
-        {
-            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}-{suffixValue}.azurewebsites.net";
-            return $" to [{endpoint}]({endpoint})";
-        }
-
-        return string.Empty;
-    }
 }

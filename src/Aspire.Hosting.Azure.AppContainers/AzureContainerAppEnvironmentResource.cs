@@ -230,7 +230,7 @@ public class AzureContainerAppEnvironmentResource :
                                 .ConfigureAwait(false);
 
                             var completionMessage = $"Successfully deployed **{computeResource.Name}**";
-                            completionMessage += AzureEnvironmentResourceHelpers.TryGetComputeResourceEndpoint(computeResource, this);
+                            completionMessage += TryGetComputeResourceEndpoint(computeResource);
 
                             await resourceTask.CompleteAsync(
                                 completionMessage,
@@ -265,6 +265,24 @@ public class AzureContainerAppEnvironmentResource :
         });
 
         await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
+    }
+
+    private string TryGetComputeResourceEndpoint(IResource computeResource)
+    {
+        // Only produce endpoints for resources that have external endpoints
+        if (!computeResource.TryGetEndpoints(out var endpoints) || !endpoints.Any(e => e.IsExternal))
+        {
+            return string.Empty;
+        }
+
+        // Use the ContainerAppDomain BicepOutputReference
+        if (ContainerAppDomain.Value is { } domainValue)
+        {
+            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
+            return $" to [{endpoint}]({endpoint})";
+        }
+
+        return string.Empty;
     }
 
     internal bool UseAzdNamingConvention { get; set; }

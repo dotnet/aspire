@@ -233,7 +233,7 @@ public class AzureAppServiceEnvironmentResource :
                                 .ConfigureAwait(false);
 
                             var completionMessage = $"Successfully deployed **{computeResource.Name}**";
-                            completionMessage += AzureEnvironmentResourceHelpers.TryGetComputeResourceEndpoint(computeResource, this);
+                            completionMessage += TryGetComputeResourceEndpoint(computeResource);
 
                             await resourceTask.CompleteAsync(
                                 completionMessage,
@@ -268,6 +268,24 @@ public class AzureAppServiceEnvironmentResource :
         });
 
         await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
+    }
+
+    private string TryGetComputeResourceEndpoint(IResource computeResource)
+    {
+        // Only produce endpoints for resources that have external endpoints
+        if (!computeResource.TryGetEndpoints(out var endpoints) || !endpoints.Any(e => e.IsExternal))
+        {
+            return string.Empty;
+        }
+
+        // Use the WebSiteSuffix BicepOutputReference to construct the URL
+        if (WebSiteSuffix.Value is { } suffixValue)
+        {
+            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}-{suffixValue}.azurewebsites.net";
+            return $" to [{endpoint}]({endpoint})";
+        }
+
+        return string.Empty;
     }
 
     // We don't want these to be public if we end up with an app service
