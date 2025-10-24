@@ -10,19 +10,23 @@ public class AddViteAppTests
     [Fact]
     public async Task VerifyDefaultDockerfile()
     {
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish).WithResourceCleanUp(true);
+        using var tempDir = new TempDirectory();
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
-        var workingDirectory = AppContext.BaseDirectory;
+        // Create a vite directory in the builder's AppHostDirectory
+        var viteDir = Path.Combine(builder.AppHostDirectory, "vite");
+        Directory.CreateDirectory(viteDir);
+
         var nodeApp = builder.AddViteApp("vite", "vite")
             .WithNpmPackageManager();
 
-        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource);
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, builder.AppHostDirectory);
 
         var expectedManifest = $$"""
             {
               "type": "container.v1",
               "build": {
-                "context": "../../../../../tests/Aspire.Hosting.Tests/vite",
+                "context": "vite",
                 "dockerfile": "vite.Dockerfile"
               },
               "env": {
@@ -41,7 +45,8 @@ public class AddViteAppTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        var dockerfileContents = File.ReadAllText("vite.Dockerfile");
+        var dockerfilePath = Path.Combine(builder.AppHostDirectory, "vite.Dockerfile");
+        var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $$"""
             FROM node:22-slim
             WORKDIR /app

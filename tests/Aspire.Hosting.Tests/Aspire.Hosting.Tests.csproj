@@ -53,8 +53,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="vite\**\*" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
 </Project>
