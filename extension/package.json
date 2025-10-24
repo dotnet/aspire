@@ -126,6 +126,11 @@
         "category": "Aspire"
       },
       {
+        "command": "aspire-vscode.settings",
+        "title": "%command.settings%",
+        "category": "Aspire"
+      },
+      {
         "command": "aspire-vscode.runAppHost",
         "title": "%command.runAppHost%",
         "category": "Aspire",

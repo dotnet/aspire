@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="AspireWithMaui.MauiClient.EnvironmentPage"
+             Title="Environment">
+
+    <Grid Padding="24,20"
+          RowSpacing="18"
+          RowDefinitions="Auto,*">
+        <VerticalStackLayout Spacing="12">
+            <Label Text="Aspire Environment Variables"
+                   Style="{StaticResource Headline}"
+                   SemanticProperties.HeadingLevel="Level1" />
+
+            <Label Text="These values are forwarded from the AppHost to the MAUI client so the app can connect to services and discovery endpoints."
+                   Style="{StaticResource Body}"
+                   LineBreakMode="WordWrap" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1"
+                        ItemsSource="{Binding AspireEnvironmentVariables}"
+                        BackgroundColor="Transparent"
+                        EmptyView="No Aspire-specific environment variables found.">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Frame HasShadow="False"
+                           Padding="14"
+                           Margin="0,0,0,12"
+                           BackgroundColor="{AppThemeBinding Light=#F0F0F0, Dark=#1F1F1F}">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding Key}"
+                                   FontAttributes="Bold"
+                                   LineBreakMode="CharacterWrap" />
+                            <Label Text="{Binding Value}"
+                                   FontSize="12"
+                                   LineBreakMode="WordWrap" />
+                        </VerticalStackLayout>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+
+</ContentPage>

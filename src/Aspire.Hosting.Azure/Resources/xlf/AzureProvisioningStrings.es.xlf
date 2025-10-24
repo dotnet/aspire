@@ -83,27 +83,27 @@ Para más información, consulte la [documentación de aprovisionamiento de Azur
       </trans-unit>
       <trans-unit id="TenantDialogTitle">
         <source>Azure tenant</source>
-        <target state="new">Azure tenant</target>
+        <target state="translated">Inquilino de Azure</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantLabel">
         <source>Tenant ID</source>
-        <target state="new">Tenant ID</target>
+        <target state="translated">Id. de inquilino</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantManualEntryMessage">
         <source>Enter your Azure tenant ID:</source>
-        <target state="new">Enter your Azure tenant ID:</target>
+        <target state="translated">Escriba el identificador de inquilino de Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantPlaceholder">
         <source>Select tenant ID</source>
-        <target state="new">Select tenant ID</target>
+        <target state="translated">Seleccionar id. de inquilino</target>
         <note />
       </trans-unit>
       <trans-unit id="TenantSelectionMessage">
         <source>Select your Azure tenant:</source>
-        <target state="new">Select your Azure tenant:</target>
+        <target state="translated">Seleccione el inquilino de Azure:</target>
         <note />
       </trans-unit>
       <trans-unit id="ValidationResourceGroupNameInvalid">
@@ -118,7 +118,7 @@ Para más información, consulte la [documentación de aprovisionamiento de Azur
       </trans-unit>
       <trans-unit id="ValidationTenantIdInvalid">
         <source>Tenant ID must be a valid GUID.</source>
-        <target state="new">Tenant ID must be a valid GUID.</target>
+        <target state="translated">El identificador de inquilino debe ser un GUID válido.</target>
         <note />
       </trans-unit>
     </body>

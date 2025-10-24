@@ -3,7 +3,9 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -45,10 +47,12 @@ public sealed class PipelineStepContext
     /// </summary>
     public IServiceProvider Services => PipelineContext.Services;
 
+    internal PipelineLoggingOptions PipelineLoggingOptions => Services.GetRequiredService<IOptions<PipelineLoggingOptions>>().Value;
+
     /// <summary>
     /// Gets the logger for pipeline operations that writes to both the pipeline logger and the step logger.
     /// </summary>
-    public ILogger Logger => field ??= new StepLogger(ReportingStep);
+    public ILogger Logger => field ??= new StepLogger(ReportingStep, PipelineLoggingOptions);
 
     /// <summary>
     /// Gets the cancellation token for the pipeline operation.
@@ -65,9 +69,10 @@ public sealed class PipelineStepContext
 /// A logger that writes to the step logger.
 /// </summary>
 [Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-internal sealed class StepLogger(IReportingStep step) : ILogger
+internal sealed class StepLogger(IReportingStep step, PipelineLoggingOptions options) : ILogger
 {
     private readonly IReportingStep _step = step;
+    private readonly PipelineLoggingOptions _options = options;
 
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull
     {
@@ -83,7 +88,8 @@ internal sealed class StepLogger(IReportingStep step) : ILogger
     {
         // Also log to the step logger (for publishing output display)
         var message = formatter(state, exception);
-        if (exception != null)
+
+        if (_options.IncludeExceptionDetails && exception != null)
         {
             message = $"{message} {exception}";
         }

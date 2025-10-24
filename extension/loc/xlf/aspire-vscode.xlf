@@ -97,6 +97,9 @@
     <trans-unit id="aspire-vscode.strings.extensionContextNotInitialized">
       <source xml:lang="en">Extension context is not initialized.</source>
     </trans-unit>
+    <trans-unit id="command.settings">
+      <source xml:lang="en">Extension settings</source>
+    </trans-unit>
     <trans-unit id="aspire-vscode.strings.failedToConfigureLaunchJson">
       <source xml:lang="en">Failed to configure launch.json: {0}.</source>
     </trans-unit>

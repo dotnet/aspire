@@ -88,8 +88,6 @@ internal abstract partial class BaseProvisioningContextProvider(
 
         var armClient = _armClientProvider.GetArmClient(credential, subscriptionId);
 
-        _logger.LogInformation("Getting default subscription and tenant...");
-
         var (subscriptionResource, tenantResource) = await armClient.GetSubscriptionAndTenantAsync(cancellationToken).ConfigureAwait(false);
 
         _logger.LogInformation("Default subscription: {name} ({subscriptionId})", subscriptionResource.DisplayName, subscriptionResource.Id);
