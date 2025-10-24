@@ -22,7 +22,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
         var tempDir = Directory.CreateTempSubdirectory();
         var outputPath = Path.Combine(tempDir.FullName, "aspire-manifest.json");
 
-        using (var builder = TestDistributedApplicationBuilder.Create("Publishing:Publisher=manifest", "--output-path", outputPath))
+        using (var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath, step: "publish-manifest"))
         {
             builder.Services.Configure<AzureProvisioningOptions>(options =>
             {
@@ -45,7 +45,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
             await Verify(sbBicep, extension: "bicep")
                 .AppendContentAsFile(sqlBicep, "bicep");
-                
+
 
             await app.StopAsync();
         }

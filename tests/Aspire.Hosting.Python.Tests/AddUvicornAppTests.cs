@@ -46,7 +46,7 @@ public class AddUvicornAppTests
 
         var manifestPath = Path.Combine(projectDirectory, "aspire-manifest.json");
 
-        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path);
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputDir.Path, step: "publish-manifest");
 
         var main = builder.AddUvicornApp("main", projectDirectory, "main.py")
             .WithUvEnvironment();

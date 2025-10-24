@@ -302,6 +302,8 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         _innerBuilder.Services.AddSingleton<IDistributedApplicationEventing>(Eventing);
         _innerBuilder.Services.AddSingleton<LocaleOverrideContext>();
         _innerBuilder.Services.AddHealthChecks();
+        // Add the manifest publishing step to the pipeline
+        Pipeline.AddManifestPublishing();
         _innerBuilder.Services.Configure<ResourceNotificationServiceOptions>(o =>
         {
             // Default to stopping on dependency failure if the dashboard is disabled. As there's no way to see or easily recover
@@ -577,8 +579,6 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
         var publisher = _innerBuilder.Configuration["Publishing:Publisher"];
         if (string.Equals(publisher, "manifest", StringComparison.OrdinalIgnoreCase))
         {
-            // Add the manifest publishing step to the pipeline
-            Pipeline.AddManifestPublishing();
 
             // If no explicit --step was provided, set it to run only the manifest step
             if (string.IsNullOrEmpty(_innerBuilder.Configuration["Pipeline:Step"]))
