@@ -347,11 +347,6 @@ public static class PythonAppResourceBuilderExtensions
                     // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
                     // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
                     ctx.EnvironmentVariables["CURL_CA_BUNDLE"] = ctx.CertificateBundlePath;
-
-                    // Override default certificates path for Python modules that honor OpenSSL style paths.
-                    // This has been tested with urllib, urllib3, httpx, and aiohttp.
-                    // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
-                    ctx.EnvironmentVariables["SSL_CERT_FILE"] = ctx.CertificateBundlePath;
                 }
 
                 // Override default opentelemetry-python certificate bundle path

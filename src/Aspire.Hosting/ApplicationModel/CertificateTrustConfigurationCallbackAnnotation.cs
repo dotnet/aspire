@@ -40,6 +40,8 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     /// Gets the environment variables required to configure certificate trust for the resource.
     /// The dictionary key is the environment variable name; the value can be either a string or a path
     /// value provider such as <see cref="CertificateBundlePath"/> or <see cref="CertificateDirectoriesPath"/>.
+    /// By default the environment will always include an entry for `SSL_CERT_DIR` and may include `SSL_CERT_FILE` if
+    /// <see cref="CertificateTrustScope.Override"/> or <see cref="CertificateTrustScope.System"/> is configured.
     /// </summary>
     public required Dictionary<string, object> EnvironmentVariables { get; init; }
 
