@@ -8,16 +8,14 @@ using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Testing;
-using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting.Tests.Pipelines;
 
 public class PipelineLoggerProviderTests
 {
-    private static PipelineLoggerProvider CreateProvider(LogLevel minimumLogLevel = LogLevel.Information)
+    private static PipelineLoggerProvider CreateProvider()
     {
-        var options = Options.Create(new PipelineLoggingOptions { MinimumLogLevel = minimumLogLevel });
-        return new PipelineLoggerProvider(options);
+        return new PipelineLoggerProvider();
     }
     [Fact]
     public void CurrentLogger_WhenNotSet_ReturnsNullLogger()
