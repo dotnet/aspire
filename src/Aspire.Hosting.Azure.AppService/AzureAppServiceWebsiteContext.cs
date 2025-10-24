@@ -283,12 +283,6 @@ internal sealed class AzureAppServiceWebsiteContext(
             IsMain = true
         };
 
-        var config = new WebSiteConfig("webapp")
-        {
-            Parent = webSite,
-            ElasticWebAppScaleLimit = 10
-        };
-
         // There should be a single valid target port
         if (_endpointMapping.FirstOrDefault() is var  (_, mapping))
         {

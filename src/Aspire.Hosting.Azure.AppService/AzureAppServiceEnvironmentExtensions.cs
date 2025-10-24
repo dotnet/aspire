@@ -3,6 +3,7 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure;
+using Aspire.Hosting.Azure.ApplicationInsights;
 using Aspire.Hosting.Azure.AppService;
 using Aspire.Hosting.Lifecycle;
 using Azure.Core;
@@ -101,9 +102,7 @@ public static partial class AzureAppServiceEnvironmentExtensions
                 Kind = "Linux",
                 IsReserved = true,
                 // Enable per-site scaling so each app service can scale independently
-                IsPerSiteScaling = false,
-                IsElasticScaleEnabled = true,
-                MaximumElasticWorkerCount = 10
+                IsPerSiteScaling = true
             };
 
             infra.Add(plan);
@@ -157,35 +156,46 @@ public static partial class AzureAppServiceEnvironmentExtensions
 
             if (resource.EnableApplicationInsights)
             {
-                // Create Log Analytics workspace
-                var logAnalyticsWorkspace = new OperationalInsightsWorkspace(prefix + "_law")
-                {
-                    Sku = new OperationalInsightsWorkspaceSku()
-                    {
-                        Name = OperationalInsightsWorkspaceSkuName.PerGB2018
-                    }
-                };
+                ApplicationInsightsComponent? applicationInsights = null;
 
-                infra.Add(logAnalyticsWorkspace);
-
-                // Create Application Insights resource linked to the Log Analytics workspace
-                var applicationInsights = new ApplicationInsightsComponent(prefix + "_ai")
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+                if (resource.TryGetLastAnnotation<AzureApplicationInsightsReferenceAnnotation>(out var applicationInsightsReferenceAnnotation) && applicationInsightsReferenceAnnotation.ApplicationInsights is AzureProvisioningResource appInsights)
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
                 {
-                    ApplicationType = ApplicationInsightsApplicationType.Web,
-                    Kind = "web",
-                    WorkspaceResourceId = logAnalyticsWorkspace.Id,
-                    IngestionMode = ComponentIngestionMode.LogAnalytics
-                };
-
-                if (resource.ApplicationInsightsLocation is not null)
-                {
-                    var applicationInsightsLocation = new AzureLocation(resource.ApplicationInsightsLocation);
-                    applicationInsights.Location = applicationInsightsLocation;
+                    applicationInsights = (ApplicationInsightsComponent)appInsights.AddAsExistingResource(infra);
                 }
-                else if (resource.ApplicationInsightsLocationParameter is not null)
+                else
                 {
-                    var applicationInsightsLocationParameter = resource.ApplicationInsightsLocationParameter.AsProvisioningParameter(infra);
-                    applicationInsights.Location = applicationInsightsLocationParameter;
+                    // Create Log Analytics workspace
+                    var logAnalyticsWorkspace = new OperationalInsightsWorkspace(prefix + "_law")
+                    {
+                        Sku = new OperationalInsightsWorkspaceSku()
+                        {
+                            Name = OperationalInsightsWorkspaceSkuName.PerGB2018
+                        }
+                    };
+
+                    infra.Add(logAnalyticsWorkspace);
+
+                    // Create Application Insights resource linked to the Log Analytics workspace
+                    applicationInsights = new ApplicationInsightsComponent(prefix + "_ai")
+                    {
+                        ApplicationType = ApplicationInsightsApplicationType.Web,
+                        Kind = "web",
+                        WorkspaceResourceId = logAnalyticsWorkspace.Id,
+                        IngestionMode = ComponentIngestionMode.LogAnalytics
+                    };
+
+                    if (resource.ApplicationInsightsLocation is not null)
+                    {
+                        var applicationInsightsLocation = new AzureLocation(resource.ApplicationInsightsLocation);
+                        applicationInsights.Location = applicationInsightsLocation;
+                    }
+                    else if (resource.ApplicationInsightsLocationParameter is not null)
+                    {
+                        var applicationInsightsLocationParameter = resource.ApplicationInsightsLocationParameter.AsProvisioningParameter(infra);
+                        applicationInsights.Location = applicationInsightsLocationParameter;
+                    }
                 }
 
                 infra.Add(applicationInsights);
@@ -248,6 +258,25 @@ public static partial class AzureAppServiceEnvironmentExtensions
         ArgumentNullException.ThrowIfNull(builder);
         builder.Resource.EnableApplicationInsights = true;
         builder.Resource.ApplicationInsightsLocationParameter = applicationInsightsLocation.Resource;
+        return builder;
+    }
+
+    /// <summary>
+    /// Configures whether Azure Application Insights should be enabled for the Azure App Service.
+    /// </summary>
+    /// <param name="builder">The AzureAppServiceEnvironmentResource builder to configure.</param>
+    /// <param name="applicationInsightsBuilder">The Application Insights resource builder.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    public static IResourceBuilder<AzureAppServiceEnvironmentResource> WithAzureApplicationInsights(this IResourceBuilder<AzureAppServiceEnvironmentResource> builder, IResourceBuilder<AzureApplicationInsightsResource> applicationInsightsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        builder.Resource.EnableApplicationInsights = true;
+
+        // Add a AzureApplicationInsightsReferenceAnnotation to indicate that the resource is using a specific workspace
+#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+        builder.WithAnnotation(new AzureApplicationInsightsReferenceAnnotation(applicationInsightsBuilder.Resource));
+#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
         return builder;
     }
 }
