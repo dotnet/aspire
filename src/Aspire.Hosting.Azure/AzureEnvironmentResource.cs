@@ -144,6 +144,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => PrintDashboardUrlAsync(ctx)
             };
             printDashboardUrlStep.DependsOn(deployStep);
+            printDashboardUrlStep.RequiredBy("deploy");
 
             return [validateStep, createContextStep, provisionStep, addImageTagsStep, buildStep, pushStep, deployStep, printDashboardUrlStep];
         }));
