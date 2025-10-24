@@ -161,6 +161,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
                         // Verify that --output-path is NOT included when not specified
                         Assert.DoesNotContain("--output-path", args);
+                        
+                        // Verify that --step deploy is passed by default
+                        Assert.Contains("--step", args);
+                        Assert.Contains("deploy", args);
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -232,6 +236,10 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                         Assert.Contains("--publisher", args);
                         Assert.Contains("default", args);
                         Assert.Contains("true", args); // The value for --deploy flag
+                        
+                        // Verify that --step deploy is passed by default
+                        Assert.Contains("--step", args);
+                        Assert.Contains("deploy", args);
 
                         var deployModeCompleted = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -302,6 +310,9 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
                             // When output path is explicitly provided, it should be included
                             Assert.Contains("--output-path", args);
                             Assert.Contains("/tmp/test", args);
+                            // Verify that --step deploy is passed by default
+                            Assert.Contains("--step", args);
+                            Assert.Contains("deploy", args);
 
                             var deployModeCompleted = new TaskCompletionSource();
                             var backchannel = new TestAppHostBackchannel

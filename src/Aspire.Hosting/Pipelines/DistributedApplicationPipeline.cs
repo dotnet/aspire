@@ -20,6 +20,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     private readonly List<PipelineStep> _steps = [];
     private readonly List<Func<PipelineConfigurationContext, Task>> _configurationCallbacks = [];
 
+    public DistributedApplicationPipeline()
+    {
+        // Initialize with a "deploy" step that has a no-op callback
+        _steps.Add(new PipelineStep
+        {
+            Name = "deploy",
+            Action = _ => Task.CompletedTask
+        });
+    }
+
     public bool HasSteps => _steps.Count > 0;
 
     public void AddStep(string name,
@@ -154,7 +164,67 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-        stepsToExecute.Add(targetStep);
+
+        // Also include all steps that are transitively required by the target step
+        var requiredBySteps = ComputeTransitiveRequiredBy(targetStep, allStepsByName);
+        foreach (var step in requiredBySteps)
+        {
+            if (!stepsToExecute.Contains(step))
+            {
+                stepsToExecute.Add(step);
+            }
+
+            // For each step that's required by the target step, also include its dependencies
+            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
+            foreach (var dependency in stepDependencies)
+            {
+                if (!stepsToExecute.Contains(dependency))
+                {
+                    stepsToExecute.Add(dependency);
+                }
+            }
+        }
+
+        // Add the target step if not already present
+        if (!stepsToExecute.Contains(targetStep))
+        {
+            stepsToExecute.Add(targetStep);
+        }
+
+        // Additional pass: Include steps required by ANY executing step
+        // This ensures that if any step in our execution plan is required by other steps,
+        // those other steps are also included
+        // This handles the case for secondary
+        // marker steps like ProvisionInfrastructure
+        var additionalRequiredBySteps = new List<PipelineStep>();
+        foreach (var executingStep in stepsToExecute.ToList())
+        {
+            var stepRequiredBySteps = ComputeTransitiveRequiredBy(executingStep, allStepsByName);
+            foreach (var requiredByStep in stepRequiredBySteps)
+            {
+                if (!stepsToExecute.Contains(requiredByStep))
+                {
+                    additionalRequiredBySteps.Add(requiredByStep);
+                }
+            }
+        }
+
+        // Add the additional required-by steps and their dependencies
+        foreach (var step in additionalRequiredBySteps)
+        {
+            stepsToExecute.Add(step);
+
+            // Include dependencies of the required-by steps
+            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
+            foreach (var dependency in stepDependencies)
+            {
+                if (!stepsToExecute.Contains(dependency))
+                {
+                    stepsToExecute.Add(dependency);
+                }
+            }
+        }
+
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
     }
@@ -189,6 +259,50 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         foreach (var dependency in step.DependsOnSteps)
         {
             Visit(dependency);
+        }
+
+        return result;
+    }
+
+    private static List<PipelineStep> ComputeTransitiveRequiredBy(
+        PipelineStep step,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<PipelineStep>();
+
+        void Visit(string stepName)
+        {
+            if (!visited.Add(stepName))
+            {
+                return;
+            }
+
+            if (!stepsByName.TryGetValue(stepName, out var currentStep))
+            {
+                return;
+            }
+
+            // First, find all steps that are required by the current step
+            // If currentStep is in another step's RequiredBySteps list, visit that step
+            foreach (var potentialStep in stepsByName.Values)
+            {
+                if (potentialStep.RequiredBySteps.Contains(currentStep.Name))
+                {
+                    Visit(potentialStep.Name);
+                }
+            }
+
+            result.Add(currentStep);
+        }
+
+        // Find all steps that are required by the target step
+        foreach (var potentialStep in stepsByName.Values)
+        {
+            if (potentialStep.RequiredBySteps.Contains(step.Name))
+            {
+                Visit(potentialStep.Name);
+            }
         }
 
         return result;
@@ -231,7 +345,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     {
         // Collect callbacks from the pipeline itself
         var callbacks = new List<Func<PipelineConfigurationContext, Task>>();
-        
+
         callbacks.AddRange(_configurationCallbacks);
 
         // Collect callbacks from resource annotations
