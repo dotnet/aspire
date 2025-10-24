@@ -8,7 +8,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
@@ -23,10 +22,10 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// Represents an Azure Container App Environment resource.
 /// </summary>
 public class AzureContainerAppEnvironmentResource :
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
+    private readonly List<IResource> _computeResourcesToBuild = [];
+
     /// <summary>
     /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.
     /// </summary>
@@ -35,124 +34,104 @@ public class AzureContainerAppEnvironmentResource :
     public AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
         : base(name, configureInfrastructure)
     {
-        // Add pipeline step annotation to create per-resource build, push, and deploy steps
+        // Add pipeline step annotation similar to AzureEnvironmentResource
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            // Get all compute resources targeted to this environment
-            var computeResources = model.GetComputeResources()
-                .Where(r => r.GetDeploymentTargetAnnotation()?.ComputeEnvironment == this)
-                .Where(r => r.RequiresImageBuildAndPush())
-                .ToList();
-
-            // Create top-level coordination steps (no-op)
-            var buildAllStep = new PipelineStep
+            // Add default image tags step
+            var addImageTagsStep = new PipelineStep
             {
-                Name = $"build-images-{name}",
-                Action = _ => Task.CompletedTask
+                Name = $"default-image-tags-{name}",
+                Action = ctx => DefaultImageTags(ctx),
             };
-            steps.Add(buildAllStep);
+            steps.Add(addImageTagsStep);
 
-            var pushAllStep = new PipelineStep
+            // Build step
+            var buildStep = new PipelineStep
             {
-                Name = $"push-images-{name}",
-                Action = _ => Task.CompletedTask
+                Name = $"build-container-images-{name}",
+                Action = ctx => BuildContainerImagesAsync(ctx),
+                Tags = [WellKnownPipelineTags.BuildCompute]
             };
-            steps.Add(pushAllStep);
+            buildStep.DependsOn(addImageTagsStep);
+            steps.Add(buildStep);
 
-            var deployAllStep = new PipelineStep
+            // Push step
+            var pushStep = new PipelineStep
             {
-                Name = $"deploy-compute-{name}",
-                Action = _ => Task.CompletedTask
+                Name = $"push-container-images-{name}",
+                Action = ctx => PushContainerImagesAsync(ctx)
             };
-            steps.Add(deployAllStep);
+            pushStep.DependsOn(buildStep);
+            steps.Add(pushStep);
 
-            // Create per-resource steps
-            foreach (var computeResource in computeResources)
+            // Deploy step
+            var deployStep = new PipelineStep
             {
-                // Build step for this resource
-                var buildStep = new PipelineStep
+                Name = $"deploy-compute-resources-{name}",
+                Action = async ctx =>
                 {
-                    Name = $"build-image-{computeResource.Name}",
-                    Action = async ctx =>
+                    var azureEnvironment = ctx.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+                    if (azureEnvironment == null)
                     {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                        await containerImageBuilder.BuildImagesAsync(
-                            [computeResource],
-                            new ContainerBuildOptions
-                            {
-                                TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                            },
-                            ctx.CancellationToken).ConfigureAwait(false);
+                        throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
                     }
-                };
-                buildStep.RequiredBy(buildAllStep);
-                steps.Add(buildStep);
-
-                // Push step for this resource
-                var pushStep = new PipelineStep
-                {
-                    Name = $"push-image-{computeResource.Name}",
-                    Action = async ctx =>
-                    {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                        await PushImageForResourceAsync(ctx, computeResource, containerImageBuilder).ConfigureAwait(false);
-                    }
-                };
-                pushStep.DependsOn(buildStep);
-                pushStep.RequiredBy(pushAllStep);
-                steps.Add(pushStep);
-
-                // Deploy step for this resource
-                var deployStep = new PipelineStep
-                {
-                    Name = $"deploy-compute-{computeResource.Name}",
-                    Action = async ctx =>
-                    {
-                        await DeployComputeResourceAsync(ctx, computeResource).ConfigureAwait(false);
-                    }
-                };
-                deployStep.DependsOn(pushStep);
-                deployStep.RequiredBy(deployAllStep);
-                steps.Add(deployStep);
-            }
+                    
+                    var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
+                    await DeployComputeResourcesAsync(ctx, provisioningContext).ConfigureAwait(false);
+                },
+                Tags = [WellKnownPipelineTags.DeployCompute]
+            };
+            deployStep.DependsOn(pushStep);
+            steps.Add(deployStep);
 
             return steps;
         }));
 
-        // Add pipeline configuration annotation to create dependencies with container registry provision steps
+        // Add pipeline configuration annotation to wire up dependencies
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            // Get all push-image steps for this environment
-            var model = context.Model;
-            var computeResources = model.GetComputeResources()
-                .Where(r => r.GetDeploymentTargetAnnotation()?.ComputeEnvironment == this)
+            var defaultImageTags = context.Steps.Where(s => s.Name == $"default-image-tags-{name}").SingleOrDefault();
+            var myBuildStep = context.Steps.Where(s => s.Name == $"build-container-images-{name}").SingleOrDefault();
+
+            if (defaultImageTags == null || myBuildStep == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            var computeResources = context.Model.GetComputeResources()
                 .Where(r => r.RequiresImageBuildAndPush())
+                .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
                 .ToList();
 
-            // Find the container registry provision step
-            var registryResource = model.Resources.OfType<IAzureResource>()
-                .FirstOrDefault(r => r is IContainerRegistry && r == this);
-
-            if (registryResource != null)
+            foreach (var computeResource in computeResources)
             {
-                var provisionSteps = context.GetSteps(registryResource, WellKnownPipelineTags.ProvisionInfrastructure);
+                var computeResourceBuildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute);
+                if (computeResourceBuildSteps.Any())
+                {
+                    // Add the appropriate dependencies to the compute resource's build steps
+                    foreach (var computeBuildStep in computeResourceBuildSteps)
+                    {
+                        computeBuildStep.DependsOn(defaultImageTags);
+                        myBuildStep.DependsOn(computeBuildStep);
+                    }
+                }
+                else
+                {
+                    // No build step exists for this compute resource, so we add it to the main build step
+                    _computeResourcesToBuild.Add(computeResource);
+                }
+            }
+
+            // Make push step depend on this environment's provisioning (since it implements IContainerRegistry)
+            var pushStep = context.Steps.Where(s => s.Name == $"push-container-images-{name}").SingleOrDefault();
+            if (pushStep != null)
+            {
+                var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
                 foreach (var provisionStep in provisionSteps)
                 {
-                    // Make all push steps depend on the registry being provisioned
-                    foreach (var computeResource in computeResources)
-                    {
-                        var pushSteps = context.Pipeline.Steps
-                            .Where(s => s.Name == $"push-image-{computeResource.Name}")
-                            .ToList();
-                        
-                        foreach (var pushStep in pushSteps)
-                        {
-                            pushStep.DependsOn(provisionStep);
-                        }
-                    }
+                    pushStep.DependsOn(provisionStep);
                 }
             }
 
@@ -160,148 +139,132 @@ public class AzureContainerAppEnvironmentResource :
         }));
     }
 
-    private static async Task PushImageForResourceAsync(PipelineStepContext context, IResource computeResource, IResourceContainerImageBuilder containerImageBuilder)
+    private Task DefaultImageTags(PipelineStepContext context)
     {
-        // Get the container image name
-        if (!computeResource.TryGetContainerImageName(out var imageName))
-        {
-            return;
-        }
+        var computeResources = context.Model.GetComputeResources()
+            .Where(r => r.RequiresImageBuildAndPush())
+            .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
+            .ToList();
 
-        // Get the container registry for this resource
-        var deploymentTarget = computeResource.GetDeploymentTargetAnnotation();
-        if (deploymentTarget?.ContainerRegistry is not { } registry)
+        var deploymentTag = $"aspire-deploy-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        foreach (var resource in computeResources)
         {
-            return;
-        }
-
-        // Get registry information
-        var registryName = await registry.Name.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(registryName))
-        {
-            throw new InvalidOperationException($"Container registry name is not available for resource {computeResource.Name}");
-        }
-
-        // Login to ACR
-        var loginTask = await context.ReportingStep.CreateTaskAsync($"Logging in to **{registryName}**", context.CancellationToken).ConfigureAwait(false);
-        await using (loginTask.ConfigureAwait(false))
-        {
-            var processRunner = context.Services.GetRequiredService<IProcessRunner>();
-            var configuration = context.Services.GetRequiredService<IConfiguration>();
-            var loginArgs = new[] { "acr", "login", "--name", registryName };
-            var loginResult = await processRunner.RunAsync("az", loginArgs, cancellationToken: context.CancellationToken).ConfigureAwait(false);
-            if (loginResult.ExitCode != 0)
+            if (resource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out _))
             {
-                await loginTask.CompleteAsync($"Failed to login to {registryName}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                throw new InvalidOperationException($"Failed to login to Azure Container Registry: {loginResult.StandardError}");
+                continue;
             }
-            await loginTask.CompleteAsync($"Successfully logged in to {registryName}", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
+            resource.Annotations.Add(
+                new DeploymentImageTagCallbackAnnotation(_ => deploymentTag));
         }
 
-        // Get the deployment tag for the image
-        string? deploymentTag = null;
-        if (computeResource.TryGetLastAnnotation<DeploymentImageTagCallbackAnnotation>(out var tagCallback))
-        {
-            deploymentTag = tagCallback.GetImageTag(computeResource);
-        }
-
-        // Tag and push the image
-        var registryEndpoint = await registry.Endpoint.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(registryEndpoint))
-        {
-            throw new InvalidOperationException($"Container registry endpoint is not available for resource {computeResource.Name}");
-        }
-
-        var targetImageName = deploymentTag is not null
-            ? $"{registryEndpoint}/{imageName}:{deploymentTag}"
-            : $"{registryEndpoint}/{imageName}";
-
-        var pushTask = await context.ReportingStep.CreateTaskAsync($"Pushing **{imageName}** to {registryName}", context.CancellationToken).ConfigureAwait(false);
-        await using (pushTask.ConfigureAwait(false))
-        {
-            // Tag the local image with the registry name
-            var processRunner = context.Services.GetRequiredService<IProcessRunner>();
-            var tagArgs = new[] { "tag", imageName, targetImageName };
-            var tagResult = await processRunner.RunAsync("docker", tagArgs, cancellationToken: context.CancellationToken).ConfigureAwait(false);
-            if (tagResult.ExitCode != 0)
-            {
-                await pushTask.CompleteAsync($"Failed to tag {imageName}", CompletionState.CompletedWithError, context.CancellationToken).ConfigureAwait(false);
-                throw new InvalidOperationException($"Failed to tag image: {tagResult.StandardError}");
-            }
-
-            // Push the image
-            await containerImageBuilder.PushImageAsync(targetImageName, context.CancellationToken).ConfigureAwait(false);
-            await pushTask.CompleteAsync($"Successfully pushed {imageName}", CompletionState.Completed, context.CancellationToken).ConfigureAwait(false);
-        }
+        return Task.CompletedTask;
     }
 
-    private static async Task DeployComputeResourceAsync(PipelineStepContext context, IResource computeResource)
+    private async Task BuildContainerImagesAsync(PipelineStepContext context)
+    {
+        if (!_computeResourcesToBuild.Any())
+        {
+            return;
+        }
+
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+
+        await containerImageBuilder.BuildImagesAsync(
+            _computeResourcesToBuild,
+            new ContainerBuildOptions
+            {
+                TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+            },
+            context.CancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task PushContainerImagesAsync(PipelineStepContext context)
+    {
+        var containerImageBuilder = context.Services.GetRequiredService<IResourceContainerImageBuilder>();
+        var processRunner = context.Services.GetRequiredService<IProcessRunner>();
+        var configuration = context.Services.GetRequiredService<IConfiguration>();
+
+        var computeResources = context.Model.GetComputeResources()
+            .Where(r => r.RequiresImageBuildAndPush())
+            .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
+            .ToList();
+
+        if (!computeResources.Any())
+        {
+            return;
+        }
+
+        // Since this environment implements IContainerRegistry, use itself as the registry
+        await AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context, processRunner, configuration).ConfigureAwait(false);
+        await AzureEnvironmentResourceHelpers.PushImagesToRegistryAsync(this, computeResources, context, containerImageBuilder).ConfigureAwait(false);
+    }
+
+    private async Task DeployComputeResourcesAsync(PipelineStepContext context, ProvisioningContext provisioningContext)
     {
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-        
-        // Find the AzureEnvironmentResource to get the provisioning context
-        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-        if (azureEnvironment == null)
+        var computeResources = context.Model.GetComputeResources()
+            .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
+            .ToList();
+
+        if (computeResources.Count == 0)
         {
-            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
+            return;
         }
-        
-        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
 
-        var resourceTask = await context.ReportingStep
-            .CreateTaskAsync($"Deploying **{computeResource.Name}**", context.CancellationToken)
-            .ConfigureAwait(false);
-
-        await using (resourceTask.ConfigureAwait(false))
+        var deploymentTasks = computeResources.Select(async computeResource =>
         {
-            try
+            var resourceTask = await context.ReportingStep
+                .CreateTaskAsync($"Deploying **{computeResource.Name}**", context.CancellationToken)
+                .ConfigureAwait(false);
+
+            await using (resourceTask.ConfigureAwait(false))
             {
-                if (computeResource.GetDeploymentTargetAnnotation() is { } deploymentTarget)
+                try
                 {
-                    if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
+                    if (computeResource.GetDeploymentTargetAnnotation(this) is { } deploymentTarget)
                     {
-                        await bicepProvisioner.GetOrCreateResourceAsync(
-                            bicepResource, provisioningContext, context.CancellationToken)
-                            .ConfigureAwait(false);
-
-                        var completionMessage = $"Successfully deployed **{computeResource.Name}**";
-
-                        if (deploymentTarget.ComputeEnvironment is IAzureComputeEnvironmentResource azureComputeEnv)
+                        if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
                         {
-                            // Try to get endpoint information if available
-                            // This would require access to the endpoint, which we can add later if needed
-                        }
+                            await bicepProvisioner.GetOrCreateResourceAsync(
+                                bicepResource, provisioningContext, context.CancellationToken)
+                                .ConfigureAwait(false);
 
-                        await resourceTask.CompleteAsync(
-                            completionMessage,
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
+                            var completionMessage = $"Successfully deployed **{computeResource.Name}**";
+                            completionMessage += AzureEnvironmentResourceHelpers.TryGetComputeResourceEndpoint(computeResource, this);
+
+                            await resourceTask.CompleteAsync(
+                                completionMessage,
+                                CompletionState.Completed,
+                                context.CancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await resourceTask.CompleteAsync(
+                                $"Skipped **{computeResource.Name}** - no Bicep deployment target",
+                                CompletionState.CompletedWithWarning,
+                                context.CancellationToken).ConfigureAwait(false);
+                        }
                     }
                     else
                     {
                         await resourceTask.CompleteAsync(
-                            $"Skipped **{computeResource.Name}** - no Bicep deployment target",
-                            CompletionState.CompletedWithWarning,
+                            $"Skipped **{computeResource.Name}** - no deployment target annotation",
+                            CompletionState.Completed,
                             context.CancellationToken).ConfigureAwait(false);
                     }
                 }
-                else
+                catch (Exception ex)
                 {
                     await resourceTask.CompleteAsync(
-                        $"Skipped **{computeResource.Name}** - no deployment target annotation",
-                        CompletionState.Completed,
+                        $"Failed to deploy {computeResource.Name}: {ex.Message}",
+                        CompletionState.CompletedWithError,
                         context.CancellationToken).ConfigureAwait(false);
+                    throw;
                 }
             }
-            catch (Exception ex)
-            {
-                await resourceTask.CompleteAsync(
-                    $"Failed to deploy {computeResource.Name}: {ex.Message}",
-                    CompletionState.CompletedWithError,
-                    context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
-        }
+        });
+
+        await Task.WhenAll(deploymentTasks).ConfigureAwait(false);
     }
 
     internal bool UseAzdNamingConvention { get; set; }
