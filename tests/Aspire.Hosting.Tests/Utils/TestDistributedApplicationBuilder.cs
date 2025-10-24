@@ -22,7 +22,7 @@ public static class TestDistributedApplicationBuilder
         var args = operation switch
         {
             DistributedApplicationOperation.Run => (string[])[],
-            DistributedApplicationOperation.Publish => [$"Pipeline:OutputPath={outputPath}", $"Pipeline:LogLevel={logLevel}"],
+            DistributedApplicationOperation.Publish => ["AppHost:Operation=publish", $"Pipeline:OutputPath={outputPath}", $"Pipeline:LogLevel={logLevel}"],
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
