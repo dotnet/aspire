@@ -31,7 +31,7 @@ public static class ManifestPublishingExtensions
             Action = async context =>
             {
                 var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
-                var logger = loggerFactory.CreateLogger("Aspire.Hosting.Publishing.ManifestPublisher");
+                var logger = context.Logger;
                 var pipelineOptions = context.Services.GetRequiredService<IOptions<PipelineOptions>>();
                 var executionContext = context.Services.GetRequiredService<DistributedApplicationExecutionContext>();
 
