@@ -2176,7 +2176,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Adds a <see cref="CertificateAuthorityCollectionAnnotation"/> to the resource annotations to associate a certificate authority collection with the resource.
-    /// This is used to configure additional trusted certificate authorities for the resource at run time.
+    /// This is used to configure additional trusted certificate authorities for the resource.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2222,7 +2223,8 @@ public static class ResourceBuilderExtensions
 
     /// <summary>
     /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
-    /// Currently this indicates trust for the ASP.NET Core developer certificate.
+    /// Currently this indicates trust for the ASP.NET Core developer certificate. The developer certificate will only be trusted
+    /// when running in local development scenarios; in publish mode resources will use their default certificate trust
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2271,6 +2273,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Sets the <see cref="CertificateTrustScope"/> for custom certificate authorities associated with the resource. The scope
     /// specifies how custom certificate authorities should be applied to a resource at run time in local development scenarios.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2313,6 +2316,25 @@ public static class ResourceBuilderExtensions
         }
 
         return builder.WithAnnotation(annotation, ResourceAnnotationMutationBehavior.Replace);
+    }
+
+    /// <summary>
+    /// Adds a <see cref="CertificateTrustConfigurationCallbackAnnotation"/> to the resource annotations to associate a callback that
+    /// is invoked when a resource needs to configure itself for custom certificate trust. May be called multiple times to register
+    /// additional callbacks to append additional configuration.
+    /// Custom certificate trust is only applied in run mode; in publish mode resources will use their default certificate trust behavior.
+    /// </summary>
+    /// <typeparam name="TResource">The type of the resource.</typeparam>
+    /// <param name="builder">The resource builder.</param>
+    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <returns>The updated resource builder.</returns>
+    public static IResourceBuilder<TResource> WithCertificateTrustConfigurationCallback<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
+        where TResource : IResourceWithArgs, IResourceWithEnvironment
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        return builder.WithAnnotation(new CertificateTrustConfigurationCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
     }
 
     // These match the default endpoint names resulting from calling WithHttpsEndpoint or WithHttpEndpoint as well as the defaults

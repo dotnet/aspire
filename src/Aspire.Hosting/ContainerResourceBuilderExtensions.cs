@@ -1001,21 +1001,26 @@ public static class ContainerResourceBuilderExtensions
     }
 
     /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that is
-    /// invoked when a container resource needs to configure itself for custom certificate trust. This is only supported in run mode;
-    /// certificate trust customization is not supported in publish or deploy.
+    /// Adds a <see cref="ContainerCertificatePathsAnnotation"/> to the resource that allows overriding the default paths in the container used for certificate trust.
+    /// Custom certificate trust is only supported at run time.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
+    /// <param name="customCertificatesDestination">The destination path in the container where custom certificates will be copied to. If not specified, defaults to <c>/usr/local/share/ca-certificates/aspire-custom-certs/</c>.</param>
+    /// <param name="defaultCertificateBundlePaths">List of default certificate bundle paths in the container that will be replaced in <see cref="CertificateTrustScope.Override"/> or <see cref="CertificateTrustScope.System"/> modes. If not specified, defaults to <c>/etc/ssl/certs/ca-certificates.crt</c> for Linux containers.</param>
+    /// <param name="defaultCertificateDirectoryPaths">List of default certificate directory paths in the container that may be appended to the custom certificates directory in <see cref="CertificateTrustScope.Append"/> mode. If not specified, defaults to <c>/usr/local/share/ca-certificates/</c> for Linux containers.</param>
     /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithContainerCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ContainerCertificateTrustCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithContainerCertificatePaths<TResource>(this IResourceBuilder<TResource> builder, string? customCertificatesDestination = null, List<string>? defaultCertificateBundlePaths = null, List<string>? defaultCertificateDirectoryPaths = null)
         where TResource : ContainerResource
     {
         ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
 
-        return builder.WithAnnotation(new ContainerCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
+        return builder.WithAnnotation(new ContainerCertificatePathsAnnotation
+        {
+            CustomCertificatesDestination = customCertificatesDestination,
+            DefaultCertificateBundles = defaultCertificateBundlePaths,
+            DefaultCertificateDirectories = defaultCertificateDirectoryPaths,
+        }, ResourceAnnotationMutationBehavior.Replace);
     }
 
     /// <summary>

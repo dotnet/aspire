@@ -330,7 +330,7 @@ public static class PythonAppResourceBuilderExtensions
         // way to simply append additional certificates to default Python trust stores such as certifi.
         resourceBuilder
             .WithCertificateTrustScope(CertificateTrustScope.System)
-            .WithExecutableCertificateTrustCallback(ctx =>
+            .WithCertificateTrustConfigurationCallback(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
@@ -342,21 +342,21 @@ public static class PythonAppResourceBuilderExtensions
                 {
                     // Override default certificates path for the requests module.
                     // See: https://docs.python-requests.org/en/latest/user/advanced/#ssl-cert-verification
-                    ctx.CertificateBundleEnvironment.Add("REQUESTS_CA_BUNDLE");
+                    ctx.EnvironmentVariables["REQUESTS_CA_BUNDLE"] = ctx.CertificateBundlePath;
 
                     // Requests also supports CURL_CA_BUNDLE as an alternative config (lower priority than REQUESTS_CA_BUNDLE).
                     // Setting it to be as complete as possible and avoid potential issues with conflicting configurations.
-                    ctx.CertificateBundleEnvironment.Add("CURL_CA_BUNDLE");
+                    ctx.EnvironmentVariables["CURL_CA_BUNDLE"] = ctx.CertificateBundlePath;
 
                     // Override default certificates path for Python modules that honor OpenSSL style paths.
                     // This has been tested with urllib, urllib3, httpx, and aiohttp.
                     // See: https://docs.openssl.org/3.0/man3/SSL_CTX_load_verify_locations/#description
-                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+                    ctx.EnvironmentVariables["SSL_CERT_FILE"] = ctx.CertificateBundlePath;
                 }
 
                 // Override default opentelemetry-python certificate bundle path
                 // See: https://opentelemetry-python.readthedocs.io/en/latest/exporter/otlp/otlp.html#module-opentelemetry.exporter.otlp
-                ctx.CertificateBundleEnvironment.Add("OTEL_EXPORTER_OTLP_CERTIFICATE");
+                ctx.EnvironmentVariables["OTEL_EXPORTER_OTLP_CERTIFICATE"] = ctx.CertificateBundlePath;
 
                 return Task.CompletedTask;
             });
