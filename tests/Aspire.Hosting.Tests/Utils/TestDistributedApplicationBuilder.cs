@@ -1,8 +1,11 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
 using Aspire.Components.Common.TestUtilities;
 using Aspire.Hosting.Orchestrator;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Testing;
 using Aspire.Hosting.Tests.Dcp;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,12 +20,12 @@ namespace Aspire.Hosting.Utils;
 /// </summary>
 public static class TestDistributedApplicationBuilder
 {
-    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string outputPath = "./", string? logLevel = "information")
+    public static IDistributedApplicationTestingBuilder Create(DistributedApplicationOperation operation, string outputPath = "./", string? logLevel = "information", string? step = WellKnownPipelineSteps.Publish)
     {
         var args = operation switch
         {
             DistributedApplicationOperation.Run => (string[])[],
-            DistributedApplicationOperation.Publish => ["AppHost:Operation=publish", $"Pipeline:OutputPath={outputPath}", $"Pipeline:LogLevel={logLevel}"],
+            DistributedApplicationOperation.Publish => ["AppHost:Operation=publish", $"Pipeline:OutputPath={outputPath}", $"Pipeline:LogLevel={logLevel}", $"Pipeline:Step={step}"],
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };
 
