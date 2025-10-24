@@ -549,7 +549,7 @@ public sealed class AzureEnvironmentResource : Resource
         if (azureComputeEnv is AzureProvisioningResource appsvcProvisioningResource &&
             appsvcProvisioningResource.Outputs.TryGetValue("webSiteSuffix", out var webSiteSuffix))
         {
-            var hostName = $"{computeResource.Name.ToLowerInvariant()}.{webSiteSuffix}";
+            var hostName = $"{computeResource.Name.ToLowerInvariant()}-{webSiteSuffix}";
             if (hostName.Length > 60)
             {
                 hostName = hostName.Substring(0, 60);
