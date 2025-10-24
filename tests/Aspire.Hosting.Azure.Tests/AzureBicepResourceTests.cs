@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREAZUREREDIS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001
 
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
@@ -211,5 +212,61 @@ public class AzureBicepResourceTests
             """;
 
         Assert.Equal(expectedManifest, manifest.ToString());
+    }
+
+    [Fact]
+    public void BicepResourceHasPipelineStepAnnotation()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        // Act
+        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
+
+        // Assert
+        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().FirstOrDefault();
+        Assert.NotNull(annotation);
+    }
+
+    [Fact]
+    public async Task BicepResourcePipelineStepHasCorrectName()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
+
+        // Act
+        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().First();
+        var factoryContext = new Aspire.Hosting.Pipelines.PipelineStepFactoryContext
+        {
+            PipelineContext = null!, // Not needed for this test
+            Resource = bicepResource.Resource
+        };
+        var steps = await annotation.CreateStepsAsync(factoryContext);
+        var step = steps.First();
+
+        // Assert
+        Assert.Equal("provision-myresource", step.Name);
+    }
+
+    [Fact]
+    public async Task BicepResourcePipelineStepRequiredByProvisionInfrastructure()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var bicepResource = builder.AddBicepTemplateString("myresource", "content");
+
+        // Act
+        var annotation = bicepResource.Resource.Annotations.OfType<Aspire.Hosting.Pipelines.PipelineStepAnnotation>().First();
+        var factoryContext = new Aspire.Hosting.Pipelines.PipelineStepFactoryContext
+        {
+            PipelineContext = null!, // Not needed for this test
+            Resource = bicepResource.Resource
+        };
+        var steps = await annotation.CreateStepsAsync(factoryContext);
+        var step = steps.First();
+
+        // Assert
+        Assert.Contains(Aspire.Hosting.Pipelines.WellKnownPipelineTags.ProvisionInfrastructure, step.RequiredBySteps);
     }
 }
