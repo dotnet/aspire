@@ -137,10 +137,41 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         ValidateSteps(allSteps);
 
+        // Convert RequiredBy relationships to DependsOn relationships before filtering
+        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        NormalizeRequiredByToDependsOn(allSteps, allStepsByName);
+
         var (stepsToExecute, stepsByName) = FilterStepsForExecution(allSteps, context);
 
         // Build dependency graph and execute with readiness-based scheduler
         await ExecuteStepsAsTaskDag(stepsToExecute, stepsByName, context).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Converts all RequiredBy relationships to their equivalent DependsOn relationships.
+    /// If step A is required by step B, this adds step A as a dependency of step B.
+    /// </summary>
+    private static void NormalizeRequiredByToDependsOn(
+        List<PipelineStep> steps,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        foreach (var step in steps)
+        {
+            foreach (var requiredByStep in step.RequiredBySteps)
+            {
+                if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
+                {
+                    continue;
+                }
+
+                // Add the inverse relationship: if step A is required by step B,
+                // then step B depends on step A
+                if (!requiredByStepObj.DependsOnSteps.Contains(step.Name))
+                {
+                    requiredByStepObj.DependsOnSteps.Add(step.Name);
+                }
+            }
+        }
     }
 
     private static (List<PipelineStep> StepsToExecute, Dictionary<string, PipelineStep> StepsByName) FilterStepsForExecution(
@@ -283,11 +314,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 return;
             }
 
-            // First, find all steps that are required by the current step
-            // If currentStep is in another step's RequiredBySteps list, visit that step
+            // Find all steps that depend on the current step (reverse of DependsOn)
             foreach (var potentialStep in stepsByName.Values)
             {
-                if (potentialStep.RequiredBySteps.Contains(currentStep.Name))
+                if (potentialStep.DependsOnSteps.Contains(currentStep.Name))
                 {
                     Visit(potentialStep.Name);
                 }
@@ -296,10 +326,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             result.Add(currentStep);
         }
 
-        // Find all steps that are required by the target step
+        // Find all steps that depend on the target step (those that require it)
         foreach (var potentialStep in stepsByName.Values)
         {
-            if (potentialStep.RequiredBySteps.Contains(step.Name))
+            if (potentialStep.DependsOnSteps.Contains(step.Name))
             {
                 Visit(potentialStep.Name);
             }
@@ -613,19 +643,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName)
     {
-        // Process all RequiredBy relationships and normalize to DependsOn
-        foreach (var step in steps)
-        {
-            foreach (var requiredByStep in step.RequiredBySteps)
-            {
-                if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
-                {
-                    continue;
-                }
-
-                requiredByStepObj.DependsOnSteps.Add(step.Name);
-            }
-        }
+        // Note: RequiredBy relationships have already been normalized to DependsOn
+        // in NormalizeRequiredByToDependsOn, so we don't need to process them here
 
         var visitStates = new Dictionary<string, VisitState>(steps.Count, StringComparer.Ordinal);
         foreach (var step in steps)
@@ -710,11 +729,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             if (step.DependsOnSteps.Count > 0)
             {
                 sb.Append(CultureInfo.InvariantCulture, $" [depends on: {string.Join(", ", step.DependsOnSteps)}]");
-            }
-
-            if (step.RequiredBySteps.Count > 0)
-            {
-                sb.Append(CultureInfo.InvariantCulture, $" [required by: {string.Join(", ", step.RequiredBySteps)}]");
             }
 
             sb.AppendLine();
