@@ -1526,11 +1526,8 @@ public class DistributedApplicationPipelineTests
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step).GroupBy(a => a.Data.Id).ToList();
         var logActivities = activities.Where(a => a.Type == PublishingActivityTypes.Log).ToList();
 
-        Assert.Equal(2, stepActivities.Count); // Updated to account for "deploy" step
-        
-        // Find the failing-step activity
-        var failingStepActivity = stepActivities.FirstOrDefault(g => g.Any(a => a.Data.StatusText == "failing-step"));
-        Assert.NotNull(failingStepActivity);
+        // Verify the failing step activity (other steps may or may not complete depending on timing)
+        var failingStepActivity = stepActivities.Single(g => g.Any(a => a.Data.StatusText == "failing-step"));
         Assert.Collection(failingStepActivity,
             step =>
             {

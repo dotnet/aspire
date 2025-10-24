@@ -476,7 +476,7 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 try
                 {
                     var activityReporter = context.Services.GetRequiredService<IPipelineActivityReporter>();
-                    var publishingStep = await activityReporter.CreateStepAsync(step.Name, CancellationToken.None).ConfigureAwait(false);
+                    var publishingStep = await activityReporter.CreateStepAsync(step.Name, context.CancellationToken).ConfigureAwait(false);
 
                     await using (publishingStep.ConfigureAwait(false))
                     {
