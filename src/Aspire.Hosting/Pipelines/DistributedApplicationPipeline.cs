@@ -164,7 +164,23 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         }
 
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-        stepsToExecute.Add(targetStep);
+        
+        // Also include all steps that are transitively required by the target step
+        var requiredBySteps = ComputeTransitiveRequiredBy(targetStep, allStepsByName);
+        foreach (var step in requiredBySteps)
+        {
+            if (!stepsToExecute.Contains(step))
+            {
+                stepsToExecute.Add(step);
+            }
+        }
+        
+        // Add the target step if not already present
+        if (!stepsToExecute.Contains(targetStep))
+        {
+            stepsToExecute.Add(targetStep);
+        }
+        
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
     }
@@ -199,6 +215,50 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         foreach (var dependency in step.DependsOnSteps)
         {
             Visit(dependency);
+        }
+
+        return result;
+    }
+
+    private static List<PipelineStep> ComputeTransitiveRequiredBy(
+        PipelineStep step,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<PipelineStep>();
+
+        void Visit(string stepName)
+        {
+            if (!visited.Add(stepName))
+            {
+                return;
+            }
+
+            if (!stepsByName.TryGetValue(stepName, out var currentStep))
+            {
+                return;
+            }
+
+            // First, find all steps that are required by the current step
+            // If currentStep is in another step's RequiredBySteps list, visit that step
+            foreach (var potentialStep in stepsByName.Values)
+            {
+                if (potentialStep.RequiredBySteps.Contains(currentStep.Name))
+                {
+                    Visit(potentialStep.Name);
+                }
+            }
+
+            result.Add(currentStep);
+        }
+
+        // Find all steps that are required by the target step
+        foreach (var potentialStep in stepsByName.Values)
+        {
+            if (potentialStep.RequiredBySteps.Contains(step.Name))
+            {
+                Visit(potentialStep.Name);
+            }
         }
 
         return result;

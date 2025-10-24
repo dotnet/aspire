@@ -2312,6 +2312,58 @@ public class DistributedApplicationPipelineTests
         Assert.True(foundErrorActivity, $"Expected to find a task activity with detailed error message about invalid step. Got: {errorMessage}");
     }
 
+    [Fact]
+    public async Task FilterStepsForExecution_WithRequiredBy_IncludesTransitiveDependencies()
+    {
+        // Arrange
+        using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, publisher: "default", isDeploy: true);
+        
+        var executedSteps = new List<string>();
+        var pipeline = new DistributedApplicationPipeline();
+
+        // The pipeline initializes with a "deploy" step by default, but we need to track when it executes
+        // So we need to add our own deploy step that tracks execution
+        // First, let's remove the default deploy step by not adding it, and add our own
+        
+        // Create steps: provision-resource1 and provision-resource2 are required by provision-infra
+        // When we execute "my-deploy-step", we should get: provision-resource1, provision-resource2, provision-infra, and my-deploy-step
+        pipeline.AddStep("provision-resource1", async (context) =>
+        {
+            executedSteps.Add("provision-resource1");
+            await Task.CompletedTask;
+        }, requiredBy: "provision-infra");
+
+        pipeline.AddStep("provision-resource2", async (context) =>
+        {
+            executedSteps.Add("provision-resource2");
+            await Task.CompletedTask;
+        }, requiredBy: "provision-infra");
+
+        pipeline.AddStep("provision-infra", async (context) =>
+        {
+            executedSteps.Add("provision-infra");
+            await Task.CompletedTask;
+        }, requiredBy: "my-deploy-step");
+
+        pipeline.AddStep("my-deploy-step", async (context) =>
+        {
+            executedSteps.Add("my-deploy-step");
+            await Task.CompletedTask;
+        });
+
+        // Act - execute with --step my-deploy-step filter
+        builder.Services.Configure<PublishingOptions>(options => options.Step = "my-deploy-step");
+        var context = CreateDeployingContext(builder.Build());
+        await pipeline.ExecuteAsync(context);
+
+        // Assert - all steps should have been executed
+        Assert.Contains("provision-resource1", executedSteps);
+        Assert.Contains("provision-resource2", executedSteps);
+        Assert.Contains("provision-infra", executedSteps);
+        Assert.Contains("my-deploy-step", executedSteps);
+        Assert.Equal(4, executedSteps.Count);
+    }
+
     private sealed class CustomResource(string name) : Resource(name)
     {
     }
