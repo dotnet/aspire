@@ -10,6 +10,7 @@ namespace Aspire.Hosting.NodeJs;
 /// </summary>
 /// <remarks>
 /// The Resource contains the command name, while this annotation contains only the arguments.
+/// These arguments are applied to the command before any user supplied arguments.
 /// </remarks>
 public sealed class JavaScriptRunCommandAnnotation(string[] args) : IResourceAnnotation
 {
