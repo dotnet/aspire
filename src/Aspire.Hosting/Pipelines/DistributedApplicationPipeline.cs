@@ -194,66 +194,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
         }
 
+        // Compute transitive dependencies of the target step
+        // Since RequiredBy relationships have been normalized to DependsOn,
+        // this automatically includes all steps that the target depends on
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-
-        // Also include all steps that are transitively required by the target step
-        var requiredBySteps = ComputeTransitiveRequiredBy(targetStep, allStepsByName);
-        foreach (var step in requiredBySteps)
-        {
-            if (!stepsToExecute.Contains(step))
-            {
-                stepsToExecute.Add(step);
-            }
-
-            // For each step that's required by the target step, also include its dependencies
-            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
-            foreach (var dependency in stepDependencies)
-            {
-                if (!stepsToExecute.Contains(dependency))
-                {
-                    stepsToExecute.Add(dependency);
-                }
-            }
-        }
 
         // Add the target step if not already present
         if (!stepsToExecute.Contains(targetStep))
         {
             stepsToExecute.Add(targetStep);
-        }
-
-        // Additional pass: Include steps required by ANY executing step
-        // This ensures that if any step in our execution plan is required by other steps,
-        // those other steps are also included
-        // This handles the case for secondary
-        // marker steps like ProvisionInfrastructure
-        var additionalRequiredBySteps = new List<PipelineStep>();
-        foreach (var executingStep in stepsToExecute.ToList())
-        {
-            var stepRequiredBySteps = ComputeTransitiveRequiredBy(executingStep, allStepsByName);
-            foreach (var requiredByStep in stepRequiredBySteps)
-            {
-                if (!stepsToExecute.Contains(requiredByStep))
-                {
-                    additionalRequiredBySteps.Add(requiredByStep);
-                }
-            }
-        }
-
-        // Add the additional required-by steps and their dependencies
-        foreach (var step in additionalRequiredBySteps)
-        {
-            stepsToExecute.Add(step);
-
-            // Include dependencies of the required-by steps
-            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
-            foreach (var dependency in stepDependencies)
-            {
-                if (!stepsToExecute.Contains(dependency))
-                {
-                    stepsToExecute.Add(dependency);
-                }
-            }
         }
 
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
@@ -290,49 +239,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         foreach (var dependency in step.DependsOnSteps)
         {
             Visit(dependency);
-        }
-
-        return result;
-    }
-
-    private static List<PipelineStep> ComputeTransitiveRequiredBy(
-        PipelineStep step,
-        Dictionary<string, PipelineStep> stepsByName)
-    {
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<PipelineStep>();
-
-        void Visit(string stepName)
-        {
-            if (!visited.Add(stepName))
-            {
-                return;
-            }
-
-            if (!stepsByName.TryGetValue(stepName, out var currentStep))
-            {
-                return;
-            }
-
-            // Find all steps that depend on the current step (reverse of DependsOn)
-            foreach (var potentialStep in stepsByName.Values)
-            {
-                if (potentialStep.DependsOnSteps.Contains(currentStep.Name))
-                {
-                    Visit(potentialStep.Name);
-                }
-            }
-
-            result.Add(currentStep);
-        }
-
-        // Find all steps that depend on the target step (those that require it)
-        foreach (var potentialStep in stepsByName.Values)
-        {
-            if (potentialStep.DependsOnSteps.Contains(step.Name))
-            {
-                Visit(potentialStep.Name);
-            }
         }
 
         return result;
