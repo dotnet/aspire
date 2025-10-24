@@ -48,6 +48,11 @@ public sealed class AzureEnvironmentResource : Resource
     /// </summary>
     public ParameterResource PrincipalId { get; set; }
 
+    /// <summary>
+    /// Gets the provisioning context for Azure resource operations.
+    /// </summary>
+    internal ProvisioningContext? ProvisioningContext { get; private set; }
+
     private readonly List<IResource> _computeResourcesToBuild = [];
 
     /// <summary>
@@ -65,8 +70,6 @@ public sealed class AzureEnvironmentResource : Resource
 
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            ProvisioningContext? provisioningContext = null;
-
             var validateStep = new PipelineStep
             {
                 Name = "validate-azure-cli-login",
@@ -79,14 +82,14 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = async ctx =>
                 {
                     var provisioningContextProvider = ctx.Services.GetRequiredService<IProvisioningContextProvider>();
-                    provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
+                    ProvisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(ctx.CancellationToken).ConfigureAwait(false);
                 }
             };
             createContextStep.DependsOn(validateStep);
 
             var provisionStep = new PipelineStep
             {
-                Name = "provision-azure-bicep-resources",
+                Name = WellKnownPipelineSteps.ProvisionInfrastructure,
                 Action = _ => Task.CompletedTask,
                 Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
@@ -118,7 +121,7 @@ public sealed class AzureEnvironmentResource : Resource
             var deployStep = new PipelineStep
             {
                 Name = "deploy-compute-resources",
-                Action = ctx => DeployComputeResourcesAsync(ctx, provisioningContext!),
+                Action = ctx => DeployComputeResourcesAsync(ctx, ProvisioningContext!),
                 Tags = [WellKnownPipelineTags.DeployCompute]
             };
             deployStep.DependsOn(pushStep);

@@ -267,6 +267,6 @@ public class AzureBicepResourceTests
         var step = steps.First();
 
         // Assert
-        Assert.Contains(Aspire.Hosting.Pipelines.WellKnownPipelineTags.ProvisionInfrastructure, step.RequiredBySteps);
+        Assert.Contains(Aspire.Hosting.Pipelines.WellKnownPipelineSteps.ProvisionInfrastructure, step.RequiredBySteps);
     }
 }

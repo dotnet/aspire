@@ -3,13 +3,13 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREAZURE001
 
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Azure.Provisioning;
-using Aspire.Hosting.Azure.Provisioning.Internal;
 using Aspire.Hosting.Azure.Utils;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
@@ -47,7 +47,8 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
                 Name = $"provision-{name}",
                 Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false)
             };
-            provisionStep.RequiredBy(WellKnownPipelineTags.ProvisionInfrastructure);
+            provisionStep.RequiredBy(WellKnownPipelineSteps.ProvisionInfrastructure);
+            provisionStep.DependsOn("create-provisioning-context");
 
             return provisionStep;
         }));
@@ -263,9 +264,15 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
-        var provisioningContextProvider = context.Services.GetRequiredService<IProvisioningContextProvider>();
         
-        var provisioningContext = await provisioningContextProvider.CreateProvisioningContextAsync(context.CancellationToken).ConfigureAwait(false);
+        // Find the AzureEnvironmentResource from the application model
+        var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
+        if (azureEnvironment?.ProvisioningContext == null)
+        {
+            throw new InvalidOperationException("AzureEnvironmentResource with a valid ProvisioningContext must be present in the application model.");
+        }
+        
+        var provisioningContext = azureEnvironment.ProvisioningContext;
 
         var resourceTask = await context.ReportingStep
             .CreateTaskAsync($"Deploying **{resource.Name}**", context.CancellationToken)
