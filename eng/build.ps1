@@ -118,27 +118,21 @@ $restoreMauiPassed = $properties -contains "-restore-maui"
 $isWindowsOrMac = ($IsWindows -or $IsMacOS -or (-not (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue)))
 if ($restoreMauiPassed -and $buildExitCode -eq 0 -and $isWindowsOrMac) {
   Write-Host ""
-  Write-Host "Installing MAUI workload into local .dotnet..."
+  Write-Host "Installing MAUI workload..."
   
   $repoRoot = Split-Path $PSScriptRoot -Parent
-  $dotnetRoot = Join-Path $repoRoot ".dotnet"
-  $dotnetExe = Join-Path $dotnetRoot "dotnet.exe"
+  $dotnetCmd = Join-Path $repoRoot "dotnet.cmd"
   
-  if (Test-Path $dotnetExe) {
-    $env:DOTNET_ROOT = $dotnetRoot
-    $env:PATH = "$dotnetRoot;$env:PATH"
-    
-    & $dotnetExe workload install maui 2>&1 | Out-Host
-    if ($LASTEXITCODE -ne 0) {
-      Write-Host ""
-      Write-Warning "Failed to install MAUI workload. You may need to run this command manually:"
-      Write-Warning "  $dotnetExe workload install maui"
-      Write-Host ""
-      Write-Host "The MAUI playground may not work without the MAUI workload installed."
-    }
-    else {
-      Write-Host "MAUI workload installed successfully."
-    }
+  & $dotnetCmd workload install maui 2>&1 | Out-Host
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Warning "Failed to install MAUI workload. You may need to run this command manually:"
+    Write-Warning "  $dotnetCmd workload install maui"
+    Write-Host ""
+    Write-Host "The MAUI playground may not work without the MAUI workload installed."
+  }
+  else {
+    Write-Host "MAUI workload installed successfully."
   }
 }
 

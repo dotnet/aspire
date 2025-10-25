@@ -174,25 +174,19 @@ if [ "$restore_maui" = true ] && [ $buildExitCode -eq 0 ]; then
   # Check if we're on macOS
   if [[ "$(uname -s)" == "Darwin" ]]; then
     echo ""
-    echo "Installing MAUI workload into local .dotnet..."
+    echo "Installing MAUI workload..."
     
     repo_root="$(cd "$scriptroot/.." && pwd)"
-    dotnet_root="$repo_root/.dotnet"
-    dotnet_exe="$dotnet_root/dotnet"
+    dotnet_sh="$repo_root/dotnet.sh"
     
-    if [ -f "$dotnet_exe" ]; then
-      export DOTNET_ROOT="$dotnet_root"
-      export PATH="$dotnet_root:$PATH"
-      
-      if "$dotnet_exe" workload install maui; then
-        echo "MAUI workload installed successfully."
-      else
-        echo ""
-        echo "WARNING: Failed to install MAUI workload. You may need to run this command manually:"
-        echo "  $dotnet_exe workload install maui"
-        echo ""
-        echo "The MAUI playground may not work without the MAUI workload installed."
-      fi
+    if "$dotnet_sh" workload install maui; then
+      echo "MAUI workload installed successfully."
+    else
+      echo ""
+      echo "WARNING: Failed to install MAUI workload. You may need to run this command manually:"
+      echo "  $dotnet_sh workload install maui"
+      echo ""
+      echo "The MAUI playground may not work without the MAUI workload installed."
     fi
   fi
 fi
