@@ -22,16 +22,14 @@ internal sealed class MauiAndroidEnvironmentAnnotation : IResourceAnnotation
 }
 
 /// <summary>
-/// Internal annotation to track that environment variables have been processed for a resource.
+/// Internal annotation to track that the callback for Android environment variables has been registered.
 /// </summary>
+/// <remarks>
+/// This is a marker annotation used to prevent duplicate callback registration.
+/// The actual file path is managed within the callback closure and doesn't need to be stored here.
+/// </remarks>
 internal sealed class MauiAndroidEnvironmentProcessedAnnotation : IResourceAnnotation
 {
-    public string TargetsFilePath { get; }
-
-    public MauiAndroidEnvironmentProcessedAnnotation(string targetsFilePath)
-    {
-        TargetsFilePath = targetsFilePath;
-    }
 }
 
 /// <summary>
@@ -106,7 +104,7 @@ internal sealed class MauiAndroidEnvironmentSubscriber(
             }));
 
             // Mark as processed to avoid duplicate callbacks
-            resource.Annotations.Add(new MauiAndroidEnvironmentProcessedAnnotation(string.Empty));
+            resource.Annotations.Add(new MauiAndroidEnvironmentProcessedAnnotation());
         }
         catch (Exception ex)
         {
