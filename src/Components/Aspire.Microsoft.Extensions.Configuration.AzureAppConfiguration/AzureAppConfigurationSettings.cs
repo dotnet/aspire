@@ -61,6 +61,22 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
     /// </remarks>
     internal bool AnonymousAccess { get; set; }
 
+    /// <summary>
+    /// Gets the refresh key to watch for changes.
+    /// </summary>
+    /// <remarks>
+    /// This is parsed from the connection string when RefreshKey is present.
+    /// </remarks>
+    internal string? RefreshKey { get; set; }
+
+    /// <summary>
+    /// Gets the refresh interval in seconds.
+    /// </summary>
+    /// <remarks>
+    /// This is parsed from the connection string when RefreshInterval is present.
+    /// </remarks>
+    internal int? RefreshIntervalInSeconds { get; set; }
+
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         if (!string.IsNullOrEmpty(connectionString))
@@ -78,6 +94,21 @@ public sealed class AzureAppConfigurationSettings : IConnectionStringSettings
                     AnonymousAccess = Boolean.Parse(enabled);
 
                     connectionBuilder.Remove("Anonymous");
+                }
+
+                if (connectionBuilder.TryGetValue("RefreshKey", out string refreshKey))
+                {
+                    RefreshKey = refreshKey;
+                    connectionBuilder.Remove("RefreshKey");
+                }
+
+                if (connectionBuilder.TryGetValue("RefreshInterval", out string refreshInterval))
+                {
+                    if (int.TryParse(refreshInterval, out var interval))
+                    {
+                        RefreshIntervalInSeconds = interval;
+                    }
+                    connectionBuilder.Remove("RefreshInterval");
                 }
 
                 ConnectionString = connectionBuilder.ConnectionString;

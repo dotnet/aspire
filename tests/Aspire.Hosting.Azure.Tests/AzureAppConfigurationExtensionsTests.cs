@@ -126,4 +126,67 @@ public class AzureAppConfigurationExtensionsTests(ITestOutputHelper output)
         await Verify(manifest.ToString(), "json")
              .AppendContentAsFile(bicep, "bicep");
     }
+
+    [Fact]
+    public async Task WithRefreshKey_AddsRefreshParametersToConnectionString()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var appConfig = builder.AddAzureAppConfiguration("appConfig")
+            .WithRefreshKey("TestKey", 60);
+
+        appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
+
+        var connectionString = await appConfig.Resource.ConnectionStringExpression.GetValueAsync(default);
+        Assert.Contains("RefreshKey=TestKey", connectionString);
+        Assert.Contains("RefreshInterval=60", connectionString);
+    }
+
+    [Fact]
+    public async Task WithRefreshKey_UsesDefaultInterval()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var appConfig = builder.AddAzureAppConfiguration("appConfig")
+            .WithRefreshKey("TestKey");
+
+        appConfig.Resource.Outputs["appConfigEndpoint"] = "https://myendpoint";
+
+        var connectionString = await appConfig.Resource.ConnectionStringExpression.GetValueAsync(default);
+        Assert.Contains("RefreshKey=TestKey", connectionString);
+        Assert.Contains("RefreshInterval=30", connectionString);
+    }
+
+    [Fact]
+    public void WithRefreshKey_ThrowsForNullRefreshKey()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var appConfig = builder.AddAzureAppConfiguration("appConfig");
+
+        Assert.Throws<ArgumentException>(() => appConfig.WithRefreshKey(""));
+    }
+
+    [Fact]
+    public void WithRefreshKey_ThrowsForInvalidInterval()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+        var appConfig = builder.AddAzureAppConfiguration("appConfig");
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => appConfig.WithRefreshKey("TestKey", 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => appConfig.WithRefreshKey("TestKey", -1));
+    }
+
+    [Fact]
+    public void WithRefreshKey_WorksWithEmulator()
+    {
+        using var builder = TestDistributedApplicationBuilder.Create();
+
+        var appConfig = builder.AddAzureAppConfiguration("appConfig")
+            .RunAsEmulator()
+            .WithRefreshKey("TestKey", 30);
+
+        // Verify the annotation is present by checking annotations count and type
+        var refreshAnnotations = appConfig.Resource.Annotations.Where(a => a.GetType().Name == "AzureAppConfigurationRefreshAnnotation").ToList();
+        Assert.Single(refreshAnnotations);
+    }
 }
