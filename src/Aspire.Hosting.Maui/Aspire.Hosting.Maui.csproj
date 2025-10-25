@@ -22,5 +22,6 @@
   
   <ItemGroup>
     <ProjectReference Include="..\Aspire.Hosting\Aspire.Hosting.csproj" />
+    <ProjectReference Include="..\Aspire.Hosting.DevTunnels\Aspire.Hosting.DevTunnels.csproj" />
   </ItemGroup>
 </Project>

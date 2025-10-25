@@ -72,17 +72,36 @@ The playground demonstrates Aspire's ability to manage MAUI apps on multiple pla
   - Use `.AddAndroidDevice("device-name", "abc12345")` to target a specific device by serial number or IP
   - Works with USB-connected devices and WiFi debugging (e.g., "192.168.1.100:5555")
   - Get device IDs from `adb devices` command
+  - Use `.WithOtlpDevTunnel()` to send telemetry to the dashboard (Android cannot reach localhost)
 - **Android Emulator**: Configures the MAUI app with `.AddAndroidEmulator()` to run on Android emulators
   - Use `.AddAndroidEmulator()` to target the only running emulator (default)
   - Use `.AddAndroidEmulator("emulator-name", "Pixel_5_API_33")` to target a specific emulator by AVD name
   - Can also use emulator serial number like "emulator-5554"
   - Get emulator names from `adb devices` or `emulator -list-avds` command
+  - Use `.WithOtlpDevTunnel()` to send telemetry to the dashboard (emulators cannot reach localhost)
 - Automatically detects platform-specific target frameworks from the project file
 - Shows "Unsupported" state in dashboard when running on incompatible host OS
 - Sets up dev tunnels for MAUI app communication with backend services
 
 ### OpenTelemetry Integration
-The MAUI client uses OpenTelemetry to send traces and metrics to the Aspire dashboard via dev tunnels.
+The MAUI client uses OpenTelemetry to send traces and metrics to the Aspire dashboard. For mobile platforms that cannot reach `localhost`, the playground demonstrates using dev tunnels to expose the dashboard's OTLP endpoint:
+
+```csharp
+// Android devices and emulators need dev tunnel for OTLP
+mauiapp.AddAndroidEmulator()
+    .WithOtlpDevTunnel()  // Automatically creates and configures a dev tunnel for telemetry
+    .WithReference(weatherApi, publicDevTunnel);  // Dev tunnel for API communication
+```
+
+The `.WithOtlpDevTunnel()` method:
+- Automatically resolves the dashboard's OTLP endpoint from configuration
+- Creates a dev tunnel for the OTLP endpoint
+- Configures the MAUI platform to send telemetry through the tunnel
+- Handles all service discovery and environment variable setup
+
+**Requirements for dev tunnels:**
+- Dev tunnel CLI must be installed (automatic prompt if missing)
+- User must be logged in to dev tunnel service (automatic prompt if needed)
 
 ### Service Discovery
 The MAUI app discovers and connects to backend services (WeatherApi) using Aspire's service discovery.

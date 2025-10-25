@@ -65,48 +65,48 @@ internal sealed class MauiAndroidEnvironmentSubscriber(
 
         var logger = loggerService.GetLogger(resource);
 
-        // Check if we've already processed this resource
-        if (resource.TryGetLastAnnotation<MauiAndroidEnvironmentProcessedAnnotation>(out var processed))
+        // Check if we've already added the callback
+        if (resource.TryGetLastAnnotation<MauiAndroidEnvironmentProcessedAnnotation>(out _))
         {
-            logger.LogDebug("Android environment variables already processed, reusing targets file: {Path}", processed.TargetsFilePath);
+            // Already processed - callback is already registered
             return;
         }
 
         try
         {
-            // Generate the targets file
-            var targetsFilePath = await MauiEnvironmentHelper.CreateAndroidEnvironmentTargetsFileAsync(
-                resource,
-                executionContext,
-                logger,
-                cancellationToken
-            ).ConfigureAwait(false);
+            // Add a CommandLineArgsCallback that will generate the targets file
+            // This runs AFTER all environment callbacks have been processed
+            // The callback itself ensures idempotency by only generating the file once
+            string? generatedFilePath = null;
 
-            if (targetsFilePath is null)
-            {
-                // No environment variables to process
-                return;
-            }
-
-            logger.LogInformation("Generated environment targets file for Android: {Path}", targetsFilePath);
-
-            // Add the targets file as an MSBuild property via command-line argument
-            // The -p:CustomAfterMicrosoftCommonTargets property tells MSBuild to import this file after common targets
-            // Note: No quotes around the path - MSBuild handles paths with spaces internally
-            var commandLineArg = $"-p:CustomAfterMicrosoftCommonTargets={targetsFilePath}";
-
-            // Add the argument to the resource
-            // Note: We use CommandLineArgsCallbackAnnotation to ensure this runs after other configuration
             resource.Annotations.Add(new CommandLineArgsCallbackAnnotation(async context =>
             {
-                context.Args.Add(commandLineArg);
-                await Task.CompletedTask.ConfigureAwait(false);
+                // Only generate the file once, even if this callback is invoked multiple times
+                if (generatedFilePath is null)
+                {
+                    generatedFilePath = await MauiEnvironmentHelper.CreateAndroidEnvironmentTargetsFileAsync(
+                        resource,
+                        executionContext,
+                        logger,
+                        cancellationToken
+                    ).ConfigureAwait(false);
+
+                    if (generatedFilePath is not null)
+                    {
+                        logger.LogInformation("Generated environment targets file for Android: {Path}", generatedFilePath);
+                    }
+                }
+
+                if (generatedFilePath is not null)
+                {
+                    // Add the targets file as an MSBuild property via command-line argument
+                    var commandLineArg = $"-p:CustomAfterMicrosoftCommonTargets={generatedFilePath}";
+                    context.Args.Add(commandLineArg);
+                }
             }));
 
-            // Mark as processed to avoid duplicate processing
-            resource.Annotations.Add(new MauiAndroidEnvironmentProcessedAnnotation(targetsFilePath));
-
-            logger.LogDebug("Added MSBuild argument: {Arg}", commandLineArg);
+            // Mark as processed to avoid duplicate callbacks
+            resource.Annotations.Add(new MauiAndroidEnvironmentProcessedAnnotation(string.Empty));
         }
         catch (Exception ex)
         {

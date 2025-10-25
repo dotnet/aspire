@@ -16,6 +16,7 @@ mauiapp.AddMacCatalystDevice()
 
 // Add Android emulator with default emulator (uses running or default emulator)
 mauiapp.AddAndroidEmulator()
+    .WithOtlpDevTunnel() // Needed to get the OpenTelemetry data to "localhost"
     .WithReference(weatherApi, publicDevTunnel); // Needs a dev tunnel to reach "localhost"
 
 builder.Build().Run();

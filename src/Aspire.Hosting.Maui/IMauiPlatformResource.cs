@@ -13,6 +13,6 @@ namespace Aspire.Hosting.Maui;
 /// of a MAUI application, allowing for common handling across all MAUI platforms.
 /// All MAUI platform resources have a parent <see cref="MauiProjectResource"/>.
 /// </remarks>
-internal interface IMauiPlatformResource : IResourceWithParent<MauiProjectResource>
+public interface IMauiPlatformResource : IResourceWithParent<MauiProjectResource>
 {
 }

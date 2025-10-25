@@ -84,14 +84,6 @@ internal static class MauiEnvironmentHelper
         // Write the file
         await File.WriteAllTextAsync(targetsFilePath, targetsContent, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
 
-        logger.LogDebug("Created Android environment targets file: {Path}", targetsFilePath);
-        logger.LogDebug("Environment variables: {Count}", environmentVariables.Count);
-
-        if (encodedKeys.Count > 0)
-        {
-            logger.LogDebug("Encoded semicolons for environment variables: {Keys}", string.Join(", ", encodedKeys));
-        }
-
         return targetsFilePath;
     }
 

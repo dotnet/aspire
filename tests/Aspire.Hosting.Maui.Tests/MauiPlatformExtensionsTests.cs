@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Eventing;
 using Aspire.Hosting.Maui;
+using Aspire.Hosting.Maui.Annotations;
 using Aspire.Hosting.Maui.Utilities;
 using Aspire.Hosting.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -395,6 +396,67 @@ public class MauiPlatformExtensionsTests
         }
     }
 
+    // OTLP Dev Tunnel Configuration Tests
+
+    [Theory]
+    [MemberData(nameof(AllPlatforms))]
+    public void WithOtlpDevTunnel_AddsOtlpDevTunnelAnnotation(PlatformTestConfig config)
+    {
+        // Arrange
+        var projectContent = CreateProjectContent(config.RequiredTfm);
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+            var platform = config.AddPlatformWithDefaultName(maui);
+
+            // Act - WithOtlpDevTunnel works on the concrete platform resource builder
+            config.ApplyWithOtlpDevTunnel(platform);
+
+            // Assert
+            // Verify that the tunnel infrastructure was created on the parent
+            var tunnelConfig = maui.Resource.Annotations.OfType<OtlpDevTunnelConfigurationAnnotation>().FirstOrDefault();
+            Assert.NotNull(tunnelConfig);
+            Assert.NotNull(tunnelConfig.OtlpStub);
+            Assert.NotNull(tunnelConfig.DevTunnel);
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(AllPlatforms))]
+    public void WithOtlpDevTunnel_MultiplePlatforms_SharesSameInfrastructure(PlatformTestConfig config)
+    {
+        // Arrange
+        var projectContent = CreateProjectContent(config.RequiredTfm);
+        var tempFile = CreateTempProjectFile(projectContent);
+
+        try
+        {
+            var appBuilder = DistributedApplication.CreateBuilder();
+            var maui = appBuilder.AddMauiProject("mauiapp", tempFile);
+            var platform1 = config.AddPlatformWithCustomName(maui, $"{config.PlatformName}-1");
+            var platform2 = config.AddPlatformWithCustomName(maui, $"{config.PlatformName}-2");
+
+            // Act - Apply dev tunnel to both platforms
+            config.ApplyWithOtlpDevTunnel(platform1);
+            config.ApplyWithOtlpDevTunnel(platform2);
+
+            // Assert - Both platforms should share the same tunnel infrastructure
+            var annotations = maui.Resource.Annotations.OfType<OtlpDevTunnelConfigurationAnnotation>().ToList();
+            Assert.Single(annotations); // Only one tunnel infrastructure created
+        }
+        finally
+        {
+            CleanupTempFile(tempFile);
+        }
+    }
+
     // Helper methods
 
     private static string CreateProjectContent(string requiredTfm)
@@ -452,6 +514,7 @@ public class MauiPlatformExtensionsTests
         public string RequiredTfm { get; }
         public Func<IResourceBuilder<MauiProjectResource>, IResourceBuilder<IResource>> AddPlatformWithDefaultName { get; }
         public Func<IResourceBuilder<MauiProjectResource>, string, IResourceBuilder<IResource>> AddPlatformWithCustomName { get; }
+        public Action<IResourceBuilder<IResource>> ApplyWithOtlpDevTunnel { get; }
         public Type ExpectedResourceType { get; }
 
         public PlatformTestConfig(
@@ -472,6 +535,16 @@ public class MauiPlatformExtensionsTests
             AddPlatformWithDefaultName = addDefault;
             AddPlatformWithCustomName = addCustom;
             ExpectedResourceType = expectedResourceType;
+            
+            // Set up WithOtlpDevTunnel based on the expected resource type
+            ApplyWithOtlpDevTunnel = expectedResourceType.Name switch
+            {
+                nameof(MauiWindowsPlatformResource) => builder => ((IResourceBuilder<MauiWindowsPlatformResource>)builder).WithOtlpDevTunnel(),
+                nameof(MauiMacCatalystPlatformResource) => builder => ((IResourceBuilder<MauiMacCatalystPlatformResource>)builder).WithOtlpDevTunnel(),
+                nameof(MauiAndroidDeviceResource) => builder => ((IResourceBuilder<MauiAndroidDeviceResource>)builder).WithOtlpDevTunnel(),
+                nameof(MauiAndroidEmulatorResource) => builder => ((IResourceBuilder<MauiAndroidEmulatorResource>)builder).WithOtlpDevTunnel(),
+                _ => throw new NotSupportedException($"Unsupported resource type: {expectedResourceType.Name}")
+            };
         }
 
         public override string ToString() => PlatformName;
