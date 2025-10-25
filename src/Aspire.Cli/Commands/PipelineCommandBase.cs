@@ -901,22 +901,27 @@ internal abstract class PipelineCommandBase : BaseCommand
             var step = steps[i];
             InteractionService.DisplayPlainText($"{i + 1}. {step.Name}");
 
-            if (step.DependsOn.Length == 0)
+            // Determine if we have tags to display (affects whether we use ├─ or └─ for dependencies)
+            bool hasTags = step.Tags.Length > 0;
+            bool hasDependencies = step.DependsOn.Length > 0;
+
+            if (hasDependencies)
             {
-                InteractionService.DisplayPlainText("   └─ No dependencies");
+                // Use ├─ if tags follow, └─ if this is the last item
+                string prefix = hasTags ? "├─" : "└─";
+                InteractionService.DisplayPlainText($"   {prefix} Depends on: {string.Join(", ", step.DependsOn)}");
             }
             else
             {
-                InteractionService.DisplayPlainText($"   ├─ Depends on: {string.Join(", ", step.DependsOn)}");
+                // Use ├─ if tags follow, └─ if this is the last item
+                string prefix = hasTags ? "├─" : "└─";
+                InteractionService.DisplayPlainText($"   {prefix} No dependencies");
             }
 
-            if (step.Tags.Length > 0)
+            if (hasTags)
             {
+                // Always use └─ for tags as they're always the last item
                 InteractionService.DisplayPlainText($"   └─ Tags: {string.Join(", ", step.Tags)}");
-            }
-            else if (step.DependsOn.Length > 0)
-            {
-                InteractionService.DisplayPlainText("   └─ No tags");
             }
 
             // Add blank line between steps except after the last one

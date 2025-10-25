@@ -43,4 +43,12 @@ public interface IDistributedApplicationPipeline
     /// <param name="context">The pipeline context for the execution.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     Task ExecuteAsync(PipelineContext context);
+
+    /// <summary>
+    /// Gets all pipeline steps for listing purposes without executing them.
+    /// This includes steps from annotations and normalizes RequiredBy relationships to DependsOn.
+    /// </summary>
+    /// <param name="context">The pipeline context for collecting steps.</param>
+    /// <returns>A list of all pipeline steps with normalized dependencies.</returns>
+    Task<List<PipelineStep>> GetStepsForListingAsync(PipelineContext context);
 }

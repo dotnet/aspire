@@ -231,12 +231,7 @@ internal class AppHostRpcTarget(
 
     public async Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
     {
-        var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>() as DistributedApplicationPipeline;
-        if (pipeline == null)
-        {
-            return Array.Empty<PipelineStepInfo>();
-        }
-
+        var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
         var model = serviceProvider.GetRequiredService<DistributedApplicationModel>();
         var executionContext = serviceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
         
