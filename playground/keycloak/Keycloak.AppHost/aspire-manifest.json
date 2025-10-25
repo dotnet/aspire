@@ -51,7 +51,9 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{apiservice.bindings.http.targetPort}",
+        "KEYCLOAK_HTTP": "{keycloak.bindings.http.url}",
         "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "KEYCLOAK_MANAGEMENT": "{keycloak.bindings.management.url}",
         "services__keycloak__management__0": "{keycloak.bindings.management.url}"
       },
       "bindings": {
@@ -76,9 +78,13 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{webfrontend.bindings.http.targetPort}",
+        "KEYCLOAK_HTTP": "{keycloak.bindings.http.url}",
         "services__keycloak__http__0": "{keycloak.bindings.http.url}",
+        "KEYCLOAK_MANAGEMENT": "{keycloak.bindings.management.url}",
         "services__keycloak__management__0": "{keycloak.bindings.management.url}",
+        "APISERVICE_HTTP": "{apiservice.bindings.http.url}",
         "services__apiservice__http__0": "{apiservice.bindings.http.url}",
+        "APISERVICE_HTTPS": "{apiservice.bindings.https.url}",
         "services__apiservice__https__0": "{apiservice.bindings.https.url}"
       },
       "bindings": {

@@ -174,7 +174,9 @@
         "ConnectionStrings__cosmosdb": "{cosmosdb.connectionString}",
         "ConnectionStrings__queue": "{queue.connectionString}",
         "ConnectionStrings__blob": "{blob.connectionString}",
+        "FUNCAPP_HTTP": "{funcapp.bindings.http.url}",
         "services__funcapp__http__0": "{funcapp.bindings.http.url}",
+        "FUNCAPP_HTTPS": "{funcapp.bindings.https.url}",
         "services__funcapp__https__0": "{funcapp.bindings.https.url}"
       },
       "bindings": {
