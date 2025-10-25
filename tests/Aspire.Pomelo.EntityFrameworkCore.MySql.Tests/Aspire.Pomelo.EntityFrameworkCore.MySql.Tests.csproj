@@ -14,8 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Needed until Pomelo MySQL EF supports net9.0 - https://github.com/dotnet/aspire/pull/6948 -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" VersionOverride="$(MicrosoftExtensionsDiagnosticsHealthChecksEntityFrameworkCoreLTSVersion)" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Options" VersionOverride="9.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Primitives" VersionOverride="9.0.9" />
 
     <PackageReference Include="Microsoft.DotNet.RemoteExecutor" />
     <PackageReference Include="Testcontainers.MySql" />
