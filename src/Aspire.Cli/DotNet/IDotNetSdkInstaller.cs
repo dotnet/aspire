@@ -9,11 +9,11 @@ namespace Aspire.Cli.DotNet;
 internal interface IDotNetSdkInstaller
 {
     /// <summary>
-    /// Checks if the .NET SDK is available on the system PATH.
+    /// Checks if the .NET SDK is available on the system PATH and determines if it should be installed.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>A tuple containing: success flag, highest detected version, minimum required version, and whether to force installation.</returns>
-    Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default);
+    /// <returns>A <see cref="CheckInstallResult"/> containing the check results and installation determination.</returns>
+    Task<CheckInstallResult> CheckAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Installs the .NET SDK. This method is reserved for future extensibility.

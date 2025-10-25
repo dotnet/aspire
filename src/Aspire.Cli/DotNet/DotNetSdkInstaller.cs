@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Aspire.Cli.Configuration;
+using Aspire.Cli.Utils;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Semver;
@@ -13,7 +14,7 @@ namespace Aspire.Cli.DotNet;
 /// <summary>
 /// Default implementation of <see cref="IDotNetSdkInstaller"/> that checks for dotnet on the system PATH.
 /// </summary>
-internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext, IDotNetCliRunner dotNetCliRunner, ILogger<DotNetSdkInstaller> logger) : IDotNetSdkInstaller
+internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration configuration, CliExecutionContext executionContext, IDotNetCliRunner dotNetCliRunner, ICliHostEnvironment? hostEnvironment, ILogger<DotNetSdkInstaller> logger) : IDotNetSdkInstaller
 {
     /// <summary>
     /// The minimum .NET SDK version required for Aspire.
@@ -21,7 +22,7 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
     public const string MinimumSdkVersion = "10.0.100-rc.2.25502.107";
 
     /// <inheritdoc />
-    public async Task<(bool Success, string? HighestVersion, string MinimumRequiredVersion, bool ForceInstall)> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<CheckInstallResult> CheckAsync(CancellationToken cancellationToken = default)
     {
         var minimumVersion = GetEffectiveMinimumSdkVersion();
         
@@ -43,15 +44,32 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
             if (File.Exists(dotnetExecutable))
             {
                 logger.LogDebug("Found private SDK installation at {Path}", sdkInstallPath);
-                return (true, minimumVersion, minimumVersion, false);
+                return new CheckInstallResult
+                {
+                    Success = true,
+                    HighestVersion = minimumVersion,
+                    MinimumRequiredVersion = minimumVersion,
+                    ForceInstall = false,
+                    ShouldInstall = false
+                };
             }
         }
         
         if (!features.IsFeatureEnabled(KnownFeatures.MinimumSdkCheckEnabled, true))
         {
             // If the feature is disabled, we assume the SDK is available
-            return (true, null, minimumVersion, forceInstall);
+            return new CheckInstallResult
+            {
+                Success = true,
+                HighestVersion = null,
+                MinimumRequiredVersion = minimumVersion,
+                ForceInstall = forceInstall,
+                ShouldInstall = DetermineShouldInstall(false, forceInstall)
+            };
         }
+
+        bool success;
+        string? highestVersion;
 
         try
         {
@@ -78,51 +96,89 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
             if (process.ExitCode != 0)
             {
-                return (false, null, minimumVersion, forceInstall);
+                success = false;
+                highestVersion = null;
             }
-
-            // Parse the minimum version requirement
-            if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
+            else
             {
-                return (false, null, minimumVersion, forceInstall);
-            }
-
-            // Parse each line of the output to find SDK versions
-            var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            SemVersion? highestVersion = null;
-            bool meetsMinimum = false;
-
-            foreach (var line in lines)
-            {
-                // Each line is in format: "version [path]"
-                var spaceIndex = line.IndexOf(' ');
-                if (spaceIndex > 0)
+                // Parse the minimum version requirement
+                if (!SemVersion.TryParse(minimumVersion, SemVersionStyles.Strict, out var minVersion))
                 {
-                    var versionString = line[..spaceIndex];
-                    if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
-                    {
-                        // Track the highest version
-                        if (highestVersion == null || SemVersion.ComparePrecedence(sdkVersion, highestVersion) > 0)
-                        {
-                            highestVersion = sdkVersion;
-                        }
+                    success = false;
+                    highestVersion = null;
+                }
+                else
+                {
+                    // Parse each line of the output to find SDK versions
+                    var lines = output.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+                    SemVersion? highestVersionObj = null;
+                    bool meetsMinimum = false;
 
-                        // Check if this version meets the minimum requirement
-                        if (MeetsMinimumRequirement(sdkVersion, minVersion, minimumVersion))
+                    foreach (var line in lines)
+                    {
+                        // Each line is in format: "version [path]"
+                        var spaceIndex = line.IndexOf(' ');
+                        if (spaceIndex > 0)
                         {
-                            meetsMinimum = true;
+                            var versionString = line[..spaceIndex];
+                            if (SemVersion.TryParse(versionString, SemVersionStyles.Strict, out var sdkVersion))
+                            {
+                                // Track the highest version
+                                if (highestVersionObj == null || SemVersion.ComparePrecedence(sdkVersion, highestVersionObj) > 0)
+                                {
+                                    highestVersionObj = sdkVersion;
+                                }
+
+                                // Check if this version meets the minimum requirement
+                                if (MeetsMinimumRequirement(sdkVersion, minVersion))
+                                {
+                                    meetsMinimum = true;
+                                }
+                            }
                         }
                     }
+
+                    success = meetsMinimum;
+                    highestVersion = highestVersionObj?.ToString();
                 }
             }
-
-            return (meetsMinimum, highestVersion?.ToString(), minimumVersion, forceInstall);
         }
         catch
         {
             // If we can't start the process, the SDK is not available
-            return (false, null, minimumVersion, forceInstall);
+            success = false;
+            highestVersion = null;
         }
+
+        return new CheckInstallResult
+        {
+            Success = success,
+            HighestVersion = highestVersion,
+            MinimumRequiredVersion = minimumVersion,
+            ForceInstall = forceInstall,
+            ShouldInstall = DetermineShouldInstall(success, forceInstall)
+        };
+    }
+
+    /// <summary>
+    /// Determines whether the SDK should be installed automatically based on feature flags and environment capabilities.
+    /// </summary>
+    /// <param name="success">Whether the SDK check was successful.</param>
+    /// <param name="forceInstall">Whether installation should be forced.</param>
+    /// <returns>True if the SDK should be installed automatically, false otherwise.</returns>
+    private bool DetermineShouldInstall(bool success, bool forceInstall)
+    {
+        // Don't install if SDK check was successful and we're not forcing installation
+        if (success && !forceInstall)
+        {
+            return false;
+        }
+
+        // Only install if:
+        // 1. The feature is enabled (default: false)
+        // 2. We support interactive input OR forceInstall is true (for testing)
+        return features.IsFeatureEnabled(KnownFeatures.DotNetSdkInstallationEnabled, defaultValue: false) &&
+               (hostEnvironment?.SupportsInteractiveInput == true || forceInstall);
     }
 
     /// <inheritdoc />
@@ -400,22 +456,13 @@ internal sealed class DotNetSdkInstaller(IFeatures features, IConfiguration conf
 
     /// <summary>
     /// Checks if an installed SDK version meets the minimum requirement.
-    /// For .NET 10.x requirements, allows any .NET 10.x version including prereleases.
     /// </summary>
     /// <param name="installedVersion">The installed SDK version.</param>
     /// <param name="requiredVersion">The required minimum version (parsed).</param>
-    /// <param name="requiredVersionString">The required version string.</param>
     /// <returns>True if the installed version meets the requirement.</returns>
-    private static bool MeetsMinimumRequirement(SemVersion installedVersion, SemVersion requiredVersion, string requiredVersionString)
+    private static bool MeetsMinimumRequirement(SemVersion installedVersion, SemVersion requiredVersion)
     {
-        // Special handling for .NET 10 RC requirement - allow any .NET 10.x version
-        if (requiredVersionString == MinimumSdkVersion)
-        {
-            // If we require 10.0.100-rc.2.25502.107, accept any version that is >= 10.0.0
-            return installedVersion.Major >= 10;
-        }
-
-        // For all other requirements, use strict version comparison
+        // Use strict version comparison - installed version must be >= required version
         return SemVersion.ComparePrecedence(installedVersion, requiredVersion) >= 0;
     }
 }
