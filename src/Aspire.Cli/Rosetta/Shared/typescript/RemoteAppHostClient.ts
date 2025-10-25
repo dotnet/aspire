@@ -2,12 +2,6 @@
 import * as net from 'net';
 import * as rpc from 'vscode-jsonrpc/node.js';
 import { AnyInstruction, InstructionResult } from './types.js';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-
-// types
-type Deasync = typeof import('deasync');
-const deasync: Deasync = require('deasync');
 
 export class RemoteAppHostClient {
     private connection: rpc.MessageConnection | null = null;
@@ -67,50 +61,5 @@ export class RemoteAppHostClient {
 
     get connected(): boolean {
         return this.connection !== null && this.socket !== null;
-    }
-}
-
-// --- Sync facade using deasync ---
-
-function wait<T>(p: Promise<T>): T {
-    let done = false;
-    let value!: T;
-    let error: any;
-    p.then(v => { value = v; done = true; })
-        .catch(e => { error = e; done = true; });
-    deasync.loopWhile(() => !done);
-    if (error) throw error;
-    return value;
-}
-
-export class RemoteAppHostClientSync {
-    private inner: RemoteAppHostClient;
-
-    constructor(pipeName: string = 'RemoteAppHost') {
-        this.inner = new RemoteAppHostClient(pipeName);
-    }
-
-    connectSync(timeoutMs: number = 5000): void {
-        wait(this.inner.connect(timeoutMs));
-    }
-
-    pingSync(): string {
-        return wait(this.inner.ping());
-    }
-
-    waitSync(ms: number): void {
-        return wait(new Promise(res => setTimeout(res, ms)))
-    }
-
-    executeInstructionSync(instruction: AnyInstruction): InstructionResult {
-        return wait(this.inner.executeInstruction(instruction));
-    }
-
-    disconnect(): void {
-        this.inner.disconnect();
-    }
-
-    get connected(): boolean {
-        return this.inner.connected;
     }
 }

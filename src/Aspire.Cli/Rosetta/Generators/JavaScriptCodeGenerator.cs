@@ -61,10 +61,10 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
           source += code + '\n';
         }
 
-        function sendInstruction(instruction: AnyInstruction) {
+        async function sendInstruction(instruction: AnyInstruction) {
           instructions.push(instruction);
 
-          // const result = client.executeInstruction(instruction);
+          const result = await client.executeInstruction(instruction);
           // console.log(`   ${instruction.name} result:`, JSON.stringify(result, null, 2));
         }
 
@@ -136,27 +136,10 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
           return `[${values}]`;
         }
 
-        export function createBuilder(args: string[] = []): DistributedApplicationBuilder {
+        export async function createBuilder(args: string[] = []): Promise<DistributedApplicationBuilder> {
             const distributedApplicationBuilder = new DistributedApplicationBuilder(args);
 
-            const createBuilderInstruction: CreateBuilderInstruction = {
-              name: 'CREATE_BUILDER',
-              builderName: distributedApplicationBuilder[_name],
-              projectDirectory: process.cwd(),
-              args: args
-            };
-
-            sendInstruction(createBuilderInstruction);
-
-            return distributedApplicationBuilder;
-        } 
-
-        export class DistributedApplication {
-          constructor(private builderName: string) {
-          }
-          async run() {
-
-        // Start the rosetta remote host process
+            // Start the rosetta remote host process
         
             console.log(`🚀 Starting generic app host...`);
         
@@ -182,6 +165,23 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
               }
             }
 
+            const createBuilderInstruction: CreateBuilderInstruction = {
+              name: 'CREATE_BUILDER',
+              builderName: distributedApplicationBuilder[_name],
+              projectDirectory: process.cwd(),
+              args: args
+            };
+
+            await sendInstruction(createBuilderInstruction);
+
+            return distributedApplicationBuilder;
+        } 
+
+        export class DistributedApplication {
+          constructor(private builderName: string) {
+          }
+          async run() {
+
             writeLine(`${this.builderName}.Build().Run();`);
             writeLine('}');
             writeLine('catch (Exception ex)');
@@ -202,11 +202,6 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
             // console.log("/*");
             // console.log(JSON.stringify(instructions, null, 2));
             // console.log("*/");
-
-            for (const instr of instructions) {
-              // console.log(`Sending instruction: ${instr.name}`);
-              await client.executeInstruction(instr);
-            }
 
             console.log("Application is running. Press Ctrl+C to stop...");
   
@@ -547,11 +542,11 @@ internal sealed class JavaScriptCodeGenerator(ApplicationModel appModel, IIntera
 
                 // Method body
                 writer.WriteLine($$"""
-                  {{methodName}}({{parameterList}}) : {{jsReturnTypeName}} {{{optionalArgsInitSnippet}}
+                  async {{methodName}}({{parameterList}}) : Promise<{{jsReturnTypeName}}> {{{optionalArgsInitSnippet}}
                     emitLinePragma();
                     var result = new {{jsReturnTypeName}}({{ctorArgs}});
                     writeLine(`${result[_name]} = ${this[_name]}.{{overload.Name}}({{csParameterList}});`);
-                    sendInstruction({ 
+                    await sendInstruction({ 
                         name: 'INVOKE', 
                         source: this[_name], 
                         target: result[_name], 
