@@ -1,6 +1,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using System.Runtime.InteropServices;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Packaging;
 using Aspire.Cli.Projects;
@@ -112,8 +113,16 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Act & Assert - should not throw exception
         updateCommand.CleanupOldBackupFiles(targetExePath);
 
-        // File should still exist because it was locked
-        Assert.True(File.Exists(oldBackup), "Locked file should still exist");
+        // On Windows, locked files cannot be deleted, so the file should still exist
+        // On Mac/Linux, locked files can be deleted, so the file may be deleted
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            Assert.True(File.Exists(oldBackup), "Locked file should still exist on Windows");
+        }
+        else
+        {
+            Assert.False(File.Exists(oldBackup), "Locked file should be deleted on Mac/Linux");
+        }
     }
 
     [Fact]
