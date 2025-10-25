@@ -39,7 +39,7 @@ internal abstract class PipelineCommandBase : BaseCommand
         Description = "The environment to use for the operation. The default is 'Production'."
     };
 
-    private readonly Option<bool> _listStepsOption = new("--list-steps")
+    protected readonly Option<bool> _listStepsOption = new("--list-steps")
     {
         Description = "List the pipeline steps that will be executed without running them."
     };
