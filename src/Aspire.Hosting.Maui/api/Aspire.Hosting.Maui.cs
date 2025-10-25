@@ -30,6 +30,11 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<Maui.MauiMacCatalystPlatformResource> AddMacCatalystDevice(this ApplicationModel.IResourceBuilder<Maui.MauiProjectResource> builder) { throw null; }
     }
 
+    public static partial class MauiOtlpExtensions
+    {
+        public static ApplicationModel.IResourceBuilder<T> WithOtlpDevTunnel<T>(this ApplicationModel.IResourceBuilder<T> builder) where T : Maui.IMauiPlatformResource { throw null; }
+    }
+
     public static partial class MauiProjectExtensions
     {
         public static ApplicationModel.IResourceBuilder<Maui.MauiProjectResource> AddMauiProject(this IDistributedApplicationBuilder builder, string name, string projectPath) { throw null; }
@@ -45,21 +50,25 @@ namespace Aspire.Hosting
 
 namespace Aspire.Hosting.Maui
 {
-    public partial class MauiAndroidDeviceResource : ApplicationModel.ProjectResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    public partial interface IMauiPlatformResource : ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    {
+    }
+
+    public partial class MauiAndroidDeviceResource : ApplicationModel.ProjectResource, IMauiPlatformResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
     {
         public MauiAndroidDeviceResource(string name, MauiProjectResource parent) : base(default!) { }
 
         public MauiProjectResource Parent { get { throw null; } }
     }
 
-    public partial class MauiAndroidEmulatorResource : ApplicationModel.ProjectResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    public partial class MauiAndroidEmulatorResource : ApplicationModel.ProjectResource, IMauiPlatformResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
     {
         public MauiAndroidEmulatorResource(string name, MauiProjectResource parent) : base(default!) { }
 
         public MauiProjectResource Parent { get { throw null; } }
     }
 
-    public partial class MauiMacCatalystPlatformResource : ApplicationModel.ProjectResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    public partial class MauiMacCatalystPlatformResource : ApplicationModel.ProjectResource, IMauiPlatformResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
     {
         public MauiMacCatalystPlatformResource(string name, MauiProjectResource parent) : base(default!) { }
 
@@ -73,7 +82,7 @@ namespace Aspire.Hosting.Maui
         public string ProjectPath { get { throw null; } }
     }
 
-    public partial class MauiWindowsPlatformResource : ApplicationModel.ProjectResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
+    public partial class MauiWindowsPlatformResource : ApplicationModel.ProjectResource, IMauiPlatformResource, ApplicationModel.IResourceWithParent<MauiProjectResource>, ApplicationModel.IResourceWithParent, ApplicationModel.IResource
     {
         public MauiWindowsPlatformResource(string name, MauiProjectResource parent) : base(default!) { }
 
