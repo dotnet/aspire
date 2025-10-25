@@ -68,10 +68,15 @@ The playground demonstrates Aspire's ability to manage MAUI apps on multiple pla
 - **Windows**: Configures the MAUI app with `.AddWindowsDevice()`
 - **Mac Catalyst**: Configures the MAUI app with `.AddMacCatalystDevice()`
 - **Android Device**: Configures the MAUI app with `.AddAndroidDevice()` to run on physical Android devices
+  - Use `.AddAndroidDevice()` to target the only attached device (default, requires exactly one device)
+  - Use `.AddAndroidDevice("device-name", "abc12345")` to target a specific device by serial number or IP
+  - Works with USB-connected devices and WiFi debugging (e.g., "192.168.1.100:5555")
+  - Get device IDs from `adb devices` command
 - **Android Emulator**: Configures the MAUI app with `.AddAndroidEmulator()` to run on Android emulators
-  - Use `.AddAndroidEmulator()` to target the default/running emulator
-  - Use `.AddAndroidEmulator(emulatorId: "Pixel_5_API_33")` to target a specific emulator
-  - Get emulator names from `adb devices` command
+  - Use `.AddAndroidEmulator()` to target the only running emulator (default)
+  - Use `.AddAndroidEmulator("emulator-name", "Pixel_5_API_33")` to target a specific emulator by AVD name
+  - Can also use emulator serial number like "emulator-5554"
+  - Get emulator names from `adb devices` or `emulator -list-avds` command
 - Automatically detects platform-specific target frameworks from the project file
 - Shows "Unsupported" state in dashboard when running on incompatible host OS
 - Sets up dev tunnels for MAUI app communication with backend services
@@ -84,7 +89,7 @@ The MAUI app discovers and connects to backend services (WeatherApi) using Aspir
 
 ### Environment Variables
 
-All MAUI platform resources support environment variables using the standard `.WithEnvironment()` method:
+All MAUI platform resources support environment variables using the standard `.WithEnvironment()` method. Environment variables are automatically forwarded to the MAUI application regardless of platform:
 
 ```csharp
 // For Windows and Mac Catalyst, environment variables are passed directly:
@@ -92,17 +97,29 @@ mauiapp.AddWindowsDevice()
     .WithEnvironment("DEBUG_MODE", "true")
     .WithEnvironment("API_TIMEOUT", "30");
 
-// For Android, environment variables are passed via an intermediate MSBuild targets file, but the syntax to pass them is identical:
-mauiapp.AddAndroidEmulator("debug-emulator")
+// For Android, environment variables are passed via an intermediate MSBuild targets file, but the syntax is identical:
+mauiapp.AddAndroidDevice("my-device", "abc12345")
     .WithEnvironment("DEBUG_MODE", "true")
     .WithEnvironment("API_TIMEOUT", "30")
     .WithEnvironment("LOG_LEVEL", "Debug");
+
+mauiapp.AddAndroidEmulator("my-emulator", "Pixel_5_API_33")
+    .WithEnvironment("CUSTOM_VAR", "value")
+    .WithReference(weatherApi);  // Service discovery environment variables also forwarded
 ```
+
+#### What Gets Forwarded
+
+**ALL Aspire-managed environment variables** are automatically forwarded to MAUI applications:
+- **Custom variables**: Set via `.WithEnvironment(key, value)`
+- **Service discovery**: Connection strings and endpoints from `.WithReference(service)`
+- **OpenTelemetry**: OTEL configuration from `.WithOtlpExporter()`
+- **Resource metadata**: Automatically added by Aspire
 
 #### Platform-Specific Implementation
 
 - **Windows & Mac Catalyst**: Environment variables are passed directly through the process environment when launching via `dotnet run`.
-- **Android**: Due to Android platform limitations, environment variables are written to a temporary MSBuild targets file that gets imported during the build. This happens automatically - no additional configuration required.
+- **Android**: Due to Android platform limitations, environment variables are written to a temporary MSBuild targets file that gets imported during the build. The targets file is generated automatically before each build and cleaned up after 24 hours (when a next build happens). Environment variable names are normalized to UPPERCASE (Android requirement), and semicolons are encoded as `%3B`.
 - **iOS**: (Coming soon) Will use a similar approach to Android with MSBuild targets file.
 
 Environment variables are available in your MAUI app code regardless of platform through standard .NET environment APIs (`Environment.GetEnvironmentVariable()`).
