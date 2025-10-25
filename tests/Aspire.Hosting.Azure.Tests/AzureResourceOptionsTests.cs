@@ -4,6 +4,7 @@
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -38,6 +39,7 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
             using var app = builder.Build();
             await app.StartAsync();
+            await app.WaitForShutdownAsync();
 
             var sbBicep = await File.ReadAllTextAsync(Path.Combine(tempDir.FullName, "sb.module.bicep"));
 
@@ -45,8 +47,6 @@ public class AzureResourceOptionsTests(ITestOutputHelper output)
 
             await Verify(sbBicep, extension: "bicep")
                 .AppendContentAsFile(sqlBicep, "bicep");
-
-            await app.StopAsync();
         }
 
         try
