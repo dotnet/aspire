@@ -6,7 +6,7 @@
     <EnablePackageValidation>false</EnablePackageValidation>
     <PackageTags>$(ComponentAzurePackageTags) appconfig configuration cloud</PackageTags>
     <Description>A client for Azure App Configuration that integrates with Aspire, including health checks, logging and telemetry.</Description>
-    <PackageIconFullPath>$(SharedDir)AzureAppConfiguration_256x.png</PackageIconFullPath>
+    <PackageIconFullPath>$(SharedDir)AzureAppConfig_256x.png</PackageIconFullPath>
     <NoWarn>$(NoWarn);SYSLIB1100;SYSLIB1101</NoWarn>
 
   </PropertyGroup>
