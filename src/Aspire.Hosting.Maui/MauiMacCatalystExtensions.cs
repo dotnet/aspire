@@ -54,6 +54,9 @@ public static class MauiMacCatalystExtensions
     /// This method creates a new Mac Catalyst platform resource that will run the MAUI application
     /// targeting the Mac Catalyst platform using <c>dotnet run</c>. The resource does not auto-start 
     /// and must be explicitly started from the dashboard by clicking the start button.
+    /// <para>
+    /// You can add multiple Mac Catalyst device resources to a MAUI project by calling this method multiple times with different names.
+    /// </para>
     /// </remarks>
     /// <example>
     /// Add multiple Mac Catalyst devices to a MAUI project:
