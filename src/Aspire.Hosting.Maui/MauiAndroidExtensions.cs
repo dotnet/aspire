@@ -142,19 +142,6 @@ public static class MauiAndroidExtensions
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        // Check if an Android device with this name already exists in the application model
-        var existingAndroidDevice = builder.ApplicationBuilder.Resources
-            .OfType<MauiAndroidDeviceResource>()
-            .FirstOrDefault(r => r.Parent == builder.Resource && 
-                                 string.Equals(r.Name, name, StringComparisons.ResourceName));
-
-        if (existingAndroidDevice is not null)
-        {
-            throw new DistributedApplicationException(
-                $"Android device with name '{name}' already exists on MAUI project '{builder.Resource.Name}'. " +
-                $"Provide a unique name parameter when calling AddAndroidDevice() to add multiple Android devices.");
-        }
-
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);
 
@@ -339,19 +326,6 @@ public static class MauiAndroidExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        // Check if an Android emulator with this name already exists in the application model
-        var existingAndroidEmulator = builder.ApplicationBuilder.Resources
-            .OfType<MauiAndroidEmulatorResource>()
-            .FirstOrDefault(r => r.Parent == builder.Resource && 
-                                 string.Equals(r.Name, name, StringComparisons.ResourceName));
-
-        if (existingAndroidEmulator is not null)
-        {
-            throw new DistributedApplicationException(
-                $"Android emulator with name '{name}' already exists on MAUI project '{builder.Resource.Name}'. " +
-                $"Provide a unique name parameter when calling AddAndroidEmulator() to add multiple Android emulators.");
-        }
 
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);
