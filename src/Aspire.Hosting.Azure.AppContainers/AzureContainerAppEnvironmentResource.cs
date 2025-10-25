@@ -7,7 +7,6 @@
 #pragma warning disable ASPIREPUBLISHERS001
 
 using Aspire.Hosting.ApplicationModel;
-using Aspire.Hosting.Azure.Provisioning;
 using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
@@ -89,7 +88,8 @@ public class AzureContainerAppEnvironmentResource :
                 pushStep.DependsOn(registryLoginStep);
                 steps.Add(pushStep);
 
-                // For deploy, get the deployment target and expand its provision steps
+                // Get the deployment target and expand its provision steps
+                // The AzureBicepResource handles deployment through its provision steps
                 if (computeResource.GetDeploymentTargetAnnotation(this) is { DeploymentTarget: var deploymentTarget })
                 {
                     // Check if deployment target has provision steps
@@ -106,57 +106,30 @@ public class AzureContainerAppEnvironmentResource :
                             
                             var deploymentSteps = await annotation.CreateStepsAsync(deploymentFactoryContext).ConfigureAwait(false);
                             
-                            // Don't filter, just aggregate all steps
+                            // Aggregate all deployment target provision steps
                             foreach (var deploymentStep in deploymentSteps)
                             {
                                 deploymentStep.DependsOn(pushStep);
+                                // Make provision steps required by the deploy-compute-marker
+                                deploymentStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
                                 steps.Add(deploymentStep);
                             }
                         }
                     }
                 }
-
-                // Deploy step for this specific resource
-                var deployStep = new PipelineStep
-                {
-                    Name = $"deploy-{computeResource.Name}",
-                    Action = async ctx =>
-                    {
-                        var azureEnvironment = ctx.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
-                        if (azureEnvironment == null)
-                        {
-                            throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
-                        }
-                        
-                        var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
-                        await DeployComputeResourceAsync(ctx, computeResource, provisioningContext).ConfigureAwait(false);
-                    },
-                    Tags = [WellKnownPipelineTags.DeployCompute, "deploy"]
-                };
-                deployStep.DependsOn(pushStep);
-                // Also depend on any provision steps we added for this resource's deployment target
-                var resourceProvisionSteps = steps.Where(s => s.Tags.Contains(WellKnownPipelineTags.ProvisionInfrastructure) && 
-                    s.Name.Contains(computeResource.Name)).ToList();
-                foreach (var provisionStep in resourceProvisionSteps)
-                {
-                    deployStep.DependsOn(provisionStep);
-                }
-                // Make this deploy step required by the deploy-compute-marker in AzureEnvironmentResource
-                deployStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
-                steps.Add(deployStep);
             }
 
-            // Add print-dashboard-url step that depends on all deploy steps
+            // Add print-dashboard-url step that depends on all provision steps from deployment targets
             var printDashboardUrlStep = new PipelineStep
             {
                 Name = $"print-dashboard-url-{name}",
                 Action = ctx => PrintDashboardUrlAsync(ctx),
             };
-            // Make it depend on all deploy steps for this environment
-            var deploySteps = steps.Where(s => s.Tags.Contains("deploy")).ToList();
-            foreach (var deployStep in deploySteps)
+            // Make it depend on all provision steps (deployment happens through these)
+            var provisionSteps = steps.Where(s => s.Tags.Contains(WellKnownPipelineTags.ProvisionInfrastructure)).ToList();
+            foreach (var provisionStep in provisionSteps)
             {
-                printDashboardUrlStep.DependsOn(deployStep);
+                printDashboardUrlStep.DependsOn(provisionStep);
             }
             printDashboardUrlStep.RequiredBy("deploy");
             steps.Add(printDashboardUrlStep);
@@ -256,79 +229,6 @@ public class AzureContainerAppEnvironmentResource :
         }
 
         return Task.CompletedTask;
-    }
-
-    private async Task DeployComputeResourceAsync(PipelineStepContext context, IResource computeResource, ProvisioningContext provisioningContext)
-    {
-        var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
-
-        var resourceTask = await context.ReportingStep
-            .CreateTaskAsync($"Deploying **{computeResource.Name}**", context.CancellationToken)
-            .ConfigureAwait(false);
-
-        await using (resourceTask.ConfigureAwait(false))
-        {
-            try
-            {
-                if (computeResource.GetDeploymentTargetAnnotation(this) is { } deploymentTarget)
-                {
-                    if (deploymentTarget.DeploymentTarget is AzureBicepResource bicepResource)
-                    {
-                        await bicepProvisioner.GetOrCreateResourceAsync(
-                            bicepResource, provisioningContext, context.CancellationToken)
-                            .ConfigureAwait(false);
-
-                        var completionMessage = $"Successfully deployed **{computeResource.Name}**";
-                        completionMessage += TryGetComputeResourceEndpoint(computeResource);
-
-                        await resourceTask.CompleteAsync(
-                            completionMessage,
-                            CompletionState.Completed,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        await resourceTask.CompleteAsync(
-                            $"Skipped **{computeResource.Name}** - no Bicep deployment target",
-                            CompletionState.CompletedWithWarning,
-                            context.CancellationToken).ConfigureAwait(false);
-                    }
-                }
-                else
-                {
-                    await resourceTask.CompleteAsync(
-                        $"Skipped **{computeResource.Name}** - no deployment target annotation",
-                        CompletionState.Completed,
-                        context.CancellationToken).ConfigureAwait(false);
-                }
-            }
-            catch (Exception ex)
-            {
-                await resourceTask.CompleteAsync(
-                    $"Failed to deploy {computeResource.Name}: {ex.Message}",
-                    CompletionState.CompletedWithError,
-                    context.CancellationToken).ConfigureAwait(false);
-                throw;
-            }
-        }
-    }
-
-    private string TryGetComputeResourceEndpoint(IResource computeResource)
-    {
-        // Only produce endpoints for resources that have external endpoints
-        if (!computeResource.TryGetEndpoints(out var endpoints) || !endpoints.Any(e => e.IsExternal))
-        {
-            return string.Empty;
-        }
-
-        // Use the ContainerAppDomain BicepOutputReference
-        if (ContainerAppDomain.Value is { } domainValue)
-        {
-            var endpoint = $"https://{computeResource.Name.ToLowerInvariant()}.{domainValue}";
-            return $" to [{endpoint}]({endpoint})";
-        }
-
-        return string.Empty;
     }
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
