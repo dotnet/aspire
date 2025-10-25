@@ -5,6 +5,7 @@ using Aspire.Azure.Common;
 using Aspire.Azure.Data.AppConfiguration;
 using Azure.Core;
 using Azure.Core.Extensions;
+using Azure.Core.Pipeline;
 using Azure.Data.AppConfiguration;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Configuration;
@@ -19,6 +20,21 @@ namespace Microsoft.Extensions.Hosting;
 public static class AspireAppConfigurationExtensions
 {
     private const string DefaultConfigSectionName = "Aspire:Azure:Data:AppConfiguration";
+
+    internal sealed class RemoveAuthorizationHeaderPolicy : HttpPipelinePolicy
+    {
+        public override void Process(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            message.Request.Headers.Remove("Authorization");
+            ProcessNext(message, pipeline);
+        }
+
+        public override ValueTask ProcessAsync(HttpMessage message, ReadOnlyMemory<HttpPipelinePolicy> pipeline)
+        {
+            message.Request.Headers.Remove("Authorization");
+            return ProcessNextAsync(message, pipeline);
+        }
+    }
 
     /// <summary>
     /// Registers <see cref="ConfigurationClient"/> as a singleton in the services provided by the <paramref name="builder"/>.
@@ -76,6 +92,12 @@ public static class AspireAppConfigurationExtensions
                 if (string.IsNullOrEmpty(connectionString) && settings.Endpoint is null)
                 {
                     throw new InvalidOperationException($"A ConfigurationClient could not be configured. Ensure valid connection information was provided in 'ConnectionStrings:{connectionName}' or specify a 'ConnectionString' or 'Endpoint' in the '{configurationSectionName}' configuration section.");
+                }
+
+                if (settings.AnonymousAccess)
+                {
+                    // Remove the Authorization header to send anonymous requests
+                    options.AddPolicy(new RemoveAuthorizationHeaderPolicy(), HttpPipelinePosition.PerRetry);
                 }
 
                 if (!string.IsNullOrEmpty(connectionString))

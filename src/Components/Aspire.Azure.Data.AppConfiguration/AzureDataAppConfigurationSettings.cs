@@ -48,6 +48,15 @@ public sealed class AzureDataAppConfigurationSettings : IConnectionStringSetting
     /// </value>
     public bool DisableTracing { get; set; }
 
+    /// <summary>
+    /// Indicates whether to connect to the Azure App Configuration service without authentication.
+    /// </summary>
+    /// <remarks>
+    /// This is only supported when using the Azure App Configuration emulator with anonymous authentication enabled.
+    /// It will not be used for the real Azure App Configuration service.
+    /// </remarks>
+    internal bool AnonymousAccess { get; set; }
+
     void IConnectionStringSettings.ParseConnectionString(string? connectionString)
     {
         if (!string.IsNullOrEmpty(connectionString))
@@ -58,7 +67,25 @@ public sealed class AzureDataAppConfigurationSettings : IConnectionStringSetting
             }
             else
             {
-                ConnectionString = connectionString;
+                try
+                {
+                    var connectionBuilder = new StableConnectionStringBuilder(connectionString);
+
+                    if (connectionBuilder.TryGetValue("Anonymous", out string enabled))
+                    {
+                        AnonymousAccess = Boolean.Parse(enabled);
+
+                        connectionBuilder.Remove("Anonymous");
+                    }
+
+                    ConnectionString = connectionBuilder.ConnectionString;
+                }
+                catch (ArgumentException)
+                {
+                    // If the connection string cannot be parsed as a key-value connection string,
+                    // treat it as a plain connection string
+                    ConnectionString = connectionString;
+                }
             }
         }
     }
