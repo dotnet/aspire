@@ -75,8 +75,8 @@ public class YarpCluster
 
         // NOTE: This should likely fallback to other endpoints with HTTP or HTTPS schemes in cases where they don't
         //       have the default names.
-        var httpsEndpoint = resource.GetEndpoint("https");
-        var httpEndpoint = resource.GetEndpoint("http");
+        var httpsEndpoint = resource.GetEndpoint("https", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
+        var httpEndpoint = resource.GetEndpoint("http", KnownNetworkIdentifiers.DefaultAspireContainerNetwork);
 
         var scheme = (httpsEndpoint.Exists, httpEndpoint.Exists) switch
         {

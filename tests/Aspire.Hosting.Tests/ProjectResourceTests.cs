@@ -596,7 +596,7 @@ public class ProjectResourceTests
              {
                  context.Args.Add("arg1");
                  context.Args.Add(c1.GetEndpoint("ep"));
-                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep"));
+                 context.Args.Add(((IResourceWithEndpoints)context.Resource).GetEndpoint("ep", null));
              });
 
         using var app = appBuilder.Build();
@@ -642,8 +642,8 @@ public class ProjectResourceTests
 
         var config = await EnvironmentVariableEvaluator.GetEnvironmentVariablesAsync(resource, DistributedApplicationOperation.Run, TestServiceProvider.Instance).DefaultTimeout();
 
-        var http = resource.GetEndpoint("http");
-        var https = resource.GetEndpoint("https");
+        var http = resource.GetEndpoint("http", null);
+        var https = resource.GetEndpoint("https", null);
 
         if (isProxied)
         {

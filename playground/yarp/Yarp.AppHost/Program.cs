@@ -25,6 +25,8 @@ var staticGateway = builder.AddYarp("static-gateway")
                                    .WithTransformPathRemovePrefix("/api");
                            });
 
+frontendService.WithReference(gateway);
+
 #if !SKIP_DASHBOARD_REFERENCE
 // This project is only added in playground projects to support development/debugging
 // of the dashboard. It is not required in end developer code. Comment out this code

@@ -21,7 +21,7 @@ public class PostgresServerResource : ContainerResource, IResourceWithConnection
     {
         ArgumentNullException.ThrowIfNull(password);
 
-        PrimaryEndpoint = new(this, PrimaryEndpointName);
+        PrimaryEndpoint = new(this, PrimaryEndpointName, KnownNetworkIdentifiers.LocalhostNetwork);
         UserNameParameter = userName;
         PasswordParameter = password;
     }
