@@ -144,7 +144,9 @@ internal static class MauiPlatformHelper
             // DCP would normally set this to the resource name, so we do the same
             if (context.EnvironmentVariables.TryGetValue("OTEL_SERVICE_NAME", out var serviceName))
             {
-                if (serviceName is string serviceNameStr && serviceNameStr.Contains("{{", StringComparison.Ordinal))
+                if (serviceName is string serviceNameStr && 
+                    serviceNameStr.Contains("{{", StringComparison.Ordinal) && 
+                    serviceNameStr.Contains("}}", StringComparison.Ordinal))
                 {
                     context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
                 }
@@ -154,7 +156,9 @@ internal static class MauiPlatformHelper
             // DCP would normally set this to a generated suffix, so we use a GUID
             if (context.EnvironmentVariables.TryGetValue("OTEL_RESOURCE_ATTRIBUTES", out var resourceAttrs))
             {
-                if (resourceAttrs is string resourceAttrsStr && resourceAttrsStr.Contains("{{", StringComparison.Ordinal))
+                if (resourceAttrs is string resourceAttrsStr && 
+                    resourceAttrsStr.Contains("{{", StringComparison.Ordinal) && 
+                    resourceAttrsStr.Contains("}}", StringComparison.Ordinal))
                 {
                     context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = $"service.instance.id={instanceId}";
                 }
