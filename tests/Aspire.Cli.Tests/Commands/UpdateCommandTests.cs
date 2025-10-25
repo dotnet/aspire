@@ -68,6 +68,84 @@ public class UpdateCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(0, exitCode);
     }
+
+    [Fact]
+    public void CleanupOldBackupFiles_DeletesFilesMatchingPattern()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var targetExePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe");
+        var oldBackup1 = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe.old.1234567890");
+        var oldBackup2 = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe.old.9876543210");
+        var otherFile = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe.something");
+
+        // Create test files
+        File.WriteAllText(oldBackup1, "test");
+        File.WriteAllText(oldBackup2, "test");
+        File.WriteAllText(otherFile, "test");
+
+        var updateCommand = CreateUpdateCommand(workspace);
+
+        // Act
+        updateCommand.CleanupOldBackupFiles(targetExePath);
+
+        // Assert
+        Assert.False(File.Exists(oldBackup1), "Old backup file should be deleted");
+        Assert.False(File.Exists(oldBackup2), "Old backup file should be deleted");
+        Assert.True(File.Exists(otherFile), "Other files should not be deleted");
+    }
+
+    [Fact]
+    public void CleanupOldBackupFiles_HandlesInUseFilesGracefully()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var targetExePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe");
+        var oldBackup = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe.old.1234567890");
+
+        // Create and lock the backup file
+        File.WriteAllText(oldBackup, "test");
+        using var fileStream = new FileStream(oldBackup, FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var updateCommand = CreateUpdateCommand(workspace);
+
+        // Act & Assert - should not throw exception
+        updateCommand.CleanupOldBackupFiles(targetExePath);
+
+        // File should still exist because it was locked
+        Assert.True(File.Exists(oldBackup), "Locked file should still exist");
+    }
+
+    [Fact]
+    public void CleanupOldBackupFiles_HandlesNonExistentDirectory()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var nonExistentPath = Path.Combine("C:", "NonExistent", "aspire.exe");
+        var updateCommand = CreateUpdateCommand(workspace);
+
+        // Act & Assert - should not throw exception
+        updateCommand.CleanupOldBackupFiles(nonExistentPath);
+    }
+
+    [Fact]
+    public void CleanupOldBackupFiles_HandlesEmptyDirectory()
+    {
+        // Arrange
+        using var workspace = TemporaryWorkspace.Create(outputHelper);
+        var targetExePath = Path.Combine(workspace.WorkspaceRoot.FullName, "aspire.exe");
+        var updateCommand = CreateUpdateCommand(workspace);
+
+        // Act & Assert - should not throw exception
+        updateCommand.CleanupOldBackupFiles(targetExePath);
+    }
+
+    private UpdateCommand CreateUpdateCommand(TemporaryWorkspace workspace)
+    {
+        var services = CliTestHelper.CreateServiceCollection(workspace, outputHelper);
+        var provider = services.BuildServiceProvider();
+        return provider.GetRequiredService<UpdateCommand>();
+    }
 }
 
 // Test implementation of IProjectUpdater
