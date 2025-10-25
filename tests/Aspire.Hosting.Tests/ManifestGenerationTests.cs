@@ -1,13 +1,12 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable CS0618 // Type or member is obsolete
 #pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json;
 using Aspire.Components.Common.TestUtilities;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Postgres;
-using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Redis;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Utils;
@@ -283,7 +282,7 @@ public class ManifestGenerationTests
         var manifestStore = new JsonDocumentManifestStore();
 
         program.AppBuilder.Services.AddSingleton(manifestStore);
-        program.AppBuilder.Services.Configure<PublishingOptions>(options =>
+        program.AppBuilder.Services.Configure<PipelineOptions>(options =>
         {
             // set the output path so the paths are relative to the AppHostDirectory
             options.OutputPath = program.AppBuilder.AppHostDirectory;
