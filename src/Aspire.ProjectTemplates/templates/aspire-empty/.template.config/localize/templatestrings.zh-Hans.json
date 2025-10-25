@@ -20,6 +20,8 @@
   "symbols/appHostResourceHttpsPort/description": "该端口号将用于 AppHost 项目的 launchSettings.json 中的资源服务 HTTPS 终结点。",
   "symbols/skipRestore/description": "如果指定，则在创建时跳过项目的自动还原。",
   "symbols/NoHttps/description": "是否禁用 HTTPS。",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later.",
   "postActions/set-startup-project/description": "在解决方案中设置启动项目",
   "postActions/restore/description": "还原此项目所需的 NuGet 包。",
   "postActions/restore/manualInstructions/default/text": "运行 \"dotnet restore\""

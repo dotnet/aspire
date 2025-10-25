@@ -11,19 +11,7 @@
   ],
   "symbolInfo": [
     {
-      "id": "AspireVersionCli",
-      "isVisible": false
-    },
-    {
       "id": "AspireVersion",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet9",
-      "isVisible": true
-    },
-    {
-      "id": "AspireVersionNet10",
       "isVisible": true
     },
     {
@@ -41,6 +29,12 @@
       "id": "TestFx",
       "isVisible": true,
       "persistenceScope": "templateGroup"
+    },
+    {
+      "id": "LocalhostTld",
+      "isVisible": true,
+      "persistenceScope": "shared",
+      "persistenceScopeName": "Aspire"
     }
   ]
 }

@@ -4,18 +4,9 @@
       "Framework": {
         "longName": "framework"
       },
-      "AspireVersionCli": {
+      "AspireVersion": {
         "shortName": "",
         "longName": "aspire-version"
-      },
-      "AspireVersion": {
-        "isHidden": true
-      },
-      "AspireVersionNet9": {
-        "isHidden": true
-      },
-      "AspireVersionNet10": {
-        "isHidden": true
       },
       "skipRestore": {
         "longName": "no-restore",
@@ -41,6 +32,10 @@
       },
       "NoHttps": {
         "longName": "no-https",
+        "shortName": ""
+      },
+      "LocalhostTld": {
+        "longName": "localhost-tld",
         "shortName": ""
       }
     },

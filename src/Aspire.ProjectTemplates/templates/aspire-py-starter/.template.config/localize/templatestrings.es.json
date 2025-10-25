@@ -10,5 +10,7 @@
   "symbols/appHostHttpsPort/description": "Número de puerto que se va a usar para el punto de conexión HTTPS en launchSettings.json del proyecto AppHost. Esta opción solo es aplicable cuando no se usa el parámetro no-https.",
   "symbols/appHostOtlpHttpsPort/description": "Número de puerto que se va a usar para el punto de conexión HTTPS de OTLP en launchSettings.json del proyecto AppHost.",
   "symbols/appHostResourceHttpsPort/description": "Número de puerto a usar para el punto de conexión HTTPS del servicio de recursos en launchSettings.json del proyecto AppHost.",
-  "symbols/NoHttps/description": "Si se va a desactivar HTTPS."
+  "symbols/NoHttps/description": "Si se va a desactivar HTTPS.",
+  "symbols/LocalhostTld/displayName": "Use the .dev.localhost TLD in the application URL",
+  "symbols/LocalhostTld/description": "Whether to combine the project name with the .dev.localhost TLD in the application URL for local development, e.g. https://myapp.dev.localhost:12345. Supported on .NET 10 and later."
 }

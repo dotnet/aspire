@@ -8,11 +8,6 @@
         "shortName": "",
         "longName": "aspire-version"
       },
-      "XUnitVersion": {
-        "shortName": "",
-        "longName": "xunit-version",
-        "defaultValue": "v2"
-      },
       "appHostHttpPort": {
         "isHidden": true
       },
@@ -31,37 +26,14 @@
       "appHostResourceHttpsPort": {
         "isHidden": true
       },
-      "webHttpPort": {
-        "isHidden": true
-      },
-      "webHttpsPort": {
-        "isHidden": true
-      },
-      "apiServiceHttpPort": {
-        "isHidden": true
-      },
-      "apiServiceHttpsPort": {
-        "isHidden": true
-      },
       "NoHttps": {
         "longName": "no-https",
         "shortName": ""
-      },
-      "UseRedisCache": {
-        "longName": "use-redis-cache",
-        "shortName": ""
-      },
-      "TestFx": {
-        "longName": "test-framework",
-        "shortName": "t"
       },
       "LocalhostTld": {
         "longName": "localhost-tld",
         "shortName": ""
       }
     },
-    "usageExamples": [
-      "--use-redis-cache",
-      "--test-framework MSTest"
-    ]
+    "usageExamples": [ ]
   }
