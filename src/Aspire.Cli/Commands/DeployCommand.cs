@@ -84,5 +84,9 @@ internal sealed class DeployCommand : PipelineCommandBase
 
     protected override string GetCanceledMessage() => DeployCommandStrings.DeploymentCanceled;
 
-    protected override string GetProgressMessage() => PublishCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult)
+    {
+        var step = parseResult.GetValue(_stepOption);
+        return $"Executing step \"{step ?? "deploy"}\"";
+    }
 }
