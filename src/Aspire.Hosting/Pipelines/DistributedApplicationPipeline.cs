@@ -3,6 +3,7 @@
 
 #pragma warning disable ASPIREPUBLISHERS001
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREINTERACTION001
 
 using System.Diagnostics;
 using System.Globalization;
@@ -33,6 +34,15 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         {
             Name = WellKnownPipelineSteps.Publish,
             Action = _ => Task.CompletedTask
+        });
+        _steps.Add(new PipelineStep
+        {
+            Name = WellKnownPipelineSteps.ParameterPrompt,
+            Action = async context =>
+            {
+                var parameterProcessor = context.Services.GetRequiredService<ParameterProcessor>();
+                await parameterProcessor.InitializeParametersAsync(context.Model, waitForResolution: true, context.CancellationToken).ConfigureAwait(false);
+            }
         });
     }
 
