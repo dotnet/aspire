@@ -4,7 +4,7 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting orleans messaging eventing</PackageTags>
-    <Description>Orleans support for .NET Aspire.</Description>
+    <Description>Orleans support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

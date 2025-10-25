@@ -10,7 +10,7 @@ Registers [MySqlDataSource](https://mysqlconnector.net/api/mysqlconnector/mysqld
 
 ### Install the package
 
-Install the .NET Aspire MySQL library with [NuGet](https://www.nuget.org):
+Install the Aspire MySQL library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.MySqlConnector
@@ -37,7 +37,7 @@ public ProductsController(MySqlConnection connection)
 
 ## Configuration
 
-The .NET Aspire MySQL component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire MySQL component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://mysqlconnector.net/connection-o
 
 ### Use configuration providers
 
-The .NET Aspire MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MySqlConnectorSettings` from configuration by using the `Aspire:MySqlConnector` key. Example `appsettings.json` that configures some of the options:
+The Aspire MySQL component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MySqlConnectorSettings` from configuration by using the `Aspire:MySqlConnector` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

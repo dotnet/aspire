@@ -1,11 +1,11 @@
 import contextlib
 import datetime
+//#if UseRedisCache
 import json
+//#endif
 import logging
 import os
 import random
-import telemetry
-from typing import TYPE_CHECKING, Any
 
 import fastapi
 import fastapi.responses
@@ -15,21 +15,25 @@ import opentelemetry.instrumentation.fastapi as otel_fastapi
 import opentelemetry.instrumentation.redis as otel_redis
 import redis
 //#endif
+import telemetry
+
 
 @contextlib.asynccontextmanager
-async def lifespan(app: fastapi.FastAPI):
+async def lifespan(app):
     telemetry.configure_opentelemetry()
     yield
+
 
 app = fastapi.FastAPI(lifespan=lifespan)
 otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 
 //#if UseRedisCache
-# Initialize Redis client
-redis_client: redis.Redis | None = None
+# Create a global to store the Redis client.
+redis_client = None
 otel_redis.RedisInstrumentor().instrument()
 
-def get_redis_client() -> redis.Redis | None:
+
+def get_redis_client():
     """Get the Redis client instance."""
     global redis_client
     if redis_client is None:
@@ -51,12 +55,13 @@ def get_redis_client() -> redis.Redis | None:
     return redis_client
 
 //#endif
+
 logger = logging.getLogger(__name__)
 
 
-@app.get("/api/weatherforecast", response_model=list[dict[str, Any]])
+@app.get("/api/weatherforecast")
 //#if UseRedisCache
-async def weather_forecast(redis_client = fastapi.Depends(get_redis_client)):
+async def weather_forecast(redis_client=fastapi.Depends(get_redis_client)):
     """Weather forecast endpoint."""
     cache_key = "weatherforecast"
     cache_ttl = 5  # 5 seconds cache duration
@@ -115,7 +120,7 @@ async def weather_forecast():
 
 @app.get("/health", response_class=fastapi.responses.PlainTextResponse)
 //#if UseRedisCache
-async def health_check(redis_client = fastapi.Depends(get_redis_client)):
+async def health_check(redis_client=fastapi.Depends(get_redis_client)):
     """Health check endpoint."""
     if redis_client:
         redis_client.ping()
@@ -128,4 +133,8 @@ async def health_check():
 
 # Serve static files directly from root, if the "static" directory exists
 if os.path.exists("static"):
-    app.mount("/", fastapi.staticfiles.StaticFiles(directory="static", html=True), name="static")
+    app.mount(
+        "/",
+        fastapi.staticfiles.StaticFiles(directory="static", html=True),
+        name="static"
+    )

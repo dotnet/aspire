@@ -4,7 +4,7 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting github models ai</PackageTags>
-    <Description>GitHub Models resource types for .NET Aspire.</Description>
+    <Description>GitHub Models resource types for Aspire.</Description>
     <PackageIconFullPath>$(SharedDir)GitHub_256x.png</PackageIconFullPath>
     <SuppressFinalPackageVersion>true</SuppressFinalPackageVersion>
   </PropertyGroup>

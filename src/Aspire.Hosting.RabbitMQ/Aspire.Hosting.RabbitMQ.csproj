@@ -4,7 +4,7 @@
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>true</IsPackable>
     <PackageTags>aspire integration hosting rabbitmq messaging eventing</PackageTags>
-    <Description>RabbitMQ support for .NET Aspire.</Description>
+    <Description>RabbitMQ support for Aspire.</Description>
   </PropertyGroup>
 
   <ItemGroup>

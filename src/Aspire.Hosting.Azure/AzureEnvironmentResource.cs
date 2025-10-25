@@ -553,6 +553,20 @@ public sealed class AzureEnvironmentResource : Resource
             }
         }
 
+        // Check if the compute environment is an App Service Environment
+        // if yes, we return the web app endpoint using the webSiteSuffix output (unique string derived from resource group name)
+        if (azureComputeEnv is AzureProvisioningResource appsvcProvisioningResource &&
+            appsvcProvisioningResource.Outputs.TryGetValue("webSiteSuffix", out var webSiteSuffix))
+        {
+            var hostName = $"{computeResource.Name.ToLowerInvariant()}-{webSiteSuffix}";
+            if (hostName.Length > 60)
+            {
+                hostName = hostName.Substring(0, 60);
+            }
+            var endpoint = $"https://{hostName}.azurewebsites.net";
+            return $" to [{endpoint}]({endpoint})";
+        }
+
         return string.Empty;
     }
 
