@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Files Resource Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #007acc;
+            padding-bottom: 10px;
+        }
+        .highlight {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ Aspire Files Resource Demo</h1>
+        
+        <p>This is a simple HTML file that demonstrates the new <strong>Files resource</strong> in Aspire.Hosting.</p>
+        
+        <div class="highlight">
+            <h3>📁 What is the Files Resource?</h3>
+            <p>The Files resource is a lightweight primitive for representing and managing collections of files in Aspire applications. It's useful for:</p>
+            <ul>
+                <li>Configuration files</li>
+                <li>Static content and assets</li>
+                <li>Templates</li>
+                <li>Documentation</li>
+                <li>Any file-based resources your application needs</li>
+            </ul>
+        </div>
+
+        <div class="highlight">
+            <h3>🛠️ How to Use</h3>
+            <p>In your AppHost, you can add files resources like this:</p>
+            <code>builder.AddFiles("static-content").WithSource("content");</code>
+        </div>
+
+        <p><em>This file is located in the <code>content/</code> directory and is referenced by the Files resource in the playground application.</em></p>
+    </div>
+</body>
+</html>
