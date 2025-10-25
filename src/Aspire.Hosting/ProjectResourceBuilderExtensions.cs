@@ -429,7 +429,7 @@ public static class ProjectResourceBuilderExtensions
             builder.WithCertificateTrustScope(CertificateTrustScope.None);
         }
 
-        builder.WithCertificateTrustConfigurationCallback(ctx =>
+        builder.WithCertificateTrustConfiguration(ctx =>
         {
             if (ctx.Scope != CertificateTrustScope.None && OperatingSystem.IsWindows())
             {

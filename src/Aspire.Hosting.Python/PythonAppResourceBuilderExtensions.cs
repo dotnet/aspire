@@ -330,7 +330,7 @@ public static class PythonAppResourceBuilderExtensions
         // way to simply append additional certificates to default Python trust stores such as certifi.
         resourceBuilder
             .WithCertificateTrustScope(CertificateTrustScope.System)
-            .WithCertificateTrustConfigurationCallback(ctx =>
+            .WithCertificateTrustConfiguration(ctx =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {

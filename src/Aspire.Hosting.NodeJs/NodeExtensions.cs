@@ -83,7 +83,7 @@ public static class NodeAppHostingExtension
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : NodeAppResource =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
-            .WithCertificateTrustConfigurationCallback((ctx) =>
+            .WithCertificateTrustConfiguration((ctx) =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
@@ -317,7 +317,7 @@ public static class NodeAppHostingExtension
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
-                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) || 
+                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) ||
                     trimmedLine.StartsWith("node ", StringComparison.Ordinal))
                 {
                     var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);

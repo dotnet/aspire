@@ -2224,7 +2224,7 @@ public static class ResourceBuilderExtensions
     /// <summary>
     /// Indicates whether developer certificates should be treated as trusted certificate authorities for the resource at run time.
     /// Currently this indicates trust for the ASP.NET Core developer certificate. The developer certificate will only be trusted
-    /// when running in local development scenarios; in publish mode resources will use their default certificate trust
+    /// when running in local development scenarios; in publish mode resources will use their default certificate trust.
     /// </summary>
     /// <typeparam name="TResource">The type of the resource.</typeparam>
     /// <param name="builder">The resource builder.</param>
@@ -2344,7 +2344,7 @@ public static class ResourceBuilderExtensions
     /// </code>
     /// </example>
     /// </remarks>
-    public static IResourceBuilder<TResource> WithCertificateTrustConfigurationCallback<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
+    public static IResourceBuilder<TResource> WithCertificateTrustConfiguration<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithArgs, IResourceWithEnvironment
     {
         ArgumentNullException.ThrowIfNull(builder);

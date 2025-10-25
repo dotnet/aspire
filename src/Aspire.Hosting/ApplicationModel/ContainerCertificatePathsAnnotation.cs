@@ -41,7 +41,7 @@ public sealed class ContainerCertificatePathsAnnotation : IResourceAnnotation
         "/etc/pki/tls/certs");
 
     /// <summary>
-    /// Paths to default certificate bundle files on the host that should be replaced when the resource's
+    /// Paths to default certificate bundle files in the container that should be replaced when the resource's
     /// <see cref="CertificateTrustScope"/> is set to <see cref="CertificateTrustScope.Override"/> or
     /// <see cref="CertificateTrustScope.System"/>.
     /// If not set, a set of common default paths for popular Linux distributions will be used.
@@ -49,7 +49,7 @@ public sealed class ContainerCertificatePathsAnnotation : IResourceAnnotation
     public List<string>? DefaultCertificateBundles { get; init; }
 
     /// <summary>
-    /// Paths to default directories containing individual CA certificates on the host that should be appended
+    /// Paths to default directories containing individual CA certificates in the container that should be appended
     /// when the resource's <see cref="CertificateTrustScope"/> is set to <see cref="CertificateTrustScope.Append"/>.
     /// If not set, a set of common default paths for popular Linux distributions will be used.
     /// </summary>

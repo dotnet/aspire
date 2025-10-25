@@ -375,16 +375,16 @@ public static class ResourceExtensions
     /// <param name="resource">The resource for which to process the certificate trust configuration.</param>
     /// <param name="executionContext">The execution context used during the processing.</param>
     /// <param name="logger">The logger used for logging information during the processing.</param>
-    /// <param name="bundlePath">A <see cref="OpaqueValueProvider"/> representing the path to a custom certificate bundle for the resource.</param>
-    /// <param name="certificatesDirectoryPath">A <see cref="OpaqueValueProvider"/> representing the path to a directory containing the custom certificates for the resource.</param>
+    /// <param name="bundlePath">A ReferenceExpression representing the path to a custom certificate bundle for the resource.</param>
+    /// <param name="certificatesDirectoryPath">A ReferenceExpression representing the path to a directory containing the custom certificates for the resource.</param>
     /// <param name="cancellationToken">A cancellation token to observe while processing.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     public static async ValueTask<(CertificateTrustScope, X509Certificate2Collection?)> ProcessCertificateTrustConfigAsync(
         this IResource resource,
         DistributedApplicationExecutionContext executionContext,
         ILogger logger,
-        OpaqueValueProvider bundlePath,
-        OpaqueValueProvider certificatesDirectoryPath,
+        ReferenceExpression bundlePath,
+        ReferenceExpression certificatesDirectoryPath,
         CancellationToken cancellationToken = default)
     {
         var developerCertificateService = executionContext.ServiceProvider.GetRequiredService<IDeveloperCertificateService>();
@@ -467,7 +467,7 @@ public static class ResourceExtensions
 
         if (scope == CertificateTrustScope.System)
         {
-            logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}' Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
+            logger.LogInformation("Resource '{ResourceName}' has a certificate trust scope of '{Scope}'. Automatically including system root certificates in the trusted configuration.", resource.Name, Enum.GetName(scope));
         }
 
         if (context.Arguments.Any())

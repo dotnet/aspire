@@ -2048,18 +2048,21 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         IResource modelResource,
         CancellationToken cancellationToken)
     {
-        var bundlePath = new OpaqueValueProvider();
-        var certificateDirectoriesPath = new OpaqueValueProvider();
+        var certificatesRootDir = Path.Join(_locations.DcpSessionDir, modelResource.Name);
+        var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
+        var certificatesOutputPath = Path.Join(certificatesRootDir, "certs");
+
         (_, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             resourceLogger,
-            bundlePath,
-            certificateDirectoriesPath,
+            ReferenceExpression.Create($"{bundleOutputPath}"),
+            // TODO: Support certificate directories for executables
+            ReferenceExpression.Create($"{certificatesOutputPath}"),
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
         {
-            var certificatesRootDir = Path.Join(_locations.DcpSessionDir, modelResource.Name);
+            Directory.CreateDirectory(certificatesOutputPath);
 
             // First build a CA bundle (concatenation of all certs in PEM format)
             var caBundleBuilder = new StringBuilder();
@@ -2067,14 +2070,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
             {
                 caBundleBuilder.Append(cert.ExportCertificatePem());
                 caBundleBuilder.Append('\n');
+
+                // TODO: Add support in DCP to generate OpenSSL compatible symlinks for executable resources
+                File.WriteAllText(Path.Join(certificatesOutputPath, cert.Thumbprint + ".pem"), cert.ExportCertificatePem());
             }
 
-            Directory.CreateDirectory(certificatesRootDir);
-
-            var bundleOutputPath = Path.Join(certificatesRootDir, "cert.pem");
             File.WriteAllText(bundleOutputPath, caBundleBuilder.ToString());
-            // Set the actual path to the bundle
-            bundlePath.SetValue(bundleOutputPath);
         }
     }
 
@@ -2090,31 +2091,27 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
         IResource modelResource,
         CancellationToken cancellationToken)
     {
-        var bundlePathParam = new OpaqueValueProvider();
-        var certificateDirectoriesPathParam = new OpaqueValueProvider();
+        var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
+        var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
+        var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();
+
+        if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
+        {
+            certificatesDestination ??= pathsAnnotation.CustomCertificatesDestination;
+            bundlePaths ??= pathsAnnotation.DefaultCertificateBundles;
+            certificateDirsPaths ??= pathsAnnotation.DefaultCertificateDirectories;
+        }
+
+        var pathsProvider = new CertificateTrustConfigurationPathsProvider();
         (var scope, var certificates) = await modelResource.ProcessCertificateTrustConfigAsync(
             _executionContext,
             resourceLogger,
-            bundlePathParam,
-            certificateDirectoriesPathParam,
+            ReferenceExpression.Create($"{certificatesDestination}/cert.pem"),
+            ReferenceExpression.Create($"{string.Join(':', certificateDirsPaths!.Concat([certificatesDestination + "/certs"]))}"),
             cancellationToken).ConfigureAwait(false);
 
         if (certificates?.Any() == true)
         {
-            var certificatesDestination = ContainerCertificatePathsAnnotation.DefaultCustomCertificatesDestination;
-            var bundlePaths = ContainerCertificatePathsAnnotation.DefaultCertificateBundlePaths.ToList();
-            var certificateDirsPaths = ContainerCertificatePathsAnnotation.DefaultCertificateDirectoriesPaths.ToList();
-
-            if (modelResource.TryGetLastAnnotation<ContainerCertificatePathsAnnotation>(out var pathsAnnotation))
-            {
-                certificatesDestination ??= pathsAnnotation.CustomCertificatesDestination;
-                bundlePaths ??= pathsAnnotation.DefaultCertificateBundles;
-                certificateDirsPaths ??= pathsAnnotation.DefaultCertificateDirectories;
-            }
-
-            bundlePathParam.SetValue(certificatesDestination + "/cert.pem");
-            certificateDirectoriesPathParam.SetValue(string.Join(':', certificateDirsPaths!.Concat([certificatesDestination + "/certs"])));
-
             // First build a CA bundle (concatenation of all certs in PEM format)
             var caBundleBuilder = new StringBuilder();
             var certificateFiles = new List<ContainerFileSystemEntry>();
@@ -2131,11 +2128,12 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                 });
             }
 
-            var createFiles = new List<ContainerCreateFileSystem>();
-            createFiles.Add(new ContainerCreateFileSystem
+            var createFiles = new List<ContainerCreateFileSystem>
             {
-                Destination = certificatesDestination,
-                Entries = [
+                new ContainerCreateFileSystem
+                {
+                    Destination = certificatesDestination,
+                    Entries = [
                     new ContainerFileSystemEntry
                     {
                         Name = "cert.pem",
@@ -2148,7 +2146,8 @@ internal sealed partial class DcpExecutor : IDcpExecutor, IConsoleLogsService, I
                         Entries = certificateFiles.ToList(),
                     }
                 ],
-            });
+                }
+            };
 
             if (scope != CertificateTrustScope.Append)
             {
