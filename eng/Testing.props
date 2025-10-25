@@ -2,6 +2,12 @@
   <PropertyGroup>
     <IncludeTestUtilities>true</IncludeTestUtilities>
 
+    <!-- Default timeout values for split tests -->
+    <TestSessionTimeout Condition="'$(TestSessionTimeout)' == ''">20m</TestSessionTimeout>
+    <TestHangTimeout Condition="'$(TestHangTimeout)' == ''">10m</TestHangTimeout>
+    <UncollectedTestsSessionTimeout Condition="'$(UncollectedTestsSessionTimeout)' == ''">15m</UncollectedTestsSessionTimeout>
+    <UncollectedTestsHangTimeout Condition="'$(UncollectedTestsHangTimeout)' == ''">10m</UncollectedTestsHangTimeout>
+
     <!-- By default any test can run on all test platforms -->
     <RunOnGithubActionsWindows>true</RunOnGithubActionsWindows>
     <RunOnGithubActionsLinux>true</RunOnGithubActionsLinux>

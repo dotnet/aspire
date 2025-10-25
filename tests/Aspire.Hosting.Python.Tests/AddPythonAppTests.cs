@@ -1,4 +1,4 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable CS0612
@@ -476,6 +476,7 @@ public class AddPythonAppTests(ITestOutputHelper outputHelper)
     }
 
     [Fact]
+    [QuarantinedTest("https://foo.com/issue/123")]
     public async Task WithVirtualEnvironment_CanBeChainedWithOtherExtensions()
     {
         using var builder = TestDistributedApplicationBuilder.Create().WithTestAndResourceLogging(outputHelper);

@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Aspire.Hosting.Tests.Publishing;
 
+[Trait("Partition", "Partition1")]
 public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
 {
     [Fact]
@@ -803,15 +804,15 @@ public class ResourceContainerImageBuilderTests(ITestOutputHelper output)
         // Test decimal value
         var result = await ResourceContainerImageBuilder.ResolveValue(3.14, CancellationToken.None);
         Assert.Equal("3.14", result);
-        
+
         // Test double value
         result = await ResourceContainerImageBuilder.ResolveValue(3.14d, CancellationToken.None);
         Assert.Equal("3.14", result);
-        
+
         // Test float value
         result = await ResourceContainerImageBuilder.ResolveValue(3.14f, CancellationToken.None);
         Assert.Equal("3.14", result);
-        
+
         // Test integer (should also work)
         result = await ResourceContainerImageBuilder.ResolveValue(42, CancellationToken.None);
         Assert.Equal("42", result);

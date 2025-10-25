@@ -105,4 +105,71 @@
     </Exec>
     <Message Importance="high" Text="Combined runsheet created%0D%0A%0D%0A$(ScriptOutput)" />
   </Target>
+
+  <!--
+    Test Enumeration Target
+
+    This target is the orchestrator for test enumeration in CI/CD. It runs after all test projects
+    have been built and individual .testenumeration.json files have been created.
+
+    Complete workflow:
+    1. Build Phase (TestEnumerationRunsheetBuilder.targets):
+       - Each test project is built and analyzed
+       - Generates .testenumeration.json with metadata:
+         * Project name, path, and short name
+         * BuildOs compatibility
+         * Whether to run on GitHub Actions
+         * Whether tests should be split into partitions
+         * Location of test metadata files (for split tests)
+
+    2. Aggregation Phase (this target):
+       - Calls build-test-matrix.ps1 to:
+         * Find all .testenumeration.json files in ArtifactsTmpDir
+         * Filter by BuildOs
+         * Process both regular and split test projects
+         * Generate combined test matrix JSON in a single pass
+
+    3. Output:
+       - TestMatrixOutputPath: Combined JSON matrix with all test entries
+         * Regular tests: one entry per project
+         * Split tests: multiple entries (one per partition/class)
+       - TestsListOutputPath: Simple list of test project names (backward compatibility)
+
+    4. CI/CD Consumption (GitHub Actions):
+       - Workflow reads TestMatrixOutputPath JSON
+       - Creates parallel jobs for each matrix entry
+       - Each job runs specific test partition or full project
+
+    This replaces the manual invocation of GetTestProjects.proj and provides
+    automatic detection of split tests based on test project configuration.
+    -->
+  <Target Name="_GenerateTestEnumeration" BeforeTargets="Test" Condition=" '$(TestRunnerName)' == 'TestEnumerationRunsheetBuilder' and '$(MSBuildProjectName)' != '' and !$(MSBuildProjectName.EndsWith('.Tests')) ">
+    <!-- Ensure required parameters are set -->
+    <Error Condition="'$(TestsListOutputPath)' == '' and '$(TestMatrixOutputPath)' == ''"
+           Text="Either TestsListOutputPath or TestMatrixOutputPath must be specified when using TestEnumerationRunsheetBuilder" />
+
+    <PropertyGroup>
+      <!-- Set default values if not provided -->
+      <_TestsListOutputPath Condition="'$(TestsListOutputPath)' != ''">$([MSBuild]::NormalizePath('$(RepoRoot)', '$(TestsListOutputPath)'))</_TestsListOutputPath>
+      <_TestsListOutputPath Condition="'$(TestsListOutputPath)' == ''">$(ArtifactsDir)/TestsForGithubActions.list</_TestsListOutputPath>
+      <_TestMatrixOutputPath Condition="'$(TestMatrixOutputPath)' != ''">$([MSBuild]::NormalizePath('$(RepoRoot)', '$(TestMatrixOutputPath)'))</_TestMatrixOutputPath>
+      <_BuildMatrixScript>$([MSBuild]::NormalizePath($(RepoRoot), 'eng', 'scripts', 'build-test-matrix.ps1'))</_BuildMatrixScript>
+
+      <!-- Define helix directory (same as used in TestEnumerationRunsheetBuilder) -->
+      <_HelixDir>$([MSBuild]::NormalizeDirectory($(ArtifactsDir), 'helix'))</_HelixDir>
+
+      <!-- Determine current OS - but use "all" for combined matrix unless BuildOs is explicitly set -->
+      <_CurrentOS Condition="'$(BuildOs)' != ''">$(BuildOs)</_CurrentOS>
+      <_CurrentOS Condition="'$(BuildOs)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">all</_CurrentOS>
+      <_CurrentOS Condition="'$(BuildOs)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">all</_CurrentOS>
+      <_CurrentOS Condition="'$(BuildOs)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">all</_CurrentOS>
+    </PropertyGroup>
+
+    <!-- Call the consolidated PowerShell script to build the test matrix -->
+    <Exec Command="pwsh -File &quot;$(_BuildMatrixScript)&quot; -ArtifactsTmpDir &quot;$(ArtifactsTmpDir)&quot; -ArtifactsHelixDir &quot;$(_HelixDir)&quot; -OutputMatrixFile &quot;$(_TestMatrixOutputPath)&quot; -TestsListOutputFile &quot;$(_TestsListOutputPath)&quot; -CurrentOS &quot;$(_CurrentOS)&quot;"
+          ConsoleToMSBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="TestEnumerationOutput" />
+    </Exec>
+    <Message Importance="high" Text="Test matrix build completed%0D%0A%0D%0A$(TestEnumerationOutput)" />
+  </Target>
 </Project>
