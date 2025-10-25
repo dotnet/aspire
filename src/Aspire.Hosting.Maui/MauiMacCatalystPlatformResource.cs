@@ -6,20 +6,20 @@ using Aspire.Hosting.ApplicationModel;
 namespace Aspire.Hosting.Maui;
 
 /// <summary>
-/// Represents a Windows platform instance of a .NET MAUI project.
+/// Represents a Mac Catalyst platform instance of a .NET MAUI project.
 /// </summary>
 /// <param name="name">The name of the resource.</param>
 /// <param name="parent">The parent MAUI project resource.</param>
 /// <remarks>
-/// This resource represents a MAUI application running on the Windows platform.
+/// This resource represents a MAUI application running on the Mac Catalyst platform.
 /// The actual build and deployment happens when the resource is started, allowing for
 /// incremental builds during development without blocking AppHost startup.
 /// <para>
-/// Use <see cref="MauiWindowsExtensions.AddWindowsDevice(IResourceBuilder{MauiProjectResource})"/>
+/// Use <see cref="MauiMacCatalystExtensions.AddMacCatalystDevice(IResourceBuilder{MauiProjectResource}, string?)"/>
 /// to add this resource to a MAUI project.
 /// </para>
 /// </remarks>
-public class MauiWindowsPlatformResource(string name, MauiProjectResource parent)
+public class MauiMacCatalystPlatformResource(string name, MauiProjectResource parent)
     : ProjectResource(name), IResourceWithParent<MauiProjectResource>, IMauiPlatformResource
 {
     /// <summary>
