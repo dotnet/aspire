@@ -19,7 +19,7 @@
       ],
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Production",
-        "services__nuget__https__0": "https://api.nuget.org/",
+        "NUGET": "https://api.nuget.org/",
         "REVERSEPROXY__ROUTES__route0__MATCH__PATH": "/nuget/{**catchall}",
         "REVERSEPROXY__ROUTES__route0__CLUSTERID": "cluster_nuget",
         "REVERSEPROXY__ROUTES__route0__TRANSFORMS__0__PathRemovePrefix": "/nuget",
@@ -28,7 +28,9 @@
         "REVERSEPROXY__ROUTES__route1__TRANSFORMS__0__PathRemovePrefix": "/external-service",
         "REVERSEPROXY__CLUSTERS__cluster_nuget__DESTINATIONS__destination1__ADDRESS": "https://api.nuget.org/",
         "REVERSEPROXY__CLUSTERS__cluster_external-service__DESTINATIONS__destination1__ADDRESS": "{external-service-url.value}",
-        "services__external-service__default__0": "{external-service-url.value}"
+        "services__nuget__https__0": "https://api.nuget.org/",
+        "services__external-service__default__0": "{external-service-url.value}",
+        "EXTERNAL-SERVICE": "{external-service-url.value}"
       },
       "bindings": {
         "http": {
@@ -48,8 +50,10 @@
         "OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY": "in_memory",
         "ASPNETCORE_FORWARDEDHEADERS_ENABLED": "true",
         "HTTP_PORTS": "{frontend.bindings.http.targetPort}",
+        "NUGET": "https://api.nuget.org/",
         "services__nuget__https__0": "https://api.nuget.org/",
         "EXTERNAL_SERVICE_URL": "{external-service-url.value}",
+        "GATEWAY_HTTP": "{gateway.bindings.http.url}",
         "services__gateway__http__0": "{gateway.bindings.http.url}"
       },
       "bindings": {
