@@ -131,15 +131,13 @@ dotnet add package Aspire.Hosting.Azure.AppConfiguration
 Then, in the _Program.cs_ file of `AppHost`, add an App Configuration connection and consume the connection using the following methods:
 
 ```csharp
-var appConfig = builder.ExecutionContext.IsPublishMode
-    ? builder.AddAzureAppConfiguration("appconfig")
-    : builder.AddConnectionString("appconfig");
+var appConfig = builder.AddAzureAppConfiguration("appconfig");
 
 var myService = builder.AddProject<Projects.MyService>()
                        .WithReference(appConfig);
 ```
 
-The `AddAzureAppConfiguration` method will add an Azure App Configuration resource to the builder. Or `AddConnectionString` can be used to read the connection information from the AppHost's configuration (for example, from "user secrets") under the `ConnectionStrings:appconfig` config key. The `WithReference` method passes that connection information into a connection string named `appconfig` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
+The `AddAzureAppConfiguration` method will add an Azure App Configuration resource to the builder. The `WithReference` method passes that connection information into a connection string named `appconfig` in the `MyService` project. In the _Program.cs_ file of `MyService`, the connection can be consumed using:
 
 ```csharp
 builder.AddAzureAppConfigurationClient("appconfig");

@@ -26,7 +26,15 @@ app.MapGet("/message", (IConfiguration config) =>
 
 app.MapGet("/setmessage", async (string message, ConfigurationClient client) =>
 {
-    await client.SetConfigurationSettingAsync("Message", message);
+    try
+    {
+        await client.SetConfigurationSettingAsync("Message", message);
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message);
+    }
 });
 
 // Use Azure App Configuration middleware for dynamic configuration refresh.
