@@ -153,10 +153,42 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
 
         ValidateSteps(allSteps);
 
+        // Convert RequiredBy relationships to DependsOn relationships before filtering
+        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        NormalizeRequiredByToDependsOn(allSteps, allStepsByName);
+
         var (stepsToExecute, stepsByName) = FilterStepsForExecution(allSteps, context);
 
         // Build dependency graph and execute with readiness-based scheduler
         await ExecuteStepsAsTaskDag(stepsToExecute, stepsByName, context).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Converts all RequiredBy relationships to their equivalent DependsOn relationships.
+    /// If step A is required by step B, this adds step A as a dependency of step B.
+    /// </summary>
+    private static void NormalizeRequiredByToDependsOn(
+        List<PipelineStep> steps,
+        Dictionary<string, PipelineStep> stepsByName)
+    {
+        foreach (var step in steps)
+        {
+            foreach (var requiredByStep in step.RequiredBySteps)
+            {
+                if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
+                {
+                    throw new InvalidOperationException(
+                        $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
+                }
+
+                // Add the inverse relationship: if step A is required by step B,
+                // then step B depends on step A
+                if (!requiredByStepObj.DependsOnSteps.Contains(step.Name))
+                {
+                    requiredByStepObj.DependsOnSteps.Add(step.Name);
+                }
+            }
+        }
     }
 
     private static (List<PipelineStep> StepsToExecute, Dictionary<string, PipelineStep> StepsByName) FilterStepsForExecution(
@@ -179,67 +211,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
         }
 
+        // Compute transitive dependencies of the target step (includes the target step itself)
+        // Since RequiredBy relationships have been normalized to DependsOn,
+        // this automatically includes all steps that the target depends on
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-
-        // Also include all steps that are transitively required by the target step
-        var requiredBySteps = ComputeTransitiveRequiredBy(targetStep, allStepsByName);
-        foreach (var step in requiredBySteps)
-        {
-            if (!stepsToExecute.Contains(step))
-            {
-                stepsToExecute.Add(step);
-            }
-
-            // For each step that's required by the target step, also include its dependencies
-            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
-            foreach (var dependency in stepDependencies)
-            {
-                if (!stepsToExecute.Contains(dependency))
-                {
-                    stepsToExecute.Add(dependency);
-                }
-            }
-        }
-
-        // Add the target step if not already present
-        if (!stepsToExecute.Contains(targetStep))
-        {
-            stepsToExecute.Add(targetStep);
-        }
-
-        // Additional pass: Include steps required by ANY executing step
-        // This ensures that if any step in our execution plan is required by other steps,
-        // those other steps are also included
-        // This handles the case for secondary
-        // marker steps like ProvisionInfrastructure
-        var additionalRequiredBySteps = new List<PipelineStep>();
-        foreach (var executingStep in stepsToExecute.ToList())
-        {
-            var stepRequiredBySteps = ComputeTransitiveRequiredBy(executingStep, allStepsByName);
-            foreach (var requiredByStep in stepRequiredBySteps)
-            {
-                if (!stepsToExecute.Contains(requiredByStep))
-                {
-                    additionalRequiredBySteps.Add(requiredByStep);
-                }
-            }
-        }
-
-        // Add the additional required-by steps and their dependencies
-        foreach (var step in additionalRequiredBySteps)
-        {
-            stepsToExecute.Add(step);
-
-            // Include dependencies of the required-by steps
-            var stepDependencies = ComputeTransitiveDependencies(step, allStepsByName);
-            foreach (var dependency in stepDependencies)
-            {
-                if (!stepsToExecute.Contains(dependency))
-                {
-                    stepsToExecute.Add(dependency);
-                }
-            }
-        }
 
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
@@ -272,54 +247,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             result.Add(currentStep);
         }
 
-        foreach (var dependency in step.DependsOnSteps)
-        {
-            Visit(dependency);
-        }
-
-        return result;
-    }
-
-    private static List<PipelineStep> ComputeTransitiveRequiredBy(
-        PipelineStep step,
-        Dictionary<string, PipelineStep> stepsByName)
-    {
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        var result = new List<PipelineStep>();
-
-        void Visit(string stepName)
-        {
-            if (!visited.Add(stepName))
-            {
-                return;
-            }
-
-            if (!stepsByName.TryGetValue(stepName, out var currentStep))
-            {
-                return;
-            }
-
-            // First, find all steps that are required by the current step
-            // If currentStep is in another step's RequiredBySteps list, visit that step
-            foreach (var potentialStep in stepsByName.Values)
-            {
-                if (potentialStep.RequiredBySteps.Contains(currentStep.Name))
-                {
-                    Visit(potentialStep.Name);
-                }
-            }
-
-            result.Add(currentStep);
-        }
-
-        // Find all steps that are required by the target step
-        foreach (var potentialStep in stepsByName.Values)
-        {
-            if (potentialStep.RequiredBySteps.Contains(step.Name))
-            {
-                Visit(potentialStep.Name);
-            }
-        }
+        // Visit the target step itself (which will also visit all its dependencies)
+        Visit(step.Name);
 
         return result;
     }
@@ -629,19 +558,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
         List<PipelineStep> steps,
         Dictionary<string, PipelineStep> stepsByName)
     {
-        // Process all RequiredBy relationships and normalize to DependsOn
-        foreach (var step in steps)
-        {
-            foreach (var requiredByStep in step.RequiredBySteps)
-            {
-                if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
-                {
-                    continue;
-                }
-
-                requiredByStepObj.DependsOnSteps.Add(step.Name);
-            }
-        }
+        // Note: RequiredBy relationships have already been normalized to DependsOn
+        // in NormalizeRequiredByToDependsOn, so we don't need to process them here
 
         var visitStates = new Dictionary<string, VisitState>(steps.Count, StringComparer.Ordinal);
         foreach (var step in steps)
@@ -726,11 +644,6 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             if (step.DependsOnSteps.Count > 0)
             {
                 sb.Append(CultureInfo.InvariantCulture, $" [depends on: {string.Join(", ", step.DependsOnSteps)}]");
-            }
-
-            if (step.RequiredBySteps.Count > 0)
-            {
-                sb.Append(CultureInfo.InvariantCulture, $" [required by: {string.Join(", ", step.RequiredBySteps)}]");
             }
 
             sb.AppendLine();
