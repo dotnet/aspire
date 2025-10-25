@@ -79,6 +79,8 @@ namespace Aspire.Hosting.Testing
 
         DistributedApplicationExecutionContext ExecutionContext { get; }
 
+        Pipelines.IDistributedApplicationPipeline Pipeline { get; }
+
         ApplicationModel.IResourceCollection Resources { get; }
 
         Microsoft.Extensions.DependencyInjection.IServiceCollection Services { get; }
