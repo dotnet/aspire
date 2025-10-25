@@ -31,9 +31,8 @@ public class AzureAppServiceEnvironmentResource :
     public AzureAppServiceEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
         : base(name, configureInfrastructure)
     {
-        // Add pipeline step annotation to create per-resource push and deploy steps
-        // Build steps are now created by the resources themselves (ProjectResource and ContainerResource)
-        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
+        // Add pipeline step annotation to create steps and expand deployment target steps
+        Annotations.Add(new PipelineStepAnnotation(async (factoryContext) =>
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
@@ -62,6 +61,22 @@ public class AzureAppServiceEnvironmentResource :
             printDashboardUrlStep.DependsOn(AzureEnvironmentResource.DeployComputeMarkerStepName);
             printDashboardUrlStep.RequiredBy("deploy");
             steps.Add(printDashboardUrlStep);
+
+            // Expand deployment target steps for all compute resources
+            // This ensures the push/provision steps from deployment targets are included in the pipeline
+            foreach (var computeResource in computeResources)
+            {
+                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+                if (deploymentTarget != null && deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var annotations))
+                {
+                    // Resolve the deployment target's PipelineStepAnnotation and expand its steps
+                    foreach (var annotation in annotations)
+                    {
+                        var deploymentTargetSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
+                        steps.AddRange(deploymentTargetSteps);
+                    }
+                }
+            }
 
             return steps;
         }));
@@ -99,21 +114,12 @@ public class AzureAppServiceEnvironmentResource :
                     }
                 }
 
-                // Find push steps for this resource (created by deployment targets)
+                // Make push steps depend on the registry being provisioned
+                // Note: Push steps now depend on build steps via deployment target's PipelineConfigurationAnnotation
                 var pushSteps = context.GetSteps("push")
                     .Where(s => s.Name == $"push-{computeResource.Name}")
                     .ToList();
 
-                // Make push steps depend on build steps
-                foreach (var pushStep in pushSteps)
-                {
-                    foreach (var buildStep in buildSteps)
-                    {
-                        pushStep.DependsOn(buildStep);
-                    }
-                }
-
-                // Make push steps depend on the registry being provisioned
                 var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
                 foreach (var pushStep in pushSteps)
                 {

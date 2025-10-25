@@ -65,14 +65,25 @@ public class AzureContainerAppResource : AzureProvisioningResource
         // Add pipeline configuration annotation to wire up dependencies
         Annotations.Add(new PipelineConfigurationAnnotation((context) =>
         {
+            // Find the push step for this resource
+            var pushStepName = $"push-{targetResource.Name}";
+            var pushStep = context.Steps.FirstOrDefault(s => s.Name == pushStepName);
+            
+            if (pushStep is not null)
+            {
+                // Make push step depend on build steps of the target resource
+                var buildSteps = context.GetSteps(targetResource, WellKnownPipelineTags.BuildCompute);
+                foreach (var buildStep in buildSteps)
+                {
+                    pushStep.DependsOn(buildStep);
+                }
+            }
+
             // Find the provision step by convention (created by AzureBicepResource)
             var provisionStepName = $"provision-{name}";
             var provisionStep = context.Steps.FirstOrDefault(s => s.Name == provisionStepName);
             if (provisionStep is not null)
             {
-                // Find the push step for this resource
-                var pushStepName = $"push-{targetResource.Name}";
-                var pushStep = context.Steps.FirstOrDefault(s => s.Name == pushStepName);
                 if (pushStep is not null)
                 {
                     // Provision depends on push
