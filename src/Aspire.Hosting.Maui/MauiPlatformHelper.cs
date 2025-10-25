@@ -76,8 +76,10 @@ internal static class MauiPlatformHelper
             }
         });
 
+        // Configure OTLP exporter with custom endpoint support
+        ConfigureOtlpExporter(resourceBuilder);
+
         resourceBuilder
-            .WithOtlpExporter()
             .WithIconName(iconName)
             .WithExplicitStart();
 
@@ -108,5 +110,55 @@ internal static class MauiPlatformHelper
             var appBuilder = resourceBuilder.ApplicationBuilder;
             appBuilder.Services.TryAddEventingSubscriber<UnsupportedPlatformEventSubscriber>();
         }
+    }
+
+    /// <summary>
+    /// Configures OTLP exporter with support for Android-specific template replacement.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// For Android resources, we replace DCP template placeholders ({{...}}) with actual values
+    /// because Android environment files are generated before DCP's template replacement happens.
+    /// DCP normally replaces these templates when writing to the actual running process, but we
+    /// need the resolved values earlier for the MSBuild targets file.
+    /// </para>
+    /// <para>
+    /// This matches the pattern used by other non-DCP-launched resources like Docker Compose and
+    /// Azure App Service, which also manually set OTEL values instead of relying on DCP templates.
+    /// </para>
+    /// </remarks>
+    private static void ConfigureOtlpExporter<T>(IResourceBuilder<T> resourceBuilder) where T : ProjectResource
+    {
+        // Call the standard WithOtlpExporter which sets up all other OTLP configuration
+        resourceBuilder.WithOtlpExporter();
+
+        // For Android resources, replace DCP template placeholders that won't be resolved in time
+        var resource = resourceBuilder.Resource;
+        var instanceId = Guid.NewGuid().ToString(); // Generate unique instance ID
+
+        resourceBuilder.WithEnvironment(async context =>
+        {
+            await Task.CompletedTask.ConfigureAwait(false);
+
+            // Replace OTEL_SERVICE_NAME template with actual resource name
+            // DCP would normally set this to the resource name, so we do the same
+            if (context.EnvironmentVariables.TryGetValue("OTEL_SERVICE_NAME", out var serviceName))
+            {
+                if (serviceName is string serviceNameStr && serviceNameStr.Contains("{{", StringComparison.Ordinal))
+                {
+                    context.EnvironmentVariables["OTEL_SERVICE_NAME"] = resource.Name;
+                }
+            }
+
+            // Replace OTEL_RESOURCE_ATTRIBUTES template with unique instance ID
+            // DCP would normally set this to a generated suffix, so we use a GUID
+            if (context.EnvironmentVariables.TryGetValue("OTEL_RESOURCE_ATTRIBUTES", out var resourceAttrs))
+            {
+                if (resourceAttrs is string resourceAttrsStr && resourceAttrsStr.Contains("{{", StringComparison.Ordinal))
+                {
+                    context.EnvironmentVariables["OTEL_RESOURCE_ATTRIBUTES"] = $"service.instance.id={instanceId}";
+                }
+            }
+        });
     }
 }
