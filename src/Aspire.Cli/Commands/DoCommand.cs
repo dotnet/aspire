@@ -14,16 +14,32 @@ namespace Aspire.Cli.Commands;
 
 internal sealed class DoCommand : PipelineCommandBase
 {
-    private readonly Argument<string> _stepArgument;
+    private readonly Argument<string?> _stepArgument;
 
     public DoCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("do", DoCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
     {
-        _stepArgument = new Argument<string>("step")
+        _stepArgument = new Argument<string?>("step")
         {
-            Description = DoCommandStrings.StepArgumentDescription
+            Description = DoCommandStrings.StepArgumentDescription,
+            Arity = ArgumentArity.ZeroOrOne
         };
         Arguments.Add(_stepArgument);
+    }
+
+    protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
+    {
+        // Validate that step is provided when --list-steps is not set
+        var listSteps = parseResult.GetValue(_listStepsOption);
+        var step = parseResult.GetValue(_stepArgument);
+
+        if (!listSteps && string.IsNullOrEmpty(step))
+        {
+            InteractionService.DisplayError("Required argument missing for command: 'do'.");
+            return ExitCodeConstants.InvalidCommand;
+        }
+
+        return await base.ExecuteAsync(parseResult, cancellationToken);
     }
 
     protected override string OperationCompletedPrefix => DoCommandStrings.OperationCompletedPrefix;

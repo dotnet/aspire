@@ -882,6 +882,11 @@ internal sealed class TestPromptBackchannel : IAppHostBackchannel
     {
         // No-op for test implementation
     }
+
+    public Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(Array.Empty<PipelineStepInfo>());
+    }
 }
 
 // Data structures for tracking prompts

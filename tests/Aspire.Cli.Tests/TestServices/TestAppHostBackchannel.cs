@@ -257,4 +257,53 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         AddDisconnectHandlerCalled?.SetResult();
         AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
+
+    public Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        return Task.FromResult(new PipelineStepInfo[]
+        {
+            new PipelineStepInfo
+            {
+                Name = "parameter-prompt",
+                DependsOn = Array.Empty<string>(),
+                Tags = Array.Empty<string>()
+            },
+            new PipelineStepInfo
+            {
+                Name = "provision-redis-infra",
+                DependsOn = new[] { "parameter-prompt" },
+                Tags = new[] { "provision-infra" }
+            },
+            new PipelineStepInfo
+            {
+                Name = "provision-postgres-infra",
+                DependsOn = new[] { "parameter-prompt" },
+                Tags = new[] { "provision-infra" }
+            },
+            new PipelineStepInfo
+            {
+                Name = "build-webapi",
+                DependsOn = new[] { "parameter-prompt" },
+                Tags = new[] { "build-compute" }
+            },
+            new PipelineStepInfo
+            {
+                Name = "build-frontend",
+                DependsOn = new[] { "parameter-prompt" },
+                Tags = new[] { "build-compute" }
+            },
+            new PipelineStepInfo
+            {
+                Name = "deploy-webapi",
+                DependsOn = new[] { "provision-redis-infra", "provision-postgres-infra", "build-webapi" },
+                Tags = new[] { "deploy-compute" }
+            },
+            new PipelineStepInfo
+            {
+                Name = "deploy-frontend",
+                DependsOn = new[] { "build-frontend", "deploy-webapi" },
+                Tags = new[] { "deploy-compute" }
+            }
+        });
+    }
 }

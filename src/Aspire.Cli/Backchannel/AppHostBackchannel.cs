@@ -25,6 +25,7 @@ internal interface IAppHostBackchannel
     Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken);
     IAsyncEnumerable<CommandOutput> ExecAsync(CancellationToken cancellationToken);
     void AddDisconnectHandler(EventHandler<JsonRpcDisconnectedEventArgs> onDisconnected);
+    Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken);
 }
 
 internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, AspireCliTelemetry telemetry) : IAppHostBackchannel
@@ -233,6 +234,21 @@ internal sealed class AppHostBackchannel(ILogger<AppHostBackchannel> logger, Asp
         Debug.Assert(_rpcTaskCompletionSource.Task.IsCompletedSuccessfully);
         var rpc = _rpcTaskCompletionSource.Task.Result;
         rpc.Disconnected += onDisconnected;
+    }
+
+    public async Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        using var activity = telemetry.ActivitySource.StartActivity();
+        var rpc = await _rpcTaskCompletionSource.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        logger.LogDebug("Requesting pipeline steps");
+
+        var steps = await rpc.InvokeWithCancellationAsync<PipelineStepInfo[]>(
+            "GetPipelineStepsAsync",
+            [],
+            cancellationToken).ConfigureAwait(false);
+
+        return steps;
     }
 }
 
