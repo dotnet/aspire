@@ -29,8 +29,8 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
     {
         TargetResource = targetResource;
 
-        // Add pipeline step annotation for push and provision
-        Annotations.Add(new PipelineStepAnnotation(async (factoryContext) =>
+        // Add pipeline step annotation for push
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
             var steps = new List<PipelineStep>();
 
@@ -59,31 +59,29 @@ public class AzureAppServiceWebSiteResource : AzureProvisioningResource
             };
             steps.Add(pushStep);
 
-            // Get provision steps from the base AzureProvisioningResource
-            // These steps handle the actual deployment
-            if (this.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var baseAnnotations))
-            {
-                foreach (var annotation in baseAnnotations)
-                {
-                    if (annotation == this.Annotations.OfType<PipelineStepAnnotation>().First())
-                    {
-                        // Skip self
-                        continue;
-                    }
-
-                    var provisionSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
-                    foreach (var provisionStep in provisionSteps)
-                    {
-                        // Provision depends on push
-                        provisionStep.DependsOn(pushStep);
-                        // Make provision required by deploy-compute-marker
-                        provisionStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
-                        steps.Add(provisionStep);
-                    }
-                }
-            }
-
             return steps;
+        }));
+
+        // Add pipeline configuration annotation to wire up dependencies
+        Annotations.Add(new PipelineConfigurationAnnotation((context) =>
+        {
+            // Find the provision step by convention (created by AzureBicepResource)
+            var provisionStepName = $"provision-{name}";
+            var provisionStep = context.Steps.FirstOrDefault(s => s.Name == provisionStepName);
+            if (provisionStep is not null)
+            {
+                // Find the push step for this resource
+                var pushStepName = $"push-{targetResource.Name}";
+                var pushStep = context.Steps.FirstOrDefault(s => s.Name == pushStepName);
+                if (pushStep is not null)
+                {
+                    // Provision depends on push
+                    provisionStep.DependsOn(pushStep);
+                }
+
+                // Make provision required by deploy-compute-marker
+                provisionStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
+            }
         }));
     }
 
