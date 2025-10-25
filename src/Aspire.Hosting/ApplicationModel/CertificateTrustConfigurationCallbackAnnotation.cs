@@ -34,6 +34,18 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     /// Gets the command line arguments associated with the callback context. Values can be either a string or a path
     /// value provider such as <see cref="CertificateBundlePath"/> or <see cref="CertificateDirectoriesPath"/>.
     /// </summary>
+    /// <remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.AddContainer("my-resource", "my-image:latest")
+    ///    .WithCertificateTrustConfigurationCallback(ctx =>
+    ///    {
+    ///        ctx.Arguments.Add("--use-system-ca");
+    ///        return Task.CompletedTask;
+    ///    });
+    /// </code>
+    /// </example>
+    /// </remarks>
     public required List<object> Arguments { get; init; }
 
     /// <summary>
@@ -43,6 +55,19 @@ public sealed class CertificateTrustConfigurationCallbackAnnotationContext
     /// By default the environment will always include an entry for `SSL_CERT_DIR` and may include `SSL_CERT_FILE` if
     /// <see cref="CertificateTrustScope.Override"/> or <see cref="CertificateTrustScope.System"/> is configured.
     /// </summary>
+    /// <remarks>
+    /// <example>
+    /// <code language="csharp">
+    /// builder.AddContainer("my-resource", "my-image:latest")
+    ///     .WithCertificateTrustConfigurationCallback(ctx =>
+    ///     {
+    ///         ctx.EnvironmentVariables["MY_CUSTOM_CERT_VAR"] = ctx.CertificateBundlePath;
+    ///         ctx.EnvironmentVariables["CERTS_DIR"] = ctx.CertificateDirectoriesPath;
+    ///         return Task.CompletedTask;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     public required Dictionary<string, object> EnvironmentVariables { get; init; }
 
     /// <summary>

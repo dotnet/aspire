@@ -2328,6 +2328,22 @@ public static class ResourceBuilderExtensions
     /// <param name="builder">The resource builder.</param>
     /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
     /// <returns>The updated resource builder.</returns>
+    /// <remarks>
+    /// <example>
+    /// Add an environment variable that needs to reference the path to the certificate bundle for the container resource.
+    /// <code lang="csharp">
+    /// var container = builder.AddContainer("my-service", "my-service:latest")
+    ///     .WithCertificateTrustConfigurationCallback(ctx =>
+    ///     {
+    ///         if (ctx.Scope != CertificateTrustScope.Append)
+    ///         {
+    ///             ctx.EnvironmentVariables["CUSTOM_CERTS_BUNDLE_ENV"] = ctx.CertificateBundlePath;
+    ///         }
+    ///         ctx.EnvironmentVariables["ADDITIONAL_CERTS_DIR_ENV"] = ctx.CertificateDirectoriesPath;
+    ///     });
+    /// </code>
+    /// </example>
+    /// </remarks>
     public static IResourceBuilder<TResource> WithCertificateTrustConfigurationCallback<TResource>(this IResourceBuilder<TResource> builder, Func<CertificateTrustConfigurationCallbackAnnotationContext, Task> callback)
         where TResource : IResourceWithArgs, IResourceWithEnvironment
     {
