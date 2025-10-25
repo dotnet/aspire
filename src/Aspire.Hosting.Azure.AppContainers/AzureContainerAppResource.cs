@@ -49,9 +49,9 @@ public class AzureContainerAppResource : AzureProvisioningResource
                 Action = async ctx =>
                 {
                     var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                    await AzureEnvironmentResourceHelpers.PushImagesToRegistryAsync(
+                    await AzureEnvironmentResourceHelpers.PushImageToRegistryAsync(
                         registry,
-                        [targetResource],
+                        targetResource,
                         ctx,
                         containerImageBuilder).ConfigureAwait(false);
                 },
@@ -76,6 +76,17 @@ public class AzureContainerAppResource : AzureProvisioningResource
                 foreach (var buildStep in buildSteps)
                 {
                     pushStep.DependsOn(buildStep);
+                }
+
+                // Make push step depend on the registry being provisioned
+                var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
+                if (deploymentTargetAnnotation?.ContainerRegistry is IResource registryResource)
+                {
+                    var registryProvisionSteps = context.GetSteps(registryResource, WellKnownPipelineTags.ProvisionInfrastructure);
+                    foreach (var registryProvisionStep in registryProvisionSteps)
+                    {
+                        pushStep.DependsOn(registryProvisionStep);
+                    }
                 }
             }
 

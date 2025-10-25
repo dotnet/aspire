@@ -98,31 +98,13 @@ public class AzureContainerAppEnvironmentResource :
                 var buildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
                     .ToList();
 
-                // Find the default-image-tags step for this environment
-                var imageTagsSteps = context.GetSteps(computeResource, "default-image-tags")
-                    .ToList();
-
-                // Make build steps depend on default-image-tags
-                foreach (var buildStep in buildSteps)
+                // Make build steps depend on default-image-tags-{name}
+                var imageTagsStep = context.Steps.FirstOrDefault(s => s.Name == $"default-image-tags-{name}");
+                if (imageTagsStep != null)
                 {
-                    foreach (var imageTagsStep in imageTagsSteps)
+                    foreach (var buildStep in buildSteps)
                     {
                         buildStep.DependsOn(imageTagsStep);
-                    }
-                }
-
-                // Make push steps depend on the registry being provisioned
-                // Note: Push steps now depend on build steps via deployment target's PipelineConfigurationAnnotation
-                var pushSteps = context.GetSteps("push")
-                    .Where(s => s.Name == $"push-{computeResource.Name}")
-                    .ToList();
-
-                var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-                foreach (var pushStep in pushSteps)
-                {
-                    foreach (var provisionStep in provisionSteps)
-                    {
-                        pushStep.DependsOn(provisionStep);
                     }
                 }
             }
