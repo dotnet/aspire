@@ -55,23 +55,23 @@ public class ExpressionResolverTests
     [Theory]
     [InlineData("TwoFullEndpoints", false, false, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
     [InlineData("TwoFullEndpoints", false, true, "Test1=http://127.0.0.1:12345/;Test2=https://localhost:12346/;")]
-    [InlineData("TwoFullEndpoints", true, false, "Test1=http://host.aspire.internal:12345/;Test2=https://host.aspire.internal:12346/;")]
+    [InlineData("TwoFullEndpoints", true, false, "Test1=http://aspire.dev.internal:12345/;Test2=https://aspire.dev.internal:12346/;")]
     [InlineData("TwoFullEndpoints", true, true, "Test1=http://testresource:10000/;Test2=https://testresource:10001/;")]
     [InlineData("Url", false, false, "Url=http://localhost:12345;")]
     [InlineData("Url", false, true, "Url=http://localhost:12345;")]
-    [InlineData("Url", true, false, "Url=http://host.aspire.internal:12345;")]
+    [InlineData("Url", true, false, "Url=http://aspire.dev.internal:12345;")]
     [InlineData("Url", true, true, "Url=http://testresource:10000;")]
-    [InlineData("Url2", true, false, "Url=http://host.aspire.internal:12345;")]
+    [InlineData("Url2", true, false, "Url=http://aspire.dev.internal:12345;")]
     [InlineData("Url2", true, true, "Url=http://testresource:10000;")]
-    [InlineData("OnlyHost", true, false, "Host=host.aspire.internal;")]
+    [InlineData("OnlyHost", true, false, "Host=aspire.dev.internal;")]
     [InlineData("OnlyHost", true, true, "Host=testresource;")] // host now replaced to container name
     [InlineData("OnlyPort", true, false, "Port=12345;")]
     [InlineData("OnlyPort", true, true, "Port=10000;")] // port now replaced with target port
-    [InlineData("HostAndPort", true, false, "HostPort=host.aspire.internal:12345")]
+    [InlineData("HostAndPort", true, false, "HostPort=aspire.dev.internal:12345")]
     [InlineData("HostAndPort", true, true, "HostPort=testresource:10000")] // host not replaced since no port
-    [InlineData("PortBeforeHost", true, false, "Port=12345;Host=host.aspire.internal;")]
+    [InlineData("PortBeforeHost", true, false, "Port=12345;Host=aspire.dev.internal;")]
     [InlineData("PortBeforeHost", true, true, "Port=10000;Host=testresource;")]
-    [InlineData("FullAndPartial", true, false, "Test1=http://host.aspire.internal:12345/;Test2=https://localhost:12346/;")]
+    [InlineData("FullAndPartial", true, false, "Test1=http://aspire.dev.internal:12345/;Test2=https://localhost:12346/;")]
     [InlineData("FullAndPartial", true, true, "Test1=http://testresource:10000/;Test2=https://localhost:10001/;")]
     [InlineData("UrlEncodedHost", false, false, "Host=host%20with%20space;")]
     public async Task ExpressionResolverGeneratesCorrectEndpointStrings(string exprName, bool sourceIsContainer, bool targetIsContainer, string expectedConnectionString)
@@ -141,17 +141,17 @@ public class ExpressionResolverTests
 
     [Theory]
     [InlineData(false, "http://localhost:18889", "http://localhost:18889")]
-    [InlineData(true, "http://localhost:18889", "http://host.aspire.internal:18889")]
+    [InlineData(true, "http://localhost:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "http://127.0.0.1:18889", "http://127.0.0.1:18889")]
-    [InlineData(true, "http://127.0.0.1:18889", "http://host.aspire.internal:18889")]
+    [InlineData(true, "http://127.0.0.1:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "http://[::1]:18889", "http://[::1]:18889")]
-    [InlineData(true, "http://[::1]:18889", "http://host.aspire.internal:18889")]
+    [InlineData(true, "http://[::1]:18889", "http://aspire.dev.internal:18889")]
     [InlineData(false, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.aspire.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=localhost,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
     [InlineData(false, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.aspire.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=127.0.0.1,1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
     [InlineData(false, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy")]
-    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=host.aspire.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
+    [InlineData(true, "Server=[::1],1433;User ID=sa;Password=xxx;Database=yyy", "Server=aspire.dev.internal,1433;User ID=sa;Password=xxx;Database=yyy")]
     public async Task HostUrlPropertyGetsResolved(bool targetIsContainer, string hostUrlVal, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
@@ -175,7 +175,7 @@ public class ExpressionResolverTests
 
     [Theory]
     [InlineData(false, "http://localhost:18889")]
-    [InlineData(true, "http://host.aspire.internal:18889")]
+    [InlineData(true, "http://aspire.dev.internal:18889")]
     public async Task HostUrlPropertyGetsResolvedInOtlpExporterEndpoint(bool container, string expectedValue)
     {
         var builder = DistributedApplication.CreateBuilder();
