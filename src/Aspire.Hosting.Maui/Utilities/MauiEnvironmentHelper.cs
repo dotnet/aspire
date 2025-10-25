@@ -203,7 +203,7 @@ internal static class MauiEnvironmentHelper
 
     private static string EncodeSemicolons(string value, out bool wasEncoded)
     {
-        wasEncoded = value.Contains(';', StringComparison.Ordinal);
+        wasEncoded = value.IndexOf(';') >= 0;
         if (!wasEncoded)
         {
             return value;
