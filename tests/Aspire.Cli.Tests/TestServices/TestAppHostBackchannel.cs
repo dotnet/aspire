@@ -120,6 +120,9 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         }
         else
         {
+            // Yield to ensure proper async behavior and prevent race conditions
+            await Task.Yield();
+            
             yield return new PublishingActivity
             {
                 Type = PublishingActivityTypes.Step,
@@ -204,6 +207,17 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
                 {
                     Id = "root-step",
                     StatusText = "Publishing artifacts",
+                    CompletionState = CompletionStates.Completed,
+                    StepId = null
+                }
+            };
+            yield return new PublishingActivity
+            {
+                Type = PublishingActivityTypes.PublishComplete,
+                Data = new PublishingActivityData
+                {
+                    Id = PublishingActivityTypes.PublishComplete,
+                    StatusText = "Publishing completed",
                     CompletionState = CompletionStates.Completed,
                     StepId = null
                 }
