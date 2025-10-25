@@ -385,4 +385,40 @@ public static class AzureContainerAppExtensions
 
         return builder;
     }
+
+    /// <summary>
+    /// Specifies an operator principal that should receive administrative access to Azure resources in this environment.
+    /// </summary>
+    /// <param name="builder">The container app environment resource builder.</param>
+    /// <param name="principalId">The Azure AD object ID of the user or group that will act as an operator.</param>
+    /// <returns><see cref="IResourceBuilder{T}"/></returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="principalId"/> is null.</exception>
+    /// <remarks>
+    /// <para>
+    /// This method designates a principal (user or group) that should receive elevated permissions on Azure resources
+    /// created within this container app environment. When Azure resources are deployed, they will automatically
+    /// create role assignments granting the specified operator appropriate administrative access.
+    /// </para>
+    /// <example>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    /// var adminGroupObjectId = builder.AddParameter("adminGroupObjectId");
+    /// 
+    /// builder.AddAzureContainerAppEnvironment("env")
+    ///     .WithOperator(adminGroupObjectId);
+    /// 
+    /// builder.AddAzureStorage("storage");
+    /// </code>
+    /// </example>
+    /// </remarks>
+    public static IResourceBuilder<AzureContainerAppEnvironmentResource> WithOperator(
+        this IResourceBuilder<AzureContainerAppEnvironmentResource> builder,
+        IResourceBuilder<ParameterResource> principalId)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(principalId);
+
+        builder.WithAnnotation(new OperatorPrincipalAnnotation(principalId.Resource));
+        return builder;
+    }
 }
