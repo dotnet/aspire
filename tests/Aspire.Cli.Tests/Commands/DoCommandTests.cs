@@ -215,7 +215,12 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
                     {
                         // Verify output path is included
                         Assert.Contains("--output-path", args);
-                        Assert.Contains("/tmp/test-output", args);
+                        
+                        // Find the output path argument value
+                        var outputPathIndex = Array.IndexOf(args, "--output-path");
+                        Assert.True(outputPathIndex >= 0 && outputPathIndex < args.Length - 1);
+                        var outputPath = args[outputPathIndex + 1];
+                        Assert.EndsWith("test-output", outputPath);
 
                         var completed = new TaskCompletionSource();
                         var backchannel = new TestAppHostBackchannel
@@ -236,7 +241,7 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
         var command = provider.GetRequiredService<RootCommand>();
 
         // Act
-        var result = command.Parse("do my-step --output-path /tmp/test-output");
+        var result = command.Parse("do my-step --output-path test-output");
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert
