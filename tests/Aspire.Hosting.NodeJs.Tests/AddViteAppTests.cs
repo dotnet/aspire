@@ -15,13 +15,13 @@ public class AddViteAppTests
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
 
         // Create vite directory to ensure manifest generates correct relative build context path
-        var viteDir = Path.Combine(builder.AppHostDirectory, "vite");
+        var viteDir = Path.Combine(tempDir.Path, "vite");
         Directory.CreateDirectory(viteDir);
 
-        var nodeApp = builder.AddViteApp("vite", "vite")
-            .WithNpmPackageManager();
+        var nodeApp = builder.AddViteApp("vite", viteDir)
+            .WithNpm(install: true);
 
-        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, builder.AppHostDirectory);
+        var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
         var expectedManifest = $$"""
             {
@@ -46,7 +46,7 @@ public class AddViteAppTests
             """;
         Assert.Equal(expectedManifest, manifest.ToString());
 
-        var dockerfilePath = Path.Combine(builder.AppHostDirectory, "vite.Dockerfile");
+        var dockerfilePath = Path.Combine(tempDir.Path, "vite.Dockerfile");
         var dockerfileContents = File.ReadAllText(dockerfilePath);
         var expectedDockerfile = $$"""
             FROM node:22-slim
@@ -83,7 +83,7 @@ public class AddViteAppTests
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
@@ -103,7 +103,7 @@ public class AddViteAppTests
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
@@ -123,7 +123,7 @@ public class AddViteAppTests
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
@@ -148,7 +148,7 @@ public class AddViteAppTests
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
@@ -166,7 +166,7 @@ public class AddViteAppTests
         // Don't create any version files - should default to 22
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
@@ -190,7 +190,7 @@ public class AddViteAppTests
 
         using var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path).WithResourceCleanUp(true);
         var nodeApp = builder.AddViteApp("vite", tempDir.Path)
-            .WithNpmPackageManager();
+            .WithNpm();
 
         var manifest = await ManifestUtils.GetManifest(nodeApp.Resource, tempDir.Path);
 
