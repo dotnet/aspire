@@ -63,6 +63,11 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
     /// <summary>
+    /// Enables or disables automatic scaling for the App Service Plan.
+    /// </summary>
+    internal bool EnableAutomaticScaling { get; set; }
+
+    /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>
     public BicepOutputReference NameOutputReference => new("name", this);
