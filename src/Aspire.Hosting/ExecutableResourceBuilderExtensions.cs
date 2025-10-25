@@ -207,24 +207,6 @@ public static class ExecutableResourceBuilderExtensions
         throw new InvalidOperationException($"The resource '{builder.Resource.Name}' is missing the ExecutableAnnotation");
     }
 
-    /// <summary>
-    /// Adds a <see cref="ExecutableCertificateTrustCallbackAnnotation"/> to the resource annotations to associate a callback that
-    /// is invoked when an executable resource needs to configure itself for custom certificate trust. This is only supported in run mode;
-    /// certificate trust customization is not supported in publish or deploy.
-    /// </summary>
-    /// <typeparam name="TResource">The type of the resource.</typeparam>
-    /// <param name="builder">The resource builder.</param>
-    /// <param name="callback">The callback to invoke when a resource needs to configure itself for custom certificate trust.</param>
-    /// <returns>The updated resource builder.</returns>
-    public static IResourceBuilder<TResource> WithExecutableCertificateTrustCallback<TResource>(this IResourceBuilder<TResource> builder, Func<ExecutableCertificateTrustCallbackAnnotationContext, Task> callback)
-        where TResource : ExecutableResource
-    {
-        ArgumentNullException.ThrowIfNull(builder);
-        ArgumentNullException.ThrowIfNull(callback);
-
-        return builder.WithAnnotation(new ExecutableCertificateTrustCallbackAnnotation(callback), ResourceAnnotationMutationBehavior.Replace);
-    }
-
     // Allows us to mirror annotations from ExecutableResource to ContainerResource
     private sealed class ExecutableContainerResource(ExecutableResource er) : ContainerResource(er.Name)
     {

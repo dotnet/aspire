@@ -83,16 +83,15 @@ public static class NodeAppHostingExtension
     private static IResourceBuilder<TResource> WithNodeDefaults<TResource>(this IResourceBuilder<TResource> builder) where TResource : NodeAppResource =>
         builder.WithOtlpExporter()
             .WithEnvironment("NODE_ENV", builder.ApplicationBuilder.Environment.IsDevelopment() ? "development" : "production")
-            .WithExecutableCertificateTrustCallback((ctx) =>
+            .WithCertificateTrustConfiguration((ctx) =>
             {
                 if (ctx.Scope == CertificateTrustScope.Append)
                 {
-                    ctx.CertificateBundleEnvironment.Add("NODE_EXTRA_CA_CERTS");
+                    ctx.EnvironmentVariables["NODE_EXTRA_CA_CERTS"] = ctx.CertificateBundlePath;
                 }
                 else
                 {
-                    ctx.CertificateTrustArguments.Add("--use-openssl-ca");
-                    ctx.CertificateBundleEnvironment.Add("SSL_CERT_FILE");
+                    ctx.Arguments.Add("--use-openssl-ca");
                 }
 
                 return Task.CompletedTask;
@@ -318,7 +317,7 @@ public static class NodeAppHostingExtension
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
-                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) || 
+                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) ||
                     trimmedLine.StartsWith("node ", StringComparison.Ordinal))
                 {
                     var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
