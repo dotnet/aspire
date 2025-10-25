@@ -1,7 +1,10 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Text;
+using Aspire.Hosting.Pipelines;
 using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Tests.Helpers;
 using Aspire.Hosting.Tests.Utils;
@@ -892,5 +895,41 @@ public class ProjectResourceTests
                 }
             };
         }
+    }
+
+    [Fact]
+    public void ProjectResourceWithContainerFilesDestinationAnnotationCreatesPipelineSteps()
+    {
+        var appBuilder = CreateBuilder();
+
+        // Create a test container resource that implements IResourceWithContainerFiles
+        var sourceContainerResource = new TestContainerFilesResource("source");
+        var sourceContainer = appBuilder.AddResource(sourceContainerResource)
+            .WithImage("myimage")
+            .WithAnnotation(new ContainerFilesSourceAnnotation { SourcePath = "/app/dist" });
+
+        // Add a project and annotate it with ContainerFilesDestinationAnnotation
+        appBuilder.AddProject<TestProject>("projectName", launchProfileName: null)
+            .PublishWithContainerFiles(sourceContainer, "./static");
+
+        using var app = appBuilder.Build();
+
+        var appModel = app.Services.GetRequiredService<DistributedApplicationModel>();
+        var projectResources = appModel.GetProjectResources();
+
+        var resource = Assert.Single(projectResources);
+        
+        // Verify the ContainerFilesDestinationAnnotation was added
+        var containerFilesAnnotation = Assert.Single(resource.Annotations.OfType<ContainerFilesDestinationAnnotation>());
+        Assert.Equal(sourceContainer.Resource, containerFilesAnnotation.Source);
+        Assert.Equal("./static", containerFilesAnnotation.DestinationPath);
+
+        // Verify the PipelineStepAnnotation was added by WithProjectDefaults
+        var pipelineStepAnnotations = resource.Annotations.OfType<PipelineStepAnnotation>().ToList();
+        Assert.NotEmpty(pipelineStepAnnotations);
+    }
+
+    private sealed class TestContainerFilesResource(string name) : ContainerResource(name), IResourceWithContainerFiles
+    {
     }
 }

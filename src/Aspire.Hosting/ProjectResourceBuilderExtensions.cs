@@ -2,11 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREEXTENSION001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPUBLISHERS001
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
 using Aspire.Hosting.Dcp.Model;
+using Aspire.Hosting.Dcp.Process;
+using Aspire.Hosting.Pipelines;
+using Aspire.Hosting.Publishing;
 using Aspire.Hosting.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -707,6 +712,28 @@ public static class ProjectResourceBuilderExtensions
             httpEndpoint.TargetPort = httpsEndpoint.TargetPort = defaultEndpointTargetPort;
         }
 
+        // Add pipeline step factory to handle ContainerFilesDestinationAnnotation
+        builder.WithPipelineStepFactory(factoryContext =>
+        {
+            List<PipelineStep> steps = [];
+            var buildStep = CreateProjectBuildImageStep($"{factoryContext.Resource.Name}-build-compute", factoryContext.Resource);
+            steps.Add(buildStep);
+
+            // Ensure any static file references' images are built first
+            if (factoryContext.Resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+            {
+                foreach (var containerFile in containerFilesAnnotations)
+                {
+                    var source = containerFile.Source;
+                    var staticFileBuildStep = CreateProjectBuildImageStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
+                    buildStep.DependsOn(staticFileBuildStep);
+                    steps.Add(staticFileBuildStep);
+                }
+            }
+
+            return steps;
+        });
+
         return builder;
     }
 
@@ -1041,5 +1068,163 @@ public static class ProjectResourceBuilderExtensions
     private sealed class ProjectContainerResource(ProjectResource pr) : ContainerResource(pr.Name)
     {
         public override ResourceAnnotationCollection Annotations => pr.Annotations;
+    }
+
+    private static PipelineStep CreateProjectBuildImageStep(string stepName, IResource resource) =>
+        new()
+        {
+            Name = stepName,
+            Action = async ctx =>
+            {
+                // Copy files from source containers if ContainerFilesDestinationAnnotation is present
+                if (resource.TryGetAnnotationsOfType<ContainerFilesDestinationAnnotation>(out var containerFilesAnnotations))
+                {
+                    await CopyContainerFilesToProjectAsync(resource, containerFilesAnnotations, ctx.Services, ctx.CancellationToken).ConfigureAwait(false);
+                }
+
+                // Build the container image for the project
+                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                await containerImageBuilder.BuildImageAsync(
+                    resource,
+                    new ContainerBuildOptions
+                    {
+                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    },
+                    ctx.CancellationToken).ConfigureAwait(false);
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        };
+
+    private static async Task CopyContainerFilesToProjectAsync(
+        IResource resource,
+        IEnumerable<ContainerFilesDestinationAnnotation> containerFilesAnnotations,
+        IServiceProvider services,
+        CancellationToken cancellationToken)
+    {
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(ProjectResourceBuilderExtensions));
+        var projectMetadata = resource.TryGetLastAnnotation<IProjectMetadata>(out var metadata) ? metadata : null;
+
+        if (projectMetadata == null)
+        {
+            logger.LogWarning("Project metadata not found for resource {ResourceName}. Cannot copy container files.", resource.Name);
+            return;
+        }
+
+        var projectPath = projectMetadata.ProjectPath;
+        var publishDir = Path.Combine(Path.GetDirectoryName(projectPath)!, "bin", "Release", "publish");
+
+        // Ensure the publish directory exists
+        Directory.CreateDirectory(publishDir);
+
+        foreach (var containerFileDestination in containerFilesAnnotations)
+        {
+            var source = containerFileDestination.Source;
+
+            // Get the image name from the source resource
+            if (!source.TryGetContainerImageName(out var imageName))
+            {
+                logger.LogWarning("Cannot copy container files from {SourceName}: Source resource does not have a container image name.", source.Name);
+                continue;
+            }
+
+            logger.LogInformation("Copying container files from {ImageName} to {PublishDir}", imageName, publishDir);
+
+            // For each ContainerFilesSourceAnnotation on the source resource, copy the files
+            foreach (var containerFilesSource in source.Annotations.OfType<ContainerFilesSourceAnnotation>())
+            {
+                var sourcePath = containerFilesSource.SourcePath;
+                var destinationPath = containerFileDestination.DestinationPath;
+
+                // If destination path is relative, make it relative to the publish directory
+                if (!Path.IsPathRooted(destinationPath))
+                {
+                    destinationPath = Path.Combine(publishDir, destinationPath);
+                }
+
+                // Ensure the destination directory exists
+                Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+
+                try
+                {
+                    // Create a temporary container from the image
+                    var containerName = $"temp-{resource.Name}-{Guid.NewGuid():N}";
+                    
+                    logger.LogDebug("Creating temporary container {ContainerName} from image {ImageName}", containerName, imageName);
+                    var createSpec = new ProcessSpec("docker")
+                    {
+                        Arguments = $"create --name {containerName} {imageName}",
+                        OnOutputData = output => logger.LogDebug("docker create output: {Output}", output),
+                        OnErrorData = error => logger.LogDebug("docker create error: {Error}", error)
+                    };
+
+                    var (pendingCreateResult, createDisposable) = ProcessUtil.Run(createSpec);
+                    await using (createDisposable.ConfigureAwait(false))
+                    {
+                        var createResult = await pendingCreateResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        if (createResult.ExitCode != 0)
+                        {
+                            logger.LogError("Failed to create temporary container {ContainerName} from image {ImageName}. Exit code: {ExitCode}", 
+                                containerName, imageName, createResult.ExitCode);
+                            continue;
+                        }
+                    }
+
+                    try
+                    {
+                        // Copy files from the container
+                        logger.LogDebug("Copying files from {ContainerName}:{SourcePath} to {DestinationPath}", containerName, sourcePath, destinationPath);
+                        var copySpec = new ProcessSpec("docker")
+                        {
+                            Arguments = $"cp {containerName}:{sourcePath} {destinationPath}",
+                            OnOutputData = output => logger.LogDebug("docker cp output: {Output}", output),
+                            OnErrorData = error => logger.LogDebug("docker cp error: {Error}", error)
+                        };
+
+                        var (pendingCopyResult, copyDisposable) = ProcessUtil.Run(copySpec);
+                        await using (copyDisposable.ConfigureAwait(false))
+                        {
+                            var copyResult = await pendingCopyResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            if (copyResult.ExitCode != 0)
+                            {
+                                logger.LogError("Failed to copy files from container {ContainerName}:{SourcePath} to {DestinationPath}. Exit code: {ExitCode}",
+                                    containerName, sourcePath, destinationPath, copyResult.ExitCode);
+                            }
+                            else
+                            {
+                                logger.LogInformation("Successfully copied files from {ImageName}:{SourcePath} to {DestinationPath}", 
+                                    imageName, sourcePath, destinationPath);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        // Clean up the temporary container
+                        logger.LogDebug("Removing temporary container {ContainerName}", containerName);
+                        var rmSpec = new ProcessSpec("docker")
+                        {
+                            Arguments = $"rm {containerName}",
+                            OnOutputData = output => logger.LogDebug("docker rm output: {Output}", output),
+                            OnErrorData = error => logger.LogDebug("docker rm error: {Error}", error)
+                        };
+
+                        var (pendingRmResult, rmDisposable) = ProcessUtil.Run(rmSpec);
+                        await using (rmDisposable.ConfigureAwait(false))
+                        {
+                            var rmResult = await pendingRmResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+                            if (rmResult.ExitCode != 0)
+                            {
+                                logger.LogWarning("Failed to remove temporary container {ContainerName}. Exit code: {ExitCode}", 
+                                    containerName, rmResult.ExitCode);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error copying files from {ImageName}:{SourcePath} to {DestinationPath}", 
+                        imageName, sourcePath, destinationPath);
+                }
+            }
+        }
     }
 }
