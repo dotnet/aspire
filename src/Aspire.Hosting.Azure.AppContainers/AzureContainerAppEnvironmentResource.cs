@@ -32,7 +32,8 @@ public class AzureContainerAppEnvironmentResource :
     public AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
         : base(name, configureInfrastructure)
     {
-        // Add pipeline step annotation to create per-resource build, push, and deploy steps
+        // Add pipeline step annotation to create per-resource push and deploy steps
+        // Build steps are now created by the resources themselves (ProjectResource and ContainerResource)
         Annotations.Add(new PipelineStepAnnotation(async (factoryContext) =>
         {
             var model = factoryContext.PipelineContext.Model;
@@ -67,53 +68,10 @@ public class AzureContainerAppEnvironmentResource :
             };
             steps.Add(registryLoginStep);
 
-            // For each compute resource, expand its build steps or create a default one
+            // For each compute resource, create push and deploy steps
+            // Build steps are created by the resources themselves
             foreach (var computeResource in computeResources)
             {
-                // Check if the compute resource has its own build steps
-                var hasCustomBuildSteps = false;
-                if (computeResource.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var pipelineStepAnnotations))
-                {
-                    foreach (var annotation in pipelineStepAnnotations)
-                    {
-                        var resourceSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
-                        var buildSteps = resourceSteps.Where(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute)).ToList();
-                        
-                        if (buildSteps.Any())
-                        {
-                            hasCustomBuildSteps = true;
-                            foreach (var buildStep in buildSteps)
-                            {
-                                buildStep.DependsOn(addImageTagsStep);
-                                steps.Add(buildStep);
-                            }
-                        }
-                    }
-                }
-
-                // If no custom build steps, create a default build step
-                if (!hasCustomBuildSteps)
-                {
-                    var buildStep = new PipelineStep
-                    {
-                        Name = $"build-{computeResource.Name}",
-                        Action = async ctx =>
-                        {
-                            var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                            await containerImageBuilder.BuildImagesAsync(
-                                [computeResource],
-                                new ContainerBuildOptions
-                                {
-                                    TargetPlatform = ContainerTargetPlatform.LinuxAmd64
-                                },
-                                ctx.CancellationToken).ConfigureAwait(false);
-                        },
-                        Tags = [WellKnownPipelineTags.BuildCompute, "build"]
-                    };
-                    buildStep.DependsOn(addImageTagsStep);
-                    steps.Add(buildStep);
-                }
-
                 // Push step for this specific resource
                 var pushStep = new PipelineStep
                 {
@@ -127,14 +85,7 @@ public class AzureContainerAppEnvironmentResource :
                     },
                     Tags = ["push"]
                 };
-                // Push depends on all build steps for this resource
-                var resourceBuildSteps = steps.Where(s => s.Tags.Contains(WellKnownPipelineTags.BuildCompute) && 
-                    (s.Name == $"build-{computeResource.Name}" || s.Name.Contains(computeResource.Name))).ToList();
-                foreach (var buildStep in resourceBuildSteps)
-                {
-                    pushStep.DependsOn(buildStep);
-                }
-                // Push also depends on registry login
+                // Push depends on registry login
                 pushStep.DependsOn(registryLoginStep);
                 steps.Add(pushStep);
 
@@ -207,12 +158,59 @@ public class AzureContainerAppEnvironmentResource :
         }));
 
         // Add pipeline configuration annotation to wire up dependencies
+        // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
+            var model = context.Model;
+
+            // Get all compute resources targeted to this environment
+            var computeResources = model.GetComputeResources()
+                .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
+                .Where(r => r.RequiresImageBuildAndPush())
+                .ToList();
+
+            // Wire up build step dependencies
+            // Build steps are created by ProjectResource and ContainerResource
+            foreach (var computeResource in computeResources)
+            {
+                // Find build steps for this resource (created by the resource itself)
+                var buildSteps = context.GetSteps("build")
+                    .Where(s => s.Name == $"build-{computeResource.Name}")
+                    .ToList();
+
+                // Find the default-image-tags step for this environment
+                var imageTagsSteps = context.GetSteps("default-image-tags")
+                    .Where(s => s.Name == $"default-image-tags-{name}")
+                    .ToList();
+
+                // Make build steps depend on default-image-tags
+                foreach (var buildStep in buildSteps)
+                {
+                    foreach (var imageTagsStep in imageTagsSteps)
+                    {
+                        buildStep.DependsOn(imageTagsStep);
+                    }
+                }
+
+                // Find push steps for this resource
+                var pushSteps = context.GetSteps("push")
+                    .Where(s => s.Name == $"push-{computeResource.Name}")
+                    .ToList();
+
+                // Make push steps depend on build steps
+                foreach (var pushStep in pushSteps)
+                {
+                    foreach (var buildStep in buildSteps)
+                    {
+                        pushStep.DependsOn(buildStep);
+                    }
+                }
+            }
+
             // Make all push steps for this environment depend on the registry being provisioned
-            var pushSteps = context.GetSteps("push");
+            var allPushSteps = context.GetSteps("push");
             var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            foreach (var pushStep in pushSteps)
+            foreach (var pushStep in allPushSteps)
             {
                 foreach (var provisionStep in provisionSteps)
                 {
