@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <AspireProjectOrPackageReference Include="Aspire.Microsoft.Extensions.Configuration.AzureAppConfiguration" />
+    <AspireProjectOrPackageReference Include="Aspire.Azure.Data.AppConfiguration" />
   </ItemGroup>
 
   <ItemGroup>
