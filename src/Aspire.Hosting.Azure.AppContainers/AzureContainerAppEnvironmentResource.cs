@@ -8,12 +8,9 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Pipelines;
-using Aspire.Hosting.Publishing;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Primitives;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Aspire.Hosting.Azure.AppContainers;
 
@@ -33,7 +30,7 @@ public class AzureContainerAppEnvironmentResource :
     {
         // Add pipeline step annotation to create per-resource push and deploy steps
         // Build steps are now created by the resources themselves (ProjectResource and ContainerResource)
-        Annotations.Add(new PipelineStepAnnotation(async (factoryContext) =>
+        Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
@@ -53,84 +50,13 @@ public class AzureContainerAppEnvironmentResource :
             };
             steps.Add(addImageTagsStep);
 
-            // Add registry login step (once per environment, not per push)
-            var registryLoginStep = new PipelineStep
-            {
-                Name = $"login-registry-{name}",
-                Action = async ctx =>
-                {
-                    var processRunner = ctx.Services.GetRequiredService<IProcessRunner>();
-                    var configuration = ctx.Services.GetRequiredService<IConfiguration>();
-                    await AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, ctx, processRunner, configuration).ConfigureAwait(false);
-                },
-                Tags = ["login-registry"]
-            };
-            steps.Add(registryLoginStep);
-
-            // For each compute resource, create push and deploy steps
-            // Build steps are created by the resources themselves
-            foreach (var computeResource in computeResources)
-            {
-                // Push step for this specific resource
-                var pushStep = new PipelineStep
-                {
-                    Name = $"push-{computeResource.Name}",
-                    Action = async ctx =>
-                    {
-                        var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
-                        
-                        // Push this specific resource (login happens once in the registryLoginStep)
-                        await AzureEnvironmentResourceHelpers.PushImagesToRegistryAsync(this, [computeResource], ctx, containerImageBuilder).ConfigureAwait(false);
-                    },
-                    Tags = ["push"]
-                };
-                // Push depends on registry login
-                pushStep.DependsOn(registryLoginStep);
-                steps.Add(pushStep);
-
-                // Get the deployment target and expand its provision steps
-                // The AzureBicepResource handles deployment through its provision steps
-                if (computeResource.GetDeploymentTargetAnnotation(this) is { DeploymentTarget: var deploymentTarget })
-                {
-                    // Check if deployment target has provision steps
-                    if (deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var deploymentAnnotations))
-                    {
-                        foreach (var annotation in deploymentAnnotations)
-                        {
-                            // Recreate factoryContext with deploymentTarget as the Resource
-                            var deploymentFactoryContext = new PipelineStepFactoryContext
-                            {
-                                PipelineContext = factoryContext.PipelineContext,
-                                Resource = deploymentTarget
-                            };
-                            
-                            var deploymentSteps = await annotation.CreateStepsAsync(deploymentFactoryContext).ConfigureAwait(false);
-                            
-                            // Aggregate all deployment target provision steps
-                            foreach (var deploymentStep in deploymentSteps)
-                            {
-                                deploymentStep.DependsOn(pushStep);
-                                // Make provision steps required by the deploy-compute-marker
-                                deploymentStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
-                                steps.Add(deploymentStep);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Add print-dashboard-url step that depends on all provision steps from deployment targets
+            // Add print-dashboard-url step that depends on the deploy-compute-marker
             var printDashboardUrlStep = new PipelineStep
             {
                 Name = $"print-dashboard-url-{name}",
                 Action = ctx => PrintDashboardUrlAsync(ctx),
             };
-            // Make it depend on all provision steps (deployment happens through these)
-            var provisionSteps = steps.Where(s => s.Tags.Contains(WellKnownPipelineTags.ProvisionInfrastructure)).ToList();
-            foreach (var provisionStep in provisionSteps)
-            {
-                printDashboardUrlStep.DependsOn(provisionStep);
-            }
+            printDashboardUrlStep.DependsOn(AzureEnvironmentResource.DeployComputeMarkerStepName);
             printDashboardUrlStep.RequiredBy("deploy");
             steps.Add(printDashboardUrlStep);
 
@@ -170,7 +96,7 @@ public class AzureContainerAppEnvironmentResource :
                     }
                 }
 
-                // Find push steps for this resource
+                // Find push steps for this resource (created by deployment targets)
                 var pushSteps = context.GetSteps("push")
                     .Where(s => s.Name == $"push-{computeResource.Name}")
                     .ToList();
@@ -183,26 +109,15 @@ public class AzureContainerAppEnvironmentResource :
                         pushStep.DependsOn(buildStep);
                     }
                 }
-            }
 
-            // Make all push steps for this environment depend on the registry being provisioned
-            var allPushSteps = context.GetSteps("push");
-            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
-            foreach (var pushStep in allPushSteps)
-            {
-                foreach (var provisionStep in provisionSteps)
+                // Make push steps depend on the registry being provisioned
+                var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+                foreach (var pushStep in pushSteps)
                 {
-                    pushStep.DependsOn(provisionStep);
-                }
-            }
-
-            // Make registry login depend on the registry being provisioned
-            var loginSteps = context.GetSteps("login-registry");
-            foreach (var loginStep in loginSteps)
-            {
-                foreach (var provisionStep in provisionSteps)
-                {
-                    loginStep.DependsOn(provisionStep);
+                    foreach (var provisionStep in provisionSteps)
+                    {
+                        pushStep.DependsOn(provisionStep);
+                    }
                 }
             }
 
