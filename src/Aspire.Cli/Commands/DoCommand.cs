@@ -65,5 +65,9 @@ internal sealed class DoCommand : PipelineCommandBase
 
     protected override string GetCanceledMessage() => DoCommandStrings.OperationCanceled;
 
-    protected override string GetProgressMessage() => DoCommandStrings.GeneratingArtifacts;
+    protected override string GetProgressMessage(ParseResult parseResult)
+    {
+        var step = parseResult.GetValue(_stepArgument);
+        return $"Executing step \"{step}\"";
+    }
 }
