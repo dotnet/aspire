@@ -120,6 +120,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\dotnet-install.sh" />
+    <EmbeddedResource Include="Resources\dotnet-install.ps1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Update="Resources\ExecCommandStrings.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>ExecCommandStrings.Designer.cs</LastGenOutput>
