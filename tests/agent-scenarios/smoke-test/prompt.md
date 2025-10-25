@@ -16,11 +16,12 @@ This smoke test validates that:
 ## Prerequisites
 
 Before starting, ensure you have:
-- .NET SDK 10.0 or later installed
 - Docker installed and running (for container-based resources if used)
 - Sufficient disk space for the Aspire CLI and application artifacts
 - Network access to download NuGet packages
 - Browser automation tools available (playwright) for capturing screenshots
+
+**Note**: The .NET SDK is not required as a prerequisite - the Aspire CLI will install it automatically.
 
 ## Step 1: Install the Aspire CLI from the PR Build
 
@@ -471,10 +472,10 @@ If issues occur during the smoke test:
 - Try uninstalling all .NET tools and reinstalling
 
 ### Build Failures
-- Ensure correct .NET SDK version (10.0+) is installed
 - Check NuGet package restore completed successfully
 - Verify all package sources are accessible
 - Review build error messages for specific issues
+- Verify the Aspire CLI successfully installed the required .NET SDK
 
 ### Startup Failures
 - Check Docker is running (if using containers)
@@ -500,7 +501,7 @@ After completing the smoke test, provide a summary report including:
 
 1. **Test Environment**:
    - OS and version
-   - .NET SDK version
+   - .NET SDK version (auto-installed by Aspire CLI)
    - Docker version (if applicable)
    - Aspire CLI version tested
 
