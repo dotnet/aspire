@@ -428,9 +428,9 @@ public sealed class UrlViewModel
     }
 }
 
-public record UrlDisplayPropertiesViewModel(string DisplayName, int SortOrder)
+public record UrlDisplayPropertiesViewModel(string DisplayName, int SortOrder, string? IconName, IconVariant? IconVariant)
 {
-    public static readonly UrlDisplayPropertiesViewModel Empty = new(string.Empty, 0);
+    public static readonly UrlDisplayPropertiesViewModel Empty = new(string.Empty, 0, string.Empty, null);
 }
 
 public sealed record class VolumeViewModel(int index, string Source, string Target, string MountType, bool IsReadOnly) : IPropertyGridItem
