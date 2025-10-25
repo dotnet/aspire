@@ -1333,7 +1333,7 @@ public class DistributedApplicationPipelineTests
             activities.Add(activity);
         }
 
-        var stepOrder = new[] { "deploy", "step1", "step2" }; // Added "deploy" step
+        var stepOrder = new[] { "parameter-prompt", "publish", "deploy", "step1", "step2" }; // Added "deploy" step
         var logOrder = new[] { "Message from step 1", "Message from step 2" };
 
         var stepActivities = activities.Where(a => a.Type == PublishingActivityTypes.Step)
