@@ -279,4 +279,53 @@ public class DoCommandTests(ITestOutputHelper outputHelper)
         // Assert
         Assert.Equal(ExitCodeConstants.FailedToFindProject, exitCode);
     }
+
+    [Fact]
+    public async Task DoCommandWithListStepsFlagSucceeds()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                    {
+                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                    },
+
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    {
+                        var completed = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel
+                        {
+                            RequestStopAsyncCalled = completed
+                        };
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await completed.Task;
+                        return 0;
+                    }
+                };
+
+                return runner;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("do my-step --list-steps");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+    }
 }

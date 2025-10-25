@@ -249,3 +249,24 @@ internal class PublishingPromptInputAnswer
     public string? Name { get; set; }
     public string? Value { get; set; }
 }
+
+/// <summary>
+/// Represents information about a pipeline step.
+/// </summary>
+internal sealed class PipelineStepInfo
+{
+    /// <summary>
+    /// Gets the name of the step.
+    /// </summary>
+    public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the list of step names that this step depends on.
+    /// </summary>
+    public required string[] DependsOn { get; init; }
+
+    /// <summary>
+    /// Gets the list of tags that categorize this step.
+    /// </summary>
+    public required string[] Tags { get; init; }
+}

@@ -1,6 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPUBLISHERS001
+
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
@@ -224,5 +227,36 @@ internal class AppHostRpcTarget(
     public async Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>() as DistributedApplicationPipeline;
+        if (pipeline == null)
+        {
+            return Array.Empty<PipelineStepInfo>();
+        }
+
+        var model = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+        var executionContext = serviceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
+        
+        // Create a minimal pipeline context just for collecting steps
+        var pipelineContext = new PipelineContext(
+            model, 
+            executionContext, 
+            serviceProvider, 
+            logger, 
+            cancellationToken, 
+            outputPath: null);
+
+        var steps = await pipeline.GetStepsForListingAsync(pipelineContext).ConfigureAwait(false);
+        var stepInfos = steps.Select(s => new PipelineStepInfo
+        {
+            Name = s.Name,
+            DependsOn = s.DependsOnSteps.ToArray(),
+            Tags = s.Tags.ToArray()
+        }).ToArray();
+
+        return stepInfos;
     }
 }

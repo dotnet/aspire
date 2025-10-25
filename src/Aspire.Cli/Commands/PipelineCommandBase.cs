@@ -39,6 +39,11 @@ internal abstract class PipelineCommandBase : BaseCommand
         Description = "The environment to use for the operation. The default is 'Production'."
     };
 
+    private readonly Option<bool> _listStepsOption = new("--list-steps")
+    {
+        Description = "List the pipeline steps that will be executed without running them."
+    };
+
     protected abstract string OperationCompletedPrefix { get; }
     protected abstract string OperationFailedPrefix { get; }
 
@@ -82,6 +87,7 @@ internal abstract class PipelineCommandBase : BaseCommand
 
         Options.Add(_logLevelOption);
         Options.Add(_environmentOption);
+        Options.Add(_listStepsOption);
 
         // In the publish and deploy commands we forward all unrecognized tokens
         // through to the underlying tooling when we launch the app host.
@@ -214,6 +220,26 @@ internal abstract class PipelineCommandBase : BaseCommand
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
+
+            // Check if --list-steps flag is set
+            var listSteps = parseResult.GetValue(_listStepsOption);
+            if (listSteps)
+            {
+                // Get the pipeline steps from the backchannel
+                var steps = await backchannel.GetPipelineStepsAsync(cancellationToken).ConfigureAwait(false);
+
+                // Display the steps
+                DisplayPipelineSteps(steps);
+
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
+
+                // Stop the apphost
+                await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                await pendingRun;
+
+                return ExitCodeConstants.Success;
+            }
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
@@ -863,5 +889,41 @@ internal abstract class PipelineCommandBase : BaseCommand
             return;
         }
         Console.Write("\u001b]9;4;0\u001b\\");
+    }
+
+    /// <summary>
+    /// Displays the pipeline steps in a formatted list.
+    /// </summary>
+    private void DisplayPipelineSteps(PipelineStepInfo[] steps)
+    {
+        for (int i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            InteractionService.DisplayPlainText($"{i + 1}. {step.Name}");
+
+            if (step.DependsOn.Length == 0)
+            {
+                InteractionService.DisplayPlainText("   └─ No dependencies");
+            }
+            else
+            {
+                InteractionService.DisplayPlainText($"   ├─ Depends on: {string.Join(", ", step.DependsOn)}");
+            }
+
+            if (step.Tags.Length > 0)
+            {
+                InteractionService.DisplayPlainText($"   └─ Tags: {string.Join(", ", step.Tags)}");
+            }
+            else if (step.DependsOn.Length > 0)
+            {
+                InteractionService.DisplayPlainText("   └─ No tags");
+            }
+
+            // Add blank line between steps except after the last one
+            if (i < steps.Length - 1)
+            {
+                InteractionService.DisplayPlainText("");
+            }
+        }
     }
 }
