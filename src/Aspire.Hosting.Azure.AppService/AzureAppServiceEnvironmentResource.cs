@@ -37,12 +37,6 @@ public class AzureAppServiceEnvironmentResource :
             var model = factoryContext.PipelineContext.Model;
             var steps = new List<PipelineStep>();
 
-            // Get all compute resources targeted to this environment
-            var computeResources = model.GetComputeResources()
-                .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
-                .Where(r => r.RequiresImageBuildAndPush())
-                .ToList();
-
             // Add default image tags step for this environment
             var addImageTagsStep = new PipelineStep
             {
@@ -63,15 +57,23 @@ public class AzureAppServiceEnvironmentResource :
 
             // Expand deployment target steps for all compute resources
             // This ensures the push/provision steps from deployment targets are included in the pipeline
-            foreach (var computeResource in computeResources)
+            foreach (var computeResource in model.GetComputeResources())
             {
                 var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+
                 if (deploymentTarget != null && deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var annotations))
                 {
                     // Resolve the deployment target's PipelineStepAnnotation and expand its steps
+                    // this because the deployment target is not in the model
                     foreach (var annotation in annotations)
                     {
-                        var deploymentTargetSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
+                        var childFactoryContext = new PipelineStepFactoryContext
+                        {
+                            PipelineContext = factoryContext.PipelineContext,
+                            Resource = deploymentTarget
+                        };
+
+                        var deploymentTargetSteps = await annotation.CreateStepsAsync(childFactoryContext).ConfigureAwait(false);
                         steps.AddRange(deploymentTargetSteps);
                     }
                 }
@@ -84,31 +86,20 @@ public class AzureAppServiceEnvironmentResource :
         // This is where we wire up the build steps created by the resources
         Annotations.Add(new PipelineConfigurationAnnotation(context =>
         {
-            var model = context.Model;
-
-            // Get all compute resources targeted to this environment
-            var computeResources = model.GetComputeResources()
-                .Where(r => r.GetDeploymentTargetAnnotation(this) != null)
-                .Where(r => r.RequiresImageBuildAndPush())
-                .ToList();
+            var imageTagsStep = context.GetSteps(this, "default-image-tags");
 
             // Wire up build step dependencies
             // Build steps are created by ProjectResource and ContainerResource
-            foreach (var computeResource in computeResources)
+            foreach (var computeResource in context.Model.GetComputeResources())
             {
-                // Find build steps for this resource (created by the resource itself)
-                var buildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
-                    .ToList();
-
-                // Make build steps depend on default-image-tags-{name}
-                var imageTagsStep = context.Steps.FirstOrDefault(s => s.Name == $"default-image-tags-{name}");
-                if (imageTagsStep != null)
+                if (computeResource.GetDeploymentTargetAnnotation(this) == null)
                 {
-                    foreach (var buildStep in buildSteps)
-                    {
-                        buildStep.DependsOn(imageTagsStep);
-                    }
+                    continue;
                 }
+
+                // Make build steps depend on default-image-tagging
+                context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
+                       .DependsOn(imageTagsStep);
             }
 
             return Task.CompletedTask;
@@ -138,14 +129,12 @@ public class AzureAppServiceEnvironmentResource :
 
     private async Task PrintDashboardUrlAsync(PipelineStepContext context)
     {
-        // Use the DashboardUriReference BicepOutputReference
-        if (DashboardUriReference.Value is { } dashboardUri)
-        {
-            await context.ReportingStep.CompleteAsync(
-                $"Dashboard available at [dashboard URL]({dashboardUri})",
-                CompletionState.Completed,
-                context.CancellationToken).ConfigureAwait(false);
-        }
+        var dashboardUri = await DashboardUriReference.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+
+        await context.ReportingStep.CompleteAsync(
+            $"Dashboard available at [dashboard URL]({dashboardUri})",
+            CompletionState.Completed,
+            context.CancellationToken).ConfigureAwait(false);
     }
 
     // We don't want these to be public if we end up with an app service

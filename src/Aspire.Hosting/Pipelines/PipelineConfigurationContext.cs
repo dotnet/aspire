@@ -64,3 +64,91 @@ public class PipelineConfigurationContext
         return GetSteps(resource).Where(s => s.Tags.Contains(tag));
     }
 }
+
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+
+/// <summary>
+/// Extension methods for pipeline steps.
+/// </summary>
+public static class PipelineStepsExtensions
+{
+    /// <summary>
+    /// Makes each step in the collection depend on the specified step.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="step">The step to depend on.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> DependsOn(this IEnumerable<PipelineStep> steps, PipelineStep? step)
+    {
+        if (step is null)
+        {
+            return steps;
+        }
+
+        foreach (var s in steps)
+        {
+            s.DependsOn(step);
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// Makes each step in the collection depend on the specified target steps.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="targetSteps">The target steps to depend on.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> DependsOn(this IEnumerable<PipelineStep> steps, IEnumerable<PipelineStep> targetSteps)
+    {
+        foreach (var step in targetSteps)
+        {
+            foreach (var s in steps)
+            {
+                s.DependsOn(step);
+            }
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// Specifies that each step in the collection is required by the specified step.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="step">The step that requires these steps.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> RequiredBy(this IEnumerable<PipelineStep> steps, PipelineStep? step)
+    {
+        if (step is null)
+        {
+            return steps;
+        }
+
+        foreach (var s in steps)
+        {
+            s.RequiredBy(step);
+        }
+
+        return steps;
+    }
+
+    /// <summary>
+    /// Specifies that each step in the collection is required by the specified target steps.
+    /// </summary>
+    /// <param name="steps">The collection of steps.</param>
+    /// <param name="targetSteps">The target steps that require these steps.</param>
+    /// <returns>The original collection of steps.</returns>
+    public static IEnumerable<PipelineStep> RequiredBy(this IEnumerable<PipelineStep> steps, IEnumerable<PipelineStep> targetSteps)
+    {
+        foreach (var step in targetSteps)
+        {
+            foreach (var s in steps)
+            {
+                s.RequiredBy(step);
+            }
+        }
+
+        return steps;
+    }
+}

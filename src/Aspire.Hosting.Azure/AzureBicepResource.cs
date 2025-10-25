@@ -44,11 +44,12 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
         {
             // Initialize the provisioning task completion source during step creation
             ProvisioningTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            
+
             var provisionStep = new PipelineStep
             {
                 Name = $"provision-{name}",
-                Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false)
+                Action = async ctx => await ProvisionAzureBicepResourceAsync(ctx, this).ConfigureAwait(false),
+                Tags = [WellKnownPipelineTags.ProvisionInfrastructure]
             };
             provisionStep.RequiredBy(AzureEnvironmentResource.ProvisionInfrastructureStepName);
             provisionStep.DependsOn(AzureEnvironmentResource.CreateProvisioningContextStepName);
@@ -267,14 +268,14 @@ public class AzureBicepResource : Resource, IAzureResource, IResourceWithParamet
 
         var bicepProvisioner = context.Services.GetRequiredService<IBicepProvisioner>();
         var configuration = context.Services.GetRequiredService<IConfiguration>();
-        
+
         // Find the AzureEnvironmentResource from the application model
         var azureEnvironment = context.Model.Resources.OfType<AzureEnvironmentResource>().FirstOrDefault();
         if (azureEnvironment == null)
         {
             throw new InvalidOperationException("AzureEnvironmentResource must be present in the application model.");
         }
-        
+
         var provisioningContext = await azureEnvironment.ProvisioningContextTask.Task.ConfigureAwait(false);
 
         var resourceTask = await context.ReportingStep

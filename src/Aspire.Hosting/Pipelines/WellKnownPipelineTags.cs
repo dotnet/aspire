@@ -22,6 +22,11 @@ public static class WellKnownPipelineTags
     public const string BuildCompute = "build-compute";
 
     /// <summary>
+    /// Tag for steps that push container images to a registry.
+    /// </summary>
+    public const string PushContainerImage = "push-container-image";
+
+    /// <summary>
     /// Tag for steps that deploy to compute infrastructure.
     /// </summary>
     public const string DeployCompute = "deploy-compute";

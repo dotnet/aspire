@@ -32,14 +32,12 @@ public class AzureContainerAppResource : AzureProvisioningResource
         // Add pipeline step annotation for push
         Annotations.Add(new PipelineStepAnnotation((factoryContext) =>
         {
-            var steps = new List<PipelineStep>();
-
             // Get the registry from the target resource's deployment target annotation
             var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
             if (deploymentTargetAnnotation?.ContainerRegistry is not IContainerRegistry registry)
             {
                 // No registry available, skip push
-                return steps;
+                return [];
             }
 
             // Create push step for this deployment target
@@ -55,49 +53,36 @@ public class AzureContainerAppResource : AzureProvisioningResource
                         ctx,
                         containerImageBuilder).ConfigureAwait(false);
                 },
-                Tags = ["push"]
+                Tags = [WellKnownPipelineTags.PushContainerImage]
             };
-            steps.Add(pushStep);
 
-            return steps;
+            return [pushStep];
         }));
 
         // Add pipeline configuration annotation to wire up dependencies
         Annotations.Add(new PipelineConfigurationAnnotation((context) =>
         {
             // Find the push step for this resource
-            var pushStepName = $"push-{targetResource.Name}";
-            var pushStep = context.Steps.FirstOrDefault(s => s.Name == pushStepName);
-            
-            if (pushStep is not null)
-            {
-                // Make push step depend on build steps of the target resource
-                var buildSteps = context.GetSteps(targetResource, WellKnownPipelineTags.BuildCompute);
-                foreach (var buildStep in buildSteps)
-                {
-                    pushStep.DependsOn(buildStep);
-                }
+            var pushSteps = context.GetSteps(this, WellKnownPipelineTags.PushContainerImage);
 
-                // Make push step depend on the registry being provisioned
-                var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
-                if (deploymentTargetAnnotation?.ContainerRegistry is IResource registryResource)
-                {
-                    var registryProvisionSteps = context.GetSteps(registryResource, WellKnownPipelineTags.ProvisionInfrastructure);
-                    foreach (var registryProvisionStep in registryProvisionSteps)
-                    {
-                        pushStep.DependsOn(registryProvisionStep);
-                    }
-                }
+            // Make push step depend on build steps of the target resource
+            var buildSteps = context.GetSteps(targetResource, WellKnownPipelineTags.BuildCompute);
+
+            pushSteps.DependsOn(buildSteps);
+
+            // Make push step depend on the registry being provisioned
+            var deploymentTargetAnnotation = targetResource.GetDeploymentTargetAnnotation();
+            if (deploymentTargetAnnotation?.ContainerRegistry is IResource registryResource)
+            {
+                var registryProvisionSteps = context.GetSteps(registryResource, WellKnownPipelineTags.ProvisionInfrastructure);
+
+                pushSteps.DependsOn(registryProvisionSteps);
             }
 
-            // Find the provision step by convention (created by AzureBicepResource)
-            var provisionStepName = $"provision-{name}";
-            var provisionStep = context.Steps.FirstOrDefault(s => s.Name == provisionStepName);
-            if (provisionStep is not null && pushStep is not null)
-            {
-                // Provision depends on push
-                provisionStep.DependsOn(pushStep);
-            }
+            // The app deployment should depend on the push step
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+
+            provisionSteps.DependsOn(pushSteps);
         }));
     }
 
