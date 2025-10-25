@@ -352,6 +352,12 @@ public class DistributedApplicationBuilder : IDistributedApplicationBuilder
                     // of persistent containers (as a new key would be a spec change).
                     SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:OtlpApiKey", TokenGenerator.GenerateToken);
 
+                    // Set a random API key for the MCP Server if one isn't already present in configuration.
+                    // If a key is generated, it's stored in the user secrets store so that it will be auto-loaded
+                    // on subsequent runs and not recreated. This is important to ensure it doesn't change the state
+                    // of MCP clients.
+                    SecretsStore.GetOrSetUserSecret(_innerBuilder.Configuration, AppHostAssembly, "AppHost:McpApiKey", TokenGenerator.GenerateToken);
+
                     // Determine the frontend browser token.
                     if (_innerBuilder.Configuration.GetString(KnownConfigNames.DashboardFrontendBrowserToken,
                                                               KnownConfigNames.Legacy.DashboardFrontendBrowserToken, fallbackOnEmpty: true) is not { } browserToken)

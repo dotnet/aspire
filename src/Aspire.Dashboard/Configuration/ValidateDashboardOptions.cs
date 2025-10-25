@@ -93,6 +93,24 @@ public sealed class ValidateDashboardOptions : IValidateOptions<DashboardOptions
                 break;
         }
 
+        if (!options.Mcp.TryParseOptions(out var mcpParseErrorMessage))
+        {
+            errorMessages.Add(mcpParseErrorMessage);
+        }
+
+        switch (options.Mcp.AuthMode)
+        {
+            case McpAuthMode.Unsecured:
+                break;
+            case McpAuthMode.ApiKey:
+                if (string.IsNullOrEmpty(options.Mcp.PrimaryApiKey))
+                {
+                    errorMessages.Add($"PrimaryApiKey is required when MCP authentication mode is API key. Specify a {DashboardConfigNames.DashboardMcpPrimaryApiKeyName.ConfigKey} value.");
+                }
+                break;
+
+        }
+
         if (!options.ResourceServiceClient.TryParseOptions(out var resourceServiceClientParseErrorMessage))
         {
             errorMessages.Add(resourceServiceClientParseErrorMessage);

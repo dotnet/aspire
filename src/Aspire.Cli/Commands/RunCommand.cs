@@ -207,6 +207,7 @@ internal sealed class RunCommand : BaseCommand
                     env["ASPNETCORE_ENVIRONMENT"] = "Development";
                     env["DOTNET_ENVIRONMENT"] = "Development";
                     env["ASPNETCORE_URLS"] = "https://localhost:17193;http://localhost:15069";
+                    env["ASPIRE_DASHBOARD_MCP_ENDPOINT_URL"] = "https://localhost:21294";
                     env["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"] = "https://localhost:21293";
                     env["ASPIRE_RESOURCE_SERVICE_ENDPOINT_URL"] = "https://localhost:22086";
                 }

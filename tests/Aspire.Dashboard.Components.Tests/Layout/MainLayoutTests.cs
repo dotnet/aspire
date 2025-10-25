@@ -40,26 +40,27 @@ public partial class MainLayoutTests : DashboardTestContext
 
         testLocalStorage.OnGetUnprotectedAsync = key =>
         {
-            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            switch (key)
             {
-                return (false, false);
-            }
-            else
-            {
-                throw new InvalidOperationException("Unexpected key.");
+                case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
+                case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
+                    return (false, false);
+                default:
+                    throw new InvalidOperationException("Unexpected key.");
             }
         };
 
         var dismissedSettingSetTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         testLocalStorage.OnSetUnprotectedAsync = (key, value) =>
         {
-            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            switch (key)
             {
-                dismissedSettingSetTcs.TrySetResult((bool)value!);
-            }
-            else
-            {
-                throw new InvalidOperationException("Unexpected key.");
+                case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
+                case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
+                    dismissedSettingSetTcs.TrySetResult((bool)value!);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unexpected key.");
             }
         };
 
@@ -79,8 +80,10 @@ public partial class MainLayoutTests : DashboardTestContext
         Assert.True(await dismissedSettingSetTcs.Task.DefaultTimeout());
     }
 
-    [Fact]
-    public async Task OnInitialize_UnsecuredOtlp_Dismissed_NoMessageBar()
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task OnInitialize_UnsecuredOtlp_Dismissed_NoMessageBar(bool unsecuredTelemetryMessageDismissedKey, bool unsecuredEndpointMessageDismissedKey)
     {
         // Arrange
         var testLocalStorage = new TestLocalStorage();
@@ -97,13 +100,14 @@ public partial class MainLayoutTests : DashboardTestContext
 
         testLocalStorage.OnGetUnprotectedAsync = key =>
         {
-            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            switch (key)
             {
-                return (true, true);
-            }
-            else
-            {
-                throw new InvalidOperationException("Unexpected key.");
+                case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
+                    return (unsecuredTelemetryMessageDismissedKey, unsecuredTelemetryMessageDismissedKey);
+                case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
+                    return (unsecuredEndpointMessageDismissedKey, unsecuredEndpointMessageDismissedKey);
+                default:
+                    throw new InvalidOperationException("Unexpected key.");
             }
         };
 
@@ -124,15 +128,21 @@ public partial class MainLayoutTests : DashboardTestContext
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar(bool suppressUnsecuredMessage)
+    [InlineData(true, false, false)]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    public async Task OnInitialize_UnsecuredOtlp_SuppressConfigured_NoMessageBar(bool expectMessageBar, bool telemetrySuppressUnsecuredMessage, bool mcpSuppressUnsecuredMessage)
     {
         // Arrange
         var testLocalStorage = new TestLocalStorage();
         var messageService = new MessageService();
 
-        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, suppressUnsecuredMessage: suppressUnsecuredMessage);
+        SetupMainLayoutServices(localStorage: testLocalStorage, messageService: messageService, configureOptions: o =>
+        {
+            o.Otlp.SuppressUnsecuredMessage = telemetrySuppressUnsecuredMessage;
+            o.Mcp.SuppressUnsecuredMessage = mcpSuppressUnsecuredMessage;
+        });
 
         var messageShownTcs = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         messageService.OnMessageItemsUpdatedAsync += () =>
@@ -143,13 +153,13 @@ public partial class MainLayoutTests : DashboardTestContext
 
         testLocalStorage.OnGetUnprotectedAsync = key =>
         {
-            if (key == BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey)
+            switch (key)
             {
-                return (false, false); // Message not dismissed, but should be suppressed by config if suppressUnsecuredMessage is true
-            }
-            else
-            {
-                throw new InvalidOperationException("Unexpected key.");
+                case BrowserStorageKeys.UnsecuredTelemetryMessageDismissedKey:
+                case BrowserStorageKeys.UnsecuredEndpointMessageDismissedKey:
+                    return (false, false); // Message not dismissed, but should be suppressed by config if suppressUnsecuredMessage is true
+                default:
+                    throw new InvalidOperationException("Unexpected key.");
             }
         };
 
@@ -160,7 +170,7 @@ public partial class MainLayoutTests : DashboardTestContext
         });
 
         // Assert
-        if (suppressUnsecuredMessage)
+        if (!expectMessageBar)
         {
             var timeoutTask = Task.Delay(100);
             var completedTask = await Task.WhenAny(messageShownTcs.Task, timeoutTask).DefaultTimeout();
@@ -177,7 +187,7 @@ public partial class MainLayoutTests : DashboardTestContext
         }
     }
 
-    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, bool suppressUnsecuredMessage = false)
+    private void SetupMainLayoutServices(TestLocalStorage? localStorage = null, MessageService? messageService = null, Action<DashboardOptions>? configureOptions = null)
     {
         FluentUISetupHelpers.AddCommonDashboardServices(this, localStorage: localStorage, messageService: messageService);
         
@@ -190,7 +200,8 @@ public partial class MainLayoutTests : DashboardTestContext
         Services.Configure<DashboardOptions>(o =>
         {
             o.Otlp.AuthMode = OtlpAuthMode.Unsecured;
-            o.Otlp.SuppressUnsecuredTelemetryMessage = suppressUnsecuredMessage;
+            o.Mcp.AuthMode = McpAuthMode.Unsecured;
+            configureOptions?.Invoke(o);
         });
 
         FluentUISetupHelpers.SetupFluentDialogProvider(this);
