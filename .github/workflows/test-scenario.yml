@@ -126,7 +126,7 @@ jobs:
             --repo "${REPO_OWNER}/${REPO_NAME}" \
             --title "$ISSUE_TITLE" \
             --body "$ISSUE_BODY" \
-            --assignee "copilot" \
+            --assignee "copilot-swe-agent" \
             2>&1)
 
           echo "Issue creation output:"
