@@ -39,12 +39,12 @@ public class DotNetSdkInstallerTests
     [Fact]
     public async Task CheckAsync_WhenDotNetIsAvailable_ReturnsTrue()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // This test assumes the test environment has .NET SDK installed
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
