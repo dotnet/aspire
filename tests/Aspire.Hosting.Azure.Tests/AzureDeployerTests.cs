@@ -78,29 +78,40 @@ public class AzureDeployerTests
         subscriptionInteraction.Inputs[0].Value = "12345678-1234-1234-1234-123456789012";
         subscriptionInteraction.CompletionTcs.SetResult(InteractionResult.Ok(subscriptionInteraction.Inputs));
 
-        // Wait for the second interaction (location and resource group selection)
+        // Wait for the resource group selection interaction
+        var resourceGroupInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
+        Assert.Equal("Azure resource group", resourceGroupInteraction.Title);
+        Assert.False(resourceGroupInteraction.Options!.EnableMessageMarkdown);
+
+        // Verify the expected input for resource group selection
+        Assert.Collection(resourceGroupInteraction.Inputs,
+            input =>
+            {
+                Assert.Equal("Resource group", input.Label);
+                Assert.Equal(InputType.Choice, input.InputType);
+                Assert.False(input.Required);
+            });
+
+        // Complete the resource group interaction with a new resource group name
+        resourceGroupInteraction.Inputs[0].Value = "test-rg";
+        resourceGroupInteraction.CompletionTcs.SetResult(InteractionResult.Ok(resourceGroupInteraction.Inputs));
+
+        // Wait for the location selection interaction (only shown for new resource groups)
         var locationInteraction = await testInteractionService.Interactions.Reader.ReadAsync();
         Assert.Equal("Azure location and resource group", locationInteraction.Title);
         Assert.False(locationInteraction.Options!.EnableMessageMarkdown);
 
-        // Verify the expected inputs for location and resource group (fallback to manual entry)
+        // Verify the expected input for location selection
         Assert.Collection(locationInteraction.Inputs,
             input =>
             {
                 Assert.Equal("Location", input.Label);
                 Assert.Equal(InputType.Choice, input.InputType);
                 Assert.True(input.Required);
-            },
-            input =>
-            {
-                Assert.Equal("Resource group", input.Label);
-                Assert.Equal(InputType.Text, input.InputType);
-                Assert.False(input.Required);
             });
 
         // Complete the location interaction
         locationInteraction.Inputs[0].Value = "westus2";
-        locationInteraction.Inputs[1].Value = "test-rg";
         locationInteraction.CompletionTcs.SetResult(InteractionResult.Ok(locationInteraction.Inputs));
 
         // Wait for the run task to complete (or timeout)
