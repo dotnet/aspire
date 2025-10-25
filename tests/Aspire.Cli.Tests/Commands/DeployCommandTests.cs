@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Aspire.Cli.Backchannel;
 using Aspire.Cli.Commands;
 using Aspire.Cli.Interaction;
 using Aspire.Cli.Tests.Utils;
@@ -328,6 +329,92 @@ public class DeployCommandTests(ITestOutputHelper outputHelper)
 
         // Act
         var result = command.Parse("deploy --output-path /tmp/test");
+        var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
+
+        // Assert
+        Assert.Equal(0, exitCode);
+    }
+
+    [Fact]
+    public async Task DeployCommandWithListStepsSucceeds()
+    {
+        using var tempRepo = TemporaryWorkspace.Create(outputHelper);
+
+        // Arrange
+        var services = CliTestHelper.CreateServiceCollection(tempRepo, outputHelper, options =>
+        {
+            options.ProjectLocatorFactory = (sp) => new TestProjectLocator();
+
+            options.DotNetCliRunnerFactory = (sp) =>
+            {
+                var runner = new TestDotNetCliRunner
+                {
+                    // Simulate a successful build
+                    BuildAsyncCallback = (projectFile, options, cancellationToken) => 0,
+
+                    // Simulate a successful app host information retrieval
+                    GetAppHostInformationAsyncCallback = (projectFile, options, cancellationToken) =>
+                    {
+                        return (0, true, VersionHelper.GetDefaultTemplateVersion());
+                    },
+
+                    // Simulate apphost running successfully and establishing a backchannel
+                    RunAsyncCallback = async (projectFile, watch, noBuild, args, env, backchannelCompletionSource, options, cancellationToken) =>
+                    {
+                        var listStepsCompleted = new TaskCompletionSource();
+                        var backchannel = new TestAppHostBackchannel
+                        {
+                            RequestStopAsyncCalled = listStepsCompleted,
+                            GetPipelineStepsAsyncCallback = (ct) => Task.FromResult(new[]
+                            {
+                                new PipelineStepInfo
+                                {
+                                    Name = "parameter-prompt",
+                                    DependsOn = Array.Empty<string>(),
+                                    Tags = Array.Empty<string>()
+                                },
+                                new PipelineStepInfo
+                                {
+                                    Name = "provision-redis-infra",
+                                    DependsOn = new[] { "parameter-prompt" },
+                                    Tags = new[] { "provision-infra" }
+                                },
+                                new PipelineStepInfo
+                                {
+                                    Name = "build-webapi",
+                                    DependsOn = new[] { "parameter-prompt" },
+                                    Tags = new[] { "build-compute" }
+                                },
+                                new PipelineStepInfo
+                                {
+                                    Name = "deploy-webapi",
+                                    DependsOn = new[] { "provision-redis-infra", "build-webapi" },
+                                    Tags = new[] { "deploy-compute" }
+                                }
+                            })
+                        };
+                        backchannelCompletionSource?.SetResult(backchannel);
+                        await listStepsCompleted.Task;
+                        return 0;
+                    }
+                };
+
+                return runner;
+            };
+
+            options.PublishCommandPrompterFactory = (sp) =>
+            {
+                var interactionService = sp.GetRequiredService<IInteractionService>();
+                var prompter = new TestDeployCommandPrompter(interactionService);
+                return prompter;
+            };
+        });
+
+        var provider = services.BuildServiceProvider();
+        var command = provider.GetRequiredService<RootCommand>();
+
+        // Act
+        var result = command.Parse("deploy --list-steps");
         var exitCode = await result.InvokeAsync().WaitAsync(CliTestConstants.DefaultTimeout);
 
         // Assert

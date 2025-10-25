@@ -257,4 +257,47 @@ internal sealed class TestAppHostBackchannel : IAppHostBackchannel
         AddDisconnectHandlerCalled?.SetResult();
         AddDisconnectHandlerCallback?.Invoke(onDisconnected);
     }
+
+    public TaskCompletionSource? GetPipelineStepsAsyncCalled { get; set; }
+    public Func<CancellationToken, Task<PipelineStepInfo[]>>? GetPipelineStepsAsyncCallback { get; set; }
+
+    public Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        GetPipelineStepsAsyncCalled?.SetResult();
+        if (GetPipelineStepsAsyncCallback != null)
+        {
+            return GetPipelineStepsAsyncCallback(cancellationToken);
+        }
+        else
+        {
+            // Return a default set of steps for testing
+            return Task.FromResult(new[]
+            {
+                new PipelineStepInfo
+                {
+                    Name = "parameter-prompt",
+                    DependsOn = Array.Empty<string>(),
+                    Tags = Array.Empty<string>()
+                },
+                new PipelineStepInfo
+                {
+                    Name = "provision-redis-infra",
+                    DependsOn = new[] { "parameter-prompt" },
+                    Tags = new[] { "provision-infra" }
+                },
+                new PipelineStepInfo
+                {
+                    Name = "build-webapi",
+                    DependsOn = new[] { "parameter-prompt" },
+                    Tags = new[] { "build-compute" }
+                },
+                new PipelineStepInfo
+                {
+                    Name = "deploy-webapi",
+                    DependsOn = new[] { "provision-redis-infra", "build-webapi" },
+                    Tags = new[] { "deploy-compute" }
+                }
+            });
+        }
+    }
 }
