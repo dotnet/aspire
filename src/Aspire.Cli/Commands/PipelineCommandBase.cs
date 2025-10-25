@@ -92,6 +92,11 @@ internal abstract class PipelineCommandBase : BaseCommand
     protected abstract string[] GetRunArguments(string? fullyQualifiedOutputPath, string[] unmatchedTokens, ParseResult parseResult);
     protected abstract string GetCanceledMessage();
     protected abstract string GetProgressMessage();
+    
+    /// <summary>
+    /// Determines if the command is running in list-steps mode.
+    /// </summary>
+    protected virtual bool IsListStepsMode(ParseResult parseResult) => false;
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
@@ -214,6 +219,20 @@ internal abstract class PipelineCommandBase : BaseCommand
             {
                 return await backchannelCompletionSource.Task.ConfigureAwait(false);
             });
+
+            // Check if we're in list-steps mode
+            if (IsListStepsMode(parseResult))
+            {
+                await HandleListStepsModeAsync(backchannel, cancellationToken);
+                
+                // Send terminal progress bar stop sequence
+                StopTerminalProgressBar();
+                
+                await backchannel.RequestStopAsync(cancellationToken).ConfigureAwait(false);
+                var listStepsExitCode = await pendingRun;
+                
+                return listStepsExitCode == 0 ? ExitCodeConstants.Success : ExitCodeConstants.FailedToBuildArtifacts;
+            }
 
             var publishingActivities = backchannel.GetPublishingActivitiesAsync(cancellationToken);
 
@@ -398,6 +417,50 @@ internal abstract class PipelineCommandBase : BaseCommand
         }
 
         return !hasErrors;
+    }
+
+    private async Task HandleListStepsModeAsync(IAppHostBackchannel backchannel, CancellationToken cancellationToken)
+    {
+        var steps = await backchannel.GetPipelineStepsAsync(cancellationToken);
+
+        if (steps.Length == 0)
+        {
+            InteractionService.DisplayMessage("information", "No pipeline steps found.");
+            return;
+        }
+
+        // Display the steps with numbering
+        for (var i = 0; i < steps.Length; i++)
+        {
+            var step = steps[i];
+            InteractionService.DisplayMessage("information", $"{i + 1}. {step.Name}");
+
+            // Display dependencies
+            if (step.DependsOn.Length == 0)
+            {
+                InteractionService.DisplayMessage("dim", "   └─ No dependencies");
+            }
+            else if (step.DependsOn.Length == 1)
+            {
+                InteractionService.DisplayMessage("dim", $"   ├─ Depends on: {step.DependsOn[0]}");
+            }
+            else
+            {
+                InteractionService.DisplayMessage("dim", $"   ├─ Depends on: {string.Join(", ", step.DependsOn)}");
+            }
+
+            // Display tags
+            if (step.Tags.Length > 0)
+            {
+                InteractionService.DisplayMessage("dim", $"   └─ Tags: {string.Join(", ", step.Tags)}");
+            }
+
+            // Add a blank line between steps except after the last one
+            if (i < steps.Length - 1)
+            {
+                InteractionService.DisplayMessage("dim", "");
+            }
+        }
     }
 
     public async Task<bool> ProcessAndDisplayPublishingActivitiesAsync(IAsyncEnumerable<PublishingActivity> publishingActivities, IAppHostBackchannel backchannel, CancellationToken cancellationToken)

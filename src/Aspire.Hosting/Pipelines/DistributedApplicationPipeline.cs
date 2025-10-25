@@ -164,6 +164,16 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
+    /// Gets all steps in the pipeline for listing purposes.
+    /// This returns only the steps that have been added via AddStep, not including steps from resource annotations.
+    /// </summary>
+    internal List<PipelineStep> GetStepsForListing()
+    {
+        // Return a copy of the steps to avoid exposing the internal list
+        return new List<PipelineStep>(_steps);
+    }
+
+    /// <summary>
     /// Converts all RequiredBy relationships to their equivalent DependsOn relationships.
     /// If step A is required by step B, this adds step A as a dependency of step B.
     /// </summary>

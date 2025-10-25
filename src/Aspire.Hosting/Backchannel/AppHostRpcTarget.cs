@@ -1,6 +1,8 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using Aspire.Hosting.ApplicationModel;
@@ -224,5 +226,27 @@ internal class AppHostRpcTarget(
     public async Task UpdatePromptResponseAsync(string promptId, PublishingPromptInputAnswer[] answers, CancellationToken cancellationToken = default)
     {
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    {
+        _ = cancellationToken;
+        var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
+        
+        // Access the internal DistributedApplicationPipeline to get steps
+        if (pipeline is not DistributedApplicationPipeline internalPipeline)
+        {
+            throw new InvalidOperationException("Pipeline does not support step listing.");
+        }
+
+        var steps = internalPipeline.GetStepsForListing();
+        var stepInfos = steps.Select(s => new PipelineStepInfo
+        {
+            Name = s.Name,
+            DependsOn = s.DependsOnSteps.ToArray(),
+            Tags = s.Tags.ToArray()
+        }).ToArray();
+
+        return Task.FromResult(stepInfos);
     }
 }

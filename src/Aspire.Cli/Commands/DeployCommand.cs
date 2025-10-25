@@ -16,6 +16,7 @@ internal sealed class DeployCommand : PipelineCommandBase
 {
     private readonly Option<bool> _clearCacheOption;
     private readonly Option<string?> _stepOption;
+    private readonly Option<bool> _listStepsOption;
 
     public DeployCommand(IDotNetCliRunner runner, IInteractionService interactionService, IProjectLocator projectLocator, AspireCliTelemetry telemetry, IDotNetSdkInstaller sdkInstaller, IFeatures features, ICliUpdateNotifier updateNotifier, CliExecutionContext executionContext, ICliHostEnvironment hostEnvironment)
         : base("deploy", DeployCommandStrings.Description, runner, interactionService, projectLocator, telemetry, sdkInstaller, features, updateNotifier, executionContext, hostEnvironment)
@@ -31,7 +32,15 @@ internal sealed class DeployCommand : PipelineCommandBase
             Description = "Run a specific deployment step and its dependencies"
         };
         Options.Add(_stepOption);
+
+        _listStepsOption = new Option<bool>("--list-steps")
+        {
+            Description = "List the deployment steps that will be executed with their dependencies and tags"
+        };
+        Options.Add(_listStepsOption);
     }
+
+    protected override bool IsListStepsMode(ParseResult parseResult) => parseResult.GetValue(_listStepsOption);
 
     protected override string OperationCompletedPrefix => DeployCommandStrings.OperationCompletedPrefix;
     protected override string OperationFailedPrefix => DeployCommandStrings.OperationFailedPrefix;
