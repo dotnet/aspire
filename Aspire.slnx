@@ -7,6 +7,7 @@
   <Folder Name="/Components/">
     <Project Path="src/Components/Aspire.Azure.AI.Inference/Aspire.Azure.AI.Inference.csproj" />
     <Project Path="src/Components/Aspire.Azure.AI.OpenAI/Aspire.Azure.AI.OpenAI.csproj" />
+    <Project Path="src/Components/Aspire.Azure.Data.AppConfiguration/Aspire.Azure.Data.AppConfiguration.csproj" />
     <Project Path="src/Components/Aspire.Azure.Data.Tables/Aspire.Azure.Data.Tables.csproj" />
     <Project Path="src/Components/Aspire.Azure.Messaging.EventHubs/Aspire.Azure.Messaging.EventHubs.csproj" />
     <Project Path="src/Components/Aspire.Azure.Messaging.ServiceBus/Aspire.Azure.Messaging.ServiceBus.csproj" />
@@ -372,6 +373,7 @@
   <Folder Name="/tests/Components/">
     <Project Path="tests/Aspire.Azure.AI.Inference.Tests/Aspire.Azure.AI.Inference.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.AI.OpenAI.Tests/Aspire.Azure.AI.OpenAI.Tests.csproj" />
+    <Project Path="tests/Aspire.Azure.Data.AppConfiguration.Tests/Aspire.Azure.Data.AppConfiguration.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Data.Tables.Tests/Aspire.Azure.Data.Tables.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Messaging.EventHubs.Tests/Aspire.Azure.Messaging.EventHubs.Tests.csproj" />
     <Project Path="tests/Aspire.Azure.Messaging.ServiceBus.Tests/Aspire.Azure.Messaging.ServiceBus.Tests.csproj" />
