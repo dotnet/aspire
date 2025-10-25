@@ -651,6 +651,22 @@ public class ResourceHealthCheckServiceTests(ITestOutputHelper testOutputHelper)
         await app.StopAsync().TimeoutAfter(TestConstants.LongTimeoutTimeSpan);
     }
 
+    [Fact]
+    public void ResourceStartedEventHasCorrectProperties()
+    {
+        // Arrange
+        var resource = new ParentResource("test-resource");
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+
+        // Act
+        var resourceStartedEvent = new ResourceStartedEvent(resource, serviceProvider);
+
+        // Assert
+        Assert.Equal(resource, resourceStartedEvent.Resource);
+        Assert.Equal(serviceProvider, resourceStartedEvent.Services);
+        Assert.Equal("test-resource", resourceStartedEvent.Resource.Name);
+    }
+
     private sealed class ParentResource(string name) : Resource(name)
     {
     }
