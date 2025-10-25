@@ -97,13 +97,20 @@ public class AzureContainerAppEnvironmentResource :
                     {
                         foreach (var annotation in deploymentAnnotations)
                         {
-                            var deploymentSteps = await annotation.CreateStepsAsync(factoryContext).ConfigureAwait(false);
-                            var provisionSteps = deploymentSteps.Where(s => s.Tags.Contains(WellKnownPipelineTags.ProvisionInfrastructure)).ToList();
-                            
-                            foreach (var provisionStep in provisionSteps)
+                            // Recreate factoryContext with deploymentTarget as the Resource
+                            var deploymentFactoryContext = new PipelineStepFactoryContext
                             {
-                                provisionStep.DependsOn(pushStep);
-                                steps.Add(provisionStep);
+                                PipelineContext = factoryContext.PipelineContext,
+                                Resource = deploymentTarget
+                            };
+                            
+                            var deploymentSteps = await annotation.CreateStepsAsync(deploymentFactoryContext).ConfigureAwait(false);
+                            
+                            // Don't filter, just aggregate all steps
+                            foreach (var deploymentStep in deploymentSteps)
+                            {
+                                deploymentStep.DependsOn(pushStep);
+                                steps.Add(deploymentStep);
                             }
                         }
                     }
@@ -174,13 +181,11 @@ public class AzureContainerAppEnvironmentResource :
             foreach (var computeResource in computeResources)
             {
                 // Find build steps for this resource (created by the resource itself)
-                var buildSteps = context.GetSteps("build")
-                    .Where(s => s.Name == $"build-{computeResource.Name}")
+                var buildSteps = context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
                     .ToList();
 
                 // Find the default-image-tags step for this environment
-                var imageTagsSteps = context.GetSteps("default-image-tags")
-                    .Where(s => s.Name == $"default-image-tags-{name}")
+                var imageTagsSteps = context.GetSteps(computeResource, "default-image-tags")
                     .ToList();
 
                 // Make build steps depend on default-image-tags

@@ -41,7 +41,7 @@ public class ProjectResource : Resource, IResourceWithEnvironment, IResourceWith
                         },
                         ctx.CancellationToken).ConfigureAwait(false);
                 },
-                Tags = [WellKnownPipelineTags.BuildCompute, "build"]
+                Tags = [WellKnownPipelineTags.BuildCompute]
             };
 
             return await Task.FromResult<IEnumerable<PipelineStep>>([buildStep]).ConfigureAwait(false);
