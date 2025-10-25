@@ -13,10 +13,50 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNodeApp(this IDistributedApplicationBuilder builder, string name, string scriptPath, string? workingDirectory = null, string[]? args = null) { throw null; }
 
         public static ApplicationModel.IResourceBuilder<NodeAppResource> AddNpmApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, string scriptName = "start", string[]? args = null) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<NodeJs.ViteAppResource> AddViteApp(this IDistributedApplicationBuilder builder, string name, string workingDirectory, bool useHttps = false) { throw null; }
+
+        public static ApplicationModel.IResourceBuilder<TResource> WithNpmPackageManager<TResource>(this ApplicationModel.IResourceBuilder<TResource> resource, bool useCI = false, System.Action<ApplicationModel.IResourceBuilder<NodeJs.NodeInstallerResource>>? configureInstaller = null)
+            where TResource : NodeAppResource { throw null; }
     }
 
     public partial class NodeAppResource : ApplicationModel.ExecutableResource, IResourceWithServiceDiscovery, ApplicationModel.IResourceWithEndpoints, ApplicationModel.IResource
     {
         public NodeAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
+    }
+}
+
+namespace Aspire.Hosting.NodeJs
+{
+    public sealed partial class JavaScriptPackageInstallerAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptPackageInstallerAnnotation(ApplicationModel.ExecutableResource installerResource) { }
+
+        public ApplicationModel.ExecutableResource Resource { get { throw null; } }
+    }
+
+    public sealed partial class JavaScriptPackageManagerAnnotation : ApplicationModel.IResourceAnnotation
+    {
+        public JavaScriptPackageManagerAnnotation(string packageManager) { }
+
+        public string[] BuildCommandLineArgs { get { throw null; } init { } }
+
+        public string? CommandSeparator { get { throw null; } init { } }
+
+        public string[] InstallCommandLineArgs { get { throw null; } init { } }
+
+        public string PackageManager { get { throw null; } }
+
+        public string[] RunCommandLineArgs { get { throw null; } init { } }
+    }
+
+    public partial class NodeInstallerResource : ApplicationModel.ExecutableResource
+    {
+        public NodeInstallerResource(string name, string workingDirectory) : base(default!, default!, default!) { }
+    }
+
+    public partial class ViteAppResource : NodeAppResource, IResourceWithContainerFiles, ApplicationModel.IResource
+    {
+        public ViteAppResource(string name, string command, string workingDirectory) : base(default!, default!, default!) { }
     }
 }

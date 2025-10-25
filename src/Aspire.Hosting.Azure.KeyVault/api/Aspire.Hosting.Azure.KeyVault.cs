@@ -43,11 +43,15 @@ namespace Aspire.Hosting.Azure
 
         public ApplicationModel.ReferenceExpression ConnectionStringExpression { get { throw null; } }
 
+        public bool IsEmulator { get { throw null; } }
+
         public BicepOutputReference NameOutputReference { get { throw null; } }
 
         public BicepOutputReference VaultUri { get { throw null; } }
 
         public override global::Azure.Provisioning.Primitives.ProvisionableResource AddAsExistingResource(AzureResourceInfrastructure infra) { throw null; }
+
+        public System.Threading.Tasks.ValueTask<string?> GetConnectionStringAsync(System.Threading.CancellationToken cancellationToken = default) { throw null; }
 
         public IAzureKeyVaultSecretReference GetSecret(string secretName) { throw null; }
     }

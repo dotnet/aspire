@@ -44,7 +44,13 @@ namespace Aspire.Hosting.ApplicationModel
 
         public string DatabaseName { get { throw null; } }
 
+        public ReferenceExpression JdbcConnectionString { get { throw null; } }
+
         public MySqlServerResource Parent { get { throw null; } }
+
+        public ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 
     public partial class MySqlServerResource : ContainerResource, IResourceWithConnectionString, IResource, IManifestExpressionProvider, IValueProvider, IValueWithReferences
@@ -55,9 +61,19 @@ namespace Aspire.Hosting.ApplicationModel
 
         public System.Collections.Generic.IReadOnlyDictionary<string, string> Databases { get { throw null; } }
 
+        public EndpointReferenceExpression Host { get { throw null; } }
+
+        public ReferenceExpression JdbcConnectionString { get { throw null; } }
+
         public ParameterResource PasswordParameter { get { throw null; } set { } }
 
+        public EndpointReferenceExpression Port { get { throw null; } }
+
         public EndpointReference PrimaryEndpoint { get { throw null; } }
+
+        public ReferenceExpression UriExpression { get { throw null; } }
+
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, ReferenceExpression>> IResourceWithConnectionString.GetConnectionProperties() { throw null; }
     }
 }
 
