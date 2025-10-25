@@ -161,7 +161,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             {
                 if (!stepsByName.TryGetValue(requiredByStep, out var requiredByStepObj))
                 {
-                    continue;
+                    throw new InvalidOperationException(
+                        $"Step '{step.Name}' is required by unknown step '{requiredByStep}'");
                 }
 
                 // Add the inverse relationship: if step A is required by step B,
@@ -194,16 +195,10 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
                 $"Step '{stepName}' not found in pipeline. Available steps: {availableSteps}");
         }
 
-        // Compute transitive dependencies of the target step
+        // Compute transitive dependencies of the target step (includes the target step itself)
         // Since RequiredBy relationships have been normalized to DependsOn,
         // this automatically includes all steps that the target depends on
         var stepsToExecute = ComputeTransitiveDependencies(targetStep, allStepsByName);
-
-        // Add the target step if not already present
-        if (!stepsToExecute.Contains(targetStep))
-        {
-            stepsToExecute.Add(targetStep);
-        }
 
         var filteredStepsByName = stepsToExecute.ToDictionary(s => s.Name, StringComparer.Ordinal);
         return (stepsToExecute, filteredStepsByName);
@@ -236,10 +231,8 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
             result.Add(currentStep);
         }
 
-        foreach (var dependency in step.DependsOnSteps)
-        {
-            Visit(dependency);
-        }
+        // Visit the target step itself (which will also visit all its dependencies)
+        Visit(step.Name);
 
         return result;
     }

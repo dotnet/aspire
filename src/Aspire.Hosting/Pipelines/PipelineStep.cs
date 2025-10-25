@@ -62,10 +62,6 @@ public class PipelineStep
     /// This creates the inverse relationship where the other step will depend on this step.
     /// </summary>
     /// <param name="stepName">The name of the step that requires this step.</param>
-    /// <remarks>
-    /// This is equivalent to adding this step as a dependency of the specified step.
-    /// The relationship is stored internally and converted to a DependsOn relationship during pipeline execution.
-    /// </remarks>
     public void RequiredBy(string stepName)
     {
         RequiredBySteps.Add(stepName);
@@ -76,10 +72,6 @@ public class PipelineStep
     /// This creates the inverse relationship where the other step will depend on this step.
     /// </summary>
     /// <param name="step">The step that requires this step.</param>
-    /// <remarks>
-    /// This is equivalent to adding this step as a dependency of the specified step.
-    /// The relationship is stored internally and converted to a DependsOn relationship during pipeline execution.
-    /// </remarks>
     public void RequiredBy(PipelineStep step)
     {
         RequiredBySteps.Add(step.Name);
