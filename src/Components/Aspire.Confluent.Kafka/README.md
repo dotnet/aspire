@@ -11,7 +11,7 @@ This library wraps Confluent.Kafka binaries.
 
 ### Install the package
 
-Install the .NET Aspire Confluent Kafka library with [NuGet](https://www.nuget.org):
+Install the Aspire Confluent Kafka library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Confluent.Kafka
@@ -53,7 +53,7 @@ You can refer to [Confluent's Apache Kafka .NET Client documentatoin](https://do
 
 ## Configuration
 
-The .NET Aspire Confluent Kafka component provides multiple options to configure the connection based on the requirements and conventions of your project.
+The Aspire Confluent Kafka component provides multiple options to configure the connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -77,7 +77,7 @@ The value provided as connection string will be set to the `BootstrapServers`  p
 
 ### Use configuration providers
 
-The .NET Aspire Confluent Kafka component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `KafkaProducerSettings` or `KafkaConsumerSettings` from configuration by respectively using the `Aspire:Confluent:Kafka:Producer` and `Aspire.Confluent:Kafka:Consumer` keys. Example `appsettings.json` that configures some of the options:
+The Aspire Confluent Kafka component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `KafkaProducerSettings` or `KafkaConsumerSettings` from configuration by respectively using the `Aspire:Confluent:Kafka:Producer` and `Aspire.Confluent:Kafka:Consumer` keys. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

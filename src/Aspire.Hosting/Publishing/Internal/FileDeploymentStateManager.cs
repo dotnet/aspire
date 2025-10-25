@@ -2,8 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPUBLISHERS001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+#pragma warning disable ASPIREPIPELINES001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
 using System.Text.Json.Nodes;
+using Aspire.Hosting.Pipelines;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -18,7 +20,7 @@ public sealed class FileDeploymentStateManager(
     ILogger<FileDeploymentStateManager> logger,
     IConfiguration configuration,
     IHostEnvironment hostEnvironment,
-    IOptions<PublishingOptions> publishingOptions) : DeploymentStateManagerBase<FileDeploymentStateManager>(logger)
+    IOptions<PipelineOptions> pipelineOptions) : DeploymentStateManagerBase<FileDeploymentStateManager>(logger)
 {
     /// <inheritdoc/>
     public override string? StateFilePath => GetStatePath();
@@ -49,7 +51,7 @@ public sealed class FileDeploymentStateManager(
     {
         try
         {
-            if (publishingOptions.Value.ClearCache)
+            if (pipelineOptions.Value.ClearCache)
             {
                 logger.LogInformation("Skipping deployment state save due to --clear-cache flag");
                 return;

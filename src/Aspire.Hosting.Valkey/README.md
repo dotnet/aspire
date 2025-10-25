@@ -1,6 +1,6 @@
 # Aspire.Hosting.Valkey library
 
-Provides extension methods and resource definitions for a .NET Aspire AppHost to configure Cache for Valkey.
+Provides extension methods and resource definitions for an Aspire AppHost to configure Cache for Valkey.
 
 ## Install the package
 

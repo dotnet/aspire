@@ -10,7 +10,7 @@ Registers 'Scoped' [Microsoft.Data.SqlClient.SqlConnection](https://learn.micros
 
 ### Install the package
 
-Install the .NET Aspire SQL Server SqlClient library with [NuGet](https://www.nuget.org):
+Install the Aspire SQL Server SqlClient library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Microsoft.Data.SqlClient
@@ -37,7 +37,7 @@ public ProductsController(SqlConnection connection)
 
 ## Configuration
 
-The .NET Aspire SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
+The Aspire SqlClient component provides multiple options to configure the SQL connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -61,7 +61,7 @@ See the [ConnectionString documentation](https://learn.microsoft.com/dotnet/api/
 
 ### Use configuration providers
 
-The .NET Aspire SqlClient component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftDataSqlClientSettings` from configuration by using the `Aspire:Microsoft:Data:SqlClient` key. Example `appsettings.json` that configures some of the options:
+The Aspire SqlClient component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `MicrosoftDataSqlClientSettings` from configuration by using the `Aspire:Microsoft:Data:SqlClient` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {

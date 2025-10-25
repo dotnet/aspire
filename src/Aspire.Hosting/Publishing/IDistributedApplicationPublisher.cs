@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Defines the interface for publishing a distributed application.
 /// </summary>
+[Obsolete("IDistributedApplicationPublisher is obsolete. Use PipelineStep where applicable.")]
 public interface IDistributedApplicationPublisher
 {
     /// <summary>

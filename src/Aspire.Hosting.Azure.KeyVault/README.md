@@ -1,19 +1,19 @@
-# Azure Key Vault extensions library for .NET Aspire application model
+# Azure Key Vault extensions library for Aspire application model
 
 Azure Key Vault is a cloud service that provides a secure storage of secrets, such as passwords and database connection strings.
 
-The Azure Key Vault extensions library allows you to extend the .NET Aspire application model to support to provisioning Key Vaults as part of application development and testing.
+The Azure Key Vault extensions library allows you to extend the Aspire application model to support to provisioning Key Vaults as part of application development and testing.
 
 ## Getting started
 
 ### Prerequisites
 
 * Azure subscription - [create one for free](https://azure.microsoft.com/free/)
-* A .NET Aspire project based on the starter template.
+* An Aspire project based on the starter template.
  
 ### Install the package
 
-Install the Azure Key Vault extensions library for .NET Aspire application model with [NuGet](https://www.nuget.org/packages/Aspire.Hosting.Azure.KeyVault):
+Install the Azure Key Vault extensions library for Aspire application model with [NuGet](https://www.nuget.org/packages/Aspire.Hosting.Azure.KeyVault):
 
 ```dotnetcli
 dotnet add package Aspire.Hosting.Azure.KeyVault
@@ -21,7 +21,7 @@ dotnet add package Aspire.Hosting.Azure.KeyVault
 
 ## Configure Azure Provisioning for local development
 
-Adding Azure resources to the .NET Aspire application model will automatically enable development-time provisioning
+Adding Azure resources to the Aspire application model will automatically enable development-time provisioning
 for Azure resources so that you don't need to configure them manually. Provisioning requires a number of settings
 to be available via .NET configuration. Set these values in user secrets in order to allow resources to be configured
 automatically.
@@ -41,9 +41,9 @@ automatically.
 
 ## Usage examples
 
-### Adding a Key Vault resource to the .NET Aspire application model
+### Adding a Key Vault resource to the Aspire application model
 
-In order to provision a Key Vault resource as part of a .NET Aspire application you need to add the resource via the `IDistributedApplicationBuilder` interface. The `builder.AddAzureKeyVault(...)` extension method is used to register a Key Vault resource with the application model. Then use the `WithReference` extension method on a resource to inject the necessary connection string information for accessing Key Vault into the application that depends on it.
+In order to provision a Key Vault resource as part of an Aspire application you need to add the resource via the `IDistributedApplicationBuilder` interface. The `builder.AddAzureKeyVault(...)` extension method is used to register a Key Vault resource with the application model. Then use the `WithReference` extension method on a resource to inject the necessary connection string information for accessing Key Vault into the application that depends on it.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -59,7 +59,7 @@ Inside the the implementation of the application that depends on Key Vault (MyAp
 
 ### Customizing the Azure Key Vault resource
 
-The `builder.AddAzureKeyVault(...)` extension method has an overload that allows for customization of the Key Vault resource that is created. In the below example a .NET Aspire parameter is defined which is then assigned to the value of a Key Vault secret which is created at provisioning time.
+The `builder.AddAzureKeyVault(...)` extension method has an overload that allows for customization of the Key Vault resource that is created. In the below example an Aspire parameter is defined which is then assigned to the value of a Key Vault secret which is created at provisioning time.
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);

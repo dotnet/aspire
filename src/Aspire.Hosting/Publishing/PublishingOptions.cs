@@ -8,6 +8,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Represents the options for publishing an application.
 /// </summary>
+[Obsolete("PublishingOptions is obsolete. Use PipelineOptions where applicable.")]
 public class PublishingOptions
 {
     /// <summary>

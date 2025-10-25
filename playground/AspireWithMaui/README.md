@@ -56,17 +56,19 @@ After running the restore script with `-restore-maui`, you can build and run the
 ## What's Included
 
 - **AspireWithMaui.AppHost** - The Aspire app host that orchestrates all services
-- **AspireWithMaui.MauiClient** - A .NET MAUI application that connects to the backend (Windows platform only in this playground)
+- **AspireWithMaui.MauiClient** - A .NET MAUI application that connects to the backend (Windows and Mac Catalyst platforms)
 - **AspireWithMaui.WeatherApi** - An ASP.NET Core Web API providing weather data
 - **AspireWithMaui.ServiceDefaults** - Shared service defaults for non-MAUI projects
 - **AspireWithMaui.MauiServiceDefaults** - Shared service defaults specific to MAUI projects
 
 ## Features Demonstrated
 
-### MAUI Windows Platform Support
-The playground demonstrates Aspire's ability to manage MAUI apps on Windows:
-- Configures the MAUI app with `.AddMauiWindows()`
-- Automatically detects the Windows target framework from the project file
+### MAUI Multi-Platform Support
+The playground demonstrates Aspire's ability to manage MAUI apps on multiple platforms:
+- **Windows**: Configures the MAUI app with `.AddWindowsDevice()`
+- **Mac Catalyst**: Configures the MAUI app with `.AddMacCatalystDevice()`
+- Automatically detects platform-specific target frameworks from the project file
+- Shows "Unsupported" state in dashboard when running on incompatible host OS
 - Sets up dev tunnels for MAUI app communication with backend services
 
 ### OpenTelemetry Integration
@@ -76,8 +78,8 @@ The MAUI client uses OpenTelemetry to send traces and metrics to the Aspire dash
 The MAUI app discovers and connects to backend services (WeatherApi) using Aspire's service discovery.
 
 ### Future Platform Support
-The architecture is designed to support additional platforms (Android, iOS, macCatalyst) through:
-- `.AddMauiAndroid()`, `.AddMauiIos()`, `.AddMauiMacCatalyst()` extension methods (coming in future updates)
+The architecture is designed to support additional platforms (Android, iOS) through:
+- `.AddAndroidDevice()`, `.AddIosDevice()` extension methods (coming in future updates)
 - Parallel extension patterns for each platform
 
 ## Troubleshooting
@@ -95,23 +97,25 @@ If you encounter build errors:
 3. Try running `dotnet build` from the repository root first
 
 ### Platform-Specific Issues
-- **Windows**: Requires Windows 10 build 19041 or higher for WinUI support
+- **Windows**: Requires Windows 10 build 19041 or higher for WinUI support. Mac Catalyst devices will show as "Unsupported" when running on Windows.
+- **Mac Catalyst**: Requires macOS to run. Windows devices will show as "Unsupported" when running on macOS.
 - **Android**: Not yet implemented in this playground (coming soon)
-- **iOS/macCatalyst**: Not yet implemented in this playground (coming soon)
+- **iOS**: Not yet implemented in this playground (coming soon)
 
 ## Current Status
 
 ✅ **Implemented:**
-- Windows platform support via `AddMauiWindows()`
-- Automatic Windows TFM detection from project file
+- Windows platform support via `AddWindowsDevice()`
+- Mac Catalyst platform support via `AddMacCatalystDevice()`
+- Automatic platform-specific TFM detection from project file
+- Platform validation with "Unsupported" state for incompatible hosts
 - Dev tunnel configuration for MAUI-to-backend communication
 - Service discovery integration
 - OpenTelemetry integration
 
 🚧 **Coming Soon:**
-- Android platform support
-- iOS platform support
-- macCatalyst platform support
+- Android platform support via `AddAndroidDevice()`
+- iOS platform support via `AddIosDevice()`
 - Multi-platform simultaneous debugging
 
 ## Learn More

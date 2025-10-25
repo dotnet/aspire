@@ -1613,7 +1613,7 @@ public class AzureContainerAppsTests
     {
         using var tempDir = new TempDirectory();
 
-        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, outputPath: tempDir.Path);
+        var builder = TestDistributedApplicationBuilder.Create(DistributedApplicationOperation.Publish, tempDir.Path, step: "publish-manifest");
 
         var env1 = builder.AddAzureContainerAppEnvironment("env1");
         var env2 = builder.AddAzureContainerAppEnvironment("env2");

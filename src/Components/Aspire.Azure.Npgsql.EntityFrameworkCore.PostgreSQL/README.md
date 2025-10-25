@@ -16,7 +16,7 @@ At runtime the client integration will detect whether the connection string has 
 
 ### Install the package
 
-Install the .NET Aspire Azure PostgreSQL EntityFrameworkCore Npgsql library with [NuGet](https://www.nuget.org):
+Install the Aspire Azure PostgreSQL EntityFrameworkCore Npgsql library with [NuGet](https://www.nuget.org):
 
 ```dotnetcli
 dotnet add package Aspire.Azure.Npgsql.EntityFrameworkCore.PostgreSQL
@@ -51,7 +51,7 @@ builder.EnrichAzureNpgsqlDbContext<MyDbContext>();
 
 ## Configuration
 
-The .NET Aspire Azure PostgreSQL EntityFrameworkCore Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
+The Aspire Azure PostgreSQL EntityFrameworkCore Npgsql component provides multiple options to configure the database connection based on the requirements and conventions of your project.
 
 ### Use a connection string
 
@@ -77,7 +77,7 @@ See the [ConnectionString documentation](https://www.npgsql.org/doc/connection-s
 
 ### Use configuration providers
 
-The .NET Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using the `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options:
+The Aspire PostgreSQL EntityFrameworkCore Npgsql component supports [Microsoft.Extensions.Configuration](https://learn.microsoft.com/dotnet/api/microsoft.extensions.configuration). It loads the `AzureNpgsqlEntityFrameworkCorePostgreSQLSettings` from configuration by using the `Aspire:Npgsql:EntityFrameworkCore:PostgreSQL` key. Example `appsettings.json` that configures some of the options:
 
 ```json
 {
