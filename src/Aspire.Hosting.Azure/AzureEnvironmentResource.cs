@@ -92,6 +92,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Name = "validate-azure-cli-login",
                 Action = ctx => ValidateAzureCliLoginAsync(ctx)
             };
+            validateStep.DependsOn(WellKnownPipelineSteps.ParameterPrompt);
 
             var createContextStep = new PipelineStep
             {
@@ -119,6 +120,7 @@ public sealed class AzureEnvironmentResource : Resource
                 Action = ctx => DefaultImageTags(ctx),
                 Tags = [DefaultImageStepTag],
             };
+            addImageTagsStep.DependsOn(WellKnownPipelineSteps.ParameterPrompt);
 
             var buildStep = new PipelineStep
             {

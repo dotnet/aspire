@@ -92,18 +92,3 @@ internal static class JsonDocumentManifestPublishingExtensions
         return pipeline;
     }
 }
-
-internal static class JsonDocumentManifestPublisherExtensions
-{
-    public static JsonDocumentManifestPublisher GetManifestPublisher(this TestProgram testProgram)
-    {
-        var publisher = testProgram.App?.Services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
-        return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
-    }
-
-    public static JsonDocumentManifestPublisher GetManifestPublisher(this IServiceProvider services)
-    {
-        var publisher = services.GetRequiredKeyedService<IDistributedApplicationPublisher>("manifest") as JsonDocumentManifestPublisher;
-        return publisher ?? throw new InvalidOperationException($"Manifest publisher was not {nameof(JsonDocumentManifestPublisher)}");
-    }
-}

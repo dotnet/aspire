@@ -22,4 +22,10 @@ public static class WellKnownPipelineSteps
     /// All deploy steps should be required by this step.
     /// </summary>
     public const string Deploy = "deploy";
+
+    /// <summary>
+    /// The well-known step for prompting for parameters.
+    /// </summary>
+
+    public const string ParameterPrompt = "parameter-prompt";
 }
