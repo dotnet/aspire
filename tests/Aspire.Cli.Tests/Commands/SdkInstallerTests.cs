@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Cli.Commands;
+using Aspire.Cli.DotNet;
 using Aspire.Cli.Tests.TestServices;
 using Aspire.Cli.Tests.Utils;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +19,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -40,7 +48,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -62,7 +77,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -84,7 +106,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -106,7 +135,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -129,7 +165,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
             options.EnabledFeatures = [KnownFeatures.ExecCommandEnabled];
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (false, null, "9.0.302", false) // SDK not installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = false,
+                    HighestVersion = null,
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
 
             options.InteractionServiceFactory = _ => new TestConsoleInteractionService();
@@ -151,7 +194,14 @@ public class SdkInstallerTests(ITestOutputHelper outputHelper)
         {
             options.DotNetSdkInstallerFactory = _ => new TestDotNetSdkInstaller
             {
-                CheckAsyncCallback = _ => (true, "9.0.302", "9.0.302", false) // SDK installed
+                CheckAsyncCallback = _ => new CheckInstallResult
+                {
+                    Success = true,
+                    HighestVersion = "9.0.302",
+                    MinimumRequiredVersion = "9.0.302",
+                    ForceInstall = false,
+                    ShouldInstall = false
+                }
             };
             // Make sure project locator doesn't find projects so it fails at the expected point
             options.ProjectLocatorFactory = _ => new NoProjectFileProjectLocator();

@@ -53,12 +53,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // This test assumes the test environment has .NET SDK installed with a version >= 8.0.0
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
@@ -67,15 +67,15 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride(DotNetSdkInstaller.MinimumSdkVersion);
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Use the actual minimum version constant and check the behavior
         // Since this test environment has 8.0.117, it should return false for 9.0.302
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // Don't assert the specific result, just ensure the method doesn't throw
         // The behavior will depend on what SDK versions are actually installed
-        Assert.True(success == true || success == false); // This will always pass but exercises the code path
+        Assert.True(result.Success == true || result.Success == false); // This will always pass but exercises the code path
     }
 
     [Fact]
@@ -84,12 +84,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("99.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Use an unreasonably high version that should not exist
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
-        Assert.False(success);
+        Assert.False(result.Success);
     }
 
     [Fact]
@@ -98,12 +98,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Use an invalid version string
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
-        Assert.False(success);
+        Assert.False(result.Success);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Get the sdks directory path
         var sdksDirectory = context.SdksDirectory.FullName;
@@ -160,12 +160,12 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, false);
         var configuration = CreateConfigurationWithOverride("invalid.version");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Use an invalid version string
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
@@ -174,39 +174,39 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // This test verifies that the architecture-specific command is used
         // Since the implementation adds --arch flag, it should still work correctly
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // The test should pass if the command with --arch flag works
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
     public async Task CheckAsync_UsesOverrideMinimumSdkVersion_WhenConfigured()
     {
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // The installer should use the override version instead of the constant
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 9.0.302, which should be available in test environment
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
     public async Task CheckAsync_UsesDefaultMinimumSdkVersion_WhenNotConfigured()
     {
-        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(new MinimumSdkCheckFeature(), CreateEmptyConfiguration(), CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Call the parameterless method that should use the default constant
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // The result depends on whether 9.0.302 is installed, but the test ensures no exception is thrown
-        Assert.True(success == true || success == false);
+        Assert.True(result.Success == true || result.Success == false);
     }
 
     [Fact]
@@ -215,13 +215,13 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // Call the parameterless method that should use the minimum SDK version
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // The result depends on whether 10.0.100 is installed, but the test ensures no exception is thrown
-        Assert.True(success == true || success == false);
+        Assert.True(result.Success == true || result.Success == false);
     }
 
     [Fact]
@@ -230,13 +230,13 @@ public class DotNetSdkInstallerTests
         var features = new TestFeatures()
             .SetFeature(KnownFeatures.MinimumSdkCheckEnabled, true);
         var configuration = CreateConfigurationWithOverride("8.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         // The installer should use the override version instead of the baseline constant
-        var (success, _, _, _) = await installer.CheckAsync();
+        var result = await installer.CheckAsync();
 
         // Should use 8.0.0 instead of 10.0.100, which should be available in test environment
-        Assert.True(success);
+        Assert.True(result.Success);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class DotNetSdkInstallerTests
     {
         var features = new TestFeatures();
         var context = CreateTestExecutionContext();
-        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, CreateEmptyConfiguration(), context, CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -256,7 +256,7 @@ public class DotNetSdkInstallerTests
     {
         var features = new TestFeatures();
         var configuration = CreateConfigurationWithOverride("7.0.0");
-        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), CreateTestLogger());
+        var installer = new DotNetSdkInstaller(features, configuration, CreateTestExecutionContext(), CreateTestDotNetCliRunner(), null, CreateTestLogger());
 
         var effectiveVersion = installer.GetEffectiveMinimumSdkVersion();
 
@@ -276,33 +276,32 @@ public class DotNetSdkInstallerTests
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_AllowsDotNet10Prereleases()
+    public void MeetsMinimumRequirement_ComparesVersionsStrictly()
     {
-        // Test the logic we added for allowing .NET 10 prereleases
+        // Test that version comparison uses strict semantic versioning
+        // preview.1 is less than rc.2, so this should return false
         var installedVersion = SemVersion.Parse("10.0.100-preview.1.25463.5", SemVersionStyles.Strict);
         var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion })!;
 
-        Assert.True(result);
+        Assert.False(result);
     }
 
     [Fact]
-    public void MeetsMinimumRequirement_AllowsDotNet10LatestPrerelease()
+    public void MeetsMinimumRequirement_AllowsHigherVersions()
     {
-        // Test with a more recent .NET 10 prerelease
-        var installedVersion = SemVersion.Parse("10.1.0-preview.2.25999.99", SemVersionStyles.Strict);
+        // Test with a more recent .NET 10 version
+        var installedVersion = SemVersion.Parse("10.1.0", SemVersionStyles.Strict);
         var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion })!;
 
         Assert.True(result);
     }
@@ -313,12 +312,11 @@ public class DotNetSdkInstallerTests
         // Test that .NET 9 is rejected
         var installedVersion = SemVersion.Parse("9.0.999", SemVersionStyles.Strict);
         var requiredVersion = SemVersion.Parse("10.0.100-rc.2.25502.107", SemVersionStyles.Strict);
-        var requiredVersionString = "10.0.100-rc.2.25502.107";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion })!;
 
         Assert.False(result);
     }
@@ -329,12 +327,11 @@ public class DotNetSdkInstallerTests
         // Test that other version requirements still use strict comparison
         var installedVersion = SemVersion.Parse("9.0.301", SemVersionStyles.Strict);
         var requiredVersion = SemVersion.Parse("9.0.302", SemVersionStyles.Strict);
-        var requiredVersionString = "9.0.302";
 
         // Use reflection to access the private method
         var method = typeof(DotNetSdkInstaller).GetMethod("MeetsMinimumRequirement",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion, requiredVersionString })!;
+        var result = (bool)method!.Invoke(null, new object[] { installedVersion, requiredVersion })!;
 
         Assert.False(result);
     }
