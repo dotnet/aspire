@@ -54,10 +54,6 @@ public static class MauiWindowsExtensions
     /// This method creates a new Windows platform resource that will run the MAUI application
     /// targeting the Windows platform using <c>dotnet run</c>. The resource does not auto-start 
     /// and must be explicitly started from the dashboard by clicking the start button.
-    /// <para>
-    /// Multiple Windows device resources can be added to the same MAUI project if needed, each with
-    /// a unique name.
-    /// </para>
     /// </remarks>
     /// <example>
     /// Add multiple Windows devices to a MAUI project:
@@ -77,19 +73,6 @@ public static class MauiWindowsExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        // Check if a Windows device with this name already exists in the application model
-        var existingWindowsDevice = builder.ApplicationBuilder.Resources
-            .OfType<MauiWindowsPlatformResource>()
-            .FirstOrDefault(r => r.Parent == builder.Resource && 
-                                 string.Equals(r.Name, name, StringComparisons.ResourceName));
-
-        if (existingWindowsDevice is not null)
-        {
-            throw new DistributedApplicationException(
-                $"Windows device with name '{name}' already exists on MAUI project '{builder.Resource.Name}'. " +
-                $"Provide a unique name parameter when calling AddWindowsDevice() to add multiple Windows devices.");
-        }
 
         // Get the absolute project path and working directory
         var (projectPath, workingDirectory) = MauiPlatformHelper.GetProjectPaths(builder);
