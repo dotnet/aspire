@@ -1345,12 +1345,12 @@ public class DistributedApplicationPipelineTests
             .ToList();
 
         Assert.Collection(stepActivities,
-            publishActivity =>
+            parameterPromptActivity =>
             {
-                Assert.Collection(publishActivity,
+                Assert.Collection(parameterPromptActivity,
                     step =>
                     {
-                        Assert.Equal("publish", step.Data.StatusText);
+                        Assert.Equal("parameter-prompt", step.Data.StatusText);
                         Assert.False(step.Data.IsComplete);
                     },
                     step =>
@@ -1358,12 +1358,12 @@ public class DistributedApplicationPipelineTests
                         Assert.True(step.Data.IsComplete);
                     });
             },
-            parameterPromptActivity =>
+            publishActivity =>
             {
-                Assert.Collection(parameterPromptActivity,
+                Assert.Collection(publishActivity,
                     step =>
                     {
-                        Assert.Equal("parameter-prompt", step.Data.StatusText);
+                        Assert.Equal("publish", step.Data.StatusText);
                         Assert.False(step.Data.IsComplete);
                     },
                     step =>
