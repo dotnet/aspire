@@ -5,12 +5,13 @@ This scenario performs a comprehensive smoke test of an Aspire PR build by insta
 ## Overview
 
 This smoke test validates that:
-1. The PR build of the Aspire CLI can be successfully installed
-2. A new Aspire starter application can be created using the Blazor template
-3. The application can be launched and runs successfully
-4. The Aspire Dashboard is accessible and functional
+1. The native AOT build of the Aspire CLI from the PR can be successfully acquired
+2. A new Aspire starter application can be created using the Blazor template via interactive flow
+3. The application can be launched with `aspire run` (which handles restore, build, and execution automatically)
+4. The Aspire Dashboard is accessible and functional, with screenshots captured
 5. Application components (AppHost, API service, Blazor frontend) are running correctly
 6. Telemetry and logs are being collected properly
+7. Web UI is functional with screenshots captured for verification
 
 ## Prerequisites
 
@@ -19,35 +20,15 @@ Before starting, ensure you have:
 - Docker installed and running (for container-based resources if used)
 - Sufficient disk space for the Aspire CLI and application artifacts
 - Network access to download NuGet packages
+- Browser automation tools available (playwright) for capturing screenshots
 
 ## Step 1: Install the Aspire CLI from the PR Build
 
-The first step is to install the Aspire CLI tool from the artifacts produced by this PR build.
+The first step is to acquire the Aspire CLI from this PR build. The aspire-playground repository includes comprehensive instructions for acquiring different versions of the CLI, including PR builds.
 
-### 1.1 Locate the CLI Package
+**Follow the CLI acquisition instructions already provided in the aspire-playground repository to obtain the native AOT build of the CLI for this PR.**
 
-Find and download the Aspire CLI NuGet package from the PR build artifacts:
-- The package will be named `Aspire.Cli.Tool.<version>.nupkg`
-- Look in the build artifacts directory (typically `artifacts/packages/<configuration>/Shipping/`)
-- Note the exact version number for installation
-
-### 1.2 Install the CLI Tool
-
-Install the Aspire CLI as a global .NET tool from the local package source:
-
-```bash
-# First, ensure any existing Aspire CLI is uninstalled
-dotnet tool uninstall --global aspire
-
-# Install from the local package source
-# Replace <path-to-artifacts> with the actual path to the artifacts directory
-# Replace <version> with the actual version from the package
-dotnet tool install --global aspire --add-source <path-to-artifacts> --version <version>
-```
-
-### 1.3 Verify Installation
-
-Verify the CLI is installed correctly:
+Once acquired, verify the CLI is installed correctly:
 
 ```bash
 aspire --version
@@ -57,29 +38,17 @@ Expected output should show the version matching the PR build.
 
 ## Step 2: Create a New Aspire Starter Application
 
-Create a new Aspire application using the Blazor-based starter template.
+Create a new Aspire application using the Blazor-based starter template. The application will be created in the current git workspace so it becomes part of the PR when the scenario completes.
 
-### 2.1 Create a Working Directory
+### 2.1 Run the Aspire New Command
 
-Create a dedicated directory for the test application:
-
-```bash
-mkdir -p /tmp/aspire-smoke-test
-cd /tmp/aspire-smoke-test
-```
-
-### 2.2 Run the Aspire New Command
-
-Use the `aspire new` command to create a starter application. This command should:
-- Present an interactive template selection if no template is specified
-- Allow you to select the "Aspire Starter App" template
-- Create a Blazor-based application with AppHost, API service, and web frontend
+Use the `aspire new` command to create a starter application. This command will present an interactive template selection process.
 
 ```bash
 aspire new
 ```
 
-**Interactive Steps:**
+**Follow the interactive prompts:**
 1. When prompted for a template, select the **"Aspire Starter App"** (template short name: `aspire-starter`)
 2. Provide a name for the application when prompted (suggestion: `AspireSmokeTest`)
 3. Accept the default target framework (should be .NET 10.0)
@@ -87,15 +56,7 @@ aspire new
 5. Choose a test framework (suggestion: xUnit or MSTest)
 6. Optionally include Redis caching if prompted
 
-**Alternative: Non-interactive approach**
-
-If you prefer to skip the interactive prompts, use:
-
-```bash
-aspire new aspire-starter --name AspireSmokeTest --framework net10.0
-```
-
-### 2.3 Verify Project Structure
+### 2.2 Verify Project Structure
 
 After creation, verify the project structure:
 
@@ -111,7 +72,7 @@ Expected structure:
 - `AspireSmokeTest.Web/` - Blazor frontend
 - `AspireSmokeTest.Tests/` - Test project (if test framework was selected)
 
-### 2.4 Inspect Key Files
+### 2.3 Inspect Key Files
 
 Review key configuration files to understand the application structure:
 
@@ -123,46 +84,23 @@ cat AspireSmokeTest.AppHost/Program.cs
 cat AspireSmokeTest.sln
 ```
 
-## Step 3: Build the Application
+## Step 3: Launch the Application with Aspire Run
 
-Before running, ensure the application builds successfully.
+Launch the application using the `aspire run` command. The CLI will automatically find the AppHost project, restore dependencies, build, and run the application.
 
-### 3.1 Restore Dependencies
+### 3.1 Start the Application
 
-Restore NuGet packages for all projects:
-
-```bash
-dotnet restore
-```
-
-Verify no errors occur during package restoration.
-
-### 3.2 Build the Solution
-
-Build the entire solution:
+From the workspace directory, run:
 
 ```bash
-dotnet build
+aspire run
 ```
 
-**Expected outcome:**
-- Build should complete successfully with 0 errors
-- Warnings are acceptable but should be reviewed
-- All projects (AppHost, ApiService, Web, ServiceDefaults) should compile
-
-If build errors occur, investigate and resolve before proceeding.
-
-## Step 4: Launch the Application with Aspire Run
-
-Now launch the application using the `aspire run` command.
-
-### 4.1 Start the Application
-
-From the solution directory, run:
-
-```bash
-aspire run --project AspireSmokeTest.AppHost
-```
+The `aspire run` command will:
+- Locate the AppHost project in the current directory
+- Restore all NuGet dependencies
+- Build the solution
+- Start the Aspire AppHost and all resources
 
 **What to observe:**
 - The command should start the Aspire AppHost
@@ -172,7 +110,7 @@ aspire run --project AspireSmokeTest.AppHost
   - Services starting up
   - No critical errors in the startup logs
 
-### 4.2 Wait for Startup
+### 3.2 Wait for Startup
 
 Allow 30-60 seconds for the application to fully start. Monitor the console output for:
 - "Dashboard running at: http://localhost:XXXXX" message
@@ -181,34 +119,49 @@ Allow 30-60 seconds for the application to fully start. Monitor the console outp
 
 **Tip:** The dashboard URL will be displayed in the console. Note this URL for later steps.
 
-## Step 5: Verify the Aspire Dashboard
+## Step 4: Verify the Aspire Dashboard
 
 The Aspire Dashboard is the central monitoring interface. Let's verify it's accessible and functional.
 
-### 5.1 Access the Dashboard
+### 4.1 Access the Dashboard
 
-Open the dashboard URL in a browser (typically http://localhost:18888):
+Open the dashboard URL in a browser (typically http://localhost:18888).
 
-**Using browser automation tools or curl:**
+**Use browser automation tools to access and capture screenshots:**
+
+```bash
+# Navigate to the dashboard
+playwright-browser navigate http://localhost:18888
+```
+
+**Take a screenshot of the dashboard:**
+
+```bash
+playwright-browser take_screenshot --filename dashboard-main.png
+```
+
+**Expected response:**
+- Dashboard loads successfully
+- Dashboard login page or main interface displays (depending on auth configuration)
+- Screenshot captures the dashboard UI
+
+**If browser automation fails, use curl for diagnostics:**
 
 ```bash
 # Check if dashboard is accessible
 curl -I http://localhost:18888
 
-# Or if you have browser automation available
-playwright-browser navigate http://localhost:18888
+# Get the HTML content to diagnose issues
+curl http://localhost:18888
 ```
 
-**Expected response:**
-- HTTP 200 OK status
-- Dashboard login page or main interface (depending on auth configuration)
+### 4.2 Navigate Dashboard Sections
 
-### 5.2 Navigate Dashboard Sections
-
-The dashboard has several key sections to verify:
+Use browser automation to navigate through the dashboard sections and capture screenshots of each.
 
 #### Resources View
 - Navigate to the "Resources" page
+- **Take a screenshot showing all resources**
 - Verify all expected resources are listed:
   - `apiservice` - The API backend
   - `webfrontend` - The Blazor web application
@@ -218,48 +171,77 @@ The dashboard has several key sections to verify:
   - Endpoint URLs
   - No error states
 
+```bash
+# Take screenshot of Resources view
+playwright-browser take_screenshot --filename dashboard-resources.png
+```
+
 #### Console Logs
 - Click on each resource to view its console logs
+- **Take screenshots of the console logs for key resources**
 - Verify logs are being captured and displayed
 - Look for application startup messages
 - Ensure no critical errors or exceptions in the logs
 
+```bash
+# Take screenshot of console logs
+playwright-browser take_screenshot --filename dashboard-console-logs.png
+```
+
 #### Structured Logs
 - Navigate to the "Structured Logs" section
+- **Take a screenshot of the structured logs view**
 - Verify that logs from all services are appearing
 - Check that log filtering and search functionality works
 - Confirm logs have proper timestamps and log levels
 
+```bash
+# Take screenshot of Structured Logs
+playwright-browser take_screenshot --filename dashboard-structured-logs.png
+```
+
 #### Traces
 - Navigate to the "Traces" section (if telemetry is enabled)
+- **Take a screenshot of the traces view**
 - Verify that distributed traces are being collected
 - Look for traces showing requests flowing through the system
 - Check that trace details are viewable
 
+```bash
+# Take screenshot of Traces
+playwright-browser take_screenshot --filename dashboard-traces.png
+```
+
 #### Metrics
 - Navigate to the "Metrics" section
+- **Take a screenshot of the metrics view**
 - Verify that metrics are being collected
 - Check for basic metrics like:
   - HTTP request counts
   - Response times
   - System resource usage (CPU, memory)
 
-### 5.3 Resource Health Check
+```bash
+# Take screenshot of Metrics
+playwright-browser take_screenshot --filename dashboard-metrics.png
+```
+
+### 4.3 Resource Health Check
 
 For each listed resource in the dashboard:
 1. Note the endpoint URL
 2. Verify the resource is accessible at that endpoint
 3. Check for healthy responses
 
-## Step 6: Test the API Service
+## Step 5: Test the API Service
 
 Verify the API service is functioning correctly.
 
-### 6.1 Identify API Endpoint
+### 5.1 Identify API Endpoint
 
 From the dashboard Resources view, note the endpoint URL for the `apiservice` resource (typically http://localhost:XXXX).
 
-### 6.2 Call the API
+### 5.2 Call the API
 
 Test the API endpoints:
 
@@ -279,7 +261,7 @@ curl $API_URL/api/health
 - Valid JSON response with weather data or appropriate API response
 - No error messages
 
-### 6.3 Verify API Telemetry
+### 5.3 Verify API Telemetry
 
 After making API calls:
 1. Return to the Dashboard
@@ -287,53 +269,63 @@ After making API calls:
 3. Verify traces were created for the API requests
 4. Check metrics show the API request counts increased
 
-## Step 7: Test the Blazor Web Frontend
+## Step 6: Test the Blazor Web Frontend
 
 Verify the web frontend is accessible and functional.
 
-### 7.1 Identify Web Frontend Endpoint
+### 6.1 Identify Web Frontend Endpoint
 
 From the dashboard Resources view, note the endpoint URL for the `webfrontend` resource (typically http://localhost:XXXX).
 
-### 7.2 Access the Web Application
+### 6.2 Access the Web Application
 
-Navigate to the web frontend URL:
+Use browser automation to navigate to the web frontend and capture screenshots:
 
 ```bash
 WEB_URL="http://localhost:5000"  # Example, use actual URL
 
-# Check if the web app is accessible
-curl -I $WEB_URL
-
-# Or use browser automation
+# Navigate to the web app
 playwright-browser navigate $WEB_URL
 ```
 
+**Take a screenshot of the home page:**
+
+```bash
+playwright-browser take_screenshot --filename web-home-page.png
+```
+
 **Expected response:**
-- HTTP 200 OK status
-- HTML content from the Blazor application
+- Blazor application loads successfully
+- Home page displays correctly
+- Screenshot captures the web UI
 
-### 7.3 Test Web Application Features
+### 6.3 Test Web Application Features
 
-If using browser automation tools:
+Use browser automation to interact with the application and capture screenshots:
 
-1. **Home Page**: Verify the home page loads
+1. **Home Page**: Verify the home page loads and take a screenshot
 2. **Navigation**: Test navigating between pages (Home, Weather, etc.)
-3. **Weather Page**: Verify the weather forecast page loads and displays data from the API
+3. **Weather Page**: Navigate to the weather forecast page
+   ```bash
+   # Take screenshot of Weather page
+   playwright-browser take_screenshot --filename web-weather-page.png
+   ```
+   - Verify the page loads and displays data from the API
+   - Capture screenshot showing the weather data
 4. **Interactive Elements**: Test any interactive Blazor components
 
-### 7.4 Verify Web Telemetry
+### 6.4 Verify Web Telemetry
 
 After interacting with the web application:
 1. Check the Dashboard for web frontend logs
 2. Verify traces showing frontend → API calls
 3. Check that both frontend and backend telemetry is correlated
 
-## Step 8: Integration Testing
+## Step 7: Integration Testing
 
 Verify the end-to-end integration between components.
 
-### 8.1 Test Frontend-to-API Communication
+### 7.1 Test Frontend-to-API Communication
 
 From the web frontend:
 1. Navigate to a page that calls the API (e.g., Weather page)
@@ -344,32 +336,32 @@ From the web frontend:
    - Response returns to frontend
    - Trace shows the complete distributed transaction
 
-### 8.2 Verify Service Discovery
+### 7.2 Verify Service Discovery
 
 The starter app uses Aspire's service discovery. Verify:
 1. The frontend can resolve and call the API service by name
 2. No hardcoded URLs are needed in the application code
 3. Service discovery is working through the Aspire infrastructure
 
-### 8.3 Test Configuration Injection
+### 7.3 Test Configuration Injection
 
 Verify configuration is properly injected:
 1. Check that service defaults are applied
 2. Verify connection strings and service URLs are automatically configured
 3. Confirm environment-specific settings are working
 
-## Step 9: Verify Development Features
+## Step 8: Verify Development Features
 
 Test key development experience features.
 
-### 9.1 Console Output
+### 8.1 Console Output
 
 Monitor the console where `aspire run` is executing:
 - Verify logs from all services appear in real-time
 - Check that log levels are appropriate (Info, Warning, Error)
 - Ensure structured logging format is maintained
 
-### 9.2 Hot Reload (if applicable)
+### 8.2 Hot Reload (if applicable)
 
 If the project supports hot reload:
 1. Make a small change to the code (e.g., modify a string in the API)
@@ -377,18 +369,18 @@ If the project supports hot reload:
 3. Verify the change is reflected without full restart
 4. Check that the dashboard shows the reload event
 
-### 9.3 Resource Management
+### 8.3 Resource Management
 
 Verify resource lifecycle management:
 1. All resources start in the correct order
 2. Dependencies are properly handled
 3. Resources show correct status in the dashboard
 
-## Step 10: Graceful Shutdown
+## Step 9: Graceful Shutdown
 
 Test that the application shuts down cleanly.
 
-### 10.1 Stop the Application
+### 9.1 Stop the Application
 
 Press `Ctrl+C` in the terminal where `aspire run` is running.
 
@@ -398,18 +390,18 @@ Press `Ctrl+C` in the terminal where `aspire run` is running.
 - No error messages during shutdown
 - Clean exit with exit code 0
 
-### 10.2 Verify Cleanup
+### 9.2 Verify Cleanup
 
 After shutdown:
 1. Verify no orphaned processes are running
 2. Check that containers (if any) are stopped
 3. Confirm ports are released
 
-## Step 11: Run Tests (Optional)
+## Step 10: Run Tests (Optional)
 
 If the application includes tests, run them to verify test infrastructure.
 
-### 11.1 Run Unit Tests
+### 10.1 Run Unit Tests
 
 ```bash
 dotnet test AspireSmokeTest.Tests
@@ -420,15 +412,15 @@ dotnet test AspireSmokeTest.Tests
 - Test output shows proper test discovery and execution
 - Integration tests (if any) can start and test the app
 
-## Step 12: Final Verification Checklist
+## Step 11: Final Verification Checklist
 
 Go through this final checklist to ensure all smoke test requirements are met:
 
-- [ ] Aspire CLI installed successfully from PR build artifacts
-- [ ] Starter application created using `aspire new` with Blazor template
-- [ ] Solution builds without errors
-- [ ] Application launches successfully with `aspire run`
+- [ ] Aspire CLI acquired successfully from PR build (native AOT version)
+- [ ] Starter application created using `aspire new` with Blazor template (interactive flow)
+- [ ] Application launches successfully with `aspire run` (automatic restore and build)
 - [ ] Aspire Dashboard is accessible at the designated URL
+- [ ] **Screenshots captured**: Dashboard main view, Resources, Console Logs, Structured Logs, Traces, Metrics
 - [ ] Dashboard Resources view shows all expected resources as "Running"
 - [ ] Console logs are visible for all resources
 - [ ] Structured logs are being collected and displayed
@@ -436,6 +428,7 @@ Go through this final checklist to ensure all smoke test requirements are met:
 - [ ] Metrics are being collected (if applicable)
 - [ ] API service responds correctly to HTTP requests
 - [ ] Blazor web frontend is accessible and displays correctly
+- [ ] **Screenshots captured**: Web home page, Weather page showing API data
 - [ ] Frontend successfully calls and receives data from API
 - [ ] Service discovery is working between components
 - [ ] End-to-end traces show complete request flow
@@ -446,11 +439,11 @@ Go through this final checklist to ensure all smoke test requirements are met:
 
 The smoke test is considered **PASSED** if:
 
-1. **Installation**: Aspire CLI from PR build installs without errors
-2. **Creation**: New project is created successfully with all expected files
-3. **Build**: Solution builds without errors (warnings are acceptable)
-4. **Launch**: Application starts and all resources reach "Running" state
-5. **Dashboard**: Dashboard is accessible and all sections are functional
+1. **Installation**: Aspire CLI from PR build acquired successfully (native AOT version)
+2. **Creation**: New project created successfully with all expected files (using interactive flow)
+3. **Launch**: Application starts and all resources reach "Running" state (automatic restore, build, and run)
+4. **Dashboard**: Dashboard is accessible and all sections are functional
+5. **Screenshots**: All required screenshots captured showing dashboard and web UI
 6. **API**: API service responds correctly to requests
 7. **Frontend**: Web frontend loads and displays data from API
 8. **Telemetry**: Logs, traces, and metrics are being collected
@@ -535,17 +528,16 @@ After completing the smoke test, provide a summary report including:
 
 ## Cleanup
 
-After completing the smoke test, clean up the test environment:
+After completing the smoke test, the application files created in the workspace will become part of the PR. If you need to clean up:
 
 ```bash
 # Stop the application if still running (Ctrl+C)
 
-# Remove the test application directory
-rm -rf /tmp/aspire-smoke-test
-
-# Optionally uninstall the test CLI
-dotnet tool uninstall --global aspire
+# The application files remain in the workspace as part of the PR
+# No additional cleanup is needed
 ```
+
+**Note**: The created application serves as evidence that the smoke test completed successfully and will be included in the PR for review.
 
 ## Notes for Agent Execution
 
