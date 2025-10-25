@@ -11,7 +11,7 @@ namespace Aspire.Hosting.Maui;
 /// <param name="name">The name of the Android device resource.</param>
 /// <param name="parent">The parent MAUI project resource.</param>
 public sealed class MauiAndroidDeviceResource(string name, MauiProjectResource parent)
-    : ProjectResource(name), IMauiPlatformResource, IResourceWithParent<MauiProjectResource>
+    : ProjectResource(name), IMauiPlatformResource
 {
     /// <summary>
     /// Gets the parent MAUI project resource.
