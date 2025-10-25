@@ -15,7 +15,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 namespace Microsoft.Extensions.Hosting;
 
 /// <summary>
-/// Provides extension methods for registering <see cref="ConfigurationClient"/> as a singleton in the services provided by the <see cref="IHostApplicationBuilder"/>.
+/// Provides extension methods for registering <see cref="ConfigurationClient"/> in the DI container.
 /// </summary>
 public static class AspireAppConfigurationExtensions
 {

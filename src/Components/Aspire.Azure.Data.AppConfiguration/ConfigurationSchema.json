@@ -2,9 +2,6 @@
   "definitions": {
     "logLevel": {
       "properties": {
-        "Azure": {
-          "$ref": "#/definitions/logLevelThreshold"
-        },
         "Azure.Core": {
           "$ref": "#/definitions/logLevelThreshold"
         },
@@ -79,10 +76,6 @@
                           },
                           "description": "Gets the client diagnostic options."
                         },
-                        "EnableTenantDiscovery": {
-                          "type": "boolean",
-                          "description": "Enables tenant discovery through the authorization challenge when the client is configured to use a TokenCredential. When true, the client will attempt an initial un-authorized request to prompt an OAuth challenge in order to discover the correct tenant for the resource."
-                        },
                         "Retry": {
                           "type": "object",
                           "properties": {
@@ -116,7 +109,7 @@
                           "description": "Gets the client retry options."
                         }
                       },
-                      "description": "Options to configure the requests to the App Configuration service."
+                      "description": "Options that allow users to configure the requests sent to the App Configuration service."
                     },
                     "ConnectionString": {
                       "type": "string",
