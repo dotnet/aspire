@@ -73,10 +73,9 @@ public sealed class Service : NamedComposeMember
     /// The property allows for specifying environment variables as key-value pairs.
     /// These variables can be used to configure the behavior of the container
     /// or pass information to the application running inside the container.
-    /// Supports both array format (["KEY=value"]) and dictionary format ({KEY: value}).
     /// </remarks>
     [YamlMember(Alias = "environment", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
-    public EnvironmentVariables Environment { get; set; } = [];
+    public Dictionary<string, string> Environment { get; set; } = [];
 
     /// <summary>
     /// Represents a collection of paths to environment variable files used by the service.
@@ -98,12 +97,8 @@ public sealed class Service : NamedComposeMember
     /// Represents a collection of port mappings for the service.
     /// Each mapping specifies how a container port is bound to a host port.
     /// </summary>
-    /// <summary>
-    /// Gets or sets the list of port mappings for the service.
-    /// Supports both short syntax (e.g., "8080:80") and long syntax (object with target, published, protocol, host_ip).
-    /// </summary>
     [YamlMember(Alias = "ports", DefaultValuesHandling = DefaultValuesHandling.OmitEmptyCollections)]
-    public PortsList Ports { get; set; } = [];
+    public List<string> Ports { get; set; } = [];
 
     /// <summary>
     /// Gets or sets a list of ports to expose from the container without publishing them to the host machine.
