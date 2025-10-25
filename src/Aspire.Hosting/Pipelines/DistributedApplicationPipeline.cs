@@ -174,6 +174,21 @@ internal sealed class DistributedApplicationPipeline : IDistributedApplicationPi
     }
 
     /// <summary>
+    /// Gets all steps that would be executed including those from resource annotations.
+    /// </summary>
+    internal async Task<List<PipelineStep>> GetAllStepsForListingAsync(PipelineContext context)
+    {
+        var (annotationSteps, _) = await CollectStepsFromAnnotationsAsync(context).ConfigureAwait(false);
+        var allSteps = _steps.Concat(annotationSteps).ToList();
+        
+        // Normalize RequiredBy to DependsOn relationships
+        var allStepsByName = allSteps.ToDictionary(s => s.Name, StringComparer.Ordinal);
+        NormalizeRequiredByToDependsOn(allSteps, allStepsByName);
+        
+        return allSteps;
+    }
+
+    /// <summary>
     /// Converts all RequiredBy relationships to their equivalent DependsOn relationships.
     /// If step A is required by step B, this adds step A as a dependency of step B.
     /// </summary>

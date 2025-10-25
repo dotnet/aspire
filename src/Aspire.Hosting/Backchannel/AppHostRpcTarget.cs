@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREPUBLISHERS001
 
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
@@ -228,9 +229,8 @@ internal class AppHostRpcTarget(
         await activityReporter.CompleteInteractionAsync(promptId, answers, updateResponse: true, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
+    public async Task<PipelineStepInfo[]> GetPipelineStepsAsync(CancellationToken cancellationToken)
     {
-        _ = cancellationToken;
         var pipeline = serviceProvider.GetRequiredService<IDistributedApplicationPipeline>();
         
         // Access the internal DistributedApplicationPipeline to get steps
@@ -239,7 +239,22 @@ internal class AppHostRpcTarget(
             throw new InvalidOperationException("Pipeline does not support step listing.");
         }
 
-        var steps = internalPipeline.GetStepsForListing();
+        // Create a minimal PipelineContext for collecting steps
+        var model = serviceProvider.GetRequiredService<DistributedApplicationModel>();
+        var executionContext = serviceProvider.GetRequiredService<DistributedApplicationExecutionContext>();
+        var loggerFactory = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>();
+        var contextLogger = loggerFactory.CreateLogger<AppHostRpcTarget>();
+        
+        var pipelineContext = new PipelineContext(
+            model,
+            executionContext,
+            serviceProvider,
+            contextLogger,
+            cancellationToken,
+            outputPath: null
+        );
+
+        var steps = await internalPipeline.GetAllStepsForListingAsync(pipelineContext).ConfigureAwait(false);
         var stepInfos = steps.Select(s => new PipelineStepInfo
         {
             Name = s.Name,
@@ -247,6 +262,6 @@ internal class AppHostRpcTarget(
             Tags = s.Tags.ToArray()
         }).ToArray();
 
-        return Task.FromResult(stepInfos);
+        return stepInfos;
     }
 }
