@@ -36,12 +36,6 @@ public sealed class AzureEnvironmentResource : Resource
     internal const string ProvisionInfrastructureStepName = "provision-azure-bicep-resources";
 
     /// <summary>
-    /// The name of the marker step for deploying compute resources.
-    /// Individual compute environment resources make their deploy steps required by this marker.
-    /// </summary>
-    internal const string DeployComputeMarkerStepName = "deploy-compute-marker";
-
-    /// <summary>
     /// Gets or sets the Azure location that the resources will be deployed to.
     /// </summary>
     public ParameterResource Location { get; set; }
@@ -103,17 +97,7 @@ public sealed class AzureEnvironmentResource : Resource
             };
             provisionStep.DependsOn(createContextStep);
 
-            // Marker step for deploy compute - individual deploy steps from compute environments will be required by this
-            var deployComputeMarkerStep = new PipelineStep
-            {
-                Name = DeployComputeMarkerStepName,
-                Action = _ => Task.CompletedTask,
-                Tags = [WellKnownPipelineTags.DeployCompute]
-            };
-            deployComputeMarkerStep.DependsOn(provisionStep);
-            deployComputeMarkerStep.RequiredBy("deploy");
-
-            return [validateStep, createContextStep, provisionStep, deployComputeMarkerStep];
+            return [validateStep, createContextStep, provisionStep];
         }));
 
         Annotations.Add(ManifestPublishingCallbackAnnotation.Ignore);

@@ -93,16 +93,10 @@ public class AzureContainerAppResource : AzureProvisioningResource
             // Find the provision step by convention (created by AzureBicepResource)
             var provisionStepName = $"provision-{name}";
             var provisionStep = context.Steps.FirstOrDefault(s => s.Name == provisionStepName);
-            if (provisionStep is not null)
+            if (provisionStep is not null && pushStep is not null)
             {
-                if (pushStep is not null)
-                {
-                    // Provision depends on push
-                    provisionStep.DependsOn(pushStep);
-                }
-
-                // Make provision required by deploy-compute-marker
-                provisionStep.RequiredBy(AzureEnvironmentResource.DeployComputeMarkerStepName);
+                // Provision depends on push
+                provisionStep.DependsOn(pushStep);
             }
         }));
     }

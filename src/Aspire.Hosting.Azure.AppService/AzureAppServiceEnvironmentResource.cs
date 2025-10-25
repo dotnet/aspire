@@ -52,13 +52,12 @@ public class AzureAppServiceEnvironmentResource :
             };
             steps.Add(addImageTagsStep);
 
-            // Add print-dashboard-url step that depends on the deploy-compute-marker
+            // Add print-dashboard-url step
             var printDashboardUrlStep = new PipelineStep
             {
                 Name = $"print-dashboard-url-{name}",
                 Action = ctx => PrintDashboardUrlAsync(ctx),
             };
-            printDashboardUrlStep.DependsOn(AzureEnvironmentResource.DeployComputeMarkerStepName);
             printDashboardUrlStep.RequiredBy("deploy");
             steps.Add(printDashboardUrlStep);
 
