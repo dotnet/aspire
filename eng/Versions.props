@@ -42,7 +42,7 @@
     <MicrosoftDotNetBuildTasksArchivesVersion>11.0.0-beta.25524.1</MicrosoftDotNetBuildTasksArchivesVersion>
     <!-- dotnet/extensions -->
     <MicrosoftExtensionsAIVersion>9.10.1</MicrosoftExtensionsAIVersion>
-    <MicrosoftExtensionsAIPreviewVersion>9.10.1-preview.1.25521.4</MicrosoftExtensionsAIPreviewVersion>
+    <MicrosoftExtensionsAIPreviewVersion>9.10.0-preview.1.25513.3</MicrosoftExtensionsAIPreviewVersion>
     <MicrosoftExtensionsHttpResilienceVersion>9.10.0</MicrosoftExtensionsHttpResilienceVersion>
     <MicrosoftExtensionsDependencyInjectionAutoActivationVersion>9.10.0</MicrosoftExtensionsDependencyInjectionAutoActivationVersion>
     <MicrosoftExtensionsDiagnosticsTestingVersion>9.10.0</MicrosoftExtensionsDiagnosticsTestingVersion>

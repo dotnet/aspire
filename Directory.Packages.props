@@ -110,7 +110,7 @@
     <PackageVersion Include="Oracle.ManagedDataAccess.OpenTelemetry" Version="23.26.0" />
     <PackageVersion Include="Polly.Core" Version="8.6.4" />
     <PackageVersion Include="Polly.Extensions" Version="8.6.4" />
-    <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageVersion Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" /> <!-- Can't update to 9.x versions as those lift up LTS versions when targeting net8 -->
     <PackageVersion Include="Qdrant.Client" Version="1.15.1" />
     <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
     <PackageVersion Include="Spectre.Console" Version="0.52.1-preview.0.5" />
@@ -161,7 +161,7 @@
     <!-- playground apps dependencies for javascript -->
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.6" />
     <!-- Pinned versions for Component Governance - Remove when root dependencies are updated -->
-    <PackageVersion Include="Azure.Core" Version="1.47.3" />
+    <PackageVersion Include="Azure.Core" Version="1.49.0" />
     <PackageVersion Include="Azure.Identity" Version="1.17.0" />
     <!-- https://github.com/Azure/azure-cosmos-dotnet-v3/pull/3313 -->
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
