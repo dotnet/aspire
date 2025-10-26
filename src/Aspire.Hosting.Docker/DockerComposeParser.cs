@@ -225,7 +225,15 @@ internal static class DockerComposeParser
             {
                 if (env.Key is YamlScalarNode keyNode && env.Value is YamlScalarNode valueNode)
                 {
-                    result[keyNode.Value ?? string.Empty] = valueNode.Value ?? string.Empty;
+                    var key = keyNode.Value ?? string.Empty;
+                    var value = valueNode.Value ?? string.Empty;
+                    
+                    // Skip environment variables that contain placeholders (${VAR} syntax)
+                    // These are meant to be substituted at runtime by Docker Compose
+                    if (!ContainsPlaceholder(value))
+                    {
+                        result[key] = value;
+                    }
                 }
             }
         }
@@ -239,10 +247,15 @@ internal static class DockerComposeParser
                     var parts = scalarNode.Value.Split('=', 2);
                     if (parts.Length == 2)
                     {
-                        result[parts[0]] = parts[1];
+                        // Skip environment variables that contain placeholders
+                        if (!ContainsPlaceholder(parts[1]))
+                        {
+                            result[parts[0]] = parts[1];
+                        }
                     }
                     else if (parts.Length == 1)
                     {
+                        // Variable without value (e.g., "DEBUG") - include it
                         result[parts[0]] = string.Empty;
                     }
                 }
@@ -250,6 +263,49 @@ internal static class DockerComposeParser
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Checks if a value contains Docker Compose environment variable placeholders.
+    /// Placeholders use the syntax: ${VAR}, ${VAR:-default}, ${VAR-default}, ${VAR:?error}, ${VAR?error}
+    /// Escaped placeholders ($${VAR}) are treated as literals and not considered placeholders.
+    /// </summary>
+    private static bool ContainsPlaceholder(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return false;
+        }
+
+        // Look for ${...} pattern that isn't escaped with $$
+        var index = 0;
+        while (index < value.Length)
+        {
+            var dollarPos = value.IndexOf('$', index);
+            if (dollarPos == -1)
+            {
+                break;
+            }
+
+            // Check if it's escaped ($$)
+            if (dollarPos + 1 < value.Length && value[dollarPos + 1] == '$')
+            {
+                // Skip the escaped sequence
+                index = dollarPos + 2;
+                continue;
+            }
+
+            // Check if it's followed by {
+            if (dollarPos + 1 < value.Length && value[dollarPos + 1] == '{')
+            {
+                // Found a placeholder
+                return true;
+            }
+
+            index = dollarPos + 1;
+        }
+
+        return false;
     }
 
     private static List<ParsedPort> ParsePortsFromYaml(YamlNode node)

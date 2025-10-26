@@ -105,6 +105,100 @@ services:
         Assert.Equal("info", result["app"].Environment["LOG_LEVEL"]);
     }
 
+    [Fact]
+    public void ParseEnvironment_WithPlaceholders_SkipsPlaceholders()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: myapp
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PORT=8080
+      - DB_HOST=${DB_HOST:-localhost}
+      - API_KEY=${API_KEY:?required}
+      - DEBUG=true
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Should only include non-placeholder values
+        Assert.Equal(2, result["app"].Environment.Count);
+        Assert.Equal("8080", result["app"].Environment["PORT"]);
+        Assert.Equal("true", result["app"].Environment["DEBUG"]);
+        
+        // Should NOT include placeholder variables
+        Assert.False(result["app"].Environment.ContainsKey("DATABASE_URL"));
+        Assert.False(result["app"].Environment.ContainsKey("DB_HOST"));
+        Assert.False(result["app"].Environment.ContainsKey("API_KEY"));
+    }
+
+    [Fact]
+    public void ParseEnvironment_WithEscapedPlaceholders_IncludesLiteralValues()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: myapp
+    environment:
+      - LITERAL=$${VARIABLE}
+      - NORMAL=value
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Escaped placeholders ($$) should be treated as literal values
+        Assert.Equal(2, result["app"].Environment.Count);
+        Assert.Equal("$${VARIABLE}", result["app"].Environment["LITERAL"]);
+        Assert.Equal("value", result["app"].Environment["NORMAL"]);
+    }
+
+    [Fact]
+    public void ParseEnvironment_DictionaryWithPlaceholders_SkipsPlaceholders()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: myapp
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: 8080
+      CONFIG_PATH: ${CONFIG_PATH:-/etc/config}
+      DEBUG: true
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Should only include non-placeholder values
+        Assert.Equal(2, result["app"].Environment.Count);
+        Assert.Equal("8080", result["app"].Environment["PORT"]);
+        Assert.Equal("true", result["app"].Environment["DEBUG"]);
+        
+        // Should NOT include placeholder variables
+        Assert.False(result["app"].Environment.ContainsKey("DATABASE_URL"));
+        Assert.False(result["app"].Environment.ContainsKey("CONFIG_PATH"));
+    }
+
+    [Fact]
+    public void ParseEnvironment_WithPartialPlaceholders_SkipsEntirely()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: myapp
+    environment:
+      - URL=http://${HOST}:8080/api
+      - PURE=literal
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Should skip variables with placeholders anywhere in the value
+        Assert.Single(result["app"].Environment);
+        Assert.Equal("literal", result["app"].Environment["PURE"]);
+        Assert.False(result["app"].Environment.ContainsKey("URL"));
+    }
+
     #endregion
 
     #region Port Mapping Tests
