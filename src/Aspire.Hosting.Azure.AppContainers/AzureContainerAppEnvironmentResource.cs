@@ -1,7 +1,13 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREAZURE001
+#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIREPUBLISHERS001
+
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Pipelines;
 using Azure.Provisioning;
 using Azure.Provisioning.AppContainers;
 using Azure.Provisioning.Primitives;
@@ -11,13 +17,135 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <summary>
 /// Represents an Azure Container App Environment resource.
 /// </summary>
-/// <param name="name">The name of the Container App Environment.</param>
-/// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
-public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-    AzureProvisioningResource(name, configureInfrastructure), IAzureComputeEnvironmentResource, IAzureContainerRegistry
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+public class AzureContainerAppEnvironmentResource :
+    AzureProvisioningResource, IAzureComputeEnvironmentResource, IAzureContainerRegistry
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AzureContainerAppEnvironmentResource"/> class.
+    /// </summary>
+    /// <param name="name">The name of the Container App Environment.</param>
+    /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
+    public AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure)
+        : base(name, configureInfrastructure)
+    {
+        // Add pipeline step annotation to create steps and expand deployment target steps
+        Annotations.Add(new PipelineStepAnnotation(async (factoryContext) =>
+        {
+            var model = factoryContext.PipelineContext.Model;
+            var steps = new List<PipelineStep>();
+
+            var loginToAcrStep = new PipelineStep
+            {
+                Name = $"login-to-acr-{name}",
+                Action = context => AzureEnvironmentResourceHelpers.LoginToRegistryAsync(this, context),
+                Tags = ["acr-login"]
+            };
+
+            // Add print-dashboard-url step
+            var printDashboardUrlStep = new PipelineStep
+            {
+                Name = $"print-dashboard-url-{name}",
+                Action = ctx => PrintDashboardUrlAsync(ctx),
+                Tags = ["print-summary"],
+                DependsOnSteps = [AzureEnvironmentResource.ProvisionInfrastructureStepName],
+                RequiredBySteps = [WellKnownPipelineSteps.Deploy]
+            };
+
+            steps.Add(loginToAcrStep);
+            steps.Add(printDashboardUrlStep);
+
+            // Expand deployment target steps for all compute resources
+            // This ensures the push/provision steps from deployment targets are included in the pipeline
+            foreach (var computeResource in model.GetComputeResources())
+            {
+                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+
+                if (deploymentTarget != null && deploymentTarget.TryGetAnnotationsOfType<PipelineStepAnnotation>(out var annotations))
+                {
+                    // Resolve the deployment target's PipelineStepAnnotation and expand its steps
+                    // We do this because the deployment target is not in the model
+                    foreach (var annotation in annotations)
+                    {
+                        var childFactoryContext = new PipelineStepFactoryContext
+                        {
+                            PipelineContext = factoryContext.PipelineContext,
+                            Resource = deploymentTarget
+                        };
+
+                        var deploymentTargetSteps = await annotation.CreateStepsAsync(childFactoryContext).ConfigureAwait(false);
+
+                        foreach (var step in deploymentTargetSteps)
+                        {
+                            // Ensure the step is associated with the deployment target resource
+                            step.Resource ??= deploymentTarget;
+                        }
+
+                        steps.AddRange(deploymentTargetSteps);
+                    }
+                }
+            }
+
+            return steps;
+        }));
+
+        // Add pipeline configuration annotation to wire up dependencies
+        // This is where we wire up the build steps created by the resources
+        Annotations.Add(new PipelineConfigurationAnnotation(context =>
+        {
+            var acrLoginSteps = context.GetSteps(this, "acr-login");
+
+            // Wire up build step dependencies
+            // Build steps are created by ProjectResource and ContainerResource
+            foreach (var computeResource in context.Model.GetComputeResources())
+            {
+                var deploymentTarget = computeResource.GetDeploymentTargetAnnotation(this)?.DeploymentTarget;
+
+                if (deploymentTarget is null)
+                {
+                    continue;
+                }
+
+                // Execute the PipelineConfigurationAnnotation callbacks on the deployment target
+                if (deploymentTarget.TryGetAnnotationsOfType<PipelineConfigurationAnnotation>(out var annotations))
+                {
+                    foreach (var annotation in annotations)
+                    {
+                        annotation.Callback(context);
+                    }
+                }
+
+                context.GetSteps(deploymentTarget, WellKnownPipelineTags.PushContainerImage)
+                       .DependsOn(acrLoginSteps);
+            }
+
+            // This ensures that resources that have to be built before deployments are handled
+            foreach (var computeResource in context.Model.GetBuildResources())
+            {
+                context.GetSteps(computeResource, WellKnownPipelineTags.BuildCompute)
+                        .RequiredBy(WellKnownPipelineSteps.Deploy)
+                        .DependsOn(WellKnownPipelineSteps.DeployPrereq);
+            }
+
+            // Make print-summary step depend on provisioning of this environment
+            var provisionSteps = context.GetSteps(this, WellKnownPipelineTags.ProvisionInfrastructure);
+            var printDashboardUrlSteps = context.GetSteps(this, "print-summary");
+            printDashboardUrlSteps.DependsOn(provisionSteps);
+
+            acrLoginSteps.DependsOn(provisionSteps);
+        }));
+    }
+
+    private async Task PrintDashboardUrlAsync(PipelineStepContext context)
+    {
+        var domainValue = await ContainerAppDomain.GetValueAsync(context.CancellationToken).ConfigureAwait(false);
+
+        var dashboardUrl = $"https://aspire-dashboard.ext.{domainValue}";
+
+        await context.ReportingStep.CompleteAsync(
+            $"Dashboard available at [dashboard URL]({dashboardUrl})",
+            CompletionState.Completed,
+            context.CancellationToken).ConfigureAwait(false);
+    }
     internal bool UseAzdNamingConvention { get; set; }
 
     /// <summary>

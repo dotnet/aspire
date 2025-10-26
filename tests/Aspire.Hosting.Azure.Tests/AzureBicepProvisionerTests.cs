@@ -12,6 +12,7 @@ using Aspire.Hosting.Utils;
 using Azure.Core;
 using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Aspire.Hosting.Azure.Tests;
 
@@ -98,7 +99,8 @@ public class AzureBicepProvisionerTests
             bicepExecutor,
             secretClientProvider,
             services.GetRequiredService<IDeploymentStateManager>(),
-            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run));
+            new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+            NullLogger<BicepProvisioner>.Instance);
 
         // Assert
         Assert.NotNull(provisioner);

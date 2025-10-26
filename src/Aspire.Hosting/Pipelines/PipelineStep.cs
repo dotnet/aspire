@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREPIPELINES001
 
 using System.Diagnostics.CodeAnalysis;
+using Aspire.Hosting.ApplicationModel;
 
 namespace Aspire.Hosting.Pipelines;
 
@@ -32,12 +33,17 @@ public class PipelineStep
     /// Gets or initializes the list of step names that require this step to complete before they can finish.
     /// This is used internally during pipeline construction and is converted to DependsOn relationships.
     /// </summary>
-    internal List<string> RequiredBySteps { get; init; } = [];
+    public List<string> RequiredBySteps { get; init; } = [];
 
     /// <summary>
     /// Gets or initializes the list of tags that categorize this step.
     /// </summary>
     public List<string> Tags { get; init; } = [];
+
+    /// <summary>
+    /// Gets or initializes the resource that this step is associated with, if any.
+    /// </summary>
+    public IResource? Resource { get; set; }
 
     /// <summary>
     /// Adds a dependency on another step.
