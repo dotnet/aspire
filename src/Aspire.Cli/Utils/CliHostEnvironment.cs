@@ -67,8 +67,17 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
 
     public CliHostEnvironment(IConfiguration configuration, bool nonInteractive)
     {
+        // Check if ASPIRE_PLAYGROUND is set to force interactive mode
+        var playgroundMode = IsPlaygroundMode(configuration);
+
+        // If ASPIRE_PLAYGROUND is set, force interactive mode
+        if (playgroundMode)
+        {
+            SupportsInteractiveInput = true;
+            SupportsInteractiveOutput = true;
+        }
         // If --non-interactive is explicitly set, disable interactive input and output
-        if (nonInteractive)
+        else if (nonInteractive)
         {
             SupportsInteractiveInput = false;
             SupportsInteractiveOutput = false;
@@ -153,5 +162,12 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         }
 
         return false;
+    }
+
+    private static bool IsPlaygroundMode(IConfiguration configuration)
+    {
+        var playgroundMode = configuration["ASPIRE_PLAYGROUND"];
+        return !string.IsNullOrEmpty(playgroundMode) &&
+               playgroundMode.Equals("true", StringComparison.OrdinalIgnoreCase);
     }
 }
