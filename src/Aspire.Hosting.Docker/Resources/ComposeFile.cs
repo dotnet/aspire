@@ -165,7 +165,7 @@ public sealed class ComposeFile
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .WithTypeConverter(new UnixFileModeTypeConverter())
             .WithTypeConverter(new EnvironmentVariablesTypeConverter())
-            .WithTypeConverter(new PortMappingsTypeConverter())
+            //.WithTypeConverter(new PortMappingsTypeConverter()) // Temporarily disabled - interferes with other List<string> properties
             .IgnoreUnmatchedProperties()
             .Build();
 
