@@ -252,9 +252,9 @@ public static class DockerComposeFileResourceBuilderExtensions
         // Import ports
         if (service.Ports.Count > 0)
         {
-            foreach (var portMapping in service.Ports)
+            foreach (var port in service.Ports)
             {
-                if (TryParsePortMapping(portMapping, out var hostPort, out var containerPort, out var protocol))
+                if (TryParsePortMapping(port.PortMapping, out var hostPort, out var containerPort, out var protocol))
                 {
                     // Determine scheme based on protocol
                     // For tcp and no protocol specified, default to http (common web scenario)
@@ -266,8 +266,10 @@ public static class DockerComposeFileResourceBuilderExtensions
                         _ => "http" // Default for null or empty protocol
                     };
                     
-                    // Create endpoint name from port mapping
-                    var endpointName = hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}";
+                    // Use the port name from long syntax if available, otherwise generate one
+                    var endpointName = !string.IsNullOrWhiteSpace(port.Name) 
+                        ? port.Name 
+                        : (hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}");
                     
                     containerBuilder.WithEndpoint(
                         name: endpointName,

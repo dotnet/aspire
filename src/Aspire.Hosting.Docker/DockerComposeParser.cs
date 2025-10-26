@@ -254,9 +254,9 @@ internal static class DockerComposeParser
         return result;
     }
 
-    private static List<string> ParsePortsFromYaml(YamlNode node)
+    private static List<ParsedPort> ParsePortsFromYaml(YamlNode node)
     {
-        var result = new List<string>();
+        var result = new List<ParsedPort>();
 
         if (node is not YamlSequenceNode sequenceNode)
         {
@@ -268,16 +268,17 @@ internal static class DockerComposeParser
             if (item is YamlScalarNode scalarNode && scalarNode.Value != null)
             {
                 // Short syntax: "8080:80" or "8080:80/tcp"
-                result.Add(scalarNode.Value);
+                result.Add(new ParsedPort { PortMapping = scalarNode.Value });
             }
             else if (item is YamlMappingNode mappingNode)
             {
-                // Long syntax: {target: 80, published: 8080, protocol: tcp}
-                // Convert to short syntax
+                // Long syntax: {target: 80, published: 8080, protocol: tcp, name: web}
+                // Convert to short syntax but preserve the name
                 int? target = null;
                 int? published = null;
                 string? protocol = null;
                 string? hostIp = null;
+                string? name = null;
 
                 foreach (var prop in mappingNode.Children)
                 {
@@ -306,6 +307,9 @@ internal static class DockerComposeParser
                         case "host_ip":
                             hostIp = valueNode.Value;
                             break;
+                        case "name":
+                            name = valueNode.Value;
+                            break;
                     }
                 }
 
@@ -333,7 +337,11 @@ internal static class DockerComposeParser
 
                 if (!string.IsNullOrEmpty(portString))
                 {
-                    result.Add(portString);
+                    result.Add(new ParsedPort 
+                    { 
+                        PortMapping = portString,
+                        Name = name
+                    });
                 }
             }
         }
@@ -789,7 +797,7 @@ internal class ParsedService
     public string? Image { get; set; }
     public ParsedBuild? Build { get; set; }
     public Dictionary<string, string> Environment { get; set; } = new(StringComparer.Ordinal);
-    public List<string> Ports { get; set; } = [];
+    public List<ParsedPort> Ports { get; set; } = [];
     public List<VolumeMount> Volumes { get; set; } = [];
     public List<string> Command { get; set; } = [];
     public List<string> Entrypoint { get; set; } = [];
@@ -813,6 +821,23 @@ internal class ParsedBuild
 internal class ParsedDependency
 {
     public string Condition { get; set; } = "service_started";
+}
+
+/// <summary>
+/// Represents a parsed port mapping from Docker Compose.
+/// Spec: https://github.com/compose-spec/compose-spec/blob/master/spec.md#ports
+/// </summary>
+internal class ParsedPort
+{
+    /// <summary>
+    /// The port mapping string in short syntax format (e.g., "8080:80", "8080:80/tcp").
+    /// </summary>
+    public required string PortMapping { get; init; }
+    
+    /// <summary>
+    /// Optional human-readable name for the port (from long syntax 'name' field).
+    /// </summary>
+    public string? Name { get; init; }
 }
 
 /// <summary>
