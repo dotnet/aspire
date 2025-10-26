@@ -53,7 +53,7 @@ internal sealed class UpdateCommand : BaseCommand
         Options.Add(projectOption);
 
         // Only add --self option if not running as dotnet tool
-        if (!IsRunningAsDotNetTool())
+        if (!CliHostEnvironment.IsRunningAsDotNetTool())
         {
             var selfOption = new Option<bool>("--self");
             selfOption.Description = "Update the Aspire CLI itself to the latest version";
@@ -66,20 +66,6 @@ internal sealed class UpdateCommand : BaseCommand
     }
 
     protected override bool UpdateNotificationsEnabled => false;
-
-    private static bool IsRunningAsDotNetTool()
-    {
-        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
-        // When running as a native binary, it points to "aspire" or "aspire.exe"
-        var processPath = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(processPath))
-        {
-            return false;
-        }
-
-        var fileName = Path.GetFileNameWithoutExtension(processPath);
-        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
-    }
 
     protected override async Task<int> ExecuteAsync(ParseResult parseResult, CancellationToken cancellationToken)
     {
