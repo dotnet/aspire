@@ -54,7 +54,6 @@ This will parse the Docker Compose file and create Aspire container resources fo
 
 **Note**: Other Docker Compose features like networks, health checks, and restart policies are not automatically imported but can be configured manually on the created resources.
 
-
 ## Feedback & contributing
 
 https://github.com/dotnet/aspire
