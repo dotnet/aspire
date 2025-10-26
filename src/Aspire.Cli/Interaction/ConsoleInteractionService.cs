@@ -246,7 +246,27 @@ internal class ConsoleInteractionService : IInteractionService
     public void DisplayVersionUpdateNotification(string newerVersion)
     {
         _ansiConsole.WriteLine();
-        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion));
+        
+        // Determine the update command based on how the CLI is running
+        var updateCommand = IsRunningAsDotNetTool() 
+            ? "dotnet tool update aspire.cli" 
+            : "aspire update --self";
+        
+        _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.NewCliVersionAvailable, newerVersion, updateCommand));
         _ansiConsole.MarkupLine(string.Format(CultureInfo.CurrentCulture, InteractionServiceStrings.MoreInfoNewCliVersion, UpdateUrl));
+    }
+
+    private static bool IsRunningAsDotNetTool()
+    {
+        // When running as a dotnet tool, the process path points to "dotnet" or "dotnet.exe"
+        // When running as a native binary, it points to "aspire" or "aspire.exe"
+        var processPath = Environment.ProcessPath;
+        if (string.IsNullOrEmpty(processPath))
+        {
+            return false;
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(processPath);
+        return string.Equals(fileName, "dotnet", StringComparison.OrdinalIgnoreCase);
     }
 }
