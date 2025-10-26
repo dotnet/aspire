@@ -7,6 +7,7 @@ Param(
   [switch]$vs,
   [ValidateSet("windows","linux","osx")][string]$os,
   [switch]$testnobuild,
+  [switch]$restoremaui,
   [ValidateSet("x86","x64","arm","arm64")][string[]][Alias('a')]$arch = @([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant()),
 
   [Parameter(ValueFromRemainingArguments=$true)][String[]]$properties
@@ -36,6 +37,7 @@ function Get-Help() {
   Write-Host "                          This assumes -build has been run already."
   Write-Host "  -rebuild                Rebuild all source projects."
   Write-Host "  -restore                Restore dependencies."
+  Write-Host "  -restoremaui            Restore dependencies and install MAUI workload (only on Windows/macOS)."
   Write-Host "  -sign                   Sign build outputs."
   Write-Host "  -test (-t)              Incrementally builds and runs tests."
   Write-Host "                          Use in conjunction with -testnobuild to only run tests."
@@ -44,7 +46,6 @@ function Get-Help() {
   Write-Host "Libraries settings:"
   Write-Host "  -testnobuild            Skip building tests when invoking -test."
   Write-Host "  -buildExtension         Build the VS Code extension."
-  Write-Host "  -restore-maui           Restore the MAUI workload after restore (only on Windows/macOS)."
   Write-Host ""
 
   Write-Host "Command-line arguments not listed above are passed through to MSBuild."
@@ -100,6 +101,7 @@ foreach ($argument in $PSBoundParameters.Keys)
     "arch"                   { $arguments += " /p:TargetArchitecture=$($PSBoundParameters[$argument])" }
     "testnobuild"            { $arguments += " /p:VSTestNoBuild=true" }
     "buildExtension"         { $arguments += " /p:BuildExtension=true" }
+    "restoremaui"            { $arguments += " -restoreMaui" }
     default                  { $arguments += " /p:$argument=$($PSBoundParameters[$argument])" }
   }
 }
@@ -110,30 +112,4 @@ if ($env:TreatWarningsAsErrors -eq 'false') {
 
 Write-Host "& `"$PSScriptRoot/common/build.ps1`" $arguments"
 Invoke-Expression "& `"$PSScriptRoot/common/build.ps1`" $arguments"
-$buildExitCode = $LASTEXITCODE
-
-# Install MAUI workload after restore if -restore-maui was passed
-# Only on Windows and macOS (MAUI doesn't support Linux)
-$restoreMauiPassed = $properties -contains "-restore-maui"
-$isWindowsOrMac = ($IsWindows -or $IsMacOS -or (-not (Get-Variable -Name IsWindows -ErrorAction SilentlyContinue)))
-if ($restoreMauiPassed -and $buildExitCode -eq 0 -and $isWindowsOrMac) {
-  Write-Host ""
-  Write-Host "Installing MAUI workload..."
-  
-  $repoRoot = Split-Path $PSScriptRoot -Parent
-  $dotnetCmd = Join-Path $repoRoot "dotnet.cmd"
-  
-  & $dotnetCmd workload install maui 2>&1 | Out-Host
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host ""
-    Write-Warning "Failed to install MAUI workload. You may need to run this command manually:"
-    Write-Warning "  $dotnetCmd workload install maui"
-    Write-Host ""
-    Write-Host "The MAUI playground may not work without the MAUI workload installed."
-  }
-  else {
-    Write-Host "MAUI workload installed successfully."
-  }
-}
-
-exit $buildExitCode
+exit $LASTEXITCODE
