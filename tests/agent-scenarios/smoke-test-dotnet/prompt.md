@@ -126,7 +126,7 @@ The `aspire run` command will:
 **What to observe:**
 - The command should start the Aspire AppHost
 - You should see console output indicating:
-  - Dashboard starting (typically on http://localhost:18888)
+  - Dashboard starting with a randomly assigned port and access token
   - Resources being initialized
   - Services starting up
   - No critical errors in the startup logs
@@ -134,11 +134,11 @@ The `aspire run` command will:
 ### 3.2 Wait for Startup
 
 Allow 30-60 seconds for the application to fully start. Monitor the console output for:
-- "Dashboard running at: http://localhost:XXXXX" message
+- "Dashboard running at: http://localhost:XXXXX" message with the access token
 - "Application started" or similar success messages
 - All resources showing as "Running" status
 
-**Tip:** The dashboard URL will be displayed in the console. Note this URL for later steps.
+**Tip:** The dashboard URL with access token will be displayed in the console output from `aspire run`. Note this complete URL (including the token parameter) for later steps. The port is randomly selected each time a new project is created.
 
 ## Step 4: Verify the Aspire Dashboard
 
@@ -146,13 +146,14 @@ The Aspire Dashboard is the central monitoring interface. Let's verify it's acce
 
 ### 4.1 Access the Dashboard
 
-Open the dashboard URL in a browser (typically http://localhost:18888).
+The dashboard URL with access token is displayed in the output from `aspire run`. Use this URL to access the dashboard.
 
 **Use browser automation tools to access and capture screenshots:**
 
 ```bash
-# Navigate to the dashboard
-playwright-browser navigate http://localhost:18888
+# Navigate to the dashboard using the URL from aspire run output
+# Example: DASHBOARD_URL="http://localhost:12345?token=abc123"
+playwright-browser navigate $DASHBOARD_URL
 ```
 
 **Take a screenshot of the dashboard:**
@@ -169,11 +170,11 @@ playwright-browser take_screenshot --filename dashboard-main.png
 **If browser automation fails, use curl for diagnostics:**
 
 ```bash
-# Check if dashboard is accessible
-curl -I http://localhost:18888
+# Check if dashboard is accessible using the URL from aspire run output
+curl -I $DASHBOARD_URL
 
 # Get the HTML content to diagnose issues
-curl http://localhost:18888
+curl $DASHBOARD_URL
 ```
 
 ### 4.2 Navigate Dashboard Sections
@@ -499,7 +500,7 @@ If issues occur during the smoke test:
 
 ### Startup Failures
 - Check Docker is running (if using containers)
-- Verify ports are not already in use (18888, 5000, 5001, etc.)
+- Verify ports are not already in use by other applications
 - Review console output for specific error messages
 - Check system resources (disk space, memory)
 
