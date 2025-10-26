@@ -243,9 +243,19 @@ public static class DockerComposeFileResourceBuilderExtensions
         // Import environment variables
         if (service.Environment.Count > 0)
         {
-            foreach (var (key, value) in service.Environment)
+            foreach (var (key, envVar) in service.Environment)
             {
-                containerBuilder.WithEnvironment(key, value);
+                if (envVar.IsLiteral)
+                {
+                    // Simple literal value
+                    containerBuilder.WithEnvironment(key, envVar.LiteralValue!);
+                }
+                else
+                {
+                    // Value contains placeholders - convert to ReferenceExpression
+                    var expression = CreateReferenceExpressionFromPlaceholders(envVar);
+                    containerBuilder.WithEnvironment(key, expression);
+                }
             }
         }
 
@@ -363,5 +373,69 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         return serviceBuilder;
+    }
+
+    /// <summary>
+    /// Creates a ReferenceExpression from a ParsedEnvironmentVariable containing placeholders.
+    /// </summary>
+    private static ReferenceExpression CreateReferenceExpressionFromPlaceholders(ParsedEnvironmentVariable envVar)
+    {
+        var builder = new ReferenceExpressionBuilder();
+        
+        // Parse the format string and append literal parts and placeholder parts
+        var parts = envVar.Format!.Split(new[] { '{', '}' });
+        var isPlaceholder = false;
+        var placeholderIndex = 0;
+        
+        for (int i = 0; i < parts.Length; i++)
+        {
+            var part = parts[i];
+            
+            if (string.IsNullOrEmpty(part))
+            {
+                isPlaceholder = !isPlaceholder;
+                continue;
+            }
+            
+            if (isPlaceholder && int.TryParse(part, out var index))
+            {
+                // This is a placeholder reference - append the placeholder value provider
+                var placeholder = envVar.Placeholders[index];
+                var defaultValue = placeholder.DefaultValue ?? string.Empty;
+                builder.AppendFormatted(new ParameterDefault(placeholder.Name, defaultValue));
+                placeholderIndex++;
+            }
+            else
+            {
+                // Literal text
+                builder.AppendLiteral(part);
+            }
+            
+            isPlaceholder = !isPlaceholder;
+        }
+        
+        return builder.Build();
+    }
+}
+
+/// <summary>
+/// A simple value provider that returns a default value.
+/// </summary>
+file class ParameterDefault : IValueProvider, IManifestExpressionProvider
+{
+    private readonly string _value;
+    private readonly string _name;
+
+    public ParameterDefault(string name, string value)
+    {
+        _name = name;
+        _value = value;
+    }
+
+    public string ValueExpression => $"${{{_name}}}";
+
+    public ValueTask<string?> GetValueAsync(CancellationToken cancellationToken = default)
+    {
+        return new ValueTask<string?>(_value);
     }
 }

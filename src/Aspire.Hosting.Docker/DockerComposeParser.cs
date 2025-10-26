@@ -119,6 +119,22 @@ internal static class DockerComposeParser
             }
         }
 
+        // Collect unique placeholders from environment variables
+        foreach (var envVar in service.Environment.Values)
+        {
+            if (!envVar.IsLiteral)
+            {
+                foreach (var placeholder in envVar.Placeholders)
+                {
+                    // Add to service placeholders dictionary if not already present
+                    if (!service.Placeholders.ContainsKey(placeholder.Name))
+                    {
+                        service.Placeholders[placeholder.Name] = placeholder;
+                    }
+                }
+            }
+        }
+
         return service;
     }
 
@@ -214,9 +230,9 @@ internal static class DockerComposeParser
         return args;
     }
 
-    private static Dictionary<string, string> ParseEnvironmentFromYaml(YamlNode node)
+    private static Dictionary<string, ParsedEnvironmentVariable> ParseEnvironmentFromYaml(YamlNode node)
     {
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var result = new Dictionary<string, ParsedEnvironmentVariable>(StringComparer.Ordinal);
 
         if (node is YamlMappingNode mappingNode)
         {
@@ -228,12 +244,7 @@ internal static class DockerComposeParser
                     var key = keyNode.Value ?? string.Empty;
                     var value = valueNode.Value ?? string.Empty;
                     
-                    // Skip environment variables that contain placeholders (${VAR} syntax)
-                    // These are meant to be substituted at runtime by Docker Compose
-                    if (!ContainsPlaceholder(value))
-                    {
-                        result[key] = value;
-                    }
+                    result[key] = ParseEnvironmentValue(value);
                 }
             }
         }
@@ -247,16 +258,12 @@ internal static class DockerComposeParser
                     var parts = scalarNode.Value.Split('=', 2);
                     if (parts.Length == 2)
                     {
-                        // Skip environment variables that contain placeholders
-                        if (!ContainsPlaceholder(parts[1]))
-                        {
-                            result[parts[0]] = parts[1];
-                        }
+                        result[parts[0]] = ParseEnvironmentValue(parts[1]);
                     }
                     else if (parts.Length == 1)
                     {
-                        // Variable without value (e.g., "DEBUG") - include it
-                        result[parts[0]] = string.Empty;
+                        // Variable without value (e.g., "DEBUG") - include it as empty literal
+                        result[parts[0]] = new ParsedEnvironmentVariable { LiteralValue = string.Empty };
                     }
                 }
             }
@@ -266,46 +273,147 @@ internal static class DockerComposeParser
     }
 
     /// <summary>
-    /// Checks if a value contains Docker Compose environment variable placeholders.
-    /// Placeholders use the syntax: ${VAR}, ${VAR:-default}, ${VAR-default}, ${VAR:?error}, ${VAR?error}
-    /// Escaped placeholders ($${VAR}) are treated as literals and not considered placeholders.
+    /// Parses an environment variable value that may contain Docker Compose placeholders.
     /// </summary>
-    private static bool ContainsPlaceholder(string value)
+    /// <param name="value">The raw environment variable value.</param>
+    /// <returns>A ParsedEnvironmentVariable containing either a literal value or placeholder information.</returns>
+    private static ParsedEnvironmentVariable ParseEnvironmentValue(string value)
     {
         if (string.IsNullOrEmpty(value))
         {
-            return false;
+            return new ParsedEnvironmentVariable { LiteralValue = value };
         }
 
-        // Look for ${...} pattern that isn't escaped with $$
+        var placeholders = new List<ParsedPlaceholder>();
+        var formatParts = new List<string>();
+        var currentPart = new System.Text.StringBuilder();
         var index = 0;
+        var placeholderIndex = 0;
+
         while (index < value.Length)
         {
-            var dollarPos = value.IndexOf('$', index);
-            if (dollarPos == -1)
+            if (value[index] == '$' && index + 1 < value.Length)
             {
-                break;
+                // Check for escaped placeholder ($$)
+                if (value[index + 1] == '$')
+                {
+                    // Escaped - treat as literal $
+                    currentPart.Append('$');
+                    index += 2;
+                    continue;
+                }
+
+                // Check for placeholder (${...})
+                if (value[index + 1] == '{')
+                {
+                    var closeBrace = value.IndexOf('}', index + 2);
+                    if (closeBrace == -1)
+                    {
+                        // Malformed placeholder - treat as literal
+                        currentPart.Append(value[index]);
+                        index++;
+                        continue;
+                    }
+
+                    // Extract placeholder content
+                    var placeholderContent = value.Substring(index + 2, closeBrace - index - 2);
+                    var placeholder = ParsePlaceholder(placeholderContent);
+
+                    // Add current part to format and start new placeholder
+                    formatParts.Add(currentPart.ToString());
+                    formatParts.Add($"{{{placeholderIndex}}}");
+                    placeholders.Add(placeholder);
+                    currentPart.Clear();
+                    placeholderIndex++;
+
+                    index = closeBrace + 1;
+                    continue;
+                }
             }
 
-            // Check if it's escaped ($$)
-            if (dollarPos + 1 < value.Length && value[dollarPos + 1] == '$')
-            {
-                // Skip the escaped sequence
-                index = dollarPos + 2;
-                continue;
-            }
-
-            // Check if it's followed by {
-            if (dollarPos + 1 < value.Length && value[dollarPos + 1] == '{')
-            {
-                // Found a placeholder
-                return true;
-            }
-
-            index = dollarPos + 1;
+            currentPart.Append(value[index]);
+            index++;
         }
 
-        return false;
+        // If no placeholders were found, return as literal
+        if (placeholders.Count == 0)
+        {
+            return new ParsedEnvironmentVariable { LiteralValue = currentPart.ToString() };
+        }
+
+        // Add final part
+        formatParts.Add(currentPart.ToString());
+
+        // Build format string by combining parts
+        var format = string.Join("", formatParts);
+
+        return new ParsedEnvironmentVariable
+        {
+            Format = format,
+            Placeholders = placeholders
+        };
+    }
+
+    /// <summary>
+    /// Parses a Docker Compose placeholder content (the part between ${ and }).
+    /// Supports: VAR, VAR:-default, VAR-default, VAR:?error, VAR?error
+    /// </summary>
+    private static ParsedPlaceholder ParsePlaceholder(string content)
+    {
+        // Check for :- syntax (use default if unset or empty)
+        var colonMinusIndex = content.IndexOf(":-");
+        if (colonMinusIndex > 0)
+        {
+            return new ParsedPlaceholder
+            {
+                Name = content.Substring(0, colonMinusIndex),
+                DefaultValue = content.Substring(colonMinusIndex + 2),
+                DefaultType = PlaceholderDefaultType.ColonMinus
+            };
+        }
+
+        // Check for - syntax (use default if unset)
+        var minusIndex = content.IndexOf('-');
+        if (minusIndex > 0 && (minusIndex == content.Length - 1 || content[minusIndex - 1] != ':'))
+        {
+            return new ParsedPlaceholder
+            {
+                Name = content.Substring(0, minusIndex),
+                DefaultValue = content.Substring(minusIndex + 1),
+                DefaultType = PlaceholderDefaultType.Minus
+            };
+        }
+
+        // Check for :? or ? syntax (required with error) - we ignore the error message
+        var colonQuestionIndex = content.IndexOf(":?");
+        if (colonQuestionIndex > 0)
+        {
+            return new ParsedPlaceholder
+            {
+                Name = content.Substring(0, colonQuestionIndex),
+                DefaultValue = null,
+                DefaultType = PlaceholderDefaultType.None
+            };
+        }
+
+        var questionIndex = content.IndexOf('?');
+        if (questionIndex > 0)
+        {
+            return new ParsedPlaceholder
+            {
+                Name = content.Substring(0, questionIndex),
+                DefaultValue = null,
+                DefaultType = PlaceholderDefaultType.None
+            };
+        }
+
+        // Simple placeholder ${VAR}
+        return new ParsedPlaceholder
+        {
+            Name = content,
+            DefaultValue = null,
+            DefaultType = PlaceholderDefaultType.None
+        };
     }
 
     private static List<ParsedPort> ParsePortsFromYaml(YamlNode node)
@@ -631,12 +739,13 @@ internal class ParsedService
 {
     public string? Image { get; set; }
     public ParsedBuild? Build { get; set; }
-    public Dictionary<string, string> Environment { get; set; } = new(StringComparer.Ordinal);
+    public Dictionary<string, ParsedEnvironmentVariable> Environment { get; set; } = new(StringComparer.Ordinal);
     public List<ParsedPort> Ports { get; set; } = [];
     public List<VolumeMount> Volumes { get; set; } = [];
     public List<string> Command { get; set; } = [];
     public List<string> Entrypoint { get; set; } = [];
     public Dictionary<string, ParsedDependency> DependsOn { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, ParsedPlaceholder> Placeholders { get; set; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>
@@ -705,4 +814,78 @@ internal record VolumeMount
     public string? Source { get; init; }
     public required string Target { get; init; }
     public bool ReadOnly { get; init; }
+}
+
+/// <summary>
+/// Represents a Docker Compose environment variable placeholder.
+/// Spec: https://github.com/compose-spec/compose-spec/blob/master/spec.md#interpolation
+/// </summary>
+internal class ParsedPlaceholder
+{
+    /// <summary>
+    /// The name of the placeholder variable (e.g., "DATABASE_URL").
+    /// </summary>
+    public required string Name { get; init; }
+    
+    /// <summary>
+    /// The default value if specified (e.g., "localhost" in ${DB_HOST:-localhost}).
+    /// Null if no default was specified.
+    /// </summary>
+    public string? DefaultValue { get; init; }
+    
+    /// <summary>
+    /// The type of default syntax used.
+    /// - ColonMinus (:-) means use default if variable is unset or empty
+    /// - Minus (-) means use default only if variable is unset
+    /// - None means no default specified
+    /// </summary>
+    public PlaceholderDefaultType DefaultType { get; init; }
+}
+
+/// <summary>
+/// The type of default value syntax used in a placeholder.
+/// </summary>
+internal enum PlaceholderDefaultType
+{
+    /// <summary>
+    /// No default value specified (e.g., ${VAR}).
+    /// </summary>
+    None,
+    
+    /// <summary>
+    /// Use default if variable is unset or empty (e.g., ${VAR:-default}).
+    /// </summary>
+    ColonMinus,
+    
+    /// <summary>
+    /// Use default only if variable is unset (e.g., ${VAR-default}).
+    /// </summary>
+    Minus
+}
+
+/// <summary>
+/// Represents a parsed environment variable value that can be either a literal string
+/// or a formatted string with placeholders.
+/// </summary>
+internal class ParsedEnvironmentVariable
+{
+    /// <summary>
+    /// The literal string value if the environment variable contains no placeholders.
+    /// </summary>
+    public string? LiteralValue { get; init; }
+    
+    /// <summary>
+    /// The format string if the environment variable contains placeholders (e.g., "postgres://{0}:{1}/{2}").
+    /// </summary>
+    public string? Format { get; init; }
+    
+    /// <summary>
+    /// The ordered list of placeholders referenced in the format string.
+    /// </summary>
+    public List<ParsedPlaceholder> Placeholders { get; init; } = [];
+    
+    /// <summary>
+    /// True if this is a literal value, false if it contains placeholders.
+    /// </summary>
+    public bool IsLiteral => LiteralValue != null;
 }

@@ -63,8 +63,10 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal("true", result["app"].Environment["DEBUG"]);
-        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"]);
+        Assert.True(result["app"].Environment["DEBUG"].IsLiteral);
+        Assert.Equal("true", result["app"].Environment["DEBUG"].LiteralValue);
+        Assert.True(result["app"].Environment["LOG_LEVEL"].IsLiteral);
+        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"].LiteralValue);
     }
 
     [Fact]
@@ -82,8 +84,10 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal("true", result["app"].Environment["DEBUG"]);
-        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"]);
+        Assert.True(result["app"].Environment["DEBUG"].IsLiteral);
+        Assert.Equal("true", result["app"].Environment["DEBUG"].LiteralValue);
+        Assert.True(result["app"].Environment["LOG_LEVEL"].IsLiteral);
+        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"].LiteralValue);
     }
 
     [Fact]
@@ -101,12 +105,14 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal(string.Empty, result["app"].Environment["DEBUG"]);
-        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"]);
+        Assert.True(result["app"].Environment["DEBUG"].IsLiteral);
+        Assert.Equal(string.Empty, result["app"].Environment["DEBUG"].LiteralValue);
+        Assert.True(result["app"].Environment["LOG_LEVEL"].IsLiteral);
+        Assert.Equal("info", result["app"].Environment["LOG_LEVEL"].LiteralValue);
     }
 
     [Fact]
-    public void ParseEnvironment_WithPlaceholders_SkipsPlaceholders()
+    public void ParseEnvironment_WithPlaceholders_CreatesFormattedString()
     {
         var yaml = @"
 version: '3.8'
@@ -122,15 +128,39 @@ services:
 ";
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
-        // Should only include non-placeholder values
-        Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal("8080", result["app"].Environment["PORT"]);
-        Assert.Equal("true", result["app"].Environment["DEBUG"]);
+        // All environment variables should be included
+        Assert.Equal(5, result["app"].Environment.Count);
         
-        // Should NOT include placeholder variables
-        Assert.False(result["app"].Environment.ContainsKey("DATABASE_URL"));
-        Assert.False(result["app"].Environment.ContainsKey("DB_HOST"));
-        Assert.False(result["app"].Environment.ContainsKey("API_KEY"));
+        // Literal values
+        Assert.True(result["app"].Environment["PORT"].IsLiteral);
+        Assert.Equal("8080", result["app"].Environment["PORT"].LiteralValue);
+        Assert.True(result["app"].Environment["DEBUG"].IsLiteral);
+        Assert.Equal("true", result["app"].Environment["DEBUG"].LiteralValue);
+        
+        // Placeholder values
+        Assert.False(result["app"].Environment["DATABASE_URL"].IsLiteral);
+        Assert.Equal("{0}", result["app"].Environment["DATABASE_URL"].Format);
+        Assert.Single(result["app"].Environment["DATABASE_URL"].Placeholders);
+        Assert.Equal("DATABASE_URL", result["app"].Environment["DATABASE_URL"].Placeholders[0].Name);
+        Assert.Null(result["app"].Environment["DATABASE_URL"].Placeholders[0].DefaultValue);
+        
+        Assert.False(result["app"].Environment["DB_HOST"].IsLiteral);
+        Assert.Equal("{0}", result["app"].Environment["DB_HOST"].Format);
+        Assert.Single(result["app"].Environment["DB_HOST"].Placeholders);
+        Assert.Equal("DB_HOST", result["app"].Environment["DB_HOST"].Placeholders[0].Name);
+        Assert.Equal("localhost", result["app"].Environment["DB_HOST"].Placeholders[0].DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.ColonMinus, result["app"].Environment["DB_HOST"].Placeholders[0].DefaultType);
+        
+        Assert.False(result["app"].Environment["API_KEY"].IsLiteral);
+        Assert.Equal("{0}", result["app"].Environment["API_KEY"].Format);
+        Assert.Single(result["app"].Environment["API_KEY"].Placeholders);
+        Assert.Equal("API_KEY", result["app"].Environment["API_KEY"].Placeholders[0].Name);
+        
+        // Check placeholders dictionary
+        Assert.Equal(3, result["app"].Placeholders.Count);
+        Assert.Contains("DATABASE_URL", result["app"].Placeholders.Keys);
+        Assert.Contains("DB_HOST", result["app"].Placeholders.Keys);
+        Assert.Contains("API_KEY", result["app"].Placeholders.Keys);
     }
 
     [Fact]
@@ -149,12 +179,14 @@ services:
         
         // Escaped placeholders ($$) should be treated as literal values
         Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal("$${VARIABLE}", result["app"].Environment["LITERAL"]);
-        Assert.Equal("value", result["app"].Environment["NORMAL"]);
+        Assert.True(result["app"].Environment["LITERAL"].IsLiteral);
+        Assert.Equal("${VARIABLE}", result["app"].Environment["LITERAL"].LiteralValue);
+        Assert.True(result["app"].Environment["NORMAL"].IsLiteral);
+        Assert.Equal("value", result["app"].Environment["NORMAL"].LiteralValue);
     }
 
     [Fact]
-    public void ParseEnvironment_DictionaryWithPlaceholders_SkipsPlaceholders()
+    public void ParseEnvironment_DictionaryWithPlaceholders_CreatesFormattedString()
     {
         var yaml = @"
 version: '3.8'
@@ -169,18 +201,28 @@ services:
 ";
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
-        // Should only include non-placeholder values
-        Assert.Equal(2, result["app"].Environment.Count);
-        Assert.Equal("8080", result["app"].Environment["PORT"]);
-        Assert.Equal("true", result["app"].Environment["DEBUG"]);
+        // All environment variables should be included
+        Assert.Equal(4, result["app"].Environment.Count);
         
-        // Should NOT include placeholder variables
-        Assert.False(result["app"].Environment.ContainsKey("DATABASE_URL"));
-        Assert.False(result["app"].Environment.ContainsKey("CONFIG_PATH"));
+        // Literal values
+        Assert.True(result["app"].Environment["PORT"].IsLiteral);
+        Assert.Equal("8080", result["app"].Environment["PORT"].LiteralValue);
+        Assert.True(result["app"].Environment["DEBUG"].IsLiteral);
+        Assert.Equal("true", result["app"].Environment["DEBUG"].LiteralValue);
+        
+        // Placeholder values
+        Assert.False(result["app"].Environment["DATABASE_URL"].IsLiteral);
+        Assert.Single(result["app"].Environment["DATABASE_URL"].Placeholders);
+        Assert.Equal("DATABASE_URL", result["app"].Environment["DATABASE_URL"].Placeholders[0].Name);
+        
+        Assert.False(result["app"].Environment["CONFIG_PATH"].IsLiteral);
+        Assert.Single(result["app"].Environment["CONFIG_PATH"].Placeholders);
+        Assert.Equal("CONFIG_PATH", result["app"].Environment["CONFIG_PATH"].Placeholders[0].Name);
+        Assert.Equal("/etc/config", result["app"].Environment["CONFIG_PATH"].Placeholders[0].DefaultValue);
     }
 
     [Fact]
-    public void ParseEnvironment_WithPartialPlaceholders_SkipsEntirely()
+    public void ParseEnvironment_WithPartialPlaceholders_CreatesFormattedString()
     {
         var yaml = @"
 version: '3.8'
@@ -193,10 +235,18 @@ services:
 ";
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
-        // Should skip variables with placeholders anywhere in the value
-        Assert.Single(result["app"].Environment);
-        Assert.Equal("literal", result["app"].Environment["PURE"]);
-        Assert.False(result["app"].Environment.ContainsKey("URL"));
+        // Both variables should be included
+        Assert.Equal(2, result["app"].Environment.Count);
+        
+        // URL contains placeholder in the middle
+        Assert.False(result["app"].Environment["URL"].IsLiteral);
+        Assert.Equal("http://{0}:8080/api", result["app"].Environment["URL"].Format);
+        Assert.Single(result["app"].Environment["URL"].Placeholders);
+        Assert.Equal("HOST", result["app"].Environment["URL"].Placeholders[0].Name);
+        
+        // PURE is literal
+        Assert.True(result["app"].Environment["PURE"].IsLiteral);
+        Assert.Equal("literal", result["app"].Environment["PURE"].LiteralValue);
     }
 
     #endregion
