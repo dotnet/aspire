@@ -265,13 +265,21 @@ internal static class DockerComposeParser
         {
             if (item is YamlScalarNode scalarNode && scalarNode.Value != null)
             {
-                // Short syntax: "8080:80" or "8080:80/tcp"
-                result.Add(new ParsedPort { PortMapping = scalarNode.Value });
+                // Short syntax: "8080:80" or "8080:80/tcp" or "127.0.0.1:8080:80"
+                var port = ParseShortPortSyntax(scalarNode.Value);
+                result.Add(new ParsedPort
+                {
+                    Target = port.Target,
+                    Published = port.Published,
+                    Protocol = port.Protocol,
+                    HostIp = port.HostIp,
+                    Name = port.Name,
+                    IsShortSyntax = true
+                });
             }
             else if (item is YamlMappingNode mappingNode)
             {
                 // Long syntax: {target: 80, published: 8080, protocol: tcp, name: web}
-                // Convert to short syntax but preserve the name
                 int? target = null;
                 int? published = null;
                 string? protocol = null;
@@ -311,40 +319,75 @@ internal static class DockerComposeParser
                     }
                 }
 
-                // Convert to short syntax string
-                var portString = "";
-                if (!string.IsNullOrEmpty(hostIp))
+                result.Add(new ParsedPort
                 {
-                    portString = $"{hostIp}:";
-                }
-
-                if (published.HasValue && target.HasValue)
-                {
-                    portString += $"{published}:{target}";
-                }
-                else if (target.HasValue)
-                {
-                    portString += $"{target}";
-                }
-
-                // Only include protocol if it's not tcp (tcp is the default and gets converted to http scheme)
-                if (!string.IsNullOrEmpty(protocol) && protocol.ToLowerInvariant() != "tcp")
-                {
-                    portString += $"/{protocol}";
-                }
-
-                if (!string.IsNullOrEmpty(portString))
-                {
-                    result.Add(new ParsedPort 
-                    { 
-                        PortMapping = portString,
-                        Name = name
-                    });
-                }
+                    Target = target,
+                    Published = published,
+                    Protocol = protocol, // Keep null if not specified
+                    HostIp = hostIp,
+                    Name = name,
+                    IsShortSyntax = false // Long syntax
+                });
             }
         }
 
         return result;
+    }
+
+    private static ParsedPort ParseShortPortSyntax(string portSpec)
+    {
+        string? protocol = null;
+        var spec = portSpec;
+
+        // Extract protocol if present (e.g., "8080:80/udp")
+        if (spec.Contains('/'))
+        {
+            var parts = spec.Split('/');
+            spec = parts[0];
+            protocol = parts[1].ToLowerInvariant();
+        }
+
+        string? hostIp = null;
+        int? published = null;
+        int? target = null;
+
+        var portParts = spec.Split(':');
+
+        if (portParts.Length == 1)
+        {
+            // Just target port: "3000"
+            if (int.TryParse(portParts[0], out var t))
+            {
+                target = t;
+            }
+        }
+        else if (portParts.Length == 2)
+        {
+            // Published:target: "8080:80"
+            if (int.TryParse(portParts[0], out var p) && int.TryParse(portParts[1], out var t))
+            {
+                published = p;
+                target = t;
+            }
+        }
+        else if (portParts.Length == 3)
+        {
+            // HostIP:Published:target: "127.0.0.1:8080:80"
+            hostIp = portParts[0];
+            if (int.TryParse(portParts[1], out var p) && int.TryParse(portParts[2], out var t))
+            {
+                published = p;
+                target = t;
+            }
+        }
+
+        return new ParsedPort
+        {
+            Target = target,
+            Published = published,
+            Protocol = protocol, // Keep null if not specified
+            HostIp = hostIp
+        };
     }
 
     private static List<VolumeMount> ParseVolumesFromYaml(YamlNode node)
@@ -566,14 +609,35 @@ internal class ParsedDependency
 internal class ParsedPort
 {
     /// <summary>
-    /// The port mapping string in short syntax format (e.g., "8080:80", "8080:80/tcp").
+    /// The container port (required).
     /// </summary>
-    public required string PortMapping { get; init; }
+    public int? Target { get; init; }
+    
+    /// <summary>
+    /// The host port (optional - if not specified, a random port is assigned).
+    /// </summary>
+    public int? Published { get; init; }
+    
+    /// <summary>
+    /// The protocol (tcp or udp). Null if not explicitly specified in the compose file.
+    /// </summary>
+    public string? Protocol { get; init; }
+    
+    /// <summary>
+    /// The host IP to bind to (optional).
+    /// </summary>
+    public string? HostIp { get; init; }
     
     /// <summary>
     /// Optional human-readable name for the port (from long syntax 'name' field).
     /// </summary>
     public string? Name { get; init; }
+    
+    /// <summary>
+    /// Indicates if this port was defined using short syntax (true) or long syntax (false).
+    /// This affects how tcp protocol is interpreted for scheme determination.
+    /// </summary>
+    public bool IsShortSyntax { get; init; }
 }
 
 /// <summary>

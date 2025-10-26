@@ -254,28 +254,32 @@ public static class DockerComposeFileResourceBuilderExtensions
         {
             foreach (var port in service.Ports)
             {
-                if (TryParsePortMapping(port.PortMapping, out var hostPort, out var containerPort, out var protocol))
+                if (port.Target.HasValue)
                 {
                     // Determine scheme based on protocol
-                    // For tcp and no protocol specified, default to http (common web scenario)
-                    // For udp, use udp scheme
-                    var scheme = protocol?.ToLowerInvariant() switch
+                    // Short syntax with explicit /tcp → use tcp scheme (for raw TCP connections)
+                    // Long syntax with protocol:tcp → convert to http (common web scenario)
+                    // No protocol specified → default to http
+                    // UDP → use udp scheme
+                    var scheme = port.Protocol?.ToLowerInvariant() switch
                     {
                         "udp" => "udp",
-                        "tcp" => "tcp",
-                        _ => "http" // Default for null or empty protocol
+                        "tcp" when port.IsShortSyntax => "tcp", // Short syntax /tcp means raw TCP
+                        "tcp" => "http", // Long syntax tcp means HTTP over TCP
+                        null => "http",
+                        _ => "http"
                     };
                     
                     // Use the port name from long syntax if available, otherwise generate one
                     var endpointName = !string.IsNullOrWhiteSpace(port.Name) 
                         ? port.Name 
-                        : (hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}");
+                        : (port.Published.HasValue ? $"port{port.Published.Value}" : $"port{port.Target.Value}");
                     
                     containerBuilder.WithEndpoint(
                         name: endpointName,
                         scheme: scheme,
-                        port: hostPort,
-                        targetPort: containerPort,
+                        port: port.Published,
+                        targetPort: port.Target.Value,
                         isExternal: true,
                         isProxied: false);
                 }
@@ -324,60 +328,6 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         return containerBuilder;
-    }
-
-    private static bool TryParsePortMapping(string portMapping, out int? hostPort, out int? containerPort, out string? protocol)
-    {
-        hostPort = null;
-        containerPort = null;
-        protocol = null;
-
-        // Expected formats:
-        // "8080:80"
-        // "8080:80/tcp"
-        // "127.0.0.1:8080:80"
-        // "80" (just container port, no host port)
-
-        var parts = portMapping.Split('/');
-        var portPart = parts[0];
-        if (parts.Length > 1)
-        {
-            protocol = parts[1];
-        }
-
-        var portParts = portPart.Split(':');
-
-        if (portParts.Length == 1)
-        {
-            // Just container port
-            if (int.TryParse(portParts[0], out var port))
-            {
-                containerPort = port;
-                return true;
-            }
-        }
-        else if (portParts.Length == 2)
-        {
-            // host:container
-            if (int.TryParse(portParts[0], out var hPort) && int.TryParse(portParts[1], out var cPort))
-            {
-                hostPort = hPort;
-                containerPort = cPort;
-                return true;
-            }
-        }
-        else if (portParts.Length == 3)
-        {
-            // IP:host:container - skip IP and use host:container
-            if (int.TryParse(portParts[1], out var hPort) && int.TryParse(portParts[2], out var cPort))
-            {
-                hostPort = hPort;
-                containerPort = cPort;
-                return true;
-            }
-        }
-
-        return false;
     }
 
     /// <summary>

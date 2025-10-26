@@ -126,9 +126,21 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Equal(3, result["web"].Ports.Count);
-        Assert.Equal("8080:80", result["web"].Ports[0].PortMapping);
-        Assert.Equal("443:443/tcp", result["web"].Ports[1].PortMapping); // Preserved as-is from short syntax
-        Assert.Equal("53:53/udp", result["web"].Ports[2].PortMapping);
+        
+        // First port: "8080:80" - no protocol specified
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Equal(8080, result["web"].Ports[0].Published);
+        Assert.Null(result["web"].Ports[0].Protocol); // Not explicitly specified
+        
+        // Second port: "443:443/tcp" - tcp explicitly specified
+        Assert.Equal(443, result["web"].Ports[1].Target);
+        Assert.Equal(443, result["web"].Ports[1].Published);
+        Assert.Equal("tcp", result["web"].Ports[1].Protocol);
+        
+        // Third port: "53:53/udp" - udp explicitly specified
+        Assert.Equal(53, result["web"].Ports[2].Target);
+        Assert.Equal(53, result["web"].Ports[2].Published);
+        Assert.Equal("udp", result["web"].Ports[2].Protocol);
     }
 
     [Fact]
@@ -145,7 +157,10 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Single(result["web"].Ports);
-        Assert.Equal("127.0.0.1:8080:80", result["web"].Ports[0].PortMapping);
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Equal(8080, result["web"].Ports[0].Published);
+        Assert.Equal("127.0.0.1", result["web"].Ports[0].HostIp);
+        Assert.Null(result["web"].Ports[0].Protocol); // Not explicitly specified
     }
 
     [Fact]
@@ -164,7 +179,9 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Single(result["web"].Ports);
-        Assert.Equal("8080:80", result["web"].Ports[0].PortMapping); // tcp omitted as it's default
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Equal(8080, result["web"].Ports[0].Published);
+        Assert.Equal("tcp", result["web"].Ports[0].Protocol);
     }
 
     [Fact]
@@ -183,7 +200,9 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Single(result["dns"].Ports);
-        Assert.Equal("5353:53/udp", result["dns"].Ports[0].PortMapping);
+        Assert.Equal(53, result["dns"].Ports[0].Target);
+        Assert.Equal(5353, result["dns"].Ports[0].Published);
+        Assert.Equal("udp", result["dns"].Ports[0].Protocol);
     }
 
     [Fact]
@@ -202,7 +221,10 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Single(result["web"].Ports);
-        Assert.Equal("127.0.0.1:8080:80", result["web"].Ports[0].PortMapping);
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Equal(8080, result["web"].Ports[0].Published);
+        Assert.Equal("127.0.0.1", result["web"].Ports[0].HostIp);
+        Assert.Null(result["web"].Ports[0].Protocol); // Protocol not explicitly specified in long syntax
     }
 
     [Fact]
@@ -219,7 +241,9 @@ services:
         var result = DockerComposeParser.ParseComposeFile(yaml);
         
         Assert.Single(result["web"].Ports);
-        Assert.Equal("80", result["web"].Ports[0].PortMapping);
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Null(result["web"].Ports[0].Published); // Not specified, will be randomly assigned
+        Assert.Null(result["web"].Ports[0].Protocol); // Not explicitly specified
     }
 
     [Fact]
@@ -244,11 +268,13 @@ services:
         Assert.Equal(2, result["web"].Ports.Count);
         
         // First port with name
-        Assert.Equal("8080:80", result["web"].Ports[0].PortMapping);
+        Assert.Equal(80, result["web"].Ports[0].Target);
+        Assert.Equal(8080, result["web"].Ports[0].Published);
         Assert.Equal("web", result["web"].Ports[0].Name);
         
         // Second port with name
-        Assert.Equal("8443:443", result["web"].Ports[1].PortMapping);
+        Assert.Equal(443, result["web"].Ports[1].Target);
+        Assert.Equal(8443, result["web"].Ports[1].Published);
         Assert.Equal("web-secured", result["web"].Ports[1].Name);
     }
 
