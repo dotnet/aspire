@@ -41,18 +41,18 @@ Expected output should show the version matching the PR build.
 
 ### 1.1 Enable SDK Install Feature Flag
 
-Before proceeding, enable the `alwaysInstallSdk` feature flag to force SDK installation for testing purposes. This ensures the Aspire CLI's SDK installation functionality is properly exercised.
+Before proceeding, enable the `dotNetSdkInstallationEnabled` feature flag to force SDK installation for testing purposes. This ensures the Aspire CLI's SDK installation functionality is properly exercised.
 
 Set the configuration value:
 
 ```bash
-aspire config set alwaysInstallSdk true
+aspire config set --global features.dotNetSdkInstallationEnabled true
 ```
 
 Verify the configuration was set:
 
 ```bash
-aspire config get alwaysInstallSdk
+aspire config get --global features.dotNetSdkInstallationEnabled
 ```
 
 Expected output: `true`
