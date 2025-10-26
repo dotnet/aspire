@@ -280,15 +280,14 @@ public static class NodeAppHostingExtension
         {
             // Check if the installer resource already exists
             var installerName = $"{resource.Resource.Name}-installer";
-            var existingResource = resource.ApplicationBuilder.Resources
-                .FirstOrDefault(r => string.Equals(r.Name, installerName, StringComparison.OrdinalIgnoreCase));
+            resource.ApplicationBuilder.TryCreateResourceBuilder<NodeInstallerResource>(installerName, out var existingResource);
 
             if (!install)
             {
                 if (existingResource != null)
                 {
                     // Remove existing installer resource if install is false
-                    resource.ApplicationBuilder.Resources.Remove(existingResource);
+                    resource.ApplicationBuilder.Resources.Remove(existingResource.Resource);
                     resource.Resource.Annotations.OfType<WaitAnnotation>()
                         .Where(w => w.Resource == existingResource)
                         .ToList()
@@ -404,7 +403,7 @@ public static class NodeAppHostingExtension
             foreach (var line in lines)
             {
                 var trimmedLine = line.Trim();
-                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) || 
+                if (trimmedLine.StartsWith("nodejs ", StringComparison.Ordinal) ||
                     trimmedLine.StartsWith("node ", StringComparison.Ordinal))
                 {
                     var parts = trimmedLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
