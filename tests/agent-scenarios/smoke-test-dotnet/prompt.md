@@ -37,6 +37,26 @@ aspire --version
 
 Expected output should show the version matching the PR build.
 
+### 1.1 Enable SDK Install Feature Flag
+
+Before proceeding, enable the `alwaysInstallSdk` feature flag to force SDK installation for testing purposes. This ensures the Aspire CLI's SDK installation functionality is properly exercised.
+
+Set the configuration value:
+
+```bash
+aspire config set alwaysInstallSdk true
+```
+
+Verify the configuration was set:
+
+```bash
+aspire config get alwaysInstallSdk
+```
+
+Expected output: `true`
+
+**Note**: This feature flag forces the Aspire CLI to install the .NET SDK even if a compatible version is already available on the system. This is specifically for testing the SDK installation feature.
+
 ## Step 2: Create a New Aspire Starter Application
 
 Create a new Aspire application using the Blazor-based starter template. The application will be created in the current git workspace so it becomes part of the PR when the scenario completes.
