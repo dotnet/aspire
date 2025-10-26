@@ -63,6 +63,60 @@ internal abstract class ContainerRuntimeBase<TLogger> : IContainerRuntime where 
             imageName).ConfigureAwait(false);
     }
 
+    public virtual async Task CopyContainerFilesAsync(string imageName, string sourcePath, string destinationPath, CancellationToken cancellationToken)
+    {
+        var containerName = $"temp-{Guid.NewGuid():N}";
+        
+        try
+        {
+            // Create a temporary container from the image
+            _logger.LogDebug("Creating temporary container {ContainerName} from image {ImageName}", containerName, imageName);
+            var createArguments = $"create --name {containerName} {imageName}";
+            
+            var createExitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                createArguments,
+                $"{Name} create for {{ContainerName}} from {{ImageName}} failed with exit code {{ExitCode}}.",
+                $"{Name} create for {{ContainerName}} from {{ImageName}} succeeded.",
+                cancellationToken,
+                new object[] { containerName, imageName }).ConfigureAwait(false);
+            
+            if (createExitCode != 0)
+            {
+                throw new DistributedApplicationException($"{Name} create failed with exit code {createExitCode}.");
+            }
+            
+            // Copy files from the container
+            _logger.LogDebug("Copying files from {ContainerName}:{SourcePath} to {DestinationPath}", containerName, sourcePath, destinationPath);
+            var copyArguments = $"cp {containerName}:{sourcePath} {destinationPath}";
+            
+            await ExecuteContainerCommandAsync(
+                copyArguments,
+                $"{Name} cp from {{ContainerName}}:{{SourcePath}} to {{DestinationPath}} failed with exit code {{ExitCode}}.",
+                $"{Name} cp from {{ContainerName}}:{{SourcePath}} to {{DestinationPath}} succeeded.",
+                $"{Name} cp failed with exit code {{0}}.",
+                cancellationToken,
+                containerName, sourcePath, destinationPath).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Clean up the temporary container
+            _logger.LogDebug("Removing temporary container {ContainerName}", containerName);
+            var rmArguments = $"rm {containerName}";
+            
+            var rmExitCode = await ExecuteContainerCommandWithExitCodeAsync(
+                rmArguments,
+                $"{Name} rm for {{ContainerName}} failed with exit code {{ExitCode}}.",
+                $"{Name} rm for {{ContainerName}} succeeded.",
+                cancellationToken,
+                new object[] { containerName }).ConfigureAwait(false);
+            
+            if (rmExitCode != 0)
+            {
+                _logger.LogWarning("{RuntimeName} rm for {ContainerName} failed with exit code {ExitCode}.", Name, containerName, rmExitCode);
+            }
+        }
+    }
+
     /// <summary>
     /// Executes a container runtime command with standard logging and error handling.
     /// </summary>

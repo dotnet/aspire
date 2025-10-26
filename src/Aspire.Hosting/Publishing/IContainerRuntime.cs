@@ -12,4 +12,5 @@ internal interface IContainerRuntime
     Task BuildImageAsync(string contextPath, string dockerfilePath, string imageName, ContainerBuildOptions? options, Dictionary<string, string?> buildArguments, Dictionary<string, string?> buildSecrets, string? stage, CancellationToken cancellationToken);
     Task TagImageAsync(string localImageName, string targetImageName, CancellationToken cancellationToken);
     Task PushImageAsync(string imageName, CancellationToken cancellationToken);
+    Task CopyContainerFilesAsync(string imageName, string sourcePath, string destinationPath, CancellationToken cancellationToken);
 }

@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Dashboard;
+using Aspire.Hosting.Dcp;
 using Aspire.Hosting.Dcp.Model;
 using Aspire.Hosting.Dcp.Process;
 using Aspire.Hosting.Pipelines;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Aspire.Hosting;
 
@@ -725,7 +727,7 @@ public static class ProjectResourceBuilderExtensions
                 foreach (var containerFile in containerFilesAnnotations)
                 {
                     var source = containerFile.Source;
-                    var staticFileBuildStep = CreateProjectBuildImageStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
+                    var staticFileBuildStep = CreateBuildImageStep($"{factoryContext.Resource.Name}-{source.Name}-build-compute", source);
                     buildStep.DependsOn(staticFileBuildStep);
                     steps.Add(staticFileBuildStep);
                 }
@@ -1070,6 +1072,24 @@ public static class ProjectResourceBuilderExtensions
         public override ResourceAnnotationCollection Annotations => pr.Annotations;
     }
 
+    private static PipelineStep CreateBuildImageStep(string stepName, IResource resource) =>
+        new()
+        {
+            Name = stepName,
+            Action = async ctx =>
+            {
+                var containerImageBuilder = ctx.Services.GetRequiredService<IResourceContainerImageBuilder>();
+                await containerImageBuilder.BuildImageAsync(
+                    resource,
+                    new ContainerBuildOptions
+                    {
+                        TargetPlatform = ContainerTargetPlatform.LinuxAmd64
+                    },
+                    ctx.CancellationToken).ConfigureAwait(false);
+            },
+            Tags = [WellKnownPipelineTags.BuildCompute]
+        };
+
     private static PipelineStep CreateProjectBuildImageStep(string stepName, IResource resource) =>
         new()
         {
@@ -1111,10 +1131,26 @@ public static class ProjectResourceBuilderExtensions
         }
 
         var projectPath = projectMetadata.ProjectPath;
-        var publishDir = Path.Combine(Path.GetDirectoryName(projectPath)!, "bin", "Release", "publish");
+        
+        // Get the PublishDir using dotnet msbuild
+        var publishDir = await GetPublishDirectoryAsync(projectPath, logger, cancellationToken).ConfigureAwait(false);
+        
+        if (publishDir == null)
+        {
+            logger.LogWarning("Could not determine publish directory for project {ProjectPath}. Cannot copy container files.", projectPath);
+            return;
+        }
 
         // Ensure the publish directory exists
         Directory.CreateDirectory(publishDir);
+
+        // Get the container runtime
+        var dcpOptions = services.GetRequiredService<IOptions<DcpOptions>>();
+        var containerRuntime = dcpOptions.Value.ContainerRuntime switch
+        {
+            string rt => services.GetRequiredKeyedService<IContainerRuntime>(rt),
+            null => services.GetRequiredKeyedService<IContainerRuntime>("docker")
+        };
 
         foreach (var containerFileDestination in containerFilesAnnotations)
         {
@@ -1146,78 +1182,9 @@ public static class ProjectResourceBuilderExtensions
 
                 try
                 {
-                    // Create a temporary container from the image
-                    var containerName = $"temp-{resource.Name}-{Guid.NewGuid():N}";
-                    
-                    logger.LogDebug("Creating temporary container {ContainerName} from image {ImageName}", containerName, imageName);
-                    var createSpec = new ProcessSpec("docker")
-                    {
-                        Arguments = $"create --name {containerName} {imageName}",
-                        OnOutputData = output => logger.LogDebug("docker create output: {Output}", output),
-                        OnErrorData = error => logger.LogDebug("docker create error: {Error}", error)
-                    };
-
-                    var (pendingCreateResult, createDisposable) = ProcessUtil.Run(createSpec);
-                    await using (createDisposable.ConfigureAwait(false))
-                    {
-                        var createResult = await pendingCreateResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-                        if (createResult.ExitCode != 0)
-                        {
-                            logger.LogError("Failed to create temporary container {ContainerName} from image {ImageName}. Exit code: {ExitCode}", 
-                                containerName, imageName, createResult.ExitCode);
-                            continue;
-                        }
-                    }
-
-                    try
-                    {
-                        // Copy files from the container
-                        logger.LogDebug("Copying files from {ContainerName}:{SourcePath} to {DestinationPath}", containerName, sourcePath, destinationPath);
-                        var copySpec = new ProcessSpec("docker")
-                        {
-                            Arguments = $"cp {containerName}:{sourcePath} {destinationPath}",
-                            OnOutputData = output => logger.LogDebug("docker cp output: {Output}", output),
-                            OnErrorData = error => logger.LogDebug("docker cp error: {Error}", error)
-                        };
-
-                        var (pendingCopyResult, copyDisposable) = ProcessUtil.Run(copySpec);
-                        await using (copyDisposable.ConfigureAwait(false))
-                        {
-                            var copyResult = await pendingCopyResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-                            if (copyResult.ExitCode != 0)
-                            {
-                                logger.LogError("Failed to copy files from container {ContainerName}:{SourcePath} to {DestinationPath}. Exit code: {ExitCode}",
-                                    containerName, sourcePath, destinationPath, copyResult.ExitCode);
-                            }
-                            else
-                            {
-                                logger.LogInformation("Successfully copied files from {ImageName}:{SourcePath} to {DestinationPath}", 
-                                    imageName, sourcePath, destinationPath);
-                            }
-                        }
-                    }
-                    finally
-                    {
-                        // Clean up the temporary container
-                        logger.LogDebug("Removing temporary container {ContainerName}", containerName);
-                        var rmSpec = new ProcessSpec("docker")
-                        {
-                            Arguments = $"rm {containerName}",
-                            OnOutputData = output => logger.LogDebug("docker rm output: {Output}", output),
-                            OnErrorData = error => logger.LogDebug("docker rm error: {Error}", error)
-                        };
-
-                        var (pendingRmResult, rmDisposable) = ProcessUtil.Run(rmSpec);
-                        await using (rmDisposable.ConfigureAwait(false))
-                        {
-                            var rmResult = await pendingRmResult.WaitAsync(cancellationToken).ConfigureAwait(false);
-                            if (rmResult.ExitCode != 0)
-                            {
-                                logger.LogWarning("Failed to remove temporary container {ContainerName}. Exit code: {ExitCode}", 
-                                    containerName, rmResult.ExitCode);
-                            }
-                        }
-                    }
+                    await containerRuntime.CopyContainerFilesAsync(imageName, sourcePath, destinationPath, cancellationToken).ConfigureAwait(false);
+                    logger.LogInformation("Successfully copied files from {ImageName}:{SourcePath} to {DestinationPath}", 
+                        imageName, sourcePath, destinationPath);
                 }
                 catch (Exception ex)
                 {
@@ -1225,6 +1192,66 @@ public static class ProjectResourceBuilderExtensions
                         imageName, sourcePath, destinationPath);
                 }
             }
+        }
+    }
+
+    private static async Task<string?> GetPublishDirectoryAsync(string projectPath, ILogger logger, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var outputLines = new List<string>();
+            var spec = new ProcessSpec("dotnet")
+            {
+                Arguments = $"msbuild -c Release -getProperty:PublishDir \"{projectPath}\"",
+                OnOutputData = output =>
+                {
+                    if (!string.IsNullOrWhiteSpace(output))
+                    {
+                        outputLines.Add(output.Trim());
+                    }
+                },
+                OnErrorData = error => logger.LogDebug("dotnet msbuild (stderr): {Error}", error),
+                ThrowOnNonZeroReturnCode = false
+            };
+
+            logger.LogDebug("Running dotnet msbuild to get PublishDir for project {ProjectPath}", projectPath);
+            var (pendingResult, processDisposable) = ProcessUtil.Run(spec);
+
+            await using (processDisposable.ConfigureAwait(false))
+            {
+                var result = await pendingResult.WaitAsync(cancellationToken).ConfigureAwait(false);
+                
+                if (result.ExitCode != 0)
+                {
+                    logger.LogWarning("Failed to get PublishDir from dotnet msbuild for project {ProjectPath}. Exit code: {ExitCode}", 
+                        projectPath, result.ExitCode);
+                    return null;
+                }
+
+                // The last non-empty line should contain the PublishDir value
+                var publishDir = outputLines.LastOrDefault();
+                
+                if (string.IsNullOrWhiteSpace(publishDir))
+                {
+                    logger.LogWarning("dotnet msbuild returned empty PublishDir for project {ProjectPath}", projectPath);
+                    return null;
+                }
+
+                // Make it an absolute path if it's relative
+                if (!Path.IsPathRooted(publishDir))
+                {
+                    var projectDir = Path.GetDirectoryName(projectPath);
+                    publishDir = Path.GetFullPath(Path.Combine(projectDir!, publishDir));
+                }
+
+                logger.LogDebug("Resolved PublishDir for project {ProjectPath}: {PublishDir}", projectPath, publishDir);
+                return publishDir;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting PublishDir for project {ProjectPath}", projectPath);
+            return null;
         }
     }
 }
