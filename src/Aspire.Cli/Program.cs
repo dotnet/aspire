@@ -230,9 +230,7 @@ public class Program
     private static IAnsiConsole BuildAnsiConsole(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        var playgroundMode = configuration["ASPIRE_PLAYGROUND"];
-        var isPlayground = !string.IsNullOrEmpty(playgroundMode) &&
-                          playgroundMode.Equals("true", StringComparison.OrdinalIgnoreCase);
+        var isPlayground = CliHostEnvironment.IsPlaygroundMode(configuration);
 
         var settings = new AnsiConsoleSettings()
         {

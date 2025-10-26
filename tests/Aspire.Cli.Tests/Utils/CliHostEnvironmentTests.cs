@@ -285,10 +285,9 @@ public class CliHostEnvironmentTests
     }
 
     [Fact]
-    public void SupportsInteractiveInput_ReturnsFalse_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveInput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
     {
-        // Arrange - Playground mode should be overridden by --non-interactive flag
-        // This test documents current behavior, but ideally ASPIRE_PLAYGROUND should take precedence
+        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -300,16 +299,14 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
         
         // Assert
-        // When nonInteractive flag is set, it should be ignored in favor of ASPIRE_PLAYGROUND
-        // However, the current implementation gives precedence to ASPIRE_PLAYGROUND
+        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
         Assert.True(env.SupportsInteractiveInput);
     }
 
     [Fact]
-    public void SupportsInteractiveOutput_ReturnsFalse_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
+    public void SupportsInteractiveOutput_ReturnsTrue_WhenPlaygroundModeSet_ButNonInteractiveIsTrue()
     {
-        // Arrange - Playground mode should be overridden by --non-interactive flag
-        // This test documents current behavior
+        // Arrange - ASPIRE_PLAYGROUND should take precedence over --non-interactive flag
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -321,7 +318,7 @@ public class CliHostEnvironmentTests
         var env = new CliHostEnvironment(configuration, nonInteractive: true);
         
         // Assert
-        // When nonInteractive flag is set, ASPIRE_PLAYGROUND should take precedence
+        // ASPIRE_PLAYGROUND takes precedence over the --non-interactive flag
         Assert.True(env.SupportsInteractiveOutput);
     }
 

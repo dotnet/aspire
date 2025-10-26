@@ -164,7 +164,10 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         return false;
     }
 
-    private static bool IsPlaygroundMode(IConfiguration configuration)
+    /// <summary>
+    /// Gets whether the ASPIRE_PLAYGROUND environment variable is set to force interactive mode.
+    /// </summary>
+    internal static bool IsPlaygroundMode(IConfiguration configuration)
     {
         var playgroundMode = configuration["ASPIRE_PLAYGROUND"];
         return !string.IsNullOrEmpty(playgroundMode) &&
