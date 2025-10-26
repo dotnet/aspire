@@ -1,0 +1,409 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Docker;
+using Aspire.Hosting.Docker.Resources;
+using Aspire.Hosting.Docker.Resources.ComposeNodes;
+using Aspire.Hosting.Utils;
+using Microsoft.Extensions.Logging;
+
+namespace Aspire.Hosting;
+
+/// <summary>
+/// Provides extension methods for adding Docker Compose file resources to the application model.
+/// </summary>
+public static class DockerComposeFileResourceBuilderExtensions
+{
+    /// <summary>
+    /// Adds a Docker Compose file to the application model by parsing the compose file and creating container resources.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The name of the resource.</param>
+    /// <param name="composeFilePath">The path to the docker-compose.yml file.</param>
+    /// <returns>A reference to the <see cref="IResourceBuilder{DockerComposeFileResource}"/>.</returns>
+    /// <remarks>
+    /// This method parses the docker-compose.yml file and translates supported services into Aspire container resources.
+    /// Services that cannot be translated are skipped with a warning.
+    /// All created resources are children of the DockerComposeFileResource.
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// builder.AddDockerComposeFile("mycompose", "./docker-compose.yml");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<DockerComposeFileResource> AddDockerComposeFile(
+        this IDistributedApplicationBuilder builder,
+        [ResourceName] string name,
+        string composeFilePath)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentException.ThrowIfNullOrEmpty(composeFilePath);
+
+        // Resolve the compose file path to a full physical path relative to the app host directory
+        var fullComposeFilePath = Path.GetFullPath(composeFilePath, builder.AppHostDirectory);
+
+        var resource = new DockerComposeFileResource(name, fullComposeFilePath);
+        
+        // Parse and import the compose file synchronously to add resources to the model
+        // Capture any exceptions to report during initialization
+        Exception? parseException = null;
+        List<string> warnings = [];
+        
+        try
+        {
+            ParseAndImportComposeFile(builder, resource, fullComposeFilePath, warnings);
+        }
+        catch (Exception ex)
+        {
+            parseException = ex;
+        }
+        
+        // Use OnInitializeResource to report any issues that occurred during parsing
+        return builder.AddResource(resource).ExcludeFromManifest().OnInitializeResource(async (resource, e, ct) =>
+        {
+            if (parseException is not null)
+            {
+                e.Logger.LogError(parseException, "Failed to parse Docker Compose file: {ComposeFilePath}", composeFilePath);
+                await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.FailedToStart }).ConfigureAwait(false);
+                return;
+            }
+
+            foreach (var warning in warnings)
+            {
+                e.Logger.LogWarning("{Warning}", warning);
+            }
+
+            await e.Notifications.PublishUpdateAsync(resource, s => s with { State = KnownResourceStates.Running }).ConfigureAwait(false);
+        });
+    }
+
+    private static void ParseAndImportComposeFile(
+        IDistributedApplicationBuilder builder,
+        DockerComposeFileResource parentResource,
+        string composeFilePath,
+        List<string> warnings)
+    {
+        if (!File.Exists(composeFilePath))
+        {
+            throw new FileNotFoundException($"Docker Compose file not found: {composeFilePath}", composeFilePath);
+        }
+
+        var yamlContent = File.ReadAllText(composeFilePath);
+        
+        ComposeFile composeFile;
+        try
+        {
+            composeFile = ComposeFile.FromYaml(yamlContent);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Failed to parse Docker Compose file: {composeFilePath}", ex);
+        }
+
+        if (composeFile?.Services is null || composeFile.Services.Count == 0)
+        {
+            warnings.Add($"No services found in Docker Compose file: {composeFilePath}");
+            return;
+        }
+
+        // First pass: Create all container resources
+        foreach (var (serviceName, service) in composeFile.Services)
+        {
+            try
+            {
+                var containerBuilder = ImportService(builder, parentResource, serviceName, service, composeFilePath, warnings);
+                if (containerBuilder is not null)
+                {
+                    parentResource.ServiceBuilders[serviceName] = containerBuilder;
+                }
+            }
+            catch (Exception ex)
+            {
+                warnings.Add($"Failed to import service '{serviceName}' from Docker Compose file: {ex.Message}");
+            }
+        }
+
+        // Second pass: Set up dependencies (depends_on)
+        foreach (var (serviceName, service) in composeFile.Services)
+        {
+            if (service.DependsOn is null || service.DependsOn.Count == 0)
+            {
+                continue;
+            }
+
+            if (!parentResource.ServiceBuilders.TryGetValue(serviceName, out var containerBuilder))
+            {
+                continue; // Service was skipped
+            }
+
+            foreach (var (dependencyName, dependency) in service.DependsOn)
+            {
+                if (!parentResource.ServiceBuilders.TryGetValue(dependencyName, out var dependencyBuilder))
+                {
+                    warnings.Add($"Service '{serviceName}' depends on '{dependencyName}', but '{dependencyName}' was not imported.");
+                    continue;
+                }
+
+                try
+                {
+                    // Map Docker Compose condition to Aspire WaitFor methods
+                    var condition = dependency.Condition?.ToLowerInvariant();
+                    switch (condition)
+                    {
+                        case "service_started":
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                        case "service_healthy":
+                            containerBuilder.WaitFor(dependencyBuilder);
+                            break;
+                        case "service_completed_successfully":
+                            containerBuilder.WaitForCompletion(dependencyBuilder);
+                            break;
+                        case null:
+                        case "":
+                            // Default behavior: wait for service to start
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                        default:
+                            warnings.Add($"Unknown depends_on condition '{dependency.Condition}' for service '{serviceName}' -> '{dependencyName}'. Using default (service_started).");
+                            containerBuilder.WaitForStart(dependencyBuilder);
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    warnings.Add($"Failed to set up dependency for service '{serviceName}' -> '{dependencyName}': {ex.Message}");
+                }
+            }
+        }
+    }
+
+    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, string composeFilePath, List<string> warnings)
+    {
+        IResourceBuilder<ContainerResource> containerBuilder;
+
+        // Check if service has a build configuration
+        if (service.Build is not null)
+        {
+            // Use AddDockerfile for services with build configurations
+            // Resolve context path relative to the compose file's directory
+            var contextPath = service.Build.Context ?? ".";
+            var composeFileDirectory = Path.GetDirectoryName(composeFilePath)!;
+            var resolvedContextPath = Path.GetFullPath(contextPath, composeFileDirectory);
+            
+            var dockerfilePath = service.Build.Dockerfile;
+            var stage = service.Build.Target;
+
+            containerBuilder = builder.AddDockerfile(serviceName, resolvedContextPath, dockerfilePath, stage)
+                .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
+            
+            // Add build args if present
+            if (service.Build.Args is not null && service.Build.Args.Count > 0)
+            {
+                foreach (var (key, value) in service.Build.Args)
+                {
+                    containerBuilder.WithBuildArg(key, value);
+                }
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(service.Image))
+        {
+            // Use AddContainer for services with pre-built images
+            // Parse image using ContainerReferenceParser
+            ContainerReference containerRef;
+            try
+            {
+                containerRef = ContainerReferenceParser.Parse(service.Image);
+            }
+            catch (Exception ex)
+            {
+                warnings.Add($"Failed to parse image reference '{service.Image}' for service '{serviceName}': {ex.Message}");
+                return null;
+            }
+
+            var imageName = containerRef.Registry is null 
+                ? containerRef.Image 
+                : $"{containerRef.Registry}/{containerRef.Image}";
+            var imageTag = containerRef.Tag ?? "latest";
+
+            containerBuilder = builder.AddContainer(serviceName, imageName, imageTag)
+                .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
+        }
+        else
+        {
+            // Skip services without an image or build configuration
+            warnings.Add($"Service '{serviceName}' has neither image nor build configuration. Skipping.");
+            return null;
+        }
+
+        // Import environment variables
+        if (service.Environment is not null && service.Environment.Count > 0)
+        {
+            foreach (var (key, value) in service.Environment)
+            {
+                containerBuilder.WithEnvironment(key, value);
+            }
+        }
+
+        // Import ports
+        if (service.Ports is not null && service.Ports.Count > 0)
+        {
+            foreach (var portMapping in service.Ports)
+            {
+                if (TryParsePortMapping(portMapping, out var hostPort, out var containerPort, out var protocol))
+                {
+                    // Determine scheme based on protocol
+                    // For tcp and no protocol specified, default to http (common web scenario)
+                    // For udp, use udp scheme
+                    var scheme = protocol?.ToLowerInvariant() switch
+                    {
+                        "udp" => "udp",
+                        "tcp" => "tcp",
+                        _ => "http" // Default for null or empty protocol
+                    };
+                    
+                    // Create endpoint name from port mapping
+                    var endpointName = hostPort.HasValue ? $"port{hostPort.Value}" : $"port{containerPort}";
+                    
+                    containerBuilder.WithEndpoint(
+                        name: endpointName,
+                        scheme: scheme,
+                        port: hostPort,
+                        targetPort: containerPort,
+                        isExternal: true,
+                        isProxied: false);
+                }
+            }
+        }
+
+        // Import volumes
+        if (service.Volumes is not null && service.Volumes.Count > 0)
+        {
+            foreach (var volume in service.Volumes)
+            {
+                if (!string.IsNullOrWhiteSpace(volume.Source) && !string.IsNullOrWhiteSpace(volume.Target))
+                {
+                    var isReadOnly = volume.ReadOnly ?? false;
+                    if (volume.Type == "bind")
+                    {
+                        containerBuilder.WithBindMount(volume.Source, volume.Target, isReadOnly);
+                    }
+                    else
+                    {
+                        containerBuilder.WithVolume(volume.Source, volume.Target, isReadOnly);
+                    }
+                }
+            }
+        }
+
+        // Import command
+        if (service.Command is not null && service.Command.Count > 0)
+        {
+            containerBuilder.WithArgs(service.Command.ToArray());
+        }
+
+        // Import entrypoint  
+        if (service.Entrypoint is not null && service.Entrypoint.Count > 0)
+        {
+            // WithEntrypoint expects a single string, so join them with space
+            containerBuilder.WithEntrypoint(string.Join(" ", service.Entrypoint));
+        }
+
+        return containerBuilder;
+    }
+
+    private static bool TryParsePortMapping(string portMapping, out int? hostPort, out int? containerPort, out string? protocol)
+    {
+        hostPort = null;
+        containerPort = null;
+        protocol = null;
+
+        // Expected formats:
+        // "8080:80"
+        // "8080:80/tcp"
+        // "127.0.0.1:8080:80"
+        // "80" (just container port, no host port)
+
+        var parts = portMapping.Split('/');
+        var portPart = parts[0];
+        if (parts.Length > 1)
+        {
+            protocol = parts[1];
+        }
+
+        var portParts = portPart.Split(':');
+
+        if (portParts.Length == 1)
+        {
+            // Just container port
+            if (int.TryParse(portParts[0], out var port))
+            {
+                containerPort = port;
+                return true;
+            }
+        }
+        else if (portParts.Length == 2)
+        {
+            // host:container
+            if (int.TryParse(portParts[0], out var hPort) && int.TryParse(portParts[1], out var cPort))
+            {
+                hostPort = hPort;
+                containerPort = cPort;
+                return true;
+            }
+        }
+        else if (portParts.Length == 3)
+        {
+            // IP:host:container - skip IP and use host:container
+            if (int.TryParse(portParts[1], out var hPort) && int.TryParse(portParts[2], out var cPort))
+            {
+                hostPort = hPort;
+                containerPort = cPort;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Gets a container resource builder for a specific service defined in the Docker Compose file.
+    /// </summary>
+    /// <param name="builder">The <see cref="IResourceBuilder{DockerComposeFileResource}"/>.</param>
+    /// <param name="serviceName">The name of the service as defined in the docker-compose.yml file.</param>
+    /// <returns>The <see cref="IResourceBuilder{ContainerResource}"/> for the specified service.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the service is not found in the compose file.</exception>
+    /// <example>
+    /// <code>
+    /// var builder = DistributedApplication.CreateBuilder(args);
+    ///
+    /// var compose = builder.AddDockerComposeFile("mycompose", "./docker-compose.yml");
+    /// 
+    /// // Get a reference to a specific service to configure it further
+    /// var webService = compose.GetComposeService("web");
+    /// webService.WithEnvironment("ADDITIONAL_VAR", "value");
+    ///
+    /// builder.Build().Run();
+    /// </code>
+    /// </example>
+    public static IResourceBuilder<ContainerResource> GetComposeService(
+        this IResourceBuilder<DockerComposeFileResource> builder,
+        string serviceName)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentException.ThrowIfNullOrEmpty(serviceName);
+
+        if (!builder.Resource.ServiceBuilders.TryGetValue(serviceName, out var serviceBuilder))
+        {
+            throw new InvalidOperationException($"Service '{serviceName}' not found in Docker Compose file '{builder.Resource.ComposeFilePath}'. Available services: {string.Join(", ", builder.Resource.ServiceBuilders.Keys)}");
+        }
+
+        return serviceBuilder;
+    }
+}
