@@ -228,15 +228,16 @@ https://github.com/dotnet/aspire
 ### 7. Trademark Notices (if applicable)
 
 ```markdown
-_{Trademark notice text}
+_{Trademark notice text}_
 ```
 
 **Guidelines:**
 - Place trademark notices at the very end after "Feedback & contributing"
-- Use italics and start with an underscore
+- Use markdown italic formatting.
+- The trademark itself should be bolded using asterisks
 - Common examples:
-  - Redis: `_*Redis is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._`
-  - PostgreSQL: `_*Postgres, PostgreSQL and the Slonik Logo are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._`
+  - Redis: `_*Redis* is a registered trademark of Redis Ltd. Any rights therein are reserved to Redis Ltd._`
+  - PostgreSQL: `_*Postgres*, *PostgreSQL* and the *Slonik Logo* are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._`
 
 ## Complete Example
 
@@ -359,7 +360,7 @@ builder.AddNpgsqlDataSource("postgresdb");
 
 https://github.com/dotnet/aspire
 
-_*Postgres, PostgreSQL and the Slonik Logo are trademarks or registered trademarks of the PostgreSQL Community Association of Canada, and used with their permission._
+_*Postgres*, *PostgreSQL* and the *Slonik Logo* are trademarks or registered trademarks of the *PostgreSQL Community Association of Canada*, and used with their permission._
 ```
 
 ## Key Principles
