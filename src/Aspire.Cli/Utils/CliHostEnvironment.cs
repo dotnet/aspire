@@ -70,25 +70,26 @@ internal sealed class CliHostEnvironment : ICliHostEnvironment
         // Check if ASPIRE_PLAYGROUND is set to force interactive mode
         var playgroundMode = IsPlaygroundMode(configuration);
 
-        // If ASPIRE_PLAYGROUND is set, force interactive mode
+        // If ASPIRE_PLAYGROUND is set, force interactive mode and ANSI support
         if (playgroundMode)
         {
             SupportsInteractiveInput = true;
             SupportsInteractiveOutput = true;
+            SupportsAnsi = true;
         }
         // If --non-interactive is explicitly set, disable interactive input and output
         else if (nonInteractive)
         {
             SupportsInteractiveInput = false;
             SupportsInteractiveOutput = false;
+            SupportsAnsi = DetectAnsiSupport(configuration);
         }
         else
         {
             SupportsInteractiveInput = DetectInteractiveInput(configuration);
             SupportsInteractiveOutput = DetectInteractiveOutput(configuration);
+            SupportsAnsi = DetectAnsiSupport(configuration);
         }
-
-        SupportsAnsi = DetectAnsiSupport(configuration);
     }
 
     private static bool DetectInteractiveInput(IConfiguration configuration)

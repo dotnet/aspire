@@ -234,9 +234,9 @@ public class Program
 
         var settings = new AnsiConsoleSettings()
         {
-            Ansi = AnsiSupport.Detect,
+            Ansi = isPlayground ? AnsiSupport.Yes : AnsiSupport.Detect,
             Interactive = isPlayground ? InteractionSupport.Yes : InteractionSupport.Detect,
-            ColorSystem = ColorSystemSupport.Detect
+            ColorSystem = isPlayground ? ColorSystemSupport.Standard : ColorSystemSupport.Detect
         };
 
         var ansiConsole = AnsiConsole.Create(settings);

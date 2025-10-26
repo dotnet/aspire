@@ -340,4 +340,59 @@ public class CliHostEnvironmentTests
         // Assert
         Assert.False(env.SupportsInteractiveInput);
     }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet()
+    {
+        // Arrange
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_EvenWithNO_COLOR()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should override NO_COLOR
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true",
+                ["NO_COLOR"] = "1"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: false);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
+
+    [Fact]
+    public void SupportsAnsi_ReturnsTrue_WhenPlaygroundModeSet_WithNonInteractive()
+    {
+        // Arrange - ASPIRE_PLAYGROUND should enable ANSI even with --non-interactive
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ASPIRE_PLAYGROUND"] = "true"
+            })
+            .Build();
+        
+        // Act
+        var env = new CliHostEnvironment(configuration, nonInteractive: true);
+        
+        // Assert
+        Assert.True(env.SupportsAnsi);
+    }
 }
