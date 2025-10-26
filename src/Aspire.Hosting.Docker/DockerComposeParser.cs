@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using System.Collections;
+using System.Globalization;
 
 namespace Aspire.Hosting.Docker;
 
@@ -122,20 +123,20 @@ internal static class DockerComposeParser
         if (portParts.Length == 1)
         {
             // Just target port: "3000"
-            target = int.Parse(portParts[0]);
+            target = int.Parse(portParts[0], CultureInfo.InvariantCulture);
         }
         else if (portParts.Length == 2)
         {
             // Published:target: "8080:80"
-            published = int.Parse(portParts[0]);
-            target = int.Parse(portParts[1]);
+            published = int.Parse(portParts[0], CultureInfo.InvariantCulture);
+            target = int.Parse(portParts[1], CultureInfo.InvariantCulture);
         }
         else if (portParts.Length == 3)
         {
             // HostIP:Published:target: "127.0.0.1:8080:80"
             hostIp = portParts[0];
-            published = int.Parse(portParts[1]);
-            target = int.Parse(portParts[2]);
+            published = int.Parse(portParts[1], CultureInfo.InvariantCulture);
+            target = int.Parse(portParts[2], CultureInfo.InvariantCulture);
         }
 
         return new PortMapping
@@ -149,8 +150,8 @@ internal static class DockerComposeParser
 
     private static PortMapping ParseLongPortSyntax(IDictionary portSpec)
     {
-        int? target = portSpec.Contains("target") ? Convert.ToInt32(portSpec["target"]) : null;
-        int? published = portSpec.Contains("published") ? Convert.ToInt32(portSpec["published"]) : null;
+        int? target = portSpec.Contains("target") ? Convert.ToInt32(portSpec["target"], CultureInfo.InvariantCulture) : null;
+        int? published = portSpec.Contains("published") ? Convert.ToInt32(portSpec["published"], CultureInfo.InvariantCulture) : null;
         string protocol = portSpec.Contains("protocol") ? portSpec["protocol"]?.ToString()?.ToLowerInvariant() ?? "tcp" : "tcp";
         string? hostIp = portSpec.Contains("host_ip") ? portSpec["host_ip"]?.ToString() : null;
 
@@ -248,7 +249,7 @@ internal static class DockerComposeParser
         string type = volumeSpec.Contains("type") ? volumeSpec["type"]?.ToString() ?? "volume" : "volume";
         string? source = volumeSpec.Contains("source") ? volumeSpec["source"]?.ToString() : null;
         string target = volumeSpec["target"]?.ToString() ?? throw new InvalidOperationException("Volume target is required");
-        bool readOnly = volumeSpec.Contains("read_only") && Convert.ToBoolean(volumeSpec["read_only"]);
+        bool readOnly = volumeSpec.Contains("read_only") && Convert.ToBoolean(volumeSpec["read_only"], CultureInfo.InvariantCulture);
 
         return new VolumeMount
         {

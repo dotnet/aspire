@@ -164,6 +164,8 @@ public sealed class ComposeFile
         var deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .WithTypeConverter(new UnixFileModeTypeConverter())
+            .WithTypeConverter(new EnvironmentVariablesTypeConverter())
+            .WithTypeConverter(new PortMappingsTypeConverter())
             .IgnoreUnmatchedProperties()
             .Build();
 
