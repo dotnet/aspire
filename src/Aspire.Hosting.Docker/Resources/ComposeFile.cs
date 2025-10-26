@@ -151,35 +151,6 @@ public sealed class ComposeFile
     }
 
     /// <summary>
-    /// Parses a YAML string and deserializes it into a <see cref="ComposeFile"/> instance.
-    /// </summary>
-    /// <param name="yaml">The YAML string to parse.</param>
-    /// <returns>A <see cref="ComposeFile"/> instance representing the parsed YAML content.</returns>
-    /// <exception cref="ArgumentException">Thrown when the YAML string is null or empty.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the YAML content cannot be parsed.</exception>
-    public static ComposeFile FromYaml(string yaml)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(yaml);
-
-        var deserializer = new DeserializerBuilder()
-            .WithNamingConvention(UnderscoredNamingConvention.Instance)
-            .WithTypeConverter(new UnixFileModeTypeConverter())
-            .WithTypeConverter(new EnvironmentVariablesTypeConverter())
-            //.WithTypeConverter(new PortMappingsTypeConverter()) // Temporarily disabled - interferes with other List<string> properties
-            .IgnoreUnmatchedProperties()
-            .Build();
-
-        try
-        {
-            return deserializer.Deserialize<ComposeFile>(yaml);
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException("Failed to parse Docker Compose YAML content.", ex);
-        }
-    }
-
-    /// <summary>
     /// Converts the current instance of <see cref="ComposeFile"/> to its YAML string representation.
     /// </summary>
     /// <param name="lineEndings">Specifies the line endings to be used in the serialized YAML output. Defaults to "\n".</param>

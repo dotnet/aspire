@@ -3,8 +3,6 @@
 
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Docker;
-using Aspire.Hosting.Docker.Resources;
-using Aspire.Hosting.Docker.Resources.ComposeNodes;
 using Aspire.Hosting.Utils;
 using Microsoft.Extensions.Logging;
 
@@ -96,24 +94,24 @@ public static class DockerComposeFileResourceBuilderExtensions
 
         var yamlContent = File.ReadAllText(composeFilePath);
         
-        ComposeFile composeFile;
+        Dictionary<string, ParsedService> services;
         try
         {
-            composeFile = ComposeFile.FromYaml(yamlContent);
+            services = DockerComposeParser.ParseComposeFile(yamlContent);
         }
         catch (Exception ex)
         {
             throw new InvalidOperationException($"Failed to parse Docker Compose file: {composeFilePath}", ex);
         }
 
-        if (composeFile?.Services is null || composeFile.Services.Count == 0)
+        if (services.Count == 0)
         {
             warnings.Add($"No services found in Docker Compose file: {composeFilePath}");
             return;
         }
 
         // First pass: Create all container resources
-        foreach (var (serviceName, service) in composeFile.Services)
+        foreach (var (serviceName, service) in services)
         {
             try
             {
@@ -130,9 +128,9 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         // Second pass: Set up dependencies (depends_on)
-        foreach (var (serviceName, service) in composeFile.Services)
+        foreach (var (serviceName, service) in services)
         {
-            if (service.DependsOn is null || service.DependsOn.Count == 0)
+            if (service.DependsOn.Count == 0)
             {
                 continue;
             }
@@ -184,7 +182,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
     }
 
-    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, Service service, string composeFilePath, List<string> warnings)
+    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, ParsedService service, string composeFilePath, List<string> warnings)
     {
         IResourceBuilder<ContainerResource> containerBuilder;
 
@@ -204,7 +202,7 @@ public static class DockerComposeFileResourceBuilderExtensions
                 .WithAnnotation(new ResourceRelationshipAnnotation(parentResource, "parent"));
             
             // Add build args if present
-            if (service.Build.Args is not null && service.Build.Args.Count > 0)
+            if (service.Build.Args.Count > 0)
             {
                 foreach (var (key, value) in service.Build.Args)
                 {
@@ -243,7 +241,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         // Import environment variables
-        if (service.Environment is not null && service.Environment.Count > 0)
+        if (service.Environment.Count > 0)
         {
             foreach (var (key, value) in service.Environment)
             {
@@ -252,7 +250,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         // Import ports
-        if (service.Ports is not null && service.Ports.Count > 0)
+        if (service.Ports.Count > 0)
         {
             foreach (var portMapping in service.Ports)
             {
@@ -283,33 +281,41 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
 
         // Import volumes
-        if (service.Volumes is not null && service.Volumes.Count > 0)
+        if (service.Volumes.Count > 0)
         {
             foreach (var volume in service.Volumes)
             {
-                if (!string.IsNullOrWhiteSpace(volume.Source) && !string.IsNullOrWhiteSpace(volume.Target))
+                if (!string.IsNullOrWhiteSpace(volume.Target))
                 {
-                    var isReadOnly = volume.ReadOnly ?? false;
-                    if (volume.Type == "bind")
+                    if (string.IsNullOrWhiteSpace(volume.Source))
                     {
-                        containerBuilder.WithBindMount(volume.Source, volume.Target, isReadOnly);
+                        // Anonymous volume - just target path
+                        containerBuilder.WithVolume(volume.Target);
                     }
                     else
                     {
-                        containerBuilder.WithVolume(volume.Source, volume.Target, isReadOnly);
+                        var isReadOnly = volume.ReadOnly;
+                        if (volume.Type == "bind")
+                        {
+                            containerBuilder.WithBindMount(volume.Source, volume.Target, isReadOnly);
+                        }
+                        else
+                        {
+                            containerBuilder.WithVolume(volume.Source, volume.Target, isReadOnly);
+                        }
                     }
                 }
             }
         }
 
         // Import command
-        if (service.Command is not null && service.Command.Count > 0)
+        if (service.Command.Count > 0)
         {
             containerBuilder.WithArgs(service.Command.ToArray());
         }
 
         // Import entrypoint  
-        if (service.Entrypoint is not null && service.Entrypoint.Count > 0)
+        if (service.Entrypoint.Count > 0)
         {
             // WithEntrypoint expects a single string, so join them with space
             containerBuilder.WithEntrypoint(string.Join(" ", service.Entrypoint));
