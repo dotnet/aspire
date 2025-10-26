@@ -317,6 +317,15 @@ internal static class DockerComposeParser
 
                     // Extract placeholder content
                     var placeholderContent = value.Substring(index + 2, closeBrace - index - 2);
+                    
+                    // Treat empty placeholders as literal ${}
+                    if (string.IsNullOrWhiteSpace(placeholderContent))
+                    {
+                        currentPart.Append("${}");
+                        index = closeBrace + 1;
+                        continue;
+                    }
+                    
                     var placeholder = ParsePlaceholder(placeholderContent);
 
                     // Add current part to format and start new placeholder

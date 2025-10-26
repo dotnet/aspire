@@ -110,12 +110,45 @@ public static class DockerComposeFileResourceBuilderExtensions
             return;
         }
 
+        // Collect all unique placeholders across all services and create parameters for them
+        var uniquePlaceholders = new Dictionary<string, ParsedPlaceholder>(StringComparer.Ordinal);
+        foreach (var service in services.Values)
+        {
+            foreach (var (placeholderName, placeholder) in service.Placeholders)
+            {
+                if (!uniquePlaceholders.ContainsKey(placeholderName))
+                {
+                    uniquePlaceholders[placeholderName] = placeholder;
+                }
+            }
+        }
+
+        // Create ParameterResource for each unique placeholder
+        var parameters = new Dictionary<string, ParameterResource>(StringComparer.Ordinal);
+        foreach (var (placeholderName, placeholder) in uniquePlaceholders)
+        {
+            IResourceBuilder<ParameterResource> paramBuilder;
+            
+            if (placeholder.DefaultValue != null)
+            {
+                // Create parameter with default value
+                paramBuilder = builder.AddParameter(placeholderName, placeholder.DefaultValue);
+            }
+            else
+            {
+                // Create parameter without default (will need to be provided via configuration or user input)
+                paramBuilder = builder.AddParameter(placeholderName);
+            }
+            
+            parameters[placeholderName] = paramBuilder.Resource;
+        }
+
         // First pass: Create all container resources
         foreach (var (serviceName, service) in services)
         {
             try
             {
-                var containerBuilder = ImportService(builder, parentResource, serviceName, service, composeFilePath, warnings);
+                var containerBuilder = ImportService(builder, parentResource, serviceName, service, composeFilePath, parameters, warnings);
                 if (containerBuilder is not null)
                 {
                     parentResource.ServiceBuilders[serviceName] = containerBuilder;
@@ -182,7 +215,7 @@ public static class DockerComposeFileResourceBuilderExtensions
         }
     }
 
-    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, ParsedService service, string composeFilePath, List<string> warnings)
+    private static IResourceBuilder<ContainerResource>? ImportService(IDistributedApplicationBuilder builder, DockerComposeFileResource parentResource, string serviceName, ParsedService service, string composeFilePath, Dictionary<string, ParameterResource> parameters, List<string> warnings)
     {
         IResourceBuilder<ContainerResource> containerBuilder;
 
@@ -252,8 +285,8 @@ public static class DockerComposeFileResourceBuilderExtensions
                 }
                 else
                 {
-                    // Value contains placeholders - convert to ReferenceExpression
-                    var expression = CreateReferenceExpressionFromPlaceholders(envVar);
+                    // Value contains placeholders - convert to ReferenceExpression using parameters
+                    var expression = CreateReferenceExpressionFromPlaceholders(envVar, parameters);
                     containerBuilder.WithEnvironment(key, expression);
                 }
             }
@@ -378,14 +411,13 @@ public static class DockerComposeFileResourceBuilderExtensions
     /// <summary>
     /// Creates a ReferenceExpression from a ParsedEnvironmentVariable containing placeholders.
     /// </summary>
-    private static ReferenceExpression CreateReferenceExpressionFromPlaceholders(ParsedEnvironmentVariable envVar)
+    private static ReferenceExpression CreateReferenceExpressionFromPlaceholders(ParsedEnvironmentVariable envVar, Dictionary<string, ParameterResource> parameters)
     {
         var builder = new ReferenceExpressionBuilder();
         
         // Parse the format string and append literal parts and placeholder parts
         var parts = envVar.Format!.Split(new[] { '{', '}' });
         var isPlaceholder = false;
-        var placeholderIndex = 0;
         
         for (int i = 0; i < parts.Length; i++)
         {
@@ -399,11 +431,17 @@ public static class DockerComposeFileResourceBuilderExtensions
             
             if (isPlaceholder && int.TryParse(part, out var index))
             {
-                // This is a placeholder reference - append the placeholder value provider
+                // This is a placeholder reference - append the parameter resource
                 var placeholder = envVar.Placeholders[index];
-                var defaultValue = placeholder.DefaultValue ?? string.Empty;
-                builder.AppendFormatted(new ParameterDefault(placeholder.Name, defaultValue));
-                placeholderIndex++;
+                if (parameters.TryGetValue(placeholder.Name, out var parameterResource))
+                {
+                    builder.AppendFormatted(parameterResource);
+                }
+                else
+                {
+                    // Fallback to default value if parameter not found (shouldn't happen)
+                    builder.AppendLiteral(placeholder.DefaultValue ?? string.Empty);
+                }
             }
             else
             {
@@ -419,7 +457,8 @@ public static class DockerComposeFileResourceBuilderExtensions
 }
 
 /// <summary>
-/// A simple value provider that returns a default value.
+/// A value provider that returns a parameter's default value.
+/// This is kept for backwards compatibility but is no longer used in the current implementation.
 /// </summary>
 file class ParameterDefault : IValueProvider, IManifestExpressionProvider
 {

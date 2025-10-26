@@ -251,6 +251,258 @@ services:
 
     #endregion
 
+    #region Placeholder Parsing Tests
+    // Comprehensive tests for parsing Docker Compose placeholder expressions
+    // Spec: https://github.com/compose-spec/compose-spec/blob/master/spec.md#interpolation
+
+    [Theory]
+    [InlineData("${VAR}", "VAR", null)]
+    [InlineData("${DATABASE_URL}", "DATABASE_URL", null)]
+    [InlineData("${MY_VAR_123}", "MY_VAR_123", null)]
+    public void ParsePlaceholder_SimpleSyntax_ParsesCorrectly(string input, string expectedName, string? expectedDefault)
+    {
+        var yaml = $@"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - TEST={input}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        var placeholder = result["app"].Environment["TEST"].Placeholders[0];
+        
+        Assert.Equal(expectedName, placeholder.Name);
+        Assert.Equal(expectedDefault, placeholder.DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.None, placeholder.DefaultType);
+    }
+
+    [Theory]
+    [InlineData("${VAR:-default}", "VAR", "default")]
+    [InlineData("${DATABASE_URL:-postgres://localhost:5432}", "DATABASE_URL", "postgres://localhost:5432")]
+    [InlineData("${PORT:-8080}", "PORT", "8080")]
+    [InlineData("${EMPTY:-}", "EMPTY", "")]
+    [InlineData("${PATH:-/var/lib/data}", "PATH", "/var/lib/data")]
+    public void ParsePlaceholder_ColonMinusSyntax_ParsesDefaultValue(string input, string expectedName, string expectedDefault)
+    {
+        var yaml = $@"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - TEST={input}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        var placeholder = result["app"].Environment["TEST"].Placeholders[0];
+        
+        Assert.Equal(expectedName, placeholder.Name);
+        Assert.Equal(expectedDefault, placeholder.DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.ColonMinus, placeholder.DefaultType);
+    }
+
+    [Theory]
+    [InlineData("${VAR-default}", "VAR", "default")]
+    [InlineData("${DATABASE-postgres://localhost}", "DATABASE", "postgres://localhost")]
+    [InlineData("${CONFIG_FILE-config.yaml}", "CONFIG_FILE", "config.yaml")]
+    public void ParsePlaceholder_MinusSyntax_ParsesDefaultValue(string input, string expectedName, string expectedDefault)
+    {
+        var yaml = $@"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - TEST={input}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        var placeholder = result["app"].Environment["TEST"].Placeholders[0];
+        
+        Assert.Equal(expectedName, placeholder.Name);
+        Assert.Equal(expectedDefault, placeholder.DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.Minus, placeholder.DefaultType);
+    }
+
+    [Theory]
+    [InlineData("${VAR:?error message}")]
+    [InlineData("${VAR?error}")]
+    [InlineData("${REQUIRED:?This variable is required}")]
+    [InlineData("${API_KEY?}")]
+    public void ParsePlaceholder_RequiredSyntax_ParsesAsNoDefault(string input)
+    {
+        var yaml = $@"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - TEST={input}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        var envVar = result["app"].Environment["TEST"];
+        
+        Assert.False(envVar.IsLiteral);
+        Assert.Single(envVar.Placeholders);
+        // Required placeholders are treated as having no default
+        Assert.Null(envVar.Placeholders[0].DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.None, envVar.Placeholders[0].DefaultType);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_EscapedDollarSign_TreatsAsLiteral()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - TEST=$${VARIABLE}
+      - MIXED=before$${ESCAPED}after
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Escaped $$ should become literal ${VARIABLE}
+        Assert.True(result["app"].Environment["TEST"].IsLiteral);
+        Assert.Equal("${VARIABLE}", result["app"].Environment["TEST"].LiteralValue);
+        
+        Assert.True(result["app"].Environment["MIXED"].IsLiteral);
+        Assert.Equal("before${ESCAPED}after", result["app"].Environment["MIXED"].LiteralValue);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_MultiplePlaceholdersInValue_ParsesAll()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - CONN=postgres://${DB_USER:-admin}:${DB_PASS}@${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        var envVar = result["app"].Environment["CONN"];
+        
+        Assert.False(envVar.IsLiteral);
+        Assert.Equal("postgres://{0}:{1}@{2}:{3}/{4}", envVar.Format);
+        Assert.Equal(5, envVar.Placeholders.Count);
+        
+        Assert.Equal("DB_USER", envVar.Placeholders[0].Name);
+        Assert.Equal("admin", envVar.Placeholders[0].DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.ColonMinus, envVar.Placeholders[0].DefaultType);
+        
+        Assert.Equal("DB_PASS", envVar.Placeholders[1].Name);
+        Assert.Null(envVar.Placeholders[1].DefaultValue);
+        
+        Assert.Equal("DB_HOST", envVar.Placeholders[2].Name);
+        Assert.Equal("localhost", envVar.Placeholders[2].DefaultValue);
+        
+        Assert.Equal("DB_PORT", envVar.Placeholders[3].Name);
+        Assert.Equal("5432", envVar.Placeholders[3].DefaultValue);
+        
+        Assert.Equal("DB_NAME", envVar.Placeholders[4].Name);
+        Assert.Null(envVar.Placeholders[4].DefaultValue);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_MixedLiteralAndPlaceholder_PreservesLiterals()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - URL=https://${HOST}:${PORT}/api/v1
+      - PREFIX=app_${ENVIRONMENT}_suffix
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        var url = result["app"].Environment["URL"];
+        Assert.False(url.IsLiteral);
+        Assert.Equal("https://{0}:{1}/api/v1", url.Format);
+        Assert.Equal(2, url.Placeholders.Count);
+        Assert.Equal("HOST", url.Placeholders[0].Name);
+        Assert.Equal("PORT", url.Placeholders[1].Name);
+        
+        var prefix = result["app"].Environment["PREFIX"];
+        Assert.False(prefix.IsLiteral);
+        Assert.Equal("app_{0}_suffix", prefix.Format);
+        Assert.Single(prefix.Placeholders);
+        Assert.Equal("ENVIRONMENT", prefix.Placeholders[0].Name);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_MalformedPlaceholder_TreatsAsLiteral()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - MALFORMED=${NO_CLOSE_BRACE
+      - JUST_DOLLAR=$VAR
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Malformed placeholders should be treated as literal text
+        Assert.True(result["app"].Environment["MALFORMED"].IsLiteral);
+        Assert.Equal("${NO_CLOSE_BRACE", result["app"].Environment["MALFORMED"].LiteralValue);
+        
+        Assert.True(result["app"].Environment["JUST_DOLLAR"].IsLiteral);
+        Assert.Equal("$VAR", result["app"].Environment["JUST_DOLLAR"].LiteralValue);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_EmptyPlaceholder_TreatsAsLiteral()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - EMPTY=${}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Empty placeholder should be treated as literal
+        Assert.True(result["app"].Environment["EMPTY"].IsLiteral);
+        Assert.Equal("${}", result["app"].Environment["EMPTY"].LiteralValue);
+    }
+
+    [Fact]
+    public void ParsePlaceholder_UniquePlaceholdersAcrossMultipleEnvVars_TracksAll()
+    {
+        var yaml = @"
+version: '3.8'
+services:
+  app:
+    image: test
+    environment:
+      - VAR1=${PLACEHOLDER1}
+      - VAR2=${PLACEHOLDER2:-default}
+      - VAR3=${PLACEHOLDER1}
+      - VAR4=literal
+      - VAR5=${PLACEHOLDER3}:${PLACEHOLDER1}
+";
+        var result = DockerComposeParser.ParseComposeFile(yaml);
+        
+        // Should have 3 unique placeholders even though PLACEHOLDER1 appears 3 times
+        Assert.Equal(3, result["app"].Placeholders.Count);
+        Assert.Contains("PLACEHOLDER1", result["app"].Placeholders.Keys);
+        Assert.Contains("PLACEHOLDER2", result["app"].Placeholders.Keys);
+        Assert.Contains("PLACEHOLDER3", result["app"].Placeholders.Keys);
+        
+        // Check that PLACEHOLDER2 has its default value
+        Assert.Equal("default", result["app"].Placeholders["PLACEHOLDER2"].DefaultValue);
+        Assert.Equal(PlaceholderDefaultType.ColonMinus, result["app"].Placeholders["PLACEHOLDER2"].DefaultType);
+    }
+
+    #endregion
+
     #region Port Mapping Tests
     // Spec: Ports can be defined using short syntax (string) or long syntax (mapping)
 
