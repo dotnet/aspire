@@ -252,16 +252,6 @@ public class Program
         }
 
         var ansiConsole = AnsiConsole.Create(settings);
-
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Capabilities.Ansi)}: {ansiConsole.Profile.Capabilities.Ansi}");
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Capabilities.Interactive)}: {ansiConsole.Profile.Capabilities.Interactive}");
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Capabilities.ColorSystem)}: {ansiConsole.Profile.Capabilities.ColorSystem}");
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Width)}: {ansiConsole.Profile.Width}");
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Height)}: {ansiConsole.Profile.Height}");
-#pragma warning disable CS0618 // Type or member is obsolete
-        Console.WriteLine($"{nameof(ansiConsole.Profile.Capabilities.IsTerminal)}: {ansiConsole.Profile.Capabilities.IsTerminal}");
-#pragma warning restore CS0618 // Type or member is obsolete
-
         return ansiConsole;
     }
 
