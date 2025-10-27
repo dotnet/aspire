@@ -93,6 +93,6 @@ Performs a comprehensive smoke test of an Aspire PR build by installing the Aspi
 - Creates and runs an Aspire Python starter app (`aspire-py-starter`)
 - Tests Python backend API service and Vite/React frontend
 - Verifies Dashboard functionality and telemetry collection
-- Tests SDK install feature flag (`alwaysInstallSdk`)
+- Tests SDK install feature flag (`dotNetSdkInstallationEnabled`)
 - Tests hot reload for both Python and Vite
 - Captures screenshots for verification
