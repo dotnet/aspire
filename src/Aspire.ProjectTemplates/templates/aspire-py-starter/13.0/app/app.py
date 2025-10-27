@@ -59,10 +59,11 @@ def get_redis_client():
 logger = logging.getLogger(__name__)
 
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return "API service is running. Navigate to /weatherforecast to see sample data."
+if not os.path.exists("static"):
+    @app.get("/")
+    async def root():
+        """Root endpoint."""
+        return "API service is running. Navigate to /weatherforecast to see sample data."
 
 @app.get("/api/weatherforecast")
 //#if UseRedisCache
