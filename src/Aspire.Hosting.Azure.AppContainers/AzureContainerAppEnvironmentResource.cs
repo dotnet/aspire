@@ -14,9 +14,7 @@ namespace Aspire.Hosting.Azure.AppContainers;
 /// <param name="name">The name of the Container App Environment.</param>
 /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureContainerAppEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     AzureProvisioningResource(name, configureInfrastructure), IAzureComputeEnvironmentResource, IAzureContainerRegistry
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     internal bool UseAzdNamingConvention { get; set; }
 

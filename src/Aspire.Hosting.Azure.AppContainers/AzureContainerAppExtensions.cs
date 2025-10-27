@@ -90,9 +90,7 @@ public static class AzureContainerAppExtensions
             infra.Add(identity);
 
             ContainerRegistryService? containerRegistry = null;
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (appEnvResource.TryGetLastAnnotation<ContainerRegistryReferenceAnnotation>(out var registryReferenceAnnotation) && registryReferenceAnnotation.Registry is AzureProvisioningResource registry)
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 containerRegistry = (ContainerRegistryService)registry.AddAsExistingResource(infra);
             }
@@ -113,9 +111,7 @@ public static class AzureContainerAppExtensions
             infra.Add(pullRa);
 
             OperationalInsightsWorkspace? laWorkspace = null;
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             if (appEnvResource.TryGetLastAnnotation<AzureLogAnalyticsWorkspaceReferenceAnnotation>(out var logAnalyticsReferenceAnnotation) && logAnalyticsReferenceAnnotation.Workspace is AzureProvisioningResource workspace)
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
             {
                 laWorkspace = (OperationalInsightsWorkspace)workspace.AddAsExistingResource(infra);
             }
@@ -379,9 +375,7 @@ public static class AzureContainerAppExtensions
         ArgumentNullException.ThrowIfNull(workspaceBuilder);
 
         // Add a LogAnalyticsWorkspaceReferenceAnnotation to indicate that the resource is using a specific workspace
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         builder.WithAnnotation(new AzureLogAnalyticsWorkspaceReferenceAnnotation(workspaceBuilder.Resource));
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 
         return builder;
     }

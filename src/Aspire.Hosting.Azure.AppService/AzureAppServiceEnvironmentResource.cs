@@ -16,10 +16,8 @@ namespace Aspire.Hosting.Azure;
 /// <param name="configureInfrastructure">The callback to configure the Azure infrastructure for this resource.</param>
 public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourceInfrastructure> configureInfrastructure) :
     AzureProvisioningResource(name, configureInfrastructure),
-#pragma warning disable ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
     IAzureComputeEnvironmentResource,
     IAzureContainerRegistry
-#pragma warning restore ASPIRECOMPUTE001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 {
     // We don't want these to be public if we end up with an app service
     // per compute resource.

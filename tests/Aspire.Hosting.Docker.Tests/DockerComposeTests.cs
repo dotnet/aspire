@@ -3,7 +3,7 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIRECOMPUTE001
+#pragma warning disable ASPIRECOMPUTE002
 
 using System.Runtime.CompilerServices;
 using Aspire.Hosting.ApplicationModel;
