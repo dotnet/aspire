@@ -717,7 +717,7 @@ public class DcpExecutorTests
         Assert.Contains(watchLogsResults1, l => l.Content.Contains("Seventh"));
 
         var watchLogs2 = resourceLoggerService.WatchAsync(exeResource.Metadata.Name);
-        var watchLogsTask2 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs2, targetLogCount: 7);
+        var watchLogsTask2 = ConsoleLoggingTestHelpers.WatchForLogsAsync(watchLogs2, targetLogCount: 8);
 
         var watchLogsResults2 = await watchLogsTask2;
         Assert.Contains(watchLogsResults2, l => l.Content.Contains("First"));
