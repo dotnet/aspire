@@ -125,7 +125,7 @@ internal abstract class PipelineCommandBase : BaseCommand
                 return ExitCodeConstants.FailedToFindProject;
             }
 
-            var isSingleFileAppHost = effectiveAppHostFile.Extension != ".csproj";
+            var isSingleFileAppHost = string.Equals(effectiveAppHostFile.Extension, ".cs", StringComparison.OrdinalIgnoreCase);
 
             var env = new Dictionary<string, string>();
 
@@ -481,9 +481,9 @@ internal abstract class PipelineCommandBase : BaseCommand
                             "CRITICAL" => "CRT",
                             _ => "INF"
                         };
-                        
+
                         var prefixedMessage = $"[[{logPrefix}]] {message}";
-                        
+
                         // Map log levels to appropriate console logger methods
                         switch (logLevel.ToUpperInvariant())
                         {

@@ -22,8 +22,6 @@ internal interface IProjectLocator
 
 internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliRunner runner, CliExecutionContext executionContext, IInteractionService interactionService, IConfigurationService configurationService, AspireCliTelemetry telemetry) : IProjectLocator
 {
-    private static readonly HashSet<string> s_supportedProjectFileExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".csproj", ".fsproj", ".vbproj" };
-
     public async Task<List<FileInfo>> FindAppHostProjectFilesAsync(string searchDirectory, CancellationToken cancellationToken)
     {
         var allCandidates = await FindAppHostProjectFilesAsync(new DirectoryInfo(searchDirectory), cancellationToken);
@@ -354,7 +352,7 @@ internal sealed class ProjectLocator(ILogger<ProjectLocator> logger, IDotNetCliR
                     }
                 }
                 // Handle .cs|fs|vbproj files
-                else if (s_supportedProjectFileExtensions.Contains(projectFile.Extension))
+                else if (ProjectFileExtensions.Supported.Contains(projectFile.Extension))
                 {
                     logger.LogDebug("Using project file {ProjectFile}", projectFile.FullName);
                     return new AppHostProjectSearchResult(projectFile, [projectFile]);
