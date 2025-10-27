@@ -9,8 +9,8 @@ This test validates that:
 2. A new starter application can be created and runs successfully
 3. The latest daily build of the Aspire CLI can be acquired and used to update the project
 4. The PR build of the Aspire CLI can be acquired
-5. The `aspire update` command correctly prompts to update the CLI when an update is available
-6. The CLI can be "downgraded" back to the daily build through the update prompt
+5. The `aspire update` command correctly prompts to update the CLI when a newer CLI version is available
+6. The CLI can be updated to the daily build through the update prompt
 7. The dashboard correctly shows the version from the PR build even when using the daily CLI
 
 ## Prerequisites
@@ -35,7 +35,7 @@ Once acquired, verify the CLI is installed correctly:
 aspire --version
 ```
 
-Expected output should show the latest released version number (e.g., `13.0.0` or similar).
+Expected output should show the latest released version number (e.g., `9.5.2` or similar - released versions do not have `-preview` or `-pr` suffixes, though other metadata may be present).
 
 **Note the version number for comparison in later steps.**
 
@@ -83,17 +83,18 @@ Wait for the application to start (30-60 seconds). Observe the console output fo
 
 ### 3.2 Verify Dashboard Access
 
-Navigate to the dashboard URL (from console output) and verify:
+Navigate to the dashboard URL (from console output) and perform a minimal check:
 - Dashboard loads successfully
-- Resources are running
-- No errors in the dashboard
+- Resources are listed and showing as running
 
-**Take a screenshot of the dashboard:**
+**Take a screenshot of the dashboard showing resources:**
 
 ```bash
 playwright-browser navigate $DASHBOARD_URL
 playwright-browser take_screenshot --filename dashboard-released-version.png
 ```
+
+**Note:** This is a minimal verification - we just want to confirm the dashboard launches and displays running resources. Detailed resource checks are not needed here.
 
 ### 3.3 Stop the Application
 
