@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using Aspire.Hosting.ApplicationModel;
+using Aspire.Hosting.Azure.AppService;
 using Azure.Provisioning;
 using Azure.Provisioning.AppService;
 using Azure.Provisioning.Expressions;
@@ -62,6 +63,29 @@ public class AzureAppServiceEnvironmentResource(string name, Action<AzureResourc
     /// </summary>
     internal AzureApplicationInsightsResource? ApplicationInsightsResource { get; set; }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    internal AzureCloudName AzureCloudName { get; set; } = AzureCloudName.AzurePublic;
+
+    /// <summary>
+    /// Gets or sets a value indicating the name of Azure cloud name.
+    /// </summary>
+    internal string AzureAppServiceDnsSuffix
+    {
+        get
+        {
+            var azureCloudDomains = new Dictionary<AzureCloudName, string>()
+            {
+                { AzureCloudName.AzurePublic, "azurewebsites.net" },
+                { AzureCloudName.AzureUSGovernment, "azurewebsites.us" },
+                { AzureCloudName.AzureChina, "chinacloudsites.cn" },
+                { AzureCloudName.AzureGermany, "azurewebsites.de" }
+            };
+            
+            return azureCloudDomains.TryGetValue(AzureCloudName, out var domain) ? domain : "azurewebsites.net";
+        }
+    }
     /// <summary>
     /// Gets the name of the App Service Plan.
     /// </summary>

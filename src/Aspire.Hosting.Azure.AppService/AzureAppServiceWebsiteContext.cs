@@ -412,13 +412,13 @@ internal sealed class AzureAppServiceWebsiteContext(
     {
         return property switch
         {
-            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.Url => BicepFunction.Interpolate($"{mapping.Scheme}://{mapping.Host}.{environmentContext.Environment.AzureAppServiceDnsSuffix}"),
+            EndpointProperty.Host => BicepFunction.Interpolate($"{mapping.Host}.{environmentContext.Environment.AzureAppServiceDnsSuffix}"),
             EndpointProperty.Port => mapping.Port.ToString(CultureInfo.InvariantCulture),
             EndpointProperty.TargetPort => mapping.TargetPort?.ToString(CultureInfo.InvariantCulture) ?? (BicepValue<string>)AllocateParameter(new ContainerPortReference(Resource)),
             EndpointProperty.Scheme => mapping.Scheme,
-            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
-            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.azurewebsites.net"),
+            EndpointProperty.HostAndPort => BicepFunction.Interpolate($"{mapping.Host}.{environmentContext.Environment.AzureAppServiceDnsSuffix}"),
+            EndpointProperty.IPV4Host => BicepFunction.Interpolate($"{mapping.Host}.{environmentContext.Environment.AzureAppServiceDnsSuffix}"),
             _ => throw new NotSupportedException($"Unsupported endpoint property {property}")
         };
     }
