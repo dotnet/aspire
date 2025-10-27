@@ -792,6 +792,10 @@ namespace Aspire.Hosting
         public static ApplicationModel.IResourceBuilder<T> WithParentRelationship<T>(this ApplicationModel.IResourceBuilder<T> builder, ApplicationModel.IResourceBuilder<ApplicationModel.IResource> parent)
             where T : ApplicationModel.IResource { throw null; }
 
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+        public static ApplicationModel.IResourceBuilder<T> WithPublishingCallback<T>(this ApplicationModel.IResourceBuilder<T> builder, System.Func<ApplicationModel.PublishingContext, System.Threading.Tasks.Task> callback)
+            where T : ApplicationModel.IResource { throw null; }
+
         public static ApplicationModel.IResourceBuilder<TDestination> WithReference<TDestination>(this ApplicationModel.IResourceBuilder<TDestination> builder, ApplicationModel.EndpointReference endpointReference)
             where TDestination : ApplicationModel.IResourceWithEnvironment { throw null; }
 
@@ -1977,6 +1981,34 @@ namespace Aspire.Hosting.ApplicationModel
         public required bool ProxyEnabled { get { throw null; } set { } }
     }
 
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class PublishingCallbackAnnotation : IResourceAnnotation
+    {
+        public PublishingCallbackAnnotation(System.Func<PublishingContext, System.Threading.Tasks.Task> callback) { }
+
+        public System.Func<PublishingContext, System.Threading.Tasks.Task> Callback { get { throw null; } }
+    }
+
+    [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+    public sealed partial class PublishingContext
+    {
+        public PublishingContext(DistributedApplicationModel model, DistributedApplicationExecutionContext executionContext, System.IServiceProvider serviceProvider, Microsoft.Extensions.Logging.ILogger logger, System.Threading.CancellationToken cancellationToken, string outputPath) { }
+
+        public Publishing.IPublishingActivityReporter ActivityReporter { get { throw null; } }
+
+        public System.Threading.CancellationToken CancellationToken { get { throw null; } }
+
+        public DistributedApplicationExecutionContext ExecutionContext { get { throw null; } }
+
+        public Microsoft.Extensions.Logging.ILogger Logger { get { throw null; } }
+
+        public DistributedApplicationModel Model { get { throw null; } }
+
+        public string OutputPath { get { throw null; } }
+
+        public System.IServiceProvider Services { get { throw null; } }
+    }
+
     public partial class ReferenceExpression : IManifestExpressionProvider, IValueProvider, IValueWithReferences
     {
         internal ReferenceExpression() { }
@@ -2672,10 +2704,8 @@ namespace Aspire.Hosting.Publishing
     public partial class PublishingOptions
     {
         public const string Publishing = "Publishing";
-<<<<<<< HEAD
-        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPIPELINES002", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
-=======
->>>>>>> 6a1e1323b (Remove PublishingContext and PublishingCallbackAnnotation types from API)
+
+        [System.Diagnostics.CodeAnalysis.Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
         public bool Deploy { get { throw null; } set { } }
 
         public string? OutputPath { get { throw null; } set { } }
