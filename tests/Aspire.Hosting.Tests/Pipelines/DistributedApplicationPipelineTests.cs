@@ -2087,7 +2087,7 @@ public class DistributedApplicationPipelineTests
         });
 
         // Act - execute with --step my-deploy-step filter
-        builder.Services.Configure<PublishingOptions>(options => options.Step = "my-deploy-step");
+        builder.Services.Configure<PipelineOptions>(options => options.Step = "my-deploy-step");
         var context = CreateDeployingContext(builder.Build());
         await pipeline.ExecuteAsync(context);
 
