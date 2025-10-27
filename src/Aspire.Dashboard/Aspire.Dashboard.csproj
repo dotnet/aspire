@@ -305,6 +305,11 @@
 
   <ItemGroup>
     <Content Remove="wwwroot\js\README.md" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-16.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-256.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-32.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-48.png" />
+    <EmbeddedResource Include="Mcp\Resources\aspire-64.png" />
     <None Include="wwwroot\js\README.md" />
   </ItemGroup>
 </Project>

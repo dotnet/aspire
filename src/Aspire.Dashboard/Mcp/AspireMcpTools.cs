@@ -221,7 +221,8 @@ internal sealed class AspireMcpTools
         return consoleLogsData;
     }
 
-    [McpServerTool(Name = "execute_command"), Description("Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.")]
+    [McpServerTool(Name = "execute_command")]
+    [Description("Executes a command on a resource. If a resource needs to be restarted and is currently stopped, use the start command instead.")]
     public static async Task ExecuteCommand(IDashboardClient dashboardClient, [Description("The resource name")] string resourceName, [Description("The command name")] string commandName)
     {
         var resource = dashboardClient.GetResource(resourceName);
