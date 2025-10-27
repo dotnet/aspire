@@ -81,7 +81,7 @@ Performs a comprehensive smoke test of an Aspire PR build by installing the Aspi
 - Tests the native AOT build of the Aspire CLI
 - Creates and runs an Aspire starter app with Blazor frontend
 - Verifies Dashboard functionality and telemetry collection
-- Tests SDK install feature flag (`alwaysInstallSdk`)
+- Tests SDK install feature flag (`dotNetSdkInstallationEnabled`)
 - Captures screenshots for verification
 
 ### smoke-test-python
