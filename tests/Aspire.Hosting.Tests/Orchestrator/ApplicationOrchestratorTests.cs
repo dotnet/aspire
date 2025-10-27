@@ -2,7 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 #pragma warning disable ASPIREINTERACTION001
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREDEPLOYMENT001
 
 using Aspire.Dashboard.Model;
 using Aspire.Hosting.Dashboard;

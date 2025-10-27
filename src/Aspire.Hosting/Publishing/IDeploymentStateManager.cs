@@ -8,7 +8,7 @@ namespace Aspire.Hosting.Publishing;
 /// <summary>
 /// Provides deployment state management functionality.
 /// </summary>
-[Experimental("ASPIREPUBLISHERS001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
+[Experimental("ASPIREDEPLOYMENT001", UrlFormat = "https://aka.ms/aspire/diagnostics/{0}")]
 public interface IDeploymentStateManager
 {
     /// <summary>

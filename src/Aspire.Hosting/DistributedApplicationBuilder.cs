@@ -1,8 +1,9 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-#pragma warning disable ASPIREPUBLISHERS001
+#pragma warning disable ASPIREIMGBUILD001
 #pragma warning disable ASPIREPIPELINES001
+#pragma warning disable ASPIREDEPLOYMENT001
 
 using System.Diagnostics;
 using System.Reflection;
