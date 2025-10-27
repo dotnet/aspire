@@ -88,10 +88,11 @@ public static class MauiOtlpExtensions
         var (otlpScheme, otlpPort) = OtlpEndpointResolver.ResolveSchemeAndPort(configuration);
 
         // Create names for the tunnel infrastructure
-        // The dev tunnel port resource will be named: {tunnelName}-{stubName}-{endpointName}
-        // Stub must be unique across all MAUI projects, so include parent resource name
-        var tunnelName = $"{parentBuilder.Resource.Name}-tunnel";
-        var stubName = $"{parentBuilder.Resource.Name}-otlp";
+        // Use a short random suffix to ensure uniqueness (similar to DCP naming strategy)
+        // The dev tunnel port resource name will be: {parent resource name}-{random}-otlp
+        var randomSuffix = Guid.NewGuid().ToString("N")[..8];
+        var tunnelName = parentBuilder.Resource.Name;
+        var stubName = $"t{randomSuffix}"; // Prefix with 't' to ensure valid resource name
 
         // Create OtlpLoopbackResource - a synthetic IResourceWithEndpoints for service discovery
         var stubResource = new OtlpLoopbackResource(stubName, otlpPort, otlpScheme);
