@@ -11,12 +11,13 @@ internal static class TestHelpers
     public static ICliHostEnvironment CreateInteractiveHostEnvironment()
     {
         var configuration = new ConfigurationBuilder().Build();
-        return new CliHostEnvironment(configuration, nonInteractive: false);
+        // For tests, explicitly set redirection to false to simulate an interactive environment
+        return new CliHostEnvironment(configuration, nonInteractive: false, isInputRedirected: false, isOutputRedirected: false);
     }
 
     public static ICliHostEnvironment CreateNonInteractiveHostEnvironment()
     {
         var configuration = new ConfigurationBuilder().Build();
-        return new CliHostEnvironment(configuration, nonInteractive: true);
+        return new CliHostEnvironment(configuration, nonInteractive: true, isInputRedirected: false, isOutputRedirected: false);
     }
 }
