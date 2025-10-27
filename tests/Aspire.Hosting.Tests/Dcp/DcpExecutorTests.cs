@@ -4,6 +4,7 @@
 #pragma warning disable ASPIREEXTENSION001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using System.Globalization;
 using System.IO.Pipelines;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -153,7 +154,6 @@ public class DcpExecutorTests
         await appExecutor.RunApplicationAsync();
 
         var executables = kubernetesService.CreatedResources.OfType<Executable>().ToList();
-
         var exe = Assert.Single(executables);
 
         // Ignore dotnet specific args for .NET project in process execution.
@@ -2015,7 +2015,7 @@ public class DcpExecutorTests
         resourceLoggerService ??= new ResourceLoggerService();
         dcpOptions ??= new DcpOptions { DashboardPath = "./dashboard" };
 
-        var options = new DistributedApplicationOptions();
+        var developerCertificateService = new TestDeveloperCertificateService(new List<X509Certificate2>(), false, false);
 
         return new DcpExecutor(
             NullLogger<DcpExecutor>.Instance,
@@ -2025,18 +2025,19 @@ public class DcpExecutorTests
             kubernetesService ?? new TestKubernetesService(),
             configuration,
             new Hosting.Eventing.DistributedApplicationEventing(),
-            options,
+            new DistributedApplicationOptions(),
             Options.Create(dcpOptions),
             new DistributedApplicationExecutionContext(new DistributedApplicationExecutionContextOptions(DistributedApplicationOperation.Run)
             {
                 ServiceProvider = new TestServiceProvider(configuration)
+                    .AddService<IDeveloperCertificateService>(developerCertificateService)
             }),
             resourceLoggerService,
             new TestDcpDependencyCheckService(),
             new DcpNameGenerator(configuration, Options.Create(dcpOptions)),
             events ?? new DcpExecutorEvents(),
             new Locations(),
-            new DeveloperCertificateService(NullLogger<DeveloperCertificateService>.Instance, configuration, options));
+            developerCertificateService);
     }
 
     private sealed class TestExecutableResource(string directory) : ExecutableResource("TestExecutable", "test", directory);
